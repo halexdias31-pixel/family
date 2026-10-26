@@ -580,7 +580,10 @@ function kpEdit_(inp, cmd) {
     } else if (sign.test(c) && v.charAt(a) === '(' && kpPartner_(v, a) > a + 1) step = a - 1;
     if (step >= 0) to(step);
     else if (b > a) put('');
-    else if (a > 0) {
+    else if (a === 0 && v) {
+      /* ⌫ WITH NOTHING BEFORE THE CARET is never a dead key in a maths box: it takes the last character (454) */
+      inp.value = v.slice(0, -1); to(inp.value.length);
+    } else if (a > 0) {
       let from = a - 1, end = a;
       if (v.slice(a - 1, a + 1) === '()') {
         end = a + 1;
@@ -804,7 +807,8 @@ document.addEventListener('click', e => {
   if (PRESS_MOVED || PRESS_SLIDING) return;
   const show = inp.parentNode && inp.parentNode.querySelector('.kp-show');
   let at = null;
-  if (show && show.contains(e.target) && e.detail && inp.value) {
+  /* ONLY A TAP IN THE BOX THE PAD IS ALREADY ON places the caret; arriving lands at the end, so ⌫ deletes (454: a tap left of a wrong answer froze ⌫ at 0) */
+  if (KP_AT === inp && show && show.contains(e.target) && e.detail && inp.value) {
     try { at = kpHit_(inp, show, e.clientX, e.clientY); } catch (err) { at = null; }
   }
   kpTake_(inp);
@@ -1186,6 +1190,48 @@ function aiKeptPaint_(box, inp) {
   return true;
 }
 
+/* ---------- MARK WITH AI SAYS WHERE IT IS (456): the owner, "it just says marking ... we didn't feel blind". The one wait allowed words beside the dots. § */
+const AI_STAGE_SENT_MS = 1500;   // the answer is a few KB of text: past this it has left on any connection that will answer
+const AI_STAGE_SLOW_MS = 20000;  // a mark usually lands well inside this; past it, say so
+const AI_STAGE_TICK_MS = 500;
+function aiStageSay_(ms) {
+  const s = Math.floor(ms / 1000);
+  /* ONLY WHAT HAS HAPPENED: sent, then marked by Gemini in one call -- so no "reading" stage it cannot vouch for. */
+  const words = ms < AI_STAGE_SENT_MS ? 'Sending your work…'
+    : ms < AI_STAGE_SLOW_MS ? 'Marking against the scheme…'
+    : 'Still working — this one is taking longer than usual';
+  return s ? words + ' · ' + s + ' s' : words;
+}
+function aiStageStart_(box, out) {
+  let line = box.querySelector(':scope > .qp-ai-stage');
+  if (!line) {
+    line = document.createElement('div');
+    if (out && out.parentNode === box) out.after(line); else box.appendChild(line);
+  }
+  line.className = 'qp-ai-stage';
+  line.setAttribute('aria-busy', 'true');
+  line.innerHTML = loading_() + '<span class="qp-ai-stage-say"></span>';
+  const say = line.querySelector('.qp-ai-stage-say');
+  const began = Date.now();
+  const paint = () => { const t = aiStageSay_(Date.now() - began); if (say.textContent !== t) say.textContent = t; };
+  paint();
+  const timer = setInterval(paint, AI_STAGE_TICK_MS);
+  return { line: line, stop: () => clearInterval(timer) };
+}
+/* A MARK TAKES THE LINE AWAY; A FAILURE LEAVES A TRY AGAIN TILE IN IT, the reason being the verdict line above. */
+function aiStageEnd_(st, failed) {
+  st.stop();
+  if (!failed) { st.line.remove(); return; }
+  st.line.removeAttribute('aria-busy');
+  st.line.className = 'qp-ai-stage tile-row';
+  st.line.innerHTML = tile_({ icon: 'again', label: 'Try again', act: 'qp-ai-again' });
+}
+on('qp-ai-again', (el) => {
+  const box = el.closest('.qp-ai');
+  const go = box && box.querySelector('[data-do="qp-ai"]');
+  if (go && !go.disabled) ACTIONS['qp-ai'](go);
+});
+
 on('qp-ai', (el) => {
   const box = el.closest('.qp-ai');
   const card = el.closest('.qcard');
@@ -1223,13 +1269,17 @@ on('qp-ai', (el) => {
      tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
   box.classList.add('is-busy');
   el.classList.add('is-busy');
-  out.textContent = 'Marking\u2026';
-  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); if (letGo) letGo(); };
+  out.textContent = '';
+  const stage = aiStageStart_(box, out);
+  let failed = false;
+  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); aiStageEnd_(stage, failed); if (letGo) letGo(); };
   /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): § */
   const essay = ansEssay_(x);
   api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
         answer: sent, marks: Number(x.marks) || 1, essay: essay })
     .then(d => {
+      /* NO TRY AGAIN WHERE AGAIN CANNOT HELP: switched off, or today's marks used. */
+      failed = (!d || !d.success) && !(d && (d.why === 'ai-off' || d.why === 'ai-cap'));
       done();
       if (d && d.why === 'ai-off') return aiOff_(d.message);
       /* A VERDICT IS ABOUT THE ANSWER IT MARKED. § */
@@ -1261,8 +1311,9 @@ on('qp-ai', (el) => {
       if (essayBox) aiKeptPaint_(box, inp);
     })
     .catch(() => {
+      failed = true;
       done();
-      out.textContent = 'Could not reach the marker \u2014 try again';
+      out.textContent = 'Could not reach the marker \u2014 check the connection';
     });
 });
 

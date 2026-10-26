@@ -830,6 +830,49 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (mine().length !== 1 || mine()[0].spec.hour !== 19) bad.push('digestKeepBooked_ after weekly_digest_hour moved to 19 left ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted one trigger, at 19');
 }
 {
+  /* (d) 9PM ON THE SUNDAY THE CLOCKS GO BACK (25 Oct 2026, docs/history/457) — the owner: "why was it done at 6pm
+     instead of 9pm". The sheet's row kept the old seed's 18, so every admin load kept the trigger at 18. */
+  const { b, trig, mail, setClock } = seeded();
+  const mine = () => trig.filter(t => t.spec.fn === 'weeklyDigestRun');
+  const OLD = 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it';
+  const g = b.tabs.config, h = g[0];
+  const putRow = (v, note) => { const r = g.find((x, i) => i > 0 && x[h.indexOf('key')] === 'weekly_digest_hour'); r[h.indexOf('value')] = v; if (h.indexOf('what_it_does') >= 0) r[h.indexOf('what_it_does')] = note; b.ev('clearCache()'); };
+  asked++;
+  cfgSet(b, 'weekly_digest_hour', 18);
+  if (h.indexOf('what_it_does') < 0) bad.push('the config tab in the check has no what_it_does column, so the old seed cannot be asked');
+  putRow(18, OLD);
+  b.ev('installWeeklyDigest_()');
+  if (mine()[0].spec.hour !== 18) bad.push('the stale-18 world did not start booked at 18');
+  b.ev('clearCache(); seedConfig_()');
+  b.ev('clearCache(); digestKeepBooked_()');
+  if (mine().length !== 1 || mine()[0].spec.hour !== 21) bad.push('a weekly_digest_hour row still exactly as the old seed wrote it (18) left the Sunday trigger at ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted it reseeded to 21 and re-booked');
+  asked++;
+  putRow(18, 'the owner typed this');
+  b.ev('clearCache(); seedConfig_(); digestKeepBooked_()');
+  if (mine()[0].spec.hour !== 18) bad.push('an 18 the owner typed (note changed) was overwritten — only an untouched old seed is reseeded');
+  putRow(21, OLD);
+  b.ev('clearCache(); digestKeepBooked_()');
+  /* THE DAY ITSELF: the week, the hour said and the next send, either side of the clocks changing. */
+  asked++;
+  const w = JSON.parse(JSON.stringify(b.ev('digestWeekToSend_(new Date(' + at('2026-10-25T21:00:00Z') + '))')));
+  if (w.start !== '2026-10-19' || w.end !== '2026-10-25') bad.push('a run at 21:00 GMT on 25 Oct 2026 sends the week ' + JSON.stringify(w) + ' — wanted 19–25 Oct');
+  const next = (s, hr) => new Date(b.ev('digestSendAt_(new Date(' + at(s) + '), ' + hr + ')')).toISOString();
+  [['2026-10-25T00:30:00Z', '2026-10-25T21:00:00.000Z', 'the morning the clocks go back (GMT by evening)'],
+   ['2026-10-24T20:00:00Z', '2026-10-25T21:00:00.000Z', 'the Saturday before, still BST'],
+   ['2026-03-29T00:30:00Z', '2026-03-29T20:00:00.000Z', 'the morning the clocks go forward (BST by evening)']].forEach(([s, want, what]) => {
+    if (next(s, 21) !== want) bad.push('the next send from ' + what + ' is ' + next(s, 21) + ' — wanted 21:00 London, ' + want);
+  });
+  /* AND THE RESERVE ON THAT RUN: a quota at the reserve holds, one above it sends. */
+  asked++;
+  cfgSet(b, 'weekly_digest', 'send'); cfgSet(b, 'weekly_digest_reserve', '3');
+  mail.quota = 3; setClock(at('2026-10-25T21:00:00Z'));
+  const held = run(b, '2026-10-25T21:00:00Z');
+  if (held.sent || mail.sent.length) bad.push('with the quota at the reserve (3) the 25 Oct run still sent ' + mail.sent.length);
+  mail.quota = 100;
+  const sentRun = run(b, '2026-10-25T21:05:00Z');
+  if (sentRun.held || (sentRun.emails && !sentRun.sent && sentRun.emails !== sentRun.already)) bad.push('with the quota back the 25 Oct run still held: ' + JSON.stringify(sentRun));
+}
+{
   /* (g) ONE TRIGGER, AND ONLY ONE (18 Oct, docs/history/352) — the owner: § */
   const { b, trig } = seeded();
   b.ev('ScriptApp.newTrigger("closeFinishedJobs").timeBased().everyDays(1).atHour(3).create()');
@@ -1231,7 +1274,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const r = run(b, '2026-10-18T20:00:00Z');
   const sent = mail.sent.find(m => m.to === 'pat@example.org') || { body: '', htmlBody: '', subject: '' };
   /* THE ROW'S MARKUP IS THE BODY'S: the dark frame's head and its own classes (380) are the email's, not anything a row brought. */
-  const html = String(sent.htmlBody).replace(/^[\s\S]*?<body\b[^>]*>|<\/body><\/html>$/g, '').replace(/ class="(?:kb|kp|kc)"/g, '');
+  const html = String(sent.htmlBody).replace(/^[\s\S]*?<body\b[^>]*>|<\/body><\/html>$/g, '').replace(/ class="(?:kb|kp|kc|gs|gd|gi)"/g, '');
   const text = sent.body, flat = unstyled(html);
   asked++;
   if (r.sent !== 1 || !/as it is on the site/.test(String(r.library))) bad.push('the run did not send Kit’s week with the library fetched: ' + JSON.stringify(r).slice(0, 300));
@@ -1346,7 +1389,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, { site: "https://halexdias31-pixel.github.io/family/", hour: 21, lib: __LIB })')));
   const cards = r.html.split('bgcolor="#0b0b0b" style="border:10px solid #101010').length - 1;
   asked++;
-  if (cards !== 2 || r.html.indexOf('<span style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
+  if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
       || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">4 marks') === -1
       || said(r.html).indexOf('Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
@@ -1355,10 +1398,10 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   /* THE BLACK SCREEN, SAID: the page, the summary's pane and every card fill their own cells, so a dark inbox has nothing to guess. */
   if (!/^<!DOCTYPE html><html lang="en" style="background:#000"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><style>:root\{color-scheme:dark/.test(r.html)
       || !/<body class="body" bgcolor="#000"[^>]*><table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000"/.test(r.html)
-      || /u\+\.body|linear-gradient|mix-blend/.test(r.html) || r.html.indexOf('[data-ogsb] .kb{background-color:#000!important}') === -1
+      || !/u\+\.body \.gs\{background:#000;mix-blend-mode:screen\}u\+\.body \.gd\{background:#000;mix-blend-mode:difference\}/.test(r.html) || !/<div class="gs"><div class="gd">/.test(r.html) || r.html.indexOf('[data-ogsb] .kb{background-color:#000!important}') === -1
       || r.html.indexOf('class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#101010"') === -1
-      || r.html.indexOf('bgcolor="#f4f1e8" style="border:3px solid #3ddc84') === -1 || /#ffffff|#f4f1e8" style="background/.test(r.html))
-    bad.push('the email is not the site\'s black screen, said dark to every client — color-scheme dark, the body and every frame cell #000 with Outlook\'s [data-ogsb] defences and no Gmail-app gradient (it leaves the words dark on black), the page #000, the summary\'s pane #101010, their answer in the paper box ringed green when right');
+      || r.html.indexOf('bgcolor="#1a1a1a" style="border:1px solid #383838') === -1 || /#ffffff|#f4f1e8|#2b2620/.test(r.html))
+    bad.push('the email is not the site\'s black screen, said dark to every client — color-scheme dark, the body and every frame cell #000 with Outlook\'s [data-ogsb] defences, the Gmail app\'s inversion undone by screen and difference (457), the page #000, the summary\'s pane #101010, their answer in a dark box, no paper');
 }
 
 /* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT § */

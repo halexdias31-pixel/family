@@ -680,8 +680,8 @@ const REG_PIN = /^\d{4,8}$/;
 const REG_NOTE = {
   /* "ONCE YOU HAVE OPENED IT", not "once you are in": signing in waits on nothing, but a child waits on
      the parent's address being proved (`confirmFirst_` in people.gs), so the link comes first. */
-  parent: 'We email you a link to open. Once you have opened it, make your child\'s account on Students — '
-        + 'they need no email.',
+  parent: 'We email you a link to open. Once you have opened it, find your child\'s handle on Student profiles '
+        + 'and tap Add as my child.',
   student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
          + 'can also make your account, on Students.',
 };
@@ -840,7 +840,7 @@ function verifyFromLink_(again) {
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
               + (!me ? ' — now sign in with it and your PIN.'
-                 : mayAddChild_() ? ' — you can make your child\'s account on Students now.' : '.'));
+                 : mayAddChild_() ? ' — you can add your child on Student profiles now.' : '.'));
       }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
       try { if (!USER) go('account'); } catch (e) {}
@@ -1594,13 +1594,10 @@ function mayAddChild_() {
 function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
-    <p class="sub">Already has an account? Search their handle at the top of ${esc(tabLabel_('students', 'Students'))} and tap
-      Add as my child on their card. They say yes before anything is linked.</p>
+    <p class="sub">Your child makes their own account (Make an account). Then search their handle at the top of
+      ${esc(tabLabel_('students', 'Student profiles'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
-
-/* ---------- MAKING YOUR CHILD'S ACCOUNT, FROM YOURS § */
-let KID_MADE = { pid: '', name: '', handle: '', pin: '' };
 
 /* THE SIGN-IN SLIP — the same paper wherever a handle and a PIN are handed to somebody: here, and in
    the New PIN sheet. Paper, so `--paper` and `--paper-ink`, never a literal. */
@@ -1613,29 +1610,7 @@ function pinSlip_(first, handle, pin) {
   </div>`;
 }
 
-/* THE MAKE FORM, the middle section of "Manage your child" (`childManageCard_`, below). § */
-function kidMakeSec_() {
-  const mine = KID_MADE.pid && USER && KID_MADE.pid === String(USER.personId || '');
-  const kidSurname = (USER && USER.profile && USER.profile.last_name) || '';
-  return `<div class="kid-sec kid-make">
-    <h4 class="kid-h">Make your child's account</h4>
-    <p class="sub">No email needed. They sign in with a handle we make for them and a PIN you
-      choose.</p>
-    ${/* THE NAMES ARE DRAFTS UNTIL THE ACCOUNT IS MADE (data.js; 317), the surname starting from the
-          parent's own as it always did. NEVER THE PIN BELOW. */''}
-    <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-new', 'first')} value="${esc(draftVal_('kid-new', 'first'))}"></label>
-      <label class="field"><input data-kid-new="last" placeholder="Last name" autocomplete="off"
-             value="${esc(draftVal_('kid-new', 'last', kidSurname))}"${draftAttr_('kid-new', 'last', kidSurname)}></label>
-    </div>
-    <label class="field"><span>a PIN for them — 4 to 8 digits</span>
-      <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-    <button class="btn quiet" data-do="kid-make">Make their account</button>
-    ${mine ? pinSlip_(KID_MADE.name, KID_MADE.handle, KID_MADE.pin)
-             + '<p class="faint">Write it down or take a photo — the PIN is not shown again. We have '
-             + 'emailed you the handle. They are on your account now.</p>' : ''}
-  </div>`;
-}
+/* THE MAKE FORM WAS HERE — the owner (461): "making a child's account shouldn't be a thing". */
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
@@ -1670,9 +1645,9 @@ function movingNote_(p) {
 /* WHERE THE TWO FORMS WOULD BE, for a parent whose address is still PENDING. § */
 function kidHeldSec_() {
   return `<div class="kid-sec kid-held">
-    <h4 class="kid-h">Make your child's account</h4>
+    <h4 class="kid-h">Add your child</h4>
     <p class="sub">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
-      first, then you can make your child's account or add them.</p>
+      first, then you can add your child.</p>
     <div class="tile-row">${resendTile_()}</div>
   </div>`;
 }
@@ -1710,7 +1685,7 @@ function childManageCard_() {
   return `<div class="card kid-card kid-manage">
     <h3>Manage your child</h3>
     ${kidListSec_(held)}
-    ${held ? kidHeldSec_() : kidMakeSec_() + kidAddSec_()}
+    ${held ? kidHeldSec_() : kidAddSec_()}
   </div>`;
 }
 
@@ -1738,30 +1713,6 @@ on('resend-link', el => {
       }
     })
     .catch(() => {});      // `send_` has already said why
-});
-
-on('kid-make', el => {
-  if (!USER) { toast('Sign in first'); return; }
-  /* THE SECTION, so the lock is the make form's alone. */
-  const card = (el && (el.closest('.kid-sec') || el.closest('.card'))) || document;
-  const box = k => card.querySelector('[data-kid-new="' + k + '"]');
-  const val = k => ((box(k) || {}).value || '').trim();
-  const first = val('first'), last = val('last'), pin = val('pin');
-  if (!first || !last) { toast('Their first and last name, please'); return; }
-  if (!REG_PIN.test(pin)) { toast('A PIN is 4 to 8 digits, and nothing else.'); return; }
-  send_({ action: 'makeChild', personId: USER.personId || '', firstName: first, lastName: last, pin },
-        { button: el, busy: 'Making it…', lock: card === document ? undefined : card })
-    .then(d => {
-      KID_MADE = { pid: String(USER.personId || ''), name: first, handle: String(d.handle || ''), pin };
-      ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
-      toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
-      /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
-      if (typeof AT !== 'undefined' && AT === 'students') repaint(true); else markStale_('students');
-      load();
-    })
-    /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
-       the address. */
-    .catch(heldBy_);
 });
 
 /* ---------- A NEW PIN FOR YOUR CHILD, OR FOR ANYBODY IF YOU ARE AN ADMIN § */
@@ -1941,6 +1892,8 @@ function youSettingsPages_() {
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
   pages.push(rolesCard_());
   pages.push(notifyCard_());
+  const voice = voiceCard_();
+  if (voice) pages.push(voice);
   return pages;
 }
 function studentSetPages_() {
@@ -1957,9 +1910,41 @@ function studentSetPages_() {
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  return [top].concat(youSettingsPages_(), coming);
+  /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
+  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
+  /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
+  const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
+  return [top].concat(youSettingsPages_(), prog, wait);
 }
 screen('account', () => pages('account', studentSetPages_()));
+
+/* ---------- READING ALOUD: WHICH VOICE (453) — one row, the device's voices best first, kept on this device ---------- */
+function voiceSelect_() {
+  const all = voicesRanked_('en-GB'), mine = (voicePick_('en-GB') || {}).name || '';
+  const opts = all.length ? all.map(v => `<option value="${esc(v.name)}"${v.name === mine ? ' selected' : ''}>${esc(v.name + ' · ' + v.lang)}</option>`).join('')
+    : '<option value="">The device\'s own voice</option>';
+  return `<select class="voice-sel" aria-label="Voice">${opts}</select>`;
+}
+function voiceCard_() {
+  if (!canSay_()) return '';
+  return `<div class="card voice-card"><h3>Reading aloud</h3>
+    <label class="field"><span>voice</span>${voiceSelect_()}</label>
+    <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'in this voice', act: 'voice-try' })}</div>
+    <p class="faint">Kept on this device. The most natural voices are first.</p></div>`;
+}
+const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('voice-sel')) return;
+  try { if (el.value) localStorage.setItem(VOICE_KEY, el.value); else localStorage.removeItem(VOICE_KEY); } catch (err) {}
+});
+on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
+/* VOICES ARRIVE LATE ON CHROME (`voiceschanged`), so the menu is drawn again when they do. */
+try {
+  if (canSay_() && window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', () => {
+    try { document.querySelectorAll('select.voice-sel').forEach(el => { if (document.activeElement !== el) el.outerHTML = voiceSelect_(); }); } catch (e) {}
+  });
+} catch (e) {}
 
 /* A COLUMN ABOVE YOUR RANK: its title, that it is not for your account, and the next step if there is one. */
 const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc(title)}</h3>

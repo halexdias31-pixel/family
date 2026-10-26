@@ -133,6 +133,12 @@ const KINDS = {
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
   /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
+  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455) — a formulae sheet, an equation sheet, the periodic table — found like a paper. */
+  insert: { group: 'Learning', label: 'Inserts', card: x => insertCard_(x) },
+  /* THE HISTORY DATABASE (459): three kinds, Content on the History shelf as boxers are on Boxing's; `histKind` says which. */
+  manuscript: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  figure: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  writing: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
   boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
@@ -375,6 +381,16 @@ const FACETS = [
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
   { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
+  /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
+  { field: 'histKind',  label: 'Manuscripts, figures or writings', of: x => x.histKind || '' },
+  { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
+  { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
+  { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
+  { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
+  { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
+  { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
+  { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
+  { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -677,6 +693,9 @@ function answerCmp_(texts) {
   if (every(t => /^-?\d+(?:\.\d+)?$/.test(t))) return (a, b) => Number(a) - Number(b);
   if (every(t => MONTH_NAMES.indexOf(t) !== -1)) return (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b);
   if (every(t => !!t && ROMAN_SAY.test(t))) return (a, b) => romanVal_(a.toLowerCase()) - romanVal_(b.toLowerCase());
+  /* ERAS IN TIME ORDER (459), not the alphabet's. */
+  const era = t => HIST_ERAS.findIndex(e => e.name === t);
+  if (every(t => era(t) !== -1)) return (a, b) => era(a) - era(b);
   const k = kindRank_();
   for (const by of [k.labels, k.groups]) {
     if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
@@ -1345,6 +1364,245 @@ function contentText_(c) {
   c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
   (c.animations || []).forEach(a => parts.push(a.title));
   return plainText_(parts.filter(Boolean).join(' '));
+}
+
+/* ---------- AN EXAM INSERT (455): ONE CARD, THE WHOLE SHEET, TAGGED AS A PAPER IS ---------- */
+function insertItem_(r) {
+  return {
+    kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
+    subject: r.subject, level: r.levels.length > 1 ? r.levels : r.levels[0] || '', keystage: r.keystage,
+    examBoard: r.boards, tier: r.tiers, documentType: 'Insert',
+    text: plainText_([r.name, r.summary, 'insert formula formulae equation sheet booklet data']
+      .concat(...r.sections.map(s => [s.head].concat((s.lines || []).map(l => l.name)))).join(' ')),
+    row: r,
+  };
+}
+/* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
+function insertsFor_(x) {
+  if (!x || x.kind !== 'question' || !/paper/i.test(String(x.documentType || ''))) return [];
+  const has = (list, v) => !list.length || asList_(v).some(a => list.indexOf(String(a)) !== -1);
+  /* A READING INSERT IS ONE PAPER'S (458): its paper ids, and nothing else, say which */
+  const paper = String((x.row && x.row.paper_id) || '');
+  return (DATA.inserts || []).filter(r => (r.forPapers || []).length ? r.forPapers.indexOf(paper) !== -1
+    : has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x)) && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
+}
+/* ---------- A READING INSERT'S EXTRACT (458): private, so asked for when it is opened and drawn when it lands ---------- */
+const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
+/* THE TEXT IS PARAGRAPHS (a blank line between), `# ` a heading, `> ` the paper's note above it, `[n]` where the paper prints line n */
+function insSource_(r) {
+  const lines = !!r.lineNumbers;
+  return String(r.sourceText || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => {
+    if (/^# /.test(p)) return `<h4 class="insrc-h">${esc(p.slice(2))}</h4>`;
+    if (/^> /.test(p)) return `<p class="insrc-note">${esc(p.replace(/^> /gm, ''))}</p>`;
+    const body = esc(p).replace(/\[(\d{1,3})\]\s*/g, (m, n) => lines ? `<span class="insrc-ln" aria-label="line ${n}">${n}</span>` : '');
+    return `<p class="insrc-p">${body}</p>`;
+  }).join('');
+}
+/* WHAT A READING INSERT SAYS UNTIL ITS WORDS COME: sign in, the dots, coming soon, or why not */
+function insSay_(r) {
+  if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
+  const t = 'in:' + r.id;
+  if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
+  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  return loading_();
+}
+/* ASKED FOR, if it has words in the Ledger and they are not here yet */
+function insWant_(r) {
+  if (r && !r.sourceText && (r.libHas || r.pending)) libAsk_(['in:' + r.id]);
+}
+/* AND WHEN AN ANSWER LANDS, every open wait for an insert says where things stand, or becomes the source */
+function insLanded_() {
+  document.querySelectorAll('.insrc-wait[data-ins]').forEach(el => {
+    const r = insertRow_(el.getAttribute('data-ins'));
+    if (!r) return;
+    if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = insSource_(r); }
+    else el.innerHTML = insSay_(r);
+  });
+}
+/* THE TILE ON A PAPER'S QUESTION: the sheet over the page, as the figure tile opens a figure. */
+function insertTile_(x) {
+  return insertsFor_(x).map(r => tile_({ icon: 'book', label: 'Insert', note: r.name.replace(/\s*\(.*\)$/, ''),
+    act: 'ins-show', data: { id: r.id } })).join('');
+}
+const insertRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
+/* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
+function insertSheet_(r) {
+  const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
+    + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
+  const body = r.table === 'periodic' ? insertTable_(r) : r.sections.map(s => `<section class="insh-sec">
+      <h4>${esc(s.head || '')}</h4>
+      <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
+        <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
+    </section>`).join('');
+  if (insReading_(r)) {
+    return `<div class="insh-sheet insh-reading">
+    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
+    <h3>${esc(r.name)}</h3>
+    ${r.summary ? `<p class="insh-sum">${esc(r.summary)}</p>` : ''}
+    ${r.sourceText ? `<div class="insrc${r.lineNumbers ? ' has-lines' : ''}">${insSource_(r)}</div>`
+      : `<div class="insrc insrc-wait${r.lineNumbers ? ' has-lines' : ''}" data-ins="${esc(r.id)}">${insSay_(r)}</div>`}
+  </div>`;
+  }
+  return `<div class="insh-sheet">
+    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
+    <h3>${esc(r.name)}</h3>
+    ${body}
+    <p class="insh-check"><b>${r.verified ? 'Checked' : 'Not yet checked'}</b> ${esc(r.verifiedNote)}</p>
+  </div>`;
+}
+/* THE PERIODIC TABLE: 18 columns, an element where its group and period put it. */
+function insertTable_(r) {
+  const cells = r.elements.map(e => `<div class="insh-el" style="grid-column:${Number(e[4])};grid-row:${Number(e[5])}">
+      <span class="insh-ar">${esc(String(e[3]))}</span><b>${esc(e[1])}</b><span class="insh-nm">${esc(e[2])}</span><span class="insh-z">${Number(e[0])}</span></div>`).join('');
+  return `<div class="insh-pt-wrap"><div class="insh-pt" role="table" aria-label="Periodic table">${cells}</div></div>
+    <p class="insh-key">In each box: relative atomic mass, symbol, name, atomic number.</p>`;
+}
+function insertCard_(x) {
+  const r = x.row;
+  insWant_(r);
+  return `<div class="card insh">
+    ${tagRow_(x)}
+    ${insertSheet_(r)}
+    <div class="tile-row">${tile_({ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: r.id } })}${
+      r.official.map(o => tile_({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } })).join('')}</div>
+  </div>`;
+}
+on('ins-show', el => {
+  const r = insertRow_(el.getAttribute('data-id'));
+  /* IN PLACE (453): under the question's own tile row, Back gives the page back. */
+  if (r) { insWant_(r); sheetHere_(el); openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`); }
+});
+on('ins-official', el => {
+  const u = String(el.getAttribute('data-url') || '');
+  if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
+});
+/* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
+on('ins-print', el => {
+  const r = insertRow_(el.getAttribute('data-id'));
+  if (!r) return;
+  const paper = document.createElement('div');
+  paper.className = 'insh-paper insh';
+  paper.innerHTML = insertSheet_(r);
+  document.body.appendChild(paper);
+  document.body.classList.add('printing-insh');
+  const done = () => {
+    document.body.classList.remove('printing-insh');
+    paper.remove();
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  setTimeout(done, 4000);
+  window.print();
+});
+
+/* ---------- THE HISTORY DATABASE (459): MANUSCRIPTS, FIGURES, WRITINGS — ONE CARD A ROW, LINKED BY ID. docs/history-db.md ---------- */
+/* A list cell is split on " | "; an id is MS-, FIG- or WR- and digits, and any cell may name one. */
+const HIST_ID = /^(MS|FIG|WR)-\d+$/;
+const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
+const histSpec_ = kind => (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(t => t.kind === kind) || null;
+/* THE ROW AN ID NAMES, in whichever table its prefix says. */
+function histRow_(id) {
+  const t = (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(s => String(id).indexOf(s.prefix) === 0);
+  return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
+}
+const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
+/* A YEAR AS SAID: negative is BC. */
+const histYear_ = n => (n == null || !isFinite(n) ? '' : n < 0 ? -n + ' BC' : n < 1000 ? 'AD ' + n : String(n));
+/* THE ERAS, in order; a row is in every one its years touch (`histErasOf_`) and the funnel sorts them in this order (`answerCmp_`). */
+const HIST_ERAS = [
+  { name: 'Ancient', to: 500 },
+  { name: 'Medieval', to: 1500 },
+  { name: 'Early modern', to: 1800 },
+  { name: 'Modern', to: Infinity },
+];
+/* THE SHARED HELPER: from and to (either may be missing) → the eras they overlap; a range ending on a boundary stays on its side. */
+function histEras_(from, to) {
+  const a = from != null ? from : to, b = to != null ? to : from;
+  if (a == null || !isFinite(a)) return [];
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  return HIST_ERAS.filter((e, i) => {
+    const s = i ? HIST_ERAS[i - 1].to : -Infinity;
+    return lo === hi ? lo >= s && lo < e.to : lo < e.to && hi > s;
+  }).map(e => e.name);
+}
+function histErasOf_(x) {
+  const r = x && x.hdb ? x.row : null;
+  if (!r) return [];
+  return x.kind === 'figure' ? histEras_(r.born_year, r.died_year) : histEras_(r.date_from, r.date_to);
+}
+/* ONE READER FOR EVERY HISTORY FACET: a column of the row, split as a list; nothing on any other kind. */
+const histCol_ = (x, col) => (x && x.hdb && x.row ? histList_(x.row[col]) : []);
+
+/* THE LINKS, BOTH WAYS: what a row names, and what names it — a link typed on one side only still shows on both. */
+function histLinks_(r) {
+  const out = [], seen = new Set();
+  const add = (id, label) => {
+    const to = histRow_(id);
+    if (!to || seen.has(id) || id === r.id) return;
+    seen.add(id); out.push({ id: id, label: label, row: to });
+  };
+  const K = { MS: 'Manuscript', FIG: 'Author', WR: 'Writing' };
+  const kindOfId = id => K[String(id).split('-')[0]] || '';
+  ['writings', 'manuscripts', 'author_id'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
+  histList_(r.relations).forEach(p => {
+    const m = /^([^:]+):\s*(.+)$/.exec(p);
+    if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
+  });
+  (DATA.writings || []).forEach(w => {
+    if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, 'Writing');
+  });
+  (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, 'Manuscript'); });
+  (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, 'Author'); });
+  return out;
+}
+const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
+
+/* THE ITEM: Content, on the History shelf, as boxers are on Boxing's. */
+function histItem_(kind, r) {
+  const fig = kind === 'figure';
+  const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
+  const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
+  return {
+    kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
+    sub: [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span].filter(Boolean).join(' · '),
+    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : 'Writings',
+    shelf: 'History', subject: 'History',
+    text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
+    row: r,
+  };
+}
+
+/* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */
+const HIST_LINES = {
+  manuscript: [['Also known as', 'catalog_ids'], ['Repository', 'repository'], ['City', 'city'], ['Shelfmark', 'shelfmark'],
+    ['Date', 'date_text'], ['Dated by', 'date_basis'], ['Material', 'material'], ['Format', 'format'], ['Language', 'language'],
+    ['Script', 'script'], ['Contents', 'contents'], ['Size', 'size'], ['Provenance', 'provenance'], ['Condition', 'condition'], ['Notes', 'notes']],
+  figure: [['Also known as', 'aliases'], ['Born', r => [r.born_text, r.born_place].filter(Boolean).join(', ')],
+    ['Died', r => [r.died_text, r.died_place].filter(Boolean).join(', ')], ['Places', 'places'], ['Eras', 'eras'], ['Roles', 'roles'],
+    ['Achievements', 'achievements'], ['Relations', r => histList_(r.relations).map(p => {
+      const m = /^([^:]+):\s*(.+)$/.exec(p);
+      return m ? histCap_(m[1]) + ': ' + (HIST_ID.test(m[2].trim()) ? histName_(histRow_(m[2].trim())) || m[2] : m[2]) : p;
+    }).join(' | ')], ['Notes', 'notes']],
+  writing: [['Original title', 'title_original'], ['Author', r => r.author_text || histName_(histRow_(r.author_id))],
+    ['Date', 'date_text'], ['Dated by', 'date_basis'], ['Language', 'language'], ['Genre', 'genre'], ['Context', 'context'],
+    ['Themes', 'themes'], ['Manuscripts', r => histList_(r.manuscripts).map(v => HIST_ID.test(v) ? histName_(histRow_(v)) || v : v).join(' | ')],
+    ['Public-domain translations', 'pd_translation']],
+};
+function histCard_(x) {
+  const r = x.row || {};
+  const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
+    .filter(l => String(l[1] == null ? '' : l[1]).trim());
+  const tiles = histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
+    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
+    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
+      tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
+  return `<div class="card fc hdb">
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+    ${tagRow_(x)}
+    <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
+      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
+  </div>`;
 }
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
@@ -3156,6 +3414,7 @@ function libRepaintFinder_(F) {
 /* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
    where things stand without being rebuilt. */
 function libLanded_() {
+  try { insLanded_(); } catch (e) {}
   try {
     document.querySelectorAll('.lib-wait').forEach(el => {
       const x = libItemByKey_(el.getAttribute('data-lib') || '');
@@ -3482,9 +3741,10 @@ function markRuleIs_(v, test, arg) {
     default: return false;
   }
 }
-function markRuleSet_(typed, spec) {
+function markRuleSet_(typed, spec, spell) {
   const words = s => String(s).toLowerCase().match(/[a-z]+|\d+/g) || [];
   const fill = /^(and|with|then|a|an|the|on|of)$/;
+  if (spell) return markRuleSeq_(typed, spec, spell, words, fill);
   const syn = {};
   const want = spec.split('/').map(item => item.split('+').map(w => {
     const ways = w.trim().toLowerCase().split('~');
@@ -3493,6 +3753,24 @@ function markRuleSet_(typed, spec) {
   }).join('+').split('+').sort().join(' ')).sort();
   const got = String(typed).split(/[,;\n]+/).map(item => words(item).filter(w => !fill.test(w)).map(w => syn[w] || w).sort().join(' '))
     .filter(Boolean).sort();
+  return got.length === want.length && got.every((g, i) => g === want[i]);
+}
+/* `spell h~heads t~tails`: each item is an ORDERED run of letters (HHT is not THH); typed as HHT, H H T, H,H,T or heads heads tails (454) */
+function markRuleSeq_(typed, spec, spell, words, fill) {
+  const map = {};
+  spell.trim().toLowerCase().split(/\s+/).forEach(g => { const w = g.split('~'); w.forEach(x => (map[x] = w[0])); });
+  const want = spec.split('/').map(x => x.trim().toLowerCase()).sort();
+  const len = want[0] ? want[0].length : 0;
+  if (!len || want.some(w => w.length !== len)) return false;
+  let run = '';
+  for (const w of words(typed)) {
+    if (fill.test(w)) continue;
+    if (map[w]) { run += map[w]; continue; }
+    if (![...w].every(c => map[c] === c)) return false;
+    run += w;
+  }
+  if (!run.length || run.length % len) return false;
+  const got = (run.match(new RegExp('.{' + len + '}', 'g')) || []).sort();
   return got.length === want.length && got.every((g, i) => g === want[i]);
 }
 /* ---------- AN ALGEBRAIC ANSWER, MARKED BY ITS VALUE (365) */
@@ -3630,7 +3908,7 @@ function markRule_(typed, rule) {
     return markExpr_(typed, ex[2], eqn, fns) && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
   }
   const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
-  if (set) return markRuleSet_(typed, set[1]);
+  if (set) return markRuleSet_(typed, set[1], (/(?:^|,)\s*spell\s+([^,]+)/.exec(body) || [])[1]);
   const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
   if (!nums.length) return false;
   const sum = vs.reduce((s, v) => s + v, 0);
@@ -4108,15 +4386,21 @@ function cellsTable_(x, html) {
 }
 /* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
+/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as `questionCard_` draws it; the part's whole words where it has no plan */
+const cellsCardHtml_ = x => {
+  try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
+  catch (e) { return String((x && x.html) || ''); }
+};
 function cellsBox_(x) {
   const cells = cellsOf_(x), k = ansKey_(x);
-  const inTable = !!cellsTable_(x, x.html);
+  /* IN THE TABLE ON THIS CARD, not merely in the part's words: a long part's table on a page in front had no box anywhere (457) */
+  const inTable = !!cellsTable_(x, cellsCardHtml_(x));
   const vals = cellsVals_(ansRead_(k));
   const row = inTable ? '' : `<div class="qp-cells">${cells.map((c, i) => c.ways
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${figTile_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
+    <div class="tile-row">${figTile_(x)}${measTiles_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4578,19 +4862,24 @@ const PAD_TOOL_FACE = {
   pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
   ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
   compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
+  protractor: { icon: 'protractor', label: 'Protractor', note: 'on the page: drag it, turn it' },
 };
 const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
   on: on, pressed: on }, PAD_TOOL_FACE[t]));
 /* AND A RULER ON EVERY GRID (357): § */
+/* AND ON A QUESTION, EVERY INSTRUMENT, ALWAYS (457): the toolkit says so (`qToolkit_`); a row's words or `needs` can only add. */
 const padToolsOf_ = (x, svg) => {
   const t = padTools_(x).filter(k => PAD_TOOL_FACE[k]);
   if (t.indexOf('ruler') === -1 && svg && padGrid_(svg)) t.splice(1, 0, 'ruler');
-  return t;
+  const kit = qToolkit_(x);
+  if (kit) kit.pen.forEach(k => { if (PAD_TOOL_FACE[k] && t.indexOf(k) === -1) t.push(k); });
+  return ['pen', 'ruler', 'compass', 'protractor'].filter(k => t.indexOf(k) !== -1);
 };
 
 /* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. § */
-const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === tool)).join('')}</span>` : ''}
+/* THE PROTRACTOR IS LIT WHILE IT LIES ON THE PAGE, beside whichever tool draws (458): it is put down, not drawn with. */
+const padBar_ = (pen, tools, tool, k) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === 'protractor' ? padProtOn_(k) : t === tool)).join('')}</span>` : ''}
       <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
@@ -4624,7 +4913,7 @@ function padWrap_(x, svg, foot) {
   const ka = padAspect_(x, svg);
   const tools = padToolsOf_(x, svg);
   const held = PAD_TOOL.get(k);
-  const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
+  const tool = held && held !== 'protractor' && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
@@ -4636,8 +4925,9 @@ function padWrap_(x, svg, foot) {
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
       </svg>
+      ${tools.indexOf('protractor') !== -1 && padProtOn_(k) ? padProtHtml_(k) : ''}
     </div>
-    ${padBar_(pen, tools, tool)}
+    ${padBar_(pen, tools, tool, k)}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
@@ -5408,7 +5698,8 @@ const PAD_CLEARED_MARK = new Map();
 /* THE TOOL A DRAG ON THIS PAD USES: § */
 function padToolNow_(pad) {
   const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
-  return t !== 'pen' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+  /* the protractor is laid on the page, never drawn with (458) */
+  return t !== 'pen' && t !== 'protractor' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
 }
 
 /* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND § */
@@ -6732,9 +7023,107 @@ function padForgetOthers_() {
 on('pad-tool', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
+  const t = el.getAttribute('data-tool') || 'pen';
+  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
+  if (t === 'protractor') {
+    const st = padProtOf_(k);
+    st.on = !st.on;
+    if (PAD_ON !== k) padTake_(pad, k);
+    padProtSync_(k);
+    return;
+  }
+  PAD_TOOL.set(k, t);
   if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
 });
+
+/* ---------- THE PROTRACTOR (458): a 180° scale lying over the pen's page, moved by its body, turned by its knob ---------- */
+/* where it lies, per pad key for the visit: its centre in % of the picture, its turn in degrees */
+const PAD_PROT = new Map();
+function padProtOf_(k) { if (!PAD_PROT.has(k)) PAD_PROT.set(k, { on: false, x: 50, y: 70, a: 0 }); return PAD_PROT.get(k); }
+const padProtOn_ = k => !!(k && PAD_PROT.has(k) && PAD_PROT.get(k).on);
+/* THE PIVOT (the centre of the base line) inside the drawing's box, in %: the box is -8 -26 216 134 */
+const PROT_PX = 50, PROT_PY = 126 / 134 * 100;
+/* WITHIN THIS MANY DEGREES OF LEVEL OR UPRIGHT IT SETTLES THERE, as a ruler laid on a line does */
+const PROT_SNAP_DEG = 2;
+let PROT_SVG = '';
+function padProtSvg_() {
+  if (PROT_SVG) return PROT_SVG;
+  const R = 100, cx = 100, cy = 100, P = (r, d) => { const t = (180 - d) * Math.PI / 180; return [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)]; };
+  let ticks = '', nums = '';
+  for (let d = 0; d <= 180; d++) {
+    const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4, a = P(R, d), b = P(R - len, d);
+    ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
+    if (d % 10 === 0) {
+      const o = P(R - 19, d), i = P(R - 31, d);
+      nums += `<text x="${o[0]}" y="${o[1]}">${d}</text><text class="qprot-in" x="${i[0]}" y="${i[1]}">${180 - d}</text>`;
+    }
+  }
+  PROT_SVG = `<svg viewBox="-8 -26 216 134" aria-hidden="true">
+    <path class="qprot-body" d="M0 100A100 100 0 0 1 200 100Z"/>
+    <path class="qprot-ticks" d="${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}"/>
+    <g class="qprot-nums">${nums}</g>
+    <circle class="qprot-pin" cx="${cx}" cy="${cy}" r="2.5"/>
+    <line class="qprot-stem" x1="${cx}" y1="0" x2="${cx}" y2="-14"/>
+    <circle class="qprot-knob" data-prot="turn" cx="${cx}" cy="-16" r="9"/>
+    <circle class="qprot-hit" data-prot="turn" cx="${cx}" cy="-16" r="22"/>
+  </svg>`;
+  return PROT_SVG;
+}
+function padProtHtml_(k) {
+  const st = padProtOf_(k);
+  return `<div class="qpad-prot" data-noswipe data-prot-k="${esc(k)}" role="img" aria-label="Protractor, turned ${Math.round(st.a)} degrees"
+    style="left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%">${padProtSvg_()}</div>`;
+}
+/* EVERY COPY OF THIS PAD ON THE PAGE, with the protractor down or up as its state says, and the tile lit to match -- in place, no repaint */
+function padProtSync_(k) {
+  document.querySelectorAll('.qpad').forEach(pad => {
+    if ((pad.getAttribute('data-k') || '') !== k) return;
+    const art = pad.querySelector('.qpad-art'), tile = pad.querySelector('.qpad-tool[data-tool="protractor"]');
+    if (!art || !tile) return;
+    const was = art.querySelector(':scope > .qpad-prot');
+    if (was) was.remove();
+    const on = padProtOn_(k);
+    if (on) art.insertAdjacentHTML('beforeend', padProtHtml_(k));
+    tile.classList.toggle('on', on);
+    tile.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* ITS OWN DRAG, AHEAD OF THE PEN'S (capture), so a finger on the protractor moves it and never draws or swipes */
+let PROT_GO = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target && e.target.closest && e.target.closest('.qpad-prot');
+  if (!el) return;
+  const art = el.parentNode, k = el.getAttribute('data-prot-k') || '';
+  if (!art || !art.getBoundingClientRect) return;
+  e.preventDefault(); e.stopPropagation();
+  const st = padProtOf_(k), r = art.getBoundingClientRect();
+  PROT_GO = { id: e.pointerId, el, k, r, turn: !!(e.target.closest('[data-prot="turn"]')), x0: e.clientX, y0: e.clientY, sx: st.x, sy: st.y };
+  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+}, true);
+document.addEventListener('pointermove', e => {
+  const g = PROT_GO;
+  if (!g || e.pointerId !== g.id) return;
+  e.preventDefault(); e.stopPropagation();
+  const st = padProtOf_(g.k);
+  if (g.turn) {
+    const cx = g.r.left + st.x / 100 * g.r.width, cy = g.r.top + st.y / 100 * g.r.height;
+    let a = Math.round(Math.atan2(e.clientX - cx, cy - e.clientY) * 180 / Math.PI);
+    [-180, -90, 0, 90, 180].forEach(s => { if (Math.abs(a - s) <= PROT_SNAP_DEG) a = s; });
+    st.a = a;
+  } else {
+    st.x = Math.max(0, Math.min(100, g.sx + (e.clientX - g.x0) / g.r.width * 100));
+    st.y = Math.max(0, Math.min(100, g.sy + (e.clientY - g.y0) / g.r.height * 100));
+  }
+  g.el.style.left = st.x.toFixed(2) + '%';
+  g.el.style.top = st.y.toFixed(2) + '%';
+  g.el.style.transform = `translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg)`;
+  g.el.setAttribute('aria-label', 'Protractor, turned ' + Math.round(st.a) + ' degrees');
+}, true);
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => {
+  if (!PROT_GO || e.pointerId !== PROT_GO.id) return;
+  e.stopPropagation();
+  PROT_GO = null;
+}, true));
 
 on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
@@ -7095,8 +7484,10 @@ on('qw-tap', (el) => {
 
 /* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for § */
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
+/* EVERY FIGURE AND PICTURE ON A QUESTION'S PAGE IS A DOOR TO ZOOM (457) */
+const QZOOM_FIG = ' data-do="q-zoom-fig" role="button" tabindex="0" aria-label="Figure: tap to zoom"';
 const pics_ = list => (list || []).map(src =>
-  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
+  `<figure class="qpic"${QZOOM_FIG}><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
 
@@ -7150,7 +7541,7 @@ function qWordsOr_(x, html) {
   return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
 }
 function questionCard_(x) {
-  return `<div class="qcard">
+  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_() : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
           see `questionTiles_`. */''}
@@ -7165,6 +7556,8 @@ function questionCard_(x) {
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
     ${ansArea_(x)}
+    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls. */
+          typeof helpRow_ === 'function' ? helpRow_(x) : ''}
   </div>`;
 }
 
@@ -7187,7 +7580,7 @@ function questionStemCard_(x, i, j) {
   chunks[j].forEach(b => {
     if (b.k === 'pb') { run.push(b.h); return; }
     flush();
-    html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+    html.push((p.diagram ? `<figure${QZOOM_FIG}>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   });
   flush();
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
@@ -7197,6 +7590,7 @@ function questionStemCard_(x, i, j) {
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>${
       !last ? '<p class="qsheet-more">Continued on the next page &rarr;</p>' : ''}
     </div>
+    ${qPageTools_(x)}
   </div>`;
 }
 
@@ -7210,6 +7604,7 @@ function questionPreCard_(x, j) {
       ${chunkHtml_(chunks[j], circOf_(x), x)}
       <p class="qsheet-more">Continued on the next page &rarr;</p>
     </div>
+    ${qPageTools_(x)}
   </div>`;
 }
 
@@ -7453,7 +7848,7 @@ function figHtml_(x, b) {
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
   if (p && p.from !== 'surface') return padWrap_(x, p.svg) + pics;
-  return (x.diagram ? usesFig_(x) || `<figure>${x.diagram}</figure>` : '') + pics;
+  return (x.diagram ? usesFig_(x) || `<figure${QZOOM_FIG}>${x.diagram}</figure>` : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -7539,7 +7934,7 @@ function questionAnsCard_(x) {
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
+  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_() : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${tagRow_(x, 'ans')}
     <div class="tile-row qans-tiles">${open
       ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
@@ -7547,6 +7942,7 @@ function questionAnsCard_(x) {
       /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
       open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
     ${open ? answerBlock_(x) : ''}
+    ${typeof helpRow_ === 'function' ? helpRow_(x) : ''}
   </div>`;
 }
 
@@ -7581,13 +7977,110 @@ function ansHide_(x) { ansSet_(x, false); }
 function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
-  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
+  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) + measTiles_(x) : '';
   /* `Draw` / `Type` WAS HERE, the switch between the answer's two faces (327, 337). A question answered by
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
   /* NO VERDICT BESIDE THE STAR (368), AND NO SOUND SWITCH (374): the verdict is always heard */
-  return fig;
+  /* AND THE TOOLS EVERY QUESTION PAGE HAS (457): Zoom and the padlock, first, from one place (`qToolTiles_`). */
+  return qToolTiles_(x) + fig;
 }
+
+/* ---------- THE ONE TOOLKIT (457) ---------------------------------------------------------------- */
+/* What a question page has is decided HERE, from what the page is, never from a flag a row can lack (docs/history/457). */
+const QT_MEASURE_SUBJECT = /math|statistic|physic|chemi|biolog|science|geograph|design|engineer/i;
+function qToolkit_(x) {
+  if (!x || x.kind !== 'question') return null;
+  const subj = String(x.subject || (x.row && x.row.subject) || '');
+  const pen = padSource_(x);
+  return {
+    zoom: true,                    // the words are always there to enlarge, and every figure with them
+    lock: true,                    // every page has an input, a figure or a pen
+    read: true,                    // Read aloud on every question, not only a primary one (394)
+    help: true, report: true,      // `helpRow_` in the card, `reportTile_` in the row
+    pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
+    measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
+  };
+}
+/* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: Zoom (the page's words and figures, big) and the padlock. */
+function qToolTiles_(x) {
+  const kit = qToolkit_(x);
+  if (!kit) return '';
+  return (kit.zoom ? tile_({ icon: 'zoom', label: 'Zoom', note: 'the question, bigger', act: 'q-zoom', cls: 'q-zoom', data: { key: x.key || '' } }) : '')
+    + (kit.lock ? qLockTile_() : '');
+}
+/* A STEM'S OR A LONG PART'S OWN PAGE has the same, under its words, with Read aloud. */
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${qToolTiles_(x)}${readAloudTile_(x)}</div>`;
+
+/* ---------- ZOOM: THE WHOLE QUESTION, ITS WORDS AND EVERY FIGURE, AS LARGE AS YOU LIKE ---------- */
+function qZoomHtml_(x) {
+  if (!x) return '';
+  const fig = d => (d ? `<figure>${d}</figure>` : '');
+  const out = (x.stems || []).map(p => p ? `<div class="qsheet-stem">${typeset_(String(p.html || ''))}${fig(p.diagram)}${pics_(figImgs_(p.images))}</div>` : '');
+  /* THE PICTURE UNDER THE PEN, without the ink: a surface, or the stem's picture the part draws on, once */
+  const pen = padSource_(x);
+  const penFig = pen && !x.diagram && !(x.stems || []).some(p => p && p.diagram === pen.svg) ? fig(pen.svg) : '';
+  out.push(`${x.lead ? `<div class="qsheet-lead">${typeset_(String(x.lead))}</div>` : ''}<div class="qsheet-part"><div class="qsheet-pb">${
+    typeset_(String(x.html || ''))}</div></div>${fig(x.diagram)}${penFig}${pics_(figImgs_(x.images))}`);
+  return `<div class="qsheet">${out.join('')}</div>`;
+}
+const QZOOM = { z: 1.6, min: 1, max: 4, d0: 0, z0: 1 };
+function qZoomSet_(z) {
+  QZOOM.z = Math.max(QZOOM.min, Math.min(QZOOM.max, Math.round(z * 100) / 100));
+  document.querySelectorAll('.qzoom-in').forEach(el => { el.style.setProperty('zoom', String(QZOOM.z)); el.setAttribute('data-z', String(QZOOM.z)); });
+}
+function qZoomOpen_(title, html) {
+  openSheet(title, `<div class="qzoom-bar">
+      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="0.8" aria-label="Smaller">&minus;</button>
+      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="1.25" aria-label="Bigger">+</button>
+    </div>
+    <div class="qzoom" data-noswipe><div class="qzoom-in" data-z="${QZOOM.z}" style="zoom: ${QZOOM.z}">${html}</div></div>`);
+}
+on('q-zoom', el => {
+  const k = el.getAttribute('data-key');
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  if (x) qZoomOpen_(qNum_(x) + String(x.qPart || ''), qZoomHtml_(x));
+});
+on('q-zoom-by', el => qZoomSet_(QZOOM.z * (Number(el.getAttribute('data-by')) || 1)));
+/* A TAP ON ANY FIGURE OR PICTURE IN A QUESTION ENLARGES IT -- not while a measuring tool is out on it. */
+on('q-zoom-fig', el => {
+  if (MEAS && el.querySelector('svg.meas')) return;
+  const c = el.cloneNode(true);
+  ['data-do', 'role', 'tabindex', 'aria-label'].forEach(a => c.removeAttribute(a));
+  c.querySelectorAll('svg.meas').forEach(m => m.remove());
+  qZoomOpen_('Figure', `<div class="qsheet">${c.outerHTML}</div>`);
+});
+/* TWO FINGERS ON THE ENLARGED PAGE PINCH IT; the − and + keys do the same for anybody. */
+const QZOOM_PTRS = new Map();
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('pointerdown', e => {
+    if (!e.target || !e.target.closest || !e.target.closest('.qzoom')) return;
+    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
+    if (QZOOM_PTRS.size === 2) { const [a, b] = [...QZOOM_PTRS.values()]; QZOOM.d0 = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; QZOOM.z0 = QZOOM.z; }
+  });
+  document.addEventListener('pointermove', e => {
+    if (!QZOOM_PTRS.has(e.pointerId)) return;
+    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
+    if (QZOOM_PTRS.size !== 2 || !QZOOM.d0) return;
+    const [a, b] = [...QZOOM_PTRS.values()];
+    qZoomSet_(QZOOM.z0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / QZOOM.d0);
+  });
+  ['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, e => {
+    QZOOM_PTRS.delete(e.pointerId);
+    if (QZOOM_PTRS.size < 2) QZOOM.d0 = 0;
+  }));
+}
+
+/* ---------- THE PADLOCK ON A QUESTION (457): the page held still while you write, draw or read (`PADLOCK`, overworld.js) ---------- */
+const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
+                            on: on, pressed: on });
+const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
+function qLockTile_() { return tile_(Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' })); }
+function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
+on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
+/* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS PRESSED ON: a lock nobody can see is a broken swipe */
+function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) { PADLOCK.q = ''; qLockPaint_(); } }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */
 function figsBefore_(x) {
@@ -7632,10 +8125,11 @@ function figsBefore_(x) {
 }
 function figTile_(x) {
   const figs = figsBefore_(x);
-  if (!figs.length) return '';
+  /* AND THE PAPER'S INSERT BESIDE IT (455): the figure tile stands wherever a question's tiles do. */
+  if (!figs.length) return insertTile_(x);
   const one = figs.length === 1;
   return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
-                 act: 'q-fig', data: { key: x.key || '' } });
+                 act: 'q-fig', data: { key: x.key || '' } }) + insertTile_(x);
 }
 on('q-fig', el => {
   const k = el.getAttribute('data-key');
@@ -7653,6 +8147,8 @@ on('q-fig', el => {
    the owner's words are in docs/history/394. */
 function readAloudFor_(x) {
   if (!x || (x.kind !== 'question' && x.kind !== 'content')) return false;
+  /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
+  if (x.kind === 'question') return !!(qToolkit_(x) || {}).read;
   const yr = x.bandType === 'year' ? Number(x.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return true;
   return levelOf_(x) === 'SATs';
@@ -7693,7 +8189,7 @@ on('read-aloud', el => {
   const me = READ_NOW = { key: k, at: AT, page: PAGE[AT] || 0 };
   readAloudPaint_(k);
   const done = () => { if (READ_NOW === me) { READ_NOW = null; readAloudPaint_(k); } };
-  lines.forEach((l, i) => say_(l, { rate: 0.85, onend: i === lines.length - 1 ? done : null }));
+  lines.forEach((l, i) => say_(l, { onend: i === lines.length - 1 ? done : null }));
 });
 
 /* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
@@ -7713,7 +8209,7 @@ on('hear-it', el => {
   let x = null;
   try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
   const lang = hearItLang_(x);
-  if (lang) hearItLines_(x).forEach(l => say_(l, { rate: 0.85, lang: lang }));
+  if (lang) hearItLines_(x).forEach(l => say_(l, { lang: lang }));
 });
 
 /* ---------- WHAT IS SAID: THE QUESTION AS THE CARD SHOWS IT, NEVER THE ANSWER OR THE MARKS ---------- */
@@ -8160,6 +8656,12 @@ function stuffItemsRaw_() {
 
     /* ---------- THE CONTENT CARDS: ONE ITEM PER CHAPTER OF data/textbooks.json § */
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
+
+    /* ---------- THE EXAM INSERTS (455) */
+    ...(DATA.inserts || []).map(insertItem_),
+
+    /* ---------- THE HISTORY DATABASE (459) */
+    ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).map(r => histItem_(t.kind, r))),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
@@ -8835,7 +9337,9 @@ function accountPages_(col) {
        "each user can edit their student people in student column". */
     const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
-    out = add.concat(search, mine, fam, manage, everyone);
+    /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
+    const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
+    out = help.concat(add, search, mine, fam, manage, everyone);
   } else {
     /* A PARENT'S CLAIM ("X says they are your parent") is answered here, by the child. */
     const claims = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
@@ -9328,6 +9832,9 @@ const TAG_OF = {
   needs: 'needs',
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
   forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
+  /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
+  histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histMaterial: 'tier',
+  histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
@@ -10490,6 +10997,12 @@ function padSend_(keepalive) {
 /* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
 function measTools_(x) {
   if (!x || !x.diagram) return [];
+  /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
+  const pen = padSource_(x);
+  if (pen && pen.from === 'part') return [];
+  /* EVERY FIGURE IN A SUBJECT THAT MEASURES HAS BOTH (457): the word "measure" was a flag a row could lack */
+  const kit = qToolkit_(x);
+  if (kit && kit.measure) return ['protractor', 'ruler'];
   const r = x.row || x;
   if (r.subject && !/math/i.test(r.subject)) return [];
   const words = String((x.html || r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]*>/g, ' ');

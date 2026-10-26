@@ -293,6 +293,8 @@ function boot(opts) {
          under -- and read those marks back -- without writing the key's format out a second time. */
       'drawMark: typeof DRAW_MARK !== "undefined" ? DRAW_MARK : null,' +
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
+      /* THE PADLOCK (457), a `const` in overworld.js: which of the console and a question page holds the column still. */
+      'padlock: () => (typeof PADLOCK !== "undefined" ? PADLOCK : null),' +
       /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
          ask whether the bar, not the Map, decides what a drag draws. */
       'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
@@ -2671,10 +2673,11 @@ const editorsOf_ = (d, into) => {
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => add('pin', el));
   return into;
 };
-check('Six columns (453): Tutors, Students and Parents hold a card per person by category, your own first where you belong; Tutor, Student and Parent settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
+check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
-  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
+  const SIX = ['s-family', 's-staff', 's-account', 's-tutors', 's-students', 's-parents'];
+  const LABELS = ['Parent settings', 'Tutor settings', 'Student settings', 'Tutor profiles', 'Student profiles', 'Parent profiles'];
   for (const [who, rank, pid] of RANK_COLS_) {
     const a = await hubBoot_(W, who);
     if (a.err) { bad.push(rank + ': ' + a.err); continue; }
@@ -2682,6 +2685,18 @@ check('Six columns (453): Tutors, Students and Parents hold a card per person by
     const txt = s => String((q(s) || {}).textContent || '');
     const order = [...a.d.querySelectorAll('#screen > section.screen')].map(s => s.id).filter(id => SIX.indexOf(id) !== -1);
     SIX.forEach(id => { if (order.indexOf(id) === -1) bad.push(rank + ' has no ' + id + ' column'); });
+    const tabOrder = a.t.TABS.map(x => 's-' + x.id).filter(id => SIX.indexOf(id) !== -1);
+    if (tabOrder.join() !== SIX.join()) bad.push(rank + ': the six read ' + tabOrder.join(' ') + ', wanted ' + SIX.join(' '));
+    const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
+    if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
+    if (rank === 'admin' && tabs[tabs.length - 1] !== 'biz') bad.push('Business is not last for an admin');
+    /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
+    /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
+    if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
+    /* NEEDS HELP TOPS STUDENT PROFILES FOR STAFF AND UP (HELP_COL), and nobody below sees it. */
+    const firstPg = q('#s-students > .page');
+    if ((rank === 'staff' || rank === 'admin') !== !!(firstPg && firstPg.querySelector('.help-list'))) bad.push(rank + ': Needs help ' + (rank === 'staff' || rank === 'admin' ? 'is not the first page of Student profiles' : 'is shown below Staff'));
+    if (a.d.querySelectorAll('.help-list').length > 1) bad.push(rank + ': Needs help is drawn more than once');
     if ((rank === 'admin') !== !!q('#s-biz')) bad.push(rank + (rank === 'admin' ? ' has no Business column' : ' is given the Business column'));
     /* STUDENT SETTINGS: every account's PIN, roles, notifications and Sign out, and nothing of a parent's, tutor's or people's. */
     if (!q('#s-account .roles-card') || !q('#s-account [data-do="pin-save"]') || !q('#s-account .notify-card') || !q('#s-account [data-do="signout"]')) bad.push(rank + ': Student settings lacks Your roles, the PIN, Notifications or Sign out');
@@ -2898,7 +2913,7 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
     const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'adjective_1'].filter(f => c.d.querySelector('#s-account [data-me="' + f + '"]'));
     if (on.length) bad.push(who + '\'s Settings still has boxes the card edits: ' + on.join(', '));
     if (!c.d.querySelector('#s-account [data-me="email"]')) bad.push(who + '\'s Settings lost the email box');
-    if (!/tutor card on Tutors, your rate and hours in the Staff hub on Tutor settings/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
+    if (!/tutor card on Tutor profiles, your rate and hours in the Staff hub on Tutor settings/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
     common(who, c.d);
   }
   /* A PARENT AND A STUDENT: their own groups less the card's two and the library cards — every other box. */
@@ -9175,41 +9190,11 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
   if ((t2.whoami() || {}).pendingEmail) bad.push('myProfile said the address is proved and the phone kept it waiting: ' + JSON.stringify(t2.whoami().pendingEmail));
   t2.go('students', false, true);
   await wait(250);
-  if (d2.querySelector('#s-students .kid-held') || !d2.querySelector('#s-students .kid-manage .kid-make [data-kid-new]'))
-    bad.push('once the address was proved, Settings still holds the child back, or "Manage your child" has no "Make your child\'s account" form');
+  if (d2.querySelector('#s-students .kid-held') || !d2.querySelector('#s-students .kid-manage .kid-add'))
+    bad.push('once the address was proved, Settings still holds the child back, or "Manage your child" has no "Add your child" section');
   t2.go('account', false, true);
   await wait(250);
   if (d2.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('once the address was proved, the You column still says the mail is held');
-  return bad;
-});
-
-/* A STALE PHONE DRAWS THE FORM; THE SERVER'S REFUSAL TURNS IT INTO THE HELD CARD — not a toast over a
-   form that will be refused again on every press. */
-check('a refused make-child for an unconfirmed address turns the forms of "Manage your child" into its held sentence', async () => {
-  const pat = { name: 'Pat Parent', personId: 'P-PAT', role: 'parent', roles: ['parent'], token: 'tk-pat', handle: 'pat_kind20',
-                profile: { first_name: 'Pat', last_name: 'Parent' } };
-  const reply = b => b.action === 'makeChild'
-      ? { error: 'Open the link we emailed to pat@example.org first — then you can make your child\'s account. Nothing was made.',
-          why: 'unconfirmed', pendingEmail: 'pat@example.org' }
-    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
-    : { success: true, messages: [] };
-  const { w } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
-  await wait(700);
-  const t = w.__t, d = w.document, bad = [];
-  t.go('students', false, true);
-  await wait(250);
-  const card = d.querySelector('#s-students .kid-make');
-  if (!card) return ['a parent with no word on their address was not shown the make-child form to begin with'];
-  const val = (k, v) => { const el = card.querySelector('[data-kid-new="' + k + '"]'); if (el) el.value = v; };
-  /* BUILT FROM ITS DIGITS — `check-secrets.js` refuses four digits beside the word. */
-  val('first', 'Lu'); val('last', 'Parent'); val('pin', ['4', '8', '2', '6'].join(''));
-  t.ACTIONS['kid-make'](card.querySelector('[data-do="kid-make"]'));
-  await wait(400);
-  if (!/Open the link we emailed to pat@example\.org/.test(String((d.getElementById('toast') || {}).textContent || '')))
-    bad.push('the server\'s sentence was not said');
-  if (!d.querySelector('#s-students .kid-manage .kid-held') || d.querySelector('#s-students [data-kid-new]'))
-    bad.push('the refusal left the form standing instead of the held sentence');
-  if (((t.whoami() || {}).pendingEmail || '') !== 'pat@example.org') bad.push('the phone did not keep the address the server said is waiting');
   return bad;
 });
 
@@ -9273,11 +9258,11 @@ check('proof: your own link opened while signed in takes the held card away, and
   if (asked < 1) bad.push('no myProfile left at start-up, so the order the review found was NOT played');
   if ((t.whoami() || {}).pendingEmail) bad.push('after your own link was opened the phone still holds the address as waiting: '
     + JSON.stringify(t.whoami().pendingEmail) + (asked >= 2 ? '' : ' — the late myProfile painted over the confirmation'));
-  if (!/make your child's account/i.test(toastOf_(d)) && !/confirmed/i.test(toastOf_(d))) bad.push('the toast after your own link says ' + JSON.stringify(toastOf_(d)));
+  if (!/add your child/i.test(toastOf_(d)) && !/confirmed/i.test(toastOf_(d))) bad.push('the toast after your own link says ' + JSON.stringify(toastOf_(d)));
   t.go('students', false, true);
   await wait(250);
-  if (d.querySelector('#s-students .kid-held') || !d.querySelector('#s-students .kid-make [data-kid-new]'))
-    bad.push('Settings still holds the child back after your own link was opened — under a toast saying you can make their account');
+  if (d.querySelector('#s-students .kid-held') || !d.querySelector('#s-students .kid-manage .kid-add'))
+    bad.push('Settings still holds the child back after your own link was opened — under a toast saying you can add your child');
   t.go('account', false, true);
   await wait(250);
   if (d.querySelector('#s-account .mail-held')) bad.push('the You column still says your mail is held after your own link was opened');
@@ -9552,7 +9537,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   }
   if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
   const note = String((d.getElementById('reg-note') || {}).textContent || '');
-  if (!/child's account/.test(note) || !/Students/.test(note)) bad.push('a parent\'s note does not say where their child\'s account is made: ' + JSON.stringify(note));
+  if (!/Add as my child/.test(note) || !/Student profiles/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
 
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -9574,8 +9559,8 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   await wait(250);
   /* "MAKE YOUR CHILD'S ACCOUNT" IS THERE FROM THE FIRST PAINT — as the one sentence that says what comes first while the address is unproved (`confirmFirst_`) § */
   const heldCard = d.querySelector('#s-students .kid-held');
-  if (!heldCard || !/Make your child's account/.test(String(heldCard.textContent || '')) || !/dana@example\.org/.test(String(heldCard.textContent || '')))
-    bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings saying to open the link sent to their address');
+  if (!heldCard || !/Add your child/.test(String(heldCard.textContent || '')) || !/dana@example\.org/.test(String(heldCard.textContent || '')))
+    bad.push('a parent who has just signed in for the first time has no "Add your child" on Student profiles saying to open the link sent to their address');
   if (d.querySelector('#s-students [data-kid-new]')) bad.push('a parent whose address nobody has proved yet is offered the make-child form, which the server refuses');
 
   /* A STUDENT'S POST SAYS STUDENT. */
@@ -9622,7 +9607,7 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
     if (!kept || kept.role !== 'parent') bad.push('the corrected role was not kept, so the next open starts stale again');
     try { t.go('students', false, true); } catch (e) {}
     await wait(250);
-    if (!d.querySelector('#s-students .kid-make')) bad.push('after the role was corrected there is still no "Make your child\'s account" — the walk\'s sign-out dance is still needed');
+    if (!d.querySelector('#s-students .kid-manage .kid-add')) bad.push('after the role was corrected there is still no "Manage your child" — the walk\'s sign-out dance is still needed');
   }
   /* AN OLD SERVER SENDS NO ROLE: what the phone had stays. */
   {
@@ -9650,65 +9635,27 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
 });
 
 /* ---------- MANAGE YOUR CHILD IS ONE CARD (docs/history/339) § */
-check('a parent makes their child\'s account on "Manage your child" and is shown the handle and the PIN on a slip', async () => {
-  const { w, sent } = boot({ reply: b => b.action === 'makeChild'
-    ? { success: true, name: 'Ivy Parent', handle: 'ivy_kind42', personId: 'P-IVY' } : { success: true } });
+check('461: "Manage your child" lists the children and says how to add one — no form makes a child\'s account', async () => {
+  const { w } = boot({ reply: () => ({ success: true }) });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk',
            profile: { first_name: 'Pat', last_name: 'Parent' } });
-  try { t.go('students', false, true); w.paint('students'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  try { t.go('students', false, true); w.paint('students'); } catch (e) { return ['drawing Student profiles threw: ' + e.message]; }
   await wait(300);
-  const card = () => d.querySelector('#s-students .kid-manage .kid-make');
-  if (!card()) return ['a parent\'s "Manage your child" has no "Make your child\'s account" form'];
   const manage = d.querySelectorAll('#s-students .kid-manage');
-  if (manage.length !== 1) bad.push('a parent\'s Settings draws ' + manage.length + ' "Manage your child" cards, wanted one');
+  if (manage.length !== 1) return ['a parent\'s Student profiles draws ' + manage.length + ' "Manage your child" cards, wanted one'];
   if (!/^Manage your child$/.test(String((manage[0].querySelector(':scope > h3') || {}).textContent || '').trim())) bad.push('the card is not titled "Manage your child"');
-  const secs = [...manage[0].querySelectorAll('.kid-sec')].map(x => x.classList.contains('kid-make') ? 'make' : x.classList.contains('kid-add') ? 'add' : x.classList.contains('kid-list') ? 'list' : '?');
-  if (JSON.stringify(secs) !== '["list","make","add"]') bad.push('"Manage your child" holds ' + JSON.stringify(secs) + ', wanted the children, then making an account, then linking one');
-  if (!/Make your child's account/.test(card().textContent) || !/Add your child/.test(manage[0].textContent)) bad.push('the two forms lost the captions the server\'s emails and refusals name');
-  if ([...d.querySelectorAll('#s-students > .page')].filter(p => p.querySelector('[data-kid-new], [data-kid]')).length !== 1) bad.push('the two forms are on more than one page');
-  const box = k => card().querySelector('[data-kid-new="' + k + '"]');
-  if (!box('first') || !box('last') || !box('pin')) return bad.concat(['the make card is missing one of first, last, PIN']);
-  if (box('last').value !== 'Parent') bad.push('the last name box is not filled with the parent\'s own (' + JSON.stringify(box('last').value) + ')');
-  if (box('pin').type !== 'password' || box('pin').inputMode !== 'numeric') bad.push('the PIN box is not a numeric password box');
-  box('first').value = 'Ivy';
-  for (const p of ['12a', '123']) {
-    box('pin').value = p;
-    sent.length = 0;
-    t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
-    await wait(150);
-    if (sent.some(b => b.action === 'makeChild')) bad.push('a PIN of "' + p + '" was posted');
-  }
-  box('pin').value = '0000';
-  sent.length = 0;
-  t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
-  await wait(400);
-  const post = sent.find(b => b.action === 'makeChild');
-  if (!post) return bad.concat(['Make their account posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no makeChild']);
-  const want = { firstName: 'Ivy', lastName: 'Parent', pin: '0000', personId: 'P-C1' };
-  Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('makeChild carried ' + k + ' = ' + JSON.stringify(post[k])); });
-  try { w.paint('students'); } catch (e) {}
-  await wait(100);
-  const slip = card() && card().querySelector('.pin-slip');
-  if (!slip) bad.push('after the account was made there is no slip with the handle and PIN on the card');
-  else {
-    if (!/@ivy_kind42/.test(slip.textContent)) bad.push('the slip does not show the handle the server made');
-    if (!/0000/.test(slip.textContent)) bad.push('the slip does not show the PIN the parent chose');
-  }
-  /* A STUDENT HAS NOBODY TO MAKE AN ACCOUNT FOR. */
+  const secs = [...manage[0].querySelectorAll('.kid-sec')].map(x => x.classList.contains('kid-add') ? 'add' : x.classList.contains('kid-list') ? 'list' : '?');
+  if (JSON.stringify(secs) !== '["list","add"]') bad.push('"Manage your child" holds ' + JSON.stringify(secs) + ', wanted the children, then how to add one');
+  if (d.querySelector('[data-kid-new], [data-do="kid-make"], .kid-make')) bad.push('a form to make a child\'s account is still drawn');
+  if (typeof t.ACTIONS['kid-make'] === 'function') bad.push('the kid-make handler is still registered');
+  const add = manage[0].querySelector('.kid-add');
+  if (!add || !/Add your child/.test(add.textContent) || !/own account/.test(add.textContent) || !/Student profiles/.test(add.textContent)) bad.push('the add section does not say the child makes their own account and to search on Student profiles');
   t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
   try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(200);
-  if (d.querySelector('#s-students .kid-make')) bad.push('a student is offered "Make your child\'s account"');
-  /* AND ANOTHER PARENT ON THE SAME PHONE IS NOT SHOWN THE FIRST ONE'S CHILD'S PIN — the slip is held
-     for the parent who made it, by id, and a phone passed along keeps its state. */
-  t.USER({ name: 'Quinn Parent', personId: 'P-C2', role: 'parent', roles: ['parent'], token: 'tk3',
-           profile: { first_name: 'Quinn', last_name: 'Other' } });
-  try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
-  await wait(200);
-  if (!d.querySelector('#s-students .kid-make')) bad.push('the second parent has no make card to look at');
-  if (d.querySelector('#s-students .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
+  if (d.querySelector('#s-students .kid-manage')) bad.push('a student is offered "Manage your child"');
   return bad;
 });
 
@@ -9734,11 +9681,95 @@ check('442, 453: Students opens with Find by handle (under an admin\'s "+ Add a 
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' });
   try { t.repaint(true); ['biz', 'tutors', 'parents', 'account'].forEach(id => w.paint(id)); } catch (e) {}
   await wait(100);
-  const first = [...d.querySelectorAll('#s-students > .page')].find(pg => !pg.querySelector('.add-card'));
+  /* STAFF HAVE NEEDS HELP ABOVE IT (455), then the "+", so Find by handle is the first page after those. */
+  const first = [...d.querySelectorAll('#s-students > .page')].find(pg => !pg.querySelector('.add-card, .help-list'));
   const bad = [];
+  if (!d.querySelector('#s-students .page .help-list')) bad.push('an admin\'s Student profiles has no Needs help card');
   if (!first || !first.querySelector('.ps-card')) bad.push('Students does not start with Find by handle');
   if (d.querySelector('#s-account [data-do="person-add"], #s-biz [data-do="person-add"]')) bad.push('"Add a person" is on Student settings or Business');
   ['tutors', 'students', 'parents'].forEach(c => { if (d.querySelectorAll('#s-' + c + ' [data-do="person-add"][data-col="' + c + '"]').length !== 1) bad.push(c + ' does not have one "+" of its own'); });
+  return bad;
+});
+/* ---------- A HAND UP FROM A QUESTION (455) ---------- */
+const HELP_KID_ = { name: 'Ada Pupil', personId: 'P-S1', role: 'student', roles: ['student'], rank: 'student', token: 'tk-s1', handle: 'adapupil' };
+const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { row_id: 'Q-HELP-3', paper_id: 'P-HELP', subject: 'Maths', name: 'Help' },
+  html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
+const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
+  d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
+check('455: Help on a question turns its card red, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
+  const bad = [];
+  const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(r.w);
+  const tile = box.querySelector('.qcard .tile[data-do="help-hand"]');
+  if (!tile || !/Help/.test(tile.getAttribute('aria-label'))) { bad.push('a question card has no Help tile'); return bad; }
+  if (box.querySelectorAll('.qcard .tile[data-do="help-hand"]').length < 2) bad.push('the answer page has no Help tile');
+  r.w.__t.ACTIONS['help-hand'](tile);
+  await wait(50);
+  const cards = [...box.querySelectorAll('.qcard')];
+  if (!cards.length || !cards.every(c => c.classList.contains('is-help'))) bad.push('Help did not turn every question card red');
+  if (!/Waiting for help/.test(box.textContent)) bad.push('the card does not say Waiting for help');
+  const t2 = box.querySelector('.tile[data-do="help-hand"]');
+  if (!t2 || !/I’m OK now/.test(t2.getAttribute('aria-label'))) bad.push('the tile did not become "I’m OK now"');
+  const sent = r.sent.find(b => b.action === 'raiseHand');
+  if (!sent || sent.on !== true || sent.q !== 'q-help') bad.push('the tutor was not told: ' + JSON.stringify(sent));
+  let kept = null;
+  try { kept = r.w.localStorage.getItem('familyHelpHand'); } catch (e) {}
+  if (!kept) { bad.push('the hand was not kept on the device'); return bad; }
+  /* A RELOAD: a new app on the same device keeps the card red. */
+  const r2 = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', kept); },
+    reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1' } } : { success: true } });
+  await wait(300);
+  const box2 = helpDraw_(r2.w);
+  if (!box2.querySelector('.qcard.is-help')) bad.push('after a reload the card is not red');
+  r2.w.__t.ACTIONS['help-hand'](box2.querySelector('.tile[data-do="help-hand"]'));
+  await wait(50);
+  if (box2.querySelector('.qcard.is-help') || /Waiting for help/.test(box2.textContent)) bad.push('I’m OK now did not clear the red');
+  const down = r2.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!down || down.on !== false) bad.push('putting the hand down was not sent: ' + JSON.stringify(down));
+  /* THIRTY MINUTES: a stale hand on the device is down by itself. */
+  r2.w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() - 31 * 60 * 1000 }));
+  if (r2.w.helpGet_()) bad.push('a hand 31 minutes old is still up');
+  return bad;
+});
+check('455: Staff see Needs help at the top of the Student column, oldest first, and Done clears it — the child\'s card goes back on her next poll', async () => {
+  const bad = [];
+  let list = [{ personId: 'P-S2', name: 'Bo P', q: 'Q7', label: 'Q7 algebra', at: Date.now() - 300000 },
+              { personId: 'P-S1', name: 'Ada P', q: 'Q3', label: 'Q3 fractions', at: Date.now() - 60000 }];
+  const r = boot({ reply: b => {
+    if (b.action === 'raiseHand' && b.on === false) { list = list.filter(h => h.personId !== b.for); return { success: true, hands: list }; }
+    return b.action === 'hands' ? { success: true, mine: null, hands: list } : { success: true };
+  } });
+  await wait(300);
+  const t = r.w.__t, d = r.w.document;
+  t.USER({ name: 'Tia Tutor', personId: 'P-T1', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tk-t1', handle: 'tiatutor' });
+  t.go('students', false, true); r.w.paint('students');
+  await wait(300);
+  t.go('students', false, true); r.w.paint('students');
+  await wait(50);
+  const first = d.querySelector('#s-students .page');
+  const card = first && first.querySelector('.help-list');
+  if (!card) { bad.push('the Student column does not start with Needs help'); return bad; }
+  const who = [...card.querySelectorAll('.help-who')].map(x => x.getAttribute('data-id'));
+  if (who.join() !== 'P-S2,P-S1') bad.push('Needs help lists ' + who.join() + ', wanted oldest first P-S2,P-S1');
+  if (!/Q7 algebra/.test(card.textContent)) bad.push('the line does not say which question');
+  if (!r.sent.some(b => b.action === 'hands')) bad.push('the tutor\'s column never asked who has a hand up');
+  const done = card.querySelector('.tile[data-do="help-done"][data-id="P-S2"]');
+  if (!done) { bad.push('no Done tile for the first child'); return bad; }
+  t.ACTIONS['help-done'](done);
+  await wait(100);
+  const sent = r.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!sent || sent.on !== false || sent.for !== 'P-S2') bad.push('Done did not lower that hand: ' + JSON.stringify(sent));
+  if (d.querySelector('#s-account .help-who[data-id="P-S2"]')) bad.push('the helped child is still listed');
+  /* THE CHILD'S SIDE: her next poll finds no hand, and her card goes back to normal. */
+  const k = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() })); },
+    reply: b => b.action === 'hands' ? { success: true, mine: null } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(k.w);
+  if (!box.querySelector('.qcard.is-help')) bad.push('the child\'s card was not red before the poll');
+  await k.w.helpTick_();
+  await wait(20);
+  if (box.querySelector('.qcard.is-help')) bad.push('after the tutor\'s Done the child\'s card is still red on her next poll');
   return bad;
 });
 check('442: a parent finds their child by the exact handle — first name only, and an "Add as my child" tile', async () => {
@@ -9837,8 +9868,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   }
   /* LINKING ONE WHO HAS AN ACCOUNT moved to People (442): the add section only points there, no boxes. */
   const add = card().querySelector('.kid-add');
-  const mk = card().querySelector('.kid-make');
-  if (!add || !mk) bad.push('"Manage your child" is missing the make or the add section');
+  if (!add || card().querySelector('.kid-make')) bad.push('"Manage your child" is missing the add section, or still has a make one');
   else if (add.querySelector('input, button') || !/handle/.test(add.textContent)) bad.push('the add section still has a form, or does not say to search the handle');
   /* NONE LINKED, THE PAYLOAD IN: one line saying so, and both forms. */
   await wait(300);
@@ -9847,7 +9877,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   draw();
   await wait(150);
   if (!card() || !/No child is linked to you yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
-  if (!card() || !card().querySelector('.kid-make [data-kid-new="pin"]') || !card().querySelector('.kid-add')) bad.push('with no child linked the card lost a section');
+  if (!card() || !card().querySelector('.kid-add')) bad.push('with no child linked the card lost a section');
   /* HELD: your address waiting — the held sentence where the forms were, and Wren listed with no New PIN. */
   t.DATA().family = [{ personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: '' }];
   t.whoami().pendingEmail = 'pat@example.org';
@@ -10880,7 +10910,9 @@ check('an admin adds a person from the "+" on Students (453), edits one and dele
   const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
   if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('Students does not have exactly one "+"');
   /* THE "+" LEADS EVERY PEOPLE COLUMN FOR AN ADMIN (453), above Find by handle and everybody. */
-  if (!(at === 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ' of Students, not the first (Evie at ' + evieAt + ')');
+  /* NEEDS HELP (455) IS ABOVE IT FOR STAFF AND UP (461). */
+  const helpAt = pages.findIndex(h => /help-list/.test(h));
+  if (!(helpAt === 0 && at === 1 && evieAt > at)) bad.push('the "+" is at page ' + at + ' of Students (Needs help at ' + helpAt + '), wanted 1 under Needs help (Evie at ' + evieAt + ')');
   if (/data-do="person-(edit|del)"/.test(t.accountPages('tutors').find(h => /card-edit/.test(h) && /data-pid="P-AD"/.test(h)) || '')) bad.push('the admin\'s own card offers Edit or Delete of themselves');
   const evie = pages[evieAt] || '';
   if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
@@ -11196,7 +11228,7 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   return bad;
 });
 
-/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (452): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
+/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (454): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
 check('an admin\'s "Show PIN" posts pinShow, shows one line on that card, hides it on a second tap and on leaving the column; a tutor has no tile', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'pinShow'
     ? (b.targetId === 'P-E2' ? { success: true, pin: '0000' } : { success: true, pin: '', said: 'No PIN' }) : { success: true } });
@@ -11969,6 +12001,10 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   const sheet = d.getElementById('sheet');
   if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing the total opened no sheet']);
   if (title !== '4 reactions') bad.push(`the sheet is titled ${JSON.stringify(title)}, not "4 reactions"`);
+  /* 453: IN THE POST CARD, under its own row, the post still drawn above it — not a page over the feed. */
+  if (!sheet.closest('#s-feed [data-post="PO1"]')) bad.push('who reacted did not open inside the post card');
+  else if (!d.querySelector('#s-feed [data-post="PO1"] .post-by') || d.querySelector('#s-feed [data-post="PO1"]').classList.contains('sheet-swap')) bad.push('who reacted hid the post it belongs to');
+  if (d.body.classList.contains('sheet-open') || (d.getElementById('screen') || {}).inert) bad.push('who reacted took the screen over');
   const groups = () => [...d.querySelectorAll('#sheet-body .rx-group')].map(g => ({
     e: ((g.querySelector('.rx-pill .react-e') || {}).textContent || ''),
     n: ((g.querySelector('.rx-pill .react-n') || {}).textContent || ''),
@@ -12422,18 +12458,19 @@ check('each column opens on the page worth reading', async () => {
 
 /* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, AND WITH NOTHING TO COUNT, EVERY WIDGET ITS TITLE ALONE (435) ---------- */
 const PROG_TITLES_ = ['Countdowns', 'Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
-check('progress sits after Saved, before Book (392, 444), and with nothing answered or booked every widget is its title alone with nothing to press — but a signed-in visitor\'s countdown to the next holiday — and a swipe off Saved lands on it', async () => {
+check('461: the Progress column is dissolved into Student settings — no `progress` column, an old go("progress") lands on Student settings, a swipe off Saved lands on Book, and every progress widget is on Student settings, each empty one its title alone', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
   await wait(600);
   const t = w.__t, d = w.document;
   const bad = [];
   const ids = () => t.TABS.map(x => x.id);
-  if (ids().indexOf('progress') < 0) return ['there is no `progress` column on the phone — the order reads ' + ids().join(', ')];
   if (!bizApplied_(t)) return ['columns.json was not applied — the order a phone gets was NOT checked: ' + ids().join(', ')];
+  if (ids().indexOf('progress') !== -1 || d.getElementById('s-progress')) bad.push('there is still a `progress` column');
   if (ids().join(' ') !== ORDER_392_.filter(id => id !== 'biz').join(' ')) bad.push('signed out, the row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.filter(id => id !== 'biz').join(' '));
-
-  /* THE SWIPE. */
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'account') bad.push('go("progress") landed on ' + t.AT() + ', wanted Student settings');
   const swipe = async from => {
     const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
     at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
@@ -12441,42 +12478,25 @@ check('progress sits after Saved, before Book (392, 444), and with nothing answe
   };
   t.go('saved', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'saved') return bad.concat(['go("saved") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
   await swipe('saved');
-  if (t.AT() !== 'progress') bad.push('a sideways swipe off Saved landed on ' + t.AT() + ', wanted Progress');
-  else {
-    await swipe('progress');
-    if (t.AT() !== 'booking') bad.push('a sideways swipe off Progress landed on ' + t.AT() + ', wanted Book (Tools is beside Find since 444)');
-  }
-
-  /* EVERY WIDGET, FOR EVERY VISITOR: none has answered or booked anything, so each is `emptyCard_(title)` — a signed-in one's Countdowns aside, which always has the next holiday. */
-  const who = [['signed out', null],
-    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+  if (t.AT() !== 'booking') bad.push('a sideways swipe off Saved landed on ' + t.AT() + ', wanted Book');
+  const who = [['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
     ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
     ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
     ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
   for (const [as, u] of who) {
     t.USER(u);
-    w.paint('progress');
-    const host = d.getElementById('s-progress');
-    if (!host) return bad.concat(['there is no #s-progress to draw into']);
-    const cards = [...host.querySelectorAll(':scope > .page .card')];
+    w.paint('account');
+    const host = d.getElementById('s-account');
+    const cards = [...host.querySelectorAll(':scope > .page .card.prog-w')];
     const titles = cards.map(c => ((c.querySelector('h3') || {}).textContent || '').trim());
-    if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the widgets read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
-    const n = host.querySelectorAll(':scope > .page').length;
-    if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
+    if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the progress widgets on Student settings read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
+    if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push(as + ': the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
     cards.forEach((c, k) => {
-      const title = titles[k];
-      if (u && title === 'Countdowns') {
-        const rows = [...c.querySelectorAll('.row')].map(r => [...r.children].map(x => x.textContent.trim()).join(' '));
-        if (rows.length !== 1 || !/(half-term|holidays?)\b.*\d+ days?|today/i.test(rows[0] || '')) bad.push(as + ': Countdowns reads ' + JSON.stringify(rows) + ', wanted the next holiday alone');
-        return;
-      }
-      if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + title + ' is not its title alone: ' + c.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
+      if (titles[k] === 'Countdowns') return;
+      if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
     });
-    if (/Not built yet|Coming soon/.test(host.textContent)) bad.push(as + ': the placeholder words are still drawn');
-    const live = [...host.querySelectorAll(PLACEHOLDER_KEYS_)];
-    if (live.length) bad.push(as + ': the empty column has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+    if (d.querySelectorAll('.card.prog-w').length !== cards.length) bad.push(as + ': a progress widget is drawn somewhere else too');
   }
   t.USER(null);
   return bad;
@@ -12515,7 +12535,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   const bad = [];
   const settle = async () => { await wait(LEAVE_MS); await woken_(); };
   const go = async id => { t.go(id, false, true); await settle(); };
-  const prog = () => d.getElementById('s-progress');
+  const prog = () => d.getElementById('s-account');
   /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
      the function the column is drawn from rather than whether it was drawn again. */
   const seen = () => {
@@ -12544,22 +12564,21 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   };
 
   /* 1. SIGNED OUT. */
-  await go('progress');
+  await go('account');
   let s1 = seen();
   if (s1.journey || !s1.held) bad.push('signed out, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
 
   /* 2. A STUDENT SIGNS IN: their journey on Progress, and none on Settings. */
   let no = await signIn(STUDENT, 'the student');
   if (no) return bad.concat([no]);
-  await go('progress');
+  await go('account');
   s1 = seen();
   if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
   if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
-  if (s1.pages !== t.pageCount('progress')) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('progress'));
+  if (s1.pages !== t.pageCount('account')) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('account'));
   if (prog().querySelector('.card.journey ' + PLACEHOLDER_KEYS_.split(', ').join(', .card.journey '))) bad.push('the student\'s countdown card has a control on it');
   await go('account');
-  if (d.querySelector('#s-account .card.journey')) bad.push('a student\'s Settings still holds the journey card — it is Progress\'s now');
-  if (/card journey/.test(w.youSettingsPages_().join(''))) bad.push('`youSettingsPages_` still builds the journey card');
+  if (d.querySelectorAll('.card.journey').length !== 1) bad.push('the journey card is drawn ' + d.querySelectorAll('.card.journey').length + ' times, wanted once, on Student settings (461)');
 
   /* 3. THE STUDENT'S ROLE BECOMES CLIENT — by @family., since a student has no picker (432) — and the column is drawn again: the placeholder. */
   const roles = d.querySelector('#s-account .roles-card');
@@ -12567,11 +12586,11 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   else {
     if (roles.querySelector('[data-role-pick]')) bad.push('a student is offered a role picker on Settings (432)');
     Object.assign(t.whoami(), { role: 'client', roles: ['client'], rank: 'client' });
-    try { w.paint('account'); w.paint('progress'); } catch (e) { bad.push('paint threw: ' + e.message); }
+    try { w.paint('account'); w.paint('account'); } catch (e) { bad.push('paint threw: ' + e.message); }
     await settle();
     if (!t.whoami() || t.whoami().role !== 'client') bad.push('the student did not become a client — NOT checked');
     else {
-      await go('progress');
+      await go('account');
       s1 = seen();
       if (s1.journey || !s1.held) bad.push('the student became a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
     }
@@ -12580,12 +12599,12 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   /* 4. OUT FROM SPOTLIGHT, AND A PARENT IN: the placeholder, and no journey anywhere. */
   await go('spotlight');
   if ((no = await signOut())) return bad.concat([no]);
-  await go('progress');
+  await go('account');
   s1 = seen();
   if (s1.journey || !s1.held) bad.push('signed out from Spotlight, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
   if ((no = await signIn(PARENT, 'the parent'))) return bad.concat([no]);
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the parent: ' + id + ' threw: ' + e.message); } }
-  await go('progress');
+  await go('account');
   s1 = seen();
   if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
   if ([...d.querySelectorAll('.card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
@@ -12595,7 +12614,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   s1 = seen();
   if (s1.journey || !s1.held) bad.push('the parent signed out on Progress, and it shows ' + JSON.stringify(s1) + ' — wanted the placeholder there and then');
   if ((no = await signIn(STUDENT, 'the student, again'))) return bad.concat([no]);
-  await go('progress');
+  await go('account');
   s1 = seen();
   if (!s1.journey || s1.held || s1.count !== '14') bad.push('the student signed in again after a sign-out, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey at 14 days, without a reload');
 
@@ -12617,7 +12636,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
     else {
       s1 = seen();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out, and Progress (not in front, the payload held) still counts "' + s1.count + '"');
-      await go('progress');
+      await go('account');
       s1 = seen();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out and went to Progress, which counts "' + s1.count + '"');
     }
@@ -12629,8 +12648,8 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
   await go('account');
   w.paint('account');
-  if (d.querySelector('#s-account .card.journey')) bad.push('an admin\'s Settings still holds the journey card');
-  await go('progress');
+  if (d.querySelectorAll('.card.journey').length > 1) bad.push('an admin\'s journey card is drawn more than once');
+  await go('account');
   s1 = seen();
   /* NO EXAM DATE ON THE ADMIN'S PROFILE (435): no Big exam line. */
   if (s1.journey) bad.push('an admin with no exam date signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted no Big exam line');
@@ -12659,7 +12678,7 @@ const PROG_ITEMS_ = () => [
     row: { row_id: 'Q-W4', paper_id: 'P-W4', subject: 'Maths', topics: 'Ratio', name: 'Ratio (grade 4)', document_type: 'Worksheet', band_type: 'grade', band_value: '4' } }),
   PROG_Q_('Q-W5', 1, 'Ratio', 1, { sub: 'Ratio', documentType: 'Worksheet', company: '1st Class Maths', tier: 'Foundation', bandType: 'grade', bandValue: '5',
     row: { row_id: 'Q-W5', paper_id: 'P-W5', subject: 'Maths', topics: 'Ratio', name: 'Ratio (grade 5)', document_type: 'Worksheet', band_type: 'grade', band_value: '5' } })];
-const progCard_ = (d, title) => [...d.querySelectorAll('#s-progress .card')].find(c => ((c.querySelector('h3') || {}).textContent || '').trim() === title) || null;
+const progCard_ = (d, title) => [...d.querySelectorAll('#s-account .card.prog-w')].find(c => ((c.querySelector('h3') || {}).textContent || '').trim() === title) || null;
 const progTxt_ = el => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
 /* A ROW AS ITS LABEL AND ITS VALUE, a space between — `textContent` runs the two spans together. */
 const progRow_ = el => (el ? [...el.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()).join(' ') : '');
@@ -12672,26 +12691,26 @@ check('progress, empty: a signed-in learner with nothing answered sees each widg
   const items = PROG_ITEMS_();
   w.stuffItemsAll_ = () => items;
   const bad = [];
-  t.go('progress', false, true);
+  t.go('account', false, true);
   await wait(LEAVE_MS); await woken_();
-  w.paint('progress');
+  w.paint('account');
   for (const title of ['Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions']) {
     const c = progCard_(d, title);
     if (!c) bad.push('nothing answered, and Progress has no ' + title + ' widget');
     else if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(title + ' is not its title alone with nothing answered: ' + progTxt_(c).slice(0, 80));
   }
-  if (d.querySelector('#s-progress [data-do]')) bad.push('the empty Progress has a control on it');
-  if (d.querySelector('#s-progress .loading')) bad.push('the empty Progress is still waiting with the payload in');
+  if (d.querySelector('#s-account .prog-w [data-do]')) bad.push('the empty Progress has a control on it');
+  if (d.querySelector('#s-account .prog-w .loading')) bad.push('the empty Progress is still waiting with the payload in');
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   const rec = w.subRecord_('ans:u:P7:q:Q-PA', '4', 'right', 'none');
   if (!rec) return bad.concat(['subRecord_ recorded nothing — the press was NOT checked']);
-  t.go('progress', false, true);
+  t.go('account', false, true);
   await wait(LEAVE_MS); await woken_();
-  const card = d.querySelector('#s-progress .card.prog-answered');
+  const card = d.querySelector('#s-account .card.prog-answered');
   if (!card) bad.push('a press was made and Progress, visited again, still has no Questions card');
   else if (!/Fractions\s*1 of 1 right/.test(progTxt_(card))) bad.push('the Questions card does not count the press under Fractions: ' + progTxt_(card).slice(0, 120));
-  if (!d.querySelector('#s-progress .card.prog-series')) bad.push('a press on a past paper drew no series card');
+  if (!d.querySelector('#s-account .card.prog-series')) bad.push('a press on a past paper drew no series card');
   const weak = progCard_(d, 'Work on next');
   if (!weak || !weak.classList.contains('is-empty')) bad.push('everything is right and Work on next is not its title alone');
   t.USER(null);
@@ -12723,16 +12742,16 @@ const progPopulated_ = async (more) => {
   if (!t || !t.whoami() || t.whoami().personId !== 'P7') return { w: null };
   const items = PROG_ITEMS_();
   w.stuffItemsAll_ = () => items;
-  t.go('progress', false, true);
+  t.go('account', false, true);
   await wait(LEAVE_MS); await woken_();
-  w.paint('progress');
+  w.paint('account');
   return { w, t, d: w.document };
 };
 check('progress, populated: counts by topic from the account and the device, a streak, the weakest topic\'s Practise opening Find, and sessions past and to come', async () => {
   const { w, t, d } = await progPopulated_();
   if (!w) return ['the learner is not signed in — NOT checked'];
   const bad = [];
-  const host = d.getElementById('s-progress');
+  const host = d.getElementById('s-account');
   const q = host.querySelector('.card.prog-answered');
   if (!q) return bad.concat(['Progress has no Questions card: ' + progTxt_(host).slice(0, 120)]);
   const tot = [...q.querySelectorAll('.row.prog-tot')].map(progRow_);
@@ -12740,7 +12759,7 @@ check('progress, populated: counts by topic from the account and the device, a s
   if (q.querySelector('.prog-sum, .prog-big')) bad.push('the totals are boxes in a grid, not one line each');
   if (!/Fractions\s*1 of 2 right/.test(progTxt_(q))) bad.push('Fractions is not 1 of 2 right — the account\'s later press did not win over the device\'s: ' + progTxt_(q));
   if (!/Standard Form\s*0 of 1 right/.test(progTxt_(q))) bad.push('Standard Form is not 0 of 1 right: ' + progTxt_(q));
-  if (t.pageCount('progress') !== host.querySelectorAll(':scope > .page').length) bad.push('the pager counts ' + t.pageCount('progress') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
+  if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push('the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
   const act = host.querySelector('.card.prog-activity');
   if (!act || !/Streak\s*2 days/.test(progTxt_(act))) bad.push('the activity card does not say a 2-day streak: ' + progTxt_(act).slice(0, 100));
   if (!act || !/Last 7 days\s*5 on 2 days/.test(progTxt_(act))) bad.push('the activity card does not say 5 on 2 days this week: ' + progTxt_(act).slice(0, 100));
@@ -12765,7 +12784,7 @@ check('progress, populated: counts by topic from the account and the device, a s
     const chip = f.some(x => x.field === 'topic' && x.value === 'Standard Form');
     if (!chip && !(on && /3000 in standard form/.test(on.textContent))) bad.push('Practise on Standard Form opened Find on neither its chip nor the question got wrong: ' + JSON.stringify(f) + ' / ' + progTxt_(on).slice(0, 80));
   }
-  const back = d.querySelector('#s-progress .tile[data-do="prog-sessions"]');
+  const back = d.querySelector('#s-account .tile[data-do="prog-sessions"]');
   if (back) {
     try { t.ACTIONS['prog-sessions'](back); } catch (e) { bad.push('prog-sessions threw: ' + e.message); }
     await wait(LEAVE_MS); await woken_();
@@ -12781,7 +12800,7 @@ check('progress, papers: one card per series, one line per paper with its marks 
   if (!w) return ['the learner is not signed in — NOT checked'];
   const bad = [];
   const past = progCard_(d, 'Maths past papers'), ws = progCard_(d, '1st Class Maths worksheets');
-  if (!past) return ['no "Maths past papers" card: ' + [...d.querySelectorAll('#s-progress .card h3')].map(h => h.textContent).join(' | ')];
+  if (!past) return ['no "Maths past papers" card: ' + [...d.querySelectorAll('#s-account .card h3')].map(h => h.textContent).join(' | ')];
   if (!ws) bad.push('no "1st Class Maths worksheets" card');
   const line = past.querySelector('details.prog-paper');
   const sum = line && line.querySelector('summary');
@@ -12795,12 +12814,12 @@ check('progress, papers: one card per series, one line per paper with its marks 
     const qs = [...line.querySelectorAll('.prog-qs .row')].map(progRow_);
     if (qs.join(' | ') !== 'Q1 right | Q2 wrong | Q3 1/3 | Q4 not done') bad.push('opened, the paper lists ' + JSON.stringify(qs) + ', wanted Q1 right, Q2 wrong, Q3 1/3, Q4 not done');
     if (sheetOpen_(d)) bad.push('opening a paper opened a sheet — it opens in place');
-    w.paint('progress');
+    w.paint('account');
     const again = progCard_(d, 'Maths past papers');
     const l2 = again && again.querySelector('details.prog-paper');
     if (!l2 || !l2.open) bad.push('a redraw shut the paper that was open');
   }
-  if (d.querySelector('#s-progress select, #s-progress [role="menu"], #s-progress [aria-haspopup]')) bad.push('Progress has a pop-up menu on it');
+  if (d.querySelector('#s-account .prog-w select, #s-account .prog-w [role="menu"], #s-account .prog-w [aria-haspopup]')) bad.push('a progress widget has a pop-up menu on it');
   t.USER(null);
   return bad;
 });
@@ -12822,7 +12841,7 @@ check('progress, grade estimate: a GCSE grade from the share of marks on past pa
 });
 
 /* ---------- COUNTDOWNS ---------- */
-check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, the title alone', async () => {
+check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, none (Student settings is the sign-in card, 461)', async () => {
   const day = d0 => { const x = new Date(); x.setHours(0, 0, 0, 0); return Math.round((d0 - x) / 864e5); };
   const now = new Date();
   /* A BIRTHDAY THAT MAKES YEAR 11 NOW: 15 on the 1st of September this school year began. */
@@ -12842,9 +12861,9 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
   t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
   const bad = [];
-  t.go('progress', false, true);
+  t.go('account', false, true);
   await wait(LEAVE_MS); await woken_();
-  w.paint('progress');
+  w.paint('account');
   const c = progCard_(d, 'Countdowns');
   const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
   const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
@@ -12853,14 +12872,15 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   /* NO ROW IN THE SHEET AND NO CONFIG: the built-in exam date and the next default holiday. */
   t.DATA().intervals = [];
   delete t.DATA().constants.vars.exam_gcse_start;
-  w.paint('progress');
+  w.paint('account');
   const rows2 = [...(progCard_(d, 'Countdowns') || d).querySelectorAll('.row')].map(progRow_);
   if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
   if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
   t.USER(null);
-  w.paint('progress');
+  w.paint('account');
   const out = progCard_(d, 'Countdowns');
-  if (!out || !out.classList.contains('is-empty') || out.children.length !== 1) bad.push('signed out, Countdowns is not its title alone');
+  /* SIGNED OUT, STUDENT SETTINGS IS THE SIGN-IN CARD (461), so no progress widget is drawn at all. */
+  if (out) bad.push('signed out, a Countdowns card is drawn on Student settings');
   return bad;
 });
 
@@ -12886,10 +12906,10 @@ const bizSwipe_ = async (w, from) => {
 /* THE FILE WAS READ: since 392 TAB_ORDER and columns.json agree, so the order cannot tell them apart and the payload is asked. */
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
-const ORDER_392_ = ['feed', 'spotlight', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved', 'progress',
-                    'booking', 'shop', 'games', 'tutors', 'students', 'parents', 'staff', 'account', 'family', 'biz'];  /* the six (453) */
+const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
+                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];  /* the six, settings first (461) */
 
-check('business: an admin has a Business column last, straight after Parent settings, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -12923,11 +12943,11 @@ check('business: an admin has a Business column last, straight after Parent sett
   }
 
   /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
-  t.go('family', false, true);
+  t.go('parents', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'family') return bad.concat(['go("settings") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await bizSwipe_(w, 'family');
-  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Settings landed on ' + t.AT() + ', wanted Business']);
+  if (t.AT() !== 'parents') return bad.concat(['go("parents") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'parents');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent profiles landed on ' + t.AT() + ', wanted Business']);
   await bizSwipe_(w, 'biz');
   if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
 
@@ -12940,8 +12960,8 @@ check('business: an admin has a Business column last, straight after Parent sett
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   /* THE BUSINESS CARDS END AT THE VERSE SCREEN; + Add a person, everybody and the build stamps follow it (444). */
   const allPg = [...host.querySelectorAll(':scope > .page')];
-  const n = allPg.findIndex(p => p.querySelector('a.tile[href$="/tools/epaper-verse/install.html"]')) + 1;
-  if (n !== 14 || t.pageCount('biz') !== allPg.length) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted fourteen and fourteen (Profit and its terms, Setup, Posts waiting (413), Applications (400), Staff (405), Reports (395), Library updates (407), five records, the verse screen)');
+  const n = allPg.map(p => !!p.querySelector('[data-biz-page]')).lastIndexOf(true) + 1;
+  if (n !== 13 || t.pageCount('biz') !== allPg.length) bad.push('the business cards end on page ' + n + ' and the pager counts ' + t.pageCount('biz') + ' of ' + allPg.length + ' — wanted thirteen (Profit and its terms, Setup, Posts waiting (413), Applications (400), Staff (405), Reports (395), Library updates (407), five records); the verse screen moved to Tools (461)');
   /* LIBRARY UPDATES (407): two files wait, so the card glows and its tile counts them; the press posts as the admin and empties it. */
   const lib = host.querySelector('[data-libimp]');
   const libTile = () => lib && lib.querySelector('.tile[data-do="lib-import"]');
@@ -12960,9 +12980,10 @@ check('business: an admin has a Business column last, straight after Parent sett
     if (!lib2 || lib2.classList.contains('needs-you') || !/lib-import-a\.json.*5 changed/.test(lib2.textContent) || !/Import library updates \(0\)/.test((lib2.querySelector('.tile[data-do="lib-import"]') || {}).getAttribute('aria-label') || '')) bad.push('after the import the card still glows, or does not say what each file did: ' + (lib2 ? lib2.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'no card'));
   }
   if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
-  /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
-  const vs = host.querySelector(':scope > .page a.tile[href$="/tools/epaper-verse/install.html"]');
-  if (!vs) bad.push('the Business column has no "Verse screen · set up" tile to the install page');
+  /* THE VERSE SCREEN SETUP (370) IS AN ADMIN TOOLS WIDGET SINCE 461. */
+  try { w.paint('tools'); } catch (e) {}
+  if (host.querySelector('a.tile[href$="/tools/epaper-verse/install.html"]')) bad.push('the Verse screen tile is still on Business (461 moved it to Tools)');
+  if (!d.querySelector('#s-tools a.tile[href$="/tools/epaper-verse/install.html"]')) bad.push('an admin\'s Tools has no "Verse screen · set up" tile to the install page');
   if (!allPg.length || !allPg[allPg.length - 1].querySelector('.me-build')) bad.push('the last Business page is not the build stamps');
   const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
   if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
@@ -13007,7 +13028,7 @@ check('business: an admin has a Business column last, straight after Parent sett
   if (/data-biz/.test(w.youSettingsPages_().join(''))) bad.push('`youSettingsPages_` still builds a business-records card');
   /* AND THE TWO CARDS THAT WERE BEHIND THE RECORDS ARE GONE FROM IT TOO (docs/history/346): the journey to
      Progress, the weekly parent email altogether — so the page past the end below is past a shorter column. */
-  if (set.querySelector('.card.digest, .card.journey, [data-do="digest-preview"]')) bad.push('an admin\'s Student column still holds the journey card or the weekly parent email card — the first is Progress\'s, the second is gone');
+  if (set.querySelector('.card.digest, [data-do="digest-preview"]')) bad.push('an admin\'s Student settings still holds the weekly parent email card, which is gone');
   t.PAGE().account = 999;
   t.go('feed', false, true); await wait(200);
   t.go('account', false, true);
@@ -13104,18 +13125,18 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     const ids = t.TABS.map(x => x.id);
     if (!bizApplied_(t)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
-    if (ids[ids.length - 1] !== 'family') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Parent');
+    if (ids[ids.length - 1] !== 'parents') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Parent profiles');
     /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: § */
     const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
-    if (!home || home === 'family') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
-    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'family' ? ' — they were moved left off a column they should never have been put on' : ''));
+    if (!home || home === 'parents') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'parents' ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
-    t.go('family', false, true);
+    t.go('parents', false, true);
     await wait(LEAVE_MS); await woken_();
-    await bizSwipe_(w, 'family');
-    if (t.AT() !== 'family') bad.push(as + ': a swipe past Parent moved to ' + t.AT() + ' — wanted to stay on the last column');
+    await bizSwipe_(w, 'parents');
+    if (t.AT() !== 'parents') bad.push(as + ': a swipe past Parent profiles moved to ' + t.AT() + ' — wanted to stay on the last column');
     t.go('biz', false, true);
     await wait(300);
     if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
@@ -13148,7 +13169,7 @@ check('business: signing in as an admin adds the column and signing out takes it
 
   /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
      (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go('family', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('parents', false, true); await wait(LEAVE_MS); await woken_();
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   const btn = d.querySelector('[data-do="do-signin"]');
@@ -13164,9 +13185,9 @@ check('business: signing in as an admin adds the column and signing out takes it
   if (d.documentElement !== doc) bad.push('the page was reloaded');
   if (ids()[ids().length - 1] !== 'biz') bad.push('signed in as an admin, the last column is ' + ids()[ids().length - 1] + ', wanted Business, without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== 'family') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Parent and go back there');
-  await bizSwipe_(w, 'family');
-  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Parent landed on ' + t.AT() + ', wanted Business');
+  if (t.AT() !== 'parents') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Parent and go back there');
+  await bizSwipe_(w, 'parents');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Parent profiles landed on ' + t.AT() + ', wanted Business');
   else {
     for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
     const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
@@ -13207,8 +13228,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== 'family') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Parent, the column left of it');
-  if (!d2.querySelector('#s-family > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
+  if (t2.AT() !== 'parents') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Parent profiles, the column left of it');
+  if (!d2.querySelector('#s-parents > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
   return bad;
 });
 
@@ -14326,7 +14347,7 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
 });
 
 /* ---------- A RULER AND A COMPASS ON THE PEN, WHERE THE QUESTION ASKS FOR THEM § */
-check('a ruler draws a straight line and a compass a round circle or arc, offered where the question asks', async () => {
+check('a ruler draws a straight line and a compass a round circle or arc, offered on every question pen (457)', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -14353,8 +14374,10 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
     });
   const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
     return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
-  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
-    [q('Draw the graph.', { key: 'q:T-N' }), ''], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), '']];
+  /* EVERY QUESTION'S PEN HAS ALL FOUR (`qToolkit_`; the Protractor since 458): the words above still say what `padTools_` adds, never what the bar hides */
+  const ALL4 = 'pen ruler compass protractor';
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), ALL4], [q('Construct the bisector.', { key: 'q:T-C' }), ALL4],
+    [q('Draw the graph.', { key: 'q:T-N' }), ALL4], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), ALL4]];
   offered.forEach(([x, want]) => {
     if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
   });
@@ -14448,18 +14471,57 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   drag([[110, 60], [120, 70], [130, 66]]);
   s = stored();
   if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
-  /* A STALE CHOICE CANNOT DRAW. The plain question offers no tools; a Compass left for it is the pen. */
+  /* ---------- THE PROTRACTOR (458): put down beside the tool in hand, moved and turned by its own drag, drawn through, picked up ---------- */
+  if (!tool('protractor')) bad.push('the construction question\'s bar has no Protractor');
+  else {
+    const was = stored().length;
+    A['pad-tool'](tool('protractor'));
+    const prot = () => pad.querySelector('.qpad-art > .qpad-prot');
+    if (!prot()) bad.push('pressing Protractor put no protractor on the page');
+    if (!tool('protractor').classList.contains('on') || tool('protractor').getAttribute('aria-pressed') !== 'true') bad.push('the Protractor tile is not lit while it lies on the page');
+    if (!tool('pen').classList.contains('on')) bad.push('putting the protractor down took the Pen out of hand -- it must draw beside it');
+    if (prot() && prot().querySelectorAll('.qprot-nums text').length !== 38) bad.push('the protractor shows ' + prot().querySelectorAll('.qprot-nums text').length + ' numbers, wanted 0 to 180 by tens on both scales (38)');
+    const box = () => { const a = pad.querySelector('.qpad-art'); a.getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+    box();
+    const pf = (el, type, px, py) => el.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 7 }));
+    /* MOVED BY ITS BODY: 34px right is 10% of the 340px picture */
+    const body = prot() && prot().querySelector('.qprot-body');
+    if (body) { pf(body, 'pointerdown', 200, 140); pf(body, 'pointermove', 234, 140); pf(body, 'pointerup', 234, 140); }
+    const st = w.padProtOf_(k);
+    if (Math.abs(st.x - 60) > 0.01 || Math.abs(st.y - 70) > 0.01) bad.push('dragging the protractor\'s body by 34px left it at ' + JSON.stringify(st) + ', wanted x 60, y 70');
+    if (stored().length !== was) bad.push('dragging the protractor drew a mark');
+    /* TURNED BY ITS KNOB about the pivot: a finger 50° round from upright is 50°; one within 2° of 90° settles there */
+    const knob = prot() && prot().querySelector('[data-prot="turn"]');
+    const cx = L + 0.6 * W, cy = T + 0.7 * H;
+    if (knob) {
+      pf(knob, 'pointerdown', cx, cy - 40);
+      pf(knob, 'pointermove', cx + 40 * Math.sin(50 * Math.PI / 180), cy - 40 * Math.cos(50 * Math.PI / 180));
+      if (w.padProtOf_(k).a !== 50) bad.push('turning the knob to 50° left the protractor at ' + w.padProtOf_(k).a + '°');
+      pf(knob, 'pointermove', cx + 40, cy + 1);
+      pf(knob, 'pointerup', cx + 40, cy + 1);
+      if (w.padProtOf_(k).a !== 90) bad.push('a turn within 2° of upright did not settle at 90°, it is ' + w.padProtOf_(k).a + '°');
+      if (!/rotate\(90deg\)/.test(prot().style.transform)) bad.push('the protractor on the page is not drawn turned 90°: ' + prot().style.transform);
+    } else bad.push('the protractor has no knob to turn it by');
+    /* DRAWN THROUGH: the pen still draws on the ink beside it */
+    drag([[110, 60], [140, 62], [170, 64]]);
+    if (stored().length !== was + 1) bad.push('the pen did not draw with the protractor down');
+    pad = mount();
+    if (!prot() || !/rotate\(90deg\)/.test(prot().style.transform)) bad.push('a card drawn again lost the protractor or its turn');
+    A['pad-tool'](tool('protractor'));
+    if (prot() || tool('protractor').classList.contains('on')) bad.push('pressing Protractor again did not pick it up');
+    w.padProtOf_(k).on = false;
+  }
+  /* A STALE CHOICE CANNOT DRAW. A protractor held as if it drew (it is laid down, never drawn with, 458) is the pen. */
   const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
   const pk = t.padKey(plain);
   try { w.localStorage.removeItem(pk); } catch (e) {}
-  t.padTool().set(pk, 'compass');
+  t.padTool().set(pk, 'protractor');
   host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
-  if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
-  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad drew with a protractor held as its drawing tool: ' + JSON.stringify(ps).slice(0, 80));
   t.padTool().delete(pk);
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
   t.padOn('');
@@ -15334,6 +15396,64 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
+/* ---------- MARK WITH AI SAYS WHERE IT IS (456): "it just says marking ... we didn't feel blind" § */
+check('Mark with AI shows its stages and the seconds beside the dots, says when it is slow, and offers Try again on a failure', async () => {
+  const bad = [];
+  let release = null, mode = 'slow';
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), reply: b => {
+    if (b.action !== 'aiMark') return null;
+    if (mode === 'fail') return { success: false, message: 'Marking is busy right now — try again in a minute.' };
+    return new Promise(ok => { release = () => ok({ success: true, awarded: 1, available: 2, feedback: 'Half there.', left: 9 }); });
+  } });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS;
+  if (!A['qp-ai'] || !A['qp-ai-again']) return ['Mark with AI or its Try again has no handler'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = { kind: 'question', key: 'q-ai-stage', name: 'Q1', marks: 2, answerType: 'explain', accept: '',
+    row: { row_id: 'Q-AI-ST', paper_id: 'P-AI', subject: 'Chemistry', name: 'Rates' },
+    html: '<p>Explain why a catalyst speeds up a reaction.</p>', answer: 'It lowers the activation energy.' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h);
+  const card = h.querySelector('.qcard'), go = card.querySelector('.qp-ai-go');
+  const ta = card.querySelector('textarea.qp-ans-in');
+  if (!go || !ta) return ['no Mark with AI tile or box was drawn'];
+  ta.value = 'It gives another route with a lower activation energy.';
+  ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const realNow = w.Date.now.bind(w.Date), base = realNow();
+  let off = 0;
+  w.Date.now = () => base + off;
+  const say = () => { const s = card.querySelector('.qp-ai .qp-ai-stage-say'); return s ? s.textContent : ''; };
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [x];
+  try {
+    A['qp-ai'](go);
+    const line = card.querySelector('.qp-ai > .qp-ai-stage');
+    if (!line || !line.querySelector(':scope > .loading')) bad.push('the wait has no stage line with the gold dots in it');
+    if (!/^Sending your work…$/.test(say())) bad.push('the first stage said "' + say() + '" — wanted "Sending your work…"');
+    off = 7000; await wait(650);
+    if (!/^Marking against the scheme… · 7 s$/.test(say())) bad.push('after 7 s the line said "' + say() + '" — wanted "Marking against the scheme… · 7 s"');
+    off = 23000; await wait(650);
+    if (!/^Still working — this one is taking longer than usual · 23 s$/.test(say())) bad.push('after 23 s the line said "' + say() + '" — wanted the slow sentence and 23 s');
+    release(); await wait(50);
+    if (card.querySelector('.qp-ai-stage')) bad.push('a mark that arrived left the stage line behind');
+    if (!/1 of 2 marks/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('the mark after a slow wait was not drawn');
+    /* A FAILURE: its reason on the verdict line and a Try again tile, which asks again. */
+    mode = 'fail';
+    A['qp-ai'](go); await wait(50);
+    const again = card.querySelector('.qp-ai-stage [data-do="qp-ai-again"]');
+    if (!/busy right now/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('a failed mark did not say why');
+    if (!again || card.querySelector('.qp-ai-stage .loading')) bad.push('a failed mark has no Try again tile, or still shows the dots');
+    const n = sent.filter(b => b.action === 'aiMark').length;
+    mode = 'slow';
+    if (again) A['qp-ai-again'](again);
+    if (sent.filter(b => b.action === 'aiMark').length !== n + 1) bad.push('Try again did not send the answer again');
+    if (!/^Sending your work…$/.test(say().replace(/ · \d+ s$/, ''))) bad.push('Try again did not show the stages again: "' + say() + '"');
+    if (release) release(); await wait(50);
+  } finally { w.stuffItemsAll_ = held; w.Date.now = realNow; }
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE § */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
   const ID = 'Q-R0398-5';
@@ -16082,7 +16202,9 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   /* AND ITS PEN IS OVER THAT PICTURE, IN THE CARD'S SHEET, AND THE PICTURE IS NOWHERE ELSE (356). */
   const ownFace = ownCard.querySelector('.qsheet .qpad .qpad-art > svg:first-child');
   if (!ownFace || ownFace.classList.contains('qsurf')) bad.push('a drawing question with its own picture does not draw that picture under the pen in its card');
-  if (ownCard.querySelectorAll('svg circle').length !== 1) bad.push('a drawing question\'s own picture is drawn ' + ownCard.querySelectorAll('svg circle').length + ' times on its card');
+  /* THE PICTURE'S CIRCLES, not a tile's mark: the Compass tile is on every pen since 457 */
+  const circ = [...ownCard.querySelectorAll('svg circle')].filter(c => !c.closest('.tile-i')).length;
+  if (circ !== 1) bad.push('a drawing question\'s own picture is drawn ' + circ + ' times on its card');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
   if (!w.padSource_(stemmed) || w.padSource_(stemmed).from === 'surface') bad.push('a drawing question under a stem\'s picture had it replaced by a surface');
   if (w.padSource_(q('plain', { answerType: 'calculation' }))) bad.push('a calculation with no surface named was given something to draw on');
@@ -16681,6 +16803,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
+    ['figure[data-do="q-zoom-fig"]', 'a figure, which a tap enlarges (457)'],
   ];
   const seen = {};
   const exempted = {};
@@ -20442,6 +20565,68 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
     await wait(150);
     onCard(x, 'a ' + x.kind + ' opened from Saved', next);
   }
+  return bad;
+});
+
+/* ---------- THE HISTORY DATABASE (459): EACH KIND FOUND BY THE FUNNEL, ITS CARD OPENED, A LINK FOLLOWED IN PLACE ---------- */
+check('the history database: a manuscript, a historical figure and a writing are each found under Learning, Content, History, open as a card of label and value lines, and a link tile lands on the linked row\'s card in the same finder', async () => {
+  /* THE REAL FILES, through the app's own `libraryExtras_`, on the resources payload. */
+  const p = await resPayload_();
+  if (!p) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { manuscripts: read('manuscripts'), figures: read('figures'), writings: read('writings') })));
+  const b = boot({ payload: Object.assign(p, { manuscripts: made.manuscripts || [], figures: made.figures || [], writings: made.writings || [] }), member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const all = w.stuffItemsAll_();
+  const get = id => all.find(x => x.key === 'hdb:' + id);
+  const ms = get('MS-0002'), fig = get('FIG-0003'), wr = get('WR-0001');
+  if (!ms || !fig || !wr) return ['MS-0002, FIG-0003 or WR-0001 is not in the list — data/manuscripts|figures|writings.json did not load, NOT checked'];
+  const onCard = (x, when) => {
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+  };
+  for (const [x, kind] of [[ms, 'Manuscripts'], [fig, 'Historical figures'], [wr, 'Writings']]) {
+    /* THE FUNNEL ITSELF: these four answers keep it, and the walk the funnel asks reaches it. */
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+                         { field: 'shelf', value: 'History' }, { field: 'histKind', value: kind }];
+    if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is not found by Learning, Content, History, ' + kind);
+    if (w.stuffFiltered().some(y => !y.hdb)) bad.push('History, ' + kind + ' keeps a thing that is not in the history database');
+    const walk = w.finderWalk_(x);
+    t.STUFF().filters = walk;
+    if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
+    /* THE CARD: its name, its tags, one line per field, an era tag. */
+    const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
+    const h3 = el.querySelector('.hdb .fc-head h3');
+    if (!h3 || h3.textContent.trim() !== x.name) bad.push(x.name + '\'s card is not headed with its name');
+    if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
+    if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
+    if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
+  }
+  const eras = w.histEras_;
+  if (JSON.stringify(eras(400, 500)) !== '["Ancient"]' || JSON.stringify(eras(-100, -44)) !== '["Ancient"]'
+      || JSON.stringify(eras(1874, 1965)) !== '["Modern"]' || JSON.stringify(eras(null, 99)) !== '["Ancient"]'
+      || JSON.stringify(eras(1400, 1600)) !== '["Medieval","Early modern"]') bad.push('histEras_ puts years in the wrong eras');
+  /* OPEN THE WRITING, THEN FOLLOW ITS TILES: to its manuscript, from there back to it, and on to its author. */
+  const press = (x, toId) => {
+    const s = d.getElementById('s-stuff');
+    const box = d.createElement('div'); box.innerHTML = w.stuffCard(x); s.appendChild(box);
+    const tile = [...box.querySelectorAll('[data-do="find-open"]')].find(e => e.getAttribute('data-key') === 'hdb:' + toId);
+    if (!tile) { bad.push(x.name + '\'s card has no tile to ' + toId); box.remove(); return false; }
+    A['find-open'](tile); box.remove(); return true;
+  };
+  const opener = d.createElement('button'); opener.setAttribute('data-key', wr.key); d.getElementById('s-stuff').appendChild(opener);
+  A['find-open'](opener); await wait(120);
+  onCard(wr, 'the writing opened');
+  if (press(wr, 'MS-0002')) { await wait(120); onCard(ms, 'the writing\'s Manuscript tile'); }
+  if (press(ms, 'WR-0001')) { await wait(120); onCard(wr, 'the manuscript\'s Writing tile'); }
+  if (press(wr, 'FIG-0003')) { await wait(120); onCard(fig, 'the writing\'s Author tile'); }
+  if (press(fig, 'WR-0001')) { await wait(120); onCard(wr, 'the author\'s Writing tile'); }
+  if (t.AT() !== 'stuff') bad.push('following links left Find for ' + t.AT());
   return bad;
 });
 
@@ -27591,7 +27776,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 });
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
-check('read aloud: a KS2 question has the tile and a GCSE one does not; it says the question in words, stops on a second tap and on leaving', async () => {
+check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card does not; it says the question in words, stops on a second tap and on leaving', async () => {
   const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
@@ -27619,7 +27804,8 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
   const host = d.createElement('div');
   d.body.appendChild(host);
   const tileOf = x => { host.innerHTML = w.stuffCard(x); return host.querySelector('[data-do="read-aloud"]'); };
-  if (tileOf(gcse)) bad.push('a GCSE question carries the Read aloud tile');
+  /* EVERY QUESTION HAS IT SINCE 457 (the one toolkit, `qToolkit_`); content cards keep the primary rule (394) */
+  if (!tileOf(gcse)) bad.push('a GCSE question has no Read aloud tile — every question has it (457)');
   const ct = all.filter(x => x.kind === 'content');
   const ctKs2 = ct.find(x => /KS2/.test(x.level || '') || /KS2/.test(x.keystage || '')), ctGcse = ct.find(x => x.level === 'GCSE');
   if (!ctKs2 || !ctGcse) bad.push('no KS2 and GCSE content cards to hold the tile against');
@@ -28023,6 +28209,62 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
   return bad;
 });
 
+/* A PAPER'S READING INSERT (458): a private half like a question's words, asked for when its Insert tile opens it in place, drawn with its line numbers; Coming soon, or Sign in */
+check('a reading insert opens in place from its question, asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
+  const cards = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'inserts.json'), 'utf8'));
+  const card = cards.find(r => r.insert_id === 'INS-AQA-8700-R0389') || cards.find(r => r.for_papers && /source_text/.test(String(r.lib_has || '')));
+  if (!card) return ['no reading insert card (for_papers, lib_has source_text) in data/inserts.json — nothing was checked'];
+  if ('source_text' in card) return ['data/inserts.json carries the extract of ' + card.insert_id + ' — it belongs in the Ledger'];
+  /* STAND-IN WORDS, never the extract: the rule is the same whatever the words */
+  const words = { source_text: '# Source A\n\n> A stand-in note.\n\n[1] Stand-in words on the first line, and [5] more on the fifth.' };
+  const wire = 'in:' + card.insert_id, bad = [];
+  /* ITS PAPER'S QUESTION CARDS, as the repository has them (no words: the insert is what is asked) */
+  const qrows = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.paper_id === card.for_papers.split(',')[0].trim());
+  for (const mode of ['has', 'missing', 'out']) {
+    const held = [];
+    const one = boot({ before: mode === 'out' ? undefined : signedInAs_(ANS_ADA),
+      serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(qrows)) : /data\/inserts\.json/.test(url) ? JSON.parse(JSON.stringify(cards)) : undefined),
+      reply: b => (b.action === 'libItems' ? new Promise(ok => held.push(() => {
+        const items = {}, missing = [];
+        (b.ids || []).forEach(t => { if (t === wire && mode === 'has') items[t] = words; else missing.push(t); });
+        ok({ success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 });
+      })) : undefined) });
+    const W = one.w, d = W.document, A = W.__t.ACTIONS;
+    const pid = card.for_papers.split(',')[0].trim();
+    for (let i = 0; i < 200 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.kind === 'insert' && x.row && x.row.id === card.insert_id)
+      && W.stuffItemsAll_().some(x => x.kind === 'question' && x.row && x.row.paper_id === pid)); i++) await wait(50);
+    const x = W.stuffItemsAll_().find(it => it.kind === 'question' && it.row && it.row.paper_id === card.for_papers.split(',')[0].trim());
+    if (!x) return ['no question of ' + card.for_papers + ' reached Find — nothing was checked'];
+    const tiles = W.insertTile_(x);
+    if (!/data-do="ins-show"/.test(tiles)) { bad.push(mode + ': a question of ' + card.for_papers + ' has no Insert tile'); continue; }
+    const host = d.createElement('div');
+    host.className = 'card';
+    host.innerHTML = '<div class="tile-row">' + tiles + '</div>';
+    d.querySelector('#s-stuff').appendChild(host);
+    A['ins-show'](host.querySelector('[data-do="ins-show"]'));
+    await wait(100);
+    const sheet = () => d.getElementById('sheet');
+    const txt = () => (sheet() ? sheet().textContent.replace(/\s+/g, ' ') : '');
+    if (mode === 'out') {
+      if (!/Sign in to read the source/.test(txt())) bad.push('signed out: the sheet does not say Sign in to read the source: ' + txt().slice(0, 120));
+      if (one.sent.some(b => b.action === 'libItems')) bad.push('signed out: a libItems request went anyway');
+      continue;
+    }
+    if (!sheet() || !sheet().querySelector('.insrc-wait .loading')) bad.push(mode + ': the sheet is not the dots while the extract comes: ' + txt().slice(0, 120));
+    if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push(mode + ': no libItems request went for ' + wire);
+    held.splice(0).forEach(f => f());
+    await wait(300);
+    if (mode === 'has') {
+      const lns = sheet() ? [...sheet().querySelectorAll('.insrc-ln')].map(e => e.textContent) : [];
+      if (lns.join() !== '1,5') bad.push('with its words: the margin line numbers are [' + lns + '], wanted [1,5]');
+      if (!/Stand-in words on the first line/.test(txt()) || /\[5\]/.test(txt())) bad.push('with its words: the extract is not drawn as text with its [n] made line numbers: ' + txt().slice(0, 160));
+      if (!sheet() || !sheet().querySelector('.insrc-h') || !sheet().querySelector('.insrc-note')) bad.push('with its words: the heading or the paper\'s note is not drawn as one');
+    } else if (!/Coming soon\./.test(txt())) bad.push('missing: a pending insert does not say Coming soon: ' + txt().slice(0, 120));
+    if (one.errs.length) bad.push(mode + ': errors: ' + one.errs.join(' | '));
+  }
+  return bad;
+});
+
 /* WORDS AHEAD OF THE READER (447): a slow Ledger, a list shown, then scrolled a page at a time — the cards are whole before they are reached. */
 const LIB_AHEAD_PID = 'P-AQA-8462-2406-2F';
 async function libScrollRun_(o) {
@@ -28261,6 +28503,34 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   return bad;
 });
 
+check('Edit post (453) turns the post card into its editor in place — no page over the feed; Back gives the card back', async () => {
+  const W = postWorld_(), bad = [];
+  const ada = await postOpen_(W, 'tutor@example.org');
+  if (ada.err) return [ada.err];
+  const d = ada.d;
+  const card = ada.post('PO-W1');
+  const ed = card && card.querySelector('[data-do="post-edit"]');
+  if (!ed) return ['Ada\'s waiting post has no Edit tile — NOT checked'];
+  ada.A('post-edit', ed);
+  await wait(100);
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['Edit opened nothing']);
+  if (!sheet.closest('[data-post="PO-W1"]')) bad.push('the editor is not inside the post card');
+  if (!card.classList.contains('sheet-swap')) bad.push('the card did not turn into the editor');
+  /* jsdom draws no stylesheet, so the rule that hides the card's own content is read from style.css. */
+  if (sheet.parentElement !== card) bad.push('the editor is not a direct child of the card, so its hiding rule cannot reach it');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  if (!/\.sheet-swap\s*>\s*:not\(#sheet\)\s*\{[^}]*display:\s*none/.test(css)) bad.push('nothing in style.css hides the post beside its editor');
+  if (d.body.classList.contains('sheet-open') || (d.getElementById('screen') || {}).inert) bad.push('Edit took the screen over');
+  if (/fixed|absolute/.test(ada.w.getComputedStyle(sheet).position || '')) bad.push('the editor floats');
+  if (!d.getElementById('pe-cap')) bad.push('the editor has no caption box');
+  d.getElementById('sheet-close').click(); await wait(100);
+  if (!sheet.classList.contains('hidden')) bad.push('Back did not close the editor');
+  if (card.classList.contains('sheet-swap') || sheet.closest('[data-post]')) bad.push('Back left the card as an editor');
+  if (ada.errs.length) bad.push('errors: ' + ada.errs.join(' | '));
+  return bad;
+});
+
 check('Write a post (448) turns the camera card into the composer in place — no sheet, no picture picker; the poll is one box per option, 2 to 6; Back brings the camera back; Post sends the options joined', async () => {
   const W = postWorld_(), bad = [];
   const pat = await postOpen_(W, 'parent@example.org');
@@ -28420,6 +28690,206 @@ check('a child reports a message she was sent (413): a Report tile on received m
   if (hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]')) bad.push('Dealt with left the message on the card');
   if (String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')) !== 'CLEARED') bad.push('Dealt with did not clear the flag on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
+  return bad;
+});
+
+/* ---------- AFTER A WRONG CHECK, THE ANSWER CAN ALWAYS BE DELETED AND CHECKED AGAIN (docs/history/454) ---------- */
+check('after a wrong Check every answer can be deleted and checked again — typed on the keypad, picked, ordered — and after a reload', async () => {
+  const bad = [];
+  const TYPED = { kind: 'question', key: 'q:Q-DEL-1', name: 'Q1', marks: 1, subject: 'Maths', answerType: 'calculation', accept: '727',
+    row: { row_id: 'Q-DEL-1', paper_id: 'P-DEL', subject: 'Maths', name: 'Paper 1: Arithmetic' }, html: '<p>689 + 38 =</p>', answer: '<b>727</b>' };
+  const PICK = { kind: 'question', key: 'q:Q-DEL-2', name: 'Q2', marks: 1, subject: 'Maths', choices: ['14', '15', '16'], choiceRight: [2],
+    row: { row_id: 'Q-DEL-2', paper_id: 'P-DEL', subject: 'Maths', name: 'Del' }, html: '<p>5/8 of 24</p>', answer: '<b>15</b>' };
+  const ORD = { kind: 'question', key: 'q:Q-DEL-3', name: 'Q3', marks: 1, subject: 'Maths', answerType: 'order',
+    row: { row_id: 'Q-DEL-3', paper_id: 'P-DEL', subject: 'Maths', name: 'Del' }, html: '<p>Smallest first.</p>',
+    choices: ['3', '1', '2'], choiceRight: [2, 3, 1], choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' };
+  const ALL = [TYPED, PICK, ORD];
+  const run = async (b, when) => {
+    const { w, errs } = b;
+    const d = w.document, A = w.__t.ACTIONS;
+    const held = w.stuffItemsAll_;
+    w.stuffItemsAll_ = () => (held ? held() : []).concat(ALL);
+    const host = d.createElement('div');
+    d.body.appendChild(host);
+    host.innerHTML = ALL.map(x => w.questionCard_(x, 0)).join('');
+    const inp = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(TYPED) + '"]');
+    const pad = () => d.getElementById('kp');
+    const press = v => { const k = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (k) A['kp-key'](k); else bad.push(when + ': no key ' + v); };
+    /* TYPED: wrong, Check, then back into the box by a TAP ON ITS DRAWING, as a finger does -- the tap that put the caret at 0 and froze ⌫ */
+    if (!inp) { bad.push(when + ': no keypad box'); return; }
+    const mark = inp.closest('.qp-mark');
+    if (!inp.value) { inp.focus(); press('7'); press('1'); press('7'); press('!done'); }
+    else A['qp-check'](mark.querySelector('.qp-check'));
+    if (inp.value !== '717' || !mark.classList.contains('is-near')) bad.push(when + ': 717 was not marked "not yet" in the box: ' + JSON.stringify(inp.value) + ' ' + mark.className);
+    inp.blur(); await wait(10);
+    const show = inp.parentNode.querySelector('.kp-show');
+    show.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: 1, clientY: 1 }));
+    if (d.activeElement !== inp || pad().hidden) bad.push(when + ': a tap on the marked answer did not bring the keypad back to it');
+    press('!back');
+    if (inp.value !== '71') bad.push(when + ': ⌫ after tapping back into a wrong answer left ' + JSON.stringify(inp.value) + ', wanted "71"');
+    if (mark.classList.contains('is-near')) bad.push(when + ': the edit left "not yet" on a different answer');
+    /* THE CARET AT THE START is never a dead ⌫ in a maths box */
+    inp.setSelectionRange(0, 0);
+    press('!back');
+    if (inp.value !== '7') bad.push(when + ': ⌫ with the caret before the answer left ' + JSON.stringify(inp.value) + ', wanted "7"');
+    inp.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+    if (inp.value !== '') bad.push(when + ': a keyboard Backspace left ' + JSON.stringify(inp.value));
+    press('7'); press('2'); press('7'); press('!done');
+    if (!mark.classList.contains('is-right')) bad.push(when + ': 727 typed after deleting was not marked right: ' + mark.className);
+    /* PICKED: a wrong pick, then another */
+    const box = host.querySelector('.qp-choices');
+    A['qp-choose'](box.querySelector('.qp-opt[data-n="1"]'));
+    const box2 = host.querySelector('.qp-choices');
+    if (!box2.classList.contains('is-miss')) bad.push(when + ': a wrong pick was not "not yet"');
+    A['qp-choose'](box2.querySelector('.qp-opt[data-n="2"]'));
+    if (!host.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked')) bad.push(when + ': a second pick after a wrong one was not taken');
+    /* ORDERED: a wrong row sent, then a place taken back and Clear */
+    const ob = () => host.querySelector('.qp-order');
+    [1, 2, 3].forEach(n => { const it = ob().querySelector('.qp-item[data-n="' + n + '"]'); if (it) it.click(); });
+    ob().querySelector('.qp-order-send').click();
+    await wait(20);
+    if (!ob().classList.contains('is-near')) bad.push(when + ': a wrong ordering was not "not yet": ' + ob().className);
+    const full = ob().querySelector('.qp-slot.is-full');
+    if (full) full.click(); else bad.push(when + ': no placed item to take back');
+    if (ob().querySelectorAll('.qp-slot.is-full').length !== 2) bad.push(when + ': taking a place back after a wrong Send did nothing');
+    const clr = ob().querySelector('[data-do="qp-order-clear"]');
+    if (clr) { clr.click(); if (ob().querySelectorAll('.qp-slot.is-full').length) bad.push(when + ': Clear after a wrong Send left items placed'); }
+    [2, 3, 1].forEach(n => ob().querySelector('.qp-item[data-n="' + n + '"]').click());
+    ob().querySelector('.qp-order-send').click();
+    await wait(20);
+    if (!/Correct/.test((ob().querySelector('.qp-verdict') || {}).textContent || '')) bad.push(when + ': the right order sent after a wrong one was not Correct');
+    if (errs.length) bad.push(when + ': errors: ' + errs.join(' | '));
+    host.remove();
+  };
+  const b1 = boot();
+  await wait(300);
+  if (typeof b1.w.questionCard_ !== 'function' || !b1.w.__t.ACTIONS['kp-key']) return ['questionCard_ or the keypad is not reachable — NOT checked'];
+  await run(b1, 'first visit');
+  /* AND AFTER A RELOAD, the wrong answer back in the box from the device */
+  const b2 = boot({ before: win => { try { win.localStorage.setItem('ans:q:Q-DEL-1', '717'); } catch (e) {} } });
+  await wait(300);
+  await run(b2, 'after a reload');
+  return bad;
+});
+
+/* ---------- THE ONE TOOLKIT ON EVERY KIND OF QUESTION PAGE (docs/history/457) ---------- */
+check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have Zoom, the padlock, Read aloud, Help and Report; Zoom enlarges, the padlock holds and lets go, the pen has its instruments', async () => {
+  const LIB = LIB_FULL.rows('questions');
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined),
+    before: win => {
+      signedInAs_(MEMBER_)(win);
+      win.SpeechSynthesisUtterance = function (txt) { this.text = String(txt); };
+      win.speechSynthesis = { speak() {}, cancel() {}, getVoices: () => [] };
+    } });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof w.qToolkit_ !== 'function' || !A['q-zoom'] || !A['q-lock'] || !A['q-zoom-fig'] || !t.padlock) return ['qToolkit_, the q-zoom, q-lock or q-zoom-fig handler, or PADLOCK is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && !/^true$/i.test(String(x.row.lib_pending || '')));
+  const T = x => w.qType_(x);
+  const pick = {
+    typed: all.find(x => T(x) === 'value' && x.diagram && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1),
+    chosen: all.find(x => T(x) === 'choose1' && String(x.row.choice_right || '').trim()),
+    table: all.find(x => T(x) === 'table'),
+    drawn: all.find(x => String(x.drawAnswer || '').trim() && /math/i.test(x.subject || '')),
+    essay: all.find(x => T(x) === 'essay'),
+  };
+  Object.keys(pick).forEach(k => { if (!pick[k]) bad.push('no ' + k + ' part in the library to hold the toolkit against'); });
+  if (bad.length) return bad;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  for (const k of Object.keys(pick)) {
+    const x = pick[k];
+    host.innerHTML = w.stuffCard(x);
+    const missing = ['q-zoom', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
+    host.querySelectorAll('.qsheet figure').forEach(f => { if (!f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig') bad.push(k + ' part ' + x.row.row_id + ': a figure is not a tap to zoom'); });
+  }
+  /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
+  host.innerHTML = w.stuffCard(pick.drawn);
+  const tools = [...host.querySelectorAll('[data-do="pad-tool"]')].map(e => e.getAttribute('data-tool'));
+  if (tools.join() !== 'pen,ruler,compass,protractor') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, compass, protractor');
+  /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
+  host.innerHTML = w.stuffCard(pick.typed);
+  const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
+  if (meas.join() !== 'protractor,ruler') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
+  /* ZOOM: the sheet holds the part's words and its figure, and + makes it bigger */
+  A['q-zoom'](host.querySelector('[data-do="q-zoom"]'));
+  const body = d.getElementById('sheet-body'), inner = body && body.querySelector('.qzoom-in');
+  if (!inner) bad.push('Zoom opened no enlarged page');
+  else {
+    if (!inner.querySelector('figure svg')) bad.push('the enlarged page has no figure');
+    const words = String(pick.typed.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').trim().split(/\s+/).slice(0, 3).join(' ');
+    if (words && inner.textContent.replace(/\s+/g, ' ').indexOf(words) < 0) bad.push('the enlarged page does not say ' + JSON.stringify(words));
+    const z0 = Number(inner.getAttribute('data-z'));
+    A['q-zoom-by'](body.querySelector('[data-do="q-zoom-by"][data-by="1.25"]'));
+    if (!(Number(body.querySelector('.qzoom-in').getAttribute('data-z')) > z0)) bad.push('+ did not make the enlarged page bigger');
+  }
+  /* A TAP ON THE FIGURE ENLARGES IT TOO */
+  w.closeSheet();
+  host.innerHTML = w.stuffCard(pick.typed);
+  const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
+  if (!fig) bad.push('the typed part\'s figure is not a door to zoom');
+  else {
+    A['q-zoom-fig'](fig);
+    if (!d.querySelector('#sheet-body .qzoom-in figure svg')) bad.push('a tap on the figure opened no enlarged figure');
+    w.closeSheet();
+  }
+  /* A STEM PAGE HAS ZOOM AND THE PADLOCK */
+  const stemmed = all.find(x => (x.stems || []).some(p => p && p.diagram));
+  if (!stemmed) bad.push('no part with a stem figure to try a stem page on');
+  else {
+    host.innerHTML = w.questionStemCard_(stemmed, (stemmed.stems || []).findIndex(p => p && p.diagram), 0);
+    if (!host.querySelector('[data-do="q-zoom"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Zoom or no padlock');
+  }
+  /* THE PADLOCK: pressed, the column will not swipe; pressed again, it will; left by a tab, it lets go */
+  host.innerHTML = w.stuffCard(pick.chosen);
+  const lock = host.querySelector('[data-do="q-lock"]');
+  A['q-lock'](lock);
+  if (!t.padlock().q) bad.push('the padlock did not lock');
+  if (lock.getAttribute('aria-pressed') !== 'true') bad.push('the padlock tile does not say it is pressed');
+  if (w.axisFree(host, 'x', 1) !== false) bad.push('locked, a sideways drag still belongs to the grid');
+  A['q-lock'](host.querySelector('[data-do="q-lock"]'));
+  if (t.padlock().q) bad.push('pressed again, the padlock did not let go');
+  A['q-lock'](host.querySelector('[data-do="q-lock"]'));
+  try { t.go(t.screenAt() === 'stuff' ? 'feed' : 'stuff', false, true); } catch (e) {}
+  await wait(80);
+  if (t.padlock().q) bad.push('a tab to another column left the padlock on');
+  return bad;
+});
+
+/* ---------- A CARD WHOSE LEDGER ROW HAS NO DRAWING SHOWS ITS PNG TWIN (docs/history/460) ---------- */
+check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, a tap enlarges it, and a drawn part keeps its pen over it', async () => {
+  const LIB = LIB_FULL.rows('questions');
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(MEMBER_) });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof w.libQuestion_ !== 'function' || !A['q-zoom-fig']) return ['libQuestion_ or the q-zoom-fig handler is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && x.row.diagram_twin && x.diagram && !/^true$/i.test(String(x.row.lib_pending || '')));
+  const typed = all.find(x => w.qType_(x) === 'value' && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1);
+  const drawn = all.find(x => String(x.drawAnswer || '').trim() && /math/i.test(x.subject || ''));
+  if (!typed || !drawn) return ['no typed and drawn parts with a twin to strip — NOT checked'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  [typed, drawn].forEach((x, i) => {
+    /* THE LEDGER ROW CAME WITHOUT ITS DRAWING: the row loses it and the item is made again, as libMerge_ makes it */
+    delete x.row.diagram;
+    x.diagram = w.libQuestion_(x.row).diagram;
+    const src = 'data/diagrams/' + x.row.diagram_twin + '.png';
+    host.innerHTML = w.stuffCard(x);
+    const img = host.querySelector('svg.qtwin image');
+    if (!img || img.getAttribute('href') !== src) bad.push(x.row.row_id + ': the card shows no ' + src);
+    if (i === 0) {
+      const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
+      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in a figure that a tap enlarges');
+      else {
+        A['q-zoom-fig'](fig);
+        if (!d.querySelector('#sheet-body .qzoom-in svg.qtwin image')) bad.push(x.row.row_id + ': a tap on the twin opened no enlarged picture');
+        w.closeSheet();
+      }
+    } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="pad-tool"][data-tool="pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
+  });
   return bad;
 });
 

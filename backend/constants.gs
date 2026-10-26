@@ -71,6 +71,8 @@ const WHERE = {
   lib_content:    { file: 'ledger' },
   lib_practicals: { file: 'ledger' },
   lib_projects:   { file: 'ledger' },
+  /* THE READING SOURCES A PAPER'S INSERT PRINTS (458): copyrighted, so the extract is here and never in the repository. */
+  lib_inserts:    { file: 'ledger' },
   /* WHO OPENED HOW MANY TODAY — one row per person per London day; the daily cap is counted here. */
   lib_log:        { file: 'ledger' },
 
@@ -118,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-p-feed-compose";
+const BACKEND_VERSION = "2026-10-26-a-no-child-making";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -168,7 +170,7 @@ const TAB = {
   family: 'family',
   /* THE LIBRARY'S PRIVATE HALF (397) — read a row at a time by `libContent_`, never through `read()`: see LIB_FILES. */
   libQuestions: 'lib_questions', libContent: 'lib_content', libPracticals: 'lib_practicals',
-  libProjects: 'lib_projects', libLog: 'lib_log'
+  libProjects: 'lib_projects', libInserts: 'lib_inserts', libLog: 'lib_log'
 };
 
 
@@ -189,6 +191,10 @@ const LIB_FILES = {
                           'variables', 'diagram', 'risks'] },
   projects:   { tab: 'lib_projects', file: 'data/projects.json', prefix: 'pj', id: ['project_id'],
                 private: ['materials', 'steps', 'safety', 'share'] },
+  /* A PAPER'S READING INSERT (458): the card is public, `source_text` (the extract, line n as [n]) is not. */
+  /* `newer`: no row of it was at LIB_SOURCE_COMMIT, so the first copy copies nothing; its words come by import. */
+  inserts:    { tab: 'lib_inserts', file: 'data/inserts.json', prefix: 'in', id: ['insert_id'], newer: true,
+                private: ['source_text'] },
 };
 /* A CELL HOLDS 50,000 CHARACTERS; an item's JSON is cut at 40,000 into up to six cells (the largest is 87,440). */
 const LIB_PARTS = 6;
@@ -487,6 +493,7 @@ const SCHEMA = {
   lib_content: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_practicals: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_projects: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  lib_inserts: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   /* `ids` is every item served that day (so a second look is free), `refused` what the cap turned away. */
   lib_log: [
     "day", "person_id", "handle", "served", "ids", "refused", "last_at",
@@ -555,6 +562,8 @@ const AI_WAITS = [800, 2000];
 const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
+/* A BUSY MODEL WITH ANOTHER WAITING IS ASKED ONCE (456): the owner's "it takes so long" was 0.8 s + 2 s of waits and two more asks of a full model before the fallback. */
+const AI_TRIES_BEFORE_HANDOFF = 1;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
 /* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
 const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
@@ -652,6 +661,8 @@ const CONFIG_DEFAULTS = [
 
 /* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` § */
 const CONFIG_RESEEDED = [
+  /* 6PM ON 25 OCT 2026 (457): the sheet's row still said the old seed's 18, so the hour was kept at 18 every admin load. */
+  ['weekly_digest_hour', '18', 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
   ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
@@ -1425,6 +1436,20 @@ const MIGRATIONS = [
     run: () => backfillSlotCodes_() },
 ];
 
+/* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */
+const HANDS_KEY = 'HELP_HANDS';
+const HANDS_TTL_MS = 30 * 60 * 1000;
+function handsRead_() {
+  let all = {};
+  try { all = JSON.parse(PropertiesService.getScriptProperties().getProperty(HANDS_KEY) || '{}') || {}; } catch (e) { all = {}; }
+  const now = Date.now();
+  Object.keys(all).forEach(k => { if (!all[k] || !(now - Number(all[k].at) < HANDS_TTL_MS)) delete all[k]; });
+  return all;
+}
+function handsWrite_(all) {
+  try { PropertiesService.getScriptProperties().setProperty(HANDS_KEY, JSON.stringify(all || {})); } catch (e) {}
+}
+
 /* ============================== POST ========================================================= */
 /* ---------- WHO MAY DO WHAT § */
 const ACTION_ACCESS = {
@@ -1466,6 +1491,8 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* A child's card by its exact handle (442); the handler gates Client+ and counts. */
   findChild: 'self',
+  /* A HAND UP FROM A QUESTION (455): the handler checks it is your own, or that Staff+ is lowering it. */
+  raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',

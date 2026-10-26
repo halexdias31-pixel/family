@@ -5,7 +5,20 @@
 /* ---------- THE CALCULATOR: KEYS AND ENGINE (a Casio Natural Display). Pure, no DOM; js/check-calc.js runs it. */
 /* The fx-83GT CW's face, in order: [key, label, class, legend, name]. A `top` key's legend is printed white over
    it; any other key's is its SHIFT, in blue. Labels are fixed markup, drawn unescaped by map.js. */
-const MK_B = '<b class="mk-b"></b>', MK_S = '<sup class="mk-b"></sup>', MK_FR = '<i class="mk-fr"><b></b><u></u><b></b></i>';
+/* The printed key faces as small line drawings: boxes outlined at the weight of the type, never solid blocks. */
+const MK = (w, body) => `<svg class="mk" viewBox="0 0 ${w} 20" width="${w / 20}em" height="1em" fill="none" stroke="currentColor" `
+  + `stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const MK_T = (x, y, t, s = 10) => `<text x="${x}" y="${y}" font-size="${s}" fill="currentColor" stroke="none" font-weight="700">${t}</text>`;
+const MK_FR = MK(14, '<rect x="3.5" y="1.5" width="7" height="6"/><path d="M1 10h12"/><rect x="3.5" y="12.5" width="7" height="6"/>');
+const MK_MIX = MK(22, '<rect x="1" y="6" width="6" height="8"/><rect x="12" y="1.5" width="6" height="5"/><path d="M10 10h10"/><rect x="12" y="13.5" width="6" height="5"/>');
+const MK_SQRT = MK(24, '<path d="M1 12l3-1.5 3.5 7.5L12 2h11"/><rect x="13.5" y="6" width="7" height="9"/>');
+const MK_CBRT = MK(26, MK_T(1, 8, '3', 8) + '<path d="M3 12l3-1.5 3.5 7.5L14 2h11"/><rect x="15.5" y="6" width="7" height="9"/>');
+const MK_POW = MK(20, '<rect x="1.5" y="7" width="9" height="11"/><rect x="13" y="1.5" width="5.5" height="5.5"/>');
+const MK_INV = MK(26, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12, 9, '−1', 9));
+const MK_SQ = MK(20, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12.5, 9, '2', 10));
+const MK_CUBE = MK(20, '<rect x="1.5" y="7" width="9" height="11"/>' + MK_T(12.5, 9, '3', 10));
+const MK_LOG = 'log' + MK(16, '<rect x="1" y="12" width="5" height="6"/><rect x="7.5" y="4" width="7.5" height="11"/>');
+const MK_E10 = '×10' + MK(8, '<rect x="1" y="1.5" width="6" height="6"/>');
 const CALC_KEYS = [
   ['on', '', 'top', 'ON', 'clear'], ['home', '<i class="mk-ic mk-home"></i>', 'top', 'HOME', 'home'],
   ['set', '<i class="mk-ic mk-set"></i>', 'top', 'SETTINGS', 'settings'], ['back', '↶', 'top', '', 'back'],
@@ -15,16 +28,16 @@ const CALC_KEYS = [
   ['shift', '⇧', 'top sh', 'SHIFT', 'shift'], ['var', '⇄<i>x</i>', 'top lt', 'VARIABLE', 'variable'],
   ['func', 'f(<i>x</i>)', 'top lt', 'FUNCTION', 'function'], ['cat', '<i class="mk-ic mk-book"></i>', 'top lt', 'CATALOG', 'catalog'],
   ['tools', '<i class="mk-ic mk-dots"></i>', 'top lt', 'TOOLS', 'tools'],
-  ['x', '<i>x</i>', 'fn', 'QR', 'x'], ['frac', MK_FR, 'fn', MK_B + MK_FR, 'fraction'],
-  ['sqrt', '√' + MK_B, 'fn', '∛' + MK_B, 'square root'], ['pow', MK_B + MK_S, 'fn', MK_B + '<sup>−1</sup>', 'power'],
-  ['sq', MK_B + '<sup>2</sup>', 'fn', MK_B + '<sup>3</sup>', 'squared'], ['log', 'log<sub class="mk-b"></sub>' + MK_B, 'fn', 'ln', 'log'],
+  ['x', '<i>x</i>', 'fn', 'QR', 'x'], ['frac', MK_FR, 'fn', MK_MIX, 'fraction'],
+  ['sqrt', MK_SQRT, 'fn', MK_CBRT, 'square root'], ['pow', MK_POW, 'fn', MK_INV, 'power'],
+  ['sq', MK_SQ, 'fn', MK_CUBE, 'squared'], ['log', MK_LOG, 'fn', 'ln', 'log'],
   ['Ans', 'Ans', 'fn'], ['sin', 'sin', 'fn', 'sin<sup>−1</sup>'], ['cos', 'cos', 'fn', 'cos<sup>−1</sup>'],
   ['tan', 'tan', 'fn', 'tan<sup>−1</sup>'], ['(', '(', 'fn', '', 'open bracket'], [')', ')', 'fn', ',', 'close bracket'],
   ['7', '7', 'num', 'π'], ['8', '8', 'num', '<i>e</i>'], ['9', '9', 'num'], ['del', '<i class="mk-ic mk-del"></i>', 'num', 'INS', 'delete'],
   ['C', 'AC', 'num', 'OFF', 'all clear'],
   ['4', '4', 'num', 'A'], ['5', '5', 'num', 'B'], ['6', '6', 'num', 'C'], ['×', '×', 'num', '', 'times'], ['÷', '÷', 'num', '', 'divide'],
   ['1', '1', 'num', 'D'], ['2', '2', 'num', 'E'], ['3', '3', 'num', 'F'], ['+', '+', 'num', '°′″', 'plus'], ['−', '−', 'num', '(−)', 'minus'],
-  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', '×10' + MK_S, 'num', '<i>z</i>', 'times ten to the'],
+  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', MK_E10, 'num', '<i>z</i>', 'times ten to the'],
   ['sd', '<i class="mk-fmt">FORMAT</i>', 'num', '', 'format'], ['=', 'EXE', 'num', '≈', 'execute'],
 ];
 /* What a key does after SHIFT where that is another key. A shifted legend with no meaning here says so rather than typing. */
@@ -32,7 +45,7 @@ const CALC_SHIFT = { '7': 'pi', '8': 'e', sin: 'asin', cos: 'acos', tan: 'atan',
   log: 'ln', '−': 'neg', '=': 'approx', frac: 'frac', C: 'C' };
 const CALC_NOT_HERE = { var: 'VARIABLE', func: 'FUNCTION', cat: 'CATALOG', tools: 'TOOLS', set: 'SETTINGS', x: '<i>x</i>' };
 const CALC_AS = { ok: '=', on: 'C', home: 'C', back: 'del', pgup: 'up', pgdn: 'down' };
-const calcLegend = k => ((CALC_KEYS.find(x => x[0] === k) || [])[3] || '').replace(/<[^>]+>/g, '');
+const calcLegend = k => ((CALC_KEYS.find(x => x[0] === k) || [])[3] || '').replace(/<svg[\s\S]*?<\/svg>/g, '□').replace(/<[^>]+>/g, '');
 
 /* ---- numbers: an exact rational {n, d} of BigInts, or a plain float when no exact answer exists */
 const cQ = (n, d = 1n) => {
@@ -834,9 +847,14 @@ function mayJourney_() {
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {
   try {
-    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('progress')) return;
-    paint('progress');
-    paintPager('progress', true);
+    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('account')) return;
+    /* ON STUDENT SETTINGS SINCE 461: the Countdowns card is swapped in place, since a form just saved there can make `paint` keep the column. */
+    const j = document.querySelector('#s-account .card.prog-count');
+    if (j && typeof progressCountdownCard_ === 'function') {
+      j.outerHTML = String(progressCountdownCard_()).replace('<div class="card', '<div class="card prog-w');
+    }
+    paint('account');
+    paintPager('account', true);
   } catch (e) {}
 }
 
@@ -1261,6 +1279,6 @@ on('prog-practise', el => {
   });
 });
 on('prog-sessions', () => { go('booking'); });
-screen('progress', () => pages('progress', progressCards_()));
+/* `screen('progress')` WAS HERE: its cards are on Student settings (461), `studentSetPages_` in me.js. */
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

@@ -47,6 +47,8 @@ const POPUPS = [
   { re: /sheet-back/g,                                name: 'a backdrop behind the sheet',  use: 'nothing — the sheet is a page in the flow' },
   { re: /setSheetOrigin_|SHEET_FROM/g,                name: 'a sheet that grows out of a card', use: 'openSheet(), which is a page' },
   { re: /\.showModal\s*\(|<dialog\b|\bpopover\s*=|['"]popover['"]|\.showPopover\s*\(/g, name: 'a dialog or a popover', use: 'an inline section, a page, or sure_() on the tile' },
+  /* 453: the sheet as a page that pushed the grid aside was still a pop-up to the owner; it opens IN the card now. */
+  { re: /sheet-open|\.inert\s*=\s*true|aria-haspopup|aria-modal|role=["']dialog/g, name: 'a page or dialog that takes the screen over', use: 'openSheet() (moved into the card pressed), or sheetHere_(el, swap) first' },
   { re: /\bcontextmenu\b[^\n]*\bpreventDefault\b[^\n]*\bshow|\bcustom-?menu\b|\baction-?sheet\b|\bdropdown-?menu\b/gi, name: 'a menu of our own', use: 'tiles in the row, or a native <select>' },
 ];
 /* THE ONE TOP LAYER THAT IS NOT A MENU: the video player's own full screen, the picture over the glass (`vidFullOn_`). */
@@ -128,9 +130,23 @@ css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
   const ok = selector.split(',').every(one => FIXED_OK.some(k => one.trim() === k || one.trim().startsWith(k + ' ') || one.trim().startsWith(k + ':') || one.trim().startsWith(k + '.')));
   if (!ok) popups.push({ short: 'style.css', line: css.slice(0, css.indexOf(all)).split('\n').length,
     name: selector + ' { position: fixed }', use: 'something in the flow of the page — or FIXED_OK, with the reason it is not a menu' });
+  if (/(^|,)\s*#sheet\b/.test(selector) && /\b(height|min-height)\s*:[^;]*(dvh|vh)/.test(body)) popups.push({ short: 'style.css', line: css.slice(0, css.indexOf(all)).split('\n').length, name: selector + ' is screen-tall', use: 'the sheet sits in its card, as tall as its content (453)' });
   if (/(^|,)\s*#sheet\b/.test(selector)) popups.push({ short: 'style.css', line: 0, name: '#sheet floats', use: 'position: static' });
   return all;
 });
+
+/* 453: `openSheet` must place the sheet inside the card that was pressed, never over or instead of the grid. */
+{
+  const sh = stripComments(fs.readFileSync(path.join(DIR, 'shell.js'), 'utf8'));
+  const body = (sh.match(/function openSheet\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1];
+  if (!body) { console.log('FAILED — openSheet could not be found in js/shell.js, so where it opens was not checked.'); process.exit(1); }
+  if (!/sheetPlace_\(\)/.test(body)) popups.push({ short: 'js/shell.js', line: 0, name: 'openSheet does not move the sheet into the card pressed', use: 'sheetPlace_() (453)' });
+  const posts = stripComments(fs.readFileSync(path.join(DIR, 'posts.js'), 'utf8'));
+  [['who-reacted', /sheetHere_\(el\)/], ['post-edit', /sheetHere_\(el,\s*true\)/]].forEach(([act, re]) => {
+    const h = (posts.match(new RegExp("on\\('" + act + "'[\\s\\S]*?\\n\\}\\);")) || [''])[0];
+    if (!re.test(h)) popups.push({ short: 'js/posts.js', line: 0, name: act + ' does not open in its post card', use: re.source + ' before openSheet (453)' });
+  });
+}
 
 say('A POP-UP MENU, DIALOG, POPOVER OR FLOATING BOX (420)', popups,
     r => `${r.short}:${r.line}  ${r.name}  ->  use ${r.use}`);

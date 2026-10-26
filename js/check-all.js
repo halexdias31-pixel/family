@@ -80,6 +80,8 @@ const SUITE = [
   { file: 'check-projects.js', what: 'the projects: topics, the funnel, nothing sent online' },
   /* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES § */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* THE HISTORY DATABASE (459): manuscripts, figures, writings, linked both ways. */
+  { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
@@ -121,6 +123,7 @@ const SUITE = [
   /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
   /* THE CONSOLE'S SAVES ON THE ACCOUNT (446), over a fake Drive. */
   { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
+  { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
@@ -135,6 +138,7 @@ const SUITE = [
   /* AND THE PICTURES IN IT (18 Oct): § */
   { file: 'check-diagram-png.js', what: 'every drawing in the library has its PNG twin for the email, named as the backend names it, none orphaned' },
   /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. § */
+  { file: 'check-voice.js', what: 'read aloud: the most natural device voice first, a kept choice wins, maths said as words, a sentence at a time' },
   { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. § */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
@@ -153,6 +157,8 @@ const SUITE = [
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT § */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
+  /* AND EVERY PART OF IT ANSWERABLE (457): words, sized figures, Zoom and the padlock, a control for its type, its own answer marked right, the pen's instruments */
+  { file: 'check-answerable.js', what: 'every question part in the library can be answered', slow: true },
   /* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES § */
   { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES § */

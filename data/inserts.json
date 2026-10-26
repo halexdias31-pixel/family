@@ -1,0 +1,1766 @@
+[
+ {
+  "insert_id": "INS-GCSE-MATHS-F",
+  "name": "GCSE Maths formulae sheet (Foundation)",
+  "summary": "The formulae a GCSE Maths Foundation candidate is given in the exam, 2025 to 2027.",
+  "subject": "Maths",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA, Edexcel, OCR",
+  "tier": "Foundation",
+  "for_subjects": "Maths",
+  "for_levels": "GCSE",
+  "for_tiers": "Foundation",
+  "verified": "False",
+  "verified_note": "Every board gives the same list, the one the November 2024 Ofqual and DfE decision set for 2025 to 2027; checked against that list as the boards’ guides and the Edexcel June 2025 exam aid set it out. Not yet compared line by line with each board’s own PDF, so marked unverified. A formula a question prints, like the volume of a cone, is still printed in the question.",
+  "official": [
+   {
+    "label": "Edexcel exam aid, Foundation",
+    "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/teaching-and-learning-materials/gcse-mathematics-1ma1-exam-aid-1f2f3f-june2025.pdf"
+   },
+   {
+    "label": "Edexcel exam aid, Higher",
+    "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/teaching-and-learning-materials/gcse-mathematics-1ma1-exam-aid-1h2h3h-june2025.pdf"
+   },
+   {
+    "label": "AQA sheets, 2025 to 2027",
+    "url": "https://www.aqa.org.uk/news/gcse-maths-and-gcse-sciences-formulae-and-equation-sheets-for-2025-2027"
+   },
+   {
+    "label": "OCR sheets, 2025 to 2027",
+    "url": "https://www.ocr.org.uk/administration/support-and-tools/subject-updates/formulae-equation-sheets-723889/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Area and volume",
+    "lines": [
+     {
+      "name": "Area of a trapezium",
+      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>"
+     },
+     {
+      "name": "Volume of a prism",
+      "math": "Volume = area of cross-section &times; length"
+     },
+     {
+      "name": "Circle: circumference",
+      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>"
+     },
+     {
+      "name": "Circle: area",
+      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>"
+     }
+    ]
+   },
+   {
+    "head": "Right-angled triangles",
+    "lines": [
+     {
+      "name": "Pythagoras’ theorem",
+      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>"
+     },
+     {
+      "name": "Sine",
+      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>"
+     },
+     {
+      "name": "Cosine",
+      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>"
+     },
+     {
+      "name": "Tangent",
+      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>"
+     }
+    ]
+   },
+   {
+    "head": "Money and chance",
+    "lines": [
+     {
+      "name": "Compound interest",
+      "math": "Total = <i>P</i> (1 + <sup><i>r</i></sup>&frasl;<sub>100</sub>)<sup><i>n</i></sup>",
+      "note": "P the amount at the start, r the percentage rate each period, n the number of periods"
+     },
+     {
+      "name": "Either event",
+      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)"
+     },
+     {
+      "name": "Both events",
+      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-GCSE-MATHS-H",
+  "name": "GCSE Maths formulae sheet (Higher)",
+  "summary": "The formulae a GCSE Maths Higher candidate is given in the exam, 2025 to 2027.",
+  "subject": "Maths",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA, Edexcel, OCR",
+  "tier": "Higher",
+  "for_subjects": "Maths",
+  "for_levels": "GCSE",
+  "for_tiers": "Higher",
+  "verified": "False",
+  "verified_note": "Every board gives the same list, the one the November 2024 Ofqual and DfE decision set for 2025 to 2027; checked against that list as the boards’ guides and the Edexcel June 2025 exam aid set it out. Not yet compared line by line with each board’s own PDF, so marked unverified. A formula a question prints, like the volume of a cone, is still printed in the question.",
+  "official": [
+   {
+    "label": "Edexcel exam aid, Foundation",
+    "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/teaching-and-learning-materials/gcse-mathematics-1ma1-exam-aid-1f2f3f-june2025.pdf"
+   },
+   {
+    "label": "Edexcel exam aid, Higher",
+    "url": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/teaching-and-learning-materials/gcse-mathematics-1ma1-exam-aid-1h2h3h-june2025.pdf"
+   },
+   {
+    "label": "AQA sheets, 2025 to 2027",
+    "url": "https://www.aqa.org.uk/news/gcse-maths-and-gcse-sciences-formulae-and-equation-sheets-for-2025-2027"
+   },
+   {
+    "label": "OCR sheets, 2025 to 2027",
+    "url": "https://www.ocr.org.uk/administration/support-and-tools/subject-updates/formulae-equation-sheets-723889/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Area and volume",
+    "lines": [
+     {
+      "name": "Area of a trapezium",
+      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> (<i>a</i> + <i>b</i>)<i>h</i>"
+     },
+     {
+      "name": "Volume of a prism",
+      "math": "Volume = area of cross-section &times; length"
+     },
+     {
+      "name": "Circle: circumference",
+      "math": "<i>C</i> = &pi;<i>d</i> = 2&pi;<i>r</i>"
+     },
+     {
+      "name": "Circle: area",
+      "math": "<i>A</i> = &pi;<i>r</i><sup>2</sup>"
+     }
+    ]
+   },
+   {
+    "head": "Right-angled triangles",
+    "lines": [
+     {
+      "name": "Pythagoras’ theorem",
+      "math": "<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>"
+     },
+     {
+      "name": "Sine",
+      "math": "sin <i>x</i> = <sup>opposite</sup>&frasl;<sub>hypotenuse</sub>"
+     },
+     {
+      "name": "Cosine",
+      "math": "cos <i>x</i> = <sup>adjacent</sup>&frasl;<sub>hypotenuse</sub>"
+     },
+     {
+      "name": "Tangent",
+      "math": "tan <i>x</i> = <sup>opposite</sup>&frasl;<sub>adjacent</sub>"
+     }
+    ]
+   },
+   {
+    "head": "Money and chance",
+    "lines": [
+     {
+      "name": "Compound interest",
+      "math": "Total = <i>P</i> (1 + <sup><i>r</i></sup>&frasl;<sub>100</sub>)<sup><i>n</i></sup>",
+      "note": "P the amount at the start, r the percentage rate each period, n the number of periods"
+     },
+     {
+      "name": "Either event",
+      "math": "P(<i>A</i> or <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> and <i>B</i>)"
+     },
+     {
+      "name": "Both events",
+      "math": "P(<i>A</i> and <i>B</i>) = P(<i>A</i> given <i>B</i>) &times; P(<i>B</i>)"
+     }
+    ]
+   },
+   {
+    "head": "Higher tier only",
+    "lines": [
+     {
+      "name": "Quadratic formula",
+      "math": "For <i>a</i><i>x</i><sup>2</sup> + <i>b</i><i>x</i> + <i>c</i> = 0 with <i>a</i> &ne; 0: &nbsp;<i>x</i> = <sup>&minus;<i>b</i> &plusmn; &radic;<span class=\"insh-rad\"><i>b</i><sup>2</sup> &minus; 4<i>a</i><i>c</i></span></sup>&frasl;<sub>2<i>a</i></sub>",
+      "higher": "True"
+     },
+     {
+      "name": "Sine rule",
+      "math": "<sup><i>a</i></sup>&frasl;<sub>sin <i>A</i></sub> = <sup><i>b</i></sup>&frasl;<sub>sin <i>B</i></sub> = <sup><i>c</i></sup>&frasl;<sub>sin <i>C</i></sub>",
+      "higher": "True"
+     },
+     {
+      "name": "Cosine rule",
+      "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>",
+      "higher": "True"
+     },
+     {
+      "name": "Area of any triangle",
+      "math": "Area = <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>b</i> sin <i>C</i>",
+      "higher": "True"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-GCSE-PHYSICS",
+  "name": "GCSE Physics equation sheet",
+  "summary": "The equations a GCSE Physics or Combined Science candidate is given in the exam, 2025 to 2027.",
+  "subject": "Physics",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA, Edexcel, OCR",
+  "tier": "Foundation, Higher",
+  "for_subjects": "Physics, Combined Science",
+  "for_levels": "GCSE",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The equations in the DfE GCSE physics content, which AQA, Edexcel and OCR each print on their own 2025 to 2027 sheet in their own order and words. H marks Higher tier; “Physics only” marks one not asked in Combined Science. Not yet compared line by line with each board’s PDF, so marked unverified.",
+  "official": [
+   {
+    "label": "AQA sheets, 2025 to 2027",
+    "url": "https://www.aqa.org.uk/news/gcse-maths-and-gcse-sciences-formulae-and-equation-sheets-for-2025-2027"
+   },
+   {
+    "label": "OCR sheets, 2025 to 2027",
+    "url": "https://www.ocr.org.uk/administration/support-and-tools/subject-updates/formulae-equation-sheets-723889/"
+   },
+   {
+    "label": "Edexcel GCSE sciences",
+    "url": "https://qualifications.pearson.com/en/qualifications/edexcel-gcses/sciences-2016.html"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Forces and motion",
+    "lines": [
+     {
+      "name": "Weight",
+      "math": "weight = mass &times; gravitational field strength &nbsp; <i>W</i> = <i>m</i><i>g</i>"
+     },
+     {
+      "name": "Work done",
+      "math": "work done = force &times; distance along the line of the force &nbsp; <i>W</i> = <i>F</i><i>s</i>"
+     },
+     {
+      "name": "Hooke’s law",
+      "math": "force = spring constant &times; extension &nbsp; <i>F</i> = <i>k</i><i>e</i>"
+     },
+     {
+      "name": "Moment",
+      "math": "moment = force &times; perpendicular distance from the pivot &nbsp; <i>M</i> = <i>F</i><i>d</i>",
+      "only": "Physics"
+     },
+     {
+      "name": "Pressure",
+      "math": "pressure = <sup>force normal to a surface</sup>&frasl;<sub>area</sub> &nbsp; <i>p</i> = <sup><i>F</i></sup>&frasl;<sub><i>A</i></sub>",
+      "only": "Physics"
+     },
+     {
+      "name": "Pressure in a liquid",
+      "math": "pressure = column height &times; density &times; <i>g</i> &nbsp; <i>p</i> = <i>h</i>&rho;<i>g</i>",
+      "higher": "True",
+      "only": "Physics"
+     },
+     {
+      "name": "Speed",
+      "math": "distance = speed &times; time &nbsp; <i>s</i> = <i>v</i><i>t</i>"
+     },
+     {
+      "name": "Acceleration",
+      "math": "acceleration = <sup>change in velocity</sup>&frasl;<sub>time taken</sub> &nbsp; <i>a</i> = <sup>&Delta;<i>v</i></sup>&frasl;<sub><i>t</i></sub>"
+     },
+     {
+      "name": "Uniform acceleration",
+      "math": "<i>v</i><sup>2</sup> &minus; <i>u</i><sup>2</sup> = 2<i>a</i><i>s</i>",
+      "note": "v the final velocity, u the initial velocity, s the distance"
+     },
+     {
+      "name": "Newton’s second law",
+      "math": "force = mass &times; acceleration &nbsp; <i>F</i> = <i>m</i><i>a</i>"
+     },
+     {
+      "name": "Momentum",
+      "math": "momentum = mass &times; velocity &nbsp; <i>p</i> = <i>m</i><i>v</i>",
+      "higher": "True"
+     },
+     {
+      "name": "Force and momentum",
+      "math": "force = <sup>change in momentum</sup>&frasl;<sub>time taken</sub> &nbsp; <i>F</i> = <sup><i>m</i>&Delta;<i>v</i></sup>&frasl;<sub>&Delta;<i>t</i></sub>",
+      "higher": "True",
+      "only": "Physics"
+     }
+    ]
+   },
+   {
+    "head": "Energy",
+    "lines": [
+     {
+      "name": "Kinetic energy",
+      "math": "<i>E</i><sub>k</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>m</i><i>v</i><sup>2</sup>"
+     },
+     {
+      "name": "Gravitational potential energy",
+      "math": "<i>E</i><sub>p</sub> = <i>m</i><i>g</i><i>h</i>"
+     },
+     {
+      "name": "Elastic potential energy",
+      "math": "<i>E</i><sub>e</sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>k</i><i>e</i><sup>2</sup>",
+      "note": "while the limit of proportionality is not passed"
+     },
+     {
+      "name": "Specific heat capacity",
+      "math": "&Delta;<i>E</i> = <i>m</i><i>c</i>&Delta;&theta;",
+      "note": "thermal energy change = mass × specific heat capacity × temperature change"
+     },
+     {
+      "name": "Specific latent heat",
+      "math": "<i>E</i> = <i>m</i><i>L</i>",
+      "note": "energy for a change of state = mass × specific latent heat"
+     },
+     {
+      "name": "Power from energy",
+      "math": "<i>P</i> = <sup><i>E</i></sup>&frasl;<sub><i>t</i></sub>"
+     },
+     {
+      "name": "Power from work",
+      "math": "<i>P</i> = <sup><i>W</i></sup>&frasl;<sub><i>t</i></sub>"
+     },
+     {
+      "name": "Efficiency",
+      "math": "efficiency = <sup>useful output energy transfer</sup>&frasl;<sub>total input energy transfer</sub> = <sup>useful power output</sup>&frasl;<sub>total power input</sub>"
+     }
+    ]
+   },
+   {
+    "head": "Electricity and magnetism",
+    "lines": [
+     {
+      "name": "Charge",
+      "math": "<i>Q</i> = <i>I</i><i>t</i>",
+      "note": "charge = current × time"
+     },
+     {
+      "name": "Potential difference",
+      "math": "<i>V</i> = <i>I</i><i>R</i>",
+      "note": "potential difference = current × resistance"
+     },
+     {
+      "name": "Electrical power",
+      "math": "<i>P</i> = <i>V</i><i>I</i> = <i>I</i><sup>2</sup><i>R</i>"
+     },
+     {
+      "name": "Energy from power",
+      "math": "<i>E</i> = <i>P</i><i>t</i>"
+     },
+     {
+      "name": "Energy from charge",
+      "math": "<i>E</i> = <i>Q</i><i>V</i>"
+     },
+     {
+      "name": "Force on a wire",
+      "math": "<i>F</i> = <i>B</i><i>I</i><i>l</i>",
+      "higher": "True",
+      "note": "force = magnetic flux density × current × length"
+     },
+     {
+      "name": "Transformer turns",
+      "math": "<sup><i>V</i><sub>p</sub></sup>&frasl;<sub><i>V</i><sub>s</sub></sub> = <sup><i>n</i><sub>p</sub></sup>&frasl;<sub><i>n</i><sub>s</sub></sub>",
+      "higher": "True",
+      "only": "Physics"
+     },
+     {
+      "name": "Transformer power",
+      "math": "<i>V</i><sub>s</sub><i>I</i><sub>s</sub> = <i>V</i><sub>p</sub><i>I</i><sub>p</sub>",
+      "note": "a transformer that wastes no energy"
+     }
+    ]
+   },
+   {
+    "head": "Matter and waves",
+    "lines": [
+     {
+      "name": "Density",
+      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>"
+     },
+     {
+      "name": "Gas at constant temperature",
+      "math": "<i>p</i><i>V</i> = constant",
+      "only": "Physics"
+     },
+     {
+      "name": "Wave speed",
+      "math": "<i>v</i> = <i>f</i>&lambda;"
+     },
+     {
+      "name": "Period",
+      "math": "<i>T</i> = <sup>1</sup>&frasl;<sub><i>f</i></sub>"
+     },
+     {
+      "name": "Magnification",
+      "math": "magnification = <sup>image height</sup>&frasl;<sub>object height</sub>",
+      "only": "Physics"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-GCSE-PERIODIC",
+  "name": "GCSE Chemistry periodic table",
+  "summary": "The periodic table a GCSE Chemistry or Combined Science candidate is given in the exam.",
+  "subject": "Chemistry",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "Foundation, Higher",
+  "for_subjects": "Chemistry, Combined Science",
+  "for_levels": "GCSE",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. Elements 58 to 71 and from 90 on are left out, as the insert leaves them out. Written from memory and not yet compared box by box with the insert, so marked unverified.",
+  "official": [
+   {
+    "label": "AQA periodic table insert",
+    "url": "https://drive.google.com/file/d/15RfifsYaBRBYNngrVd74BnDwlmAcF5AQ/view"
+   }
+  ],
+  "sections": [],
+  "table": "periodic",
+  "active": "True",
+  "elements": [
+   [
+    1,
+    "H",
+    "Hydrogen",
+    "1",
+    1,
+    1
+   ],
+   [
+    2,
+    "He",
+    "Helium",
+    "4",
+    18,
+    1
+   ],
+   [
+    3,
+    "Li",
+    "Lithium",
+    "7",
+    1,
+    2
+   ],
+   [
+    4,
+    "Be",
+    "Beryllium",
+    "9",
+    2,
+    2
+   ],
+   [
+    5,
+    "B",
+    "Boron",
+    "11",
+    13,
+    2
+   ],
+   [
+    6,
+    "C",
+    "Carbon",
+    "12",
+    14,
+    2
+   ],
+   [
+    7,
+    "N",
+    "Nitrogen",
+    "14",
+    15,
+    2
+   ],
+   [
+    8,
+    "O",
+    "Oxygen",
+    "16",
+    16,
+    2
+   ],
+   [
+    9,
+    "F",
+    "Fluorine",
+    "19",
+    17,
+    2
+   ],
+   [
+    10,
+    "Ne",
+    "Neon",
+    "20",
+    18,
+    2
+   ],
+   [
+    11,
+    "Na",
+    "Sodium",
+    "23",
+    1,
+    3
+   ],
+   [
+    12,
+    "Mg",
+    "Magnesium",
+    "24",
+    2,
+    3
+   ],
+   [
+    13,
+    "Al",
+    "Aluminium",
+    "27",
+    13,
+    3
+   ],
+   [
+    14,
+    "Si",
+    "Silicon",
+    "28",
+    14,
+    3
+   ],
+   [
+    15,
+    "P",
+    "Phosphorus",
+    "31",
+    15,
+    3
+   ],
+   [
+    16,
+    "S",
+    "Sulfur",
+    "32",
+    16,
+    3
+   ],
+   [
+    17,
+    "Cl",
+    "Chlorine",
+    "35.5",
+    17,
+    3
+   ],
+   [
+    18,
+    "Ar",
+    "Argon",
+    "40",
+    18,
+    3
+   ],
+   [
+    19,
+    "K",
+    "Potassium",
+    "39",
+    1,
+    4
+   ],
+   [
+    20,
+    "Ca",
+    "Calcium",
+    "40",
+    2,
+    4
+   ],
+   [
+    21,
+    "Sc",
+    "Scandium",
+    "45",
+    3,
+    4
+   ],
+   [
+    22,
+    "Ti",
+    "Titanium",
+    "48",
+    4,
+    4
+   ],
+   [
+    23,
+    "V",
+    "Vanadium",
+    "51",
+    5,
+    4
+   ],
+   [
+    24,
+    "Cr",
+    "Chromium",
+    "52",
+    6,
+    4
+   ],
+   [
+    25,
+    "Mn",
+    "Manganese",
+    "55",
+    7,
+    4
+   ],
+   [
+    26,
+    "Fe",
+    "Iron",
+    "56",
+    8,
+    4
+   ],
+   [
+    27,
+    "Co",
+    "Cobalt",
+    "59",
+    9,
+    4
+   ],
+   [
+    28,
+    "Ni",
+    "Nickel",
+    "59",
+    10,
+    4
+   ],
+   [
+    29,
+    "Cu",
+    "Copper",
+    "63.5",
+    11,
+    4
+   ],
+   [
+    30,
+    "Zn",
+    "Zinc",
+    "65",
+    12,
+    4
+   ],
+   [
+    31,
+    "Ga",
+    "Gallium",
+    "70",
+    13,
+    4
+   ],
+   [
+    32,
+    "Ge",
+    "Germanium",
+    "73",
+    14,
+    4
+   ],
+   [
+    33,
+    "As",
+    "Arsenic",
+    "75",
+    15,
+    4
+   ],
+   [
+    34,
+    "Se",
+    "Selenium",
+    "79",
+    16,
+    4
+   ],
+   [
+    35,
+    "Br",
+    "Bromine",
+    "80",
+    17,
+    4
+   ],
+   [
+    36,
+    "Kr",
+    "Krypton",
+    "84",
+    18,
+    4
+   ],
+   [
+    37,
+    "Rb",
+    "Rubidium",
+    "85",
+    1,
+    5
+   ],
+   [
+    38,
+    "Sr",
+    "Strontium",
+    "88",
+    2,
+    5
+   ],
+   [
+    39,
+    "Y",
+    "Yttrium",
+    "89",
+    3,
+    5
+   ],
+   [
+    40,
+    "Zr",
+    "Zirconium",
+    "91",
+    4,
+    5
+   ],
+   [
+    41,
+    "Nb",
+    "Niobium",
+    "93",
+    5,
+    5
+   ],
+   [
+    42,
+    "Mo",
+    "Molybdenum",
+    "96",
+    6,
+    5
+   ],
+   [
+    43,
+    "Tc",
+    "Technetium",
+    "[98]",
+    7,
+    5
+   ],
+   [
+    44,
+    "Ru",
+    "Ruthenium",
+    "101",
+    8,
+    5
+   ],
+   [
+    45,
+    "Rh",
+    "Rhodium",
+    "103",
+    9,
+    5
+   ],
+   [
+    46,
+    "Pd",
+    "Palladium",
+    "106",
+    10,
+    5
+   ],
+   [
+    47,
+    "Ag",
+    "Silver",
+    "108",
+    11,
+    5
+   ],
+   [
+    48,
+    "Cd",
+    "Cadmium",
+    "112",
+    12,
+    5
+   ],
+   [
+    49,
+    "In",
+    "Indium",
+    "115",
+    13,
+    5
+   ],
+   [
+    50,
+    "Sn",
+    "Tin",
+    "119",
+    14,
+    5
+   ],
+   [
+    51,
+    "Sb",
+    "Antimony",
+    "122",
+    15,
+    5
+   ],
+   [
+    52,
+    "Te",
+    "Tellurium",
+    "128",
+    16,
+    5
+   ],
+   [
+    53,
+    "I",
+    "Iodine",
+    "127",
+    17,
+    5
+   ],
+   [
+    54,
+    "Xe",
+    "Xenon",
+    "131",
+    18,
+    5
+   ],
+   [
+    55,
+    "Cs",
+    "Caesium",
+    "133",
+    1,
+    6
+   ],
+   [
+    56,
+    "Ba",
+    "Barium",
+    "137",
+    2,
+    6
+   ],
+   [
+    57,
+    "La",
+    "Lanthanum",
+    "139",
+    3,
+    6
+   ],
+   [
+    72,
+    "Hf",
+    "Hafnium",
+    "178",
+    4,
+    6
+   ],
+   [
+    73,
+    "Ta",
+    "Tantalum",
+    "181",
+    5,
+    6
+   ],
+   [
+    74,
+    "W",
+    "Tungsten",
+    "184",
+    6,
+    6
+   ],
+   [
+    75,
+    "Re",
+    "Rhenium",
+    "186",
+    7,
+    6
+   ],
+   [
+    76,
+    "Os",
+    "Osmium",
+    "190",
+    8,
+    6
+   ],
+   [
+    77,
+    "Ir",
+    "Iridium",
+    "192",
+    9,
+    6
+   ],
+   [
+    78,
+    "Pt",
+    "Platinum",
+    "195",
+    10,
+    6
+   ],
+   [
+    79,
+    "Au",
+    "Gold",
+    "197",
+    11,
+    6
+   ],
+   [
+    80,
+    "Hg",
+    "Mercury",
+    "201",
+    12,
+    6
+   ],
+   [
+    81,
+    "Tl",
+    "Thallium",
+    "204",
+    13,
+    6
+   ],
+   [
+    82,
+    "Pb",
+    "Lead",
+    "207",
+    14,
+    6
+   ],
+   [
+    83,
+    "Bi",
+    "Bismuth",
+    "209",
+    15,
+    6
+   ],
+   [
+    84,
+    "Po",
+    "Polonium",
+    "[209]",
+    16,
+    6
+   ],
+   [
+    85,
+    "At",
+    "Astatine",
+    "[210]",
+    17,
+    6
+   ],
+   [
+    86,
+    "Rn",
+    "Radon",
+    "[222]",
+    18,
+    6
+   ],
+   [
+    87,
+    "Fr",
+    "Francium",
+    "[223]",
+    1,
+    7
+   ],
+   [
+    88,
+    "Ra",
+    "Radium",
+    "[226]",
+    2,
+    7
+   ],
+   [
+    89,
+    "Ac",
+    "Actinium",
+    "[227]",
+    3,
+    7
+   ]
+  ]
+ },
+ {
+  "insert_id": "INS-ALEVEL-MATHS",
+  "name": "A level Maths formulae booklet",
+  "summary": "The main formulas of the booklet an A level or AS Maths candidate is given in the exam.",
+  "subject": "Maths",
+  "level": "A-Level, AS",
+  "keystage": "KS5",
+  "board": "Edexcel, AQA, OCR",
+  "tier": "",
+  "for_subjects": "Maths",
+  "for_levels": "A-Level, Alevel, AS",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The main formulas of the booklet every A level and AS Maths candidate is given, in our own setting, and not the whole booklet: its tables and the rest are in the board’s own. Each is a standard identity; not yet compared line by line with the booklet, so marked unverified.",
+  "official": [
+   {
+    "label": "Edexcel A level Mathematics: the booklet is under Course materials",
+    "url": "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/mathematics-2017.html"
+   },
+   {
+    "label": "AQA A-level Mathematics 7357",
+    "url": "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357"
+   },
+   {
+    "label": "OCR A Level Mathematics A",
+    "url": "https://www.ocr.org.uk/qualifications/as-and-a-level/mathematics-a-h230-h240-from-2017/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Algebra and series",
+    "lines": [
+     {
+      "name": "Arithmetic series",
+      "math": "<i>S</i><sub><i>n</i></sub> = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>(<i>a</i> + <i>l</i>) = <sup>1</sup>&frasl;<sub>2</sub> <i>n</i>[2<i>a</i> + (<i>n</i> &minus; 1)<i>d</i>]"
+     },
+     {
+      "name": "Geometric series",
+      "math": "<i>S</i><sub><i>n</i></sub> = <sup><i>a</i>(1 &minus; <i>r</i><sup><i>n</i></sup>)</sup>&frasl;<sub>1 &minus; <i>r</i></sub>; &nbsp; <i>S</i><sub>&infin;</sub> = <sup><i>a</i></sup>&frasl;<sub>1 &minus; <i>r</i></sub> for |<i>r</i>| &lt; 1"
+     },
+     {
+      "name": "Binomial, n a positive integer",
+      "math": "(<i>a</i> + <i>b</i>)<sup><i>n</i></sup> = <i>a</i><sup><i>n</i></sup> + <sup><i>n</i></sup>C<sub>1</sub> <i>a</i><sup><i>n</i>&minus;1</sup><i>b</i> + &hellip; + <sup><i>n</i></sup>C<sub><i>r</i></sub> <i>a</i><sup><i>n</i>&minus;<i>r</i></sup><i>b</i><sup><i>r</i></sup> + &hellip; + <i>b</i><sup><i>n</i></sup>",
+      "note": "nCr = n! ÷ (r!(n − r)!)"
+     },
+     {
+      "name": "Binomial, any n",
+      "math": "(1 + <i>x</i>)<sup><i>n</i></sup> = 1 + <i>n</i><i>x</i> + <sup><i>n</i>(<i>n</i> &minus; 1)</sup>&frasl;<sub>2 &times; 1</sub> <i>x</i><sup>2</sup> + &hellip; &nbsp; for |<i>x</i>| &lt; 1"
+     },
+     {
+      "name": "Change of base",
+      "math": "log<sub><i>a</i></sub> <i>x</i> = <sup>log<sub><i>b</i></sub> <i>x</i></sup>&frasl;<sub>log<sub><i>b</i></sub> <i>a</i></sub>"
+     }
+    ]
+   },
+   {
+    "head": "Trigonometry",
+    "lines": [
+     {
+      "name": "Compound angles",
+      "math": "sin(<i>A</i> &plusmn; <i>B</i>) = sin <i>A</i> cos <i>B</i> &plusmn; cos <i>A</i> sin <i>B</i>"
+     },
+     {
+      "name": "",
+      "math": "cos(<i>A</i> &plusmn; <i>B</i>) = cos <i>A</i> cos <i>B</i> &#8723; sin <i>A</i> sin <i>B</i>"
+     },
+     {
+      "name": "",
+      "math": "tan(<i>A</i> &plusmn; <i>B</i>) = <sup>tan <i>A</i> &plusmn; tan <i>B</i></sup>&frasl;<sub>1 &#8723; tan <i>A</i> tan <i>B</i></sub>"
+     },
+     {
+      "name": "Cosine rule",
+      "math": "<i>a</i><sup>2</sup> = <i>b</i><sup>2</sup> + <i>c</i><sup>2</sup> &minus; 2<i>b</i><i>c</i> cos <i>A</i>"
+     }
+    ]
+   },
+   {
+    "head": "Calculus and numerical methods",
+    "lines": [
+     {
+      "name": "Derivatives",
+      "math": "tan <i>kx</i> &rarr; <i>k</i> sec<sup>2</sup> <i>kx</i>; &nbsp; sec <i>x</i> &rarr; sec <i>x</i> tan <i>x</i>; &nbsp; cot <i>x</i> &rarr; &minus;cosec<sup>2</sup> <i>x</i>; &nbsp; cosec <i>x</i> &rarr; &minus;cosec <i>x</i> cot <i>x</i>"
+     },
+     {
+      "name": "Quotient rule",
+      "math": "d(<i>u</i>/<i>v</i>)/d<i>x</i> = <sup><i>v</i><i>u</i>&prime; &minus; <i>u</i><i>v</i>&prime;</sup>&frasl;<sub><i>v</i><sup>2</sup></sub>"
+     },
+     {
+      "name": "Integration by parts",
+      "math": "&int; <i>u</i><i>v</i>&prime; d<i>x</i> = <i>u</i><i>v</i> &minus; &int; <i>v</i><i>u</i>&prime; d<i>x</i>"
+     },
+     {
+      "name": "An integral",
+      "math": "&int; tan <i>kx</i> d<i>x</i> = <sup>1</sup>&frasl;<sub><i>k</i></sub> ln|sec <i>kx</i>| + <i>c</i>"
+     },
+     {
+      "name": "Trapezium rule",
+      "math": "&int;<sub><i>a</i></sub><sup><i>b</i></sup> <i>y</i> d<i>x</i> &asymp; <sup>1</sup>&frasl;<sub>2</sub> <i>h</i>{(<i>y</i><sub>0</sub> + <i>y</i><sub><i>n</i></sub>) + 2(<i>y</i><sub>1</sub> + &hellip; + <i>y</i><sub><i>n</i>&minus;1</sub>)}",
+      "note": "h = (b − a) ÷ n"
+     },
+     {
+      "name": "Newton–Raphson",
+      "math": "<i>x</i><sub><i>n</i>+1</sub> = <i>x</i><sub><i>n</i></sub> &minus; <sup>f(<i>x</i><sub><i>n</i></sub>)</sup>&frasl;<sub>f&prime;(<i>x</i><sub><i>n</i></sub>)</sub>"
+     }
+    ]
+   },
+   {
+    "head": "Statistics and mechanics",
+    "lines": [
+     {
+      "name": "Either event",
+      "math": "P(<i>A</i> &cup; <i>B</i>) = P(<i>A</i>) + P(<i>B</i>) &minus; P(<i>A</i> &cap; <i>B</i>)"
+     },
+     {
+      "name": "Conditional probability",
+      "math": "P(<i>A</i> | <i>B</i>) = <sup>P(<i>A</i> &cap; <i>B</i>)</sup>&frasl;<sub>P(<i>B</i>)</sub>"
+     },
+     {
+      "name": "Binomial distribution",
+      "math": "P(<i>X</i> = <i>x</i>) = <sup><i>n</i></sup>C<sub><i>x</i></sub> <i>p</i><sup><i>x</i></sup>(1 &minus; <i>p</i>)<sup><i>n</i>&minus;<i>x</i></sup>",
+      "note": "X ~ B(n, p): mean np, variance np(1 − p)"
+     },
+     {
+      "name": "Standard normal",
+      "math": "<i>Z</i> = <sup><i>X</i> &minus; &mu;</sup>&frasl;<sub>&sigma;</sub>",
+      "note": "X ~ N(μ, σ²)"
+     },
+     {
+      "name": "Constant acceleration",
+      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>; &nbsp; <i>s</i> = <i>v</i><i>t</i> &minus; <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-ALEVEL-PHYSICS",
+  "name": "A level Physics data and formulae",
+  "summary": "The key constants and equations of the booklet an A level Physics candidate is given in the exam.",
+  "subject": "Physics",
+  "level": "A-Level",
+  "keystage": "KS5",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "Physics",
+  "for_levels": "A-Level, Alevel",
+  "for_tiers": "",
+  "verified": "False",
+  "verified_note": "The key constants and equations of the data and formulae booklet AQA hands out with every A-level Physics paper, in our own setting; the options, units and particle tables are in the booklet itself. Constants are given to three figures as booklets print them. Not yet compared line by line with the booklet, so marked unverified.",
+  "official": [
+   {
+    "label": "AQA A-level Physics data and formulae booklet",
+    "url": "https://www.aqa.org.uk/files/fHDU1dLPgDwvQhfFoKkMzz/ed28d77381e7a4fb02c252226c5fd628639400d8.pdf"
+   },
+   {
+    "label": "Edexcel A level Physics",
+    "url": "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/physics-2015.html"
+   },
+   {
+    "label": "OCR A Level Physics A",
+    "url": "https://www.ocr.org.uk/qualifications/as-and-a-level/physics-a-h156-h556-from-2015/"
+   }
+  ],
+  "sections": [
+   {
+    "head": "Constants",
+    "lines": [
+     {
+      "name": "Speed of light in a vacuum",
+      "math": "<i>c</i> = 3.00 &times; 10<sup>8</sup> m s<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Elementary charge",
+      "math": "<i>e</i> = 1.60 &times; 10<sup>&minus;19</sup> C"
+     },
+     {
+      "name": "Planck constant",
+      "math": "<i>h</i> = 6.63 &times; 10<sup>&minus;34</sup> J s"
+     },
+     {
+      "name": "Gravitational constant",
+      "math": "<i>G</i> = 6.67 &times; 10<sup>&minus;11</sup> N m<sup>2</sup> kg<sup>&minus;2</sup>"
+     },
+     {
+      "name": "Avogadro constant",
+      "math": "<i>N</i><sub>A</sub> = 6.02 &times; 10<sup>23</sup> mol<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Molar gas constant",
+      "math": "<i>R</i> = 8.31 J K<sup>&minus;1</sup> mol<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Boltzmann constant",
+      "math": "<i>k</i> = 1.38 &times; 10<sup>&minus;23</sup> J K<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Stefan constant",
+      "math": "&sigma; = 5.67 &times; 10<sup>&minus;8</sup> W m<sup>&minus;2</sup> K<sup>&minus;4</sup>"
+     },
+     {
+      "name": "Permittivity of free space",
+      "math": "&epsilon;<sub>0</sub> = 8.85 &times; 10<sup>&minus;12</sup> F m<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Permeability of free space",
+      "math": "&mu;<sub>0</sub> = 4&pi; &times; 10<sup>&minus;7</sup> H m<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Electron rest mass",
+      "math": "<i>m</i><sub>e</sub> = 9.11 &times; 10<sup>&minus;31</sup> kg"
+     },
+     {
+      "name": "Proton rest mass",
+      "math": "<i>m</i><sub>p</sub> = 1.67 &times; 10<sup>&minus;27</sup> kg"
+     },
+     {
+      "name": "g at the Earth’s surface",
+      "math": "<i>g</i> = 9.81 N kg<sup>&minus;1</sup>"
+     },
+     {
+      "name": "Atomic mass unit",
+      "math": "1 u = 1.661 &times; 10<sup>&minus;27</sup> kg"
+     },
+     {
+      "name": "Wien constant",
+      "math": "&alpha; = 2.90 &times; 10<sup>&minus;3</sup> m K"
+     }
+    ]
+   },
+   {
+    "head": "Particles, waves and quanta",
+    "lines": [
+     {
+      "name": "Photon energy",
+      "math": "<i>E</i> = <i>hf</i> = <sup><i>hc</i></sup>&frasl;<sub>&lambda;</sub>"
+     },
+     {
+      "name": "Photoelectric effect",
+      "math": "<i>hf</i> = &phi; + <i>E</i><sub>k(max)</sub>"
+     },
+     {
+      "name": "de Broglie wavelength",
+      "math": "&lambda; = <sup><i>h</i></sup>&frasl;<sub><i>mv</i></sub>"
+     },
+     {
+      "name": "Wave speed",
+      "math": "<i>c</i> = <i>f</i>&lambda;"
+     },
+     {
+      "name": "Refraction",
+      "math": "<i>n</i><sub>1</sub> sin &theta;<sub>1</sub> = <i>n</i><sub>2</sub> sin &theta;<sub>2</sub>; &nbsp; <i>n</i> = <sup><i>c</i></sup>&frasl;<sub><i>c</i><sub>s</sub></sub>; &nbsp; sin &theta;<sub>c</sub> = <sup><i>n</i><sub>2</sub></sup>&frasl;<sub><i>n</i><sub>1</sub></sub>"
+     },
+     {
+      "name": "Diffraction grating",
+      "math": "<i>d</i> sin &theta; = <i>n</i>&lambda;"
+     },
+     {
+      "name": "Fringe spacing",
+      "math": "<i>w</i> = <sup>&lambda;<i>D</i></sup>&frasl;<sub><i>s</i></sub>"
+     }
+    ]
+   },
+   {
+    "head": "Mechanics and materials",
+    "lines": [
+     {
+      "name": "Constant acceleration",
+      "math": "<i>v</i> = <i>u</i> + <i>a</i><i>t</i>; &nbsp; <i>s</i> = <i>u</i><i>t</i> + <sup>1</sup>&frasl;<sub>2</sub> <i>a</i><i>t</i><sup>2</sup>; &nbsp; <i>s</i> = <sup>1</sup>&frasl;<sub>2</sub> (<i>u</i> + <i>v</i>)<i>t</i>; &nbsp; <i>v</i><sup>2</sup> = <i>u</i><sup>2</sup> + 2<i>a</i><i>s</i>"
+     },
+     {
+      "name": "Force and momentum",
+      "math": "<i>F</i> = <sup>&Delta;(<i>mv</i>)</sup>&frasl;<sub>&Delta;<i>t</i></sub>"
+     },
+     {
+      "name": "Power",
+      "math": "<i>P</i> = <i>Fv</i>",
+      "note": "efficiency = useful output power ÷ input power"
+     },
+     {
+      "name": "Density",
+      "math": "&rho; = <sup><i>m</i></sup>&frasl;<sub><i>V</i></sub>"
+     },
+     {
+      "name": "Young modulus",
+      "math": "<i>E</i> = <sup>tensile stress</sup>&frasl;<sub>tensile strain</sub> = <sup><i>FL</i></sup>&frasl;<sub><i>A</i>&Delta;<i>L</i></sub>"
+     },
+     {
+      "name": "Elastic energy",
+      "math": "<i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>F</i>&Delta;<i>L</i>"
+     }
+    ]
+   },
+   {
+    "head": "Electricity and fields",
+    "lines": [
+     {
+      "name": "Resistivity",
+      "math": "&rho; = <sup><i>RA</i></sup>&frasl;<sub><i>L</i></sub>"
+     },
+     {
+      "name": "EMF",
+      "math": "&epsilon; = <i>I</i>(<i>R</i> + <i>r</i>)"
+     },
+     {
+      "name": "Capacitance",
+      "math": "<i>C</i> = <sup><i>Q</i></sup>&frasl;<sub><i>V</i></sub>; &nbsp; <i>E</i> = <sup>1</sup>&frasl;<sub>2</sub> <i>QV</i>",
+      "note": "time constant RC"
+     },
+     {
+      "name": "Capacitor discharge",
+      "math": "<i>Q</i> = <i>Q</i><sub>0</sub> e<sup>&minus;<i>t</i>/<i>RC</i></sup>"
+     },
+     {
+      "name": "Gravitation",
+      "math": "<i>F</i> = <sup><i>Gm</i><sub>1</sub><i>m</i><sub>2</sub></sup>&frasl;<sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>V</i> = &minus;<sup><i>GM</i></sup>&frasl;<sub><i>r</i></sub>"
+     },
+     {
+      "name": "Electric force",
+      "math": "<i>F</i> = <sup><i>Q</i><sub>1</sub><i>Q</i><sub>2</sub></sup>&frasl;<sub>4&pi;&epsilon;<sub>0</sub><i>r</i><sup>2</sup></sub>; &nbsp; <i>E</i> = <sup><i>V</i></sup>&frasl;<sub><i>d</i></sub>",
+      "note": "E = V ÷ d in a uniform field"
+     },
+     {
+      "name": "Magnetic force",
+      "math": "<i>F</i> = <i>BIl</i>; &nbsp; <i>F</i> = <i>BQv</i>"
+     },
+     {
+      "name": "Induction",
+      "math": "&epsilon; = <i>N</i> <sup>&Delta;&Phi;</sup>&frasl;<sub>&Delta;<i>t</i></sub>"
+     }
+    ]
+   },
+   {
+    "head": "Circles, oscillations, gases and nuclei",
+    "lines": [
+     {
+      "name": "Circular motion",
+      "math": "&omega; = <sup><i>v</i></sup>&frasl;<sub><i>r</i></sub>; &nbsp; <i>a</i> = <sup><i>v</i><sup>2</sup></sup>&frasl;<sub><i>r</i></sub> = &omega;<sup>2</sup><i>r</i>"
+     },
+     {
+      "name": "Simple harmonic motion",
+      "math": "<i>a</i> = &minus;&omega;<sup>2</sup><i>x</i>; &nbsp; <i>x</i> = <i>A</i> cos &omega;<i>t</i>"
+     },
+     {
+      "name": "Mass on a spring",
+      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>m</i>/<i>k</i></span>"
+     },
+     {
+      "name": "Simple pendulum",
+      "math": "<i>T</i> = 2&pi;&radic;<span class=\"insh-rad\"><i>l</i>/<i>g</i></span>"
+     },
+     {
+      "name": "Ideal gas",
+      "math": "<i>pV</i> = <i>nRT</i> = <i>NkT</i>"
+     },
+     {
+      "name": "Molecular kinetic energy",
+      "math": "<sup>1</sup>&frasl;<sub>2</sub> <i>m</i>(<i>c</i><sub>rms</sub>)<sup>2</sup> = <sup>3</sup>&frasl;<sub>2</sub> <i>kT</i>"
+     },
+     {
+      "name": "Radioactive decay",
+      "math": "<i>A</i> = &lambda;<i>N</i>; &nbsp; <i>N</i> = <i>N</i><sub>0</sub> e<sup>&minus;&lambda;<i>t</i></sup>; &nbsp; <i>T</i><sub>&frac12;</sub> = <sup>ln 2</sup>&frasl;<sub>&lambda;</sub>"
+     },
+     {
+      "name": "Nuclear radius",
+      "math": "<i>R</i> = <i>R</i><sub>0</sub><i>A</i><sup>1/3</sup>"
+     },
+     {
+      "name": "Mass and energy",
+      "math": "<i>E</i> = <i>mc</i><sup>2</sup>"
+     }
+    ]
+   }
+  ],
+  "table": "",
+  "active": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-P-AQA-8700-2306-1",
+  "name": "English Language Paper 1 insert — June 2023",
+  "summary": "Source A: Life of Pi by Yann Martel (21st-century prose fiction, 2001).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "P-AQA-8700-2306-1",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-P-AQA-8700-2306-2",
+  "name": "English Language Paper 2 insert — June 2023",
+  "summary": "Source A: One's Company by Peter Fleming (1933); Source B: Records of a Girlhood by Fanny Kemble (1878).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "P-AQA-8700-2306-2",
+  "sources": "A, B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0372",
+  "name": "English Language Paper 2 insert — June 2024",
+  "summary": "Source A: This is Going to Hurt by Adam Kay (2017); Source B: The Wonderful Adventures of Mrs Seacole in Many Lands by Mary Seacole (1857).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0372",
+  "sources": "A, B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0373",
+  "name": "English Language Paper 1 insert — June 2024",
+  "summary": "Source A: The Grass is Singing by Doris Lessing (20th-century prose fiction, 1950).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0373",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0375",
+  "name": "English Language Paper 2 insert — November 2023",
+  "summary": "Source B: The Debt We Owe to Birds and Beasts by Gordon Stables (1889).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0375",
+  "sources": "B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0378",
+  "name": "English Language Paper 1 insert — November 2020",
+  "summary": "Source A: The Silk Factory by Judith Allnatt (21st-century prose fiction, 2015).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0378",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0380",
+  "name": "English Language Paper 1 insert — November 2018",
+  "summary": "Source A: A Sound of Thunder by Ray Bradbury (20th-century prose fiction, 1952).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0380",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0383",
+  "name": "English Language Paper 2 insert — November 2022",
+  "summary": "Source A: How I beat my insomnia by Arifa Akbar (2016); Source B: A sleepless night by Fanny Fern (1872).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0383",
+  "sources": "A, B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0384",
+  "name": "English Language Paper 2 insert — June 2022",
+  "summary": "Source A: The Tent, The Bucket and Me by Emma Kennedy (2009); Source B: In the Wilderness by Charles Dudley Warner (1878).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0384",
+  "sources": "A, B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0389",
+  "name": "English Language Paper 1 insert — June 2022",
+  "summary": "Source A: The Pearl by John Steinbeck (20th-century prose fiction, 1947).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0389",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0390",
+  "name": "English Language Paper 2 insert — November 2021",
+  "summary": "Source B: Wild Animals in Captivity by Abraham Bartlett (1898).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0390",
+  "sources": "B",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0391",
+  "name": "English Language Paper 1 insert — November 2021",
+  "summary": "Source A: The Silent Land by Graham Joyce (21st-century prose fiction, 2010).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0391",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0397",
+  "name": "English Language Paper 1 insert — June 2018",
+  "summary": "Source A: Jigs and Reels by Joanne Harris (21st-century prose fiction, 2004).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0397",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ },
+ {
+  "insert_id": "INS-AQA-8700-R0398",
+  "name": "English Language Paper 1 insert — June 2017",
+  "summary": "Source A: The Tiredness of Rosabel by Katherine Mansfield (20th-century prose fiction, 1908).",
+  "subject": "English Language",
+  "level": "GCSE",
+  "keystage": "KS4",
+  "board": "AQA",
+  "tier": "",
+  "for_subjects": "",
+  "for_levels": "",
+  "for_tiers": "",
+  "for_papers": "R0398",
+  "sources": "A",
+  "line_numbers": "True",
+  "verified": "False",
+  "verified_note": "Typed from the insert the owner keeps in Drive; the extract is copyrighted, so it is in the Ledger, never in the repository (458).",
+  "official": [],
+  "sections": [],
+  "table": "",
+  "active": "True",
+  "lib_has": "source_text",
+  "lib_pending": "True"
+ }
+]

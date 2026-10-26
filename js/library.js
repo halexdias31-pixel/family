@@ -70,8 +70,17 @@ async function libraryRows_() {
 /* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a lookup table: § */
 /* `projects` IS THE SIXTH, and the practicals' sibling rather than a kind of practical. § */
 /* `textbooks` IS THE SEVENTH — "the @family textbook should be bare bones for now and the textbooks will be in the resources tag in the finder." § */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks'];
+/* `inserts` IS THE EIGHTH: the sheets a candidate is handed in the exam (455), public whole — facts, not library words. */
+/* THE HISTORY DATABASE IS THREE MORE (459): manuscripts, figures, writings — public whole, linked by id. docs/history-db.md. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts',
+                   'manuscripts', 'figures', 'writings'];
 let LIBRARY_EXTRA = null;
+/* THE THREE TABLES (459): their file, id prefix, Find kind and the columns that are years (negative is BC). */
+const HIST_DB = [
+  { file: 'manuscripts', prefix: 'MS-', kind: 'manuscript', years: ['date_from', 'date_to'] },
+  { file: 'figures', prefix: 'FIG-', kind: 'figure', years: ['born_year', 'died_year'] },
+  { file: 'writings', prefix: 'WR-', kind: 'writing', years: ['date_from', 'date_to'] },
+];
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. § */
 async function libraryExtraRows_() {
@@ -262,6 +271,34 @@ function libraryExtras_(d, extra) {
       }) }));
   }
 
+  /* the inserts ---------------------------------------------------------------------------- ONE ROW EACH, read whole (455). */
+  if (extra.inserts && extra.inserts.length) {
+    const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
+    d.inserts = extra.inserts.filter(r => r && libS(r.insert_id).trim() && libOn(r.active)).map(r => ({
+      id: libS(r.insert_id).trim(), name: libS(r.name), summary: libS(r.summary),
+      subject: libS(r.subject).trim(), levels: list(r.level), keystage: libS(r.keystage).trim(),
+      boards: list(r.board), tiers: list(r.tier),
+      forSubjects: list(r.for_subjects), forLevels: list(r.for_levels), forTiers: list(r.for_tiers),
+      verified: libOn(r.verified), verifiedNote: libS(r.verified_note),
+      official: Array.isArray(r.official) ? r.official.filter(o => o && o.url) : [],
+      sections: Array.isArray(r.sections) ? r.sections : [],
+      table: libS(r.table).trim(), elements: Array.isArray(r.elements) ? r.elements : [],
+      /* A READING INSERT (458): one paper's, by its paper ids; the extract is the Ledger's (`in:` on the wire) and `libHas` says it is there */
+      forPapers: list(r.for_papers), sources: list(r.sources), lineNumbers: libOn(r.line_numbers),
+      sourceText: libS(r.source_text), libHas: libS(r.lib_has).trim(), pending: libOn(r.lib_pending),
+    }));
+  }
+
+  /* the history database ------------------------------------------------------------------- (459) every cell a string, the years numbers or null; a row needs its id. */
+  HIST_DB.forEach(t => {
+    if (!extra[t.file] || !extra[t.file].length) return;
+    d[t.file] = extra[t.file].filter(r => r && libS(r.id).trim()).map(r => {
+      const o = {};
+      Object.keys(r).forEach(k => { o[k] = t.years.indexOf(k) >= 0 ? libNum(r[k]) : libS(r[k]).trim(); });
+      return o;
+    });
+  });
+
   /* the boxers ------------------------------------------------------------------------------ ---------- THE RECORD IS `libNum`, NOT `libN`, AND FOURTEEN FIGHTERS § */
   const libLook = v => libS(v).trim().toLowerCase();
   if (extra.boxers && extra.boxers.length) {
@@ -337,7 +374,7 @@ function libQuestion_(r) {
        match against. */
     placeholder: String(r.placeholder) === 'True',
     /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. § */
-    figure: libS(r.figure), diagram: libS(r.diagram),
+    figure: libS(r.figure), diagram: libS(r.diagram) || (libHasField_(r, 'diagram') ? '' : libTwinSvg_(r)),
     /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are. § */
     needs: libS(r.needs),
     isDoc: docRow,
@@ -427,6 +464,14 @@ function libHasField_(o, f) {
   if (!o) return false;
   if (libS(o[f]).trim()) return true;
   return (' ' + libS(o.lib_has !== undefined ? o.lib_has : o.libHas) + ' ').indexOf(' ' + f + ' ') !== -1;
+}
+/* A ROW WITH NO INLINE DRAWING SHOWS ITS PUBLIC PNG TWIN (460), wrapped in an <svg> so zoom, pens and the figure box treat it as any drawing. */
+function libTwinSvg_(r) {
+  const h = libS(r && r.diagram_twin).trim();
+  if (!/^[0-9a-f]{12}$/.test(h)) return '';
+  const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 340, ht = m ? +m[2] : 255;
+  return `<svg class="qtwin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${ht}" width="${w}" role="img" aria-label="Figure">`
+    + `<image href="data/diagrams/${h}.png" width="${w}" height="${ht}"/></svg>`;
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
 const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
@@ -588,10 +633,16 @@ function libMerge_(items) {
   const ex = (typeof LIBRARY_EXTRA !== 'undefined' && LIBRARY_EXTRA) || {};
   const D = (typeof DATA !== 'undefined' && DATA) || {};
   ids.forEach(t => {
-    const c = items[t], m = /^(q|ct|pr|pj):(.+)$/.exec(t);
+    const c = items[t], m = /^(q|ct|pr|pj|in):(.+)$/.exec(t);
     if (!m || !c || typeof c !== 'object') return;
     const id = m[2];
-    if (m[1] === 'q') {
+    if (m[1] === 'in') {
+      /* A READING INSERT'S EXTRACT (458), onto its file row and the sheet made from it */
+      const r = libIndexOf_(ex.inserts, o => libS(o.insert_id).trim()).get(id);
+      if (r) libFill_(r, c);
+      const ins = (D.inserts || []).find(o => o.id === id);
+      if (ins) { ins.sourceText = libS(c.source_text); ins.libHas = ''; }
+    } else if (m[1] === 'q') {
       const r = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
       if (!r) return;
       libFill_(r, c);
@@ -642,6 +693,9 @@ function libForget_() {
         const b = (D.textbooks || []).find(x => x.id === libS(r.book_id).trim());
         const ch = b && (b.chapters || []).find(x => x.n === libN(r.chapter));
         if (ch) Object.assign(ch, libChapterBody_(r));
+      } else if (r.insert_id !== undefined) {
+        const ins = (D.inserts || []).find(o => o.id === libS(r.insert_id).trim());
+        if (ins) { ins.sourceText = ''; ins.libHas = libS(r.lib_has).trim(); }
       }
     } catch (e) {}
   });

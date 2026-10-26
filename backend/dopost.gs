@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-p-feed-compose";
+const DOPOST_VERSION = "2026-10-26-a-no-child-making";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -97,8 +97,8 @@ function linkMail_(r, token, asParent) {
         + 'this address instead — it takes the account over and signs everyone else out.'
         /* THE NEXT STEP, for the person who came for it — and since a child waits on a confirmed
            address (`confirmFirst_`), the link is that step's first half, said in that order. */
-        + (asParent ? '\n\nOnce you have opened the link, Settings → "Make your child\'s account" gives your '
-                    + 'child a handle and a PIN of their own — they need no email.' : '')
+        + (asParent ? '\n\nOnce you have opened the link, your child makes their own account; find their handle '
+                    + 'on Student profiles and tap Add as my child, and they say yes.' : '')
         + '\n\n— @family.' });
 }
 
@@ -1537,6 +1537,32 @@ function doPost(e) {
         handle: S(r.handle) }, faceFig_(r)) });
     }
 
+    /* ---------- A HAND UP (455): "help me" from a question, for the tutor in the room. Script properties, 30 minutes; no sheet tab. */
+    if (action === 'raiseHand' || action === 'hands') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const staff = rankAtLeast_(me, 'staff');
+      const lock = LockService.getScriptLock();
+      try { lock.waitLock(5000); } catch (e) {}
+      try {
+        const all = handsRead_();
+        if (action === 'raiseHand') {
+          /* YOUR OWN HAND ONLY; staff may lower anybody's (the tutor's Done), never raise one for them. */
+          const who = S(body.for) || S(me.person_id);
+          if (who !== S(me.person_id) && !(staff && !body.on)) return jsonOut({ error: 'Only your own hand.' });
+          if (body.on) {
+            all[who] = { personId: who, name: (S(me.first_name) + ' ' + S(me.last_name).slice(0, 1)).trim(),
+              handle: S(me.handle), q: S(body.q).slice(0, 120), label: S(body.label).slice(0, 120), at: Date.now() };
+          } else delete all[who];
+          handsWrite_(all);
+        }
+        const mine = all[S(me.person_id)] || null;
+        const out = { success: true, mine: mine };
+        if (staff) out.hands = Object.keys(all).map(k => all[k]).sort((a, b) => a.at - b.at);
+        return jsonOut(out);
+      } finally { try { lock.releaseLock(); } catch (e) {} }
+    }
+
     /* The child answering. Only the child named in the row, and only once. */
     if (action === 'answerClaim') {
       const me = findPerson(S(body.name), S(body.personId));
@@ -1599,68 +1625,10 @@ function doPost(e) {
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
-    /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT § */
+    /* ---------- MAKING A CHILD'S ACCOUNT IS GONE (461): an account is made by its owner, then claimed. An old page gets this. */
     if (action === 'makeChild') {
-      const me = findPerson('', S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-      /* THE REFUSAL NAMES A TICK THAT EXISTS, AND ONLY TO SOMEBODY WHO MAY TICK IT. § */
-      if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
-        return jsonOut({ error: actingRole_(me) === 'student'
-          ? 'Only a parent can make a child\'s account, and this one is a student\'s. If you are a '
-            + 'parent, ask @family. to change it. Nothing was made.'
-          : 'Only a parent can make a child\'s account. Tick ' + ROLE_LABEL.client
-            + ' under Your roles first. Nothing was made.' });
-      }
-      /* ---------- NOT ON AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED § */
-      if (addressPending_(me)) {
-        return jsonOut(confirmFirst_(me, 'you can make your child\'s account. Nothing was made'));
-      }
-      const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
-      if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });
-      if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits for them.' });
-      if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
-      const full = (first + ' ' + last).trim();
-      const t = read(TAB.people), fam = read(TAB.family);
-      if (!fam.sheet) return jsonOut({ error: 'The family tab could not be opened — nothing was saved.' });
-      const lacking = ['handle', 'pin'].filter(c => t.headers.indexOf(c) === -1);
-      if (lacking.length) {
-        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
-      }
-      /* NOT "THERE IS ALREADY AN ACCOUNT CALLED …" (342, the review) — that confirmed a guessed whole name
-         to any confirmed parent. `register`'s rule: the same sentence as any refusal of its kind. */
-      if (findPerson(full)) {
-        return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
-                              + 'child" to ask them to link it — or ask us to help.' });
-      }
-      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, for the template (364): never their surname, only its initial. */
-      const kidId = 'P' + Date.now() + '-k';
-      const handle = handleMake_({ person_id: kidId, first_name: first, last_name: last });
-      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
-      const kid = addRow(t, {
-        person_id: kidId, role: 'student', first_name: first, last_name: last, handle: handle,
-        email: '', pin: pin, credits: 0, xp: 0, came_from: 'parent', invited_by: S(me.person_id),
-        joined_on: new Date(), verified: 'TRUE',
-      });
-      if (!kid) return jsonOut({ error: 'The people tab could not be opened — nothing was saved.' });
-      const link = addRow(fam, {
-        link_id: 'F' + Date.now(), parent_id: S(me.person_id), child_id: kidId, child_typed: full,
-        state: 'accepted', asked_on: new Date(), answered_on: new Date(),
-      });
-      if (!link) return jsonOut({ error: 'Their account was made, but it could not be put on yours — ask us to link it.' });
-      clearCache();
-      /* ROUND ONE ASKED `addressPending_(me)` HERE, so the handle did not go to a typo's inbox. § */
-      if (S(me.email)) {
-        try {
-          mailOut_({ to: S(me.email), name: BRAND_NAME,
-            subject: first + '\'s ' + BRAND_NAME + ' account',
-            body: first + ' has an account on ' + BRAND_NAME + ' now, on yours.\n\n'
-                + 'They sign in with their handle, @' + handle + ', and the PIN you chose.\n\n'
-                + 'If they forget the PIN, "New PIN" on their card on your account gives them a new one '
-                + 'straight away.\n\n— ' + BRAND_NAME });
-        } catch (err) { /* the account is made and the screen shows the handle; a mail quota is not a refusal */ }
-      }
-      /* THE FIRST NAME — the slip says "Ivy signs in with…", and the parent typed the rest. */
-      return jsonOut({ success: true, name: nameFor_(kid), handle: handle, personId: kidId });
+      return jsonOut({ error: 'A child makes their own account now (Make an account). Then find their handle and tap '
+                            + 'Add as my child, and they say yes. Nothing was made.' });
     }
 
     /* ---------- A NEW PIN FOR SOMEBODY ELSE: THEIR PARENT, OR AN ADMIN § */
@@ -3691,7 +3659,9 @@ function aiGemini_(key, models, payload, thinking) {
     }
     let level = body && Object.prototype.hasOwnProperty.call(levels, model) ? S(levels[model]) : '';
     let code = 0, hold = 0, now = false, refused = '';
-    for (let t = 0; t < AI_TRIES; t++) {
+    /* ONLY THE LAST MODEL IS ASKED AGAIN (456): one with another behind it hands off at its first 429, 5xx or throw. */
+    const tries = another ? AI_TRIES_BEFORE_HANDOFF : AI_TRIES;
+    for (let t = 0; t < tries; t++) {
       /* NO WAIT BEFORE A MODEL'S FIRST ASK, NOR BEFORE ITS ASK WITHOUT A REFUSED LEVEL (`now`). A retry
          waits, and is not started past either clock, or when Google has said this model is not back
          before it. */
@@ -3735,7 +3705,7 @@ function aiGemini_(key, models, payload, thinking) {
         said = String((err && err.message) || err).slice(0, 500);
       }
       console.log('aiMark: Gemini answered ' + (code < 0 ? 'nothing (the fetch threw)' : code) + ' for model '
-        + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
+        + model + ' (try ' + (t + 1) + ' of ' + tries + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
       if (code < 0 || aiAgain_(code)) continue;
       if (code === 404) break;
       /* A 400 TO A REQUEST THAT CARRIED A LEVEL: the same model again, at once, without it -- the same try,

@@ -21,6 +21,8 @@ const src = {
   questions: FULL ? whole.questions : whole.questions.filter(r => papers.indexOf(r.paper_id) !== -1),
   textbooks: whole.textbooks, practicals: whole.practicals, projects: whole.projects,
 };
+/* A FILE WITH NO ROW AT THE PINNED COMMIT (`newer`, 458) is copied as nothing; its words come by import */
+LF.NAMES().forEach(n => { if (D.files[n].newer) src[n] = []; });
 const srcText = {};
 LF.NAMES().forEach(n => { srcText[D.files[n].file] = LF.fileText(src[n], 'compact'); });
 const expected = {};

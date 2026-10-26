@@ -31,6 +31,8 @@ const TILE_ICONS = {
        + '<circle cx="9" cy="8.5" r="2.2"/>',
   /* A TICK, FOR CHECK -- "check button should be a tile". § */
   tick:  '<path d="M3.5 9.5l3.5 3.5 7.5-8"/>',
+  /* A RAISED HAND (455): four fingers up and a thumb, for asking the tutor over. */
+  hand:  '<path d="M6 9V4a1 1 0 0 1 2 0v4M8 8V3a1 1 0 0 1 2 0v5M10 8V3.5a1 1 0 0 1 2 0V9M12 9V5.5a1 1 0 0 1 2 0V11a4.5 4.5 0 0 1-4.5 4.5h-.5a4.5 4.5 0 0 1-3.6-1.8L3.6 10.6a1 1 0 0 1 1.6-1.2L6 10.4"/>',
   hide:  '<path d="M3 3.5 15 14"/>'
        + '<path d="M7 5.1A7.7 7.7 0 0 1 9 4c4.8 0 7.5 4.5 7.5 4.5a14 14 0 0 1-2.6 2.9"/>'
        + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'
@@ -84,6 +86,8 @@ const TILE_ICONS = {
        + '<path d="M14.9 10.7a6.3 6.3 0 0 1-10.4 2.35L1.3 10"/><path d="M1.3 14.2V10h4.2"/>',
   /* ---------- AND THREE THAT ARE NOT ON A TILE: THE VIDEOS CARD'S, AFTER YOUTUBE § */
   search: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5"/>',
+  /* A MAGNIFIER WITH A PLUS: ZOOM ON EVERY QUESTION (457) */
+  zoom: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5M5.3 7.4h4.6M7.6 5.1v4.6"/>',
   film:  '<rect x="2.5" y="2.5" width="13" height="12" rx="1.5"/>'
        + '<path d="M5.5 2.5v12M12.5 2.5v12M2.5 6.5h3M2.5 10.5h3M12.5 6.5h3M12.5 10.5h3"/>',
   ext:   '<path d="M8 3.5H3.5v11h11V10"/><path d="M10.5 2.5h5v5"/><path d="m15.5 2.5-7 7"/>',

@@ -90,7 +90,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   if (weakReg.success || rowOf(b, r => r.first_name === 'Wes')) no('register accepted four noughts, which changePin refuses', weakReg);
 }
 
-/* 2. A PARENT MAKES THEIR CHILD'S ACCOUNT — no email, signed in by handle at once § */
+/* 2. NOBODY MAKES A CHILD'S ACCOUNT (461): an account is made by its owner, then claimed. */
 {
   const b = fresh();
   b.seed('people', [
@@ -100,45 +100,14 @@ const post = (b, body) => { asked++; return b.post(body); };
   ]);
   const pat = signIn(b, 'pat@example.org', PLACE);
   const sid = signIn(b, 'sid@example.org', PLACE);
-  if (!pat.token) no('the parent could not sign in, so making a child\'s account was NOT checked', pat);
-  else {
-    const m0 = MAIL.length;
-    const made = post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Parent', pin: ZERO });
-    if (!made.success) no('a parent could not make their child\'s account', made);
-    const ivy = rowOf(b, r => r.first_name === 'Ivy');
-    if (!ivy) no('makeChild answered but no row was written');
-    else {
-      if (S(ivy.email)) no('the child made by a parent was given an email address', ivy.email);
-      if (!/^[a-z]/.test(S(ivy.handle)) || S(ivy.handle) !== S(made.handle)) no('the child\'s handle is not the one the reply showed the parent', { cell: ivy.handle, said: made.handle });
-      if (ivy.pin !== ZERO) no('the PIN the parent chose was not stored as chosen', ivy.pin);
-      if (S(ivy.verified).toUpperCase() === 'PENDING') no('a child made by their signed-in parent is waiting on a confirmation nobody will send');
-      const link = b.tabs.family.slice(1).find(x => x.indexOf(ivy.person_id) !== -1);
-      const fh = b.tabs.family[0];
-      if (!link || link[fh.indexOf('parent_id')] !== 'P-PAT' || S(link[fh.indexOf('state')]) !== 'accepted')
-        no('the child made by a parent is not on the parent\'s account, accepted', link);
-      const kin = signIn(b, '@' + made.handle, ZERO);
-      if (!kin.success) no('the child a parent made cannot sign in with the handle and the PIN', kin);
-      const famOf = b.get({ token: pat.token }).family || [];
-      const card = famOf.find(f => f.personId === ivy.person_id);
-      if (!card || card.relation !== 'child' || card.handle !== made.handle) no('the parent\'s family list does not show the child with their handle', famOf);
-      const told = mailTo('pat@example.org', m0);
-      if (!told.length || told[0].body.indexOf('@' + made.handle) === -1) no('the parent was not emailed the child\'s handle', told);
-      if (told.some(m => m.body.indexOf(ZERO) !== -1)) no('the PIN went into the email — one more copy of it, in a mailbox');
-    }
-    /* REFUSED, AND NOTHING WRITTEN. */
-    const n = b.tabs.people.length;
-    const weak = post(b, { action: 'makeChild', token: pat.token, firstName: 'Una', lastName: 'Parent', pin: PLACE });
-    if (weak.success) no('makeChild accepted four noughts');
-    const twice = post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Parent', pin: ZERO2 });
-    if (twice.success) no('makeChild made a second Ivy Parent');
-    if (sid.token) {
-      const kid = post(b, { action: 'makeChild', token: sid.token, firstName: 'Ola', lastName: 'Student', pin: ZERO2 });
-      if (kid.success) no('a student made a child\'s account');
-    }
-    const anon = post(b, { action: 'makeChild', firstName: 'Ana', lastName: 'Nobody', pin: ZERO2 });
-    if (anon.success) no('makeChild worked with nobody signed in');
-    if (b.tabs.people.length !== n) no('a refused makeChild wrote a row');
-  }
+  /* GONE (461) — the owner: "making a child's account shouldn't be a thing". Every caller is refused, nothing written. */
+  const n = b.tabs.people.length, f = b.tabs.family.length;
+  [pat.token, sid.token].forEach(tok => {
+    const r = post(b, { action: 'makeChild', token: tok, firstName: 'Ivy', lastName: 'Parent', pin: ZERO });
+    if (r.success || !/Add as my child/.test(S(r.error))) no('makeChild was not refused with the plain reason', r);
+  });
+  if (post(b, { action: 'makeChild', firstName: 'Ana', lastName: 'Nobody', pin: ZERO }).success) no('makeChild answered nobody signed in');
+  if (b.tabs.people.length !== n || b.tabs.family.length !== f) no('a refused makeChild wrote a row');
 }
 
 /* 3. A CHILD WITH NO EMAIL MAKES THEIR OWN ACCOUNT, WITH A GROWN-UP'S ADDRESS § */
@@ -434,17 +403,14 @@ let whoRules = 0;
     rule(reg.role === 'parent', 'register\'s reply does not say the account is a parent\'s', reg.role);
     rule(S(dana.verified).toUpperCase() === 'PENDING', 'a parent\'s address counts as confirmed before the link is opened — the digest would mail a typo', dana.verified);
     const mail = mailTo('dana@example.org', m0)[0];
-    rule(mail && /Make your child's account/.test(S(mail.body)), 'the parent\'s confirmation email does not say where their child\'s account is made', mail && mail.body);
+    rule(mail && /Add as my child/.test(S(mail.body)), 'the parent\'s confirmation email does not say how to add their child', mail && mail.body);
     post(b, { action: 'verifyEmail', token: dana.verify_token });
     const din = signIn(b, 'dana@example.org', P1);
     rule(din.success, 'the parent could not sign in after opening the link', din);
     if (din.token) {
       /* THE FIRST SIGN-IN SAYS PARENT — the phone's `mayAddChild_` reads exactly these. */
       rule(din.role === 'parent' && (din.roles || []).indexOf('parent') !== -1,
-        'the parent\'s first sign-in says role ' + JSON.stringify(din.role) + ' / ' + JSON.stringify(din.roles) + ' — the phone draws no "Make your child\'s account"');
-      /* AND THE CARD'S ACTION WORKS ON THAT SAME FIRST SESSION — no reload, no sign-out, no owner. */
-      const kid = post(b, { action: 'makeChild', token: din.token, firstName: 'Ivy', lastName: 'Brook', pin: ZERO });
-      rule(kid.success, 'a parent who signed up on the phone could not make their child\'s account on their first sign-in', kid);
+        'the parent\'s first sign-in says role ' + JSON.stringify(din.role) + ' / ' + JSON.stringify(din.roles) + ' — the phone draws no "Manage your child"');
       /* WHAT A SELF-MADE PARENT CANNOT DO TO A CHILD WHO EXISTS. `makeChild` in her name is refused;
          `claimChild` only asks, and until Ella answers there is no link, no family card and no New PIN. */
       const n = b.tabs.people.length;
@@ -460,8 +426,7 @@ let whoRules = 0;
       const fam = b.get({ token: din.token }).family || [];
       /* `Ivy`, NOT `Ivy Brook`: a child is their first name on every card, their own parent's included
          (the owner, 10 Oct: *"dont show children's last name"* — `nameFor_`, check-surnames.js). */
-      rule(!fam.some(x => x.personId === 'P-ELLA') && fam.some(x => x.title === 'Ivy'),
-        'the parent\'s family is not "the child they made, and not the one they only asked for"', fam);
+      rule(!fam.some(x => x.personId === 'P-ELLA'), 'the parent\'s family holds the child they only asked for', fam);
     }
   }
 
@@ -480,9 +445,6 @@ let whoRules = 0;
       const n = b.tabs.people.length;
       const mk = post(b, { action: 'makeChild', token: min.token, firstName: 'Zed', lastName: 'Learner', pin: ZERO2 });
       rule(!mk.success && b.tabs.people.length === n, 'a student made a child\'s account', mk);
-      /* AND THE REFUSAL DOES NOT SEND THEM TO A TICK THEY WERE JUST REFUSED. § */
-      rule(!/\bTick\b/i.test(S(mk.error)) && /@family\./.test(S(mk.error)),
-        'a student\'s makeChild refusal sends them to a tick they cannot have, or not to @family.', mk.error);
 
       /* ---------- THE STALE ROLE: the owner changes it in the sheet, the phone asks `myProfile` § */
       const before = post(b, { action: 'myProfile', token: min.token });
@@ -496,20 +458,6 @@ let whoRules = 0;
       const other = post(b, { action: 'myProfile', token: min.token, personId: 'P-ADM' });
       rule(other.personId === mo.person_id && other.role !== 'admin', 'myProfile naming the admin answered with the admin\'s role', other);
     }
-  }
-
-  /* A TUTOR MAY TICK CLIENT, SO A TUTOR IS TOLD THE TICK — by the word the card prints. § */
-  const LABELS = [...fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8')
-    .matchAll(/\[\s*'(?:tutor|client|student)'\s*,\s*'([^']+)'/g)].map(m => m[1]);
-  const tia = signIn(b, 'tia@example.org', PLACE);
-  if (!tia.token) no('the tutor could not sign in, so a tutor\'s makeChild refusal was NOT checked', tia);
-  else {
-    const n = b.tabs.people.length;
-    const tk = post(b, { action: 'makeChild', token: tia.token, firstName: 'Tod', lastName: 'Tutor', pin: ZERO2 });
-    const named = (S(tk.error).match(/\bTick (\w+) under Your roles/) || [])[1];
-    rule(!tk.success && b.tabs.people.length === n && LABELS.length === 3 && named === LABELS[1],
-      'a tutor\'s makeChild refusal names the tick ' + JSON.stringify(named) + ', and the card\'s Client tick is '
-        + JSON.stringify(LABELS[1]) + ' (card labels read: ' + JSON.stringify(LABELS) + ')', tk);
   }
 
   /* NO ANSWER (an old phone) IS A STUDENT, AND SO IS ANY WORD BUT `parent`. */
@@ -529,7 +477,7 @@ let whoRules = 0;
 
 /* EVERY ONE OF SECTION 8'S RULES WAS ASKED, or the count says which were not reached — a parent who
    could not sign in would otherwise skip the eight questions behind them and print nothing. */
-const WHO_RULES = 26;
+const WHO_RULES = 23;   // 26 until 461 took makeChild's three away
 if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_RULES + ' who-the-account-is-for rules were asked');
 
 /* 9. AN ADDRESS NOBODY HAS PROVED — it signs in, it holds no child, and its owner can always take it THE OWNER, 6 Oct: § */
@@ -574,8 +522,7 @@ let proofRules = 0;
     else {
       const n = b.tabs.people.length, f = b.tabs.family.length, m = MAIL.length;
       const kid = post(b, { action: 'makeChild', token: jo.token, firstName: 'Lu', lastName: 'Smith', pin: ZERO });
-      rule(!kid.success && kid.why === 'unconfirmed' && /jsmith1@example\.org/.test(S(kid.error))
-           && b.tabs.people.length === n && b.tabs.family.length === f,
+      rule(!kid.success && b.tabs.people.length === n && b.tabs.family.length === f,
         'makeChild made a child on an account whose address nobody has proved — the typo\'s owner takes it with "Forgotten your PIN?"', kid);
       const ask = post(b, { action: 'claimChild', token: jo.token, firstName: 'Eva', lastName: 'Exists' });
       rule(!ask.success && ask.why === 'unconfirmed' && !famRow(b, 'P-JO', 'P-EVA'),
@@ -600,8 +547,6 @@ let proofRules = 0;
       post(b, { action: 'verifyEmail', token: 'Vjo-link' });
       const me = post(b, { action: 'myProfile', token: jo.token });
       rule(me.success && me.pendingEmail === '', 'myProfile still says the address is waiting after its link was opened', me.pendingEmail);
-      const kid2 = post(b, { action: 'makeChild', token: jo.token, firstName: 'Lu', lastName: 'Smith', pin: ZERO });
-      rule(kid2.success && !!kid2.handle, 'a parent whose address is confirmed could not make their child\'s account', kid2);
       const ask2 = post(b, { action: 'claimChild', token: jo.token, firstName: 'Eva', lastName: 'Exists' });
       rule(ask2.success && S((famRow(b, 'P-JO', 'P-EVA') || {}).state) === 'asked', 'a confirmed parent could not ask to add a child', ask2);
       const reset2 = post(b, { action: 'resetPin', token: jo.token, targetId: 'P-NED' });
@@ -839,7 +784,7 @@ let proofRules = 0;
         '"Send the link again" mailed somewhere other than the row\'s own pending address, or more than once', sent.map(x => x.to));
       rule(S(now.verify_token) && S(now.verify_token) !== 'Vkay-old' && sent[0] && S(sent[0].body).indexOf('?verify=' + S(now.verify_token)) !== -1,
         'the link sent again is not a fresh token written to the row', { token: now.verify_token });
-      rule(sent[0] && /did not make this account/.test(S(sent[0].body)) && /Make your child's account/.test(S(sent[0].body)),
+      rule(sent[0] && /did not make this account/.test(S(sent[0].body)) && /Add as my child/.test(S(sent[0].body)),
         'the link sent again does not say what the first one did (the takeover line, the parent\'s next step)');
       const oldLink = post(b, { action: 'verifyEmail', token: 'Vkay-old' });
       rule(!oldLink.success && PENDING(rowOf(b, r => r.person_id === 'P-KAY')), 'the link from before "Send the link again" still confirms the address', oldLink);
@@ -1188,12 +1133,7 @@ const faceOf = (packed, handle) => {
   const pat = signIn(b, 'pat@example.org', PLACE);
   if (!pat.token) no('the parent could not sign in, so the doors that make a handle were NOT checked', pat);
   else {
-    const made = post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Kemp', pin: ZERO });
-    kidRule(made.success && made.handle === 'iy' + NOW_Y,
-      'a child a parent made was not given her initial and the year she joined', made);
-    kidRule(!/kemp/i.test(S(made.handle)), 'the handle of a child a parent made carries her surname', made.handle);
-    const ivyMail = MAIL.filter(m => m.to === 'pat@example.org').pop();
-    kidRule(ivyMail && S(ivyMail.body).indexOf('@' + made.handle) !== -1, 'the parent was not emailed the new child\'s handle', ivyMail && ivyMail.body);
+    /* `makeChild` WAS A DOOR HERE; it makes nothing since 461. */
   }
   const reg = post(b, { action: 'register', who: 'parent', first_name: 'Una', last_name: 'Vale', email: 'una@example.org', pin: ZERO2 });
   kidRule(reg.success && S(reg.handle) === 'ua' + NOW_Y, 'a person who registered was not given the template (initial and the year joined)', reg);
@@ -1237,12 +1177,12 @@ const faceOf = (packed, handle) => {
     kidRule(u.success && S(byId(b, 'P-03').handle) === 'oi2024', 'a birthday typed later moved Oli\'s handle', { u, handle: byId(b, 'P-03').handle });
     kidRule(signIn(b, 'kindoli63', PLACE).success, 'Oli\'s first handle no longer signs him in');
   }
-  kidRule(kidRules >= 20, 'only ' + kidRules + ' of the handle rules were asked');
+  kidRule(kidRules >= 17, 'only ' + kidRules + ' of the handle rules were asked');
 }
 
 
 
-const PROOF_RULES = 81;
+const PROOF_RULES = 80;   // 81 until 461 took the confirmed parent's makeChild away
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
 console.log('\nWRONG  (' + bad.length + ')');

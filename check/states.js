@@ -528,7 +528,7 @@ const STATES = {
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
         if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
-        if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        if (padToolsOf_(it).join(' ') !== 'pen ruler compass protractor') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
         window.__toolKey = padKey_(it);
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
@@ -564,6 +564,40 @@ const STATES = {
       leave: () => {
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE PROTRACTOR LAID ON A PEN'S PAGE (458), turned to 50°, the Ruler in hand beside it */
+    { name: 'a construction with the protractor laid on the page, turned 50 degrees, the Ruler in hand',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
+        if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
+        window.__protKey = padKey_(it);
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const put = () => {
+          const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
+          const r = pad && pad.querySelector('.qpad-tool[data-tool="ruler"]'), p = pad && pad.querySelector('.qpad-tool[data-tool="protractor"]');
+          if (!r || !p) return false;
+          r.click();
+          Object.assign(padProtOf_(window.__protKey), { x: 45, y: 72, a: 50 });
+          const again = [...document.querySelectorAll('#s-stuff .qpad')].find(q => q.getAttribute('data-k') === window.__protKey);
+          again.querySelector('.qpad-tool[data-tool="protractor"]').click();
+          return true;
+        };
+        if (!put()) setTimeout(put, 150);
+      },
+      expect: () => {
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
+        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const prot = pad && pad.querySelector('.qpad-art > .qpad-prot');
+        return !!prot && lit === 'ruler protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
+      },
+      wants: 'Q4\'s figure under the pen with the protractor lying on it, turned 50°, its numbers readable, the Ruler and the Protractor both lit',
+      leave: () => {
+        PAD_PROT.delete(window.__protKey);
+        PAD_ON = ''; PAD_TOOL.delete(window.__protKey);
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED § */
@@ -3270,29 +3304,28 @@ const STATES = {
   /* SETTINGS WAS FOLDED INTO THE STUDENT COLUMN (444); these states run there, on Tutor or on Parent, as each says. */
   settings: [
     { name: '' },
-    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON "MANAGE YOUR CHILD" § */
-    { col: 'students', name: 'your child\'s account, made',
-      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
+    { col: 'account', name: 'your exams',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
       enter: () => {
-        KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
-                     pin: ['0', '7', '3', '9'].join('') };
-        /* A FORM LEFT UNSAVED OR SENDING BY WHATEVER RAN BEFORE -- `check/press.js` presses every Save on this column first -- makes `paint` keep the column rather than § */
-        document.querySelectorAll('#s-students .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('students');
-        const at = [...document.querySelectorAll('#s-students .page')].findIndex(pg => pg.querySelector('.kid-make'));
-        if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
-        goPage('students', at, true);
+        const t = new Date(Date.now() + 14 * 864e5);
+        USER.profile = Object.assign({}, USER.profile || {},
+          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
+        progressRedraw_();
+        const c = document.querySelector('#s-account .card.journey');
+        if (!c) throw new Error('no countdowns card on Student settings');
+        const pages = [...document.querySelectorAll('#s-account > .page')];
+        goPage('account', Math.max(0, pages.indexOf(c.closest('.page'))), true);
       },
-      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('students'); },
       expect: () => {
-        const pg = document.querySelector('#s-students .page.on');
-        const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
-        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
-          && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
-          && pg.querySelectorAll('.kid-manage .kid-add').length === 1 && !pg.querySelector('.kid-add input')
-          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+        const c = document.querySelector('#s-account .page.on .card.journey');
+        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
+          && document.querySelectorAll('.card.journey').length === 1
+          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
       },
-      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add section pointing to People under it (442)' },
+      wants: 'the Countdowns card on Student settings (Progress dissolved, 461), with the Big exam line and no control on it, drawn once, and no weekly parent email card anywhere',
+      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
+    /* THE MADE-ACCOUNT SLIP STATE WAS HERE: no form makes a child's account since 461. */
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED § */
     { col: 'students', name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
@@ -3302,7 +3335,7 @@ const STATES = {
         document.querySelectorAll('#s-students .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('students');
         const at = [...document.querySelectorAll('#s-students .page')].findIndex(pg => pg.querySelector('.kid-held'));
-        if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
+        if (at < 0) throw new Error('no held "Add your child" card on Student profiles');
         goPage('students', at, true);
       },
       /* `repaint(true)`: the card's inside changes back, so the column is placed afresh — see the family state. */
@@ -3348,13 +3381,13 @@ const STATES = {
         const pane = card.closest('.pane');
         const zoomed = !!pane && [...pane.children].some(k => Number(k.style.zoom || 1) < 1);
         const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
-        const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
+        const headsOk = heads.length === 1 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
         return rowsOk && (n ? !none : none) && !zoomed && headsOk
-          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
+          && !card.querySelector('.kid-make, [data-kid-new]') && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
           && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
       }) + ')(' + n + ');'),
-      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'
-               : '"Manage your child" at full size, saying no child is linked yet, then both forms under headings of 12px or more' })),
+      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then how to add one under a heading of 12px or more'
+               : '"Manage your child" at full size, saying no child is linked yet, then how to add one under a heading of 12px or more' })),
     /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD § */
     { name: 'your new email, waiting for its link',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -4005,45 +4038,6 @@ const STATES = {
         if (!BIZ.list) bizStart_();
       } },
 
-  ],
-
-  /* ---------- PROGRESS (435): THE TITLE ALONE WITH NOTHING TO COUNT, OR THE LEARNER'S CARDS — EITHER WAY ASSERTED ---------- */
-  progress: [
-    { name: '',
-      expect: () => {
-        const h = document.getElementById('s-progress');
-        const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3, .loading')) return false;
-        const acts = [...h.querySelectorAll('[data-do]')].map(e => e.dataset.do);
-        if (acts.some(a => a !== 'prog-practise' && a !== 'prog-sessions')) return false;
-        if (/Not built yet/.test(h.textContent)) return false;
-        /* EVERY WIDGET, ALWAYS (435): seven titles at least, each empty one its title alone. */
-        const cards = [...h.querySelectorAll(':scope > .page .card')];
-        if (cards.length < 7 || cards.some(c => !c.querySelector('h3'))) return false;
-        return cards.filter(c => c.classList.contains('is-empty')).every(c => c.children.length === 1);
-      },
-      wants: 'every Progress widget drawn, each with nothing to say its title alone; the only controls Practise and Sessions' },
-    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
-    { name: 'your exams',
-      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
-      enter: () => {
-        const t = new Date(Date.now() + 14 * 864e5);
-        USER.profile = Object.assign({}, USER.profile || {},
-          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
-        progressRedraw_();
-        const c = document.querySelector('#s-progress .card.journey');
-        if (!c) throw new Error('no countdowns card on the progress column');
-        const pages = [...document.querySelectorAll('#s-progress > .page')];
-        goPage('progress', Math.max(0, pages.indexOf(c.closest('.page'))), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-progress .page.on .card.journey');
-        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
-          && !document.querySelector('#s-account .card.journey')
-          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
-      },
-      wants: 'the Countdowns card on Progress, with the Big exam line and no control on it — none on Settings, and no weekly parent email card anywhere',
-      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
   /* ---------- THE SHOP § */
