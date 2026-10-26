@@ -1984,7 +1984,7 @@ screen('staff', () => pages('staff', staffPages_()));
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof bizPages_ === 'function' ? bizPages_() : [])
-    /* EDIT LAYOUT (462): the way into moving columns and widgets, for everyone — here because only an admin has this column. */
+    /* THE LAYOUT CARD (462, 463): deleted widgets back, and Reset — here because only an admin has this column. */
     .concat(typeof layoutCard_ === 'function' ? [layoutCard_()] : [])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }

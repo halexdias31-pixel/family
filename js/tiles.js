@@ -7,7 +7,7 @@ const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
 const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
-  /* FOUR ARROWS, for Edit layout's moves (462): a widget up or down its column, a widget or a column left or right. */
+  /* FOUR ARROWS, for a widget's admin layout tiles (463): up or down its column, to the previous or next widget column. */
   up:    '<path d="M9 14.5v-12"/><path d="m4.5 7 4.5-4.5 4.5 4.5"/>',
   down:  '<path d="M9 2.5v12"/><path d="m4.5 10 4.5 4.5 4.5-4.5"/>',
   left:  '<path d="M15 8.5h-12"/><path d="m7.5 4 -4.5 4.5 4.5 4.5"/>',

@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-e-edit-layout";
+const BACKEND_VERSION = "2026-10-26-f-layout-tiles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -670,7 +670,7 @@ const CONFIG_RESEEDED = [
 const FILMS_FOLDER_KEY = 'films_folder';
 const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
-/* THE SITE'S LAYOUT (462): the config row an admin's Edit layout writes, and the most it may hold. */
+/* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
 const LAYOUT_KEY = 'layout';
 const LAYOUT_MAX = 8000;
 
@@ -1554,7 +1554,7 @@ const ACTION_ACCESS = {
   digestSendNow: 'admin',
   /* ONE PERSON'S PIN, READ ON A TAP OF "SHOW PIN" ON THEIR CARD (452) — never in doGet, never logged. */
   pinShow: 'admin',
-  /* EDIT LAYOUT (462): the site-wide order of columns and widgets, one config row. */
+  /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',

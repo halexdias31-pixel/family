@@ -411,7 +411,7 @@ function widgetFor_(w) {
 }
 
 function widgetsOf_(kind) {
-  /* THE ADMIN'S LAYOUT FIRST (462): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
+  /* THE ADMIN'S LAYOUT FIRST (462, 463): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
   if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
     .filter(w => w.kind === kind)
@@ -422,7 +422,7 @@ function widgetColumn_(kind) {
   return widgetsOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
     /* ---------- AND THE NAME IS PRINTED ONCE § */
-    .map(w => widgetOnColumn_(w));
+    .map(w => widgetOnColumn_(w, true));
 }
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
@@ -430,7 +430,8 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-function widgetOnColumn_(w) {
+/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutTiles_` in layout.js). */
+function widgetOnColumn_(w, own) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
   const held = w.kind === 'game' && typeof gameLocked_ === 'function' && gameLocked_(w.id);
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
@@ -438,6 +439,7 @@ function widgetOnColumn_(w) {
         ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
           w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</div>`
         : ''}
+      ${own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : ''}
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         w.html}${waits ? loading_() : ''}</div>
     </div>`;

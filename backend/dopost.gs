@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-e-edit-layout";
+const DOPOST_VERSION = "2026-10-26-f-layout-tiles";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2981,7 +2981,7 @@ function doPost(e) {
       return jsonOut(pin ? { success: true, pin } : { success: true, pin: '', said: 'No PIN' });
     }
 
-    /* ---------- EDIT LAYOUT (462): the site-wide order of columns and widgets, one `layout` row on config ---------- */
+    /* ---------- THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets, one `layout` row on config ---------- */
     /* `reset` (or no layout) empties the cell, and every phone goes back to the code's own order. */
     if (action === 'layoutSave') {
       const me = findPerson('', S(body.personId));
@@ -2996,7 +2996,7 @@ function doPost(e) {
       if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the layout on.' });
       const row = t.rows.find(r => norm(r.key) === LAYOUT_KEY);
       if (row) setCell(t, row, 'value', value);
-      else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of columns and widgets, set by Edit layout on Business (462). Empty: the code\'s own order.' });
+      else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
     }
