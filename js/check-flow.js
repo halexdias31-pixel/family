@@ -22656,7 +22656,7 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   await wait(30);
   if (outlined().length) bad.push('the outline outlived the server saying the messages were read: ' + JSON.stringify(outlined()));
 
-  const box = col.querySelector('.msg-form .msg-text');
+  const box = col.querySelector('.card:not([data-daive]) .msg-form .msg-text');
   if (!box) bad.push('the thread has no composer');
   else {
     if (box.getAttribute('placeholder') !== 'Message…') bad.push('the composer\'s hint is "' + box.getAttribute('placeholder') + '", not "Message…"');
@@ -22686,13 +22686,10 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   return bad;
 });
 
-/* ---------- THE ASSISTANT IN MESSAGES (449): pinned first, "N of 5 left" as one line, a stubbed answer kept on the device, shut at 0 */
-check('assistant: pinned first in Messages, asks askAssistant with the facts, draws the stubbed answer, counts down and shuts at 0', async () => {
+/* ---------- DAIVE IN MESSAGES (449, 461): pinned first, drawn as a conversation, counts down after an answer, shut at 0 */
+check('daive: pinned first in Messages as a conversation — the DM head, bubbles and composer, no look-alike classes', async () => {
   const bad = [];
-  let left = 2;
-  const { w, sent } = boot({ reply: b => (b.action === 'askAssistant'
-    ? (left > 0 ? { success: true, answer: 'Sessions are two hours.', left: --left, cap: 5 } : { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' })
-    : { success: true }) });
+  const { w } = boot({ reply: () => ({ success: true }) });
   await wait(300);
   const d = w.document;
   w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
@@ -22700,29 +22697,74 @@ check('assistant: pinned first in Messages, asks askAssistant with the facts, dr
   try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
   await wait(80);
   const col = d.getElementById('s-dm');
-  const card = () => col && col.querySelector('.asst');
-  if (!card()) return ['Messages has no Assistant card'];
-  const first = col.querySelector('.card');
-  if (first !== card()) bad.push('the Assistant is not the first card in Messages');
-  if (!col.querySelector('.msg-bub')) bad.push('the seeded conversation is no longer drawn beside the Assistant');
-  const line = () => ((card() || {}).querySelector ? (card().querySelector('.asst-left') || {}).textContent || '' : '').trim();
-  if (line() !== '5 of 5 questions left today') bad.push('the count line reads "' + line() + '", not "5 of 5 questions left today"');
-  card().querySelector('.asst-text').value = 'How long is a session?';
-  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  const daive = col && col.querySelector('[data-daive]');
+  if (!daive) return ['Messages has no Daive conversation'];
+  if (col.querySelector('.card') !== daive) bad.push('Daive is not the first conversation in Messages');
+  const ada = col.querySelector('.card:not([data-daive])');
+  if (!ada) return bad.concat(['the seeded conversation is no longer drawn beside Daive']);
+  const name = el => ((el.querySelector('.dm-head h3') || {}).textContent || '').trim();
+  if (name(daive) !== 'Daive') bad.push('the conversation is titled "' + name(daive) + '", not "Daive"');
+  if (/assistant/i.test(daive.textContent)) bad.push('the word "assistant" is still shown: ' + daive.textContent.replace(/\s+/g, ' ').slice(0, 120));
+  ['.dm-head .dm-av', '.msg-body', '.msg-form .msg-text', '.msg-form .btn.msg-go'].forEach(sel => {
+    if (!daive.querySelector(sel)) bad.push('Daive has no ' + sel + ', which every conversation has');
+    if (!ada.querySelector(sel)) bad.push('the person\'s conversation has no ' + sel + ' (the comparison is void)');
+  });
+  if (daive.querySelector('[class*="asst"]')) bad.push('Daive still draws .asst-* look-alikes');
+  const go = daive.querySelector('.msg-go'), box = daive.querySelector('.msg-text');
+  if (go && go.textContent.trim() !== 'Send') bad.push('Daive\'s send control reads "' + go.textContent.trim() + '", not "Send"');
+  if (box && box.getAttribute('placeholder') !== 'Message…') bad.push('Daive\'s box hint is "' + box.getAttribute('placeholder') + '"');
+  const names = ((w.__t.PAGER || {}).dm || {}).names;
+  if (Array.isArray(names) && names[0] !== 'Daive') bad.push('the pager\'s first page is named "' + names[0] + '"');
+  return bad;
+});
+
+check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the slogan and placeholders stay out of the facts; shut at 0', async () => {
+  const bad = [];
+  let n = 0;
+  const { w, sent } = boot({ reply: b => {
+    if (b.action !== 'askAssistant') return { success: true };
+    n++;
+    /* THE FIRST REPLY CARRIES NO `left` — the phone must still count the answer (461). */
+    if (n === 1) return { success: true, answer: 'Sessions are two hours.' };
+    if (n === 2) return { success: true, answer: 'Yes.', left: 0, cap: 5 };
+    return { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' };
+  } });
+  await wait(300);
+  const d = w.document;
+  w.__t.DATA().brand = Object.assign({}, w.__t.DATA().brand, { name: '@family.', slogan: 'Somebody to say why.',
+    tagline: 'Somebody to say why.', intro: '{{intro}}', area: 'Merton & Wandsworth', motto: 'TODO' });
+  w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
+  w.__t.dmSeed([]);
+  try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  await wait(80);
+  const col = d.getElementById('s-dm');
+  const card = () => col && col.querySelector('[data-daive]');
+  if (!card()) return ['Messages has no Daive conversation'];
+  const line = () => ((card().querySelector('.daive-left') || {}).textContent || '').trim();
+  const ask = q => { card().querySelector('.msg-text').value = q; w.__t.ACTIONS['daive-send'](card().querySelector('[data-do="daive-send"]')); };
+  if (line() !== '5 of 5 questions left today') bad.push('before asking the line reads "' + line() + '"');
+  ask('How long is a session?');
   await wait(60);
-  const ask = sent.filter(b => b.action === 'askAssistant').pop();
-  if (!ask) return bad.concat(['pressing Ask sent no askAssistant']);
-  if (ask.question !== 'How long is a session?' || !String(ask.facts || '').length) bad.push('askAssistant carried ' + JSON.stringify(ask).slice(0, 200));
+  const a = sent.filter(b => b.action === 'askAssistant').pop();
+  if (!a) return bad.concat(['Send sent no askAssistant']);
+  const facts = String(a.facts || '');
+  if (/say why/i.test(facts)) bad.push('the slogan went into the facts: ' + facts.slice(0, 200));
+  if (/\{\{|TODO/.test(facts)) bad.push('a placeholder went into the facts: ' + facts.slice(0, 200));
+  if (!/business name: @family\./.test(facts) || !/Merton/.test(facts)) bad.push('the real brand facts are missing: ' + facts.slice(0, 200));
   if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
-  if (line() !== '1 of 5 questions left today') bad.push('after the answer the line reads "' + line() + '" — the server said 1 left');
+  if (card().querySelectorAll('.msg-bub').length !== 2) bad.push('the question and answer are not two DM bubbles');
+  if (!card().querySelector('.msg.mine .msg-bub')) bad.push('the question is not drawn as the person\'s own bubble');
+  if (line() !== '4 of 5 questions left today') bad.push('after one answer the line reads "' + line() + '", not "4 of 5"');
   let kept = null;
   try { kept = JSON.parse(w.localStorage.getItem('asst:P002')); } catch (e) {}
-  if (!kept || !Array.isArray(kept.msgs) || kept.msgs.length !== 2) bad.push('the conversation was not kept on the device: ' + JSON.stringify(kept));
-  card().querySelector('.asst-text').value = 'And another?';
-  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  if (!kept || kept.left !== 4 || !Array.isArray(kept.msgs) || kept.msgs.length !== 2) bad.push('the device did not keep 4 left and the two lines: ' + JSON.stringify(kept));
+  try { w.__t.repaint(true); } catch (e) {}
+  await wait(30);
+  if (line() !== '4 of 5 questions left today') bad.push('a repaint brought back "' + line() + '"');
+  ask('And another?');
   await wait(60);
   if (!/No questions left today/.test(line())) bad.push('at 0 the line reads "' + line() + '"');
-  if (!card().querySelector('.asst-text').disabled || !card().querySelector('[data-do="asst-send"]').disabled) bad.push('at 0 the box or Ask is still enabled');
+  if (!card().querySelector('.msg-text').disabled || !card().querySelector('[data-do="daive-send"]').disabled) bad.push('at 0 the box or Send is still enabled');
   if (d.querySelector('dialog[open], .modal.open')) bad.push('a pop-up opened');
   return bad;
 });

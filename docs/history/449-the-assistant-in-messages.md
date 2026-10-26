@@ -39,3 +39,5 @@ and personal worries to a parent or tutor.
 `js/check-assistant.js` (signed in only, the token's person, the cap from config with 5 when blank and 0 off,
 a refused Gemini call gives the count back, the child's rules); flow journey "assistant: pinned first in
 Messages…" with a stubbed reply. Versions `2026-10-25-a-assistant`, css `2026-10-25-b-assistant`.
+
+Superseded in part by 461: it is called Daive and drawn as an ordinary conversation.

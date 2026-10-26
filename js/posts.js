@@ -2537,7 +2537,7 @@ function dmSync_(force) {
   DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
   /* Which conversation is on the screen, by person rather than by page — a message arriving in another thread moves that thread to the front and would otherwise § */
-  /* ONE LESS THAN THE PAGE: the Assistant is page 0 (449). */
+  /* ONE LESS THAN THE PAGE: Daive is page 0 (449). */
   const here = ((messageThreads_()[((typeof PAGE === 'object' && PAGE.dm) || 0) - 1]) || {}).id;
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
@@ -2596,7 +2596,7 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return [asstPage_(), { name: '', html: `<div class="card"><h3>Messages</h3>
+  if (!threads.length) return [daivePage_(), { name: '', html: `<div class="card"><h3>Messages</h3>
     ${MSG_FAILED
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
@@ -2609,7 +2609,7 @@ function dmPages_() {
   threads.forEach(t2 => markRead_(t2.msgs));
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
-  return [asstPage_()].concat(threads.map(t => ({
+  return [daivePage_()].concat(threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
       <div class="dm-head">${dmFace_(t)}
@@ -2620,10 +2620,10 @@ function dmPages_() {
   })));
 }
 
-/* ---------- THE ASSISTANT, PINNED FIRST IN MESSAGES (449) ----------
-   Kept on this device only; the day's count is the backend's (`askAssistant`), and its `left` is believed over ours. */
+/* ---------- DAIVE, THE ASSISTANT, PINNED FIRST IN MESSAGES (449, 461) ----------
+   A conversation like any other — the same head, bubbles and composer — kept on this device; `data-daive` marks its card. */
 let ASST_BUSY = false, ASST_SAID = '';
-const ASST_KEEP = 40;
+const ASST_KEEP = 40, DAIVE = 'Daive';
 const asstDay_ = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
 function asstCap_() {
   const v = (DATA && DATA.constants && DATA.constants.vars) || {};
@@ -2631,17 +2631,24 @@ function asstCap_() {
   return c === '' || c == null || isNaN(Number(c)) ? 5 : Math.max(0, Math.floor(Number(c)));
 }
 function asstKey_() { return 'asst:' + String((USER && USER.personId) || ''); }
+/* HELD IN MEMORY TOO, so a phone whose storage refuses still counts down within the visit (461). */
+let ASST_MEM = null;
 function asstGet_() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(asstKey_()) || 'null'); } catch (e) { s = null; }
+  if (!s && ASST_MEM && ASST_MEM.key === asstKey_()) s = ASST_MEM.s;
   s = s && typeof s === 'object' ? s : {};
   const msgs = Array.isArray(s.msgs) ? s.msgs.filter(m => m && typeof m.text === 'string') : [];
   const today = asstDay_();
   const left = s.day === today && typeof s.left === 'number' ? Math.min(s.left, asstCap_()) : asstCap_();
   return { day: today, left: Math.max(0, left), msgs: msgs.slice(-ASST_KEEP) };
 }
-function asstPut_(s) { try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
-/* WHAT THE ASSISTANT IS TOLD ABOUT THE BUSINESS: the brand tab's words and a few config numbers, all public already. */
+function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
+/* A SLOGAN OR A PLACEHOLDER IS NOT A FACT: the model greeted with the slogan glued to the name (461). */
+const ASST_FACT_SKIP = /logo|colou?r|^ink$|accent|ground|font|phone|email|^site$|url|slogan|tagline|motto|strap|hero|headline/i;
+const asstPlaceholder_ = t => /^(todo|tbc|tbd|n\/?a|none|x+|-+|…|\.\.\.|lorem\b.*|placeholder.*|example.*)$/i.test(t)
+  || /\{\{|\}\}|\[[^\]]*\]|<[^>]+>|lorem ipsum/i.test(t);
+/* WHAT DAIVE IS TOLD ABOUT THE BUSINESS: the brand tab's plain facts and a few config numbers, all public already. */
 function asstFacts_() {
   const out = [];
   const b = (DATA && DATA.brand) || {};
@@ -2649,8 +2656,9 @@ function asstFacts_() {
     const v = b[k];
     if (typeof v !== 'string' && typeof v !== 'number') return;
     const t = String(v).trim();
-    if (!t || /^#|^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(t) || /logo|colou?r|^ink$|accent|font|phone|email/i.test(k)) return;
-    out.push(k.replace(/_/g, ' ') + ': ' + t);
+    if (!t || t.length > 300 || ASST_FACT_SKIP.test(k) || asstPlaceholder_(t)) return;
+    if (/^#|^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(t)) return;
+    out.push((k === 'name' ? 'business name' : k.replace(/_/g, ' ')) + ': ' + t);
   });
   const v = (DATA && DATA.constants && DATA.constants.vars) || {};
   if (v.h) out.push('hours per session: ' + v.h);
@@ -2659,32 +2667,37 @@ function asstFacts_() {
   out.push('to book: the Booking screen; to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }
-function asstHtml_() {
-  const s = asstGet_(), cap = asstCap_();
-  const bubbles = s.msgs.map(m => `<div class="asst-msg${m.role === 'user' ? ' mine' : ''}"><p class="asst-bub">${esc(m.text)}</p></div>`).join('');
-  const out = s.left <= 0;
-  return `<div class="card asst">
-    <div class="dm-head"><span class="dm-av" aria-hidden="true">✦</span><h3>Assistant</h3></div>
-    <div class="asst-body">${bubbles || `<p class="faint asst-hello">Ask about lessons, prices and booking, or for help with something you are studying.</p>`}${ASST_BUSY ? loading_() : ''}</div>
-    <div class="asst-form">
-      <textarea class="asst-text" rows="1" maxlength="1000" placeholder="Ask a question…" aria-label="Ask the assistant"${out || ASST_BUSY ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
-      <button class="btn asst-go" data-do="asst-send"${out || ASST_BUSY ? ' disabled' : ''}>Ask</button>
+/* THE SAME SHAPE `messagesHtml_` DRAWS FOR A PERSON, so Daive's bubbles are a conversation's bubbles. */
+function asstMsgs_(s) {
+  return s.msgs.map(m => ({ mine: m.role === 'user', read: true, body: m.text, atMs: m.at || 0, fromName: DAIVE }));
+}
+function daiveHtml_() {
+  const s = asstGet_(), cap = asstCap_(), out = s.left <= 0, shut = out || ASST_BUSY;
+  const said = out ? 'No questions left today — they come back tomorrow.' : s.left + ' of ' + cap + ' questions left today';
+  return `<div class="card daive" data-daive="1">
+    <div class="dm-head"><span class="dm-av daive-av" aria-hidden="true">D</span><h3>${DAIVE}</h3></div>
+    <div class="msg-body">${messagesHtml_(asstMsgs_(s)) || `<p class="faint">Ask about lessons, prices and booking, or for help with something you are studying.</p>`}${ASST_BUSY ? loading_() : ''}</div>
+    <div class="msg-form" data-k="daive">
+      <textarea class="msg-text" rows="1" maxlength="1000" placeholder="Message…" aria-label="Message ${DAIVE}"${shut ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
+      <button class="btn msg-go" data-do="daive-send"${shut ? ' disabled' : ''}>Send</button>
+      <p class="faint msg-said">${esc(ASST_SAID)}</p>
+      <p class="faint msg-said daive-left">${esc(said)}</p>
     </div>
-    ${ASST_SAID ? `<p class="faint asst-said">${esc(ASST_SAID)}</p>` : ''}
-    <p class="faint asst-left">${out ? 'No questions left today — they come back tomorrow.' : esc(s.left + ' of ' + cap + ' questions left today')}</p>
   </div>`;
 }
-function asstPage_() { return { name: 'Assistant', html: asstHtml_() }; }
+function daivePage_() { return { name: DAIVE, html: daiveHtml_() }; }
+/* REDRAWN IN PLACE, and the column forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {
-  const card = $('s-dm') && $('s-dm').querySelector('.asst');
+  const col = $('s-dm'), card = col && col.querySelector('[data-daive]');
   if (!card) return;
-  card.outerHTML = asstHtml_();
-  const body = $('s-dm').querySelector('.asst-body');
+  card.outerHTML = daiveHtml_();
+  const body = col.querySelector('[data-daive] .msg-body');
   if (body) body.scrollTop = body.scrollHeight;
+  try { col.DRAWN = null; } catch (e) {}
 }
-on('asst-send', el => {
-  const card = el.closest ? el.closest('.asst') : null;
-  const box = card ? card.querySelector('.asst-text') : null;
+on('daive-send', el => {
+  const card = el.closest ? el.closest('[data-daive]') : null;
+  const box = card ? card.querySelector('.msg-text') : null;
   const text = String((box && box.value) || '').trim();
   if (!text || ASST_BUSY || !USER) return;
   const s = asstGet_();
@@ -2697,18 +2710,23 @@ on('asst-send', el => {
   const done = (d) => {
     ASST_BUSY = false;
     const now = asstGet_();
-    if (d && typeof d.left === 'number') now.left = Math.max(0, d.left);
-    if (d && d.success && d.answer) { now.msgs.push({ role: 'assistant', text: String(d.answer), at: Date.now() }); try { draftDrop_('asst', ''); } catch (e) {} }
-    else {
+    const told = d && d.left !== '' && d.left != null && !isNaN(Number(d.left)) ? Math.max(0, Math.floor(Number(d.left))) : null;
+    if (d && d.success && d.answer) {
+      /* AN ANSWER IS ONE QUESTION USED, whatever the reply says or forgets (461): the lower of ours less one and the server's. */
+      now.left = Math.max(0, told == null ? s.left - 1 : Math.min(told, s.left - 1));
+      now.msgs.push({ role: 'assistant', text: String(d.answer), at: Date.now() });
+      try { draftDrop_('asst', ''); } catch (e) {}
+    } else {
+      if (told != null) now.left = told;
       /* NOT ANSWERED IS NOT ASKED: the question comes off the thread, and the backend gave the count back. */
       const last = now.msgs[now.msgs.length - 1];
       if (last && last.role === 'user' && last.text === text) now.msgs.pop();
-      ASST_SAID = (d && (d.message || d.error)) || 'The assistant could not be reached — try again in a moment.';
+      ASST_SAID = (d && (d.message || d.error)) || DAIVE + ' could not be reached — try again in a moment.';
     }
     now.msgs = now.msgs.slice(-ASST_KEEP);
     asstPut_(now);
     asstRedraw_();
-    if (!(d && d.success)) { const b = $('s-dm') && $('s-dm').querySelector('.asst-text'); if (b && !b.disabled) b.value = text; }
+    if (!(d && d.success)) { const b = $('s-dm') && $('s-dm').querySelector('[data-daive] .msg-text'); if (b && !b.disabled) b.value = text; }
   };
   api({ action: 'askAssistant', personId: USER.personId, question: text, history: history, facts: asstFacts_() })
     .then(done, () => done(null));
