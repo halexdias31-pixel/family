@@ -5406,3 +5406,12 @@ top level, before `t`
    registered first. Dirty holds the column (`settingsKeep_`); `cardKeep_` writes the card's draft. */
 ```
 
+### ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN (464): its face, and Edit — or the editor itself while it is open
+
+top level, before `ownCardSetPage_`
+
+```
+/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN (464): its face, and Edit — or the editor itself while it is open ----------
+   Tutor settings edits a tutor's card, Parent settings a parent's, Student settings a student's: the face `ownCardSections_` gives your rank. */
+```
+
