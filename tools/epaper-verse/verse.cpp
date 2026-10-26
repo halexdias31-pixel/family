@@ -1,9 +1,11 @@
 #include <Arduino.h>
 // verse.cpp - a Bible verse a day on the Waveshare ESP32-S3-ePaper-1.54. GPL-3.0, as GxEPD2.
-// No Wi-Fi, no clock, nothing to set up: wake -> clear the panel -> draw the next verse -> sleep 24 hours.
+// No Wi-Fi, no clock, nothing to set up: wake -> draw the verse -> listen while USB is attached -> sleep 24 hours.
 // Pins from Waveshare's demo: github.com/waveshareteam/ESP32-S3-ePaper-1.54, 02_Example/Arduino/*/user_config.h.
 
 #include <Preferences.h>
+#include <USB.h>
+#include "tusb.h"
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeSerif12pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
@@ -208,43 +210,30 @@ void drawPicture(int k) {
   } while (display.nextPage());
 }
 
-// What the website's widget sends over USB (Web Serial, 115200), in the first seconds after a plug-in or RESET:
-// "SHOW VERSE <n>" or "SHOW ICON <n>" (0-based). The screen answers "OK" and keeps it; the daily alarm then moves on from there.
-bool listen(int &mode, int &i) {
-  Serial.begin(115200);
-  Serial.println("READY epaper-verse 470");
-  String line; unsigned long until = millis() + 6000;
-  while (millis() < until) {
-    while (Serial.available()) {
-      char c = Serial.read();
-      if (c != '\n' && c != '\r') { if (line.length() < 40) line += c; continue; }
-      line.trim();
-      if (line.startsWith("SHOW VERSE ")) { mode = 0; i = line.substring(11).toInt(); }
-      else if (line.startsWith("SHOW ICON ")) { mode = 1; i = line.substring(10).toInt(); }
-      else { line = ""; continue; }
-      i = max(0, i) % (mode ? NPICS : N);
-      Serial.println("OK");
-      Serial.flush();
-      return true;
-    }
-    delay(10);
+// What the website's widget sends over USB (Web Serial, 115200) while the screen is awake: "SHOW VERSE <n>" or
+// "SHOW ICON <n>" (0-based). The screen answers "OK", keeps it and draws it; the daily alarm then moves on from there.
+String heard;
+bool hear(int &mode, int &i) {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c != '\n' && c != '\r') { if (heard.length() < 40) heard += c; continue; }
+    heard.trim();
+    int m = -1, k = 0;
+    if (heard.startsWith("SHOW VERSE ")) { m = 0; k = heard.substring(11).toInt(); }
+    else if (heard.startsWith("SHOW ICON ")) { m = 1; k = heard.substring(10).toInt(); }
+    else if (heard == "HELLO") Serial.println("READY epaper-verse 482");
+    heard = "";
+    if (m < 0) continue;
+    mode = m; i = max(0, k) % (mode ? NPICS : N);
+    Serial.println("OK");
+    Serial.flush();
+    return true;
   }
   return false;
 }
 
-void setup() {
-  // Which verse or icon: the daily alarm moves on by one; plugging in or RESET shows the same one again unless the website sends one.
-  Preferences keep;
-  keep.begin("verse", false);
-  int mode = keep.getInt("mode", 0), i = keep.getInt("i", 0);
-  i %= (mode ? NPICS : N);
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) { i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i); }
-  else if (listen(mode, i)) { keep.putInt("mode", mode); keep.putInt("i", i); }
-  keep.end();
-
+void draw(int mode, int i) {
   pinMode(EPD_PWR, OUTPUT); digitalWrite(EPD_PWR, LOW);
-  SPI.begin(12, -1, 13, 11);
-  display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   display.init(0, true, 2, false);
   display.clearScreen();   // a full refresh to white first: nothing old (an earlier picture, a ghost) survives
   if (mode) drawPicture(i);
@@ -256,7 +245,43 @@ void setup() {
 #endif
   display.hibernate();
   digitalWrite(EPD_PWR, HIGH);
-  esp_sleep_enable_timer_wakeup(24ULL * 3600 * 1000000ULL);
+}
+
+const unsigned long DAY = 24UL * 3600 * 1000, AWAKE = 60000;
+
+// Deep sleep switches the S3's own USB off, so the computer loses the screen (482). After a plug-in, RESET or PWR the
+// screen stays awake 60 s, and as long as a computer is attached, listening; it sleeps only on a charger or battery.
+void setup() {
+  Preferences keep;
+  keep.begin("verse", false);
+  int mode = keep.getInt("mode", 0), i = keep.getInt("i", 0);
+  i %= (mode ? NPICS : N);
+  bool daily = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
+  if (daily) { i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i); }
+  USB.manufacturerName("@family.");   // the name in Chrome's list, not the chip's (482); ☀ mode still shows Espressif's
+  USB.productName("@family. screen");
+  Serial.begin(115200);
+  USB.begin();
+  SPI.begin(12, -1, 13, 11);
+  display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  draw(mode, i);
+  Serial.println("READY epaper-verse 482");
+  unsigned long drawn = millis(), until = millis() + (daily ? 3000 : AWAKE);
+  while ((long)(until - millis()) > 0 || tud_mounted()) {
+    if (hear(mode, i)) {
+      keep.putInt("mode", mode); keep.putInt("i", i);
+      draw(mode, i); drawn = millis(); until = millis() + AWAKE;
+      Serial.println("DRAWN");
+    }
+    if (millis() - drawn >= DAY) {   // awake on a computer all day: the next verse arrives anyway
+      i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i);
+      draw(mode, i); drawn = millis();
+    }
+    delay(10);
+  }
+  keep.end();
+  unsigned long left = DAY - min(DAY - 60000, millis() - drawn);   // the next day counts from the last drawing
+  esp_sleep_enable_timer_wakeup((uint64_t)left * 1000ULL);
   esp_deep_sleep_start();
 }
 

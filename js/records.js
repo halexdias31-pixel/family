@@ -373,7 +373,7 @@ const EINK = (() => {
   let o = {};
   try { o = JSON.parse(localStorage.getItem(EINK_KEY) || '{}') || {}; } catch (e) { o = {}; }
   return { mode: o.mode === 'icon' ? 'icon' : 'verse', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0),
-           verses: null, icons: null, asked: false, failed: false, say: '', busy: false, install: false };
+           verses: null, icons: null, fonts: null, bits: {}, steps: '', asked: false, failed: false, say: '', busy: false, install: false };
 })();
 const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon })); } catch (e) {} };
 /* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database with its drawings. */
@@ -381,29 +381,114 @@ function einkLoad_() {
   if (EINK.asked) return;
   EINK.asked = true;
   const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-  Promise.all([get('eink-verses.json'), get('icons.json')])
-    .then(([v, i]) => { EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.svg); })
+  Promise.all([get('eink-verses.json'), get('icons.json'), get('eink-fonts.json').catch(() => null)])
+    .then(([v, i, f]) => { EINK.fonts = f; EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.svg); })
     .catch(() => { EINK.failed = true; })
     .then(() => paintEink_());
 }
 const einkList_ = () => (EINK.mode === 'icon' ? EINK.icons : EINK.verses) || [];
+/* THE SCREEN'S OWN PIXELS (482): verse.cpp's layout, line for line, with its three Adafruit GFX fonts (data/eink-fonts.json),
+   into a 200x200 1-bit page — what the widget shows is what the screen draws. */
+const EINK_PX = 200;
+function einkFont_(name) {
+  const f = EINK.fonts && EINK.fonts[name]; if (!f) return null;
+  if (!f.bits) { const b = atob(f.bitmap); f.bits = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) f.bits[i] = b.charCodeAt(i); }
+  return f;
+}
+function einkWidth_(f, s) {   // Adafruit_GFX::getTextBounds' width, from x = 0
+  let x = 0, lo = 0x7FFF, hi = -1;
+  for (const ch of String(s)) {
+    const c = ch.charCodeAt(0); if (c < f.first || c > f.last) continue;
+    const [, w, , xa, xo] = f.glyphs[c - f.first];
+    lo = Math.min(lo, x + xo); hi = Math.max(hi, x + xo + w - 1); x += xa;
+  }
+  return hi >= lo ? hi - lo + 1 : 0;
+}
+function einkWrap_(f, text, maxW) {   // verse.cpp's wrap()
+  const lines = []; let line = '';
+  for (const word of String(text).split(' ').filter(Boolean)) {
+    const t = line ? line + ' ' + word : word;
+    if (einkWidth_(f, t) <= maxW || !line) line = t; else { lines.push(line); line = word; }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function einkText_(px, f, s, x, y) {   // Adafruit_GFX::drawChar, glyph by glyph from the baseline
+  for (const ch of String(s)) {
+    const c = ch.charCodeAt(0); if (c < f.first || c > f.last) continue;
+    const [o, w, h, xa, xo, yo] = f.glyphs[c - f.first];
+    for (let k = 0; k < w * h; k++) if (f.bits[o + (k >> 3)] & (0x80 >> (k & 7))) einkDot_(px, x + xo + k % w, y + yo + Math.floor(k / w));
+    x += xa;
+  }
+}
+const einkDot_ = (px, x, y) => { if (x >= 0 && y >= 0 && x < EINK_PX && y < EINK_PX) px[y * EINK_PX + x] = 1; };
+function einkPage_(mode, item, iconBits) {   // -> Uint8Array(200*200), 1 = black; null without the fonts
+  const big = einkFont_('FreeSerif12pt7b'), small = einkFont_('FreeSerif9pt7b'), ital = einkFont_('FreeSerifItalic9pt7b');
+  if (!big || !small || !ital || !item) return null;
+  const px = new Uint8Array(EINK_PX * EINK_PX), M = 8, W = 200 - 2 * M, REF_TOP = 176;
+  if (mode === 'icon') {   // drawPicture(): 120x160 at the top, the title in italic beneath
+    if (iconBits) for (let y = 0; y < 160; y++) for (let x = 0; x < 120; x++) if (iconBits[y * 120 + x]) einkDot_(px, 40 + x, 4 + y);
+    const t = String(item.title || '');
+    einkText_(px, ital, t, Math.max(0, Math.trunc((200 - einkWidth_(ital, t)) / 2)), 192);
+    return px;
+  }
+  const fonts = [big, small], lineH = [24, 18];   // drawVerse(): the bigger font if the verse fits in it
+  let f = 0, lines = [];
+  for (f = 0; f < 2; f++) { lines = einkWrap_(fonts[f], item.text, W); if (lines.length * lineH[f] <= REF_TOP - M - 4 || f === 1) break; }
+  lines = lines.slice(0, 14);
+  const top = M + Math.trunc((REF_TOP - M - lines.length * lineH[f]) / 2);
+  lines.forEach((l, i) => einkText_(px, fonts[f], l, M + Math.trunc((W - einkWidth_(fonts[f], l)) / 2), top + (i + 1) * lineH[f] - 6));
+  for (let x = 70; x < 130; x++) px[REF_TOP * EINK_PX + x] = 1;
+  einkText_(px, ital, item.ref, M + Math.trunc((W - einkWidth_(ital, item.ref)) / 2), 194);
+  return px;
+}
+/* The icon's 1-bit 120x160, from its drawing as make-icons.js rasterises it (black where darker than mid-grey). */
+function einkIconBits_(ic, then) {
+  if (!ic || !ic.svg) return then(null);
+  if (EINK.bits[ic.id]) return then(EINK.bits[ic.id]);
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const c = document.createElement('canvas'); c.width = 120; c.height = 160;
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 120, 160); g.drawImage(img, 0, 0, 120, 160);
+      const d = g.getImageData(0, 0, 120, 160).data, b = new Uint8Array(120 * 160);
+      for (let i = 0; i < b.length; i++) b[i] = d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2] < 384 ? 1 : 0;
+      EINK.bits[ic.id] = b; then(b);
+    } catch (e) { then(null); }
+  };
+  img.onerror = () => then(null);
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ic.svg);
+}
+function einkDraw_(cv) {
+  const list = einkList_(), icon = EINK.mode === 'icon', item = list[(icon ? EINK.icon : EINK.verse) % (list.length || 1)];
+  const put = bits => {
+    let g = null; try { g = cv.getContext('2d'); } catch (e) {}
+    const px = einkPage_(EINK.mode, item, bits); if (!g || !px) return;
+    const im = g.createImageData(EINK_PX, EINK_PX);
+    for (let i = 0; i < px.length; i++) { const v = px[i] ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+    g.putImageData(im, 0, 0);
+  };
+  if (icon) einkIconBits_(item, put); else put(null);
+}
 function einkFace_() {
   const list = einkList_();
   if (!list.length) return '<p class="eink-none">The verses and icons did not load.</p>';
-  if (EINK.mode === 'icon') {
-    const ic = list[EINK.icon % list.length];
-    return `<div class="eink-icon">${ic.svg}<p class="eink-title">${esc(ic.title || '')}</p></div>`;
-  }
-  const v = list[EINK.verse % list.length], n = String(v.text || '').length;
-  return `<div class="eink-verse ${n > 150 ? 'is-long' : n > 80 ? 'is-mid' : ''}"><p>${esc(v.text || '')}</p><i class="eink-rule"></i><p class="eink-ref">${esc(v.ref || '')}</p></div>`;
+  const it = list[(EINK.mode === 'icon' ? EINK.icon : EINK.verse) % list.length];
+  const words = EINK.mode === 'icon' ? `<p class="eink-icon">${esc(it.title || '')}</p>` : `<p class="eink-verse">${esc(it.text || '')} — <span class="eink-ref">${esc(it.ref || '')}</span></p>`;
+  return `<canvas class="eink-px" width="${EINK_PX}" height="${EINK_PX}" aria-hidden="true"></canvas><div class="eink-words">${words}</div>`;
 }
+/* THE STEPS, with the symbols printed on the screen's two buttons (482): ☀ is BOOT, ⏻ is PWR. One line each, only when it applies. */
+const EINK_STEPS = {
+  sync: ['Plug the screen into this computer.', 'Tap Sync and choose “@family. screen”.'],
+  install: ['Unplug the screen.', 'Hold ☀ (BOOT).', 'Plug it in while holding ☀, then let go.', 'Tap Install and choose the screen — in this mode it may be called “USB JTAG/serial debug unit”.', 'When it says Installed, press ⏻ (PWR) once, then tap Sync.'],
+};
 function paintEink_() {
   const list = einkList_(), ready = list.length > 0, icon = EINK.mode === 'icon';
   const which = ready ? (icon ? EINK.icon : EINK.verse) % list.length + 1 + ' of ' + list.length : '';
   document.querySelectorAll('.eink-box').forEach(box => {
     if (!ready && !EINK.failed) { box.setAttribute('aria-busy', 'true'); box.innerHTML = loading_(); return; }
     box.removeAttribute('aria-busy');
-    box.innerHTML = `<div class="eink" aria-label="An 8-inch e-ink screen, black and white">
+    box.innerHTML = `<div class="eink" aria-label="The 1.54-inch e-ink screen, 200 by 200, black and white">
         <div class="eink-panel">${einkFace_()}</div></div>
       <div class="row"><span class="k">Shows</span><span class="v">${icon ? 'An icon' : 'A verse'}${which ? ' · ' + which : ''}</span></div>
       <div class="tile-row">${[
@@ -415,7 +500,9 @@ function paintEink_() {
         tile_({ icon: 'sync', label: 'Sync to my screen', note: 'optional, by USB', act: 'eink-sync', off: !ready || EINK.busy }),
         EINK.install ? tile_({ icon: 'in', label: 'Install', note: 'the screen’s program, by USB', act: 'eink-install', off: EINK.busy }) : '',
       ].join('')}</div>
-      ${EINK.say ? `<p class="faint eink-say">${esc(EINK.say)}</p>` : ''}`;
+      ${EINK.say ? `<p class="eink-say" role="status">${esc(EINK.say)}</p>` : ''}
+      ${EINK.steps ? `<ol class="eink-steps">${EINK_STEPS[EINK.steps].map(t => `<li>${esc(t)}</li>`).join('')}</ol>` : ''}`;
+    const cv = box.querySelector('.eink-px'); if (cv) einkDraw_(cv);
   });
 }
 const einkSay_ = t => { EINK.say = t; paintEink_(); };
@@ -431,25 +518,27 @@ on('eink-shuffle', () => {
   let j = EINK[k]; while (j === EINK[k]) j = Math.floor(Math.random() * n);
   EINK[k] = j; einkKeep_(); paintEink_();
 });
-/* SYNCING, IN PLACE: Web Serial from this widget, never another page. The program listens for a few seconds after a plug-in or RESET (verse.cpp `listen`). */
-const EINK_USB = 0x303a;   // the ESP32-S3's own USB id, as install.js filters
+/* SYNCING, IN PLACE: Web Serial from this widget, never another page. The program stays awake while a computer is attached (verse.cpp, 482). */
+const EINK_USB = 0x303a;   // Espressif's USB id: the only thing Chrome's list shows is the screen
+const EINK_GONE = 'No screen in the list — press ⏻ (PWR) once, then tap Sync again.';
 async function einkPort_() {
-  if (!('serial' in navigator)) { einkSay_('Syncing needs Chrome or Edge on a computer, with the screen plugged in by USB.'); return null; }
+  if (!('serial' in navigator)) { EINK.steps = ''; einkSay_('Syncing needs Chrome or Edge on a computer, with the screen plugged in by USB.'); return null; }
+  EINK.steps = ''; einkSay_('Choose “@family. screen” in Chrome’s list.');
   try { return await navigator.serial.requestPort({ filters: [{ usbVendorId: EINK_USB }] }); }
-  catch (e) { einkSay_('No screen chosen.'); return null; }
+  catch (e) { EINK.steps = 'sync'; einkSay_(EINK_GONE); return null; }
 }
 on('eink-sync', async () => {
   if (EINK.busy) return;
   const port = await einkPort_(); if (!port) return;
-  EINK.busy = true; einkSay_('Sending… if nothing happens, press RESET on the screen now.');
-  let ok = false;
+  EINK.busy = true;
+  let ok = false, opened = false, got = '';
   try {
-    await port.open({ baudRate: 115200 });
-    const line = new TextEncoder().encode((EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse) + '\n');
+    await port.open({ baudRate: 115200 }); opened = true;
+    einkSay_('Connected — sending…');
+    const line = new TextEncoder().encode('HELLO\n' + (EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse) + '\n');
     const w = port.writable.getWriter(), r = port.readable.getReader();
-    let got = '';
     const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += new TextDecoder().decode(x.value); if (/\bOK\b/.test(got)) ok = true; } } catch (e) {} })();
-    const until = Date.now() + 9000;
+    const until = Date.now() + 8000;   // asks again every 0.4 s: a screen that has just woken is listening within a second or two
     while (!ok && Date.now() < until) { try { await w.write(line); } catch (e) {} await new Promise(res => setTimeout(res, 400)); }
     try { await r.cancel(); } catch (e) {}
     await reading;
@@ -457,14 +546,16 @@ on('eink-sync', async () => {
   } catch (e) {}
   try { await port.close(); } catch (e) {}
   EINK.busy = false;
-  if (!ok) EINK.install = true;
-  einkSay_(ok ? 'Sent. The screen is drawing it now.' : 'The screen did not answer. Press Sync, then RESET on the screen. A screen without the program needs Install first.');
+  /* It was in the list, so it was awake; awake and silent is the program from before 482, which listened only 6 s. */
+  if (ok) { EINK.install = false; EINK.steps = ''; einkSay_('Done — the screen is updating.'); }
+  else if (!opened) { EINK.steps = 'sync'; einkSay_('The screen is busy in another tab — close it, then tap Sync again.'); }
+  else { EINK.install = true; EINK.steps = 'install'; einkSay_('This screen has old software — tap Install.'); }
 });
 /* INSTALL, IN PLACE: what install.html did, here — esptool-js writes the program; the page never changes. */
 on('eink-install', async () => {
   if (EINK.busy) return;
   const port = await einkPort_(); if (!port) return;
-  EINK.busy = true; einkSay_('Installing…');
+  EINK.busy = true; einkSay_('Connected — installing…');
   try {
     const { ESPLoader, Transport } = await import('https://unpkg.com/esptool-js@0.6.1/bundle.js');
     const quiet = { clean() {}, writeLine() {}, write() {} };
@@ -476,8 +567,8 @@ on('eink-install', async () => {
       reportProgress: (i, done, all) => { EINK.say = 'Installing… ' + Math.round(100 * done / all) + '%'; paintEink_(); } });
     await loader.after('hard_reset');
     try { await transport.disconnect(); } catch (e) {}
-    EINK.install = false; EINK.say = 'Installed. Now press Sync to send it what this screen shows.';
-  } catch (e) { EINK.say = 'The install did not finish. Hold BOOT, unplug and replug the screen, then press Install again.'; }
+    EINK.install = false; EINK.steps = ''; EINK.say = 'Installed — press ⏻ (PWR) once, then tap Sync.';
+  } catch (e) { EINK.steps = 'install'; EINK.say = 'The install did not finish — follow these steps, then tap Install again.'; }
   EINK.busy = false; paintEink_();
 });
 
