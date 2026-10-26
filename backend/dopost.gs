@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-i-trips-are-items";
+const DOPOST_VERSION = "2026-10-26-j-free-voice";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2023,44 +2023,6 @@ function doPost(e) {
       return jsonOut({ success: true, awarded: got.awarded, available: avail, feedback: got.feedback,
                        parts: got.parts || [], points: got.points || [],
                        model: got.model, left: Math.max(0, cap - took.used) });
-    }
-
-    /* ---------- READ ALOUD IN THE NATURAL VOICE (463): base64 MP3 of one line; any refusal and the phone speaks with its own voice. */
-    if (action === 'speak') {
-      const key = PropertiesService.getScriptProperties().getProperty('TTS_API_KEY') || '';
-      if (!key) return jsonOut({ success: false, why: 'tts-off' });
-      const who = S(body.personId);
-      const text = S(body.text).replace(/\s+/g, ' ').trim();
-      if (!who || !text) return jsonOut({ success: false, why: 'tts-empty' });
-      if (text.length > TTS_TEXT_MAX) return jsonOut({ success: false, why: 'tts-long' });
-      const hash = ttsHash_(text);
-      /* A LINE HEARD BEFORE IS FREE: from the script cache, else Drive, and nothing is counted. */
-      const kept = ttsCacheGet_(hash) || ttsDriveGet_(hash);
-      if (kept) { ttsCachePut_(hash, kept); return jsonOut({ success: true, audio: kept, cached: true }); }
-      const capCell = S(config().tts_chars_per_day);
-      const cap = capCell === '' ? TTS_PER_DAY : Math.max(0, Math.floor(N(capCell)));
-      const took = cap > 0 ? aiMarkTally_(tally => {
-        const used = (Number(tally.n[who]) || 0) + text.length;
-        if (used > cap) return null;
-        tally.n[who] = used;
-        return { day: tally.day };
-      }, { busy: true }, 'TTS_CHARS') : null;
-      if (took && took.busy) return jsonOut({ success: false, why: 'tts-busy' });
-      if (!took) return jsonOut({ success: false, why: 'tts-cap' });
-      const audio = ttsAsk_(key, text);
-      if (!audio) {
-        /* NOTHING SPOKEN, NOTHING SPENT: the characters go back into the day they came from. */
-        aiMarkTally_(tally => {
-          const n = Number(tally.n[who]) || 0;
-          if (tally.day !== took.day || n < 1) return null;
-          if (n <= text.length) delete tally.n[who]; else tally.n[who] = n - text.length;
-          return true;
-        }, 'busy', 'TTS_CHARS');
-        return jsonOut({ success: false, why: 'tts-failed' });
-      }
-      ttsCachePut_(hash, audio);
-      ttsDrivePut_(hash, audio);
-      return jsonOut({ success: true, audio: audio });
     }
 
     /* ---------- THE ASSISTANT IN MESSAGES (449): a question about the business or a study question, five a day per person by default */
@@ -4132,55 +4094,3 @@ function reportDay_(v) {
   return m ? m[0] : '';
 }
 
-/* ---------- THE NATURAL VOICE (463): Google Cloud Text-to-Speech, its key in Script Properties, its clips kept by a hash of voice and text. */
-function ttsHash_(text) {
-  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, [TTS_VOICE.name, TTS_RATE, TTS_PITCH, text].join('|'), Utilities.Charset.UTF_8);
-  return raw.map(b => ('0' + (b & 255).toString(16)).slice(-2)).join('');
-}
-/* THE KEY GOES IN A HEADER, never the URL, so no log line carries it; a refusal is logged by its code alone. */
-function ttsAsk_(key, text) {
-  try {
-    const r = UrlFetchApp.fetch('https://texttospeech.googleapis.com/v1/text:synthesize', {
-      method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-goog-api-key': key },
-      payload: JSON.stringify({ input: { text: text }, voice: TTS_VOICE,
-        audioConfig: { audioEncoding: 'MP3', speakingRate: TTS_RATE, pitch: TTS_PITCH } }) });
-    if (r.getResponseCode() !== 200) { console.log('speak: Text-to-Speech said ' + r.getResponseCode()); return ''; }
-    return S((JSON.parse(r.getContentText()) || {}).audioContent);
-  } catch (e) { console.log('speak: Text-to-Speech could not be reached'); return ''; }
-}
-/* THE SCRIPT CACHE HOLDS 100 KB A VALUE, so a clip is kept in parts under one count. */
-function ttsCacheGet_(hash) {
-  try {
-    const c = CacheService.getScriptCache(), n = Number(c.get('tts:' + hash)) || 0;
-    if (!n) return '';
-    const keys = []; for (let i = 0; i < n; i++) keys.push('tts:' + hash + ':' + i);
-    const got = c.getAll(keys), parts = keys.map(k => got[k]);
-    return parts.every(p => typeof p === 'string') ? parts.join('') : '';
-  } catch (e) { return ''; }
-}
-function ttsCachePut_(hash, audio) {
-  try {
-    const all = {}; let n = 0;
-    for (let i = 0; i < audio.length; i += TTS_CACHE_PART) all['tts:' + hash + ':' + n++] = audio.slice(i, i + TTS_CACHE_PART);
-    all['tts:' + hash] = String(n);
-    CacheService.getScriptCache().putAll(all, TTS_CACHE_SECS);
-  } catch (e) {}
-}
-/* AND A DRIVE FOLDER FOR LONGER: made on first use, its id kept as TTS_FOLDER_ID. Drive failing only means paying for the line again. */
-function ttsFolder_(make) {
-  const props = PropertiesService.getScriptProperties(), id = props.getProperty('TTS_FOLDER_ID');
-  if (id) { try { const f = DriveApp.getFolderById(id); if (f) return f; } catch (e) {} }
-  if (!make) return null;
-  const f = DriveApp.createFolder('@family. read-aloud clips');
-  props.setProperty('TTS_FOLDER_ID', f.getId());
-  return f;
-}
-function ttsDriveGet_(hash) {
-  try {
-    const f = ttsFolder_(false), it = f && f.getFilesByName(hash + '.mp3');
-    return it && it.hasNext() ? Utilities.base64Encode(it.next().getBlob().getBytes()) : '';
-  } catch (e) { return ''; }
-}
-function ttsDrivePut_(hash, audio) {
-  try { ttsFolder_(true).createFile(Utilities.newBlob(Utilities.base64Decode(audio), 'audio/mpeg', hash + '.mp3')); } catch (e) {}
-}

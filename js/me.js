@@ -1918,7 +1918,7 @@ function studentSetPages_() {
 }
 screen('account', () => pages('account', studentSetPages_()));
 
-/* ---------- READING ALOUD (453, 463) — no choice: one calm natural voice, or the device's best; a sample is all there is to do ---------- */
+/* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
   return `<div class="card voice-card"><h3>Reading aloud</h3>
