@@ -29738,6 +29738,83 @@ check('layout engine (466): every card deletes — a paper series (past papers, 
   return bad;
 });
 
+/* ---------- GOOGLE TASKS (475): connect → sync makes each task once, a re-sync updates, Disconnect forgets; no client id says so ---------- */
+const GT_U_ = { name: 'Gia Tasks', personId: 'P-GT', role: 'student', roles: ['student'], rank: 'student', token: 't-gt', handle: 'giatasks' };
+function gtWorld_(withId) {
+  const T = { lists: [], tasks: [], calls: [], revoked: [], scripts: 0 };
+  const p = payload();
+  if (withId) p.googleClientId = 'cid-gtasks.apps.googleusercontent.com'; else delete p.googleClientId;
+  p.brand = Object.assign({}, p.brand || {}); delete p.brand.google_client_id;
+  const gj = [{ id: 'J-GT', jobId: 'J-GT', type: 'job', kind: '', status: 'confirmed', subject: 'Maths', level: 'GCSE',
+    tutor: 'GeorgePovey', client: GT_U_.name, day: 'Mon', time: '16:00', dates: '', slots: [], tutorSlots: [], events: [] }];
+  p.jobs = (p.jobs || []).concat(gj); if (p.liveJobs) p.liveJobs = p.liveJobs.concat(gj);
+  const before = w => {
+    signedInAs_(GT_U_)(w);
+    w.google = { accounts: { id: { initialize() {}, renderButton() {} }, oauth2: {
+      initTokenClient: c => (T.scope = c.scope, T.cid = c.client_id, { requestAccessToken: () => setTimeout(() => c.callback({ access_token: 'tok-gt', expires_in: 3600 }), 0) }),
+      revoke: (t, cb) => { T.revoked.push(t); if (cb) cb(); } } } };
+    const orig = w.fetch;
+    w.fetch = (url, o) => {
+      const u = String(url);
+      if (u.indexOf('https://tasks.googleapis.com/tasks/v1') !== 0) return orig(url, o);
+      const m = (o && o.method) || 'GET', b = o && o.body ? JSON.parse(o.body) : null, path = u.slice('https://tasks.googleapis.com/tasks/v1'.length);
+      T.calls.push(m + ' ' + path + ' ' + ((o && o.headers && o.headers.Authorization) || ''));
+      let out = {};
+      if (/^\/users\/@me\/lists/.test(path)) {
+        if (m === 'POST') { out = { id: 'L' + (T.lists.length + 1), title: b.title }; T.lists.push(out); } else out = { items: T.lists.slice() };
+      } else if (m === 'GET') out = { items: T.tasks.map(t => Object.assign({}, t)) };
+      else if (m === 'POST') { out = Object.assign({ id: 'T' + (T.tasks.length + 1), status: 'needsAction' }, b); T.tasks.push(out); }
+      else if (m === 'PATCH') { const id = decodeURIComponent(path.split('/').pop()); const t = T.tasks.find(x => x.id === id); Object.assign(t, b); out = t; }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(out), text: () => Promise.resolve(JSON.stringify(out)) });
+    };
+  };
+  return { T, p, before };
+}
+check('Google Tasks (475): Connect asks Google for the tasks scope, one sync makes one "@family." list and each task once, a re-sync updates them (a tick in Google kept), Disconnect revokes and forgets; with no client id the card says it is not switched on', async () => {
+  const bad = [];
+  {
+    const { p, before } = gtWorld_(false);
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
+    const c = m.w.document.querySelector('#s-account .gtasks-card');
+    if (!c) bad.push('no Google Tasks card in Student settings');
+    else {
+      if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
+      if (c.querySelector('[data-do="gtasks-connect"]')) bad.push('a Connect tile with no client id');
+      if (/google_client_id/.test(c.textContent)) bad.push('a student was shown the admin\'s how-to');
+    }
+  }
+  const { T, p, before } = gtWorld_(true);
+  const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
+  const d = m.w.document, card = () => d.querySelector('#s-account .gtasks-card');
+  const tap = act => { const el = d.querySelector('#s-account [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile'); return false; } el.click(); return true; };
+  const settle = async ms => { await wait(ms); m.w.paint('account'); await wait(100); };
+  if (!card()) return bad.concat('no Google Tasks card with a client id');
+  if (!tap('gtasks-connect')) return bad;
+  await settle(300);
+  if (T.scope !== 'https://www.googleapis.com/auth/tasks' || !/^cid-gtasks/.test(T.cid || '')) bad.push('Connect did not ask for the tasks scope with the site\'s client id: ' + T.scope);
+  if (T.lists.length !== 1 || T.lists[0].title !== '@family.') bad.push('the list was not made once as "@family.": ' + JSON.stringify(T.lists));
+  const n1 = T.tasks.length;
+  if (n1 < 4) bad.push('a weekly Monday session made ' + n1 + ' tasks over four weeks');
+  if (T.calls.some(c => !/Bearer tok-gt$/.test(c))) bad.push('a call went without the token');
+  if (T.tasks.some(t => !/\[family:(job|exam):[^\]]+\]/.test(t.notes || "") || !/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(t.due))) bad.push('a task has no marker or due date: ' + JSON.stringify(T.tasks));
+  if (!/Synced/.test(card().textContent)) bad.push('no last-synced line: ' + card().textContent);
+  if (m.sent.some(x => JSON.stringify(x).indexOf('tok-gt') !== -1)) bad.push('the Google token was sent to our backend');
+  T.tasks[0].status = 'completed';
+  tap('gtasks-sync'); await settle(300);
+  if (T.tasks.length !== n1) bad.push('a re-sync duplicated: ' + n1 + ' → ' + T.tasks.length);
+  if (T.lists.length !== 1) bad.push('a re-sync made a second list');
+  if (!T.calls.some(c => /^PATCH /.test(c))) bad.push('a re-sync did not update');
+  if (T.tasks[0].status !== 'completed') bad.push('a re-sync undid a tick made in Google');
+  if (!/ticked off in Google/.test(card().textContent)) bad.push('the tick in Google is not counted: ' + card().textContent);
+  tap('gtasks-off'); await settle(100);
+  if (T.revoked[0] !== 'tok-gt') bad.push('Disconnect did not revoke the token');
+  if (!card() || !card().querySelector('[data-do="gtasks-connect"]')) bad.push('after Disconnect the card does not offer Connect');
+  let left = '';
+  try { left = m.w.sessionStorage.getItem('gtasksTok') || ''; } catch (e) {}
+  if (left) bad.push('the token outlived Disconnect in sessionStorage');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

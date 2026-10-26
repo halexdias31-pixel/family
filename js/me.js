@@ -1947,7 +1947,7 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), prog, wait);
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), typeof gtasksCard_ === 'function' ? [gtasksCard_()].filter(Boolean) : [], prog, wait);
 }
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
