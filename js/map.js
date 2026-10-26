@@ -286,9 +286,13 @@ const WIDGETS = [
     html: `<h3>Countdowns</h3>
     <div id="cd-box" class="cd-box"></div>` },
 
-  /* ---------- THE VERSE SCREEN'S INSTALL PAGE, FOR AN ADMIN — off Business onto Tools (461, the owner: "this can go in tools column"). */
-  { id: 'verse', kind: 'tool', name: 'Verse screen', admin: true,
-    get html() { return '<div class="card">' + (typeof verseCard_ === 'function' ? verseCard_() : '<h3>Verse screen</h3>') + '</div>'; } },
+  /* ---------- THE E-INK SCREEN (470): the widget is the screen; syncing a real one is a bonus. The owner: "Keep it in the widget." */
+  { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
+    pure: true,
+    draw: () => paintEink_?.(),
+    into: 'eink-box', what: 'The e-ink screen',
+    html: `<h3>E-ink screen</h3>
+    <div id="eink-box" class="eink-box"></div>` },
 
   /* ---------- CHECK UPLOADS — FOR AN ADMIN, AFTER A DEPLOY § */
   { id: 'uploads', kind: 'tool', name: 'Check uploads (photos and videos in messages)', admin: true,

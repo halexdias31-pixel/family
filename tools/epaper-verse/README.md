@@ -35,4 +35,8 @@ If it is unplugged, it carries on from the next verse when plugged back in. Pres
   above to `epaper-verse-icons.bin` and put it beside `install.html`: the page then offers "Verse with a picture".
 - Pins (Waveshare demo `github.com/waveshareteam/ESP32-S3-ePaper-1.54`): DC 10, CS 11, SCK 12, MOSI 13,
   RST 9, BUSY 8, panel power GPIO 6 (low = on). Panel: GxEPD2 `GxEPD2_154_D67`.
+- **Sync from the site** (470): the Tools widget "E-ink screen" sends `SHOW VERSE n` or `SHOW ICON n` over Web
+  Serial (115200); `listen()` in verse.cpp reads it for 6 s after a plug-in or RESET, answers `OK`, keeps it in NVS.
+  Icon mode draws `pictures.h` (every row of data/icons.json at 120x160, written by `make-icons.js`) with its title.
+  The widget also installs the `.bin` in place. **The published `.bin` predates this and must be rebuilt.**
 - Licence GPL-3.0 (`COPYING`), as GxEPD2; other notices in `NOTICE.txt`.

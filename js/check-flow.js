@@ -12934,6 +12934,56 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
 });
 
 
+/* ---------- THE E-INK SCREEN (470): THE WIDGET IS THE SCREEN ---------- */
+check('470: the E-ink screen on Tools is drawn in the widget for everyone — Verse or Icon, never both, Back/Next/Shuffle in place, the choice kept per person, every icon drawn in black and white, and no tile opens another window', async () => {
+  const EV = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'eink-verses.json'), 'utf8'));
+  const IC = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'icons.json'), 'utf8'));
+  const { w } = boot({ payload: payload(), serve: u => (/data\/eink-verses\.json/.test(u) ? EV : /data\/icons\.json/.test(u) ? IC : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  if (t.whoami()) return ['meant to start signed out — NOT checked'];
+  const bad = [];
+  const box = await toolBox_(w, 'verse', '.eink-box');
+  if (!box) return ['signed out, Tools has no E-ink screen widget — the owner: "the person" designs their screen (470)'];
+  for (let i = 0; i < 40 && !box.querySelector('.eink-verse'); i++) await wait(50);
+  const tile = a => box.querySelector('.tile[data-do="' + a + '"]');
+  const mode = m => box.querySelector('.tile[data-do="eink-mode"][data-mode="' + m + '"]');
+  const press = async el => { if (!el) return; el.click(); await wait(60); };
+  const shown = () => (box.querySelector('.eink-panel') || {}).textContent || '';
+  if (!box.querySelector('.eink .eink-panel')) bad.push('the widget draws no screen of its own');
+  if (!box.querySelector('.eink-verse') || shown().indexOf(EV[0].ref) < 0) bad.push('Verse mode does not show the first verse, ' + EV[0].ref + ': ' + JSON.stringify(shown().slice(0, 80)));
+  if (box.querySelector('.eink-icon')) bad.push('Verse mode also draws an icon — it is one or the other');
+  for (const a of ['eink-step', 'eink-shuffle', 'eink-sync']) if (!tile(a)) bad.push('no ' + a + ' tile');
+  if (!mode('verse') || !mode('icon')) bad.push('no Verse and Icon tiles');
+  else if (mode('verse').getAttribute('aria-pressed') !== 'true' || mode('icon').getAttribute('aria-pressed') !== 'false') bad.push('Verse is not the pressed one of Verse / Icon');
+  await press(box.querySelector('.tile[data-do="eink-step"][data-d="1"]'));
+  if (shown().indexOf(EV[1].ref) < 0) bad.push('Next did not move to ' + EV[1].ref);
+  await press(mode('icon'));
+  const svg = box.querySelector('.eink-icon svg');
+  if (!svg || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not draw the first icon, ' + IC[0].title + ', with its name');
+  if (box.querySelector('.eink-verse')) bad.push('Icon mode still shows a verse');
+  if (svg && /fill="(?!#000|#fff|none)|stroke="(?!#000|#fff|none)|opacity|gradient/i.test(svg.outerHTML)) bad.push('the icon drawn has a colour, grey or transparency in it');
+  await press(box.querySelector('.tile[data-do="eink-step"][data-d="-1"]'));
+  if (shown().indexOf(IC[IC.length - 1].title) < 0) bad.push('Back from the first icon did not wrap to the last, ' + IC[IC.length - 1].title);
+  let kept = {};
+  try { kept = JSON.parse(w.localStorage.getItem('eink:pick') || '{}'); } catch (e) {}
+  if (kept.mode !== 'icon' || kept.icon !== IC.length - 1 || kept.verse !== 1) bad.push('the choice is not kept for this person: ' + JSON.stringify(kept));
+  const before = shown();
+  await press(tile('eink-shuffle'));
+  if (shown() === before) bad.push('Shuffle did not change the icon');
+  if (box.querySelector('a[target="_blank"], a[href]')) bad.push('a tile in the widget leaves the page — the owner: "I do not want that at all. Keep it in the widget."');
+  /* SYNC WITHOUT WEB SERIAL: a sentence in the widget, no page opened. */
+  let opened = 0; w.open = () => { opened++; return null; };
+  try { delete w.navigator.serial; } catch (e) {}
+  await press(tile('eink-sync')); await wait(100);
+  if (opened) bad.push('Sync opened a window');
+  if (!/Chrome or Edge/.test((box.querySelector('.eink-say') || {}).textContent || '')) bad.push('Sync with no Web Serial says nothing in the widget');
+  return bad;
+});
+
+
 /* ---------- TERM DATES (466): THE END OF THE NEXT THREE TERMS AND HALF TERMS, ONE LINE EACH, ON TOOLS ---------- */
 check('466: Term dates on Tools lists the end dates of the next three terms and half terms in order, one line each, skips holidays and ended ones, and says so when there are none', async () => {
   const p = payload();
@@ -13074,10 +13124,9 @@ check('business: an admin has a Business column last, straight after Parent prof
     if (!lib2 || lib2.classList.contains('needs-you') || !/lib-import-a\.json.*5 changed/.test(lib2.textContent) || !/Import library updates \(0\)/.test((lib2.querySelector('.tile[data-do="lib-import"]') || {}).getAttribute('aria-label') || '')) bad.push('after the import the card still glows, or does not say what each file did: ' + (lib2 ? lib2.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'no card'));
   }
   if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
-  /* THE VERSE SCREEN SETUP (370) IS AN ADMIN TOOLS WIDGET SINCE 461. */
+  /* THE VERSE SCREEN IS THE E-INK WIDGET ON TOOLS (470): no link away to the install page, anywhere. */
   try { w.paint('tools'); } catch (e) {}
-  if (host.querySelector('a.tile[href$="/tools/epaper-verse/install.html"]')) bad.push('the Verse screen tile is still on Business (461 moved it to Tools)');
-  if (!d.querySelector('#s-tools a.tile[href$="/tools/epaper-verse/install.html"]')) bad.push('an admin\'s Tools has no "Verse screen · set up" tile to the install page');
+  if (d.querySelector('a[href*="epaper-verse/install.html"]')) bad.push('a tile still opens the verse screen\'s install page in another window — the owner: "Keep it in the widget" (470)');
   if (!allPg.length || !allPg[allPg.length - 1].querySelector('.me-build')) bad.push('the last Business page is not the build stamps');
   const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
   if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
