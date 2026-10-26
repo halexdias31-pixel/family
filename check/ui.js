@@ -879,7 +879,7 @@ function inspect(opts) {
   /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
      top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
   found.floating = [];
-  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #splash, .biz-dot, .nes-wrap.nes-full, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
+  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #splash, .biz-dot, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
   [...document.querySelectorAll('body *')].forEach(el => {
     const s = getComputedStyle(el);
     let top = false;

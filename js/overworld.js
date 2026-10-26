@@ -164,9 +164,54 @@ const SWIPE = {
   lock: 0,             // the drag's dead zone, put back on every touch: NOT the padlock (`PADLOCK` below)
 };
 
-/* THE PADLOCK (457): the console's (`nes`) or a question page's (`q`, where it was pressed) holds the column still: no swipe, wheel or arrow turn. Its own name, as `SWIPE.lock` is zeroed on every touch. */
-const PADLOCK = { nes: false, q: '' };
-const padlocked_ = () => !!(PADLOCK.nes || PADLOCK.q);
+/* THE PADLOCK (457, 461): a game widget's (`game`, 'id@column:page') or a question page's (`q`, 'column:page') holds the column still. Its own name, as `SWIPE.lock` is zeroed on every touch. */
+const PADLOCK = { game: '', q: '' };
+const padlocked_ = () => !!(PADLOCK.game || PADLOCK.q);
+const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
+
+/* ONE PADLOCK FOR EVERY GAME (461): `widgetOnColumn_` puts it on each game widget, so a new game has it with no code of its own. */
+const gameLocked_ = id => !!PADLOCK.game && PADLOCK.game.split('@')[0] === String(id);
+const gameLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock',
+  note: on ? 'tap to let the page move' : 'hold this game still', on, pressed: on });
+function gameLockTile_(id) {
+  return tile_(Object.assign(gameLockLook_(gameLocked_(id)), { act: 'game-lock', cls: 'game-lock', data: { w: id } }));
+}
+function gameLockSet_(v) {
+  PADLOCK.game = v || '';
+  document.querySelectorAll('.game-lock').forEach(el => {
+    const on = gameLocked_(el.getAttribute('data-w'));
+    tileSet_(el, gameLockLook_(on));
+    el.closest('.is-widget')?.classList.toggle('is-locked', on);
+  });
+  pageHold_(!!PADLOCK.game);
+}
+on('game-lock', el => {
+  const id = el.getAttribute('data-w');
+  gameLockSet_(gameLocked_(id) ? '' : id + '@' + padHere_());
+});
+/* LET GO WHEN THE PERSON LEAVES: a tab, a link, another page of the column (`placeCells`), or the app hidden. */
+function gameLockStray_() { if (PADLOCK.game && PADLOCK.game.split('@')[1] !== padHere_()) gameLockSet_(''); }
+document.addEventListener('visibilitychange', () => { if (document.hidden && PADLOCK.game) gameLockSet_(''); });
+
+/* ABSOLUTE WHILE A GAME IS LOCKED: the pager's own drag-scroll fallback, a native pan, a wheel and an arrow key's page scroll were each a way round (461). */
+const PAD_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', ' '];
+function padStop_(e) {
+  if (!e.cancelable) return;
+  if (e.type === 'keydown') {
+    const t = e.target;
+    if (PAD_KEYS.indexOf(e.key) < 0 || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+  }
+  e.preventDefault();
+}
+/* LISTENING ONLY WHILE LOCKED: a blocking touchmove/wheel listener makes every scroll in the app wait for the page's thread (419). */
+let PAD_HOLD = false;
+function pageHold_(on) {
+  if (!!on === PAD_HOLD) return;
+  PAD_HOLD = !!on;
+  document.documentElement.classList.toggle('padlocked', PAD_HOLD);
+  ['touchmove', 'wheel'].forEach(n => (on ? addEventListener : removeEventListener)(n, padStop_, { passive: false }));
+  (on ? addEventListener : removeEventListener)('keydown', padStop_);
+}
 
 /* DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER? § */
 function axisFree(target, axis, dir) {
@@ -289,6 +334,8 @@ addEventListener('pointermove', e => {
     if (typeof padBusy_ === 'function' && padBusy_()) { SWIPE.live = false; return; }
     /* NOR WHILE A FINGER IS MOVING A CARET OR A SELECTION IN A BOX (385, `kpBusy_`) */
     if (typeof kpBusy_ === 'function' && kpBusy_()) { SWIPE.live = false; return; }
+    /* A LOCKED GAME KEEPS EVERY DRAG: no column turn and no scroll of the page under it (461). */
+    if (PADLOCK.game) { SWIPE.live = false; return; }
     /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. § */
     countHold_(true);
     try {

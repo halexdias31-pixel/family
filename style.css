@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-ww2-events";
+  --css-version: "2026-10-26-b-games-padlock";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1162,7 +1162,6 @@ a { color: inherit; text-decoration: none; }
 .nes-lg-k { display: inline-flex; gap: .2rem; }
 .nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: .25rem; padding: .05rem .3rem; background: var(--sunk); }
 .nes-lg-v { color: var(--ink); }
-.nes-wrap.nes-full .nes-legend { display: none; }
 /* WHILE A GAME PLAYS EVERY LOOPING ANIMATION ELSEWHERE IN THE APP HOLDS STILL (`nesQuiet_`, games.js): the parked columns
    are still drawn, and a slow laptop needs those frames for the game. */
 body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
@@ -1184,26 +1183,6 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-c1 { background: var(--nes-c); color: var(--nes-c-ink); }
 .nes-shoulders .nes-key { background: var(--nes-sh); color: var(--nes-sh-ink); }
 .nes-wrap .nes-key.is-down { background: var(--gold); color: var(--bg); }
-.nes-exit { display: none; position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
-  border-radius: 50%; width: 44px; height: 44px; z-index: 3; }
-.nes-locked { touch-action: none; overscroll-behavior: contain; }
-/* ONE CLASS FOR BOTH FULL SCREENS; JS (`nesFit_`) sets the stage's size. No `:fullscreen` in a selector list: a Safari that cannot parse it drops the whole rule. */
-.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; margin: 0; background: #000; border-radius: 0; overflow: visible;
-  justify-content: center; touch-action: none; box-sizing: border-box; --nes-bz: 0px; --nes-flank: 0px;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-.nes-wrap.nes-full .nes-exit { display: block; }
-.nes-wrap.nes-full .nes-stage { max-width: none; aspect-ratio: auto; margin: 0; flex: none; }
-.nes-wrap.nes-full .nes-stage::before, .nes-wrap.nes-full .nes-deco { display: none; }
-.nes-wrap.nes-full .nes-canvas { border-radius: 0; }
-@media (orientation: landscape) {
-  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; height: auto; flex-wrap: nowrap; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
-    pointer-events: none; background: none; border: 0; }
-  .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
-  .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
-  /* OVER THE PICTURE the controller's outline goes, and the dark parts lighten so they show on black. */
-  .nes-wrap.nes-full .nes-ctl::before { display: none; }
-  .nes-wrap.nes-full[data-sys] { --nes-dp: #55555c; --nes-dp-hi: #77777e; --nes-key: #3c3c43; --nes-ink: #f2f2f2; --nes-mid: #3c3c43; --nes-mid-ink: #eee; --nes-well: transparent; }
-}
 /* THE OTHER SYSTEMS (391): EmulatorJS draws into its own canvas; every piece of its own UI is hidden so the Console's tiles drive it. */
 .emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: .15rem; }
 .emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
@@ -1218,10 +1197,6 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
 .nes-deco .nes-shoulders { position: absolute; left: 0; right: 0; top: -.45em; order: 0; }
 .nes-deco .nes-right { flex-direction: row; gap: .3em; }
-@media (orientation: landscape) {
-  .nes-wrap.nes-full .nes-shoulders { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
-    right: max(64px, env(safe-area-inset-right)); width: auto; }
-}
 /* A HOME CONSOLE'S CONTROLLER is drawn as its own object under the screen (`.nes-ctl::before`, its outline); a handheld's buttons sit on its body. */
 .nes-wrap[data-sys="nes"] .nes-ctl, .nes-wrap[data-sys="snes"] .nes-ctl, .nes-wrap[data-sys="n64"] .nes-ctl { position: relative; isolation: isolate; }
 .nes-wrap[data-sys="nes"] .nes-deco, .nes-wrap[data-sys="snes"] .nes-deco, .nes-wrap[data-sys="n64"] .nes-deco { position: absolute; }
@@ -1285,9 +1260,8 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
   --nes-sh: #c3c4cc; --nes-sh-ink: #33343a; --nes-hinge: #c4c5cc; --nes-hinge-hi: #f1f2f5; --nes-pt: 18px; --k-dpad: 112px; --nes-pad-h: 200px; }
 .nes-wrap[data-sys="nds"] .nes-deco { --nes-key: #a8a9b2; --nes-dp: #a8a9b2; --nes-mid: #a8a9b2; --nes-sh: #b4b5bd; }
 .nes-wrap[data-sys="nds"] .nes-hinge { background: linear-gradient(var(--nes-hinge-hi), var(--nes-hinge) 45%, var(--nes-lo)); box-shadow: 0 -1px 0 var(--nes-lo), 0 1px 0 var(--nes-lo); }
-.nes-wrap.nes-full[data-sys="nds"] .nes-hinge { left: 0; right: 0; }
 /* L AND R ON THE BODY'S TOP CORNERS (DS, GBA), out of the pad's rows: still the pad's own buttons, so each finger is still the pad's. */
-.nes-wrap[data-sys="nds"]:not(.nes-full) .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"]:not(.nes-full) .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders .nes-key { border-radius: 0 0 14px 14px; height: 44px; }
 .nes-wrap[data-sys="nds"].nes-has-pad, .nes-wrap[data-sys="gba"].nes-has-pad { --nes-pt: 52px; }
 .nes-wrap[data-sys="gba"].nes-has-pad { --nes-pad-h: 200px; }
@@ -1306,9 +1280,6 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
-/* FULL SCREEN IS THE PICTURE ALONE on black: no casing round it, whichever console. */
-.nes-wrap.nes-full[data-sys] { --nes-px: 0px; --nes-pt: 0px; --nes-bz: 0px; --nes-flank: 0px; --nes-body: #000; box-shadow: none; }
-.nes-wrap.nes-full[data-sys="nds"], .nes-wrap.nes-full[data-sys="gba"] { --nes-pad-h: 252px; }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
@@ -3497,6 +3468,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }
+/* A LOCKED GAME (461, `gameLockTile_`): the card ringed in gold, and while it holds nothing on the page pans or overscrolls. */
+.card.is-widget.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
+html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
 .prof-off { color: var(--prof-warn); }
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
 .prof-hid { color: var(--prof-warn); font-style: normal; }

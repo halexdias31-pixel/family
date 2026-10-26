@@ -430,9 +430,11 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
 function widgetOnColumn_(w) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-  return `<div class="card is-widget">
+  const held = w.kind === 'game' && typeof gameLocked_ === 'function' && gameLocked_(w.id);
+  return `<div class="card is-widget${held ? ' is-locked' : ''}">
       ${typeof favTile_ === 'function'
-        ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}</div>`
+        ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
+          w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</div>`
         : ''}
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         w.html}${waits ? loading_() : ''}</div>

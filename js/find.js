@@ -9783,7 +9783,8 @@ function adoptFavourites_() {
 
 /* A STAR ON A WIDGET THAT WAS FOLDED INTO ANOTHER (441) lands on the one it went into, with that game chosen — the choice set once per device, so a later pick stands. */
 const FAV_MERGED = { 'w:flabby': ['w:console', 'cs-game', 'flabby'], 'w:racer': ['w:console', 'cs-game', 'racer'],
-  'w:wordsearch': ['w:wordgames', 'wg-game', 'ws'], 'w:scramble': ['w:wordgames', 'wg-game', 'ss'] };
+  'w:wordsearch': ['w:wordgames', 'wg-game', 'ws'], 'w:scramble': ['w:wordgames', 'wg-game', 'ss'],
+  'w:tables': ['w:wordgames', 'wg-game', 'tt'], 'w:chess': ['w:boardgames', 'bg-game', 'chess'], 'w:maze': ['w:boardgames', 'bg-game', 'maze'] };
 function favsMerged_() {
   Object.keys(FAV_MERGED).forEach(old => {
     if (!FAVS.has(old)) return;

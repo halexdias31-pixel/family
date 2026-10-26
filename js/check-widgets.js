@@ -63,7 +63,6 @@ const noTitle = [];
 
 /* ---------- AND THE ONE THAT MEANS IT, WITH ITS REASON WRITTEN DOWN § */
 const ACCEPTED_UNTITLED = {
-  chess: 'a chessboard names itself; the widget says so in its own comment and always has.',
 };
 const seen = {};
 
@@ -132,6 +131,9 @@ const ACCEPTED_ENGINE = {
               + 'from initWordGames, which is the starter a widget names.',
   initWordSearch: 'Word Search is a game inside the Word games widget since 441; WORD_GAMES in games.js starts it from initWordGames, the starter a widget names.',
   initScramble: 'Sentence Scramble is a game inside the Word games widget since 441; WORD_GAMES in games.js starts it from initWordGames, the starter a widget names.',
+  initTables: 'The Times Tables Sprint is a game inside Word & number games since 461; WORD_GAMES in games.js starts it from initWordGames, the starter a widget names.',
+  initChess: 'Chess is a game inside the Board games widget since 461; BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',
+  initMaze: 'The maze is a game inside the Board games widget since 461; BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',
   initFlappy: 'Flabby Pird is a game inside the Console since 441; CONSOLE_GAMES in games.js starts it from initConsole, the starter a widget names.',
   initHerd: 'Herd Mentality is a game inside the Word games widget since the owner moved it there '
           + '("heard mentality is a word game so should go there."); WORD_GAMES in games.js starts '
