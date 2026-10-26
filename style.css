@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-k-racer-works";
+  --css-version: "2026-10-26-m-black-white";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -25,7 +25,7 @@
   --pink:      #ff8fc4;
   /* A TUTOR, and a paper tag. § */
   --coral:     #ff7b72;
-  --gold:      #ffb454;   /* the one action */
+  --gold:      #ffffff;   /* the one action: white on black since 466 (the name stays) */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
   --admin:     #f2d24b;   /* only you can see this — see `.tile.is-admin` */
   --warn:      #ffb454;
@@ -86,7 +86,6 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
-  --arrive: .28s;        /* how long what replaces the loader takes to fade in (428) */
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE § */
   --over-wash: rgb(0 0 0 / .55);
@@ -116,6 +115,8 @@ html {
   -webkit-text-size-adjust: 100%;
   /* ---------- NO BOUNCE, AND IT HAS TO BE DECLARED HERE RATHER THAN ON `body` § */
   overscroll-behavior-y: none;
+  /* NO DOUBLE-TAP ZOOM (466): iPad Safari ignores user-scalable=no, and a double tap zoomed and shifted the widget list up. Pinch stays. */
+  touch-action: manipulation;
 }
 @media (min-width: 30rem) { html { font-size: 15.5px; } }
 
@@ -131,6 +132,7 @@ body {
   letter-spacing: -.01em;
   padding: calc(var(--top) + var(--safe-top)) 0 calc(var(--bar) + var(--safe-bottom));
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
   /* `overscroll-behavior-y: none` WAS HERE and did nothing on the one platform that needed it — the
      viewport reads it off `html`, where it is now. One declaration, not two. */
   position: relative;
@@ -139,7 +141,7 @@ body {
 /* On a desktop the column sits on a darker field, so it reads as an app rather than as a website
    that failed to fill the window. */
 @media (min-width: 30rem) {
-  html { background: #0a0908; }
+  html { background: #0a0a0a; }
   body { box-shadow: 0 0 0 1px var(--line-soft); }
 }
 
@@ -196,7 +198,7 @@ html.wide body { max-width: none; box-shadow: none; }
   /* The ground the cells float over. Without it the gaps between panes are the page's own black and
      the glass has nothing to be glass ABOUT — a blurred pane over nothing looks like a flat one. */
   background:
-    radial-gradient(120% 90% at 20% 0%, rgb(212 175 55 / .10), transparent 60%),
+    radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 60%),
     radial-gradient(110% 80% at 90% 100%, rgb(90 140 220 / .10), transparent 60%);
   /* No perspective. There is nothing to see in three dimensions any more — a cell slides, and that
      is all it does. */
@@ -722,7 +724,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 }
 /* The ghost of the mark, so an empty box says what would go in it. */
 .check .box::after { content: '✓'; font-weight: 700; color: rgb(255 255 255 / .16); }
-.check:active .box { border-color: var(--gold); background: rgb(240 169 60 / .12); }
+.check:active .box { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
 .check input:checked + .box::after { color: #1a1409; }
 
@@ -1504,8 +1506,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .loading {
   display: flex; align-items: center; justify-content: center; gap: .5rem;
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
-  /* FADED UP after a beat (428), so a wait shorter than that never flashes three dots and is gone. */
-  animation: arrive var(--arrive) ease-out .12s both;
 }
 .loading > span {
   flex: none; width: .55rem; height: .55rem; border-radius: 50%;
@@ -1540,12 +1540,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 [aria-busy="true"]:has(> .loading) > :not(.loading) { visibility: hidden; }
 [aria-busy="true"] > .loading { position: absolute; inset: 0; min-height: 0; }
 
-/* ---------- WHAT ARRIVES WHERE THE DOTS WERE FADES IN (docs/history/428) */
-.arrive { animation: arrive var(--arrive) ease-out both; }
-@keyframes arrive { from { opacity: 0; } }
-/* ONLY THE COLUMN IN FRONT FADES (306's rule for the dots): the builder fills the others in the quiet, unseen. */
-.screen:not(.is-front) .arrive { animation: none; }
-@media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }
+/* WHAT ARRIVES WHERE THE DOTS WERE IS SIMPLY THERE (466): its fade-in (428) went with the splash — "I don't want any animations loading". */
 
 /* ---------- A POLL § */
 .poll { margin: .6rem 0 .2rem; display: flex; flex-direction: column; gap: .3rem; }
@@ -1564,7 +1559,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    becomes unreadable the moment it wins. */
 .poll-bar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0;
             background: var(--line); transition: width .35s cubic-bezier(.2,.8,.3,1); }
-.poll-row.mine .poll-bar { background: rgba(255,180,84,.22); }
+.poll-row.mine .poll-bar { background: color-mix(in srgb, var(--gold) 22%, transparent); }
 .poll-text, .poll-n { position: relative; z-index: 1; }
 .poll-n { font-size: .78rem; color: var(--dim); font-variant-numeric: tabular-nums; }
 .poll-row.mine .poll-n { color: var(--gold); }
@@ -1573,6 +1568,8 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* Two answers, two buttons — a dropdown for two options is a dropdown nobody opens. The chosen one
    is filled rather than outlined, so which is active is readable without a tick. */
 .btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
+/* ON WHITE (466) the faint word inside a chosen button reads as the button does. */
+.btn-row .btn.on * { color: inherit; }
 
 /* ---------- REACTIONS § */
 /* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. § */
@@ -3118,55 +3115,13 @@ textarea { touch-action: none; }
 /* ---------- THE BLANK ONE § */
 /* `.rc-blank` WAS THE EMPTY STUB — "Nothing booked / Tap to start" — and it goes with the rest of the stub stylesheet. § */
 
-/* THE SPLASH — what covers the app while the payload is on its way. § */
-#splash {
-  position: fixed; inset: 0; z-index: 200;
-  display: grid; place-items: center;
-  background: var(--bg, #000);
-  /* Nothing under it is ready to be touched. */
-  pointer-events: none;
-}
-
-/* GONE, AND GONE FOR GOOD. § */
-#splash.done { opacity: 0; visibility: hidden;
-               transition: opacity .45s ease, visibility 0s linear .45s; }
-
-/* ---------- THE SLOW-LOAD CAPTION § */
-#boot-slow { position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%);
-             width: min(32rem, 88vw); margin: 0; pointer-events: auto; text-align: center;
-             font: 400 .76rem/1.55 var(--mono); color: var(--dim, var(--paper-faint)); }
-#boot-slow b { color: var(--warn, #f0a93c); }
+/* NO SPLASH (466): nothing covers the app while the payload comes; only a load still waiting after 30 s says so, here. */
+#boot-slow { position: fixed; left: 50%; bottom: calc(var(--bar) + var(--safe-bottom) + 1rem); transform: translateX(-50%); z-index: 30;
+             width: min(32rem, 88vw); margin: 0; padding: .6rem .8rem; text-align: center;
+             background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-sm, 8px);
+             font: 400 .76rem/1.55 var(--mono); color: var(--dim); }
+#boot-slow b { color: var(--warn); }
 #boot-slow code { color: #7de6ff; word-break: break-all; }
-
-/* ---------- WITH NOTHING KEPT: THE NAME, STILL, AND THE ONE LOADER UNDER IT § */
-#splash-still { display: none; }
-#splash.is-still #splash-still {
-  display: flex; flex-direction: column; align-items: center; gap: 1rem;
-  width: min(78vw, 22rem);
-}
-#splash-still .sp-name {
-  margin: 0; white-space: nowrap;
-  font-family: var(--font); font-size: 3.4rem; font-weight: 700; line-height: 1.1;
-  letter-spacing: -.02em; color: var(--paper);
-}
-
-/* SAID AS WELL AS DRAWN, for a screen reader and for the moment before an SVG has painted. Kept
-   off the screen rather than hidden: `display: none` would take it from the reader too. */
-#splash-say {
-  position: absolute; width: 1px; height: 1px;
-  margin: -1px; padding: 0; overflow: hidden;
-  clip-path: inset(50%); white-space: nowrap;
-}
-
-/* ---------- THE LINE THAT ONLY A SLOW LOAD EVER SEES § */
-#splash-wait {
-  position: absolute; left: 0; right: 0; bottom: max(12vh, 4.5rem);
-  margin: 0; padding: 0 1.25rem;
-  text-align: center; line-height: 1.5;
-  font-size: .82rem; color: var(--dim);
-}
-#splash-wait span { display: block; font-size: .74rem; color: var(--faint); }
-#splash-wait[hidden] { display: none; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
 
@@ -3498,8 +3453,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* A FESTIVE EVENT IS AN INVITATION. § */
 .fest {
-  background: linear-gradient(160deg, #1c160c, #12100b);
-  border: 1px solid rgb(255 180 84 / .45);
+  background: linear-gradient(160deg, #1a1a1a, #101010);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
   border-radius: 12px;
   padding: 1.1rem 1rem 1rem;
   margin: .2rem 0 .4rem;
@@ -3511,7 +3466,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .fest::before {
   content: '';
   position: absolute; left: 0; right: 0; top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, rgb(255 180 84 / .9), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 90%, transparent), transparent);
 }
 .fest-when {
   font: 700 .62rem/1 var(--mono);
@@ -3651,7 +3606,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   flex: none; width: 6.2rem; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: .1rem;
   padding: .7rem .4rem; border-left: 1px dashed var(--gold);
-  background: rgb(255 180 84 / .07);
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
 }
 .cpn-r b { font-size: 1.32rem; font-weight: 700; color: var(--gold); line-height: 1;
            font-variant-numeric: tabular-nums; }

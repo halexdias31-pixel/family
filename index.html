@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#12100d">
+<meta name="theme-color" content="#000000">
 
 <!-- ---------- PUTTING IT ON A HOME SCREEN § -->
 <!-- THE MANIFEST, WRITTEN INTO THE PAGE rather than kept as a file. § -->
@@ -153,77 +153,12 @@
 
 <!-- THE HEADER WAS HERE. § -->
 
-<!-- THE SPLASH, AND WHY IT IS IN THE MARKUP RATHER THAN DRAWN BY SCRIPT. § -->
-<div id="splash" class="is-still">
-  <script id="pick-splash">
-  /* THE PICKER IS THE FIRST THING INSIDE THE SPLASH, AND THAT IS ITS WHOLE POSITION. § */
-
-  /* WHICH ONE, decided here and nowhere else. § */
-  (function () {
-    /* THE MOMENT THE CHOICE IS MADE, so `check/load.js` can hold it against the first paint. */
-    try { performance.mark('splash-pick'); } catch (e) {}
-    var el = document.getElementById('splash');
-    /* ---------- THE SHEET MAY TURN ANY OF THEM OFF § */
-    var off = [], idx = null, anims = [], st = null, mark = null, put = false;
-    try { off = JSON.parse(localStorage.getItem('splashOff') || '[]') || []; } catch (e) { off = []; }
-    try {
-      idx = JSON.parse(localStorage.getItem('splashAnims') || 'null');
-      if (idx && idx.f === 1 && idx.ids && idx.h) anims = idx.ids;
-    } catch (e) { anims = []; }
-    /* NOTHING KEPT: the still name and the loader, exactly as the markup has them. */
-    if (!anims.length) return;
-    var pool = anims.filter(function (k) { return off.indexOf('is-' + k) === -1; });
-    if (!pool.length) pool = anims;
-    var pick = pool[Math.floor(Math.random() * pool.length)];
-    try {
-      var rec = JSON.parse(localStorage.getItem('splashAnim:' + pick) || 'null');
-      if (!rec || rec.h !== idx.h[pick] || typeof rec.html !== 'string' || typeof rec.css !== 'string') throw 0;
-      /* ITS STYLESHEET, WHICH A CHAPTER PAGE SHARES — see `animStyle_` in find.js. */
-      st = document.createElement('style');
-      st.setAttribute('data-anim', pick); st.setAttribute('data-h', rec.h); st.textContent = rec.css;
-      document.head.appendChild(st);
-      /* IN FRONT OF THIS SCRIPT, as the first thing in the splash. § */
-      mark = el.firstChild; put = true;
-      el.insertAdjacentHTML('afterbegin', rec.html);
-      /* AND IT MUST BE ONE DRAWING, AND NOTHING BESIDE IT. § */
-      var root = null;
-      for (var n = el.firstChild; n && n !== mark; n = n.nextSibling) {
-        if (n.nodeType === 1 && !root) root = n;
-        else if (n.nodeType !== 3 || /\S/.test(n.nodeValue)) throw 0;
-      }
-      if (!root || !/^an-/.test(root.getAttribute('class') || '')) throw 0;
-      root.insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>');
-      el.className = 'is-an';
-    } catch (e) {
-      if (st && st.parentNode) st.parentNode.removeChild(st);
-      /* EVERYTHING THE RECORD PUT IN, whatever it was — up to `mark`, and not only an `an-` root. § */
-      if (put) while (el.firstChild && el.firstChild !== mark) el.removeChild(el.firstChild);
-      try { localStorage.removeItem('splashAnims'); } catch (e2) {}
-      el.className = 'is-still';
-    }
-  })();
-  </script>
-
-  <!-- ---------- WITH NOTHING KEPT: THE NAME, STILL, AND THE ONE LOADER § -->
-  <div id="splash-still">
-    <p class="sp-name" aria-hidden="true">@family.</p>
-    <div class="loading" role="status" aria-label="Loading"><span></span><span></span><span></span></div>
-  </div>
-
-  <!-- Said, as well as drawn: whichever one is showing, this is what it says. -->
-  <p id="splash-say">@family.</p>
-  <!-- ---------- AND A LINE FOR A LOAD THAT IS TAKING LONGER THAN THIS BACKEND NORMALLY DOES § -->
-  <p id="splash-wait" hidden>Still loading&#8230;<br><span>the connection looks slow.</span></p>
-
-  <!-- THE SLOW-LOAD MESSAGE LIVES ON THE SPLASH, NOT UNDER IT. § -->
-  <p id="boot-slow" class="hidden"></p>
-</div>
-
+<!-- NO SPLASH (466): the first screen paints at once from the markup and the device's copy; what still waits shows loading_() in place. -->
+<p id="boot-slow" class="hidden"></p>
 <script>
   /* AND IF THE CODE ARRIVED AND THE DATA NEVER DOES. § */
   setTimeout(function () {
-    var sp = document.getElementById('splash');
-    if (!sp || sp.classList.contains('done')) return;        // finished, or never started
+    if (typeof LOADED !== 'undefined' && LOADED) return;     // finished
     var codeHere = (typeof go === 'function');
     var dataHere = (typeof DATA !== 'undefined' && DATA && Object.keys(DATA).length > 1);
     var url = (typeof API !== 'undefined') ? API : '(API not defined — data.js did not load)';
@@ -242,33 +177,6 @@
       + 'long wait means the backend is busy and will finish on its own.';
   }, 30000);
 
-  /* THE ANIMATION RUNS FOR AS LONG AS THE LOAD DOES. § */
-  (function () {
-    var sp = document.getElementById('splash');
-    if (!sp || !sp.getAnimations) return;         /* old browser: the still frame, as before */
-    /* NOT FOR SOMEBODY WHO ASKED FOR LESS MOVEMENT. § */
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var replay = function () {
-      if (sp.classList.contains('done')) return;
-      var all = sp.getAnimations({ subtree: true });
-      var forever = false, once = [];
-      all.forEach(function (a) {
-        var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
-        if (!t) return;
-        if (t.iterations === Infinity) { forever = true; } else { once.push(a); }
-      });
-      /* ---------- A SPLASH THAT IS ALREADY MOVING IS LEFT ALONE § */
-      if (forever || !once.length) return;
-      Promise.all(once.map(function (a) { return a.finished; })).then(function () {
-        if (sp.classList.contains('done')) return;
-        once.forEach(function (a) { a.currentTime = 0; a.play(); });
-        replay();
-      }, function () {});                         /* cancelled: stop, say nothing */
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', replay);
-    } else { replay(); }
-  })();
 </script>
 
 <!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a

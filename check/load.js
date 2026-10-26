@@ -113,13 +113,11 @@ async function visit(page, cdp, label, note) {
   } catch (e) { marks.library = -1; }
   await page.waitForLoadState('load').catch(() => {});
   const loaded = Date.now() - t0;
-  /* ---------- AND WHETHER THE SPLASH WAS CHOSEN BEFORE ANYTHING WAS PAINTED § */
-  const pickAt = await page.evaluate(() => {
-    const m = performance.getEntriesByName('splash-pick')[0];
+  /* ---------- AND THE FIRST PAINT, which since 466 is the app itself: no splash stands in front of it */
+  marks.paint = await page.evaluate(() => {
     const p = performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint');
-    return { pick: m ? m.startTime : null, paint: p ? p.startTime : null };
-  }).catch(() => ({ pick: null, paint: null }));
-  marks.pick = pickAt.pick; marks.paint = pickAt.paint;
+    return p ? p.startTime : null;
+  }).catch(() => null);
   cdp.off('Network.responseReceived', onResp);
   cdp.off('Network.requestServedFromCache', onCached);
   cdp.off('Network.loadingFinished', onFinish);
@@ -135,9 +133,7 @@ async function visit(page, cdp, label, note) {
   console.log(`   app on screen   ${String(marks.appUp).padStart(6)} ms`
             + `      library ready ${String(marks.library).padStart(6)} ms`
             + `      load event ${String(loaded).padStart(6)} ms`);
-  console.log(`   splash picked   ${marks.pick == null ? '  none' : String(Math.round(marks.pick)).padStart(6)} ms`
-            + `      first contentful paint ${marks.paint == null ? '  none' : String(Math.round(marks.paint)).padStart(6)} ms`
-            + (marks.pick != null && marks.paint != null && marks.paint < marks.pick ? '      PAINTED BEFORE THE PICK' : ''));
+  console.log(`   first contentful paint ${marks.paint == null ? '  none' : String(Math.round(marks.paint)).padStart(6)} ms`);
   console.log(`   the browser asked for ${String(reqs.length).padStart(3)} file(s)`
             + `   ·  the server sent ${String(got.length).padStart(3)}`
             + `   ·  answered "unchanged" ${String(same.length).padStart(3)}`
@@ -159,9 +155,8 @@ function SHIFT_READER() {
   mc.port1.onmessage = () => {
     try {
       if (typeof AT !== 'undefined' && typeof PAGE !== 'undefined') {
-        const sp = document.getElementById('splash');
         const key = AT + ':' + (PAGE[AT] || 0);
-        if (key !== S.key || (sp && !sp.classList.contains('done')) || S.arrive) { S.key = key; seen = new Map(); }
+        if (key !== S.key || !document.documentElement.classList.contains('is-loaded') || S.arrive) { S.key = key; seen = new Map(); }
         else {
           const host = document.getElementById('s-' + AT);
           if (host && !(typeof SWIPE !== 'undefined' && SWIPE.live)) cards(host).forEach((el, i) => {
@@ -356,10 +351,10 @@ async function shifts(browser) {
 
   console.log('\n(These are one machine on one afternoon. What is worth reading is the gap between'
             + '\n the three rows, not the absolute figures.)');
-  /* THE ONE LINE HERE THAT IS A RULE RATHER THAN A READING. § */
-  const early = out.filter(r => r.pick == null || r.paint == null || r.paint < r.pick);
-  console.log('\nTHE SPLASH CHOSEN BEFORE ANYTHING WAS PAINTED in ' + (out.length - early.length) + ' of ' + out.length + ' loads'
-            + (early.length ? ' — NOT in: ' + early.map(r => r.label.trim() + ' (pick ' + r.pick + ', paint ' + r.paint + ')').join(', ') : ''));
+  /* THE ONE LINE HERE THAT IS A RULE RATHER THAN A READING: every load paints, and the app is on screen (no splash since 466). */
+  const early = out.filter(r => r.paint == null || r.appUp < 0);
+  console.log('\nTHE APP PAINTED AND ON SCREEN in ' + (out.length - early.length) + ' of ' + out.length + ' loads'
+            + (early.length ? ' — NOT in: ' + early.map(r => r.label.trim() + ' (paint ' + r.paint + ', app ' + r.appUp + ')').join(', ') : ''));
   if (early.length) process.exitCode = 1;
   await browser.close();
   try { srv.close(); } catch (e) {}

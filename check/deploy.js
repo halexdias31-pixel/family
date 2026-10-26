@@ -140,13 +140,13 @@ async function run(base) {
           return !!c && c.title.indexOf(m) !== -1;
         } catch (e) { return false; }
       }, marker, { timeout: 30000 }).then(() => true, () => false);
-      /* AND THE DEVICE'S COPY OF PYTHAGORAS IS THE NEW ONE: its CSS has this deploy's change, and the
-         hash the picker checks it by is the record's own. */
+      /* AND THE APP'S PYTHAGORAS IS THE NEW ONE: its CSS has this deploy's change (no splash keeps a copy since 466). */
       got.anim = await pg.waitForFunction(m => {
         try {
-          const idx = JSON.parse(localStorage.getItem('splashAnims'));
-          const rec = JSON.parse(localStorage.getItem('splashAnim:pyth'));
-          return rec.css.indexOf('.py-say b.' + m + ' ') !== -1 && idx.h.pyth === rec.h;
+          const all = [];
+          (DATA.textbooks || []).forEach(b => (b.chapters || []).forEach(c => (c.animations || []).forEach(a => all.push(a))));
+          const rec = all.find(a => a.id === 'pyth');
+          return !!rec && rec.css.indexOf('.py-say b.' + m + ' ') !== -1;
         } catch (e) { return false; }
       }, marker.toLowerCase().replace(/_/g, ''), { timeout: 30000 }).then(() => true, () => false);
       got.asked = seen.length;
@@ -179,7 +179,7 @@ async function run(base) {
                   ', the changed animation ' + (r.anim ? 'KEPT' : 'NOT KEPT'));
       if (!r.ran) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' did not reach the browser');
       if (!r.book) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' renamed a chapter in data/textbooks.json and the browser still had the old name');
-      if (!r.anim) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' changed Pythagoras in data/textbooks.json and the device kept the old drawing for its splash');
+      if (!r.anim) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' changed Pythagoras in data/textbooks.json and the app still drew the old one');
     });
     console.log('');
   }

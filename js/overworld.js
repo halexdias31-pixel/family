@@ -583,9 +583,6 @@ addEventListener('visibilitychange', () => {
 
 /* IF ANY OF THIS THROWS, SAY SO ON THE SCREEN. § */
 function bootFailed(err, when) {
-  /* OFF, FIRST. Whatever went wrong, it is about to be written on the screen — and a splash still
-     spraying over the top of it is the app looking busy while it has in fact stopped. */
-  try { const sp = document.getElementById('splash'); if (sp) sp.classList.add('done'); } catch (e) {}
 
   try {
     const box = document.getElementById('screen') || document.body;

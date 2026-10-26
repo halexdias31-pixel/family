@@ -160,7 +160,7 @@ const LOUD = (() => {
     });
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => typeof DATA !== 'undefined' && DATA && typeof stuffItemsAll_ === 'function'
-      && stuffItemsAll_().length > 100 && document.getElementById('splash').classList.contains('done'), null, { timeout: 120000 });
+      && stuffItemsAll_().length > 100 && document.documentElement.classList.contains('is-loaded'), null, { timeout: 120000 });
     await page.waitForTimeout(600);
     const au = () => page.evaluate(() => JSON.parse(JSON.stringify(window.__au || null)));
     const a0 = await au();

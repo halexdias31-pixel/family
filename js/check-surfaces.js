@@ -60,8 +60,15 @@ function stripComments(src) {
 }
 
 /* AND IN THE STYLESHEET: only these may be position: fixed, and none of them is a menu. */
+<<<<<<< HEAD
 const FIXED_OK = ['#banner', '#toast', '#reconnect', '#splash', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
   '.vid-watch.on.is-fs'];
+=======
+const FIXED_OK = ['#banner', '#toast', '#reconnect', '#boot-slow', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
+  '.vid-watch.on.is-fs',
+  /* EDIT LAYOUT (462): a whole-screen mode with its own Done bar, not a menu; the ghost is the widget under the finger. */
+  '.layout-board', '.lay-ghost'];
+>>>>>>> fix-theme-instant
 
 const files = fs.readdirSync(DIR)
   .filter(f => f.endsWith('.js') && !f.startsWith('check'))

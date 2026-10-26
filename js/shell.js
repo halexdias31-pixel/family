@@ -2309,7 +2309,7 @@ on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
      returns `LIBRARY_ROWS` untouched once it is set, so leaving the empty array in place
      would make the button repaint the same failure for ever. */
   LIBRARY_ROWS = null;
-  banner(''); splashOn_(); repaint(); load(); });
+  banner(''); bootLoaded_(false); repaint(); load(); });
 
 /* CARDS OPEN A SHEET, and an attempt to open them in place has been taken out again. § */
 
@@ -2541,7 +2541,6 @@ async function filesOnly_() {
     const extra = await libraryExtraRows_();
     libraryExtras_(d, extra);
     settingsInto_(d, extra);
-    try { splashSync_(d, extra); } catch (e) {}
   } catch (e) {}
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
@@ -2792,17 +2791,15 @@ async function loadOnce_(again, n) {
     const bust = (who ? '&' : '?') + '_=' + Date.now();
     /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
        this is the moment the app begins waiting, and it is the only moment worth timing from. */
-    splashWaitWatch_();
     /* ---------- AND AT THE SAME MOMENT, COME UP ON THE FILES § */
-    clearTimeout(splashEarlyTimer);
-    splashEarlyTimer = setTimeout(() => {
+    clearTimeout(earlyTimer);
+    earlyTimer = setTimeout(() => {
       if (LOADED) return;
       filesOnly_().then(() => {
         if (LOADED) return;
         try { repaint(); } catch (e) {}
-        splashOff_();
       }).catch(() => {});
-    }, SPLASH_SAY_AFTER);
+    }, EARLY_AFTER);
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE § */
     let bell;
     const deadline = new Promise((unused, no) => {
@@ -2846,7 +2843,6 @@ async function loadOnce_(again, n) {
     if (loadStale_(n, who)) return;
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT. § */
-      /* `splashOff` WAS WRITTEN HERE, and that is why retiring a splash never reached a device. § */
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
@@ -2859,9 +2855,6 @@ async function loadOnce_(again, n) {
         libraryExtras_(d, extra);
         /* AND THE SETTINGS TABS, ON THE SAME RULE AND FROM THE SAME FETCH. § */
         settingsInto_(d, extra);
-        /* AND WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM — see `splashSync_`. Its own `try`, so a
-           full or forbidden storage cannot cost this payload its library. */
-        try { splashSync_(d, extra); } catch (e) {}
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
@@ -2992,8 +2985,8 @@ async function loadOnce_(again, n) {
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
      loader up for ever would be the app pretending it is still trying. */
   LOADED = true;
-  /* THE SPLASH COMES OFF HERE, and here is the only place it can: § */
-  splashOff_();
+  /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
+  bootLoaded_(true);
 
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
@@ -3024,99 +3017,27 @@ async function loadOnce_(again, n) {
   if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
-/* ---------- THE SPLASH, OFF AND ON § */
-/* ---------- AND THE LINE UNDER IT, WHICH ONLY A SLOW LOAD EVER SEES § */
-const SPLASH_SAY_AFTER = 15000;
-let splashSayTimer = null;
-/* The one that draws the app on its files rather than the one that says it is slow -- see `load`. */
-let splashEarlyTimer = null;
-function splashSay_(on) {
-  const el = $('splash-wait');
-  if (el) el.hidden = !on;
+/* ---------- NO SPLASH (466): THE APP IS ON SCREEN FROM THE FIRST FRAME */
+/* `html.is-loaded` says the first load finished, for a check to wait on; it covers nothing. */
+const EARLY_AFTER = 15000;
+/* The one that draws the app on its files when the backend is slow -- see `load`. */
+let earlyTimer = null;
+function bootLoaded_(on) {
+  clearTimeout(earlyTimer);
+  try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) {}
 }
-function splashWaitWatch_() {
-  clearTimeout(splashSayTimer);
-  splashSay_(false);
-  /* ONLY WHILE THE SPLASH IS ACTUALLY UP. § */
-  const sp = $('splash');
-  if (!sp || sp.classList.contains('done')) return;
-  splashSayTimer = setTimeout(() => {
-    const now = $('splash');
-    if (now && !now.classList.contains('done')) splashSay_(true);
-  }, SPLASH_SAY_AFTER);
-}
-/* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
-const SPLASH_CACHE_F = 1;
-/* 1 500 000 FOR ALL 172 DRAWINGS' 1 377 437 CHARACTERS (436): set once, room for about fifteen more; a refused write still gives the whole copy back. */
-const SPLASH_CACHE_MAX = 1500000;
-function splashSync_(d, extra) {
-  const rows = extra && extra['settings/splashes'];
-  if (rows && rows.length) {
-    try { localStorage.setItem('splashOff', JSON.stringify((d && d.splashOff) || [])); } catch (e) {}
-  }
-  const tb = extra && extra.textbooks;
-  if (!tb || !tb.length || !d || !d.textbooks || !d.textbooks.length) return;
-  let was = null;
-  try { was = JSON.parse(localStorage.getItem('splashAnims') || 'null'); } catch (e) { was = null; }
-  const old = was && was.f === SPLASH_CACHE_F && was.h && typeof was.h === 'object' ? was.h : {};
-  const idx = { f: SPLASH_CACHE_F, ids: [], h: {} };
-  let size = 0, full = false;
-  d.textbooks.forEach(b => (b.chapters || []).forEach(c => (c.animations || []).forEach(a => {
-    if (full || !a || !a.id || idx.h[a.id]) return;
-    const n = String(a.html).length + String(a.css).length;
-    if (size + n > SPLASH_CACHE_MAX) return;
-    if (old[a.id] !== a.h) {
-      try { localStorage.setItem('splashAnim:' + a.id, JSON.stringify({ h: a.h, html: a.html, css: a.css })); }
-      catch (e) { full = true; return; }
-    }
-    size += n;
-    idx.ids.push(a.id);
-    idx.h[a.id] = a.h;
-  })));
-  /* A REFUSED WRITE GIVES THE WHOLE COPY BACK — see above. Before the sweep, which would only be
-     tidying what is about to go. */
-  if (full) { splashGiveWay_(); return; }
-  /* EVERY KEPT DRAWING THE BOOKS NO LONGER HAVE GOES, and so does one left half-written by a load that
-     stopped. Only this file's own prefix: nothing else in the store is this function's to touch. */
-  try {
-    const gone = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf('splashAnim:') === 0 && !idx.h[k.slice(11)]) gone.push(k);
-    }
-    gone.forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
-  /* AND AN INDEX THE STORE REFUSES TAKES ITS DRAWINGS WITH IT: without it nothing can name them, so
-     they are room taken for a splash nobody will be shown. */
-  try { localStorage.setItem('splashAnims', JSON.stringify(idx)); }
-  catch (e) { splashGiveWay_(); }
-}
-/* THE WHOLE KEPT COPY, OUT: § */
-function splashGiveWay_() {
+/* THE OLD SPLASH'S KEPT DRAWINGS (up to 1.5 MB) OUT OF THE STORE: nothing reads them since 466. True when anything went. */
+function splashForget_() {
   const gone = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k === 'splashAnims' || k.indexOf('splashAnim:') === 0)) gone.push(k);
+      if (k && (k === 'splashAnims' || k === 'splashOff' || k.indexOf('splashAnim:') === 0)) gone.push(k);
     }
     gone.forEach(k => localStorage.removeItem(k));
   } catch (e) {}
   return gone.length > 0;
 }
-function splashOff_() {
-  clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);
-  const el = $('splash'); if (el) el.classList.add('done');
-  /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. § */
-  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the still name and the loader — so a Try again (`splashOn_`) shows the app § */
-  if (el) setTimeout(() => {
-    if (!el.classList.contains('done')) return;
-    el.style.display = 'none';
-    const root = el.querySelector(':scope > [class|="an"]');
-    if (root) root.remove();
-    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-still'); }
-  }, 500);
-}
-function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }
 
 /* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument rather than a second function: § */
 function banner(msg, tap) {
@@ -3181,9 +3102,7 @@ function buildMayReload_(tag, booted) {
   try { if (sessionStorage.getItem('familyBuiltFor') === tag) return false; } catch (e) { return false; }
   /* 2. A RESUME, NOT A GLANCE. § */
   if (booted) {
-    const sp = document.getElementById('splash');
-    const up = !!(sp && !sp.classList.contains('done'));
-    if (!up && !(typeof performance !== 'undefined' && performance.now() < SPLASH_SAY_AFTER)) return false;
+    if (LOADED && !(typeof performance !== 'undefined' && performance.now() < EARLY_AFTER)) return false;
   } else if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. § */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
@@ -3240,3 +3159,6 @@ try {
   new MutationObserver(ms => ms.forEach(m => [].forEach.call(m.addedNodes || [], quietFields_)))
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) {}
+
+/* A DOUBLE TAP DOES NOTHING BUT TWO TAPS (466): iPad Safari zooms on it whatever the viewport says, and the column jumped. Nothing in the app listens for dblclick. */
+document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) {} }, { passive: false });
