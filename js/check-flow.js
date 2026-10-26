@@ -7293,7 +7293,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
   /* A FINE POINTER STARTS ON KEYS: the list is shown and the touch pad is not, before any game. */
   if (ev('NES_.mode') !== 'keys') bad.push('a mouse-and-keyboard device started in ' + ev('NES_.mode') + ' mode');
-  if (d.querySelector('#nes-legend').hidden) bad.push('the key list is hidden on a keyboard device');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows before its Keys tile asked (478)');
   if (d.querySelector('#nes-pad').classList.contains('on')) bad.push('the touch pad shows on a keyboard device');
   const acts = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
   if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
@@ -7363,9 +7363,10 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   key('keyup', 'ArrowLeft', 'ArrowLeft');
   /* THE KEYS TILE hides the list and shows it again, and remembers. */
   t.ACTIONS['nes-keys']();
-  if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list');
+  if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list');
   t.ACTIONS['nes-keys']();
-  if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list again');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list again');
+  t.ACTIONS['nes-keys']();
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
   if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
   /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
@@ -7378,6 +7379,64 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.body.classList.contains('nes-on')) bad.push('the body is still marked after Pause');
   if (w.__aheadHold !== false) bad.push('the builder is still held after Pause');
   ev('NES_.nes = null;');
+  return bad;
+});
+
+/* ---------- THE DS LOOKS LIKE A DS (478): two screens in one clamshell, its own buttons pressing the core, and nothing repainted while it plays. */
+check('console DS (478): a clamshell with both screens and the hinge between, its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
+  const { w } = boot({ member: true });
+  await wait(300);
+  const t = w.__t, d = w.document, ev = s => t.inApp(s);
+  const bad = [];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return ['there is no Console widget on the Games column'];
+  t.goPage('games', at, true);
+  await woken_();
+  if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
+  ev('nesSysSet_("nds")');
+  const wrap = d.querySelector('#nes-wrap'), pad = d.querySelector('#nes-pad');
+  if (wrap.dataset.sys !== 'nds') bad.push('the body does not say nds');
+  const [W, H] = ev('NES_DIMS.nds'), gap = ev('NES_GAP');
+  if (W !== 256 || H !== 2 * 192 + gap) bad.push('the DS picture is ' + W + 'x' + H + ', not two 256x192 screens and the gap');
+  if (ev('nesShow_("nds")') !== W / H) bad.push('the stage is not the two screens\' shape: ' + ev('nesShow_("nds")'));
+  if (!d.querySelector('#nes-hinge') || parseFloat(d.querySelector('#nes-hinge').style.height) <= 0) bad.push('the DS has no hinge between its screens');
+  if (ev('NES_.mode') !== 'keys') bad.push('the journey expected a keyboard device');
+  if (!pad.classList.contains('on') || !wrap.classList.contains('nes-has-pad')) bad.push('on keys the DS does not wear its own buttons');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows on the DS before the Keys tile asked');
+  const names = [...pad.querySelectorAll('[data-k]')].map(e => e.dataset.k).sort().join();
+  if (names !== 'a,b,dpad,l,r,select,start,x,y') bad.push('the DS pad holds ' + names);
+  /* A STAND-IN CORE: each pad button reaches RetroPad's own number. */
+  ev(`window.__in = []; EMU_.ejs = { gameManager: { simulateInput: (p, i, v) => __in.push(i + ':' + v) }, pause() {}, play() {} }; EMU_.ready = true; EMU_.sys = 'nds'; EMU_.held = {}; EMU_.ax = [];`);
+  ev('nesRun_(true); NES_.running = true; emuSync_()');
+  const press = (k, on) => { const el = pad.querySelector('[data-k="' + k + '"]'); const r = { clientX: 0, clientY: 0, pointerId: 7, pointerType: 'touch' };
+    el.dispatchEvent(Object.assign(new w.Event(on ? 'pointerdown' : 'pointerup', { bubbles: true, cancelable: true }), r)); };
+  ['a', 'b', 'x', 'y', 'l', 'r', 'start', 'select'].forEach(k => {
+    ev('__in = []'); press(k, true);
+    if (ev('__in.join()') !== ev('EMU_IDX.' + k) + ':1') bad.push(k + ' pressed sent ' + ev('__in.join()'));
+    ev('__in = []'); pad.dispatchEvent(Object.assign(new w.Event('pointerup', { bubbles: true }), { pointerId: 7 }));
+    if (ev('__in.join()') !== ev('EMU_IDX.' + k) + ':0') bad.push(k + ' let go sent ' + ev('__in.join()'));
+  });
+  /* NOTHING REDRAWN WHILE IT PLAYS: the builder's repaint of the widget leaves the console alone. */
+  const box = d.querySelector('#nes-box');
+  let muts = 0;
+  const mo = new w.MutationObserver(l => { muts += l.length; });
+  mo.observe(box, { childList: true, subtree: true });
+  for (let i = 0; i < 5; i++) ev('consoleStill_()');
+  await wait(20);
+  mo.disconnect();
+  if (muts) bad.push('the console was redrawn ' + muts + ' time(s) while a game played');
+  /* A SAVE AT MOST ONCE A MINUTE while playing: pauses in a row take one; leaving always takes one. */
+  ev(`window.__caps = 0; CSV_.hash = 'h'; CSV_.rom = 'k'; CSV_.took = 0; EMU_.key = 'k';
+    EMU_.ejs.gameManager.getSaveFile = () => (__caps++, new Uint8Array([1])); EMU_.ejs.gameManager.getState = () => new Uint8Array([2]);`);
+  for (let i = 0; i < 4; i++) { ev('emuPause_()'); ev('NES_.running = true'); }
+  if (ev('__caps') !== 1) bad.push(ev('__caps') + ' saves were taken by four pauses inside a minute');
+  ev('CSV_.took = Date.now() - 61000; emuPause_()');
+  if (ev('__caps') !== 2) bad.push('a pause a minute later took no save');
+  ev('emuPause_(true)');
+  if (ev('__caps') !== 3) bad.push('leaving the page did not save at once');
+  ev('nesRun_(false); NES_.running = false; EMU_.ejs = null; EMU_.ready = false; EMU_.key = ""; CSV_.hash = ""; nesSysSet_("nes")');
   return bad;
 });
 
