@@ -218,95 +218,8 @@ on('timer-set', el => {
 /* `MONTHS` was a second copy of the twelve month names, identical to `MONTH_NAMES` in data.js.
    Two lists of the same twelve words is two places to fix a typo and one of them will be missed. */
 
-/* ---------- EVERY DATE THE APP KNOWS, NOT TWO KINDS OF IT § */
-const CAL_KINDS = [
-  ['session', 'Session'], ['exam', 'Exam'], ['mock', 'Mock'], ['term', 'Term'],
-  ['halfterm', 'Half term'], ['bank', 'Bank holiday'], ['closed', 'Closed'],
-  ['festive', 'Event'], ['birthday', 'Birthday'],
-];
-const calKindSaid_ = k => (CAL_KINDS.find(x => x[0] === k) || [k, k])[1];
-
-/* Everything that happens, keyed by day of the month. Built once per draw rather than searched
-   per cell: forty-two cells against two lists is forty-two scans of them to shade six squares. */
-function calendarMarks(y, m) {
-  const out = {};
-  const put = (d, mark) => { (out[d] = out[d] || []).push(mark); };
-  const inMonth = d => d && d.getFullYear() === y && d.getMonth() === m;
-
-  (DATA.exams || []).forEach(x => {
-    const d = parseDMY(x.date);
-    if (!d || d.getFullYear() !== y || d.getMonth() !== m) return;
-    put(d.getDate(), { kind: x.kind === 'mock' ? 'mock' : 'exam',
-                       label: [x.subject, x.label].filter(Boolean).join(' · ') || 'Exam',
-                       who: x.who || '' });
-  });
-
-  /* A birthday has no year, which is the point: it happens every year, and a date that only
-     appears once is a date somebody misses. */
-  (DATA.birthdays || []).forEach(b => {
-    if (Number(b.month) !== m + 1) return;
-    put(Number(b.day), { kind: 'birthday', label: b.name + '’s birthday', who: b.name });
-  });
-
-  /* YOUR SESSIONS, ON THEIR OWN DATES. A job with no dates yet is not on a calendar: it has a
-     weekday and no day, and the Timetable is where a standing week is drawn. */
-  if (typeof USER !== 'undefined' && USER && typeof myJobs_ === 'function' && typeof jobDates_ === 'function') {
-    myJobs_().forEach(j => {
-      if (/cancel/i.test(String(j.status || ''))) return;
-      jobDates_(j).forEach(d => {
-        if (!inMonth(d)) return;
-        put(d.getDate(), { kind: 'session',
-          label: [j.subject || 'Session', j.time].filter(Boolean).join(' · '),
-          who: j.location || '' });
-      });
-    });
-  }
-
-  /* THE TERMS. A term is two dates that matter — it starts, it ends — and a dot on every weekday of it would cover the month; a half term is a week off and every § */
-  const each = (a, b, fn) => {
-    const d = new Date(a);
-    for (let i = 0; d <= b && i < 400; i++) { fn(new Date(d)); d.setDate(d.getDate() + 1); }
-  };
-  (typeof intervals_ === 'function' ? intervals_() : (DATA.intervals || [])).forEach(x => {
-    const a = parseDMY(x.startDate), b = parseDMY(x.endDate);
-    if (!a || !b) return;
-    const name = x.label || x.term || '';
-    if (x.kind === 'half-term') {
-      each(a, b, d => { if (inMonth(d)) put(d.getDate(), { kind: 'halfterm', label: name, who: '' }); });
-    } else {
-      const kind = x.kind === 'holiday' ? 'halfterm' : 'term';
-      if (inMonth(a)) put(a.getDate(), { kind, label: name + ' starts', who: '' });
-      if (inMonth(b)) put(b.getDate(), { kind, label: name + ' ends', who: '' });
-    }
-  });
-
-  /* BANK HOLIDAYS AND CLOSED DAYS — the list the booking steps over. A festive one is drawn below
-     from `DATA.festive`, which says more about it. */
-  (DATA.closures || []).forEach(c => {
-    const d = parseDMY(c && c.date);
-    if (!inMonth(d) || c.kind === 'festive') return;
-    put(d.getDate(), { kind: c.kind === 'bank' ? 'bank' : 'closed', label: c.name || 'Closed', who: '' });
-  });
-
-  (DATA.festive || []).forEach(f => {
-    const d = parseDMY(f && f.date);
-    if (!inMonth(d)) return;
-    put(d.getDate(), { kind: 'festive', label: f.name || f.holiday || 'An event', who: f.venue || '' });
-  });
-
-  return out;
-}
-
-/* THE KEY, UNDER THE MONTH: one dot and one word for every kind that is on THIS month, in
-   `CAL_KINDS`' order. Only what is drawn, because a key of nine for a month holding two is a key
-   nobody reads. */
-function calKey_(marks) {
-  const on = {};
-  Object.keys(marks).forEach(d => marks[d].forEach(x => { on[x.kind] = 1; }));
-  const kinds = CAL_KINDS.filter(([k]) => on[k]);
-  return kinds.length ? `<div class="cal-key">${kinds.map(([k, said]) =>
-    `<span><i class="dot ${k}"></i>${esc(said)}</span>`).join('')}</div>` : '';
-}
+/* ---------- A PLAIN CALENDAR (466) ----------
+   The owner: "It's a plain calendar." No terms, sessions, exams or holidays are laid on it; term end dates are the Term dates widget. */
 
 function initCalendar() {
   if (!$('cal-body')) return;
@@ -325,38 +238,14 @@ function drawCalendar() {
   const label = $('cal-label');
   if (label) label.textContent = `${MONTH_NAMES[m]} ${y}`;
 
-  const marks = calendarMarks(y, m);
   const cells = [];
   ['M','T','W','T','F','S','S'].forEach(d => cells.push(`<span class="cal-h">${d}</span>`));
   for (let i = 0; i < startDay; i++) cells.push('<span></span>');
   for (let d = 1; d <= days; d++) {
     const isToday = new Date(y, m, d).getTime() === today.getTime();
-    const on = marks[d] || [];
-    /* A DOT PER KIND, not per event. Three exams on one day is one exam dot — the square is a few
-       millimetres across, and what it has to say is "something is here". */
-    const kinds = CAL_KINDS.map(k => k[0]).filter(k => on.some(x => x.kind === k));
-    cells.push(`<span class="cal-d${isToday ? ' cal-today' : ''}${on.length ? ' has' : ''}"
-        ${on.length ? `data-do="cal-day" data-d="${d}"` : ''}>${d}${
-      kinds.length ? `<span class="cal-dots">${
-        kinds.map(k => `<i class="dot ${k}"></i>`).join('')}</span>` : ''}</span>`);
+    cells.push(`<span class="cal-d${isToday ? ' cal-today' : ''}" data-d="${d}">${d}</span>`);
   }
   host.innerHTML = cells.join('');
-  /* ---------- AND UNTIL THE PAYLOAD IS IN, THE MONTH IS WAITING, NOT EMPTY § */
-  if (typeof awaiting_ === 'function' && awaiting_()) {
-    host.setAttribute('aria-busy', 'true');
-    host.insertAdjacentHTML('beforeend', loading_());
-  } else {
-    host.removeAttribute('aria-busy');
-  }
-  /* THE KEY IS ITS OWN ELEMENT AFTER THE GRID, not a cell of it: `.cal` is a seven-column grid and
-     anything put inside it would be laid out as days. Found or made beside `#cal-body`. */
-  let key = host.parentNode && host.parentNode.querySelector('.cal-key-box');
-  if (!key && host.parentNode) {
-    key = document.createElement('div');
-    key.className = 'cal-key-box';
-    host.parentNode.insertBefore(key, host.nextSibling);
-  }
-  if (key) key.innerHTML = calKey_(marks);
 }
 
 /* CAL_VIEW is filled by initCalendar, which `wake` runs before the screen can be touched — so this cannot be null in practice. § */
@@ -372,22 +261,6 @@ on('cal-fwd', () => {
   calView().m++;
   if (CAL_VIEW.m > 11) { CAL_VIEW.m = 0; CAL_VIEW.y++; }
   drawCalendar();
-});
-
-/* WHAT IS ON THAT DAY. A dot says something is there and nothing else, and a mark you cannot open
-   is a mark whose meaning you have to remember. */
-on('cal-day', el => {
-  const d = Number(el.dataset.d);
-  const order = k => CAL_KINDS.findIndex(x => x[0] === k);
-  const on = (calendarMarks(calView().y, CAL_VIEW.m)[d] || []).slice().sort((a, b) => order(a.kind) - order(b.kind));
-  openSheet(d + ' ' + MONTH_NAMES[CAL_VIEW.m], on.map(x => `
-    ${/* NOT A LABEL AND A VALUE, which is why it is written out rather than built by `row`. § */
-          ''}
-    <div class="row">
-      <span class="k"><i class="dot ${x.kind}"></i> ${esc(calKindSaid_(x.kind))}</span>
-      <span class="v">${mark(x.label)}${x.who && x.kind !== 'birthday'
-        ? `<br><span class="faint">${esc(x.who)}</span>` : ''}</span>
-    </div>`).join(''));
 });
 
 /* ---------- CHESS, TWO PLAYERS ROUND ONE PHONE § */
@@ -3967,37 +3840,19 @@ function tmtRow_(l, t) {
     </div>`;
 }
 
-/* ---------- A BOOKED SESSION, LOCKED § */
-function tmtBooked_(s) {
-  const hh = h => String(h).padStart(2, '0') + ':00';
-  const id = esc(String(s.j.id || s.j.jobId || ''));
-  return `<button type="button" class="tmt-row is-booked" data-do="job" data-id="${id}">
-      <span class="tmt-at">${hh(s.from)}</span>
-      <span class="tmt-what"><span class="tmt-sub">${esc(s.j.subject || 'Session')}</span><span
-        class="tmt-note">Booked · ${hh(s.from)}\u2013${hh(s.to)}${
-        s.j.location ? ' · ' + esc(s.j.location) : ''}</span></span></button>`;
-}
-
+/* A BOOKED SESSION WAS DRAWN HERE, LOCKED. The timetable is only its own lessons now: nothing syncs into it (466). */
 function tmtHtml_() {
   const t = tmtRead_();
   /* NOT SAVED WHEN DRAWN AHEAD (`AHEAD.running`, shell.js; docs/history/341). § */
   if (tmtColours_(t) && !(typeof AHEAD !== 'undefined' && AHEAD.running)) tmtSave_(t);
-  /* THIS WEEK'S BOOKED SESSIONS, one entry per day each runs — see `weekSessions_`. Signed out there
-     are none, and nothing about the written week depends on them. */
-  const booked = (typeof USER !== 'undefined' && USER && typeof weekSessions_ === 'function')
-    ? weekSessions_() : [];
-  /* A SESSION AT THE WEEKEND SHOWS THE WEEKEND, whether or not the box is ticked — a booking on a
-     Saturday hidden behind a tickbox is the clash this was asked to remove. */
-  const shown = (t.weekend || booked.some(s => s.day > 4)) ? 7 : 5;
+  const shown = t.weekend ? 7 : 5;
   if (TMT_DAY < 0) TMT_DAY = (new Date().getDay() + 6) % 7;      // Monday-first, as SLOT_DAYS is
   if (TMT_DAY >= shown) TMT_DAY = 0;
-  const hh = h => String(h).padStart(2, '0') + ':00';
   const rows = (t.days[TMT_DAY] || []).map(l => ({ at: l.at || '99', html: () => tmtRow_(l, t) }))
-    .concat(booked.filter(s => s.day === TMT_DAY).map(s => ({ at: hh(s.from), html: () => tmtBooked_(s) })))
     .sort(tmtOrder_);
   const chips = TMT_DAY_NAMES.slice(0, shown).map((n, i) =>
     `<button type="button" class="tmt-day${i === TMT_DAY ? ' on' : ''}${
-      (t.days[i] || []).length || booked.some(s => s.day === i) ? ' has' : ''}"
+      (t.days[i] || []).length ? ' has' : ''}"
              data-do="tmt-day" data-day="${i}" aria-pressed="${i === TMT_DAY}"
              aria-label="${n}">${n.slice(0, 3)}</button>`).join('');
   return `<div class="tmt">
