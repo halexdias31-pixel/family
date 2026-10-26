@@ -16,7 +16,6 @@ distinction this folder draws is exactly "read by the app" against "kept so it i
 | `p-and-r.json` | `P&R` | 273 | Philosophy & Religion concepts for A-level RS — the ontological argument, a priori, ethics. 42 columns |
 | `english-devices.json` | `english-devices` | 180 | literary and language devices, core / extended / specialist |
 | `m-and-p-formulas.json` | `M&Pformulas` | 96 | maths and physics formulae, with which boards give them and which must be learnt |
-| `icons.json` | `icons` | 81 | Orthodox iconography — Christ Pantokrator, the Theotokos, feasts, by tradition |
 | `graphemes.json` | `graphemes` | 72 | phonics: graphemes, their IPA, and the Letters-and-Sounds phase each is taught in |
 | `practicals.json` | `practicals` | 41 | the AQA required practicals, 41 columns including feasibility and group size |
 | `mat-components.json` | `_mat-components` | 17 | **an older, smaller `cheatsheet`.** The live tab has 77 rows; this has 17. Kept because it is not obviously a subset, and deciding that is editorial |
@@ -83,3 +82,8 @@ spelling.
 already holds it, already stripped, and holds *more* — 4,807 rows against the spreadsheet's
 3,913, because papers have been transcribed since the tab stopped being the source. Exporting
 the tab over it would have been a migration backwards.
+
+## `icons.json` LEFT THIS FOLDER (470)
+
+The 81 Orthodox icons are now `data/icons.json`, read by the E-ink screen widget on Tools, each row carrying
+an original black-and-white `svg` written by `tools/epaper-verse/icon-svgs.js` (`check-eink`).

@@ -19,6 +19,10 @@ booklet. The card (name, the works' titles, `sources`, `line_numbers`, `lib_pend
 was at the pinned commit, so its words only ever come by import. `source_text` is text: paragraphs, `# Source A`, `> `
 the paper's note, `[n]` where the paper prints line n. The formulae sheets in the same file have no private field.
 
+## How a content card is written (the owner, 26 Oct: "look at CGP textbooks")
+
+One card is one topic, like one page of a CGP revision guide: the topic as its title at the top, and everything a learner needs on that topic packed onto that one card. A topic too big for one card becomes two or more, and each says in its title and first line what makes it distinct from its neighbour (e.g. "Quadratics I: factorising" and "Quadratics II: the formula and completing the square"), so no two cards of a subject and level read as the same page.
+
 ## Changing the library with a tool
 
 Every row-writing tool (`tools/*.py`, `tools/diagram_png.js`, `tools/anim_row.py`, `tools/set-choices.py`, …) reads

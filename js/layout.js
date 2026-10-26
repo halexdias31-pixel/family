@@ -17,13 +17,18 @@ const CUSTOM_MAX = 12;
 
 /* ---------- ONE SHAPE, WHATEVER ARRIVED (a string, an object, rubbish) — or null ---------- */
 /* A 462 value's `columns` and `hidden` are dropped (463): columns no longer move and nothing hides. */
+/* A LAYOUT SAVED BEFORE 469 named `own:staff:picture` and `own:family:name`; each section has one id now. */
+function ownIdNow_(x) {
+  const m = /^own:(account|family|staff):([a-z]+)$/.exec(x), c = m && typeof OWN_SET_OF_SEC_ === 'function' ? OWN_SET_OF_SEC_(m[2]) : '';
+  return c ? 'own:' + c + ':' + m[2] : x;
+}
 function layoutSane_(v) {
   let o = v;
   try {
     if (typeof o === 'string') { if (!o.trim() || o.length > 8000) return null; o = JSON.parse(o); }
   } catch (e) { return null; }
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
-  const ids = a => (Array.isArray(a) ? a : []).map(String).filter(x => LAYOUT_ID.test(x))
+  const ids = a => (Array.isArray(a) ? a : []).map(String).filter(x => LAYOUT_ID.test(x)).map(ownIdNow_)
     .filter((x, i, all) => all.indexOf(x) === i);
   const out = { v: 1, widgets: {}, deleted: ids(o.deleted) };
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
@@ -316,7 +321,7 @@ const CARD_REG = [
   { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/, say: 'Deleted cards and widgets back, and Reset layout.' },
   { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
-/* YOUR OWN CARD'S SECTIONS, A CARD EACH ON ITS SETTINGS COLUMN (468): `own:<col>:<section>`, one home each. */
+/* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
 function ownSecReg_() {
   const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
     name: ['Name', 'your name', 'Your first and last name.'], handle: ['Handle', 'your handle', 'The @name people find you by.'],
@@ -324,8 +329,7 @@ function ownSecReg_() {
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['Three words', 'your three words', 'Three words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
-  const of = { account: ['picture', 'figure', 'name', 'handle'], family: ['picture', 'figure', 'name', 'handle'],
-    staff: ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
+  const of = OWN_SEC_OF_SET_;
   const where = { account: 'Student settings', family: 'Parent settings', staff: 'Tutor settings' };
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
 }

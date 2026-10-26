@@ -146,6 +146,7 @@ const SUITE = [
   /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. § */
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
+  { file: 'check-eink.js', what: 'every icon in data/icons.json drawn in black and white only, the e-ink files current, no link away to the install page (470)' },
   { file: 'check-secrets.js', what: 'no PIN in the source, and no word of the library in data/' },
   { file: 'check-markers.js', what: 'no merge-conflict line left in any tracked file' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
