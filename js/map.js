@@ -57,41 +57,6 @@ function paintBoard_(id, field) {
 
 /* ---------- `draw` AND `pure`: WHAT THE BUILDER MAY DO WITH A WIDGET BEFORE ANYBODY ARRIVES § */
 const WIDGETS = [
-  { id: 'chess', kind: 'game', name: 'Chess', start: () => initChess?.(),
-    pure: true,
-    into: 'chess-board', what: 'The board',
-    /* THE BOARD, AND NOTHING ELSE. § */
-    /* AND THEN TWO PLAYERS, WHICH PUT TWO BUTTONS BACK. § */
-    html: `<div class="card chess-game">
-    <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
-    <div id="chess-board" class="chess"></div>
-    <div class="btn-row chess-promo" hidden></div>
-    <div class="tile-row chess-ctl"></div>
-  </div>` },
-  { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
-    /* DRAWN AHEAD BY ITS OWN START (`draw`, docs/history/341): § */
-    draw: () => initTables?.(),
-    /* The sprint's clock is a setInterval. Left running it goes on counting a sixty-second round
-       nobody is watching, and fires its finish into a screen that is no longer there. */
-    stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
-    into: 'tt-idle', what: 'The sprint',
-    html: `<div class="card">
-    <h3>Times Tables Sprint</h3>
-    <div id="tt-idle">
-      <p class="sub">Sixty seconds. As many as you can.</p>
-      <button class="btn" id="tt-play" data-do="tt-start">Start</button>
-    </div>
-    <div id="tt-question" class="hidden tt">
-      <p class="mono" id="tt-q" style="font-size:2rem;text-align:center;margin:.6rem 0">—</p>
-      <input id="tt-answer" inputmode="numeric" placeholder="answer" autocomplete="off">
-      <p class="note" id="tt-feedback" style="text-align:center;min-height:1.2em"></p>
-      ${rowLive('Time', '60', 'tt-time')}
-      ${rowLive('Right', '0', 'tt-score')}
-      <button class="btn quiet" data-do="tt-stop" style="margin-top:.5rem">Give up</button>
-    </div>
-    <div id="tt-over" class="hidden"></div>
-    <div id="tt-board" class="board"></div>
-  </div>` },
   /* CONSOLE (389, 391, 441): game files (jsnes, EmulatorJS), Flabby Pird and the Colliers Wood racer behind one picker — `CONSOLE_GAMES`, games.js. */
   { id: 'console', kind: 'game', name: 'Console', start: () => initConsole?.(),
     draw: () => consoleStill_?.(),
@@ -110,7 +75,8 @@ const WIDGETS = [
      and leaves nothing running when the widget closes. */
   /* `The Overworld` WAS A WIDGET HERE and is gone on request: § */
 
-  /* ---------- BOARD GAMES (414): Connect 4, Othello and Scrabble in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
+  /* `chess`, `tables` and `maze` WERE CARDS HERE (461): Chess and Maze are Board games now, the sprint a Word & number game. */
+  /* ---------- BOARD GAMES (414, 461): Connect 4, Othello, Scrabble, Chess and Maze in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
   { id: 'boardgames', kind: 'game', name: 'Board games', start: () => initBoardGames?.(),
     pure: true,
     draw: () => bgPaint_?.(),
@@ -128,7 +94,7 @@ const WIDGETS = [
 
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a maze that read them would fight the pager on the one screen it § */
   /* ---------- WORD GAMES — EIGHT GAMES, ONE WIDGET § */
-  { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
+  { id: 'wordgames', kind: 'game', name: 'Word & number games', start: () => initWordGames?.(),
     pure: true,
     /* DRAWN AHEAD AS MARKUP ONLY: the picker and the chosen game's card (`wgPaint_`, games.js). Its start
        drives `PARTY`, which is shared by the four classroom games, and must run for somebody looking. */
@@ -138,7 +104,7 @@ const WIDGETS = [
     /* A GETTER, SO THE CHOSEN GAME IS IN THE MARKUP `paint` PUTS DOWN. § */
     get html() {
       return `<div class="card">
-    <h3>Word games</h3>
+    <h3>Word &amp; number games</h3>
     <label class="mat-sel ws-top"><select id="wg-pick" data-do="wg-pick"
       aria-label="Which game">${typeof wgOptions_ === 'function' ? wgOptions_() : ''}</select></label>
     <div id="wg-slot">${typeof wgSlot_ === 'function' ? wgSlot_() : ''}</div>
@@ -146,23 +112,6 @@ const WIDGETS = [
     } },
 
   /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request ("delete alibi game.") — the note where its engine was in games.js § */
-  { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
-    pure: true,
-    into: 'maze-grid', what: 'The maze',
-    html: `<div class="card">
-    <h3>Maze</h3>
-    <p class="sub">Top left to bottom right. Tap the arrows, or use the arrow keys.</p>
-    <div id="maze-grid" class="mz" role="img"></div>
-    <div class="mz-pad">
-      <button class="mz-key up" data-do="maze-go" data-d="n" aria-label="Up">&#9650;</button>
-      <button class="mz-key left" data-do="maze-go" data-d="w" aria-label="Left">&#9664;</button>
-      <button class="mz-key right" data-do="maze-go" data-d="e" aria-label="Right">&#9654;</button>
-      <button class="mz-key down" data-do="maze-go" data-d="s" aria-label="Down">&#9660;</button>
-    </div>
-    <p class="note" id="maze-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <p class="faint" style="text-align:center;margin:.15rem 0 0">Moves: <b id="maze-moves">0</b></p>
-    <button class="btn quiet" data-do="maze-again">New maze</button>
-  </div>` },
 
 
 

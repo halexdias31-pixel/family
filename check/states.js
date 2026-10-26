@@ -4573,9 +4573,11 @@ const STATES = {
         if (typeof USER !== 'undefined' && USER) DATA.students.push(
           { name: USER.name, handle: USER.handle, personId: USER.personId, ttHighscore: 5 });
         repaint(true);
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'tables');
-        if (n < 0) throw new Error('no times-table widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        try { localStorage.setItem('wg-game', 'tt'); } catch (e) {}
+        wgPaint_(); initTables();
       },
       expect: () => document.querySelectorAll('#s-games #tt-board .row').length >= SCORE_TOP,
       wants: 'the times-table high scores under the sprint',

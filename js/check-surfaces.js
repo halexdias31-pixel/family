@@ -61,7 +61,7 @@ function stripComments(src) {
 
 /* AND IN THE STYLESHEET: only these may be position: fixed, and none of them is a menu. */
 const FIXED_OK = ['#banner', '#toast', '#reconnect', '#splash', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
-  '.nes-wrap.nes-full', '.vid-watch.on.is-fs'];
+  '.vid-watch.on.is-fs'];
 
 const files = fs.readdirSync(DIR)
   .filter(f => f.endsWith('.js') && !f.startsWith('check'))

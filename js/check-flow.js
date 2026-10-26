@@ -7181,13 +7181,13 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
 });
 
 /* ---------- BOARD GAMES: CONNECT 4, OTHELLO AND SCRABBLE ARE ONE WIDGET WITH A PICKER (414) */
-check('the board games are one widget: three games in its picker, each drawing only its own board, the choice remembered', async () => {
+check('the board games are one widget: five games in its picker (461 added Chess and Maze), each drawing only its own board, the choice remembered', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
   const bad = [];
   const ids = t.allWidgets().map(x => String(x.id));
-  ['connect4', 'othello', 'scrabble'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
+  ['connect4', 'othello', 'scrabble', 'chess', 'maze'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
@@ -7197,8 +7197,8 @@ check('the board games are one widget: three games in its picker, each drawing o
   const pick = d.querySelector('#s-games #bg-pick');
   if (!pick) return bad.concat(['the Board games widget has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
-  if (opts.join('|') !== 'Connect 4|Othello|Scrabble') bad.push('the picker offers ' + JSON.stringify(opts));
-  const boards = { c4: '#c4-board', oth: '#oth-board', scr: '#scr-board' };
+  if (opts.join('|') !== 'Connect 4|Othello|Scrabble|Chess|Maze') bad.push('the picker offers ' + JSON.stringify(opts));
+  const boards = { c4: '#c4-board', oth: '#oth-board', scr: '#scr-board', chess: '#chess-board', maze: '#maze-grid' };
   for (const k of Object.keys(boards)) {
     pick.value = k; t.ACTIONS['bg-pick'](pick);
     await wait(50);
@@ -7208,6 +7208,127 @@ check('the board games are one widget: three games in its picker, each drawing o
     if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
   }
   if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
+  return bad;
+});
+
+/* ---------- ONE PADLOCK FOR EVERY GAME, AND IT HOLDS (461) */
+check('every game widget has the one padlock (461); locked, no drag, flick, two fingers, touchmove, wheel or arrow key moves the column or the page, on the console, Board games and Word games; leaving lets go', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS;
+  const bad = [];
+  if (!A['game-lock'] || !t.padlock) return ['there is no game-lock handler or PADLOCK is not reachable'];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const games = t.widgetsOf('game');
+  games.forEach(g => {
+    const card = d.querySelector('#s-games #wgt-' + g.id);
+    const n = card ? card.closest('.is-widget').querySelectorAll('.game-lock').length : 0;
+    if (n !== 1) bad.push(g.id + ' has ' + n + ' padlock tiles, not one');
+  });
+  if (d.querySelector('[data-do="nes-lock"], [data-do="nes-full"]')) bad.push('the console still draws its own Lock or Full screen tile');
+  const ptr = (type, el, x, y, id, prim) => {
+    const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, buttons: 1 });
+    Object.defineProperty(e, 'pointerId', { value: id }); Object.defineProperty(e, 'isPrimary', { value: prim });
+    Object.defineProperty(e, 'pointerType', { value: 'touch' });
+    el.dispatchEvent(e);
+  };
+  const drag = (el, x0, y0, x1, y1, steps, id = 1, prim = true) => {
+    ptr('pointerdown', el, x0, y0, id, prim);
+    for (let i = 1; i <= steps; i++) ptr('pointermove', el, x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps, id, prim);
+    ptr('pointerup', el, x1, y1, id, prim);
+  };
+  const ev = (el, e) => { el.dispatchEvent(e); return e.defaultPrevented; };
+  for (const id of ['console', 'boardgames', 'wordgames']) {
+    const at = games.findIndex(x => String(x.id) === id);
+    if (at < 0) { bad.push('there is no ' + id + ' on the Games column'); continue; }
+    t.goPage('games', at, true);
+    await wait(80); await woken_();
+    const card = d.querySelector('#s-games #wgt-' + id).closest('.is-widget');
+    A['game-lock'](card.querySelector('.game-lock'));
+    const tile = card.querySelector('.game-lock');
+    if (!t.padlock().game || t.padlock().game.split('@')[0] !== id) { bad.push(id + ': the padlock did not lock'); continue; }
+    if (tile.getAttribute('aria-pressed') !== 'true' || !tile.classList.contains('on') || !card.classList.contains('is-locked')) bad.push(id + ': locked, the tile or the card does not show it');
+    if (!d.documentElement.classList.contains('padlocked')) bad.push(id + ': locked, the page is not marked to hold every pan');
+    const game = card.querySelector('#nes-pad, #bg-slot, #wg-slot, .widget-slot') || card;
+    const where = () => t.screenAt() + ':' + t.PAGE().games;
+    const here = where();
+    const moves = [
+      ['a drag on the game', () => drag(game, 300, 300, 40, 300, 12)],
+      ['a swipe across the card', () => drag(card, 360, 200, 20, 200, 12)],
+      ['a swipe outside the card', () => drag(d.body, 360, 20, 20, 20, 12)],
+      ['a swipe up', () => drag(card, 200, 600, 200, 100, 12)],
+      ['a fast flick', () => drag(card, 300, 300, 60, 300, 2)],
+      ['a two-finger swipe', () => { ptr('pointerdown', card, 300, 300, 1, true); ptr('pointerdown', card, 300, 360, 2, false);
+        for (let i = 1; i <= 8; i++) { ptr('pointermove', card, 300 - 30 * i, 300, 1, true); ptr('pointermove', card, 300 - 30 * i, 360, 2, false); }
+        ptr('pointerup', card, 60, 360, 2, false); ptr('pointerup', card, 60, 300, 1, true); }],
+    ];
+    for (const [say, fn] of moves) { fn(); await wait(30); if (where() !== here) { bad.push(id + ': locked, ' + say + ' moved the column to ' + where()); t.go('games', false, true); t.goPage('games', at, true); } }
+    if (!ev(game, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': locked, a touchmove was left to pan the page');
+    const wh = new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 300 });
+    if (!ev(card, wh)) bad.push(id + ': locked, a wheel was left to scroll the page');
+    if (!ev(card, new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 400 }))) bad.push(id + ': locked, a vertical wheel was left to scroll the page');
+    await wait(30);
+    for (const k of ['ArrowRight', 'ArrowDown']) {
+      const e = new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+      if (!ev(d.body, e)) bad.push(id + ': locked, ' + k + ' was left to scroll the page');
+    }
+    await wait(30);
+    if (where() !== here) bad.push(id + ': locked, a wheel or an arrow key moved the column to ' + where());
+    if (!t.padlock().game) bad.push(id + ': the lock was lost during the gestures');
+    /* AND IT LETS GO WHEN THE PERSON LEAVES: another page of the column, then a tab. */
+    t.goPage('games', at ? at - 1 : at + 1, true);
+    await wait(80);
+    if (t.padlock().game) bad.push(id + ': another page of the column left the padlock on');
+    if (d.documentElement.classList.contains('padlocked')) bad.push(id + ': let go, the page still holds every pan');
+    if (ev(d.body, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': let go, a touchmove is still refused');
+    t.goPage('games', at, true);
+    await wait(80);
+  }
+  /* A TAB AND A HIDDEN APP LET GO TOO. */
+  const card = d.querySelector('#s-games #wgt-console').closest('.is-widget');
+  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
+  A['game-lock'](card.querySelector('.game-lock'));
+  t.go('stuff', false, true); await wait(LEAVE_MS);
+  if (t.padlock().game) bad.push('a tab to another column left the game padlock on');
+  t.go('games', false, true); await wait(LEAVE_MS);
+  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
+  A['game-lock'](d.querySelector('#s-games #wgt-console').closest('.is-widget').querySelector('.game-lock'));
+  Object.defineProperty(d, 'hidden', { value: true, configurable: true });
+  d.dispatchEvent(new w.Event('visibilitychange'));
+  delete d.hidden;
+  if (t.padlock().game) bad.push('the app hidden left the game padlock on');
+  return bad;
+});
+
+/* ---------- CHESS AND MAZE ARE BOARD GAMES, THE SPRINT A WORD & NUMBER GAME (461) */
+check('chess and the maze are board games and the times tables sprint a word & number game (461): no cards of their own, old stars land on the merged widget with that game chosen, the sprint keeps its high scores', async () => {
+  const { w } = boot({ member: true, before: x => { signedInAs_(MEMBER_)(x); try { x.localStorage.setItem('favs', JSON.stringify(['w:chess', 'w:tables'])); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = t.allWidgets().map(x => String(x.id));
+  ['chess', 'maze', 'tables'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
+  const ls = k => { try { return w.localStorage.getItem(k); } catch (e) { return null; } };
+  if (!t.isFav('w:boardgames') || t.isFav('w:chess')) bad.push('a star on Chess did not move to Board games');
+  if (!t.isFav('w:wordgames') || t.isFav('w:tables')) bad.push('a star on the sprint did not move to Word & number games');
+  if (ls('bg-game') !== 'chess') bad.push('the chess star did not choose Chess: ' + ls('bg-game'));
+  if (ls('wg-game') !== 'tt') bad.push('the sprint star did not choose the sprint: ' + ls('wg-game'));
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const wg = t.widgetsOf('game').findIndex(x => String(x.id) === 'wordgames');
+  t.goPage('games', wg, true);
+  await woken_();
+  const h = d.querySelector('#s-games #wgt-wordgames h3');
+  if (!h || h.textContent.trim() !== 'Word & number games') bad.push('the widget is headed ' + JSON.stringify(h && h.textContent));
+  const opts = [...(d.querySelector('#s-games #wg-pick') || { options: [] }).options].map(o => o.textContent.trim());
+  if (opts.indexOf('Times Tables Sprint') < 0) bad.push('Word & number games does not offer the sprint: ' + JSON.stringify(opts));
+  if (!d.querySelector('#s-games #wg-slot #tt-play') || !d.querySelector('#s-games #wg-slot #tt-board')) bad.push('the sprint is not drawn with its Start and its high scores');
+  const bg = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  t.goPage('games', bg, true);
+  await woken_(); await wait(50);
+  if (d.querySelectorAll('#s-games #bg-slot #chess-board .chess-sq').length !== 64) bad.push('Chess in Board games did not draw its 64 squares');
+  if (!d.querySelector('#s-games #bg-slot .chess-ctl [data-do="chess-undo"]')) bad.push('Chess in Board games lost its Undo, turn and New game tiles');
   return bad;
 });
 
@@ -7271,7 +7392,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.querySelector('#nes-legend').hidden) bad.push('the key list is hidden on a keyboard device');
   if (d.querySelector('#nes-pad').classList.contains('on')) bad.push('the touch pad shows on a keyboard device');
   const acts = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
-  if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-full,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
+  if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
   const forget = d.querySelector('#nes-tiles [data-do="nes-forget"]');
   if (!forget || !forget.disabled) bad.push('Forget file is not greyed with nothing kept');
   /* THE MAP, system by system. */
@@ -7343,12 +7464,12 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list again');
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
   if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
-  /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and Keys for Lock: still five tiles. */
+  /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
   d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
   if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
   if (d.querySelector('#nes-wrap').classList.contains('nes-has-deco')) bad.push('with the touch pad up the drawn buttons still show beside the screen');
   const acts2 = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
-  if (acts2.join() !== 'nes-pause,nes-pick,nes-forget,nes-lock,nes-full') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
+  if (acts2.join() !== 'nes-pause,nes-pick,nes-forget') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
   ev('nesStop_()');
   if (d.body.classList.contains('nes-on')) bad.push('the body is still marked after Pause');
   if (w.__aheadHold !== false) bad.push('the builder is still held after Pause');
@@ -7633,12 +7754,17 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const N = 11;
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
-  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
-  if (at < 0) return ['there is no maze on the Games column'];
+  /* THE MAZE IS A GAME INSIDE BOARD GAMES (461), reached through its picker; no card of its own. */
+  if (t.allWidgets().some(x => String(x.id) === 'maze')) return ['the maze is still a widget of its own'];
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  if (at < 0) return ['there is no Board games widget on the Games column'];
   t.goPage('games', at, true);
   const grid = () => d.querySelector('#s-games #maze-grid');
   /* The board waited for, not guessed at — the same race as Connect 4's above. */
   await woken_();
+  { const pick = d.querySelector('#s-games #bg-pick');
+    if (!pick) return ['the Board games widget has no picker'];
+    pick.value = 'maze'; t.ACTIONS['bg-pick'](pick); }
   for (let k = 0; k < 30 && !(grid() && grid().children.length === N * N); k++) await wait(100);
   if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
   const bad = [];
@@ -7958,21 +8084,21 @@ check('the word games are one widget, and switching game pauses the one left', a
   const { t, d, press, text, P } = await partyBoot_('tab');
   const bad = [];
   const ids = t.allWidgets().map(x => x.id);
-  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd'].forEach(id => {
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd', 'tables'].forEach(id => {
     if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
   });
   if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 10) bad.push('the dropdown offers ' + offered.length + ' games, wanted 10 (Word Search and Sentence Scramble since 441)');
+  if (offered.length !== 11) bad.push('the dropdown offers ' + offered.length + ' games, wanted 11 (Word Search and Sentence Scramble since 441, the sprint since 461)');
   /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
      name, because a count of eight is also seven games and a stray. */
   if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
-    if (!d.getElementById({ ws: 'ws-grid', ss: 'ss-box' }[k] || k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
+    if (!d.getElementById({ ws: 'ws-grid', ss: 'ss-box', tt: 'tt-idle' }[k] || k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
   }
