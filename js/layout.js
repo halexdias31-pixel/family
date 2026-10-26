@@ -292,9 +292,6 @@ const CARD_REG = [
   { id: 'acct:prog-series', col: 'account', label: 'Papers and worksheets', re: /^<div class="card prog-w prog-series/, say: 'How far you are through each paper and worksheet.' },
   { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
-  { id: 'own:account', col: 'account', label: 'Your card (Student settings)', only: 'your card', say: 'Your picture, figure, name and handle, as other people see them.' },
-  { id: 'own:family', col: 'family', label: 'Your card (Parent settings)', only: 'your card', say: 'Your picture, figure, name and handle, as other people see them.' },
-  { id: 'own:staff', col: 'staff', label: 'Your card (Tutor settings)', only: 'your card', say: 'Your public tutor card: picture, name, headline, what you teach and where.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
   { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
@@ -318,7 +315,20 @@ const CARD_REG = [
   { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
   { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/, say: 'Deleted cards and widgets back, and Reset layout.' },
   { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
-];
+].concat(ownSecReg_());
+/* YOUR OWN CARD'S SECTIONS, A CARD EACH ON ITS SETTINGS COLUMN (468): `own:<col>:<section>`, one home each. */
+function ownSecReg_() {
+  const S = { picture: ['Picture', 'your picture', 'The picture beside your name.'], figure: ['Your figure', 'your figure', 'The figure that stands for you in games.'],
+    name: ['Name', 'your name', 'Your first and last name.'], handle: ['Handle', 'your handle', 'The @name people find you by.'],
+    rate: ['Rate and class size', 'your class size', 'Your rate, extra seats and how many in a class.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
+    photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['Three words', 'your three words', 'Three words that describe you.'],
+    glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
+    where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
+  const of = { account: ['picture', 'figure', 'name', 'handle'], family: ['picture', 'figure', 'name', 'handle'],
+    staff: ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
+  const where = { account: 'Student settings', family: 'Parent settings', staff: 'Tutor settings' };
+  return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
+}
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
 const CARD_SAY_DYN = { 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',
   'photos': 'The photos and video on your tutor card.', 'your-rate-and-group-size': 'Your rate, extra seats and group sizes.',

@@ -1877,17 +1877,26 @@ function peoplePages_(col) {
   return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
 }
 
-/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN (464): its face, and Edit — or the editor itself while it is open § */
+/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN: ONLY ITS EDITING, A CARD PER THING (468) — never a preview; the person is drawn on the profile columns. */
 function ownCardSetPage_(setCol) {
   const face = FACE_OF_SET_[setCol];
-  if (!USER || !face || typeof ownCardSections_ !== 'function' || !ownCardSections_(face).length) return '';
+  if (!USER || !face || typeof ownCardSections_ !== 'function') return [];
+  const secs = ownCardSections_(face);
+  if (!secs.length) return [];
   const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
   const row = face === 'tutors' ? (cardMine_() || mine) : mine;
-  if (!row || !row.personId) return '';
-  if (cardEditing_(row, face)) return `<div class="own-set" data-lay-card="own:${esc(setCol)}">${cardEditHtml_(row)}</div>`;
-  const card = row === mine && typeof meCard === 'function' ? meCard(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
-  const edit = cardEditTile_({ row, account: true, col: face, settings: true });
-  return `<div class="own-set" data-lay-card="own:${esc(setCol)}">${card}${edit ? tileRow_(edit, 'own-tiles', true) : ''}</div>`;
+  if (!row || !row.personId || !cardMayEdit_(row)) return [];
+  return cardEditCards_(row, cardOwnOpen_(row), secs, setCol);
+}
+/* ALWAYS OPEN: the edit of your own card is the settings column itself, so nothing is pressed to start it. */
+function cardOwnOpen_(t) {
+  const now = cardEditNow_();
+  if (now && now.pid === String(t.personId)) { now.col = 'settings'; return now; }
+  const e = CARD_EDIT = cardEditFresh_(t.personId);
+  e.pic0 = cardPicNow_(t);
+  e.fig0 = String(USER.avatar || ''); e.cr0 = Number(USER.credits || 0); e.h0 = String(USER.handle || USER.name || '');
+  cardRemember_(e);
+  return e;
 }
 
 /* WHICH SETTINGS COLUMN YOUR OWN DETAILS ARE ON — a client's are a parent's (`clientFields`); everybody else's on Student settings. */
@@ -1938,8 +1947,7 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  const own = ownCardSetPage_('account');
-  return [top].concat(own ? [own] : [], youSettingsPages_(), prog, wait);
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), prog, wait);
 }
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
@@ -1981,13 +1989,13 @@ function lockCard_(h) {
     .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
 }
 /* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
-const lockedOwnCard_ = col => `<div class="card own-lock" data-lay-card="own:${col}"><h3>Your card</h3></div>`;
+const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => `<div class="card own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`);
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => [lockedOwnCard_('staff'), `<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${
-    typeof hubTile_ === 'function' ? hubTile_() : ''}</div></div>`].concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
-  family: () => [lockedOwnCard_('family')].concat(settingsCards_(settingsSplit_().you, '', 'family')),
-  account: () => [lockedOwnCard_('account')].concat(youSettingsPages_()),
+  staff: () => lockedOwnCards_('staff').concat([`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${
+    typeof hubTile_ === 'function' ? hubTile_() : ''}</div></div>`]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().you, '', 'family')),
+  account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
 const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
 
@@ -1996,8 +2004,7 @@ function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('family'));
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
-  const own = ownCardSetPage_('family');
-  const out = (own ? [own] : []).concat(youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '', 'family') : []);
+  const out = ownCardSetPage_('family').concat(youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '', 'family') : []);
   /* A RANK ABOVE CLIENT WITH NO PARENT'S DETAILS (Staff holding no client role) sees them locked too, as everybody does (467). */
   return out.length ? out : [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
 }
@@ -2012,8 +2019,7 @@ function staffPages_() {
   const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
-  const own = ownCardSetPage_('staff');
-  const out = (own ? [own] : []).concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
+  const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
@@ -3756,7 +3762,7 @@ const CARD_SECTIONS = [
 const cardMovedSay_ = () => {
   const tab = (id, or) => (((typeof TABS !== 'undefined' && TABS.find(t => t.id === id)) || {}).label || or);
   const rich = cardHolds_();
-  return 'Your name, picture, handle and figure are edited on Your card, on ' + tab(SET_OF_FACE_[homeCol_()], 'Student settings') + '. '
+  return 'Your name, picture, handle and figure are edited on cards of their own, on ' + tab(SET_OF_FACE_[homeCol_()], 'Student settings') + '. '
     + (rich ? 'What you teach is there too, your rate and hours in the Staff hub on ' + tab('staff', 'Tutor settings') + '. ' : '')
     + 'Your library cards are on ' + tab('tools', 'Tools') + '.';
 };
@@ -3789,6 +3795,11 @@ function ownCardSections_(col) {
   return (col === homeCol_() ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
+/* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
+const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', rate: 'Rate and class size', headline: 'Headline',
+  photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
+const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: OWN_CARD_SECTIONS_,
+  staff: OWN_CARD_SECTIONS_.concat(['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week']) };
 /* WHAT THE STAFF HUB EDITS — Pricing's rate and seat, Hours' week — so no card or settings page offers it a second time (444). */
 const hubOwns_ = f => typeof hubFor_ === 'function' && hubFor_()
   && (f === 'rate_per_hour' || f === 'extra_seat_rate' || /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
@@ -3818,7 +3829,8 @@ let CARD_EDIT_READ = '';
 const CARD_EDIT_KEY = 'familyCardEdit';
 function cardEditFresh_(pid) {
   const me = String((USER && USER.personId) || '');
-  return { who: me, pid: String(pid), own: !!me && String(pid) === me, base: null, asking: false, err: '' };
+  const own = !!me && String(pid) === me;
+  return { who: me, pid: String(pid), own, col: own ? 'settings' : undefined, base: null, asking: false, err: '' };
 }
 function cardEditNow_() {
   if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
@@ -3830,7 +3842,7 @@ function cardEditNow_() {
       const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
       if (k && k.pid && k.who && k.who === me) {
         CARD_EDIT = cardEditFresh_(k.pid);
-        if (PEOPLE_COLS_.indexOf(k.col) !== -1) CARD_EDIT.col = k.col;
+        if (!CARD_EDIT.own && PEOPLE_COLS_.indexOf(k.col) !== -1) CARD_EDIT.col = k.col;
         if (typeof k.pic === 'string') CARD_EDIT.pic0 = k.pic;
         if (typeof k.fig === 'string') CARD_EDIT.fig0 = k.fig;
         if (typeof k.hd === 'string') CARD_EDIT.h0 = k.hd;
@@ -3845,7 +3857,7 @@ function cardRemember_(e) {
   const k = { who: e.who, pid: e.pid, col: e.col || cardColOf_(e) };
   if (typeof e.pic0 === 'string') k.pic = e.pic0;
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
-  if (typeof e.h0 === 'string') k.hd = e.h0;
+  /* NOT THE HANDLE (383): nothing about who signed in is kept beside it — it cannot change while the card is open, so the live one is the same. */
   if (typeof e.cr0 === 'number') k.cr = e.cr0;
   try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) {}
 }
@@ -3919,10 +3931,10 @@ function cardChanged_(base, now) {
 function cardDraft_(pid) {
   try { const s = draftRead_('card', pid); return s ? JSON.parse(s) : null; } catch (x) { return null; }
 }
-function cardValues_(e, base) {
+function cardValues_(e, base, sec) {
   const vals = Object.assign({}, base);
   let held = 0;
-  const d = cardDraft_(e.pid);
+  const d = cardDraft_(e.pid + (sec ? ':' + sec : ''));
   if (d && d.v) {
     Object.keys(d.v).forEach(f => {
       if (d.from && Object.prototype.hasOwnProperty.call(d.from, f) && !cardSame_(f, d.from[f], base[f])) return;
@@ -3937,9 +3949,10 @@ let CARD_DRAW_N = 0;
 function cardDrawn_(base) {
   const n = String(++CARD_DRAW_N);
   CARD_DRAWN.set(n, base);
-  if (CARD_DRAWN.size > 8) {
+  /* A DRAW IS UP TO TWELVE FORMS NOT YET IN THE PAGE (468), so the newest 32 are never dropped. */
+  if (CARD_DRAWN.size > 64) {
     const live = new Set([...document.querySelectorAll('.card-ed .me-form[data-draw]')].map(f => f.dataset.draw));
-    [...CARD_DRAWN.keys()].forEach(k => { if (k !== n && !live.has(k)) CARD_DRAWN.delete(k); });
+    [...CARD_DRAWN.keys()].forEach(k => { if (Number(k) <= CARD_DRAW_N - 32 && !live.has(k)) CARD_DRAWN.delete(k); });
   }
   return n;
 }
@@ -3948,6 +3961,7 @@ function cardKeep_(form) {
   const card = form && form.closest('.card-ed');
   const base = form && CARD_DRAWN.get(form.dataset.draw || '');
   if (!e || !USER || !card || !base || card.dataset.pid !== e.pid) return;
+  const key = e.pid + (card.dataset.sec ? ':' + card.dataset.sec : '');
   const now = cardFormVals_(form), v = {}, from = {};
   Object.keys(now).forEach(f => {
     if (cardSame_(f, now[f], base[f])) return;
@@ -3955,8 +3969,8 @@ function cardKeep_(form) {
     from[f] = base[f] == null ? '' : String(base[f]);
   });
   try {
-    if (Object.keys(v).length) draftKeep_('card', e.pid, JSON.stringify({ v, from }));
-    else draftDrop_('card', e.pid);
+    if (Object.keys(v).length) draftKeep_('card', key, JSON.stringify({ v, from }));
+    else draftDrop_('card', key);
   } catch (x) {}
 }
 
@@ -4017,6 +4031,19 @@ function cardEditHtml_(t) {
       <p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
   </div>${cardEditTiles_(pid, false)}`;
 }
+/* YOUR OWN CARD'S EDIT, ONE CARD PER SECTION (468): each its own form, draft, Save and layout id — the owner, "settings is purely editing". */
+function cardEditCards_(t, e, secs, setCol) {
+  const pid = String(t.personId);
+  const base = cardBaseNow_(e);
+  if (!base && !e.err) setTimeout(() => cardFetch_(e), 0);
+  return secs.map(s => {
+    const open = `<div class="card is-prof card-ed own-sec" data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}"><h3>${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}</h3>`;
+    if (!base) return `${open}${e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_()}${cardEditTiles_(pid, true)}</div>`;
+    const { vals, held } = cardValues_(e, base, s.id);
+    return `${open}<div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals, [s])}
+      <p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>${cardEditTiles_(pid, false)}</div>`;
+  });
+}
 function cardEditTiles_(pid, saveOff) {
   return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
     off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
@@ -4069,14 +4096,14 @@ function ceWhere_(L, val, box) {
 }
 const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
-function cardEditForm_(t, e, vals) {
+function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
     options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1, draft: false }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
-  return (e.own ? ownCardSections_(e.col || cardColOf_(e)) : cardSections_()).map(s => {
+  return (only || (e.own ? ownCardSections_(cardColOf_(e)) : cardSections_())).map(s => {
     const L = s.list;
     const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
     const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
@@ -4274,13 +4301,28 @@ function cardQualHole_(form, base) {
 }
 
 /* ---------- AND THE CARD IS A CARD AGAIN -------------------------------------------------------------------- */
-function cardClose_(e, pane) {
-  try { draftDrop_('card', e.pid); } catch (x) {}
-  if (CARD_EDIT === e) CARD_EDIT = null;
-  cardForget_();
+function cardClose_(e, pane, sec) {
+  try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) {}
+  /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
+  if (CARD_EDIT === e && e.own && USER) {
+    Object.assign(e, { pic0: cardPicNow_(), fig0: String(USER.avatar || ''), cr0: Number(USER.credits || 0), h0: String(USER.handle || USER.name || '') });
+    cardRemember_(e);
+  } else { if (CARD_EDIT === e) CARD_EDIT = null; cardForget_(); }
   /* CLEAN FIRST, or `settingsKeep_` holds the column and the repaint that ends the edit never happens. */
-  (pane || document).querySelectorAll('.card-ed .me-form[data-dirty]').forEach(f => { delete f.dataset.dirty; });
+  (pane || document).querySelectorAll('.card-ed' + (sec ? '[data-sec="' + sec + '"]' : '') + ' .me-form[data-dirty]').forEach(f => { delete f.dataset.dirty; });
+  if (sec) cardSecRedraw_(pane, sec);
   cardRepaint_();
+}
+/* ONE SECTION'S FORM DRAWN AGAIN IN PLACE (468) — the column's repaint waits while another card has typing, and this card's must not. */
+function cardSecRedraw_(pane, sec) {
+  const el = (pane || document).querySelector('.card-ed[data-sec="' + sec + '"]'), form = el && el.querySelector('.me-form');
+  if (!form) return;
+  try {
+    const box = document.createElement('div');
+    box.innerHTML = ownCardSetPage_(colOfEl_(el)).find(h => h.indexOf('data-sec="' + sec + '"') !== -1) || '';
+    const fresh = box.querySelector('.me-form');
+    if (fresh) form.replaceWith(fresh);
+  } catch (x) {}
 }
 
 /* ---------- EDIT § */
@@ -4341,8 +4383,10 @@ function cardSelfSay_(e) {
 on('card-save', el => {
   const e = cardEditNow_();
   const pane = el.closest('.pane');
-  const card = pane && pane.querySelector('.card-ed');
+  /* THE CARD THE SAVE IS ON — your own card is a card per section (468). */
+  const card = (el.closest('.card-ed')) || (pane && pane.querySelector('.card-ed'));
   const form = card && card.querySelector('.me-form');
+  const sec = (card && card.dataset.sec) || '';
   if (!e || !USER || !form || card.dataset.pid !== e.pid || String(el.dataset.pid || '') !== e.pid) return;
   const said = form.querySelector('.me-said');
   const base = CARD_DRAWN.get(form.dataset.draw || '');
@@ -4357,7 +4401,7 @@ on('card-save', el => {
   const seatNo = cardSeatRefusal_(form, fields);
   if (seatNo) { toast(seatNo); if (said) said.textContent = seatNo; return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
-  if (!Object.keys(fields).length) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane); return; }
+  if (!Object.keys(fields).length) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
@@ -4372,7 +4416,7 @@ on('card-save', el => {
       }
       cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
       toast((d && d.said) || 'Saved');
-      cardClose_(e, pane);
+      cardClose_(e, pane, sec);
       /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`. */
       if (!d || d.changed === undefined || d.changed > 0) { try { load(); } catch (x) {} }
     })
@@ -4397,18 +4441,19 @@ function figPutBack_(look, seed, el, pane, said) {
 on('card-cancel', el => {
   const e = cardEditNow_();
   const pane = el.closest('.pane');
+  const card = el.closest('.card-ed'), sec = (card && card.dataset.sec) || '';
   if (!e || (pane && pane.classList.contains('is-sending'))) return;
   if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
   /* AND A LOOK STILL ON ITS WAY, for the picture's reason — see `AV_WIRE`. */
   if (AV_WIRE > 0) { toast('Your figure is still saving — Cancel once it has.'); return; }
   const was = typeof e.pic0 === 'string' ? e.pic0 : null;
-  const picBack = !!(e.own && was != null && USER && cardPicNow_() !== was);
+  const picBack = !!((!sec || sec === 'picture') && e.own && was != null && USER && cardPicNow_() !== was);
   /* THE FIGURE AS DRAWN, under the handle each was drawn with (`lookKey_`) — see `cardSelfSaved_`. */
   const h0 = typeof e.h0 === 'string' ? e.h0 : String((USER && (USER.handle || USER.name)) || '');
-  const figBack = !!(e.own && typeof e.fig0 === 'string' && USER
+  const figBack = !!((!sec || sec === 'figure') && e.own && typeof e.fig0 === 'string' && USER
     && lookKey_(USER.avatar, USER.handle || USER.name) !== lookKey_(e.fig0, h0));
-  if (!picBack && !figBack) { cardClose_(e, pane); return; }
-  const form = pane && pane.querySelector('.card-ed .me-form');
+  if (!picBack && !figBack) { cardClose_(e, pane, sec); return; }
+  const form = (card || pane) && (card || pane).querySelector((card ? '' : '.card-ed ') + '.me-form');
   const said = form && form.querySelector('.me-said');
   const bought = typeof e.cr0 === 'number' && Number(USER.credits || 0) < e.cr0;
   /* THE LOOK FIRST, THEN THE PICTURE — one request at a time on one locked page, so the picture's own
@@ -4416,7 +4461,7 @@ on('card-cancel', el => {
   (figBack ? figPutBack_(e.fig0, h0, el, pane, said) : Promise.resolve(true)).then(figOk => {
     const fig = !figBack ? '' : figOk ? (bought ? ' Anything you bought is still yours.' : '') : '';
     if (!picBack) {
-      cardClose_(e, pane);
+      cardClose_(e, pane, sec);
       toast(figOk ? 'Put back as it was — your figure too.' + fig : 'Everything else is put back, but not your figure.');
       return;
     }
@@ -4427,14 +4472,14 @@ on('card-cancel', el => {
         const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
         if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
         pfpTake_(null, got);
-        cardClose_(e, pane);
+        cardClose_(e, pane, sec);
         toast(!figBack ? 'Put back as it was — your picture too'
           : figOk ? 'Put back as it was — your picture and your figure too.' + fig
           : 'Put back as it was, your picture too — but not your figure.');
       })
       .catch(() => {
         const why = String((said && said.textContent) || '').trim();
-        cardClose_(e, pane);
+        cardClose_(e, pane, sec);
         toast('Everything else is put back, but not your picture' + (figBack && !figOk ? ' or your figure' : '') + (why ? ': ' + why : '.'));
       });
   });

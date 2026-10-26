@@ -2029,25 +2029,34 @@ const cardOpen_ = async (W, who, more) => {
   /* `more.col` names the card's face (453); your own card is edited on that face's settings column (464), somebody else's on Tutors (`T`). */
   const SETOF = { tutors: 'staff', students: 'account', parents: 'family' };
   const S = '#s-' + (SETOF[more.col || home] || more.col || home), T = '#s-tutors';
-  const q2 = sel => d.querySelector(S + ' ' + sel) || d.querySelector(T + ' ' + sel);
+  /* 468: YOUR OWN CARD IS ALWAYS OPEN ON ITS SETTINGS COLUMN, A CARD PER SECTION — `form()` is the column holding them, `sec(id)` one card. */
+  const F = '#s-' + (more.col || home);
   const c = {
     b, w: b.w, t, d, u, sent: b.sent, gets: b.gets, S,
     A: (act, el) => t.ACTIONS[act](el),
-    edit: pid => q2('[data-do="card-edit"][data-pid="' + pid + '"]'),
-    edits: () => [...d.querySelectorAll(S + ' [data-do="card-edit"], ' + T + ' [data-do="card-edit"]')].map(x => x.dataset.pid),
-    card: () => q2('.card-ed'),
-    form: () => q2('.card-ed .me-form'),
-    box: f => c.form() && c.form().querySelector('[data-me="' + f + '"]'),
-    tile: act => { const k = c.card(); const pane = k && k.closest('.pane'); return pane && pane.querySelector('[data-do="' + act + '"]'); },
+    cards: () => [...d.querySelectorAll(S + ' .card-ed')],
+    secs: () => c.cards().map(x => x.dataset.sec),
+    card: () => d.querySelector(S + ' .card-ed'),
+    sec: id => d.querySelector(S + ' .card-ed[data-sec="' + id + '"]'),
+    form: () => d.querySelector(S + ' .card-ed .me-form') ? d.querySelector(S) : null,
+    box: f => d.querySelector(S + ' .card-ed [data-me="' + f + '"]'),
+    tileOn: (id, act) => c.sec(id) && c.sec(id).querySelector('[data-do="' + act + '"]'),
+    /* SAVE ON EACH NAMED SECTION'S CARD, one after the other, as a person goes down the column. */
+    saveAll: async ids => { for (const id of ids) { const t1 = c.tileOn(id, 'card-save'); if (t1) { c.A('card-save', t1); await wait(400); } } },
     /* A BOX TYPED INTO AND LEFT, the way a person does it: `input`, then `change`, both bubbling. */
     type: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
                        el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
     tick: (el, on) => { el.checked = on; el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
     posts: () => b.sent.filter(x => x.action === 'updateProfile'),
-    said: () => String((c.form() && (c.form().querySelector('.me-said') || {}).textContent) || ''),
+    said: () => c.cards().map(k => String((k.querySelector('.me-said') || {}).textContent || '')).join(' ').trim(),
+    saidOn: id => String(((c.sec(id) && c.sec(id).querySelector('.me-said')) || {}).textContent || ''),
+    dirty: () => [...d.querySelectorAll(S + ' .card-ed .me-form[data-dirty]')].map(f => f.closest('.card-ed').dataset.sec),
     toast: () => toastOf_(d),
     drafts: () => Object.keys(keptStore_(b.w)).filter(k => /:card:/.test(k)),
-    pageOf: pid => [...d.querySelectorAll(S + ' .page, ' + T + ' .page')].find(pg => pg.querySelector('[data-do="card-edit"][data-pid="' + pid + '"], .card-ed[data-pid="' + pid + '"]')),
+    /* YOUR OWN CARD AS DRAWN — on the profile column alone (468), first there; somebody else's by a tile that names them. */
+    pageOf: pid => pid === String((t.whoami() || {}).personId || '')
+      ? [...d.querySelectorAll(F + ' > .page')].find(pg => pg.querySelector('.card') && !pg.querySelector('.add-card, .ps-card, .help-list'))
+      : [...d.querySelectorAll(T + ' .page')].find(pg => pg.querySelector('[data-pid="' + pid + '"]')),
   };
   return c;
 };
@@ -2087,55 +2096,61 @@ const CARD_PLAIN_ = { headline: 'Maths and physics, mostly', adjective_2: 'patie
   venues_ok: 'Colliers Wood Library, Mitcham Library', travel_km: '8' };
 const CARD_WHOLE_RE_ = /^photos_\d+$|^qual_\d+(_\w+)?$/;
 
-check('a tutor edits every section of their tutor card in place on Tutors (453), the four every card has first: one updateProfile with exactly what changed, the sheet holds it, and the card redraws with it', async () => {
+check('a tutor edits every section of their tutor card on Tutor settings, each section a card of its own with no preview (468): each Save posts its own section\'s changes, the sheet holds them, and the profile on Tutors redraws with them', async () => {
   const W = cardWorld_();
   const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
-  const edit = c.edit('P-T1');
-  if (!edit) return ['Ada\'s own card has no Edit tile — offered ' + JSON.stringify(c.edits())];
-  if (!edit.classList.contains('tile') || (edit.getAttribute('aria-label') || '').indexOf('Edit') !== 0) bad.push('Edit is not a tile named Edit');
-  if (c.card()) bad.push('the card arrived already open for editing');
-  c.A('card-edit', edit);
-  await wait(250);
-  const card = c.card(), form = c.form();
-  if (!card || !form) return bad.concat(['pressing Edit did not turn the card into a form']);
-  if (card.dataset.pid !== 'P-T1' || !card.classList.contains('is-prof')) bad.push('the form is not Ada\'s card in the card\'s own clothes');
-  if (!c.pageOf('P-T1') || !c.pageOf('P-T1').contains(card)) bad.push('the form is not on the page the card was on');
-  /* THE CARD'S ORDER, EVERY SECTION. */
-  const order = [...form.querySelectorAll('.ce-sec')].map(s => s.dataset.sec);
-  const wantSecs = ['picture', 'figure', 'name', 'handle'].concat(CARD_STAFF_);
-  if (JSON.stringify(order) !== JSON.stringify(wantSecs)) bad.push('the sections read ' + JSON.stringify(order) + ', not the card\'s order ' + JSON.stringify(wantSecs));
+  /* NO PREVIEW AND NO EDIT TILE: the settings column is only the editing (468). */
+  if (c.d.querySelector(c.S + ' .own-set, ' + c.S + ' [data-do="card-edit"], ' + c.S + ' .me-card')) bad.push('Tutor settings still draws your card as others see it, or an Edit tile');
+  const form = c.form();
+  if (!form) return bad.concat(['Tutor settings draws no editing cards for Ada']);
+  /* THE CARD'S ORDER, A CARD EACH. */
+  const wantSecs = CARD_YOU_.concat(CARD_STAFF_);
+  if (JSON.stringify(c.secs()) !== JSON.stringify(wantSecs)) bad.push('the section cards read ' + JSON.stringify(c.secs()) + ', not the card\'s order ' + JSON.stringify(wantSecs));
+  c.cards().forEach(k => {
+    const id = k.dataset.sec;
+    if (k.dataset.layCard !== 'own:staff:' + id) bad.push('the ' + id + ' card\'s layout id is ' + JSON.stringify(k.dataset.layCard));
+    if (k.querySelectorAll('.ce-sec').length !== 1) bad.push('the ' + id + ' card holds ' + k.querySelectorAll('.ce-sec').length + ' sections, not one');
+    if (!k.querySelector('h3') || !k.querySelector('.card-say')) bad.push('the ' + id + ' card has no title or no line saying what it is for');
+    const sv = k.querySelector('[data-do="card-save"]'), cn = k.querySelector('[data-do="card-cancel"]');
+    if (!sv || !cn || !sv.classList.contains('tile') || !cn.classList.contains('tile')) bad.push('the ' + id + ' card has no Save and Cancel tiles');
+    if (k.dataset.pid !== 'P-T1' || !k.classList.contains('is-prof')) bad.push('the ' + id + ' card is not Ada\'s');
+  });
   /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */
   const groups = c.t.DATA().profileFields || {};
   const five = Object.keys(groups).filter(g => !/contact|library/i.test(g)).reduce((a, g) => a.concat(groups[g]), []);
   const missing = five.filter(f => f !== 'photo' && f !== 'first_name' && f !== 'last_name' && !HUB_OWNS_RE_.test(f) && !c.box(f));
   if (!five.length) bad.push('the payload sent no profileFields, so the boxes were NOT checked');
-  if (missing.length) bad.push('the form has no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
-  ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('the form has no ' + f + ' — where they tutor is not editable on the card'); });
+  if (missing.length) bad.push('the cards have no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
+  ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('there is no ' + f + ' — where they tutor is not editable'); });
   /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.me-week, [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate or the week, which the Staff hub edits');
-  /* EDIT, SAVE AND CANCEL ARE TILES; the boxes are the form's. */
-  const save = c.tile('card-save'), cancel = c.tile('card-cancel');
-  if (!save || !cancel || !save.classList.contains('tile') || !cancel.classList.contains('tile')) bad.push('Save and Cancel are not tiles under the form');
-  if (c.edit('P-T1')) bad.push('Edit is still offered on a card already being edited');
+  if (form.querySelector('.card-ed .me-week, .card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate or the week, which the Staff hub edits');
   /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: § */
-  const lazy = [...form.querySelectorAll('img')].filter(i => i.getAttribute('loading') === 'lazy');
+  const lazy = [...form.querySelectorAll('.card-ed img')].filter(i => i.getAttribute('loading') === 'lazy');
   if (!form.querySelector('.ph-shelf .ph-thumb img')) bad.push('the editor drew no photograph thumbnail, so whether they wait to be scrolled to was NOT checked');
-  if (lazy.length) bad.push(lazy.length + ' picture(s) on the card being edited are loading="lazy" (' + lazy.map(i => i.closest('[class]').className).join(', ') + ') — not fetched until scrolled to');
+  if (lazy.length) bad.push(lazy.length + ' picture(s) on the cards being edited are loading="lazy" (' + lazy.map(i => i.closest('[class]').className).join(', ') + ') — not fetched until scrolled to');
   const did = await cardEditEverything_(c);
-  Object.keys(did).forEach(k => { if (!did[k]) bad.push('the form has no ' + k + ' to press, so that section was NOT edited'); });
+  Object.keys(did).forEach(k => { if (!did[k]) bad.push('there is no ' + k + ' to press, so that section was NOT edited'); });
   const heat = form.querySelector('.ce-heat .prof-heat');
   if (!heat || heat.getAttribute('data-dots') !== '2') bad.push('ticking Mitcham did not redraw the map with two venues (dots ' + (heat && heat.getAttribute('data-dots')) + ')');
+  const dirty = c.dirty();
+  if (JSON.stringify(dirty) !== JSON.stringify(['headline', 'photos', 'words', 'glance', 'quals', 'where'])) bad.push('the cards typed into are ' + JSON.stringify(dirty));
   c.sent.length = 0;
   W.holding = true;
   const g0 = c.gets.length;
-  c.A('card-save', save);
-  await wait(500);
+  await c.saveAll(dirty);
   const posts = c.posts();
-  if (posts.length !== 1) return bad.concat(['Save posted ' + posts.length + ' updateProfile requests, not one: ' + JSON.stringify(c.sent.map(x => x.action))]);
-  const p = posts[0], f = p.fields || {};
-  if (p.targetId !== 'P-T1') bad.push('the Save was addressed to ' + JSON.stringify(p.targetId) + ', not Ada');
+  if (posts.length !== dirty.length) return bad.concat(['six Saves posted ' + posts.length + ' updateProfile requests, not one each: ' + JSON.stringify(c.sent.map(x => x.action))]);
+  /* EACH SAVE SENDS ITS OWN CARD'S BOXES AND NO OTHER'S. */
+  posts.forEach((p, i) => {
+    const k = c.sec(dirty[i]);
+    const own = new Set([...((k && k.querySelectorAll('[data-me]')) || [])].map(x => x.dataset.me));
+    const stray = Object.keys(p.fields || {}).filter(f => !own.has(f));
+    if (stray.length) bad.push('Save on ' + dirty[i] + ' sent boxes of another card: ' + stray.slice(0, 5).join(', '));
+  });
+  const f = Object.assign({}, ...posts.map(p => p.fields || {}));
+  if (posts.some(p => p.targetId !== 'P-T1')) bad.push('a Save was addressed to somebody other than Ada');
   /* EXACTLY WHAT CHANGED — and the three packed cells whole, because the server rebuilds each from what arrives. */
   const keys = Object.keys(f);
   const extra = keys.filter(k => !CARD_WHOLE_RE_.test(k) && !(k in CARD_PLAIN_));
@@ -2157,8 +2172,9 @@ check('a tutor edits every section of their tutor card in place on Tutors (453),
   if (!venues.some(v => v[0] === 'Mitcham Library' && /P-T1/.test(v[1])) || !venues.some(v => v[0] === 'Colliers Wood Library' && /P-T1/.test(v[1]))) bad.push('the venues tab does not have Ada at both libraries: ' + JSON.stringify(venues));
   const quals = W.sheet('read(TAB.qualifications).rows.filter(r => S(r.person_id) === "P-T1").map(r => [S(r.subject), S(r.level), S(r.grade)])');
   if (JSON.stringify(quals) !== JSON.stringify([['Maths', 'GCSE', '8']])) bad.push('the qualifications tab holds ' + JSON.stringify(quals) + ', wanted Maths GCSE 8 alone');
-  /* THE CARD IS A CARD AGAIN, AND SAYS IT AT ONCE — the payload that follows the Save is held here. */
-  if (c.card()) bad.push('after Save the card is still a form');
+  /* THE CARDS STAY OPEN WITH WHAT WAS SAVED, AND THE PROFILE SAYS IT AT ONCE — the payload that follows the Save is held here. */
+  if (c.dirty().length) bad.push('after the Saves these cards still hold unsaved typing: ' + c.dirty().join(', '));
+  if (!c.box('headline') || c.box('headline').value !== 'Maths and physics, mostly') bad.push('after Save the headline card does not hold the saved headline');
   if (!/Saved/.test(c.toast())) bad.push('the toast says "' + c.toast() + '", not Saved');
   if (c.drafts().length) bad.push('the card\'s draft is still on the device after Save: ' + c.drafts().join(', '));
   const pg = () => c.pageOf('P-T1');
@@ -2180,113 +2196,95 @@ check('a tutor edits every section of their tutor card in place on Tutors (453),
   return bad;
 });
 
-check('Cancel puts the card back as it was and sends nothing; a refused Save keeps the form open, says why, and writes nothing', async () => {
+check('Cancel on a section\'s card puts it back as it was and sends nothing; a refused Save keeps the card, says why, and writes nothing (468)', async () => {
   const W = cardWorld_();
   const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
-  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
-  c.A('card-edit', c.edit('P-T1'));
-  await wait(250);
-  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
   /* A QUALIFICATION BEING ADDED WITH A SUBJECT AND NO LEVEL IS NOT SENT — Settings never saves one either. */
-  const add = c.form().querySelector('.q-shelf [data-do="qual-add"]');
-  if (!add) bad.push('the card\'s shelf has no + to add a qualification, so a half-added one was NOT checked');
+  const add = c.sec('quals') && c.sec('quals').querySelector('.q-shelf [data-do="qual-add"]');
+  if (!add) bad.push('the Qualifications card has no + to add a qualification, so a half-added one was NOT checked');
   else {
     c.A('qual-add', add);
     await wait(50);
-    const fresh = c.form().querySelector('.q-list .q-slot[data-new]');
-    if (!fresh) bad.push('+ on the card\'s shelf did not start a line');
+    const fresh = c.sec('quals').querySelector('.q-list .q-slot[data-new]');
+    if (!fresh) bad.push('+ on the Qualifications card did not start a line');
     else {
       c.type(fresh.querySelector('select.q-name'), 'Physics');
       c.sent.length = 0;
-      c.A('card-save', c.tile('card-save'));
+      c.A('card-save', c.tileOn('quals', 'card-save'));
       await wait(300);
       if (c.posts().length) bad.push('the card posted a qualification with a subject and no level');
-      if (!/Choose a level/.test(c.said())) bad.push('a half-added qualification is refused with "' + c.said() + '"');
-      const again = c.form() && c.form().querySelector('.q-list .q-slot[data-new]');
+      if (!/Choose a level/.test(c.saidOn('quals'))) bad.push('a half-added qualification is refused with "' + c.saidOn('quals') + '"');
+      const again = c.sec('quals') && c.sec('quals').querySelector('.q-list .q-slot[data-new]');
       if (again) { c.A('qual-drop', again.querySelector('[data-do="qual-drop"]')); await wait(50); }
     }
   }
-  if (!c.form()) return bad.concat(['the half-added qualification\'s Save closed the form, so the rest was NOT checked']);
   /* REFUSED: a youngest older than the oldest. `ageRefusal_` refuses before anything is written. */
   c.type(c.box('age_min'), '17');
   c.type(c.box('age_max'), '9');
   c.type(c.box('headline'), 'Typed, and refused with the ages');
   c.sent.length = 0;
-  c.A('card-save', c.tile('card-save'));
+  c.A('card-save', c.tileOn('glance', 'card-save'));
   await wait(500);
   if (c.posts().length !== 1) bad.push('the refused Save posted ' + c.posts().length + ' requests');
-  if (!c.form()) bad.push('a refused Save closed the form, and what was typed with it');
-  else {
-    if (!/youngest age/i.test(c.said()) || !/Nothing was saved/i.test(c.said())) bad.push('the line under the form says "' + c.said() + '", not the server\'s refusal');
-    if (c.box('headline').value !== 'Typed, and refused with the ages') bad.push('the refused Save emptied the headline box');
-  }
+  if (!c.sec('glance')) bad.push('a refused Save took away the At a glance card');
+  else if (!/youngest age/i.test(c.saidOn('glance')) || !/Nothing was saved/i.test(c.saidOn('glance'))) bad.push('the line under At a glance says "' + c.saidOn('glance') + '", not the server\'s refusal');
+  if (!c.box('headline') || c.box('headline').value !== 'Typed, and refused with the ages') bad.push('the refused Save on another card emptied the headline box');
   const row = W.real.row('P-T1');
   if (String(row.headline) !== 'Maths, mostly' || String(row.age_min) !== '8') bad.push('a refused Save wrote to the sheet: headline ' + JSON.stringify(row.headline) + ', age_min ' + JSON.stringify(row.age_min));
-  /* CANCEL: nothing sent, the card back, no draft. */
-  const mitcham = c.form() && c.form().querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
+  /* CANCEL ON EACH CARD TYPED INTO: nothing sent, each box back, no draft. */
+  const mitcham = c.sec('where') && c.sec('where').querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
   if (mitcham) c.tick(mitcham, true);
-  if (!c.tile('card-cancel')) return bad.concat(['there is no Cancel under the card to press, so Cancel was NOT checked']);
+  if (!c.tileOn('where', 'card-cancel')) return bad.concat(['there is no Cancel on the Where you teach card, so Cancel was NOT checked']);
   c.sent.length = 0;
-  c.A('card-cancel', c.tile('card-cancel'));
-  await wait(300);
+  for (const id of ['quals', 'glance', 'headline', 'where']) { c.A('card-cancel', c.tileOn(id, 'card-cancel')); await wait(300); }
   if (c.posts().length) bad.push('Cancel posted ' + c.posts().length + ' updateProfile requests');
-  if (c.card()) bad.push('Cancel left the card as a form');
+  if (!c.box('headline') || c.box('headline').value !== 'Maths, mostly') bad.push('after Cancel the headline box holds ' + JSON.stringify(c.box('headline') && c.box('headline').value) + ', not the saved headline');
+  if (!c.box('venues_ok') || c.box('venues_ok').value !== 'Colliers Wood Library') bad.push('after Cancel the venues are ' + JSON.stringify(c.box('venues_ok') && c.box('venues_ok').value));
+  if (c.said()) bad.push('after Cancel a card says "' + c.said() + '"');
+  if (c.drafts().length) bad.push('Cancel left a card\'s draft on the device: ' + c.drafts().join(', '));
   const text = String((c.pageOf('P-T1') || {}).textContent || '');
-  if (!/Maths, mostly/.test(text) || /Typed, and refused/.test(text)) bad.push('after Cancel the card does not carry the headline it had');
-  if (c.drafts().length) bad.push('Cancel left the card\'s draft on the device: ' + c.drafts().join(', '));
-  /* AND EDIT AGAIN OPENS ON THE SAVED VALUES, saying nothing is waiting. */
-  c.A('card-edit', c.edit('P-T1'));
-  await wait(250);
-  if (!c.form()) bad.push('Edit after Cancel did not open the form');
-  else {
-    if (c.box('headline').value !== 'Maths, mostly') bad.push('Edit after Cancel opened on ' + JSON.stringify(c.box('headline').value) + ', not the saved headline');
-    if (c.box('venues_ok').value !== 'Colliers Wood Library') bad.push('Edit after Cancel opened with venues ' + JSON.stringify(c.box('venues_ok').value));
-    if (c.said()) bad.push('Edit after Cancel says "' + c.said() + '" under the form');
-  }
-  /* ---------- AND CANCEL PUTS THE PICTURE BACK TOO — the review of 330 § */
-  if (!c.form()) return bad.concat(['no form open to choose a picture on, so Cancel putting the picture back was NOT checked']);
-  /* THE PICTURE IS ON THE SAME FORM (453): a tutor's whole card is edited in one place, on Tutors. */
-  const youForm = c.form();
-  const fox = youForm && youForm.querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
-  if (!fox) return bad.concat(['the card\'s picture chooser has no fox to tap, so Cancel putting the picture back was NOT checked']);
+  if (!/Maths, mostly/.test(text) || /Typed, and refused/.test(text)) bad.push('after Cancel the profile on Tutors does not carry the headline it had');
+  /* ---------- AND CANCEL ON THE PICTURE'S CARD PUTS THE PICTURE BACK — the review of 330 § */
+  const fox = c.sec('picture') && c.sec('picture').querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
+  if (!fox) return bad.concat(['the Picture card has no fox to tap, so Cancel putting the picture back was NOT checked']);
   c.sent.length = 0;
   c.A('pfp-choose', fox);
   for (let k = 0; k < 20 && String(W.real.row('P-T1').photo) !== 'pfp:fox'; k++) await wait(100);
-  if (String(W.real.row('P-T1').photo) !== 'pfp:fox') return bad.concat(['tapping the fox on the card did not save it (sheet: ' + JSON.stringify(W.real.row('P-T1').photo) + '), so Cancel putting it back was NOT checked']);
+  if (String(W.real.row('P-T1').photo) !== 'pfp:fox') return bad.concat(['tapping the fox did not save it (sheet: ' + JSON.stringify(W.real.row('P-T1').photo) + '), so Cancel putting it back was NOT checked']);
   c.w.dispatchEvent(new c.w.Event('pagehide'));
-  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)) });
+  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), col: 'tutors' });
   if (two.err) return bad.concat(['after the reload: ' + two.err]);
-  for (let k = 0; k < 20 && !two.form(); k++) await wait(100);
-  if (!two.form() || !two.tile('card-cancel')) return bad.concat(['after the reload Ada\'s card is not open for editing, so Cancel after a reload was NOT checked']);
+  for (let k = 0; k < 20 && !two.tileOn('picture', 'card-cancel'); k++) await wait(100);
+  if (!two.tileOn('picture', 'card-cancel')) return bad.concat(['after the reload the Picture card has no Cancel, so Cancel after a reload was NOT checked']);
   two.sent.length = 0;
-  two.A('card-cancel', two.tile('card-cancel'));
-  for (let k = 0; k < 20 && two.card(); k++) await wait(100);
+  two.A('card-cancel', two.tileOn('picture', 'card-cancel'));
+  for (let k = 0; k < 20 && !two.posts().length; k++) await wait(100);
+  await wait(300);
   const back = two.posts();
   if (back.length !== 1 || JSON.stringify(back[0].fields) !== JSON.stringify({ photo: 'https://example.org/ada.jpg' }) || back[0].targetId !== 'P-T1') {
     bad.push('Cancel after a picture was chosen sent ' + JSON.stringify(back.map(x => x.fields)) + ', not one updateProfile putting back the link she opened with');
   }
   if (two.sent.some(x => x.action === 'savePhoto')) bad.push('Cancel sent a savePhoto');
-  if (String(W.real.row('P-T1').photo) !== 'https://example.org/ada.jpg') bad.push('after Cancel the sheet\'s picture is ' + JSON.stringify(W.real.row('P-T1').photo) + ', not the link Ada opened the card with');
+  if (String(W.real.row('P-T1').photo) !== 'https://example.org/ada.jpg') bad.push('after Cancel the sheet\'s picture is ' + JSON.stringify(W.real.row('P-T1').photo) + ', not the link Ada opened with');
   if (String((two.t.whoami().profile || {}).photo) !== 'https://example.org/ada.jpg') bad.push('after Cancel Ada\'s own profile says her picture is ' + JSON.stringify((two.t.whoami().profile || {}).photo));
-  if (two.card()) bad.push('Cancel with a picture to put back left the card as a form');
   const face = two.pageOf('P-T1') && two.pageOf('P-T1').querySelector('.prof-top .prof-pic');
-  if (!face || face.tagName !== 'IMG' || face.getAttribute('src') !== 'https://example.org/ada.jpg') bad.push('after Cancel Ada\'s card shows ' + (face ? face.outerHTML.slice(0, 80) : 'no face') + ', not her photograph');
+  if (!face || face.tagName !== 'IMG' || face.getAttribute('src') !== 'https://example.org/ada.jpg') bad.push('after Cancel Ada\'s profile shows ' + (face ? face.outerHTML.slice(0, 80) : 'no face') + ', not her photograph');
   if (!/your picture too/.test(two.toast())) bad.push('after Cancel the toast says "' + two.toast() + '", not that the picture was put back as well');
-  if (two.drafts().length) bad.push('Cancel with a picture left the card\'s draft on the device: ' + two.drafts().join(', '));
+  if (two.drafts().length) bad.push('Cancel with a picture left a card\'s draft on the device: ' + two.drafts().join(', '));
   return bad;
 });
 
-check('a reload in the middle of editing the card keeps it open with every typed value, says they are not saved, and Save sends them', async () => {
+check('a reload in the middle of editing the cards keeps every typed value, says they are not saved, and each card\'s Save sends them (468)', async () => {
   const W = cardWorld_();
   const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
-  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
-  c.A('card-edit', c.edit('P-T1'));
-  await wait(250);
-  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
   const did = await cardEditEverything_(c);
   if (Object.keys(did).some(k => !did[k])) bad.push('not every section could be edited before the reload: ' + JSON.stringify(did));
   if (c.posts().length) bad.push('editing the card posted ' + c.posts().length + ' updateProfile requests before Save — the shelf saved as it went');
@@ -2304,14 +2302,14 @@ check('a reload in the middle of editing the card keeps it open with every typed
   if (!two.box('qual_1_grade') || two.box('qual_1_grade').value !== '8') bad.push('after the reload the qualification\'s grade is ' + JSON.stringify(two.box('qual_1_grade') && two.box('qual_1_grade').value));
   if (!/Not saved yet/.test(two.said())) bad.push('after the reload the line under the form says "' + two.said() + '", not that what is in the boxes is not saved');
   two.sent.length = 0;
-  two.A('card-save', two.tile('card-save'));
-  await wait(500);
-  const p = two.posts();
-  if (p.length !== 1) bad.push('Save after the reload posted ' + p.length + ' requests');
-  else Object.keys(CARD_PLAIN_).forEach(f => { if (String((p[0].fields || {})[f]) !== CARD_PLAIN_[f]) bad.push('Save after the reload sent ' + f + ' as ' + JSON.stringify((p[0].fields || {})[f])); });
+  /* EACH CARD'S SAVE SENDS ITS OWN (468): six cards were typed into, so six requests. */
+  await two.saveAll(['headline', 'photos', 'words', 'glance', 'quals', 'where']);
+  const p = two.posts(), sent = Object.assign({}, ...p.map(x => x.fields || {}));
+  if (p.length !== 6) bad.push('Save on the six cards after the reload posted ' + p.length + ' requests');
+  Object.keys(CARD_PLAIN_).forEach(f => { if (String(sent[f]) !== CARD_PLAIN_[f]) bad.push('Save after the reload sent ' + f + ' as ' + JSON.stringify(sent[f])); });
   const row = W.real.row('P-T1');
   if (String(row.headline) !== CARD_PLAIN_.headline) bad.push('the sheet after the reload\'s Save holds headline ' + JSON.stringify(row.headline));
-  if (two.card()) bad.push('after the Save the card is still a form');
+  if (two.dirty().length || two.drafts().length) bad.push('after the Saves unsaved typing is still held: ' + two.dirty().concat(two.drafts()).join(', '));
   return bad;
 });
 
@@ -2320,10 +2318,8 @@ check('a card draft typed over a value saved elsewhere since does not win after 
   const W = cardWorld_();
   const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
-  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
-  c.A('card-edit', c.edit('P-T1'));
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
-  if (!c.box('headline')) return ['pressing Edit did not draw the headline box'];
+  if (!c.box('headline')) return ['Tutor settings draws no headline box'];
   c.type(c.box('headline'), 'Mine, typed and not saved');
   await wait(50);
   if (!c.drafts().length) return ['typing on the card kept no draft, so a newer save beating it was NOT checked'];
@@ -2352,13 +2348,10 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
   const c = await cardOpen_(W, 'tutor@example.org');
   if (c.err) return [c.err];
   const bad = [];
-  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
-  c.A('card-edit', c.edit('P-T1'));
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
-  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
-  const pg = c.pageOf('P-T1');
-  if (pg && pg.querySelector('[data-do="signout"]')) bad.push('Sign out is still under the card being edited — it is on Student settings');
-  if (pg && pg.querySelector('[data-do="card-edit"]')) bad.push('Edit is drawn again under the card being edited');
+  if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
+  if (c.d.querySelector(c.S + ' [data-do="signout"]')) bad.push('Sign out is on Tutor settings beside the cards being edited — it is on Student settings');
+  if (c.d.querySelector('[data-do="card-edit"]')) bad.push('an Edit tile is drawn — your own card is always open on its settings column (468)');
   const outs = c.d.querySelectorAll('#s-account [data-do="signout"]');
   if (outs.length !== 1) return bad.concat(['Student settings holds ' + outs.length + ' Sign out tiles, not one']);
   c.type(c.box('first_name'), 'Typed, then signed out');
@@ -2376,10 +2369,10 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
   await wait(300);
   try { ['tutors', 'parents', 'staff', 'family'].forEach(id => c.w.paint(id)); c.t.go('family', false, true); } catch (e) {}
   await wait(150);
-  if (c.card() || c.d.querySelector('.card-ed')) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
+  if (c.card() || c.d.querySelector('.card-ed[data-pid="P-T1"]')) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
   /* 464: Pat's own Edit is on Parent settings, and no profile column offers it. */
-  const patEdits = [...c.d.querySelectorAll('#s-tutors [data-do="card-edit"], #s-parents [data-do="card-edit"], #s-staff [data-do="card-edit"], #s-family [data-do="card-edit"]')].map(x => x.dataset.pid);
-  if (JSON.stringify(patEdits) !== '["P-C1"]') bad.push('Pat is offered Edit on ' + JSON.stringify(patEdits) + ', wanted her own card alone');
+  const patEdits = [...new Set([...c.d.querySelectorAll('.card-ed')].map(x => x.dataset.pid + '@' + String((x.closest('#screen > .screen') || {}).id || '').replace(/^s-/, '')))];
+  if (JSON.stringify(patEdits) !== '["P-C1@family"]') bad.push('Pat is given editing cards for ' + JSON.stringify(patEdits) + ', wanted her own on Parent settings alone');
   c.A('signout', c.d.createElement('button'));
   await wait(300);
   /* ADA BACK, SAME TAB: her card open, what she typed in its box, said as not saved. */
@@ -2388,7 +2381,7 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
   await wait(300);
   try { c.t.go('staff', false, true); c.w.paint('staff'); } catch (e) {}
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
-  if (!c.form()) bad.push('Ada signed back in on the same tab finds her card shut — what she typed waits behind Edit with nothing saying so');
+  if (!c.form()) bad.push('Ada signed back in on the same tab finds no editing cards — what she typed waits with nothing saying so');
   else {
     if (c.box('first_name').value !== 'Typed, then signed out') bad.push('Ada signed back in finds the first name ' + JSON.stringify(c.box('first_name').value));
     if (!/Not saved yet/.test(c.said())) bad.push('Ada signed back in is not told her typing is not saved: "' + c.said() + '"');
@@ -2731,6 +2724,10 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       if (live.length) bad.push(rank + ': ' + live.length + ' boxes or tiles on locked ' + col + ' cards can still be used');
       if (shut.some(c => !c.querySelector('.card-say'))) bad.push(rank + ': a locked ' + col + ' card does not say what it is for');
       if (col === 'staff' && !q('#s-staff .is-locked [data-do="hub-open"][disabled]')) bad.push(rank + ': the locked Tutor settings does not show the Staff hub');
+      /* 468: YOUR CARD'S PLACE IS A LOCKED CARD PER SECTION, each with its own layout id — never one "Your card". */
+      const ownLocks = [...a.d.querySelectorAll('#s-' + col + ' .own-lock.is-locked')].map(x => x.dataset.layCard);
+      const wantLocks = (col === 'staff' ? ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : ['picture', 'figure', 'name', 'handle']).map(k => 'own:' + col + ':' + k);
+      if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
     if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
     if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor settings has no Staff hub');
@@ -2741,7 +2738,9 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (!first || !first.querySelector('.me-card, .card')) bad.push(rank + ': the first card on ' + home.slice(2) + ' is not your own');
     if (q('#s-tutors [data-do="card-edit"][data-pid="' + pid + '"], #s-students [data-do="card-edit"][data-pid="' + pid + '"], #s-parents [data-do="card-edit"][data-pid="' + pid + '"]')) bad.push(rank + ': your own profile card offers Edit');
     const setCol = { student: 'account', client: 'family', staff: 'staff', admin: 'staff' }[rank];
-    if (!q('#s-' + setCol + ' [data-do="card-edit"][data-pid="' + pid + '"]')) bad.push(rank + ': ' + setCol + ' has no Edit for your own card');
+    /* 468: YOUR OWN CARD IS ONLY ITS EDITING THERE, a card per section; no settings column draws it as others see it. */
+    if (!q('#s-' + setCol + ' .card-ed[data-pid="' + pid + '"]')) bad.push(rank + ': ' + setCol + ' has no editing cards for your own card');
+    if (q('#s-staff .own-set, #s-account .own-set, #s-family .own-set, #s-staff .me-card, #s-account .me-card, #s-family .me-card, [data-do="card-edit"]')) bad.push(rank + ': a settings column still shows your card as others see it, or an Edit tile');
     if (rank === 'client' && !q('#s-students .kid-manage')) bad.push('a client\'s Students has no Manage your child');
     if (!q('#s-students .ps-card')) bad.push(rank + ': Students has no Find someone by handle');
     const myShare = q('#s-tutors [data-do="tutor-share"][data-handle="' + (a.t.whoami().handle || '-') + '"]');
@@ -2750,15 +2749,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !q('#s-biz .me-build'))) bad.push('Business still has + Add a person, or lost the build stamps');
     /* ONE PLACE EACH: the columns, your own card open for editing in each column it has an Edit, and the hub's Hours and Pricing. */
     const ed = editorsOf_(a.d, {});
-    for (const col of ['staff', 'account', 'family']) {
-      const tile = q('#s-' + col + ' [data-do="card-edit"][data-pid="' + pid + '"]');
-      if (!tile) continue;
-      a.A('card-edit', tile); await wait(250);
-      if (!q('#s-' + col + ' .card-ed')) bad.push(rank + ': Edit on ' + col + ' did not open your card there');
-      editorsOf_(a.d, ed);
-      const cancel = q('#s-' + col + ' [data-do="card-cancel"]') || a.d.querySelector('[data-do="card-cancel"]');
-      if (cancel) { a.A('card-cancel', cancel); await wait(200); }
-    }
+    editorsOf_(a.d, ed);
     const hub = q('#s-staff [data-do="hub-open"]:not([disabled])');
     if (hub) {
       a.A('hub-open', hub); await wait(200);
@@ -2968,7 +2959,7 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
   };
   /* WHAT NO ROLE'S SETTINGS DRAWS NOW, AND WHAT EVERY ROLE'S STILL DOES. */
   const common = (who, d) => {
-    const on = ['first_name', 'last_name', 'photo', 'lib1_name', 'lib1_no', 'lib1_pin'].filter(f => d.querySelector('#s-account [data-me="' + f + '"]'));
+    const on = ['first_name', 'last_name', 'photo', 'lib1_name', 'lib1_no', 'lib1_pin'].filter(f => [...d.querySelectorAll('#s-account [data-me="' + f + '"]')].some(x => !x.closest('.card-ed')));
     if (on.length) bad.push(who + '\'s Settings still has boxes their card or Tools now holds: ' + on.join(', '));
     const moved = ['.pfp', '.handle-shown', '.av-card', '[data-do="av-pick"]', '.lib-face', '[data-do="shelf-more"]']
       .filter(q => inSet(d, q));
@@ -2976,7 +2967,7 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
     if (!d.querySelector('#s-account #pin-now') || !d.querySelector('#s-account [data-do="pin-save"]')) bad.push(who + '\'s Settings lost the PIN form');
     if (!d.querySelector('#s-account .roles-card') || !d.querySelector('#s-account .notify-card')) bad.push(who + '\'s Settings lost Your roles or Notifications');
     const line = String((d.querySelector('#s-account .ce-moved') || {}).textContent || '');
-    if (!/handle and figure are edited on Your card/.test(line) || !/library cards are on Tools/.test(line)) bad.push(who + '\'s Settings does not say where the card\'s fields and the library cards went: ' + JSON.stringify(line));
+    if (!/handle and figure are edited on cards of their own/.test(line) || !/library cards are on Tools/.test(line)) bad.push(who + '\'s Settings does not say where the card\'s fields and the library cards went: ' + JSON.stringify(line));
     if (!setPages(d).length) bad.push(who + '\'s settings on You do not start with where things went');
   };
   for (const who of ['tutor@example.org', 'admin@example.org']) {
@@ -3046,10 +3037,8 @@ check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card 
   const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
-  if (!c.edit('P-T1')) return ['Ada\'s tutor card has no Edit'];
-  c.A('card-edit', c.edit('P-T1'));
-  await wait(400);
-  if (!c.form()) return ['Ada\'s tutor card did not open for editing'];
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
   if (c.form().querySelector('[data-pound="extra_seat_rate"], [data-pound="extra_seat_cut"], [data-me="rate_per_hour"], [data-me="extra_seat_rate"]'))
     bad.push('Ada\'s tutor card offers her rate or seat, which the Staff hub edits');
   const u = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
@@ -3077,7 +3066,7 @@ check('the read-only cut a tutor cannot change says who sets it (345)', async ()
 });
 
 /* ---------- EVERYBODY EDITS THEIR OWN CARD (docs/history/339) § */
-check('every role\'s own card has Edit with picture, figure, name and handle on its role\'s settings column (453, 464); a tutor\'s and a listed admin\'s, on Tutors, the rest as well, less what the hub edits; a parent, a student and an admin with no public card their picture, figure, name and handle', async () => {
+check('every role\'s own card is edited, a card per section, with picture, figure, name and handle on its role\'s settings column (453, 464, 468); a tutor\'s and a listed admin\'s, on Tutors, the rest as well, less what the hub edits; a parent, a student and an admin with no public card their picture, figure, name and handle', async () => {
   const W = cardWorld_();
   const bad = [];
   const bare = ['picture', 'figure', 'name', 'handle'];
@@ -3086,14 +3075,12 @@ check('every role\'s own card has Edit with picture, figure, name and handle on 
                                    ['parent@example.org', 'P-C1', bare], ['student@example.org', 'P-S1', bare]]) {
     const c = await cardOpen_(W, who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
-    const e = c.edit(pid);
-    if (!e) { bad.push(who + ' has no Edit on their own card — offered ' + JSON.stringify(c.edits())); continue; }
-    if (!e.classList.contains('tile') || e.classList.contains('is-admin')) bad.push(who + '\'s Edit on their own card is not their own tile (' + e.className + ')');
-    c.A('card-edit', e);
     for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    if (!c.form()) { bad.push(who + '\'s Edit drew no form'); continue; }
+    if (!c.form()) { bad.push(who + '\'s settings column draws no editing cards'); continue; }
+    /* 468: A CARD PER SECTION, already open, each its own Save. */
     const secs = [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec);
-    if (JSON.stringify(secs) !== JSON.stringify(order)) bad.push(who + '\'s own card offers ' + JSON.stringify(secs) + ', wanted ' + JSON.stringify(order));
+    if (JSON.stringify(secs) !== JSON.stringify(order) || JSON.stringify(c.secs()) !== JSON.stringify(order)) bad.push(who + '\'s own cards are ' + JSON.stringify(c.secs()) + ' holding ' + JSON.stringify(secs) + ', wanted ' + JSON.stringify(order));
+    if (c.cards().some(k => !k.querySelector('[data-do="card-save"]'))) bad.push(who + ': a section card has no Save of its own');
     const fig = c.form().querySelector('.ce-sec[data-sec="figure"]');
     if (!fig || fig.querySelectorAll('.av-card .av-figure').length !== 1 || !fig.querySelector('[data-do="av-colour"]') || !fig.querySelector('[data-do="av-pick"]'))
       bad.push(who + '\'s figure section is not the wardrobe — one figure, the colours and the slots');
@@ -3108,17 +3095,16 @@ check('every role\'s own card has Edit with picture, figure, name and handle on 
     if (!kidPfp && !c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered Choose photo on their own card');
     if (kidPfp && c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"], .ce-sec[data-sec="picture"] .pfp-in')) bad.push(who + ', a child, is offered a photo upload on their own card');
     if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
-    if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
+    if (order === bare && c.form().querySelector('.card-ed [data-me="date_of_birth"], .card-ed [data-me="dob_d"], .card-ed [data-me="email"], .card-ed [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
     if (who === 'parent@example.org') {
       c.type(c.box('first_name'), 'Patricia');
       c.sent.length = 0;
-      c.A('card-save', c.tile('card-save'));
+      c.A('card-save', c.tileOn('name', 'card-save'));
       await wait(500);
       const p = c.posts();
       if (p.length !== 1 || JSON.stringify(Object.keys(p[0].fields || {})) !== '["first_name"]' || p[0].targetId !== 'P-C1')
         bad.push('Pat\'s Save posted ' + JSON.stringify(p.map(x => [x.targetId, Object.keys(x.fields || {})])) + ', wanted one updateProfile of her first name to her own row');
       if (String(W.real.row('P-C1').first_name) !== 'Patricia') bad.push('Pat\'s row says ' + JSON.stringify(W.real.row('P-C1').first_name) + ' after her card\'s Save');
-      if (c.card()) bad.push('Pat\'s card is still a form after Save');
       const pg = c.pageOf('P-C1');
       if (!pg || !/Patricia Parent/.test(pg.textContent)) bad.push('Pat\'s own card does not say Patricia Parent after her Save');
     }
@@ -3133,12 +3119,8 @@ check('every role\'s own card has Edit with picture, figure, name and handle on 
            profile: { first_name: 'Test', last_name: 'Admin', headline: 'Runs the place', phone_cc: '+44' } });
   try { t.go('tutors', false, true); w.paint('tutors'); w.paint('account'); w.paint('staff'); } catch (e) { return bad.concat(['drawing the lab admin\'s Tutors column threw: ' + e.message]); }
   await wait(200);
-  /* 464: YOUR OWN CARD'S EDIT IS ON TUTOR SETTINGS, never on Tutors. */
-  if (d.querySelector('#s-tutors [data-do="card-edit"][data-pid="P001"]')) bad.push('an admin\'s own profile card on Tutors offers Edit');
-  const le = d.querySelector('#s-staff [data-do="card-edit"][data-pid="P001"]');
-  if (!le) return bad.concat(['an admin with no public card has no Edit on their own card on Tutor settings']);
-  t.ACTIONS['card-edit'](le);
-  await wait(300);
+  /* 464, 468: YOUR OWN CARD IS EDITED ON TUTOR SETTINGS, always open there, never on Tutors. */
+  if (d.querySelector('#s-tutors [data-do="card-edit"], #s-tutors .card-ed')) bad.push('an admin\'s own profile card on Tutors offers Edit');
   const ls = [...d.querySelectorAll('#s-staff .card-ed .ce-sec')].map(x => x.dataset.sec);
   if (JSON.stringify(ls) !== JSON.stringify(bare)) bad.push('an admin with no public card is offered ' + JSON.stringify(ls) + ', wanted ' + JSON.stringify(bare));
   try { w.paint('account'); w.paint('staff'); } catch (e) {}
@@ -3158,8 +3140,8 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
   if (c.err) return [c.err];
   const bad = [];
   const shirtOf = s => Number((/shirt:(\d)/.exec(String(s || '')) || [])[1]);
-  const open = async () => { const e = c.edit('P-S1'); if (e) c.A('card-edit', e); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
-  if (!(await open())) return ['Sam\'s own card has no Edit, or it drew no form'];
+  const open = async () => { for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
+  if (!(await open())) return ['Sam\'s Student settings draws no editing cards'];
   const pick = async n => {
     const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
     if (!sw) { bad.push('the figure section has no shirt ' + n); return; }
@@ -3181,22 +3163,21 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
   c.A('pfp-choose', opt);
   await wait(300);
   if (!c.sent.some(x => x.action === 'savePhoto' && x.choice === 'pfp:avatar')) bad.push('choosing your figure as the picture posted ' + JSON.stringify(c.sent.map(x => x.action)));
-  c.A('card-save', c.tile('card-save'));
+  /* SAVE ON THE FIGURE'S CARD: what it would put back is now this look. */
+  c.A('card-save', c.tileOn('figure', 'card-save'));
   await wait(400);
-  if (c.card()) bad.push('Save did not close the form');
   const face = c.pageOf('P-S1') && c.pageOf('P-S1').querySelector('.prof-pic');
   if (!face || !face.querySelector('svg.avatar.is-bust') || face.innerHTML.indexOf(shirt2) === -1) bad.push('Sam\'s card\'s face is not the figure in shirt 2: ' + (face ? face.outerHTML.slice(0, 120) : 'none'));
   /* CANCEL PUTS THE LOOK BACK. */
-  if (!(await open())) return bad.concat(['Edit did not open the form a second time']);
+  if (!(await open())) return bad.concat(['the editing cards are gone after Save']);
   await pick(4);
   if (shirtOf(c.t.whoami().avatar) !== 4) bad.push('shirt 4 was not picked');
   c.sent.length = 0;
-  c.A('card-cancel', c.tile('card-cancel'));
+  c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
   await wait(500);
   const back = c.sent.filter(x => x.action === 'saveAvatar');
   if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 2) bad.push('Cancel posted ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one saveAvatar putting shirt 2 back');
   if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after Cancel the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
-  if (c.card()) bad.push('Cancel did not close the form');
   if (!/figure too/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure was put back');
   return bad;
 });
@@ -3216,7 +3197,6 @@ check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for
   const bad = [];
   const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
   const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  c.A('card-edit', c.edit('P-S1'));
   for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
   const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
   if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
@@ -3224,7 +3204,7 @@ check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for
   await wait(100);
   if (!release) return ['the pick sent no saveAvatar — NOT checked'];
   c.sent.length = 0;
-  c.A('card-cancel', c.tile('card-cancel'));
+  c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
   await wait(300);
   if (c.sent.some(x => x.action === 'saveAvatar')) bad.push('Cancel sent its put-back beside the pick still on the wire: ' + JSON.stringify(c.sent.filter(x => x.action === 'saveAvatar').map(x => x.avatar && x.avatar.shirt)));
   if (!c.card()) bad.push('Cancel shut the card with a pick still on the wire');
@@ -3232,11 +3212,10 @@ check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for
   /* THE PICK FINISHES LAST, as it did in the review — and then Cancel, if the card is still open to press it on. */
   release();
   await wait(400);
-  if (c.tile('card-cancel')) {
+  if (c.tileOn('figure', 'card-cancel')) {
     c.sent.length = 0;
-    c.A('card-cancel', c.tile('card-cancel'));
-    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
-    await wait(200);
+    c.A('card-cancel', c.tileOn('figure', 'card-cancel'));
+    await wait(500);
     const back = c.sent.filter(x => x.action === 'saveAvatar');
     if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 0) bad.push('Cancel after the pick landed sent ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one put-back in shirt 0');
   }
@@ -3255,8 +3234,8 @@ check('review 339: Save with nothing typed after a pick or a picture says what w
   const c = await cardOpen_(W, 'parent@example.org', { reply });
   if (c.err) return [c.err];
   const bad = [];
-  const open = async () => { c.A('card-edit', c.edit('P-C1')); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
-  const save = async () => { c.A('card-save', c.tile('card-save')); for (let k = 0; k < 30 && c.card(); k++) await wait(100); return c.toast(); };
+  const open = async () => { for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
+  const save = async () => { c.A('card-save', c.tileOn('name', 'card-save')); await wait(400); return c.toast(); };
   if (!(await open())) return ['Pat\'s card did not open — NOT checked'];
   const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="5"]');
   const fox = c.form().querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
@@ -3283,8 +3262,9 @@ check('review 339: after a reload mid-edit, Cancel still puts the opening look b
   const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
   c.t.whoami().credits = 50;
   const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  c.A('card-edit', c.edit('P-S1'));
   for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  /* THE CARDS OPENED BEFORE THE CREDITS WERE SET (468: always open), so a Save with nothing typed takes them as the starting point. */
+  if (c.tileOn('name', 'card-save')) { c.A('card-save', c.tileOn('name', 'card-save')); await wait(300); }
   const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
   if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
   c.A('av-colour', sw);
@@ -3299,11 +3279,10 @@ check('review 339: after a reload mid-edit, Cancel still puts the opening look b
   const two = await cardOpen_(W, null, { before: fromStore_(kept), reply });
   if (two.err) return bad.concat(['after the reload: ' + two.err]);
   for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
-  if (!two.form() || !two.tile('card-cancel')) return ['after the reload Sam\'s card is not open — NOT checked'];
+  if (!two.form() || !two.tileOn('figure', 'card-cancel')) return ['after the reload Sam\'s figure card is not drawn — NOT checked'];
   two.sent.length = 0;
-  two.A('card-cancel', two.tile('card-cancel'));
-  for (let k = 0; k < 30 && two.card(); k++) await wait(100);
-  await wait(200);
+  two.A('card-cancel', two.tileOn('figure', 'card-cancel'));
+  await wait(600);
   const back = two.sent.filter(x => x.action === 'saveAvatar');
   if (back.length !== 1) bad.push('Cancel after a reload sent ' + back.length + ' saveAvatar, wanted one putting the look back');
   if (drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) !== open) bad.push('after Cancel the sheet draws ' + drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) + ', opened with ' + open);
@@ -3312,26 +3291,20 @@ check('review 339: after a reload mid-edit, Cancel still puts the opening look b
 });
 
 /* A PARENT WHO SHARES A LISTED TUTOR'S NAME. § */
-check('review 339: a parent who shares a listed tutor\'s name has her own card with Edit, her own sections, and the tutor\'s card is still the tutor\'s', async () => {
+check('review 339: a parent who shares a listed tutor\'s name edits her own card, her own sections, and the tutor\'s card is still the tutor\'s', async () => {
   const W = cardWorld_({ people: [['P-C9', 'Ada', 'Tutor', 'client', 'ada.parent@example.org', { handle: 'adaparent' }]] });
   const c = await cardOpen_(W, 'ada.parent@example.org');
   if (c.err) return [c.err];
   const bad = [];
   if (c.t.whoami().personId !== 'P-C9') return ['signed in as ' + c.t.whoami().personId + ', not the parent — NOT checked'];
-  if (JSON.stringify(c.edits()) !== JSON.stringify(['P-C9'])) bad.push('the You column offers Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card (P-C9) alone');
+  const pids = [...new Set(c.cards().map(k => k.dataset.pid))];
+  if (JSON.stringify(pids) !== JSON.stringify(['P-C9'])) bad.push('Parent settings edits ' + JSON.stringify(pids) + ', wanted her own card (P-C9) alone');
   const own = c.pageOf('P-C9');
   if (own && /Maths, mostly/.test(own.textContent)) bad.push('her own card is the tutor Ada Tutor\'s — the headline "Maths, mostly" is on it');
   if (![...c.d.querySelectorAll('#s-tutors .page')].some(pg => pg !== own && /Maths, mostly/.test(pg.textContent))) bad.push('the tutor Ada Tutor is not on the parent\'s Tutors column as somebody else');
-  const e = c.edit('P-C9');
-  if (e) {
-    c.A('card-edit', e);
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    const secs = c.form() ? [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec) : [];
-    if (JSON.stringify(secs) !== JSON.stringify(['picture', 'figure', 'name', 'handle'])) bad.push('her own card offers ' + JSON.stringify(secs) + ', wanted picture, figure, name and handle');
-    if (c.box('first_name') && c.box('first_name').value !== 'Ada') bad.push('her own card\'s name box holds ' + JSON.stringify(c.box('first_name').value));
-    c.A('card-cancel', c.tile('card-cancel'));
-    await wait(200);
-  }
+  const secs = c.secs();
+  if (JSON.stringify(secs) !== JSON.stringify(['picture', 'figure', 'name', 'handle'])) bad.push('her own cards are ' + JSON.stringify(secs) + ', wanted picture, figure, name and handle');
+  if (c.box('first_name') && c.box('first_name').value !== 'Ada') bad.push('her own card\'s name box holds ' + JSON.stringify(c.box('first_name').value));
   try { c.t.go('account', false, true); c.w.paint('account'); } catch (x) { bad.push('drawing Settings threw: ' + x.message); }
   await wait(200);
   const moved = String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || '');
@@ -19035,7 +19008,7 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
 });
 
 /* ---------- YOUR PICTURE, CHOSEN ON YOUR OWN CARD'S EDIT § */
-check('a picture chosen on your own card\'s Edit posts savePhoto and the preview shows it, and Settings draws no picker', async () => {
+check('a picture chosen on your Picture card posts savePhoto and the preview shows it, and Settings draws no picker', async () => {
   const URL_ = 'https://drive.google.com/file/d/FILEabcdefghijklmnopqrstuv/view';
   const { w, sent } = boot({ reply: b => b.action === 'savePhoto'
     ? { success: true, photo: b.remove ? '' : URL_ } : { success: true } });
@@ -19050,11 +19023,9 @@ check('a picture chosen on your own card\'s Edit posts savePhoto and the preview
   if (d.querySelector('#s-account .pfp')) bad.push('Settings still draws the picture picker, which is on your own card\'s Edit now');
   try { t.go('staff', false, true); w.paint('staff'); } catch (e) { return bad.concat(['drawing Tutors threw: ' + e.message]); }
   await wait(200);
-  const edit = d.querySelector('#s-staff [data-do="card-edit"][data-pid="P001"]');
-  if (!edit) return bad.concat(['an admin with no public card has no Edit on their own card']);
-  t.ACTIONS['card-edit'](edit);
-  await wait(300);
-  const box = () => d.querySelector('#s-staff .card-ed .pfp');
+  /* 468: NO EDIT TO PRESS — the Picture card is always open on Tutor settings. */
+  if (d.querySelector('[data-do="card-edit"]')) bad.push('an Edit tile is still drawn');
+  const box = () => d.querySelector('#s-staff .card-ed[data-sec="picture"] .pfp');
   if (!box()) return bad.concat(['your own card\'s Edit has no picture picker']);
   if (d.querySelector('#s-staff .card-ed [data-me="photo"]')) bad.push('the card\'s Edit draws a box for a photo link beside the picker');
   const inp = box().querySelector('input.pfp-in[type="file"]');
@@ -19138,18 +19109,17 @@ async function pfpRoleJourney(key) {
     /* DRAWN AGAIN AS YOU FIRST — `asOther` below draws the column as somebody else and puts you back without
        a paint, so the column on the page can be theirs. */
     try { w.paint(HC); } catch (e) {}
-    const e = d.querySelector(H + ' [data-do="card-edit"][data-pid="' + P.personId + '"]');
-    if (!e) return false;
-    t.ACTIONS['card-edit'](e);
     for (let k = 0; k < 20 && !editing(); k++) await wait(50);
     return !!editing();
   };
+  /* SAVE ON THE PICTURE'S CARD (468): it saved itself, so this says so and the profile column is drawn again. */
   const shut = async () => {
-    const save = d.querySelector(H + ' [data-do="card-save"][data-pid="' + P.personId + '"]');
+    const save = d.querySelector(H + ' .card-ed[data-sec="picture"] [data-do="card-save"][data-pid="' + P.personId + '"]');
     if (save) t.ACTIONS['card-save'](save);
-    for (let k = 0; k < 20 && editing(); k++) await wait(50);
+    await wait(300);
+    try { w.paint(t.homeCol()); } catch (e) {}
   };
-  if (!(await openEdit())) return ['a ' + key + '\'s own card has no Edit, or Edit drew no form'];
+  if (!(await openEdit())) return ['a ' + key + '\'s settings column draws no editing cards'];
   if ([...d.querySelectorAll('#s-account .pfp, ' + H + ' .pfp')].some(x => !x.closest('.card-ed'))) bad.push('a ' + key + '\'s Settings still draws a picture picker');
   const box = () => d.querySelector(H + ' .card-ed .pfp');
   if (!box()) return ['a ' + key + '\'s own card\'s Edit has no picture picker'];
@@ -19181,8 +19151,8 @@ async function pfpRoleJourney(key) {
     if (want.kind === 'photo') return el.tagName === 'IMG' && /lh3\.googleusercontent\.com\/d\/FILEpfp/.test(el.getAttribute('src') || '') ? '' : 'not the photograph: ' + html.slice(0, 90);
     return !el.querySelector('svg, img') && el.tagName !== 'IMG' && el.textContent.trim() === want.letter ? '' : 'not the initial ' + want.letter + ': ' + html.slice(0, 90);
   };
-  /* YOUR OWN CARD, AS THE APP REPAINTED THE YOU COLUMN AFTER THE SAVE. */
-  const myCard = () => [...d.querySelectorAll(H + ' .card.is-prof')]
+  /* YOUR OWN CARD, AS THE APP REPAINTED YOUR PROFILE COLUMN AFTER THE SAVE — the one place it is drawn (468). */
+  const myCard = () => [...d.querySelectorAll('#s-' + t.homeCol() + ' .card.is-prof')]
     .find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
   /* AND AS SOMEBODY ELSE, FROM WHAT `doGet` SENDS THEM. Drawn, then put back. */
   const asOther = (stored, figure) => {
@@ -19231,7 +19201,7 @@ async function pfpRoleJourney(key) {
   /* THE ROW `doGet` SENDS: the figure only when the face is the figure (`faceFig_`, core.gs). */
   const picFig = (stored, figure) => stored === 'pfp:avatar' ? { avatar: figure } : {};
   const step = async (label, press, wantSent, want) => {
-    if (!(await openEdit())) { bad.push(label + ': Edit did not open the form again'); return; }
+    if (!(await openEdit())) { bad.push(label + ': the editing cards are gone'); return; }
     sent.length = 0;
     await press();
     await wait(300);
@@ -19250,11 +19220,10 @@ async function pfpRoleJourney(key) {
     if (!want.said.test(said)) bad.push(label + ': the line under the grid says "' + said + '"');
     const prev = faceIs(box().querySelector('.pfp-face > *'), Object.assign({ letter: first[0] }, want));
     if (prev) bad.push(label + ': the preview is ' + prev);
-    /* THE FORM SHUT — the picture saved itself, so Save sends nothing more and closes it — and the card read. */
+    /* SAVE — the picture saved itself, so Save sends nothing more — and the card read on your profile column. */
     await shut();
-    if (editing()) bad.push(label + ': Save did not close the form');
     const mine = myCard();
-    if (!mine) bad.push(label + ': your own card is not on the You column');
+    if (!mine) bad.push(label + ': your own card is not on your profile column');
     else { const why = faceIs(mine.querySelector('.prof-pic'), Object.assign({ letter: P.name[0] }, want)); if (why) bad.push(label + ': your own card shows ' + why); }
     const other = faceIs(asOther(want.stored, P.avatar), Object.assign({ letter: P.name[0] }, want));
     if (other) bad.push(label + ': as somebody else sees you (' + P.other + '), your face is ' + other);
@@ -19327,8 +19296,6 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
   /* ON PAT'S OWN CARD'S EDIT, where the picker is since docs/history/339 — on Parents, a parent's column (453). */
   t.go('family', false, true); w.paint('family');
   await wait(200);
-  const edit = d.querySelector('#s-family [data-do="card-edit"][data-pid="P-C9"]');
-  if (edit) t.ACTIONS['card-edit'](edit);
   await wait(300);
   const bad = [];
   const box = () => d.querySelector('#s-family .card-ed .pfp');
@@ -26165,20 +26132,13 @@ check('a child is her first name on every screen, and a parent is hers to everyb
       try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw on go(): ' + e.message); continue; }
       await wait(120); await woken_();
       look(id);
-      /* HER OWN CARD, BEING EDITED — the one screen where her surname is in a box of her own, and so the one where
-         it could leak just beside the box. Opened, looked at, and put back as a card. */
+      /* HER OWN CARD'S EDITING CARDS (468) — the one screen where her surname is in a box of her own, and so the one where
+         it could leak just beside the box. Always open there, so looked at as drawn. */
       if (pid === 'P-KID' && id === 'account') {
-        const ed = w.document.querySelector('#s-account [data-do="card-edit"][data-pid="P-KID"]');
-        if (!ed) bad.push('herself: there is no Edit on her own card, so her card\'s editor was NOT looked at');
-        else {
-          t.ACTIONS['card-edit'](ed);
-          for (let k = 0; k < 40 && !w.document.querySelector('#s-account .card-ed .me-form'); k++) await wait(100);
-          const box = w.document.querySelector('#s-account .card-ed [data-me="last_name"]');
-          if (!box) bad.push('herself: her card\'s editor drew no surname box, so the walk past it was NOT a test');
-          look('students, her own card being edited');
-          const cancel = w.document.querySelector('#s-account [data-do="card-cancel"]');
-          if (cancel) { t.ACTIONS['card-cancel'](cancel); await wait(300); }
-        }
+        for (let k = 0; k < 40 && !w.document.querySelector('#s-account .card-ed .me-form'); k++) await wait(100);
+        const box = w.document.querySelector('#s-account .card-ed [data-me="last_name"]');
+        if (!box) bad.push('herself: her Name card drew no surname box, so the walk past it was NOT a test');
+        look('students, her own card being edited');
       }
       /* A WINDOWED SCREEN HOLDS A FEW PAGES AT A TIME, so it is walked page by page. */
       let n = 0;

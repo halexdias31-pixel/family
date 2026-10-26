@@ -2901,11 +2901,16 @@ const STATES = {
       },
       expect: () => {
         const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
-        const form = pg && pg.querySelector('.card-ed .me-form');
+        const first = pg && pg.querySelector('.card-ed .me-form');
+        /* 468: A CARD PER SECTION, so the editor is the column's cards together, and the card on the glass is one of them. */
+        const form = first && first.closest('.screen');
         if (!form) return 0;
-        const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
+        const cards = [...form.querySelectorAll('.card-ed')];
+        const secs = cards.map(x => x.dataset.sec).join(',');
         /* YOUR FIGURE AFTER THE PICTURE AND YOUR HANDLE AFTER THE NAME, on your own card (docs/history/339). */
         return secs === 'picture,figure,name,handle,rate,headline,photos,words,glance,quals,where,week'
+          && cards.every(k => k.querySelectorAll('.ce-sec').length === 1 && k.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2)
+          && !form.querySelector('.own-set, .me-card')
           && !!form.querySelector('.pfp [data-do="pfp-pick"]')
           && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
           && form.querySelectorAll('.me-week .hr input[data-me]').length === 70
@@ -2913,12 +2918,11 @@ const STATES = {
           && form.querySelectorAll('.q-list .q-line').length === 3
           && form.querySelectorAll('.ph-shelf .ph-thumb img').length === 3
           && !!form.querySelector('.ce-heat .prof-heat')
-          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
           && !pg.querySelector('[data-do="card-edit"]')
           /* AT FULL SIZE, AND THE PANE SCROLLS TO ITS SAVE — `paneReach_` draws a card being edited at
              zoom 1 (it is taller than any pane even at the 0.70 floor), so its boxes keep their size. */
-          && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
-          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(form.closest('.pane'))
+          && cards.every(k => !(k.style.zoom && k.style.zoom !== '1'))
+          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(first.closest('.pane'))
           /* SAVE AND CANCEL IN REACH WITH THE FORM AT ITS TOP — the review of 330: § */
           && (pane => {
             if (!pane) return false;
@@ -2927,16 +2931,16 @@ const STATES = {
             const ok = r.height > 0 && r.top >= b.top - 1 && r.bottom <= b.bottom + 1;
             pane.scrollTop = was;
             return ok;
-          })(form.closest('.pane'))
+          })(first.closest('.pane'))
           /* THE PHOTOGRAPHS NOT WAITING TO BE SCROLLED TO ("these remain loading untill i scroll to them"), and the session
              length boxes in At a glance. The card is edited on Tutor settings (464). */
           && !form.querySelector('img[loading="lazy"]')
           && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]')
           /* ON ONE PHONE SCREEN (docs/history/425): at 390x844 the whole form, every fold shut, is within its budget —
              2856px before; the owner: "condense this so it can all apear on a phone screen". */
-          && (innerWidth !== 390 || innerHeight !== 844 || form.closest('.card-ed').getBoundingClientRect().height <= 760) ? 1 : 0;
+          && (innerWidth !== 390 || innerHeight !== 844 || cards.every(k => k.getBoundingClientRect().height <= 760)) ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, on Tutor settings (464)' },
+      wants: 'your card as a card per section (468), no preview, at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, on Tutor settings (464)' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN § */
     { col: 'tutors', name: 'another tutor\'s card, being edited by an admin',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
@@ -3008,23 +3012,27 @@ const STATES = {
       },
       expect: () => {
         const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
-        const form = pg && pg.querySelector('.card-ed .me-form');
+        const first = pg && pg.querySelector('.card-ed .me-form');
+        /* 468: THE COLUMN'S SECTION CARDS TOGETHER are the editor. */
+        const form = first && first.closest('.screen');
         if (!form) return 0;
-        const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
+        const cards = [...form.querySelectorAll('.card-ed')];
+        const secs = cards.map(x => x.dataset.sec).join(',');
         const fig = form.querySelector('.ce-sec[data-sec="figure"]'), hd = form.querySelector('.ce-sec[data-sec="handle"]');
-        const pane = form.closest('.pane');
+        const pane = first.closest('.pane');
         return secs === 'picture,figure,name,handle'
           && !!form.querySelector('.pfp [data-do="pfp-pick"]')
           && !!fig && fig.querySelectorAll('.av-figure').length === 1 && !!fig.querySelector('[data-do="av-colour"]') && !!fig.querySelector('[data-do="av-pick"]')
           && !!hd && (hd.querySelector('.handle-shown') || {}).textContent === (USER.handle || '')
           && hd.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"]').length === 1 && !hd.querySelector('input, .btn')
           && !!form.querySelector('[data-me="first_name"]') && !form.querySelector('[data-me="email"], [data-me="headline"], [data-me^="lib"]')
-          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
-          && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
+          && cards.every(k => k.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2)
+          && !form.querySelector('.own-set, .me-card')
+          && cards.every(k => !(k.style.zoom && k.style.zoom !== '1'))
           && !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto')
           && !pg.querySelector('[data-do="signout"]') ? 4 : 0;
       },
-      wants: 'your own card as its form, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel — Sign out is on Student settings (453)' })),
+      wants: 'your own card as a card per section (468), no preview, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel — Sign out is on Student settings (453)' })),
 
     /* ---------- YOUR HANDLE, ON YOUR OWN CARD: SHOWN, WITH RANDOMISE, AND NO BOX § */
     { col: 'staff', name: 'your handle, on your own card',
