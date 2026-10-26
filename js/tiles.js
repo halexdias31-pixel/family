@@ -28,6 +28,8 @@ const TILE_ICONS = {
        + '<path d="M15.5 3.5h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/>',
   wear:  '<path d="M6 2.5 3 4v4h2v6h6V8h2V4l-3-1.5a2.2 2.2 0 0 1-4 0z"/>',
   star:  '<path d="m9 2.5 2 4.3 4.5.6-3.3 3.2.8 4.6L9 13l-4 2.2.8-4.6L2.5 7.4 7 6.8z"/>',
+  /* START HERE (466): a house — where the column opens. */
+  home:  '<path d="M2.5 8.5 9 3l6.5 5.5"/><path d="M4.5 7v7.5h9V7"/><path d="M7.5 14.5v-4h3v4"/>',
   flag:  '<path d="M4 15.5v-13"/><path d="M4 3h9l-2 3 2 3H4"/>',
   spot:  '<path d="M9 1.5v2.5"/><path d="M9 14v2.5"/><path d="M2.2 8.5h2.4"/>'
        + '<path d="M13.4 8.5h2.4"/><circle cx="9" cy="8.5" r="3"/>',

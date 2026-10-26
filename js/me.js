@@ -1823,7 +1823,7 @@ function settingsCards_(shown, moved, col) {
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  const one = (g, list, top, id, n, lid) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : lid ? ` data-lay-card="${esc(lid)}"` : ''}>
+  const one = (g, list, top, id, n, lid) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : ''}${lid ? ` data-lay-card="${esc(lid)}"` : ''}>
     ${top}
     <div class="me-form">${fieldsHtml({ [g]: list }, {
       head: 'h3',
@@ -1847,7 +1847,7 @@ function settingsCards_(shown, moved, col) {
     const list = shown[g] || [], top = k === 0 ? moved : '';
     const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
     if (id && typeof splitOn_ === 'function' && splitOn_(id))
-      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1)));
+      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1, typeof pieceId_ === 'function' ? pieceId_(id, f) : '')));
     else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
   });
   return out;
