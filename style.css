@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-zb-reading-inserts";
+  --css-version: "2026-10-26-ww2-events";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4789,6 +4789,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE TALE OF THE TAPE § */
 .boxer-tape dl, .hdb-lines dl { margin: 0; }
+/* A TIMELINE'S LINE (461): the event's name, then the tile to its card, on the right. */
+.hdb-lines dd.hdb-ev { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; }
+.hdb-ev .tile { flex: none; }
 .boxer-tape dl > div, .hdb-lines dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
                        padding: .22rem 0; border-bottom: 1px solid var(--line-soft); }
 .boxer-tape dl > div:last-child, .hdb-lines dl > div:last-child { border-bottom: 0; }

@@ -135,6 +135,7 @@
 {"splash_id":"hweb","name":"A web of causes, 1914","kind":"proof","shows":"Militarism, Alliances, Imperialism, Nationalism, then the Sarajevo spark","note":"","active":true},
 {"splash_id":"hcur","name":"The Iron Curtain, 1945–61","kind":"proof","shows":"Europe split: satellites, Churchill's line, NATO, the Warsaw Pact, the Wall","note":"","active":true},
 {"splash_id":"hmed","name":"Turning points, 1348–1948","kind":"proof","shows":"eleven turning points in medicine, each tagged with the factor behind it","note":"","active":true},
+{"splash_id":"hww2","name":"World War 2, 1939–45","kind":"proof","shows":"a marker steps along 1939–45: sixteen events, each dated and tagged with its theatre","note":"","active":true},
 {"splash_id": "atom", "name": "Electron shells", "kind": "proof", "shows": "one electron per proton: shells fill 2, 8, 8", "note": "", "active": true},
 {"splash_id": "ionic", "name": "Ionic bonding", "kind": "proof", "shows": "sodium gives its outer electron to chlorine: Na⁺ and Cl⁻", "note": "", "active": true},
 {"splash_id": "covalent", "name": "Covalent bonding", "kind": "proof", "shows": "two atoms share a pair of electrons: H–H, H₂O, CH₄", "note": "", "active": true},

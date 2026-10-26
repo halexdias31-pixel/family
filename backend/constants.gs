@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-zb-reading-inserts";
+const BACKEND_VERSION = "2026-10-26-ww2-events";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

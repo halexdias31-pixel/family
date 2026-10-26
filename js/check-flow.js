@@ -20688,6 +20688,75 @@ check('the history database: a manuscript, a historical figure and a writing are
   return bad;
 });
 
+/* ---------- THE TIMELINE (461): EVENTS FOUND AS A FOURTH KIND, THE WORLD WAR 2 CARD LISTS THEM IN DATE ORDER, EVERY TILE LANDS IN PLACE ---------- */
+check('the history timeline: events are found under Learning, Content, History, Events; the World War 2 timeline card lists every event in date order as a tile to its card, an event links to its figure and back, and the Animation tile opens the chapter with the drawing', async () => {
+  const p = await resPayload_();
+  if (!p) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
+  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const all = w.stuffItemsAll_();
+  const tl = all.find(x => x.kind === 'timeline' && x.name === 'World War 2 timeline');
+  const evs = read('timeline').filter(e => e.era === 'World War 2');
+  if (!tl || evs.length < 20) return ['no World War 2 timeline item, or data/timeline.json has fewer than 20 of its events — NOT checked'];
+  const get = id => all.find(x => x.key === 'hdb:' + id);
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+                       { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
+  const found = w.stuffFiltered();
+  if (found.indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Content, History, Events');
+  const lost = evs.filter(e => found.indexOf(get(e.id)) < 0).map(e => e.id);
+  if (lost.length) bad.push(lost.length + ' event(s) not found by History, Events: ' + lost.slice(0, 5).join(', '));
+  if (found.some(y => !y.hdb)) bad.push('History, Events keeps a thing that is not in the history database');
+  const walk = w.finderWalk_(tl);
+  t.STUFF().filters = walk;
+  if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
+  /* THE CARD: a tile per event, in date order, then the Animation tile. */
+  const box = d.createElement('div'); box.innerHTML = w.stuffCard(tl);
+  const keys = [...box.querySelectorAll('[data-do="find-open"]')].map(e => e.getAttribute('data-key'));
+  const want = evs.slice().sort((a, c) => a.date_iso.localeCompare(c.date_iso)).map(e => 'hdb:' + e.id);
+  if (JSON.stringify(keys.slice(0, want.length)) !== JSON.stringify(want)) bad.push('the timeline\'s tiles are not every event in date order: ' + keys.slice(0, 4).join(', ') + '…');
+  const animKey = keys[want.length];
+  if (!animKey || !/^ct:TB-GCSE-HIST-6$/.test(animKey)) bad.push('the timeline\'s last tile is not the Animation tile to GCSE History chapter 6: ' + animKey);
+  if (box.querySelector('[data-do="find-open"][href], a[target]')) bad.push('a timeline tile opens a page instead of a card in place');
+  const ev = get('EV-0003'), hit = get('FIG-0004');
+  if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(ev);
+  if ((el.querySelector('.hdb .fc-head h3') || {}).textContent !== ev.name) bad.push('the event card is not headed with its name');
+  if (!el.querySelector('.qtag[data-f="histTheatre"]')) bad.push('the event card carries no theatre tag');
+  const onCard = (x, when) => {
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+  };
+  const press = (x, toKey) => {
+    const s = d.getElementById('s-stuff');
+    const bx = d.createElement('div'); bx.innerHTML = w.stuffCard(x); s.appendChild(bx);
+    const tile = [...bx.querySelectorAll('[data-do="find-open"]')].find(e => e.getAttribute('data-key') === toKey);
+    if (!tile) { bad.push(x.name + '\'s card has no tile to ' + toKey); bx.remove(); return false; }
+    A['find-open'](tile); bx.remove(); return true;
+  };
+  t.STUFF().filters = [];
+  const opener = d.createElement('button'); opener.setAttribute('data-key', tl.key); d.getElementById('s-stuff').appendChild(opener);
+  A['find-open'](opener); await wait(120);
+  onCard(tl, 'the timeline opened');
+  if (press(tl, ev.key)) { await wait(120); onCard(ev, 'the timeline\'s tile to ' + ev.name); }
+  if (press(ev, hit.key)) { await wait(120); onCard(hit, 'the event\'s Figure tile'); }
+  if (press(hit, ev.key)) { await wait(120); onCard(ev, 'the figure\'s Event tile'); }
+  if (press(tl, animKey)) {
+    await wait(150);
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || !pg.x || pg.x.key !== animKey) bad.push('the Animation tile lands on ' + (pg && pg.x ? pg.x.key : 'nothing') + ', not ' + animKey);
+    else if (!(pg.x.row.animations || []).some(a => a.id === 'hww2')) bad.push('the chapter the Animation tile opens does not carry hww2');
+  }
+  if (t.AT() !== 'stuff') bad.push('following the timeline left Find for ' + t.AT());
+  return bad;
+});
+
 /* THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). § */
 
 /* ---------- AN EMPTY SEARCH SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN § */
