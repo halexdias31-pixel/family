@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-s-three-merged";
+  --css-version: "2026-10-26-t-settings-only-editing";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3404,6 +3404,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   background: var(--raised);
   box-shadow: 0 -1px 0 var(--line-soft);
 }
+/* A SECTION'S OWN CARD (468) is short, so its Save and Cancel are a plain row under it, not a bar stuck to the pane. */
+.own-sec > .tile-row.ce-tiles { position: static; padding: 0; margin-top: .5rem; background: none; box-shadow: none; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
