@@ -364,40 +364,14 @@ function seatCutOf_(v) {
   return x <= 2 ? x : NaN;
 }
 
-/* ---------- WHAT KIND OF SESSION, AND WHAT IT BRINGS WITH IT (docs/history/353) § */
-const BOOK_FORMATS = ['Tutoring', 'Practical', 'Trip'];
-function bookFormat_(v) {
-  const k = norm(v);
-  return BOOK_FORMATS.find(f => norm(f) === k) || 'Tutoring';
-}
-/* BY ID OR BY NAME, because the form's dropdown holds the name a person reads and the job keeps the id
-   a sheet can join on. The first row that answers wins; nothing found is null, never a made-up row. */
-function bookPractical_(v) {
-  const k = norm(v);
-  if (!k) return null;
-  return ((typeof DATA !== 'undefined' && DATA && DATA.practicals) || [])
-    .find(p => norm(p.id) === k || norm(p.name) === k) || null;
-}
-function bookTrip_(v) {
-  const k = norm(v);
-  if (!k) return null;
-  return ((typeof DATA !== 'undefined' && DATA && DATA.trips) || [])
-    .find(t => norm(t.tripId) === k || norm(t.name) === k) || null;
-}
+/* NO FORMAT, PRACTICAL OR TRIP ON A BOOKING (463): those are shop items now, so a booking is teaching and a room. */
 /* ---------- THE ONE SUM FROM CHARGED TO NET § */
 function bookMoney_(m) {
   m = m || {};
   const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
-  const runs = pos(m.sessions), n = Math.max(1, pos(m.n) || 1);
-  const markup = pos(m.markup) || 1;
-  const pr = m.practical || null, tr = m.trip || null;
-  const materialsCost = pr && runs ? pos(pr.costPerRun) * n * runs + pos(pr.setupCost) : 0;
-  const materialsCharge = materialsCost * markup;
-  const tickets = tr && runs ? (pos(tr.ticketChild) * n + pos(tr.ticketAdult)) * runs : 0;
-  const travel = tr && runs ? pos(tr.travelPerChild) * n * runs : 0;
   const teaching = pos(m.tutorPay) + pos(m.profit);
   const venue = pos(m.venue);
-  const gross = teaching + venue + materialsCharge + tickets + travel;
+  const gross = teaching + venue;
   const d = m.discount || {};
   const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
   const discountValue = discountType ? pos(d.value) : 0;
@@ -409,16 +383,11 @@ function bookMoney_(m) {
   const tutorPayout = pos(m.tutorPay) * scale;
   const charged = gross - discount;
   const cardFees = charged > 0 ? charged * pos(m.feePct) / 100 + pos(m.feeFixed) : 0;
-  const ticketsCost = tickets + travel;
-  const net = charged - tutorPayout - venue - materialsCost - ticketsCost - cardFees;
+  const net = charged - tutorPayout - venue - cardFees;
   return {
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
     absorbedBy: discount ? (shared ? 'Shared with tutor' : 'Business') : '',
-    charged, teaching, tutorPayout, venue, materialsCharge, materialsCost,
-    tickets, travel, ticketsCost, cardFees, net, margin: charged > 0 ? net / charged : 0,
-    /* A PRACTICAL NOBODY HAS COSTED is not free kit: 65 of the 82 rows have no cost_per_run_gbp, and
-       the Money block says "not costed" rather than printing £0.00 as though it were a price. */
-    uncosted: !!pr && (pr.costPerRun == null || pr.costPerRun === ''),
+    charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
 }
 
@@ -459,9 +428,7 @@ function priceFrom(spec) {
   // different prices, and the venue's single figure could only ever be right for one of them.
   const space = spaceFor(loc);
   const venueRate = space ? space.rate : (venue ? (parseFloat(venue.bestRate) || 0) : 0);
-  /* A TRIP HAS NO ROOM TO HIRE (docs/history/353): § */
-  const format = bookFormat_(spec.format);
-  const V = (hosting || format === 'Trip') ? 0 : venueRate;
+  const V = hosting ? 0 : venueRate;
 
   /* THE PRICING FORMULA ================== P = § */
 
@@ -633,12 +600,10 @@ function priceFrom(spec) {
   // which is a different question from what one family hands over.
   /* ---------- WHAT THE BOOKING EARNS, AFTER EVERYTHING IT COSTS (docs/history/353) § */
   const mo = bookMoney_({
-    hours: hoursTotal, sessions: hoursTotal ? Math.max(1, slots || 0) : 0, n, format,
-    practical: format === 'Practical' ? bookPractical_(spec.practical) : null,
-    trip: format === 'Trip' ? bookTrip_(spec.trip) : null,
+    hours: hoursTotal,
     tutorPay, profit: profitTotal, venue: venueTotal,
     discount: spec.discount || null,
-    markup: cvD('materials_markup', 1), feePct: cvD('card_fee_pct', 0), feeFixed: cvD('card_fee_fixed', 0),
+    feePct: cvD('card_fee_pct', 0), feeFixed: cvD('card_fee_fixed', 0),
   });
   /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. § */
   const total = teachTotal === null ? null : mo.charged / splitShares;
@@ -672,7 +637,7 @@ function priceFrom(spec) {
     chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
     promoAdj, splitOthers, splitShares, shareAmount, profitTotal, wholeTotal,
     // THE MONEY BLOCK'S FIGURES, whole-booking — see `bookMoney_`. Only an admin's screen draws them.
-    format, earn: mo,
+    earn: mo,
     summary: { service: (typeof document !== 'undefined' ? val('c-service') : ''), level,
                subject: subjects.join(', '), location: loc, day, time, students: n,
                interval, weeks, requestedTutor: tutor }
