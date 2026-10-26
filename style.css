@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-y-talmud-merged";
+  --css-version: "2026-10-26-z2-ds-merged";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1288,6 +1288,35 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
+
+/* THE DS LOOKS LIKE A DS (478): a white clamshell — the top screen in the upper shell, a hinge across the body, the touch screen in the lower
+   shell with the D-pad left, A/B/X/Y right, Start and Select under them, L and R on the top corners. Its pad shows on keys too. */
+.nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c9ccd3; --nes-r: 1.4rem; --nes-bezel: #0e0e11; --nes-bz: 9px; --nes-bz-r: .55rem;
+  --nes-ink: #4a4c54; --nes-key: #f7f8fa; --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
+  --nes-mid: #d3d5db; --nes-mid-ink: #4a4c54; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64; --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199;
+  --nes-pad-h: 168px; --k-dpad: 104px; --k-cell: 36px; --k-font: .82rem; --k-small: .62rem; --k-h: 28px;
+  background: linear-gradient(var(--nes-body), var(--nes-body)) padding-box; border: 2px solid var(--nes-edge); }
+.nes-wrap[data-sys="nds"].nes-has-pad { --nes-pt: 34px; --nes-room: calc(15rem + var(--nes-pt) + var(--nes-pad-h)); }
+/* THE HINGE over the rows between the screens: glass, the shells' two edges and the cylinder between them, the full width of the body. */
+.nes-wrap[data-sys="nds"] .nes-hinge { box-shadow: none;
+  background: linear-gradient(transparent 0 16%, var(--nes-body) 16% 28%, var(--nes-hinge-lo) 28% 32%, var(--nes-hinge-hi) 32% 42%,
+    var(--nes-hinge) 58%, var(--nes-hinge-lo) 68% 72%, var(--nes-body) 72% 84%, transparent 84%); }
+.nes-wrap[data-sys="nds"] .nes-pad { display: none; }
+.nes-wrap[data-sys="nds"] .nes-pad.on { display: grid; grid-template: "dpad . face" 1fr "dpad . mid" auto / auto 1fr auto; align-items: center; justify-items: center;
+  height: var(--nes-pad-h); padding: 6px 4px 10px; gap: 2px 0; border-top: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { grid-area: dpad; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-face { grid-area: face; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-mid { grid-area: mid; order: 0; flex: none; gap: 6px; }
+.nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 2px); height: calc(var(--k-cell) - 2px); justify-self: center; align-self: center;
+  color: var(--nes-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .14), 0 0 0 1px var(--nes-edge); }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-height: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 0; position: relative; }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  font: 600 .55rem var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--nes-mid-ink); }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { height: 26px; min-height: 0; border-radius: 0 0 12px 12px; font-size: .7rem; min-width: 4.2rem; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { padding: 0 1.1rem; }
+/* THE KEY LIST stays behind its tile; the drawn buttons beside the screen are the pad's job on a DS. */
+.nes-wrap[data-sys="nds"] .nes-deco { display: none !important; }
+.nes-wrap[data-sys="nds"].nes-has-deco .nes-stage { --nes-flank: 0px; margin-bottom: calc(var(--nes-bz) + .5rem); }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }

@@ -5187,6 +5187,8 @@ function nesValid_(u8) {
 function nesPaint_() {
   const box = $('nes-box');
   if (!box) return;
+  /* NOT REDRAWN WHILE A GAME PLAYS (478): the tiles rewritten under a running core cost a layout per call and gave nothing. */
+  if (NES_.running && box.querySelector('.nes-wrap')) return;
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
   if (!box.querySelector('.nes-wrap')) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
@@ -5203,6 +5205,7 @@ function nesPaint_() {
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
+    nesSeen_($('nes-wrap'));
     /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
     const host = EMU_.ejs && EMU_.ejs.elements && EMU_.ejs.elements.parent;
     if (host && $('nes-stage')) $('nes-stage').appendChild(host);
@@ -5338,14 +5341,14 @@ function nesGo_() {
   nesTiles_();
 }
 /* PAUSED, NOT ENDED: the game stays in memory and Play carries on from here. */
-function nesStop_() {
+function nesStop_(force) {
   const was = NES_.running;
   nesRun_(false);
   cancelAnimationFrame(NES_.raf);
   NES_.held = {}; NES_.keys = {}; NES_.codes = {}; NES_.touch = {};
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
-  if (EMU_.ejs) emuPause_();
-  else if (was && NES_.nes) csvKeep_();
+  if (EMU_.ejs) emuPause_(force);
+  else if (was && NES_.nes) csvKeep_(force);
   if (was) nesTiles_();
 }
 
@@ -5463,7 +5466,7 @@ function nesModeWire_(w) {
 /* THE KEY LIST: shown on keys unless the Keys tile turned it off (kept on the device). */
 function nesLegendOn_() {
   if (NES_.legend == null) { try { const v = localStorage.getItem('nes-keys'); NES_.legend = v === '1' ? true : v === '0' ? false : null; } catch (e) { NES_.legend = null; } }
-  return nesMode_() === 'keys' && NES_.legend !== false;
+  return nesMode_() === 'keys' && NES_.legend === true;   // hidden until the Keys tile asks (478)
 }
 on('nes-keys', () => {
   NES_.legend = !nesLegendOn_();
@@ -5475,7 +5478,8 @@ on('nes-keys', () => {
 function nesPadShow_() {
   const pad = $('nes-pad'), lg = $('nes-legend'), w = $('nes-wrap');
   if (!pad) return;
-  const on = nesMode_() === 'touch' && !NES_.padOn;
+  /* THE DS ALWAYS WEARS ITS BUTTONS (478): its pad is the lower shell, pressed by a finger or a mouse alike. */
+  const on = NES_.sys === 'nds' || (nesMode_() === 'touch' && !NES_.padOn);
   pad.classList.toggle('on', on);
   if (w) { w.classList.toggle('nes-has-pad', on); w.classList.toggle('nes-has-deco', !on); }
   if (lg) {
@@ -5606,7 +5610,13 @@ function nesQuiet_(on) {
   }, 0);
 }
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(true); });
+/* OFF THE SCREEN IS PAUSED (478): a console scrolled or slid out of view stops running the core for nobody. */
+function nesSeen_(w) {
+  if (!w || w.seen_ || typeof window.IntersectionObserver !== 'function') return;
+  w.seen_ = true;
+  try { new window.IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting && NES_.running && e.target.isConnected) nesStop_(); })).observe(w); } catch (e) {}
+}
 window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
 window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
 
@@ -5827,12 +5837,12 @@ function emuGo_() {
   nesRun_(true); emuWake_(); nesTiles_();
 }
 /* PAUSE KEEPS THE BATTERY SAVE: the cartridge's memory is written to this device's IndexedDB (EmulatorJS's own) at every pause. */
-function emuPause_() {
+function emuPause_(force) {
   if (!EMU_.ready) return;
   emuSync_(true);
   try { EMU_.ejs.pause(true); } catch (e) {}
   try { EMU_.ejs.gameManager.saveSaveFiles(); } catch (e) {}
-  csvKeep_();
+  csvKeep_(force);
 }
 /* THE SOUND WAKES INSIDE A TAP: iOS starts EmulatorJS's audio suspended, and its own "click to resume" box is hidden with its menus. */
 function emuWake_() {
@@ -5843,7 +5853,7 @@ function emuWake_() {
   } catch (e) {}
 }
 function emuEnd_() {
-  if (EMU_.ready) csvKeep_();
+  if (EMU_.ready) csvKeep_(true);
   const ejs = EMU_.ejs;
   EMU_.ejs = null; EMU_.ready = false; EMU_.sys = null; EMU_.key = ''; EMU_.held = {}; EMU_.ax = [];
   if (ejs) {
@@ -5880,7 +5890,9 @@ function emuSync_(off) {
 /* Keyed by a hash of the file's bytes; the file itself is never stored with a save nor sent. One save per game, the latest. */
 const CSV_DB = 'family-console-saves';
 const CSV_MAX = 2 * 1024 * 1024;   // the backend's CONSOLE_SAVE_MAX: an account keeps 2 MB per game once packed
-const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null };
+const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null, took: 0 };
+/* ONE SAVE A MINUTE AT MOST (478): a DS state is megabytes, read, zipped and posted on the page's one thread, so a pause, a slide or a scroll does not each take one. Leaving always does. */
+const CSV_EVERY = 60000;
 
 /* SHA-256 where the browser has it; the same bytes give the same key on every device. A plain-http page falls back to a longer FNV. */
 function csvHash_(u8) {
@@ -5914,7 +5926,16 @@ function csvDb_(mode, fn) {
 /* gzip, then base64, for the account; a browser with no CompressionStream keeps its saves on the device only. */
 function csvPack_(u8) {
   if (!u8 || !u8.length) return Promise.resolve('');
-  const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  const loop = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  /* THE BROWSER'S OWN BASE64 off the script's thread where it can (478); the string loop where it cannot. */
+  const b64 = a => new Promise(ok => {
+    try {
+      const r = new window.FileReader();
+      r.onload = () => { const u = String(r.result || ''), i = u.indexOf(','); ok(i < 0 ? loop(a) : u.slice(i + 1)); };
+      r.onerror = () => ok(loop(a));
+      r.readAsDataURL(new window.Blob([a]));
+    } catch (e) { ok(loop(a)); }
+  });
   try {
     if (typeof window.CompressionStream !== 'function') return Promise.resolve('');
     return new window.Response(new Blob([u8]).stream().pipeThrough(new window.CompressionStream('gzip'))).arrayBuffer().then(ab => b64(new Uint8Array(ab))).catch(() => '');
@@ -5945,9 +5966,11 @@ function csvCapture_() {
 }
 
 /* AT EVERY PAUSE AND LEAVE: on this device first, then, signed in, on the account. A save the same as the last one sent is not sent again. */
-function csvKeep_() {
+function csvKeep_(force) {
+  if (!force && CSV_.took && Date.now() - CSV_.took < CSV_EVERY) return;
   const rec = csvCapture_();
   if (!rec) return;
+  CSV_.took = Date.now();
   csvDb_('readwrite', s => s.put(rec, rec.hash)).then(ok => { if (ok) { CSV_.at = rec.at; CSV_.where = 'device'; csvLine_(); } });
   if (typeof USER !== 'object' || !USER || !USER.token) return;
   Promise.all([csvPack_(rec.sram), csvPack_(rec.state)]).then(([sram, state]) => {
@@ -5978,7 +6001,7 @@ function csvFind_(hash) {
 
 /* A GAME STARTING: its key, then its save put back. `rom` is EmulatorJS's game name, or 'nes'; a game swapped meanwhile is left alone. */
 function csvBegin_(bytes, sys, rom, apply) {
-  CSV_.hash = ''; CSV_.sys = sys; CSV_.rom = rom; CSV_.at = 0; CSV_.where = ''; CSV_.said = ''; CSV_.sent = '';
+  CSV_.hash = ''; CSV_.sys = sys; CSV_.rom = rom; CSV_.at = 0; CSV_.where = ''; CSV_.said = ''; CSV_.sent = ''; CSV_.took = 0;
   csvLine_();
   return csvHash_(bytes).then(h => {
     if (CSV_.rom !== rom) return null;
