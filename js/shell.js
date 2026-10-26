@@ -1388,6 +1388,7 @@ function placeCells(which, instant, dragPx, id) {
   if (typeof readAloudStray_ === 'function') readAloudStray_();
   /* AND A QUESTION'S PADLOCK IS LET GO WHEN A TAB OR LINK LEAVES ITS PAGE (457). */
   if (typeof qLockStray_ === 'function') qLockStray_();
+  if (typeof magStray_ === 'function') magStray_();
   if (typeof gameLockStray_ === 'function') gameLockStray_();
 
   /* THE FIRST ONE IS NOT DEFERRED. § */

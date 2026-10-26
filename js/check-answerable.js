@@ -130,7 +130,6 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     host.querySelectorAll('.qsheet img').forEach(i => { count.figures++; if (!S(i.getAttribute('src'))) ok = false; });
     return ok;
   };
-  const doorless = () => [...host.querySelectorAll('.qsheet figure')].filter(f => !f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig').length;
 
   const CHUNK = 600;
   for (let at = 0; at < all.length; at++) {
@@ -152,10 +151,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const said = sheet ? S(sheet.textContent.replace(/\s+/g, ' ')) : '';
     if (!sheet || has('.qsheet p.empty') || (!said && !sheet.querySelector('svg, img, table'))) bad('words', x, 'the page has no words, figure or table');
     if (!figs()) bad('figures', x, 'a drawing with no size or a picture with no source');
-    if (!has('[data-do="q-zoom"]')) bad('zoom', x, 'no Zoom tile in its row');
-    if (!has('[data-do="q-lock"]')) bad('zoom', x, 'no padlock in its row');
-    if (doorless()) bad('zoom', x, doorless() + ' figure(s) are not a tap to zoom');
-    else if (has('.qsheet figure')) count.zoomed++;
+    if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'no Magnifier tile in its row');
+    if (!has('[data-do="q-lock"]')) bad('magnifier', x, 'no padlock in its row');
+    if (has('.qsheet figure')) count.zoomed++;
     /* ---------- AN ANSWER CONTROL THAT FITS ITS TYPE ---------- */
     const pen = has('.qpad .qpad-ink');
     const control = {
@@ -224,16 +222,15 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
         for (let j = 0; j < chunks.length; j++) {
           host.innerHTML = w.questionStemCard_(x, i, j);
           count.pages++;
-          if (!has('[data-do="q-zoom"]')) bad('zoom', x, 'stem page ' + i + '.' + j + ' has no Zoom');
+          if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'stem page ' + i + '.' + j + ' has no Magnifier');
           if (!figs()) bad('figures', x, 'stem ' + i + ' has a drawing with no size');
-          if (doorless()) bad('zoom', x, 'stem ' + i + ' has a figure that is not a tap to zoom');
         }
       });
       const pre = w.partChunks_(x).length - 1;
       for (let j = 0; j < pre; j++) {
         host.innerHTML = w.questionPreCard_(x, j);
         count.pages++;
-        if (!has('[data-do="q-zoom"]')) bad('zoom', x, 'page ' + (j + 1) + ' of its words has no Zoom');
+        if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'page ' + (j + 1) + ' of its words has no Magnifier');
       }
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -244,7 +241,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     /* ---------- THE INSERT IT SENDS YOU TO ---------- */
     if (/paper/i.test(S(x.documentType)) && INSERT_WORDS.test(words.replace(/<[^>]*>/g, ' '))) {
       count.inserts++;
-      if (!w.insertsFor_(x).length) bad('insert', x, 'its words name an insert or formulae sheet and its paper links none');
+      if (!w.insertsFor_(x).length) bad('insert', x, 'its words name an insert or formulae sheet and no insert in Find is for its paper');
     }
     /* ---------- THE SOURCE IT READS FROM, A PRIVATE READING INSERT WITH ITS WORDS (458) ---------- */
     const plain = words.replace(/<[^>]*>/g, ' ');
@@ -282,7 +279,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   const inv = Object.keys(fails);
   const total = inv.reduce((s, k) => s + fails[k].length, 0);
   const line = `parts ${count.parts} (pending without words skipped ${count.skipped}), pages ${count.pages}, figures ${count.figures}, `
-    + `cards with a zoomable figure ${count.zoomed}, drawn ${count.drawn}, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
+    + `cards with a figure under the Magnifier ${count.zoomed}, drawn ${count.drawn}, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
   if (!total) { console.log('OK — every question part can be answered: ' + line); process.exit(0); }
   console.log('FAILED — ' + total + ' failure(s) across ' + inv.length + ' invariant(s): ' + line);
   inv.forEach(k => {

@@ -133,8 +133,8 @@ const KINDS = {
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
   /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
-  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455) — a formulae sheet, an equation sheet, the periodic table — found like a paper. */
-  insert: { group: 'Learning', label: 'Inserts', card: x => insertCard_(x) },
+  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
+  insert: { group: 'Learning', label: 'Content', card: x => insertCard_(x) },
   /* THE HISTORY DATABASE (459): three kinds, Content on the History shelf as boxers are on Boxing's; `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
   figure: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
@@ -436,6 +436,8 @@ const FACETS = [
   /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked. */
   { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
   { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
+  /* HOW YOU DID (463): the viewer's own latest press on a question; signed out it is blank everywhere, so it is never asked. */
+  { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
 
 /* THE ONLY KEYS A FACET MAY CARRY (396) — `check-funnel` fails on any other, so a behaviour flag cannot creep back in. */
@@ -1375,7 +1377,7 @@ function insertItem_(r) {
   return {
     kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
     subject: r.subject, level: r.levels.length > 1 ? r.levels : r.levels[0] || '', keystage: r.keystage,
-    examBoard: r.boards, tier: r.tiers, documentType: 'Insert',
+    examBoard: r.boards, tier: r.tiers,
     text: plainText_([r.name, r.summary, 'insert formula formulae equation sheet booklet data']
       .concat(...r.sections.map(s => [s.head].concat((s.lines || []).map(l => l.name)))).join(' ')),
     row: r,
@@ -1423,11 +1425,7 @@ function insLanded_() {
     else el.innerHTML = insSay_(r);
   });
 }
-/* THE TILE ON A PAPER'S QUESTION: the sheet over the page, as the figure tile opens a figure. */
-function insertTile_(x) {
-  return insertsFor_(x).map(r => tile_({ icon: 'book', label: 'Insert', note: r.name.replace(/\s*\(.*\)$/, ''),
-    act: 'ins-show', data: { id: r.id } })).join('');
-}
+/* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Content, found like any card. */
 const insertRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
 function insertSheet_(r) {
@@ -1471,11 +1469,6 @@ function insertCard_(x) {
       r.official.map(o => tile_({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } })).join('')}</div>
   </div>`;
 }
-on('ins-show', el => {
-  const r = insertRow_(el.getAttribute('data-id'));
-  /* IN PLACE (453): under the question's own tile row, Back gives the page back. */
-  if (r) { insWant_(r); sheetHere_(el); openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`); }
-});
 on('ins-official', el => {
   const u = String(el.getAttribute('data-url') || '');
   if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
@@ -4448,7 +4441,7 @@ function cellsBox_(x) {
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${figTile_(x)}${measTiles_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
+    <div class="tile-row">${measTiles_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4600,7 +4593,7 @@ function ansBox_(x) {
   const signs = (kpSigns_(x) ? 1 : 0) | (kpVec_(x) ? 2 : 0);
   /* NO CAPTION OVER THE BOX. § */
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
-  const fig = figTile_(x) + measTiles_(x);
+  const fig = measTiles_(x);
   /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
   const rule = can ? '' : String(x && x.markWords || '').trim();
   const aiNow = can ? '' : aiTile_(x);
@@ -7532,10 +7525,8 @@ on('qw-tap', (el) => {
 
 /* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for § */
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
-/* EVERY FIGURE AND PICTURE ON A QUESTION'S PAGE IS A DOOR TO ZOOM (457) */
-const QZOOM_FIG = ' data-do="q-zoom-fig" role="button" tabindex="0" aria-label="Figure: tap to zoom"';
 const pics_ = list => (list || []).map(src =>
-  `<figure class="qpic"${QZOOM_FIG}><img src="${esc(src)}" alt="Picture printed with this question"
+  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
 
@@ -7628,7 +7619,7 @@ function questionStemCard_(x, i, j) {
   chunks[j].forEach(b => {
     if (b.k === 'pb') { run.push(b.h); return; }
     flush();
-    html.push((p.diagram ? `<figure${QZOOM_FIG}>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+    html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   });
   flush();
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
@@ -7896,7 +7887,7 @@ function figHtml_(x, b) {
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
   if (p && p.from !== 'surface') return padWrap_(x, p.svg) + pics;
-  return (x.diagram ? usesFig_(x) || `<figure${QZOOM_FIG}>${x.diagram}</figure>` : '') + pics;
+  return (x.diagram ? usesFig_(x) || `<figure>${x.diagram}</figure>` : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -8025,12 +8016,12 @@ function ansHide_(x) { ansSet_(x, false); }
 function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
-  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) + measTiles_(x) : '';
+  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? measTiles_(x) : '';
   /* `Draw` / `Type` WAS HERE, the switch between the answer's two faces (327, 337). A question answered by
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
   /* NO VERDICT BESIDE THE STAR (368), AND NO SOUND SWITCH (374): the verdict is always heard */
-  /* AND THE TOOLS EVERY QUESTION PAGE HAS (457): Zoom and the padlock, first, from one place (`qToolTiles_`). */
+  /* AND THE TOOLS EVERY QUESTION PAGE HAS (457, 463): the Magnifier and the padlock, first, from one place (`qToolTiles_`). */
   return qToolTiles_(x) + fig;
 }
 
@@ -8042,7 +8033,7 @@ function qToolkit_(x) {
   const subj = String(x.subject || (x.row && x.row.subject) || '');
   const pen = padSource_(x);
   return {
-    zoom: true,                    // the words are always there to enlarge, and every figure with them
+    magnify: true,                 // the Magnifier (463): words, figures, pictures and the pen, under the glass
     lock: true,                    // every page has an input, a figure or a pen
     read: true,                    // Read aloud on every question, not only a primary one (394)
     help: true, report: true,      // `helpRow_` in the card, `reportTile_` in the row
@@ -8050,74 +8041,109 @@ function qToolkit_(x) {
     measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
   };
 }
-/* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: Zoom (the page's words and figures, big) and the padlock. */
+/* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: the Magnifier and the padlock. */
 function qToolTiles_(x) {
   const kit = qToolkit_(x);
   if (!kit) return '';
-  return (kit.zoom ? tile_({ icon: 'zoom', label: 'Zoom', note: 'the question, bigger', act: 'q-zoom', cls: 'q-zoom', data: { key: x.key || '' } }) : '')
+  return (kit.magnify ? magTile_() : '')
     + (kit.lock ? qLockTile_() : '');
 }
 /* A STEM'S OR A LONG PART'S OWN PAGE has the same, under its words, with Read aloud. */
 const qPageTools_ = x => `<div class="tile-row qtool-tiles">${qToolTiles_(x)}${readAloudTile_(x)}</div>`;
 
-/* ---------- ZOOM: THE WHOLE QUESTION, ITS WORDS AND EVERY FIGURE, AS LARGE AS YOU LIKE ---------- */
-function qZoomHtml_(x) {
-  if (!x) return '';
-  const fig = d => (d ? `<figure>${d}</figure>` : '');
-  const out = (x.stems || []).map(p => p ? `<div class="qsheet-stem">${typeset_(String(p.html || ''))}${fig(p.diagram)}${pics_(figImgs_(p.images))}</div>` : '');
-  /* THE PICTURE UNDER THE PEN, without the ink: a surface, or the stem's picture the part draws on, once */
-  const pen = padSource_(x);
-  const penFig = pen && !x.diagram && !(x.stems || []).some(p => p && p.diagram === pen.svg) ? fig(pen.svg) : '';
-  out.push(`${x.lead ? `<div class="qsheet-lead">${typeset_(String(x.lead))}</div>` : ''}<div class="qsheet-part"><div class="qsheet-pb">${
-    typeset_(String(x.html || ''))}</div></div>${fig(x.diagram)}${penFig}${pics_(figImgs_(x.images))}`);
-  return `<div class="qsheet">${out.join('')}</div>`;
+/* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
+/* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
+const MAG = { on: '', live: false, el: null, page: null, at: 0, tid: 0, pid: null, x0: 0, y0: 0 };
+const MAG_Z = 2.5, MAG_R = 80, MAG_HOLD = 220;
+const magLook_ = on => ({ icon: 'zoom', label: on ? 'Magnifier on' : 'Magnifier', note: on ? 'tap to put it away' : 'hold it over the page', on: on, pressed: on });
+function magTile_() { return tile_(Object.assign(magLook_(!!MAG.on), { act: 'q-mag', cls: 'q-mag' })); }
+function magPaint_() {
+  document.querySelectorAll('.q-mag').forEach(el => tileSet_(el, magLook_(!!MAG.on)));
+  if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
 }
-const QZOOM = { z: 1.6, min: 1, max: 4, d0: 0, z0: 1 };
-function qZoomSet_(z) {
-  QZOOM.z = Math.max(QZOOM.min, Math.min(QZOOM.max, Math.round(z * 100) / 100));
-  document.querySelectorAll('.qzoom-in').forEach(el => { el.style.setProperty('zoom', String(QZOOM.z)); el.setAttribute('data-z', String(QZOOM.z)); });
+on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
+/* PUT AWAY WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS TAKEN OUT ON, as the padlock is (`qLockStray_`) */
+function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
+const magBusy_ = () => !!MAG.live;
+/* WHICH PAGE A POINT IS OVER, if it is a question's page with the magnifier on */
+function magPageAt_(t) {
+  const page = MAG.on && t && t.closest ? t.closest('.page') : null;
+  return page && page.querySelector('.q-mag') ? page : null;
 }
-function qZoomOpen_(title, html) {
-  openSheet(title, `<div class="qzoom-bar">
-      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="0.8" aria-label="Smaller">&minus;</button>
-      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="1.25" aria-label="Bigger">+</button>
-    </div>
-    <div class="qzoom" data-noswipe><div class="qzoom-in" data-z="${QZOOM.z}" style="zoom: ${QZOOM.z}">${html}</div></div>`);
-}
-on('q-zoom', el => {
-  const k = el.getAttribute('data-key');
-  let x = null;
-  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
-  if (x) qZoomOpen_(qNum_(x) + String(x.qPart || ''), qZoomHtml_(x));
-});
-on('q-zoom-by', el => qZoomSet_(QZOOM.z * (Number(el.getAttribute('data-by')) || 1)));
-/* A TAP ON ANY FIGURE OR PICTURE IN A QUESTION ENLARGES IT -- not while a measuring tool is out on it. */
-on('q-zoom-fig', el => {
-  if (MEAS && el.querySelector('svg.meas')) return;
-  const c = el.cloneNode(true);
-  ['data-do', 'role', 'tabindex', 'aria-label'].forEach(a => c.removeAttribute(a));
-  c.querySelectorAll('svg.meas').forEach(m => m.remove());
-  qZoomOpen_('Figure', `<div class="qsheet">${c.outerHTML}</div>`);
-});
-/* TWO FINGERS ON THE ENLARGED PAGE PINCH IT; the − and + keys do the same for anybody. */
-const QZOOM_PTRS = new Map();
-if (typeof document !== 'undefined' && document.addEventListener) {
-  document.addEventListener('pointerdown', e => {
-    if (!e.target || !e.target.closest || !e.target.closest('.qzoom')) return;
-    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
-    if (QZOOM_PTRS.size === 2) { const [a, b] = [...QZOOM_PTRS.values()]; QZOOM.d0 = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; QZOOM.z0 = QZOOM.z; }
+/* THE COPY: the page's children, ids off, typed values and canvases carried over; taken again when the page changes or a second has passed */
+function magCopy_(page) {
+  const box = document.createElement('div');
+  box.className = 'mag-in';
+  box.style.width = page.offsetWidth + 'px';
+  box.style.height = page.offsetHeight + 'px';
+  [].slice.call(page.children).forEach(k => { if (!k.classList.contains('mag')) box.appendChild(k.cloneNode(true)); });
+  box.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+  const from = [].slice.call(page.querySelectorAll('input, textarea, canvas')).filter(e => !e.closest('.mag'));
+  const to = box.querySelectorAll('input, textarea, canvas');
+  from.forEach((e, i) => {
+    const c = to[i];
+    if (!c) return;
+    if (e.tagName === 'CANVAS') { try { c.getContext('2d').drawImage(e, 0, 0); } catch (err) { /* a tainted canvas stays blank */ } }
+    else c.value = e.value;
   });
+  return box;
+}
+function magShow_(page, cx, cy, touch) {
+  if (!page) return magHide_();
+  if (MAG.page !== page || !MAG.el || !MAG.el.isConnected || Date.now() - MAG.at > 1000) {
+    magHide_();
+    const el = document.createElement('div');
+    el.className = 'mag';
+    el.setAttribute('aria-hidden', 'true');
+    el.appendChild(magCopy_(page));
+    page.classList.add('mag-host');
+    page.appendChild(el);
+    MAG.el = el; MAG.page = page; MAG.at = Date.now();
+  }
+  const r = page.getBoundingClientRect(), k = page.offsetWidth ? r.width / page.offsetWidth : 1;
+  const x = (cx - r.left) / k, y = (cy - r.top) / k;
+  /* ABOVE THE FINGER, which would hide what it holds; round the pointer on a mouse */
+  const up = touch ? MAG_R + 28 : 0;
+  MAG.el.style.left = (x - MAG_R) + 'px';
+  MAG.el.style.top = (y - MAG_R - up) + 'px';
+  MAG.el.firstChild.style.transform = `translate(${MAG_R - x * MAG_Z}px, ${MAG_R - y * MAG_Z}px) scale(${MAG_Z})`;
+  MAG.live = true;
+}
+function magHide_() {
+  clearTimeout(MAG.tid); MAG.tid = 0;
+  if (MAG.el) MAG.el.remove();
+  if (MAG.page) MAG.page.classList.remove('mag-host');
+  MAG.el = null; MAG.page = null; MAG.live = false;
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('pointermove', e => {
-    if (!QZOOM_PTRS.has(e.pointerId)) return;
-    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
-    if (QZOOM_PTRS.size !== 2 || !QZOOM.d0) return;
-    const [a, b] = [...QZOOM_PTRS.values()];
-    qZoomSet_(QZOOM.z0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / QZOOM.d0);
+    if (!MAG.on) return;
+    if (e.pointerType === 'touch') {
+      if (e.pointerId !== MAG.pid) return;
+      if (MAG.live) magShow_(MAG.page, e.clientX, e.clientY, true);
+      else if (Math.abs(e.clientX - MAG.x0) > 10 || Math.abs(e.clientY - MAG.y0) > 10) { clearTimeout(MAG.tid); MAG.pid = null; }
+      return;
+    }
+    const page = magPageAt_(e.target);
+    if (page) magShow_(page, e.clientX, e.clientY, false); else if (MAG.live) magHide_();
+  });
+  /* A FINGER HELD STILL BRINGS IT UP; one that moves first was scrolling or turning the page, and does that */
+  document.addEventListener('pointerdown', e => {
+    if (!MAG.on || e.pointerType !== 'touch') return;
+    const page = magPageAt_(e.target);
+    if (!page) return;
+    MAG.pid = e.pointerId; MAG.x0 = e.clientX; MAG.y0 = e.clientY;
+    clearTimeout(MAG.tid);
+    MAG.tid = setTimeout(() => { if (MAG.pid === e.pointerId) magShow_(page, MAG.x0, MAG.y0, true); }, MAG_HOLD);
   });
   ['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, e => {
-    QZOOM_PTRS.delete(e.pointerId);
-    if (QZOOM_PTRS.size < 2) QZOOM.d0 = 0;
+    if (e.pointerType !== 'touch' || e.pointerId !== MAG.pid) return;
+    MAG.pid = null;
+    magHide_();
   }));
+  document.addEventListener('mouseleave', () => { if (MAG.live && MAG.pid === null) magHide_(); });
+  /* WHILE IT IS UP THE FINGER MOVES THE GLASS, NOT THE PAGE */
+  document.addEventListener('touchmove', e => { if (MAG.live && e.cancelable) e.preventDefault(); }, { passive: false });
 }
 
 /* ---------- THE PADLOCK ON A QUESTION (457): the page held still while you write, draw or read (`PADLOCK`, overworld.js) ---------- */
@@ -8171,24 +8197,7 @@ function figsBefore_(x) {
      the card -- the stems' pictures and the earlier parts'. */
   return out;
 }
-function figTile_(x) {
-  const figs = figsBefore_(x);
-  /* AND THE PAPER'S INSERT BESIDE IT (455): the figure tile stands wherever a question's tiles do. */
-  if (!figs.length) return insertTile_(x);
-  const one = figs.length === 1;
-  return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
-                 act: 'q-fig', data: { key: x.key || '' } }) + insertTile_(x);
-}
-on('q-fig', el => {
-  const k = el.getAttribute('data-key');
-  let x = null;
-  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
-  const figs = figsBefore_(x);
-  if (!figs.length) return;
-  /* EACH NAMED WHEN THERE IS MORE THAN ONE, in the words its own page's header uses (`figLabel_`). */
-  openSheet(figs.length === 1 ? figs[0].label : 'Figures', `<div class="qfig-sheet">${figs.map(f =>
-    `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
-});
+/* NO FIGURE TILE (463): the owner, "if they want to see the figure, they scroll up"; `figsBefore_` still tells Read aloud there is one. */
 
 /* ---------- READ ALOUD, ON EVERY PRIMARY QUESTION (394) ---------------------------------------- */
 /* PRIMARY IS THE SATs LEVEL (`levelOf_`, `ksFallback_` behind it) or a school year 1 to 6, whatever the level cell says;
@@ -8534,7 +8543,7 @@ function findPlaceBack_(F) {
 /* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER § */
 const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 /* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
-const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons'] };
+const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts'], documentType: ['Insert'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
@@ -9132,6 +9141,48 @@ function answersAsked_() {
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
+/* ---------- YOUR RESULT (463): the owner, "attempted / unattempted, correct / incorrect" ---------- */
+/* The latest press per question, the account's and this device's (`progressPresses_`), read once per change: a press (`subRecord_`) or a payload bumps it. */
+const MY_RESULT = { gen: 0, key: null, from: null, map: null };
+function myResults_() {
+  const who = typeof whoIs_ === 'function' ? whoIs_() : '';
+  if (!who) return null;
+  const key = who + '|' + MY_RESULT.gen;
+  if (MY_RESULT.key === key && MY_RESULT.from === (DATA && DATA.submissions)) return MY_RESULT.map;
+  const map = new Map();
+  try { (typeof progressPresses_ === 'function' ? progressPresses_() : []).forEach(p => map.set(p.key, p.v)); } catch (e) {}
+  MY_RESULT.key = key; MY_RESULT.from = DATA && DATA.submissions; MY_RESULT.map = map;
+  return map;
+}
+/* ATTEMPTED IS EVERY PRESS; a marked one also says how it went, as Progress scores it (`progressScore_`). */
+function myResultOf_(x) {
+  if (!x || x.kind !== 'question') return '';
+  const map = myResults_();
+  if (!map) return '';
+  const k = String(x.key || x.name || '');
+  if (!map.has(k)) return 'Unattempted';
+  const sc = typeof progressScore_ === 'function' ? progressScore_(map.get(k)) : null;
+  if (!sc) return 'Attempted';
+  return ['Attempted', sc.got >= sc.of ? 'Correct' : sc.got <= 0 ? 'Incorrect' : 'Part marks'];
+}
+/* A PRESS CHANGES IT AT ONCE: every finder forgets what it found, and the tags on the pressed question's own page are said again. */
+function myResultNew_(k) {
+  MY_RESULT.gen++;
+  try { finderForgetFound_(); } catch (e) {}
+  try {
+    const x = stuffItemsAll_().find(i => i && i.kind === 'question' && ansKey_(i) === k);
+    if (!x) return;
+    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
+    document.querySelectorAll('[data-k]').forEach(b => {
+      if (b.getAttribute('data-k') !== k) return;
+      const pg = b.closest('.page');
+      (pg ? pg.querySelectorAll('.qcard-tags') : []).forEach(row => {
+        row.querySelectorAll('[data-f="myResult"]').forEach(t => t.remove());
+        row.insertAdjacentHTML('beforeend', tags);
+      });
+    });
+  } catch (e) { /* the tag is right on the next draw */ }
+}
 /* A QUESTION'S TWO VERIFIED TAGS (388). Accuracy is a stored claim; Function is read off the row by qtypes.js. */
 function verifyTags_(x) {
   if (!x || x.kind !== 'question' || !x.row) return { accuracy: '', fn: '' };
@@ -9749,9 +9800,16 @@ function stuffPageHtml(n) {
   const pg = stuffPages_()[n];
   if (!pg) return '';
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
-  if (pg.slim) return libWaitHtml_(pg.x);
-  return pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+  if (pg.slim) return libWaitHtml_(pg.x) + findTopRow_();
+  return (pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_();
 }
+/* BACK TO TOP (463): the owner, "a button to scroll back to the top of the finder when they're at the bottom" -- under every result, so it is at the bottom of a long one. */
+const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
+on('find-top', el => {
+  const F = finderAt_(el);
+  if (!F) return;
+  inFinder_(F, () => goPage(F.id, 0));
+});
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
    all four hundred around it. */
@@ -9887,6 +9945,8 @@ const TAG_OF = {
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
+  /* YOUR OWN RESULT (463), its own colour. */
+  myResult: 'mine',
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',

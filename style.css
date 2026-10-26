@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-e-edit-layout";
+  --css-version: "2026-10-26-f-finder-owner-list";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -47,6 +47,8 @@
   --tag-kind:    #e2cfa6;
   --tag-check:   #9ec5e8;
   --tag-other:   #bdbdbd;
+  /* YOUR RESULT (463): attempted, correct and so on, yours alone. */
+  --tag-mine:    #ffcf70;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -1917,6 +1919,7 @@ button.text-drop { color: var(--bad); }
 [data-tag="kind"]    { --tag: var(--tag-kind); }
 [data-tag="check"]   { --tag: var(--tag-check); }
 [data-tag="other"]   { --tag: var(--tag-other); }
+[data-tag="mine"]    { --tag: var(--tag-mine); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT § */
 .chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }
@@ -6079,18 +6082,16 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qans-tiles { margin-top: .9rem; }
 /* `.qfig-tiles` WAS HERE -- the drawing page's row, which held only `To the answer`. Both went on
    8 Oct: *"there doesnt need to be a scroll down tile on questions."* */
-/* THE FIGURE OVER THE CARD (`q-fig`): each figure named in the words its own page's header uses when
-   the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
-.qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
-.qfig-sheet-k:first-child { margin-top: 0; }
-/* ZOOM ON EVERY QUESTION (457): the page's words and figures in a sheet, `zoom` set by − / + or two fingers, scrolled both ways inside its own box. */
+/* THE MAGNIFIER (463): a circle over a question page, its copy of the page 2.5 times bigger (`magShow_`); the page holds it while it is up. */
 .qtool-tiles { margin-top: .9rem; }
-.qzoom-bar { display: flex; gap: .5rem; justify-content: flex-end; margin-bottom: .5rem; }
-.qzoom-k { min-width: 44px; min-height: 44px; font-size: 1.4rem; line-height: 1; color: var(--gold);
-  background: transparent; border: 1px solid var(--line); border-radius: 50%; }
-.qzoom { max-height: 70vh; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; }
-.qzoom-in figure svg, .qzoom-in figure img { width: 100%; height: auto; }
-[data-do="q-zoom-fig"] { cursor: zoom-in; }
+.page.mag-host { position: relative; }
+/* BACK TO TOP (463): under every result of a finder, its last row. */
+.find-top { margin-top: .9rem; }
+.mag { position: absolute; z-index: 30; width: 160px; height: 160px; border-radius: 50%; overflow: hidden;
+  pointer-events: none; background: var(--bg); border: 2px solid var(--gold); box-shadow: 0 6px 24px rgb(0 0 0 / .55); }
+.mag-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: flex; flex-direction: column; justify-content: center; }
+body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+@media (hover: hover) { body.mag-on .page.mag-host { cursor: none; } }
 /* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): § */
 .qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
   border: 1px dashed var(--line); border-radius: .5rem; }
