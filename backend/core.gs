@@ -569,8 +569,28 @@ function config() {
 function configPublic_(cfg) {
   const out = {};
   Object.keys(cfg || {}).forEach(k => {
-    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1) out[k] = cfg[k];
+    /* `layout` is sent once, parsed, as `layout` (462) — not a second time as a string here. */
+    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1 && norm(k) !== LAYOUT_KEY) out[k] = cfg[k];
   });
+  return out;
+}
+
+/* ---------- THE SITE'S LAYOUT (462): one JSON value an admin arranges, checked whole § */
+/* Shapes only, never which ids exist: the site knows its columns and widgets and ignores the rest. null when broken. */
+function layoutClean_(v) {
+  let o = v;
+  if (typeof o === 'string') {
+    if (!o.trim() || o.length > LAYOUT_MAX) return null;
+    try { o = JSON.parse(o); } catch (e) { return null; }
+  }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const ID = /^[A-Za-z0-9_:.-]{1,64}$/;
+  const ids = (a, max) => (Array.isArray(a) ? a : []).map(x => String(x)).filter(x => ID.test(x))
+    .filter((x, i, all) => all.indexOf(x) === i).slice(0, max);
+  const out = { v: 1, columns: ids(o.columns, 60), widgets: {}, hidden: ids(o.hidden, 300), deleted: ids(o.deleted, 300) };
+  const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
+  Object.keys(w).filter(k => ID.test(k)).slice(0, 20).forEach(k => { out.widgets[k] = ids(w[k], 300); });
+  if (JSON.stringify(out).length > LAYOUT_MAX) return null;
   return out;
 }
 

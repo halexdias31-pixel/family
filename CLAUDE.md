@@ -38,7 +38,7 @@ reports any name used but never declared. **Run it after every change.**
 
 Screens, in `TAB_ORDER` (392, 461): `spotlight feed reel dm | tools stuff res saved | booking shop | games |
 family staff account | tutors students parents | biz`; `data/settings/columns.json` must list the same order
-(`check-doors`). `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `family staff account` are
+(`check-doors`); an admin's Edit layout (config `layout`, js/layout.js, 462) is laid over this default. `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `family staff account` are
 Parent, Tutor and Student settings, `tutors students parents` the three profile columns; every setting has one home. `biz` is admin-only — a tab marked
 `admin: true` is left out of `TABS` by `columnsFor_` (shell.js), which also makes and removes its `<section>`.
 

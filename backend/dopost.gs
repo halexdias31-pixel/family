@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-d-six-columns";
+const DOPOST_VERSION = "2026-10-26-e-edit-layout";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2979,6 +2979,26 @@ function doPost(e) {
       /* A CELL THE SHEET MADE A NUMBER lost its leading zeros (`authPinLost_`); four digits are put back. */
       const pin = typeof who.pin === 'number' ? String(who.pin).padStart(4, '0') : S(who.pin);
       return jsonOut(pin ? { success: true, pin } : { success: true, pin: '', said: 'No PIN' });
+    }
+
+    /* ---------- EDIT LAYOUT (462): the site-wide order of columns and widgets, one `layout` row on config ---------- */
+    /* `reset` (or no layout) empties the cell, and every phone goes back to the code's own order. */
+    if (action === 'layoutSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const raw = body.layout;
+      const reset = TRUE_(body.reset) || raw === null || raw === undefined || raw === '';
+      if (!reset && typeof raw === 'string' && raw.length > LAYOUT_MAX) return jsonOut({ error: 'That layout is too big to keep.' });
+      const clean = reset ? null : layoutClean_(raw);
+      if (!reset && !clean) return jsonOut({ error: 'That layout could not be read. Nothing was saved.' });
+      const value = clean ? JSON.stringify(clean) : '';
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the layout on.' });
+      const row = t.rows.find(r => norm(r.key) === LAYOUT_KEY);
+      if (row) setCell(t, row, 'value', value);
+      else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of columns and widgets, set by Edit layout on Business (462). Empty: the code\'s own order.' });
+      clearCache();
+      return jsonOut({ success: true, layout: clean });
     }
 
     /* ---------- THE FILMS, FILLED FROM THE NOTFLIX FOLDER § */
