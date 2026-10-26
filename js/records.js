@@ -376,13 +376,13 @@ const EINK = (() => {
            verses: null, icons: null, asked: false, failed: false, say: '', busy: false, install: false };
 })();
 const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon })); } catch (e) {} };
-/* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database with its drawings. */
+/* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database with its images. */
 function einkLoad_() {
   if (EINK.asked) return;
   EINK.asked = true;
   const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
   Promise.all([get('eink-verses.json'), get('icons.json')])
-    .then(([v, i]) => { EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.svg); })
+    .then(([v, i]) => { EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && (x.image || x.svg)); })
     .catch(() => { EINK.failed = true; })
     .then(() => paintEink_());
 }
@@ -392,7 +392,9 @@ function einkFace_() {
   if (!list.length) return '<p class="eink-none">The verses and icons did not load.</p>';
   if (EINK.mode === 'icon') {
     const ic = list[EINK.icon % list.length];
-    return `<div class="eink-icon">${ic.svg}<p class="eink-title">${esc(ic.title || '')}</p></div>`;
+    /* The real icon, dithered to 1 bit as the panel shows it (479); the drawing only where no public-domain copy exists. */
+    const pic = ic.image ? `<img class="eink-pic" src="${esc(ic.image)}" alt="${esc(ic.title || '')}" decoding="async">` : ic.svg;
+    return `<div class="eink-icon">${pic}<p class="eink-title">${esc(ic.title || '')}</p></div>`;
   }
   const v = list[EINK.verse % list.length], n = String(v.text || '').length;
   return `<div class="eink-verse ${n > 150 ? 'is-long' : n > 80 ? 'is-mid' : ''}"><p>${esc(v.text || '')}</p><i class="eink-rule"></i><p class="eink-ref">${esc(v.ref || '')}</p></div>`;

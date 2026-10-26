@@ -239,7 +239,8 @@ if (require.main === module) {
   const rows = JSON.parse(fs.readFileSync(FILE, 'utf8'));
   const check = process.argv.includes('--check');
   let off = 0;
-  rows.forEach(r => { const s = svgFor(r); if (r.svg !== s) { off++; r.svg = s; } });
+  /* A row with its real image (479) carries no drawing; the drawing is only the fallback where Commons has no public-domain copy. */
+  rows.forEach(r => { if (r.image) { if ('svg' in r) { off++; delete r.svg; } return; } const s = svgFor(r); if (r.svg !== s) { off++; r.svg = s; } });
   const vOff = !fs.existsSync(VFILE) || fs.readFileSync(VFILE, 'utf8') !== versesText();
   if (check) { if (vOff) { console.error('data/eink-verses.json is not verse.cpp\'s verses - run node tools/epaper-verse/icon-svgs.js'); process.exit(1); }
     if (off) { console.error(off + ' icon drawings are not what icon-svgs.js writes - run node tools/epaper-verse/icon-svgs.js'); process.exit(1); } console.log('icon svgs: ' + rows.length + ' current'); }

@@ -12980,8 +12980,8 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="1"]'));
   if (shown().indexOf(EV[1].ref) < 0) bad.push('Next did not move to ' + EV[1].ref);
   await press(mode('icon'));
-  const svg = box.querySelector('.eink-icon svg');
-  if (!svg || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not draw the first icon, ' + IC[0].title + ', with its name');
+  const svg = box.querySelector('.eink-icon svg'), pic = box.querySelector('.eink-icon img.eink-pic');
+  if (!(IC[0].image ? pic && pic.getAttribute('src') === IC[0].image : svg) || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not draw the first icon, ' + IC[0].title + ', as its real image with its name (479)');
   if (box.querySelector('.eink-verse')) bad.push('Icon mode still shows a verse');
   if (svg && /fill="(?!#000|#fff|none)|stroke="(?!#000|#fff|none)|opacity|gradient/i.test(svg.outerHTML)) bad.push('the icon drawn has a colour, grey or transparency in it');
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="-1"]'));
