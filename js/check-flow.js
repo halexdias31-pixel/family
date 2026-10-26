@@ -2419,7 +2419,7 @@ check('the Setup card is in the Business column, an admin\'s alone (moved from Y
   if (!card()) return bad.concat(['the admin\'s Business column has no Setup card']);
   if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
   if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
-  if (card().querySelector('button, [data-do]')) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
+  if ([...card().querySelectorAll('button, [data-do]')].some(x => !x.closest('.wgt-admin'))) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
   if (!card().classList.contains('needs-you') || !/to fix/.test(text)) bad.push('a failed job did not make the Setup card glow and say what to fix');
   const dot = () => a.d.getElementById('biz-dot');
   const fix = (/(\d+) things? to fix/.exec(text) || [])[1];
@@ -12698,7 +12698,7 @@ check('461: the Progress column is dissolved into Student settings — no `progr
     if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the progress widgets on Student settings read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
     if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push(as + ': the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
     cards.forEach((c, k) => {
-      if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
+      if (!c.classList.contains('is-empty') || [...c.children].filter(x => !x.classList.contains('wgt-admin')).length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
     });
     if (d.querySelectorAll('.card.prog-w').length !== cards.length) bad.push(as + ': a progress widget is drawn somewhere else too');
   }
@@ -29373,6 +29373,185 @@ check('layout tiles (463): a stale or garbled layout falls back cleanly — unkn
     const g = boot({ payload: q }); await wait(250);
     if (layIds_(g.w.__t, 'tool').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
     if (g.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + g.errs.join('; '));
+  }
+  return bad;
+});
+
+/* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
+const LAY_CARD_COLS_ = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+const layPaintAll_ = async w => { for (const c of LAY_CARD_COLS_) { try { w.paint(c); } catch (e) {} } await wait(200); };
+const layCardRow_ = (d, id) => d.querySelector(`.card-admin[data-lay-for="${id}"]`);
+const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
+const laySeen_ = (w, col) => w.cardSeen_(col);
+const layLast_ = sent => ((sent.filter(x => x.action === 'layoutSave').pop() || {}).layout) || null;
+
+check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on every settings, profiles and Business card (Split beside them on a card of several fields); a settings card moves down, up and to another settings column, one layoutSave each, every setting still edited in one place, a reload keeps it; Business cards reorder and "+ Add a student" goes to the bottom', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-c-move'] || typeof w.cardsOf_ !== 'function') return ['no lay-c-move handler or cardsOf_ — NOT checked'];
+  await layPaintAll_(w);
+  /* EVERY CARD ON EVERY RIGHT-HAND COLUMN HAS THE ROW — cards are the column's pages less its own lines. */
+  for (const col of LAY_CARD_COLS_) {
+    const seen = laySeen_(w, col);
+    if (!seen.length && col !== 'family') bad.push(col + ' has no arranged cards');
+    seen.forEach(id => {
+      const row = layCardRow_(d, id);
+      if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }
+      const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
+      ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
+    });
+  }
+  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'biz:layout', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
+  /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
+  const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
+  if (!split || !split.closest('.card').querySelector('.card-admin')) bad.push('a several-field settings card lacks Split beside its admin row');
+  /* DOWN, UP: Your role on Student settings. */
+  const s0 = laySeen_(w, 'account'), id = 'acct:roles', i0 = s0.indexOf(id);
+  if (i0 < 0 || i0 >= s0.length - 1) return bad.concat(['Your role is not a movable card on Student settings: ' + s0.join()]);
+  A['lay-c-move'](layCardTile_(d, id, 'lay-c-move', '1')); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'account').indexOf(id) !== i0 + 1) bad.push('Move down left Student settings ' + laySeen_(w, 'account').join());
+  const drawn = [...d.querySelectorAll('#s-account .card-admin')].map(x => x.dataset.layFor).filter((x, i, a) => a.indexOf(x) === i);
+  if (drawn.indexOf(id) !== drawn.indexOf(s0[i0 + 1]) + 1) bad.push('Move down was not redrawn: ' + drawn.join());
+  A['lay-c-move'](layCardTile_(d, id, 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'account').join() !== s0.join()) bad.push('Move up did not put it back: ' + laySeen_(w, 'account').join());
+  /* ACROSS: Notifications to the previous settings column (Tutor settings), last there, the same card. */
+  A['lay-c-col'](layCardTile_(d, 'acct:notify', 'lay-c-col', '-1')); await wait(300);
+  await layPaintAll_(w);
+  const st = laySeen_(w, 'staff');
+  if (st[st.length - 1] !== 'acct:notify' || d.querySelector('#s-account .notify-card') || !d.querySelector('#s-staff .notify-card')) bad.push('Notifications did not move to the end of Tutor settings: ' + st.join());
+  if (d.querySelectorAll('.notify-card').length !== 1) bad.push('Notifications is drawn ' + d.querySelectorAll('.notify-card').length + ' times');
+  /* AND A SETTINGS GROUP TO PARENT SETTINGS: its fields still have one home. */
+  const grp = laySeen_(w, 'staff').find(x => /^set:staff:/.test(x));
+  if (grp) {
+    A['lay-c-col'](layCardTile_(d, grp, 'lay-c-col', '-1')); await wait(300); await layPaintAll_(w);
+    if (laySeen_(w, 'family').indexOf(grp) === -1) bad.push(grp + ' did not move to Parent settings');
+  }
+  const ed = editorsOf_(d, {});
+  Object.keys(ed).filter(f => ed[f].size > 1).forEach(f => bad.push('after the moves "' + f + '" is edited in ' + ed[f].size + ' places'));
+  const posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== (grp ? 4 : 3)) bad.push(posts.length + ' layoutSave posts for ' + (grp ? 4 : 3) + ' presses');
+  /* A RELOAD KEEPS IT. */
+  const p2 = payload(); p2.layout = layLast_(sent);
+  const r = layBoot_({ payload: p2 }); await wait(300); await layPaintAll_(r.w);
+  if (!r.w.document.querySelector('#s-staff .notify-card') || r.w.document.querySelector('#s-account .notify-card')) bad.push('a reload did not keep Notifications on Tutor settings');
+  /* BUSINESS: Build up one place; "+ Add a student" down to the bottom of Student profiles. */
+  const b0 = laySeen_(w, 'biz'), bi = b0.indexOf('biz:build');
+  A['lay-c-move'](layCardTile_(d, 'biz:build', 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'biz').indexOf('biz:build') !== bi - 1) bad.push('Build did not move up on Business: ' + laySeen_(w, 'biz').join());
+  for (let k = 0; k < 12 && !layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')?.disabled; k++) {
+    A['lay-c-move'](layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')); await wait(200); await layPaintAll_(w);
+  }
+  const ss = laySeen_(w, 'students');
+  if (ss[ss.length - 1] !== 'ppl:students:add') bad.push('"+ Add a student" did not reach the bottom: ' + ss.join());
+  const pgs = [...d.querySelectorAll('#s-students > .page')];
+  if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
+  /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
+  if (!layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1')?.disabled) bad.push('a Parent profiles card may move on to Business');
+  if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
+  return bad;
+});
+
+check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; deleted cards are listed by title on Business and come back to their own column; the Layout card itself can go, leaving a "Deleted cards" line at the foot of Business; Build, Needs help, Manage your child and the "+ Add" cards all delete; Reset restores all', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-c-del']) return ['no lay-c-del handler — NOT checked'];
+  await layPaintAll_(w);
+  const del = async id => { const x = layCardTile_(d, id, 'lay-c-del'); if (!x) { bad.push(id + ' has no Delete'); return null; } A['lay-c-del'](x); const say = x.getAttribute('aria-label'); A['lay-c-del'](x); await wait(250); await layPaintAll_(w); return say; };
+  /* ONE TAP IS NOT A DELETE, and a settings group says it is the only place. */
+  const grp = laySeen_(w, 'account').find(x => /^set:account:/.test(x));
+  const tile = layCardTile_(d, grp, 'lay-c-del');
+  A['lay-c-del'](tile);
+  if (sent.some(x => x.action === 'layoutSave')) bad.push('one tap deleted');
+  if (!/^Tap again — this removes the only place to edit /.test(tile.getAttribute('aria-label') || '')) bad.push('the only editor\'s second step reads ' + tile.getAttribute('aria-label'));
+  if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
+  A['lay-c-del'](tile); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'account').indexOf(grp) !== -1 || d.querySelector(`[data-lay-card="${grp}"], [data-split="${grp}"]`)) bad.push(grp + ' was not deleted');
+  const says = {};
+  for (const id of ['biz:build', 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
+  if (!/^Tap again to delete/.test(says['biz:build'] || '')) bad.push('Build\'s second step reads ' + says['biz:build']);
+  if (d.querySelector('#s-biz .me-build') || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push('Build, Needs help or an Add card is still drawn');
+  /* LISTED BY TITLE on the Layout card. */
+  const opts = [...d.querySelectorAll('#s-biz .layout-card .lay-del-pick option')].map(o => o.value + '=' + o.textContent);
+  [grp, 'biz:build', 'ppl:students:help'].forEach(id => { if (!opts.some(o => o.indexOf(id + '=') === 0)) bad.push('Business does not list ' + id + ': ' + opts.join('|')); });
+  if (!opts.some(o => o === 'biz:build=Build')) bad.push('Build is not listed by its title');
+  /* ADD BACK, to its own column. */
+  const pick = d.querySelector('#s-biz .layout-card .lay-del-pick');
+  pick.value = 'ppl:students:add';
+  A['lay-w-undel'](d.querySelector('#s-biz .layout-card [data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
+  if (!d.querySelector('#s-students [data-do="person-add"]')) bad.push('Add back did not return "+ Add a student" to Student profiles');
+  /* THE LAYOUT CARD ITSELF: gone, and the foot line is the way back. */
+  await del('biz:layout');
+  if (d.querySelector('#s-biz .layout-card')) bad.push('the Layout card was not deleted');
+  const foot = d.querySelector('#s-biz > .page:last-child .lay-foot');
+  if (!foot || !/Deleted cards \(\d+\)/.test(foot.textContent)) return bad.concat(['no "Deleted cards" line at the foot of Business']);
+  foot.querySelector('.lay-del-pick').value = 'biz:layout';
+  A['lay-w-undel'](foot.querySelector('[data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
+  if (!d.querySelector('#s-biz .layout-card')) bad.push('Add back on the foot line did not return the Layout card');
+  /* MANAGE YOUR CHILD, for a client. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const c = boot({ before: signedInAs_(CL) }); await wait(300);
+  /* RESET restores everything. */
+  A['layout-reset'](); await wait(250); await layPaintAll_(w);
+  if (!d.querySelector('#s-biz .me-build') || !d.querySelector('.help-list') || laySeen_(w, 'account').indexOf(grp) === -1) bad.push('Reset did not bring every card back');
+  /* A CARD DELETED FOR EVERYBODY: Manage your child on a client's phone. */
+  const p = payload(); p.layout = { v: 1, widgets: {}, deleted: ['ppl:students:manage'] };
+  const c2 = boot({ payload: p, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c2.w);
+  await layPaintAll_(c.w);
+  if (!c.w.document.querySelector('.kid-manage')) bad.push('a client has no Manage your child to delete (fixture) — NOT checked');
+  else if (c2.w.document.querySelector('.kid-manage')) bad.push('a deleted Manage your child is still drawn for a client');
+  return bad;
+});
+
+check('layout cards (465): Start here makes a card, a person or "the first person" where a column opens — stored as start, kept on reload, pressed again cleared; a role-gated card moved to another column stays hidden from those without the role; a member sees no tiles and cannot post; a garbled cards/start falls back', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-start']) return ['no lay-start handler — NOT checked'];
+  await layPaintAll_(w);
+  /* A PERSON'S START HERE and the list's "the first person". */
+  const first = d.querySelector('#s-parents .start-tiles [data-do="lay-start"][data-lc="first-person"]') || d.querySelector('.start-tiles [data-do="lay-start"][data-lc="first-person"]');
+  if (!first) return bad.concat(['no person card offers Start here: the first person']);
+  const col = first.dataset.col;
+  A['lay-start'](first); await wait(250); await layPaintAll_(w);
+  let L = layLast_(sent);
+  if (!L || !L.start || L.start[col] !== 'first-person') bad.push('Start here posted ' + JSON.stringify(L && L.start));
+  const at = w.cardStartAt_(col), pg = [...d.querySelectorAll('#s-' + col + ' > .page')][at];
+  if (!pg || !pg.querySelector('.start-tiles')) bad.push(col + ' opens on page ' + at + ', not the first person');
+  const person = [...d.querySelectorAll('#s-' + col + ' .start-tiles [data-do="lay-start"]')].map(x => x.dataset.lc).filter(x => /^person:/.test(x)).pop();
+  A['lay-start'](d.querySelector(`#s-${col} [data-do="lay-start"][data-lc="${person}"]`)); await wait(250); await layPaintAll_(w);
+  L = layLast_(sent);
+  if (!L.start || L.start[col] !== person) bad.push('a person\'s Start here posted ' + JSON.stringify(L.start));
+  const p2 = payload(); p2.layout = L;
+  const r = layBoot_({ payload: p2 }); await wait(300); await layPaintAll_(r.w);
+  const at2 = r.w.cardStartAt_(col), pg2 = [...r.w.document.querySelectorAll('#s-' + col + ' > .page')][at2];
+  if (!pg2 || !pg2.querySelector(`[data-do="lay-start"][data-lc="${person}"].on`)) bad.push('after a reload ' + col + ' does not open on ' + person);
+  /* A CARD'S START HERE, then pressed again clears. */
+  A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250); await layPaintAll_(w);
+  if ((layLast_(sent).start || {}).biz !== 'biz:build') bad.push('Build\'s Start here was not stored');
+  A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250);
+  if ((layLast_(sent).start || {}).biz) bad.push('Start here pressed again did not clear');
+  /* A ROLE-GATED CARD MOVED: the Staff hub to Student settings stays a tutor's. */
+  const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], cards: { account: ['staff:hub'], students: ['acct:pin'] } };
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const c = boot({ payload: g, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c.w);
+  if (c.w.document.querySelector('[data-do="hub-open"], .staff-top')) bad.push('a client sees the Staff hub moved to Student settings');
+  if (!c.w.document.querySelector('#s-students [data-do="pin-save"]') || c.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a client does not find the PIN where it was moved');
+  if (c.w.document.querySelector('.card-admin, .start-tiles, [data-do="lay-c-move"]')) bad.push('a client sees layout tiles');
+  /* A MEMBER: no tiles, no post. */
+  const m = boot({ member: true }); await wait(300); await layPaintAll_(m.w);
+  if (m.w.document.querySelector('.card-admin, .start-tiles')) bad.push('a member sees card tiles');
+  const fake = m.w.document.createElement('button'); fake.setAttribute('data-lc', 'acct:pin'); fake.setAttribute('data-col', 'account'); fake.setAttribute('data-d', '1'); fake.setAttribute('data-armed', '1');
+  ['lay-c-move', 'lay-c-col', 'lay-c-del', 'lay-start'].forEach(k => { try { m.w.__t.ACTIONS[k](fake); } catch (e) {} });
+  await wait(100);
+  if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
+  /* GARBLED: unknown ids, wrong shapes. */
+  for (const junk of [{ cards: 'x', start: [1] }, { cards: { account: ['ghost', 7, 'acct:roles'], nowhere: ['acct:pin'] }, start: { account: 'ghost', biz: {} } }, '{bad']) {
+    const q = payload(); q.layout = junk;
+    const gb = layBoot_({ payload: q }); await wait(250); await layPaintAll_(gb.w);
+    if (gb.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + gb.errs.join('; '));
+    if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]') || !gb.w.document.querySelector('#s-account .roles-card')) bad.push(JSON.stringify(junk) + ' lost a Student settings card');
   }
   return bad;
 });

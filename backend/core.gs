@@ -594,6 +594,16 @@ function layoutClean_(v) {
   /* SPLIT CARDS (464): the ids of the settings and Business cards drawn a field a card; presentation only. */
   const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
   if (split.length) out.split = split;
+  /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
+  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+  const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
+  const cards = {};
+  Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });
+  if (Object.keys(cards).length) out.cards = cards;
+  const s = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {};
+  const start = {};
+  Object.keys(s).filter(k => COLS.indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
+  if (Object.keys(start).length) out.start = start;
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;
   return out;
 }
