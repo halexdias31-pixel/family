@@ -1450,13 +1450,17 @@ function placeNow_(which, instant, dragPx, id) {
   });
 }
 
+/* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
+function cardCount_(col, raw, none) {
+  try { return typeof cardsOf_ === 'function' ? cardsOf_(col).length : raw(); } catch (e) { return none === undefined ? 1 : none; }
+}
 /* ---------- WIDGETS AS PAGES § */
 const PAGER = {
   /* POSTS ARE HOWEVER MANY THERE ARE, so this is a function rather than a list. § */
   /* EVERY SCREEN IS PAGED. § */
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
-  account: () => (typeof studentSetPages_ === 'function' ? studentSetPages_().length : 1),
+  account: () => cardCount_('account', () => studentSetPages_().length),
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. § */
@@ -1472,16 +1476,16 @@ const PAGER = {
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
   spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
-  family: () => (typeof familyPages_ === 'function' ? familyPages_().length : 1),
-  staff: () => (typeof staffPages_ === 'function' ? staffPages_().length : 1),
-  tutors: () => (typeof peoplePages_ === 'function' ? peoplePages_('tutors').length : 1),
-  students: () => (typeof peoplePages_ === 'function' ? peoplePages_('students').length : 1),
-  parents: () => (typeof peoplePages_ === 'function' ? peoplePages_('parents').length : 1),
+  family: () => cardCount_('family', () => familyPages_().length),
+  staff: () => cardCount_('staff', () => staffPages_().length),
+  tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
+  students: () => cardCount_('students', () => peoplePages_('students').length),
+  parents: () => cardCount_('parents', () => peoplePages_('parents').length),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
-  biz: () => (typeof adminPages_ === 'function' ? adminPages_().length : 0),
+  biz: () => cardCount_('biz', () => adminPages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {
