@@ -106,15 +106,20 @@ function bizItem_(item) {
 function bizCard_(pg) {
   const wait = bizWaiting_() && typeof loading_ === 'function';
   const due = bizDueCount_(pg);
-  return `<div class="card biz" data-need="rec:${esc(pg.title)}"><div class="me-form" data-biz-page="${esc(pg.title)}">
-    <h3>${esc(pg.title)}</h3>
-    <div class="biz-need-slot">${bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'))}</div>
+  /* SPLIT (464): an admin's Split draws each record its own card with its own Save, in the same place; Join puts them back. */
+  const id = typeof splitId_ === 'function' ? splitId_('biz', 'rec', pg.title) : '';
+  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  const one = (title, items, first) => `<div class="card biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
+    <h3>${esc(title)}</h3>
+    ${first ? `<div class="biz-need-slot">${bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'))}</div>` : ''}
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
-      ${pg.items.map(bizItem_).join('')}
+      ${items.map(bizItem_).join('')}
       <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said biz-said">${esc(bizSaid_())}</p>
-  </div></div>`;
+  </div>${tiles(items.length)}</div>`;
+  if (id && typeof splitOn_ === 'function' && splitOn_(id)) return pg.items.map((it, i) => one(it.title, [it], i === 0));
+  return [one(pg.title, pg.items, true)];
 }
 
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
@@ -124,7 +129,7 @@ function bizPages_() {
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), libImpCard_(), BIZ_PAGES.map(bizCard_));   /* Verse screen is a Tools widget (461) */
+  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), libImpCard_(), [].concat(...BIZ_PAGES.map(bizCard_)));   /* Verse screen is a Tools widget (461) */
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
@@ -586,16 +591,27 @@ function profitCards_() {
       PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')}</select></label>
     <div class="pf-lines">${profitLine_(x, PROFIT.period)}</div>
   </div>`;
-  const terms = `<div class="card biz profit" data-profit="terms">
+  const said = `<p class="faint pf-said">${A
+      ? esc('This month’s bookings so far: ' + A.sessions + ' sessions, ' + profitMoney_(A.charged) + ' charged, '
+        + profitMoney_(A.tutor) + ' to tutors, ' + profitMoney_(A.kept) + ' kept. ')
+      : esc(waiting ? '' : 'No bookings this month, so the starting values are config and placeholders. ')}${
+      esc('What you move here stays on this device; nothing is written to the sheet.')}</p>`;
+  /* SPLIT (464): each term its own card after the head, in the same place; Join puts them back. */
+  const id = typeof splitId_ === 'function' ? splitId_('biz', 'profit-terms') : '';
+  const split = id && typeof splitOn_ === 'function' && splitOn_(id);
+  const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
+  if (split) return [sum, `<div class="card biz profit" data-profit="terms" data-split="${esc(id)}">
+    <h3>Profit · the terms</h3>
+    <p class="pf-head">${profitHead_(r)}</p>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>${said}${tiles(1)}</div>`]
+    .concat(PROFIT_VARS.map(p => `<div class="card biz profit" data-profit="term" data-split="${esc(id)}">
+    <div class="pf-vars">${profitControl_(p, x, D.from)}</div>${tiles(1)}</div>`));
+  const terms = `<div class="card biz profit" data-profit="terms"${id ? ` data-split="${esc(id)}"` : ''}>
     <h3>Profit · the terms</h3>
     <p class="pf-head">${profitHead_(r)}</p>
     <div class="pf-vars">${PROFIT_VARS.map(p => profitControl_(p, x, D.from)).join('')}</div>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>
-    <p class="faint pf-said">${A
-      ? esc('This month’s bookings so far: ' + A.sessions + ' sessions, ' + profitMoney_(A.charged) + ' charged, '
-        + profitMoney_(A.tutor) + ' to tutors, ' + profitMoney_(A.kept) + ' kept. ')
-      : esc(waiting ? '' : 'No bookings this month, so the starting values are config and placeholders. ')}${
-      esc('What you move here stays on this device; nothing is written to the sheet.')}</p>
+    ${said}${tiles(PROFIT_VARS.length)}
   </div>`;
   return [sum, terms];
 }
@@ -713,7 +729,8 @@ on('biz-save', el => {
   }
   const pg = BIZ_PAGES.find(p => p.title === form.dataset.bizPage);
   if (!pg) return;
-  const records = pg.items.map(item => {
+  /* ONLY THE RECORDS WHOSE BOXES ARE IN THIS CARD — a split piece (464) must not blank its neighbours. */
+  const records = pg.items.filter(item => form.querySelector(`[data-biz="${item.id}"]`)).map(item => {
     const out = { id: item.id, title: item.title, category: pg.title };
     form.querySelectorAll(`[data-biz="${item.id}"]`).forEach(b => { out[b.dataset.k] = String(b.value || '').trim(); });
     return out;

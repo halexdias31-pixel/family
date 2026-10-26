@@ -172,18 +172,16 @@ function applyAdult_() {
   const age = profileAge_(USER && USER.profile);
   return age !== null && age >= 18;
 }
-function applyCard_() {
+/* THE PADLOCK'S ONE TILE (464): Apply to teach, or where the application stands, on the tile itself; '' for a child. */
+function applyTile_() {
   if (!USER || rankAtLeast_('staff')) return '';
-  if (profileAge_(USER.profile) === null) return `<div class="card apply-card"><h3>Teach with us</h3>
-    <p class="sub apply-status">To apply to teach, add your date of birth on this screen first.</p></div>`;
+  if (profileAge_(USER.profile) === null)
+    return tileRow_(tile_({ icon: 'join', label: 'Apply to teach', note: 'add your date of birth first', act: 'apply-open', off: true }), 'apply-tiles');
   if (!applyAdult_()) return '';
-  const a = USER.application || null;
-  const st = a && a.status;
-  const open = st === 'new' || st === 'interview';
-  return `<div class="card apply-card"><h3>Teach with us</h3>
-    <p class="sub apply-status">${esc(st ? APP_STATUS_LINE[st] || '' : 'Tutors here are approved by us first. Tell us what you teach and we will be in touch.')}</p>
-    ${open ? '' : `<div class="tile-row">${tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', act: 'apply-open' })}</div>`}
-  </div>`;
+  const st = USER.application && USER.application.status;
+  if (st === 'new' || st === 'interview')
+    return tileRow_(tile_({ icon: 'join', label: 'Application sent', note: st === 'interview' ? 'we will arrange a talk' : 'we will be in touch', act: 'apply-open', off: true }), 'apply-tiles');
+  return tileRow_(tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', note: st === 'approved' ? 'approved' : '', act: 'apply-open' }), 'apply-tiles');
 }
 function applyFormHtml_() {
   const noOther = h => h.replace(`<option value="${QUAL_OTHER}">Something else…</option>`, '');
@@ -1818,15 +1816,16 @@ function settingsSplit_() {
   });
   return out;
 }
-/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column. */
-function settingsCards_(shown, moved) {
+/* ONE GROUP, ONE CARD, ITS OWN SAVE — `meSave_` posts the boxes of the card it is pressed in, whichever column.
+   `col` names the column, so an admin's Split (464, layout.js) can draw a group a field a card, each with its own Save. */
+function settingsCards_(shown, moved, col) {
   const p = USER.profile || {};
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  return Object.keys(shown).map((g, n) => setHeldSay_(`<div class="card">
-    ${n === 0 ? moved : ''}
-    <div class="me-form">${fieldsHtml({ [g]: shown[g] }, {
+  const one = (g, list, top, id, n) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : ''}>
+    ${top}
+    <div class="me-form">${fieldsHtml({ [g]: list }, {
       head: 'h3',
       attr: 'data-me',
       /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
@@ -1836,13 +1835,25 @@ function settingsCards_(shown, moved) {
       options: fieldOptions_,
     })}
       ${/* THE QUALIFICATIONS CARD HAS NO SAVE OF ITS OWN: § */
-        (shown[g] || []).length && (shown[g] || []).every(isQualField_) ? ''
+        (list || []).length && (list || []).every(isQualField_) ? ''
         : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}${
-            (shown[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
-      ${(shown[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
+            (list || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
+      ${(list || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
-  </div>`));
+    ${id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : ''}
+  </div>`);
+  const out = [];
+  Object.keys(shown).forEach((g, k) => {
+    const list = shown[g] || [], top = k === 0 ? moved : '';
+    const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
+    if (id && typeof splitOn_ === 'function' && splitOn_(id))
+      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1)));
+    else out.push(one(g, list, top, id, list.length));
+  });
+  return out;
 }
+/* A GROUP SPLITS WHEN ITS FIELDS STAND ALONE: not the qualifications (one shelf) and not a week of hours (one grid). */
+const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQualField_) && !isTimetable_(list);
 
 /* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
@@ -1866,6 +1877,19 @@ function peoplePages_(col) {
   return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
 }
 
+/* ---------- YOUR CARD ON YOUR ROLE'S SETTINGS COLUMN (464): its face, and Edit — or the editor itself while it is open § */
+function ownCardSetPage_(setCol) {
+  const face = FACE_OF_SET_[setCol];
+  if (!USER || !face || typeof ownCardSections_ !== 'function' || !ownCardSections_(face).length) return '';
+  const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
+  const row = face === 'tutors' ? (cardMine_() || mine) : mine;
+  if (!row || !row.personId) return '';
+  if (cardEditing_(row, face)) return cardEditHtml_(row);
+  const card = row === mine && typeof meCard === 'function' ? meCard(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
+  const edit = cardEditTile_({ row, account: true, col: face, settings: true });
+  return `<div class="own-set">${card}${edit ? tileRow_(edit, 'own-tiles', true) : ''}</div>`;
+}
+
 /* WHICH SETTINGS COLUMN YOUR OWN DETAILS ARE ON — a client's are a parent's (`clientFields`); everybody else's on Student settings. */
 const youSetCol_ = () => rank_() === 'client' ? 'family' : 'account';
 /* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
@@ -1874,7 +1898,7 @@ function youSettingsPages_() {
   const shown = youSetCol_() === 'account' ? settingsSplit_().you : {};
   /* WHERE THE REST WENT, said once on the first card. */
   const moved = `<p class="faint ce-moved">${esc(cardMovedSay_())}</p>`;
-  const pages = settingsCards_(shown, moved);
+  const pages = settingsCards_(shown, moved, 'account');
   pages.push(`<div class="card">
     <h3>Signing in</h3>
     ${Object.keys(shown).length ? '' : moved}
@@ -1914,7 +1938,8 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(youSettingsPages_(), prog, wait);
+  const own = ownCardSetPage_('account');
+  return [top].concat(own ? [own] : [], youSettingsPages_(), prog, wait);
 }
 screen('account', () => pages('account', studentSetPages_()));
 
@@ -1930,15 +1955,18 @@ on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 /* A COLUMN ABOVE YOUR RANK: its title, that it is not for your account, and the next step if there is one. */
 const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc(title)}</h3>
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
+/* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
+const padlockCard_ = (say, more) => `<div class="card rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>
+    <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Student settings') + ' first.');
 
 /* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
   if (!USER) return [signedOutCard_(title)];
-  if (!rankAtLeast_('client'))
-    return [rankOffCard_(title, 'This column is for a parent\'s account, not yours. A parent links you from theirs.')];
-  const out = youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '') : [];
+  if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')];
+  const own = ownCardSetPage_('family');
+  const out = (own ? [own] : []).concat(youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '', 'family') : []);
   /* TITLE ONLY when a rank that has the column has nothing in it (Staff holding no client role). */
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
@@ -1948,15 +1976,13 @@ screen('family', () => pages('family', familyPages_()));
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
   if (!USER) return [signedOutCard_(title)];
-  if (!rankAtLeast_('staff')) {
-    /* "APPLY TO TEACH", or where your application stands (400); '' for a child, who is told only the first line. */
-    const apply = typeof applyCard_ === 'function' ? applyCard_() : '';
-    return [rankOffCard_(title, 'This column is for a tutor\'s account, not yours.')].concat(apply ? [apply] : []);
-  }
+  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), and no more (464). */
+  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.', typeof applyTile_ === 'function' ? applyTile_() : '')];
   const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
-  const out = top.concat(settingsCards_(settingsSplit_().staff, ''));
+  const own = ownCardSetPage_('staff');
+  const out = (own ? [own] : []).concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
 screen('staff', () => pages('staff', staffPages_()));
@@ -3622,7 +3648,7 @@ function profileRefresh_(loud, onOld) {
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) {} return; }
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
-      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(CARD_EDIT.col || homeCol_())); } catch (e) {} }
+      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col || homeCol_()] || 'account')); } catch (e) {} }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
@@ -3699,8 +3725,8 @@ const CARD_SECTIONS = [
 const cardMovedSay_ = () => {
   const tab = (id, or) => (((typeof TABS !== 'undefined' && TABS.find(t => t.id === id)) || {}).label || or);
   const rich = cardHolds_();
-  return 'Your name, picture, handle and figure are on your card now — Edit is under it on ' + tab(homeCol_(), 'Students') + '. '
-    + (rich ? 'What you teach is on your tutor card on ' + tab('tutors', 'Tutors') + ', your rate and hours in the Staff hub on ' + tab('staff', 'Tutor settings') + '. ' : '')
+  return 'Your name, picture, handle and figure are edited on Your card, on ' + tab(SET_OF_FACE_[homeCol_()], 'Student settings') + '. '
+    + (rich ? 'What you teach is there too, your rate and hours in the Staff hub on ' + tab('staff', 'Tutor settings') + '. ' : '')
     + 'Your library cards are on ' + tab('tools', 'Tools') + '.';
 };
 
@@ -3804,6 +3830,10 @@ function cardMayEdit_(t) {
 }
 /* `col` IS WHICH PEOPLE COLUMN ASKS (453): your own card's face there (`ownCardSections_`); anybody else's tutor card on Tutors. */
 const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
+/* YOUR OWN CARD IS EDITED ON ITS ROLE'S SETTINGS COLUMN (464), never on the profile: the owner, "they have to go to the appropriate role's account settings". */
+const SET_OF_FACE_ = { tutors: 'staff', students: 'account', parents: 'family' };
+const FACE_OF_SET_ = { staff: 'tutors', account: 'students', family: 'parents' };
+const faceOfCol_ = c => FACE_OF_SET_[c] || c;
 const cardColOf_ = e => (e && e.own ? homeCol_() : 'tutors');
 /* WHICH COLUMN AN ELEMENT IS ON — the section's id without its `s-`. */
 const colOfEl_ = el => String(((el && el.closest && el.closest('#screen > .screen')) || {}).id || '').replace(/^s-/, '');
@@ -3819,7 +3849,8 @@ function cardEditTile_(x) {
   const own = String(t.personId) === String(USER.personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
   if (cardEditing_(t, col)) return '';
-  /* YOUR CARD WHERE ITS FACE HAS NOTHING OF ITS OWN TO EDIT has no Edit there (453); somebody else's, Tutors only. */
+  /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); somebody else's, an admin's, on Tutors only. */
+  if (own && !x.settings) return '';
   if (own ? !ownCardSections_(col).length : col !== 'tutors') return '';
   return tile_({ icon: 'edit', label: 'Edit', note: own ? (col === 'tutors' && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
@@ -3938,7 +3969,7 @@ function cardFetch_(e) {
       cardRepaint_();
     });
 }
-function cardRepaint_() { PEOPLE_COLS_.forEach(c => { try { paint(c); } catch (x) {} }); }
+function cardRepaint_() { PEOPLE_COLS_.concat(Object.keys(FACE_OF_SET_)).forEach(c => { try { paint(c); } catch (x) {} }); }
 
 /* ---------- THE CARD, AS ITS OWN FORM § */
 function cardEditHtml_(t) {
@@ -4232,9 +4263,9 @@ on('card-edit', el => {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === pid)
     || (pid && pid === String(USER.personId || '') && typeof myCardRow_ === 'function' ? myCardRow_() : null);
   if (!t || !cardMayEdit_(t)) return;
-  const col = PEOPLE_COLS_.indexOf(el.dataset.col) !== -1 ? el.dataset.col : (colOfEl_(el) || 'tutors');
+  const col = PEOPLE_COLS_.indexOf(el.dataset.col) !== -1 ? el.dataset.col : (faceOfCol_(colOfEl_(el)) || 'tutors');
   const open = document.querySelector('.card-ed .me-form[data-dirty]');
-  const openAt = open && (open.closest('.card-ed').dataset.pid + '|' + colOfEl_(open));
+  const openAt = open && (open.closest('.card-ed').dataset.pid + '|' + faceOfCol_(colOfEl_(open)));
   if (openAt && openAt !== pid + '|' + col) { toast('Save or cancel the card you are editing first.'); return; }
   if (CARD_EDIT && CARD_EDIT.pid === pid && (CARD_EDIT.col || cardColOf_(CARD_EDIT)) === col) return;
   CARD_EDIT = cardEditFresh_(pid);

@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-j-finder-list";
+  --css-version: "2026-10-26-k-profiles-split";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6710,3 +6710,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- THE ADMIN'S LAYOUT TILES (463): one row under a widget's own tiles; Delete widens to ask again ---------- */
 .lay-del.is-armed { color: var(--bad); border-color: var(--bad); width: auto; padding: 0 .5rem; }
 .lay-again { font: 500 .72rem/1 var(--font); margin-left: .3rem; white-space: nowrap; }
+
+/* ---------- A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line ---------- */
+.col-lock { text-align: center; }
+.col-lock-i { display: block; color: var(--gold); margin: .4rem auto .2rem; }
+.col-lock-i svg { width: 44px; height: 44px; }
+.col-lock .tile-row { justify-content: center; }

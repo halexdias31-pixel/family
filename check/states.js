@@ -2866,7 +2866,7 @@ const STATES = {
       wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
     /* ---------- YOUR OWN CARD, BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
-    { col: 'tutors', name: 'your own card, being edited',
+    { col: 'staff', name: 'your own card, being edited',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const ada = (DATA.tutors || []).find(t => t && t.personId) || {};
@@ -2887,20 +2887,20 @@ const STATES = {
           venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '15',
           m16: 'TRUE', m17: 'TRUE', tu10: 'TRUE', tu11: 'TRUE', w16: 'TRUE', sa10: 'TRUE', sa11: 'TRUE', sa12: 'TRUE' });
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint(homeCol_());
-        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
+        paint(SET_OF_FACE_[homeCol_()]);
+        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('no card on the account column is open for editing');
-        goPage(homeCol_(), at, true);
+        goPage(SET_OF_FACE_[homeCol_()], at, true);
       },
       leave: () => {
         DATA.tutors = window.__CE_HELD.tutors; USER.profile = window.__CE_HELD.profile; delete window.__CE_HELD;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
+        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
@@ -2928,16 +2928,15 @@ const STATES = {
             pane.scrollTop = was;
             return ok;
           })(form.closest('.pane'))
-          /* SIGN OUT STILL UNDER IT, and the photographs not waiting to be scrolled to ("these remain loading
-             untill i scroll to them"), and the session length boxes in At a glance. */
-          && pg.querySelectorAll('[data-do="signout"]').length === 1
+          /* THE PHOTOGRAPHS NOT WAITING TO BE SCROLLED TO ("these remain loading untill i scroll to them"), and the session
+             length boxes in At a glance. The card is edited on Tutor settings (464). */
           && !form.querySelector('img[loading="lazy"]')
           && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]')
           /* ON ONE PHONE SCREEN (docs/history/425): at 390x844 the whole form, every fold shut, is within its budget —
              2856px before; the owner: "condense this so it can all apear on a phone screen". */
           && (innerWidth !== 390 || innerHeight !== 844 || form.closest('.card-ed').getBoundingClientRect().height <= 760) ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
+      wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, on Tutor settings (464)' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN § */
     { col: 'tutors', name: 'another tutor\'s card, being edited by an admin',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
@@ -2982,8 +2981,8 @@ const STATES = {
       wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) § */
     ...['', 'client', 'student'].map(role => ({
-      /* ON THE ROLE'S OWN PEOPLE COLUMN (453), where its card's name and picture are edited. */
-      col: role === 'student' ? 'students' : role === 'client' ? 'parents' : 'tutors',
+      /* ON THE ROLE'S SETTINGS COLUMN (464), where its card's name and picture are edited. */
+      col: role === 'student' ? 'account' : role === 'client' ? 'family' : 'staff',
       name: role === '' ? 'your own card, being edited, with no public card'
         : (role === 'client' ? 'a parent\'s' : 'a student\'s') + ' own card, being edited',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -2991,24 +2990,24 @@ const STATES = {
         window.__CE_OWN = { role: USER.role, roles: USER.roles, profile: USER.profile, avatar: USER.avatar };
         if (role) { USER.role = role; USER.roles = [role]; }
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44', photo: '' });
-        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
         CARD_EDIT.pic0 = ''; CARD_EDIT.fig0 = String(USER.avatar || '');
-        if (role) repaint(); else paint(homeCol_());
-        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
+        if (role) repaint(); else paint(SET_OF_FACE_[homeCol_()]);
+        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('your own card did not open for editing');
-        goPage(homeCol_(), at, true);
+        goPage(SET_OF_FACE_[homeCol_()], at, true);
       }) + ')(' + JSON.stringify(role) + ');'),
       leave: () => {
         const w = window.__CE_OWN || {};
         USER.role = w.role; USER.roles = w.roles; USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
+        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
@@ -3028,29 +3027,29 @@ const STATES = {
       wants: 'your own card as its form, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel — Sign out is on Student settings (453)' })),
 
     /* ---------- YOUR HANDLE, ON YOUR OWN CARD: SHOWN, WITH RANDOMISE, AND NO BOX § */
-    { col: 'tutors', name: 'your handle, on your own card',
+    { col: 'staff', name: 'your handle, on your own card',
       only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
       enter: () => {
         window.__CE_OWN = { profile: USER.profile };
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
-        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint(homeCol_());
-        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
+        paint(SET_OF_FACE_[homeCol_()]);
+        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="handle"]'));
         if (at < 0) throw new Error('no handle section on your own card\'s Edit');
-        goPage(homeCol_(), at, true);
+        goPage(SET_OF_FACE_[homeCol_()], at, true);
         const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="handle"]'), pane = sec.closest('.pane');
         if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
       },
       leave: () => {
         USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
+        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
         const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="handle"]');
         if (!sec) return 0;
         const shown = sec.querySelectorAll('.handle-shown');
