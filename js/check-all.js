@@ -95,6 +95,7 @@ const SUITE = [
   /* THE SETTINGS COLUMN THROUGH THE REAL BACKEND. § */
   { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
   /* "admin should be able to see each person's pin" (452). */
+  { file: 'check-layout.js', what: 'Edit layout: layoutSave is admin only, checked, size-capped; doGet sends it once' },
   { file: 'check-pin-show.js', what: 'Show PIN: an admin gets the named person\'s PIN or "No PIN"; nobody else gets any' },
   /* EVERY WAY A CHILD GETS IN, FROM THE CHILD'S SIDE. § */
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },

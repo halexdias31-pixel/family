@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-26-d-six-columns";
+const DOGET_VERSION = "2026-10-26-e-edit-layout";
 
 
 function doGet(e) {
@@ -235,6 +235,8 @@ function doGet(e) {
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
                  /* The Timetable widget's week, kept on the account. */
                  'saveTimetable',
+                 /* Edit layout (462): the admin's order of columns and widgets. */
+                 'layoutSave',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
@@ -333,6 +335,8 @@ function doGet(e) {
       /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
          folder's id, and that id is the folder's only lock; this payload goes to everybody. */
       constants: { vars: configPublic_(cfg) },
+      /* THE SITE'S LAYOUT (462): the admin's order of columns and widgets over the code's, or null for the code's own. */
+      layout: layoutClean_(cfg[LAYOUT_KEY]),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
       /* WHAT THE CALENDAR IS OFFERING TODAY. § */
       festive: [],

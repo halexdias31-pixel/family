@@ -411,6 +411,8 @@ function widgetFor_(w) {
 }
 
 function widgetsOf_(kind) {
+  /* THE ADMIN'S LAYOUT FIRST (462): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
+  if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
     .filter(w => w.kind === kind)
     .filter(widgetFor_);

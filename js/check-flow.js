@@ -29137,6 +29137,127 @@ check('a twin only: a question whose words came without its drawing shows its PN
   return bad;
 });
 
+/* ---------- EDIT LAYOUT (462): an admin moves, hides and deletes widgets and moves columns, for everybody ---------- */
+const LAY_ADMIN_ = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk', handle: 'adaadmin' };
+const layIds_ = (t, k) => t.widgetsOf(k).map(x => String(x.id));
+const layBoot_ = (o) => boot(Object.assign({ before: signedInAs_(LAY_ADMIN_) }, o || {}));
+
+check('edit layout (462): an admin enters from Business, a widget moves in its column and to another, two columns swap, Done saves one layoutSave and draws it, a reload keeps it, Reset restores', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['layout-edit'] || typeof w.layoutWidgets_ !== 'function') return ['no layout-edit handler or layoutWidgets_ — NOT checked'];
+  t.go('biz', false, true); await wait(200);
+  if (!d.querySelector('#s-biz [data-do="layout-edit"]')) bad.push('Business has no Edit layout tile for an admin');
+  const tools0 = layIds_(t, 'tool'), games0 = layIds_(t, 'game'), cols0 = t.TABS.map(x => x.id);
+  A['layout-edit']();
+  const b = d.getElementById('layout-board');
+  if (!b) return bad.concat(['Edit layout opened no board']);
+  /* NOTHING ELSE ACTS: an arrow key does not turn the column behind. */
+  const at = t.screenAt();
+  d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  if (t.screenAt() !== at) bad.push('an arrow key turned the column behind the board');
+  A['lay-col'](b.querySelector('.lay-chip[data-col="tools"]'));
+  const first = tools0[0], second = tools0[2];
+  A['lay-w-move'](b.querySelector(`.lay-w[data-w="${first}"] [data-do="lay-w-move"][data-d="1"]`));
+  const sel = b.querySelector(`select[data-lay-to="${second}"]`);
+  sel.value = 'games'; sel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
+  A['lay-col-move'](b.querySelector('[data-do="lay-col-move"][data-d="-1"]'));
+  A['layout-done']();
+  await wait(300);
+  if (d.getElementById('layout-board')) bad.push('Done left the board up');
+  const posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts, not one');
+  const L = posts[0] && posts[0].layout;
+  const tools1 = layIds_(t, 'tool'), games1 = layIds_(t, 'game'), cols1 = t.TABS.map(x => x.id);
+  if (tools1.indexOf(second) !== -1 || games1[games1.length - 1] !== second) bad.push('the widget moved to Games is not last on Games: tools ' + tools1.join() + ' games ' + games1.join());
+  const want = [tools0[1], first].concat(tools0.slice(3));
+  if (tools1.join() !== want.join()) bad.push('Tools reads ' + tools1.join() + ', not ' + want.join());
+  const gi = cols0.indexOf('games');
+  if (cols1[gi - 1] !== 'games' || cols1[gi] !== cols0[gi - 1]) bad.push('Games did not swap with its left neighbour: ' + cols1.join());
+  if (t.TABS.find(x => x.id === 'feed') && w.TAB_HOME !== undefined && w.TAB_HOME !== 'feed') bad.push('TAB_HOME moved');
+  t.go('games', false, true); await wait(200);
+  if (!d.querySelector('#s-games #wgt-' + second)) bad.push('the moved widget is not drawn on Games');
+  /* A RELOAD: the payload now carries what was saved. */
+  const p2 = payload(); p2.layout = L;
+  const r = layBoot_({ payload: p2 }); await wait(300);
+  const t2 = r.w.__t;
+  if (layIds_(t2, 'game').join() !== games1.join() || t2.TABS.map(x => x.id).join() !== cols1.join()) bad.push('a reload did not keep the layout');
+  /* RESET restores the code's order. */
+  t2.ACTIONS['layout-reset']();
+  await wait(200);
+  if (layIds_(t2, 'tool').join() !== tools0.join() || t2.TABS.map(x => x.id).join() !== cols0.join()) bad.push('Reset did not restore the defaults');
+  const rp = r.sent.filter(x => x.action === 'layoutSave');
+  if (!rp.length || rp[0].reset !== 'TRUE') bad.push('Reset sent no reset layoutSave');
+  return bad;
+});
+
+check('edit layout (462): delete asks twice in place, the deleted widget is not drawn, started or paged from a payload, Add back returns it to its own column, and a non-admin has no tile and cannot post', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-w-del']) return ['no lay-w-del handler — NOT checked'];
+  A['layout-edit']();
+  const b = d.getElementById('layout-board');
+  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
+  if (b.querySelector('.lay-w[data-w="cart"] [data-do="lay-w-del"]')) bad.push('the basket has a Delete tile');
+  const tile = () => b.querySelector('.lay-w[data-w="wordgames"] [data-do="lay-w-del"]');
+  A['lay-w-del'](tile());
+  if (!b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('one tap deleted');
+  if (!/Tap again to delete/.test(tile().getAttribute('aria-label') || '')) bad.push('the first tap did not say "Tap again to delete"');
+  if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
+  A['lay-w-del'](tile());
+  if (b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('the second tap did not delete');
+  if (!b.querySelector('.lay-del-pick option[value="wordgames"]')) bad.push('no Deleted widgets line lists it');
+  A['layout-done'](); await wait(200);
+  const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
+  if (!L || (L.deleted || []).indexOf('wordgames') === -1) bad.push('the post did not carry deleted');
+  const p2 = payload(); p2.layout = L;
+  const r = layBoot_({ payload: p2 }); await wait(300);
+  const t2 = r.w.__t, d2 = r.w.document;
+  t2.go('games', false, true); await wait(300);
+  if (layIds_(t2, 'game').indexOf('wordgames') !== -1 || d2.querySelector('#wgt-wordgames')) bad.push('a deleted widget is still drawn');
+  if (t2.pageCount('games') !== layIds_(t2, 'game').length) bad.push('the pager counts ' + t2.pageCount('games') + ' pages for ' + layIds_(t2, 'game').length + ' widgets');
+  t2.ACTIONS['layout-edit']();
+  const b2 = d2.getElementById('layout-board');
+  b2.querySelector('.lay-del-pick').value = 'wordgames';
+  t2.ACTIONS['lay-w-undel']();
+  t2.ACTIONS['lay-col'](b2.querySelector('.lay-chip[data-col="games"]'));
+  if (!b2.querySelector('.lay-w[data-w="wordgames"]')) bad.push('Add back did not return it to Games');
+  t2.ACTIONS['layout-done'](); await wait(200);
+  if (layIds_(t2, 'game').indexOf('wordgames') === -1) bad.push('added back but not drawn');
+  /* A NON-ADMIN: no tile, no board, no post. */
+  const m = boot({ member: true }); await wait(300);
+  m.w.__t.go('biz', false, true); await wait(100);
+  if (m.w.document.querySelector('[data-do="layout-edit"]')) bad.push('a member sees Edit layout');
+  m.w.__t.ACTIONS['layout-edit']();
+  if (m.w.document.getElementById('layout-board')) bad.push('a member opened the board');
+  m.w.__t.ACTIONS['layout-reset'](); await wait(100);
+  if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
+  return bad;
+});
+
+check('edit layout (462): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a deleted id that no longer exists harmless, rubbish ignored', async () => {
+  const bad = [];
+  const base = boot(); await wait(300);
+  const tools0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
+  const p = payload();
+  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: ['zzz'], deleted: ['long-gone'] };
+  const r = boot({ payload: p }); await wait(300);
+  const t = r.w.__t, tools = layIds_(t, 'tool'), cols = t.TABS.map(x => x.id);
+  if (tools[0] !== tools0[2] || tools.slice(1).join() !== tools0.filter(x => x !== tools0[2]).join()) bad.push('stale widgets: ' + tools.join());
+  if (cols[0] !== 'games' || cols[1] !== 'feed' || cols.slice(2).join() !== cols0.filter(x => x !== 'games' && x !== 'feed').join()) bad.push('stale columns: ' + cols.join());
+  if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
+  for (const junk of ['{not json', 42, [1, 2], { columns: 'feed', widgets: 7 }]) {
+    const q = payload(); q.layout = junk;
+    const g = boot({ payload: q }); await wait(250);
+    if (layIds_(g.w.__t, 'tool').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
+    if (g.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + g.errs.join('; '));
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
