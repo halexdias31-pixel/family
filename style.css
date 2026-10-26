@@ -1566,6 +1566,8 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* Two answers, two buttons — a dropdown for two options is a dropdown nobody opens. The chosen one
    is filled rather than outlined, so which is active is readable without a tick. */
 .btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
+/* ON WHITE (466) the faint word inside a chosen button reads as the button does. */
+.btn-row .btn.on * { color: inherit; }
 
 /* ---------- REACTIONS § */
 /* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. § */
