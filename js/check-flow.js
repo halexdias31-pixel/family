@@ -30114,6 +30114,97 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
   return bad;
 });
 
+/* ---------- PHONE NOTIFICATIONS (492): Turn on asks, subscribes and stores the token; Turn off deletes it; an iPhone outside the home screen is told how ---------- */
+const PU_U_ = { name: 'Pia Push', personId: 'P-PU', role: 'student', roles: ['student'], rank: 'student', token: 't-pu', handle: 'piapush' };
+const PU_CFG_ = { apiKey: 'AIza-test', projectId: 'fam-test', messagingSenderId: '123', appId: '1:123:web:abc', vapidKey: 'BPub-test' };
+function puWorld_(o) {
+  o = o || {};
+  const T = { asked: 0, tokens: [], deleted: 0, off: [] };
+  const p = payload();
+  p.brand = Object.assign({}, p.brand || {});
+  if (o.cfg !== false) p.brand.fcm_web_config = JSON.stringify(PU_CFG_); else delete p.brand.fcm_web_config;
+  const state = () => ({ success: true, ready: o.ready !== false, devices: T.tokens.length, off: T.off.slice(),
+    kinds: [{ kind: 'messages', label: 'Messages' }, { kind: 'bookings', label: 'Booking requests and answers' }, { kind: 'posts', label: 'Replies to your posts' }] });
+  const reply = b => {
+    if (b.action === 'pushState') return state();
+    if (b.action === 'pushSubscribe') { T.tokens.push(b.fcmToken); return state(); }
+    if (b.action === 'pushUnsubscribe') { T.tokens = T.tokens.filter(t => t !== b.fcmToken); return state(); }
+    if (b.action === 'pushSet') { T.off = T.off.filter(k => k !== b.kind); if (!b.on) T.off.push(b.kind); return state(); }
+    return undefined;
+  };
+  const before = w => {
+    signedInAs_(PU_U_)(w);
+    if (o.iphone) Object.defineProperty(w.navigator, 'userAgent', { value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1', configurable: true });
+    if (o.standalone) Object.defineProperty(w.navigator, 'standalone', { value: true, configurable: true });
+    w.Notification = { permission: 'default', requestPermission: () => { T.asked++; return Promise.resolve('granted'); } };
+    w.PushManager = function () {};
+    const reg = { scope: 'https://example.org/' };
+    Object.defineProperty(w.navigator, 'serviceWorker', { configurable: true, value: {
+      getRegistration: () => Promise.resolve(reg), register: () => Promise.resolve(reg), addEventListener() {} } });
+    /* FIREBASE ARRIVES WHEN ITS SCRIPT IS ADDED — and only then, so a page that loads it early is caught. */
+    const add = w.Node.prototype.appendChild;
+    w.Node.prototype.appendChild = function (el) {
+      if (el && el.tagName === 'SCRIPT' && /gstatic\.com\/firebasejs\/\d+\.\d+\.\d+\//.test(el.src || '')) {
+        T.scripts = (T.scripts || 0) + 1;
+        w.firebase = w.firebase || { apps: [], initializeApp(c) { T.cfg = c; this.apps.push(c); },
+          messaging: () => ({ getToken: x => { T.vapid = x.vapidKey; T.reg = x.serviceWorkerRegistration; return Promise.resolve('fcm-tok-1'); },
+                              deleteToken: () => { T.deleted++; return Promise.resolve(true); } }) };
+        setTimeout(() => el.onload && el.onload(), 0);
+        return el;
+      }
+      return add.call(this, el);
+    };
+  };
+  return { T, p, before, reply };
+}
+check('phone notifications (492): Student settings has a Notifications card; Turn on asks permission, lazy-loads Firebase, subscribes with the VAPID key on our own worker and stores the token; a kind can be turned off; Turn off deletes it; an iPhone in Safari is told to Add to Home Screen; no config says not switched on', async () => {
+  const bad = [];
+  const open = async o => { const W = puWorld_(o); const m = boot({ payload: W.p, before: W.before, reply: W.reply }); await wait(300); m.w.paint('account'); await wait(200); m.w.paint('account'); await wait(100); return Object.assign(W, { m }); };
+  const card = m => m.w.document.querySelector('#s-account .push-card');
+  {
+    const { m } = await open({ cfg: false });
+    const c = card(m);
+    if (!c) bad.push('no Notifications card in Student settings');
+    else if (!/not switched on/i.test(c.textContent) || c.querySelector('[data-do="push-on"]')) bad.push('with no config the card did not say not switched on: ' + c.textContent);
+  }
+  {
+    const { m, T } = await open({ iphone: true });
+    const c = card(m);
+    if (!c || !/Add to Home Screen/.test(c.textContent)) bad.push('an iPhone in Safari was not told to Add to Home Screen: ' + (c && c.textContent));
+    if (c && c.querySelector('[data-do="push-on"]')) bad.push('an iPhone in Safari was offered Turn on');
+    if (T.scripts) bad.push('Firebase loaded before anything was tapped');
+  }
+  const { m, T } = await open({ iphone: true, standalone: true });
+  const d = m.w.document;
+  const tap = act => { const el = d.querySelector('#s-account [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile: ' + (card(m) || {}).textContent); return false; } el.click(); return true; };
+  const settle = async ms => { await wait(ms); m.w.paint('account'); await wait(100); };
+  if (T.scripts) bad.push('Firebase loaded before Turn on was tapped');
+  if (!tap('push-on')) return bad;
+  await settle(400);
+  if (T.asked !== 1) bad.push('Turn on asked for permission ' + T.asked + ' times');
+  if (T.vapid !== 'BPub-test' || !T.reg) bad.push('the token was not asked for with the VAPID key on our own worker');
+  if (T.tokens.join() !== 'fcm-tok-1') bad.push('the token was not stored: ' + JSON.stringify(T.tokens));
+  const sub = m.sent.find(x => x.action === 'pushSubscribe');
+  if (!sub || sub.personId !== 'P-PU') bad.push('pushSubscribe did not carry the person');
+  const box = d.querySelector('#s-account [data-push-kind="messages"]');
+  if (!box) bad.push('no Messages row once on: ' + (card(m) || {}).textContent);
+  else {
+    box.checked = false; box.dispatchEvent(new m.w.Event('change', { bubbles: true }));
+    await settle(200);
+    if (T.off.join() !== 'messages') bad.push('unticking Messages did not turn it off: ' + T.off);
+    const again = d.querySelector('#s-account [data-push-kind="messages"]');
+    if (!again || again.checked) bad.push('the redrawn row does not show Messages off');
+  }
+  if (!tap('push-off')) return bad;
+  await settle(300);
+  if (T.tokens.length) bad.push('Turn off did not delete the token: ' + T.tokens);
+  if (!d.querySelector('#s-account [data-do="push-on"]')) bad.push('after Turn off the card does not offer Turn on');
+  let left = '';
+  try { left = m.w.localStorage.getItem('pushToken') || ''; } catch (e) {}
+  if (left) bad.push('the token outlived Turn off on the device');
+  return bad;
+});
+
 /* ---------- NOTES FOR CLAUDE (484): a Note for Claude tile on every widget and card for an admin; a box in place; Send, Done; the Ledger tab and the Drive file ---------- */
 const cnRow_ = (w, id) => (w.document.querySelector(`#wgt-${id}`)?.closest('.card')?.querySelector('.wgt-foot')) || null;
 check('notes for Claude (484): an admin has a Note for Claude tile on a widget and on a card, a client has none; it opens a box in place, a draft survives Cancel, Send posts the item id and title, the note is listed, Done hides it', async () => {

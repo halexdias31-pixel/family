@@ -11,7 +11,8 @@
 
 <!-- ---------- PUTTING IT ON A HOME SCREEN § -->
 <!-- THE MANIFEST, WRITTEN INTO THE PAGE rather than kept as a file. § -->
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%40family.%22%2C%22short_name%22%3A%22%40family.%22%2C%22description%22%3A%22Tutoring%20in%20Merton%20and%20Wandsworth.%22%2C%22start_url%22%3A%22./index.html%22%2C%22scope%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%23000000%22%2C%22theme_color%22%3A%22%2312100d%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22any%22%7D%2C%7B%22src%22%3A%22icon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/png%22%2C%22purpose%22%3A%22maskable%22%7D%5D%7D">
+<!-- A FILE, NOT A data: URL (492): a data: manifest has no address for start_url to be read against, and Add to Home Screen needs it to open full-screen. -->
+<link rel="manifest" href="manifest.webmanifest">
 <!-- THERE WAS NO `rel="icon"` LINE AT ALL, which is why the tab showed the browser's globe. § -->
 <!-- THE TAB ICON IS ITS OWN CIRCLE, favicon.png, cut by tools/make-favicon.py. § -->
 <link rel="icon" id="favicon" href="favicon.png">
@@ -70,7 +71,7 @@
   /* ---------- ONE LIST, AND IT IS THIS ONE § */
   window.FILES = ['core', 'price-rows', 'chess', 'data', 'library', 'qtypes', 'settings', 'shell', 'cards', 'me', 'posts',
     'links', 'find', 'keypad', 'answers', 'ink', 'board', 'submit', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'records', 'mat', 'games', 'racer',
-    'overworld', 'select', 'collections', 'tiles', 'reader', 'talmud', 'staff', 'help', 'layout', 'gtasks', 'boot'];
+    'overworld', 'select', 'collections', 'tiles', 'reader', 'talmud', 'staff', 'help', 'layout', 'gtasks', 'push', 'boot'];
   /* THE REQUEST GOES OUT NOW, NOT AFTER A MEGABYTE OF JAVASCRIPT HAS PARSED. § */
   try {
     if (window.fetch && location.protocol !== 'file:') {
