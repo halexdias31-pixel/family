@@ -2116,7 +2116,9 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
     const id = k.dataset.sec;
     if (k.dataset.layCard !== 'own:' + (CARD_YOU_.indexOf(id) !== -1 ? 'account' : 'staff') + ':' + id) bad.push('the ' + id + ' card\'s layout id is ' + JSON.stringify(k.dataset.layCard));
     if (k.querySelectorAll('.ce-sec').length !== 1) bad.push('the ' + id + ' card holds ' + k.querySelectorAll('.ce-sec').length + ' sections, not one');
-    if (!k.querySelector('h3') || !k.querySelector('.card-say')) bad.push('the ' + id + ' card has no title or no line saying what it is for');
+    /* A SECTION WHOSE FIRST LINE NAMES IT HAS NO TITLE (491); every card keeps its line saying what it is for. */
+    const untitled = ['headline', 'photos', 'words', 'glance', 'quals', 'where', 'figure', 'handle'].indexOf(id) !== -1;
+    if (!!k.querySelector('h3') === untitled || !k.querySelector('.card-say')) bad.push('the ' + id + ' card ' + (untitled ? 'has a title its first line already says (491)' : 'has no title') + ', or no line saying what it is for');
     const sv = k.querySelector('[data-do="card-save"]'), cn = k.querySelector('[data-do="card-cancel"]');
     if (!sv || !cn || !sv.classList.contains('tile') || !cn.classList.contains('tile')) bad.push('the ' + id + ' card has no Save and Cancel tiles');
     if (k.dataset.pid !== 'P-T1' || !k.classList.contains('is-prof')) bad.push('the ' + id + ' card is not Ada\'s');
@@ -2137,8 +2139,8 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   if (lazy.length) bad.push(lazy.length + ' picture(s) on the cards being edited are loading="lazy" (' + lazy.map(i => i.closest('[class]').className).join(', ') + ') — not fetched until scrolled to');
   const did = await cardEditEverything_(c);
   Object.keys(did).forEach(k => { if (!did[k]) bad.push('there is no ' + k + ' to press, so that section was NOT edited'); });
-  const heat = form.querySelector('.ce-heat .prof-heat');
-  if (!heat || heat.getAttribute('data-dots') !== '2') bad.push('ticking Mitcham did not redraw the map with two venues (dots ' + (heat && heat.getAttribute('data-dots')) + ')');
+  if (form.querySelector('.prof-heat')) bad.push('Tutor settings draws the venue map (491: the map is the profile\'s; settings is configuration)');
+  { const wv = form.querySelector('.card-ed[data-sec="where"] details[data-fold="where"] .ce-v'); if (!wv || !/2 venues/.test(wv.textContent)) bad.push('ticking Mitcham did not count two venues: ' + (wv && wv.textContent)); }
   const dirty = c.dirty();
   if (JSON.stringify(dirty) !== JSON.stringify(['headline', 'photos', 'words', 'glance', 'quals', 'where'])) bad.push('the cards typed into are ' + JSON.stringify(dirty));
   c.sent.length = 0;
@@ -2406,15 +2408,15 @@ check('the Setup card is in the Business column, an admin\'s alone (moved from Y
   if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report: ' + JSON.stringify(asAdmin.setup));
   if (W.real.get({}).setup) bad.push('doGet with no token sent the setup report');
   if (a.d.querySelector('#s-account .setup-card')) bad.push('the Setup card is still on You');
-  const lay = setup => { a.t.DATA().setup = setup; a.t.go('biz', false, true); a.w.paint('biz'); };
+  const lay = setup => { a.t.DATA().setup = setup; a.t.go('site', false, true); a.w.paint('site'); };
   /* A JOB THAT FAILED: the card glows, says so, and the dot carries it. */
   const failed = JSON.parse(JSON.stringify(asAdmin.setup || {}));
   (failed.jobs || []).unshift({ id: 'tidy', error: 'the backup could not be written' });
   try { lay(failed); } catch (e) { return bad.concat(['drawing Business threw: ' + e.message]); }
   await wait(300);
-  const card = () => a.d.querySelector('#s-biz .setup-card');
+  const card = () => a.d.querySelector('#s-site .setup-card');
   const text = String(card() ? card().textContent : '');
-  if (!card()) return bad.concat(['the admin\'s Business column has no Setup card']);
+  if (!card()) return bad.concat(['the admin\'s Site column has no Setup card (491)']);
   if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
   if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
   if ([...card().querySelectorAll('button, [data-do]')].some(x => !x.closest('.wgt-admin'))) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
@@ -2725,7 +2727,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (tabOrder.join() !== SIX.join()) bad.push(rank + ': the six read ' + tabOrder.join(' ') + ', wanted ' + SIX.join(' '));
     const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
     if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
-    if (rank === 'admin' && tabs[tabs.length - 1] !== 'biz') bad.push('Business is not last for an admin');
+    if (rank === 'admin' && tabs.slice(-2).join(',') !== 'biz,site') bad.push('Business then Site are not last for an admin (491)');
     /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
     /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
     if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
@@ -2791,7 +2793,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const myShare = q('#s-tutors [data-do="tutor-share"][data-handle="' + (a.t.whoami().handle || '-') + '"]');
     if (!myShare !== (rank !== 'staff' && rank !== 'admin')) bad.push(rank + ': Share my profile ' + (rank === 'staff' ? 'is missing from Tutors' : 'is offered below Staff'));
     if ((rank === 'admin') !== !!(q('#s-tutors [data-do="person-add"]') && q('#s-students [data-do="person-add"]') && q('#s-parents [data-do="person-add"]'))) bad.push(rank + ': + Add a person is ' + (rank === 'admin' ? 'not on every people column' : 'offered'));
-    if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !q('#s-biz .me-build'))) bad.push('Business still has + Add a person, or lost the build stamps');
+    if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !q('#s-site .me-build'))) bad.push('Business still has + Add a person, or Site lost the build stamps');
     /* ONE PLACE EACH: the columns, your own card open for editing in each column it has an Edit, and the hub's Hours and Pricing. */
     const ed = editorsOf_(a.d, {});
     editorsOf_(a.d, ed);
@@ -4078,8 +4080,8 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
   await wait(300);
   const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
   if (!t || typeof w.initBoard_ !== 'function' || typeof w.nbState_ !== 'function' || typeof t.widgetsOf !== 'function' || typeof t.allWidgets !== 'function'
-      || !A['nb-shape'] || !A['nb-clear'] || typeof w.answersAdopt_ !== 'function' || typeof w.axisFree !== 'function') {
-    return ['initBoard_, nbState_, the nb-shape / nb-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
+      || !A['nb-clear'] || typeof w.answersAdopt_ !== 'function' || typeof w.axisFree !== 'function') {
+    return ['initBoard_, nbState_, the nb-clear handler, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
@@ -4105,9 +4107,9 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
   try { w.localStorage.removeItem(k); } catch (e) {}
   w.initBoard_();
 
-  /* THE BAR: the four shapes and Clear, as tiles -- no padlock: the pad is always a pad, and the page lets a swipe through. */
+  /* THE BAR: Picture and Clear, as tiles (the maths tiles went in 491) -- no padlock: the pad is always a pad, and the page lets a swipe through. */
   const bar = [...nb().querySelectorAll('.nb-bar [data-do]')].map(b => b.getAttribute('data-do') + (b.getAttribute('data-shape') ? ':' + b.getAttribute('data-shape') : '')).join(' ');
-  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-pic nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral, Picture and Clear');
+  if (bar !== 'nb-pic nb-clear') bad.push('the bar offers [' + bar + '], wanted Picture and Clear only (491: no maths tiles)');
   /* A PICTURE (402) COMES BACK FROM THE STORE AS IT WENT IN, moved keeps its size, and an older element beside it survives. */
   try {
     const el = { im: 1, i: 'p1', x: 56, y: 40, w: 800, h: 400, s: 'data:image/jpeg;base64,AAAA' };
@@ -12725,7 +12727,7 @@ check('461: the Progress column is dissolved into Student settings — no `progr
   const ids = () => t.TABS.map(x => x.id);
   if (!bizApplied_(t)) return ['columns.json was not applied — the order a phone gets was NOT checked: ' + ids().join(', ')];
   if (ids().indexOf('progress') !== -1 || d.getElementById('s-progress')) bad.push('there is still a `progress` column');
-  if (ids().join(' ') !== ORDER_392_.filter(id => id !== 'biz').join(' ')) bad.push('signed out, the row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.filter(id => id !== 'biz').join(' '));
+  if (ids().join(' ') !== ORDER_392_.filter(id => id !== 'biz' && id !== 'site').join(' ')) bad.push('signed out, the row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.filter(id => id !== 'biz' && id !== 'site').join(' '));
   t.go('progress', false, true);
   await wait(LEAVE_MS); await woken_();
   if (t.AT() !== 'account') bad.push('go("progress") landed on ' + t.AT() + ', wanted Student settings');
@@ -13243,31 +13245,28 @@ check('470, 482: the E-ink screen on Tools is the real 200x200 panel drawn in th
 });
 
 
-/* ---------- TERM DATES (466): THE END OF THE NEXT THREE TERMS AND HALF TERMS, ONE LINE EACH, ON TOOLS ---------- */
-check('466: Term dates on Tools lists the end dates of the next three terms and half terms in order, one line each, skips holidays and ended ones, and says so when there are none', async () => {
-  const p = payload();
-  const at = n => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
-  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
-  p.intervals = [
-    { term: 'Spring 1', label: 'Spring 1', kind: 'term', startDate: dmy(at(60)), endDate: dmy(at(100)) },
-    { term: 'Christmas', label: 'Christmas', kind: 'holiday', startDate: dmy(at(40)), endDate: dmy(at(50)) },
-    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: dmy(at(-20)), endDate: dmy(at(30)) },
-    { term: 'Autumn 1', label: 'Autumn 1', kind: 'term', startDate: dmy(at(-80)), endDate: dmy(at(-30)) },
-    { term: 'February Half Term', label: 'February Half Term', kind: 'half-term', startDate: dmy(at(101)), endDate: dmy(at(105)) },
-    { term: 'Spring 2', label: 'Spring 2', kind: 'term', startDate: dmy(at(106)), endDate: dmy(at(140)) }];
-  const { w } = boot({ payload: p });
+/* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, weekday-exact, with My school ---------- */
+check('491: Term dates shows the current interval and the next three — a term Monday to its last day of term on a Friday, a break with its first day back — and My school moves them, kept per viewer', async () => {
+  const { w } = boot();
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   await wait(400);
   const box = await toolBox_(w, 'termdates', '.td-box');
   if (!box) return ['the Term dates widget did not draw on Tools — NOT checked'];
   const bad = [];
-  const rows = [...box.querySelectorAll('.row')].map(progRow_);
-  const said = x => 'ends ' + x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const want = ['Autumn 2 ' + said(at(30)), 'Spring 1 ' + said(at(100)), 'February Half Term ' + said(at(105))];
-  if (rows.join(' | ') !== want.join(' | ')) bad.push('Term dates reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
-  w.__t.DATA().intervals = [];
-  w.paintTermDates_();
-  if (!/No term dates yet/.test(box.textContent) || box.querySelector('.row')) bad.push('with no terms the widget reads "' + box.textContent.trim() + '"');
+  const rows = w.termDatesRows_(new w.Date(2026, 9, 27));
+  const say = rows.map(x => x.name + ' ' + x.from.toDateString() + '→' + x.to.toDateString() + (x.now ? ' now' : '')).join(' | ');
+  if (say !== 'October half-term Sat Oct 24 2026→Sun Nov 01 2026 now | Autumn 2 Mon Nov 02 2026→Fri Dec 18 2026 | Christmas holidays Sat Dec 19 2026→Sun Jan 03 2027 | Spring 1 Mon Jan 04 2027→Fri Feb 12 2027')
+    bad.push('27 Oct 2026 reads ' + say);
+  if (!box.querySelector('.td-now') || box.querySelectorAll('.row.td-term, .row.td-half, .row.td-holiday').length !== 4) bad.push('the widget does not draw four intervals with the current one marked');
+  if (!/last day of term/.test(box.textContent) || !/first day back/.test(box.textContent) || /\bends\b/.test(box.textContent)) bad.push('the lines do not say last day of term / first day back: ' + box.textContent.trim().slice(0, 200));
+  if (!/Schools vary/.test(box.textContent)) bad.push('no note that schools vary');
+  const sel = box.querySelector('.td-adj[data-td="e"]');
+  if (!sel) return bad.concat('no My school ends setting');
+  sel.value = '-2'; sel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  const r2 = w.termDatesRows_(new w.Date(2026, 10, 10));
+  if (r2[0].to.toDateString() !== 'Wed Dec 16 2026' || r2[1].from.toDateString() !== 'Thu Dec 17 2026') bad.push('ending two school days early gave ' + r2[0].to.toDateString() + ' / holidays from ' + r2[1].from.toDateString());
+  if (!/familyTermShift:/.test(Object.keys(w.localStorage).join(' '))) bad.push('My school was not kept on the phone');
+  Object.keys(w.localStorage).filter(k => /^familyTermShift:/.test(k)).forEach(k => w.localStorage.removeItem(k));
   return bad;
 });
 
@@ -13310,7 +13309,7 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
 
 check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -13332,7 +13331,7 @@ check('business: an admin has a Business column last, straight after Parent prof
   const ids = () => t.TABS.map(x => x.id);
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
   if (!bizApplied_(t)) return ['columns.json was not applied — the order a phone gets was NOT checked: ' + ids().join(', ')];
-  if (ids().join(' ') !== ORDER_392_.join(' ')) bad.push('an admin\'s row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.join(' ') + ', Business last');
+  if (ids().join(' ') !== ORDER_392_.join(' ')) bad.push('an admin\'s row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.join(' ') + ', Business then Site last (491)');
   const host = d.getElementById('s-biz');
   if (!host || host.parentElement !== d.getElementById('screen') || host.tagName !== 'SECTION') return bad.concat(['an admin has no <section id="s-biz"> in #screen to draw the column into']);
 
@@ -13352,7 +13351,9 @@ check('business: an admin has a Business column last, straight after Parent prof
   await bizSwipe_(w, 'parents');
   if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent profiles landed on ' + t.AT() + ', wanted Business']);
   await bizSwipe_(w, 'biz');
-  if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
+  if (t.AT() !== 'site') bad.push('a sideways swipe off Business did not land on Site (491): ' + t.AT());
+  await bizSwipe_(w, 'site');
+  if (t.AT() !== 'site') bad.push('a sideways swipe past the last column moved off Site, to ' + t.AT());
 
   /* THE RECORDS WERE ASKED ONCE IN ALL — drawing asked, arriving found it asked — and the five cards are the
      column's pages, in order, the pager agreeing. */
@@ -13364,11 +13365,14 @@ check('business: an admin has a Business column last, straight after Parent prof
   /* THE BUSINESS CARDS END AT THE VERSE SCREEN; + Add a person, everybody and the build stamps follow it (444). */
   const allPg = [...host.querySelectorAll(':scope > .page')];
   const n = allPg.map(p => !!p.querySelector('[data-biz-page]')).lastIndexOf(true) + 1;
-  if (n !== 13 || t.pageCount('biz') !== allPg.length) bad.push('the business cards end on page ' + n + ' and the pager counts ' + t.pageCount('biz') + ' of ' + allPg.length + ' — wanted thirteen (Profit and its terms, Setup, Posts waiting (413), Applications (400), Staff (405), Reports (395), Library updates (407), five records); the verse screen moved to Tools (461)');
+  if (n !== 9 || t.pageCount('biz') !== allPg.length) bad.push('the business cards end on page ' + n + ' and the pager counts ' + t.pageCount('biz') + ' of ' + allPg.length + ' — wanted nine since 491 (Setup, Posts, Reports and Library went to Site) (Profit and its terms, Setup, Posts waiting (413), Applications (400), Staff (405), Reports (395), Library updates (407), five records); the verse screen moved to Tools (461)');
   /* LIBRARY UPDATES (407): two files wait, so the card glows and its tile counts them; the press posts as the admin and empties it. */
-  const lib = host.querySelector('[data-libimp]');
+  /* ON THE SITE COLUMN since 491. */
+  w.paint('site');
+  for (let k = 0; k < 30 && !(d.querySelector('#s-site [data-libimp].needs-you')); k++) await wait(100);
+  const lib = d.querySelector('#s-site [data-libimp]');
   const libTile = () => lib && lib.querySelector('.tile[data-do="lib-import"]');
-  if (!lib) bad.push('the Business column has no Library updates card');
+  if (!lib) bad.push('the Site column has no Library updates card');
   else {
     if (!lib.classList.contains('needs-you') || !/2 files wait/.test(lib.textContent)) bad.push('two files waiting in Drive did not make the Library updates card glow "2 files wait": ' + lib.textContent.replace(/\s+/g, ' ').slice(0, 160));
     if (!libTile() || libTile().getAttribute('aria-label').indexOf('Import library updates (2)') !== 0 || libTile().disabled) bad.push('the Library updates tile is not a live "Import library updates (2)"');
@@ -13379,14 +13383,15 @@ check('business: an admin has a Business column last, straight after Parent prof
     await wait(300);
     const imp = sent.slice(at).find(b => b.action === 'libImportDrive');
     if (!imp || imp.personId !== 'P001') bad.push('pressing Import library updates posted ' + JSON.stringify(imp) + ' — wanted libImportDrive as the admin');
-    const lib2 = host.querySelector('[data-libimp]');
+    const lib2 = d.querySelector('#s-site [data-libimp]');
     if (!lib2 || lib2.classList.contains('needs-you') || !/lib-import-a\.json.*5 changed/.test(lib2.textContent) || !/Import library updates \(0\)/.test((lib2.querySelector('.tile[data-do="lib-import"]') || {}).getAttribute('aria-label') || '')) bad.push('after the import the card still glows, or does not say what each file did: ' + (lib2 ? lib2.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'no card'));
   }
   if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
   /* THE VERSE SCREEN IS THE E-INK WIDGET ON TOOLS (470): no link away to the install page, anywhere. */
   try { w.paint('tools'); } catch (e) {}
   if (d.querySelector('a[href*="epaper-verse/install.html"]')) bad.push('a tile still opens the verse screen\'s install page in another window — the owner: "Keep it in the widget" (470)');
-  if (!allPg.length || !allPg[allPg.length - 1].querySelector('.me-build')) bad.push('the last Business page is not the build stamps');
+  { const sp = [...d.querySelectorAll('#s-site > .page')];
+    if (!sp.length || !sp[sp.length - 1].querySelector('.me-build')) bad.push('the last Site page is not the build stamps (491)'); }
   const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
   if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
   if (ins.querySelector('.loading')) bad.push('the records came back and the Insurance card is still under the loader');
@@ -13585,7 +13590,7 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids()[ids().length - 1] !== 'biz') bad.push('signed in as an admin, the last column is ' + ids()[ids().length - 1] + ', wanted Business, without a reload');
+  if (ids().slice(-2).join(' ') !== 'biz site') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Business then Site, without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
   if (t.AT() !== 'parents') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Parent and go back there');
   await bizSwipe_(w, 'parents');
@@ -26856,23 +26861,23 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
   t.USER(SAM_); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
-  const cal0 = t.slotOn('tools', 'termdates'), calc0 = t.slotOn('tools', 'calculator');
-  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Term dates was not drawn ahead on Tools — NOT checked']; }
+  const cal0 = t.slotOn('tools', 'countdowns'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Countdowns was not drawn ahead on Tools — NOT checked']; }
   w.__aheadHold = true;
-  /* TERM DATES READS FACTS (the calendar is plain and `pure` since 466): a term the landing brings. */
+  /* COUNTDOWNS READ FACTS (Term dates is the school year's own rules since 491) (the calendar is plain and `pure` since 466): a term the landing brings. */
   const d = new Date(); d.setDate(d.getDate() + 1);
   const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   const D = t.DATA();
-  D.intervals = [{ term: 'Landed term', label: 'Landed term', kind: 'term', startDate: dd, endDate: dd }].concat(D.intervals || []);
+  D.intervals = [{ term: 'Landed term', label: 'Landed term', kind: 'holiday', startDate: dd, endDate: dd }].concat(D.intervals || []);
   t.landRepaint();
-  const cal1 = t.slotOn('tools', 'termdates');
-  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('Term dates drawn from the old facts is still showing after the landing');
+  const cal1 = t.slotOn('tools', 'countdowns');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('Countdowns drawn from the old facts is still showing after the landing');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
   w.__aheadHold = false; t.aheadKick();
   await aheadQuiet_(t);
-  const cal2 = t.slotOn('tools', 'termdates');
-  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('Term dates was not drawn again from the new facts in the quiet');
-  else if (!/Landed term/.test(cal2.textContent)) bad.push('Term dates drawn again does not show the term the landing brought');
+  const cal2 = t.slotOn('tools', 'countdowns');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('Countdowns was not drawn again from the new facts in the quiet');
+  else if (!/Landed term/.test(cal2.textContent)) bad.push('Countdowns drawn again does not show the term the landing brought');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
   t.USER(null);
   return bad;
@@ -28313,12 +28318,12 @@ check('Report is one tile on a question and a content card for a student and an 
   if (sent.some(b => b.action === 'listReports')) bad.push('a child’s phone asked for listReports');
   t.USER(HAL);
   const biz = d.createElement('div');
-  biz.innerHTML = w.bizPages_().join('');
+  biz.innerHTML = w.siteBizPages_().join('');   // Reports is on the Site column since 491
   d.body.appendChild(biz);
   w.reportsStart_();
   await wait(300);
   const card = biz.querySelector('[data-reports]');
-  if (!card) bad.push('an admin’s Business column has no Reports card');
+  if (!card) bad.push('an admin’s Site column has no Reports card');
   else {
     if (!/1 to fix · 1 to review/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
     const conf = card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="confirmed"]');
@@ -28855,9 +28860,9 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   if (!ht.includes('post-approve:1') || !ht.includes('post-approve:')) bad.push('the admin has no Approve and Decline tiles on the waiting post: ' + ht.join(','));
   if (ht.includes('post-edit')) bad.push('the admin is offered Edit on somebody\'s waiting post: ' + ht.join(','));
   /* BUSINESS GLOWS: the posts card needs you, and the dot counts it. */
-  try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) { bad.push('drawing Business threw: ' + e.message); }
+  try { hal.t.go('site', false, true); hal.w.paint('site'); } catch (e) { bad.push('drawing Business threw: ' + e.message); }
   await wait(300);
-  const card = hal.d.querySelector('#s-biz [data-need="posts"]');
+  const card = hal.d.querySelector('#s-site [data-need="posts"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Business posts card does not glow with a post waiting');
   const dot = hal.d.getElementById('biz-dot');
   if (!dot || !/\d/.test(dot.textContent)) bad.push('no red dot counts what Business needs');
@@ -29053,17 +29058,17 @@ check('a child reports a message she was sent (413, 486): the one Report tile on
   if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'open') bad.push('the report is not an open row of the reports tab');
   const hal = await postOpen_(W, 'admin@example.org');
   if (hal.err) return bad.concat([hal.err]);
-  try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) {}
-  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-item'); k++) await wait(100);
+  try { hal.t.go('site', false, true); hal.w.paint('site'); } catch (e) {}
+  for (let k = 0; k < 40 && !hal.d.querySelector('#s-site .rep-item'); k++) await wait(100);
   await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
-  const item = [...hal.d.querySelectorAll('#s-biz .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
+  const item = [...hal.d.querySelectorAll('#s-site .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
   if (!item || !/unsafe/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
-  const card = hal.d.querySelector('#s-biz [data-need="reports"]');
+  const card = hal.d.querySelector('#s-site [data-need="reports"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Reports card does not glow with a message reported');
   const done = item && item.querySelector('[data-do="rep-status"][data-status="dismissed"]');
   if (!done) bad.push('no Dismiss tile on the reported message');
   else { hal.A('rep-status', done); await wait(400); }
-  if ([...hal.d.querySelectorAll('#s-biz .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
+  if ([...hal.d.querySelectorAll('#s-site .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
   if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;
@@ -29577,7 +29582,7 @@ check('layout tiles (463): a stale or garbled layout falls back cleanly — unkn
 });
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
-const LAY_CARD_COLS_ = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+const LAY_CARD_COLS_ = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
 const layPaintAll_ = async w => { for (const c of LAY_CARD_COLS_) { try { w.paint(c); } catch (e) {} } await wait(200); };
 const layCardRow_ = (d, id) => d.querySelector(`.card-admin[data-lay-for="${id}"]`);
 const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
@@ -29765,9 +29770,9 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const r = layBoot_({ payload: p2 }); await wait(300); await layPaintAll_(r.w);
   if (!r.w.document.querySelector('#s-staff .notify-card') || r.w.document.querySelector('#s-account .notify-card')) bad.push('a reload did not keep Notifications on Tutor settings');
   /* BUSINESS: Build up one place; "+ Add a student" down to the bottom of Student profiles. */
-  const b0 = laySeen_(w, 'biz'), bi = b0.indexOf('biz:build');
+  const b0 = laySeen_(w, 'site'), bi = b0.indexOf('biz:build');   // Build is on Site since 491
   A['lay-c-move'](layCardTile_(d, 'biz:build', 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
-  if (laySeen_(w, 'biz').indexOf('biz:build') !== bi - 1) bad.push('Build did not move up on Business: ' + laySeen_(w, 'biz').join());
+  if (laySeen_(w, 'site').indexOf('biz:build') !== bi - 1) bad.push('Build did not move up on Site: ' + laySeen_(w, 'site').join());
   for (let k = 0; k < 12 && !layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')?.disabled; k++) {
     A['lay-c-move'](layCardTile_(d, 'ppl:students:add', 'lay-c-move', '1')); await wait(200); await layPaintAll_(w);
   }
@@ -29842,9 +29847,9 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   if (!pg2 || !pg2.querySelector(`[data-do="lay-start"][data-lc="${person}"].on`)) bad.push('after a reload ' + col + ' does not open on ' + person);
   /* A CARD'S START HERE, then pressed again clears. */
   A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250); await layPaintAll_(w);
-  if ((layLast_(sent).start || {}).biz !== 'biz:build') bad.push('Build\'s Start here was not stored');
+  if ((layLast_(sent).start || {}).site !== 'biz:build') bad.push('Build\'s Start here was not stored');
   A['lay-start'](layCardTile_(d, 'biz:build', 'lay-start')); await wait(250);
-  if ((layLast_(sent).start || {}).biz) bad.push('Start here pressed again did not clear');
+  if ((layLast_(sent).start || {}).site) bad.push('Start here pressed again did not clear');
   /* A ROLE-GATED CARD MOVED: the Staff hub to Student settings stays a tutor's. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], cards: { account: ['staff:hub'], students: ['acct:pin'] } };
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
@@ -30074,8 +30079,9 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
   {
     const { p, before } = gtWorld_(false);
     const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
-    const c = m.w.document.querySelector('#s-account .gtasks-card');
-    if (!c) bad.push('no Google Tasks card in Student settings');
+    if (m.w.document.querySelector('#s-account .gtasks-card')) bad.push('Google Tasks is still in Student settings (491: one home, the Docket)');
+    m.w.paint('tools'); await wait(200); m.w.paintDocket(); const c = m.w.document.querySelector('#docket-gtasks .gtasks-card');
+    if (!c) bad.push('no Google Tasks block under the Docket');
     else {
       if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
       if (c.querySelector('[data-do="gtasks-connect"]')) bad.push('a Connect tile with no client id');
@@ -30083,11 +30089,11 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
     }
   }
   const { T, p, before } = gtWorld_(true);
-  const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
-  const d = m.w.document, card = () => d.querySelector('#s-account .gtasks-card');
-  const tap = act => { const el = d.querySelector('#s-account [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile'); return false; } el.click(); return true; };
-  const settle = async ms => { await wait(ms); m.w.paint('account'); await wait(100); };
-  if (!card()) return bad.concat('no Google Tasks card with a client id');
+  const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.paintDocket(); await wait(200);
+  const d = m.w.document, card = () => d.querySelector('#docket-gtasks .gtasks-card');
+  const tap = act => { const el = d.querySelector('#docket-gtasks [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile'); return false; } el.click(); return true; };
+  const settle = async ms => { await wait(ms); m.w.paintDocket(); await wait(100); };
+  if (!card()) return bad.concat('no Google Tasks block with a client id');
   if (!tap('gtasks-connect')) return bad;
   await settle(300);
   if (T.scope !== 'https://www.googleapis.com/auth/tasks' || !/^cid-gtasks/.test(T.cid || '')) bad.push('Connect did not ask for the tasks scope with the site\'s client id: ' + T.scope);

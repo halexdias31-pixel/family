@@ -1906,7 +1906,7 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), typeof gtasksCard_ === 'function' ? [gtasksCard_()].filter(Boolean) : [], prog, wait);
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), prog, wait);
 }
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
@@ -1986,7 +1986,12 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return (typeof bizPages_ === 'function' ? bizPages_() : [])
+  return typeof bizPages_ === 'function' ? bizPages_() : [];
+}
+/* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
+function sitePages_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
 
@@ -3746,6 +3751,8 @@ function ownCardSections_(col) {
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
+/* A card whose first line is its own label (a fold's, or a field's) carries no title over it (491). */
+const OWN_SEC_UNTITLED_ = ['headline', 'photos', 'words', 'glance', 'quals', 'where', 'figure', 'handle'];
 const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', rate: 'Rate and class size', headline: 'Headline',
   photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
@@ -3989,7 +3996,9 @@ function cardEditCards_(t, e, secs, setCol) {
   const base = cardBaseNow_(e);
   if (!base && !e.err) setTimeout(() => cardFetch_(e), 0);
   return secs.map(s => {
-    const open = `<div class="card is-prof card-ed own-sec" data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}"><h3>${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}</h3>`;
+    /* NO TITLE WHERE THE FIRST LINE SAYS IT (491, the owner: "does it need a title at the top? I don't think so"). */
+    const h = OWN_SEC_UNTITLED_.indexOf(s.id) !== -1 ? '' : `<h3>${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}</h3>`;
+    const open = `<div class="card is-prof card-ed own-sec" data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}">${h}`;
     if (!base) return `${open}${e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_()}${cardEditTiles_(pid, true)}</div>`;
     const { vals, held } = cardValues_(e, base, s.id);
     return `${open}<div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals, [s])}
@@ -4043,12 +4052,12 @@ function ceGlanceSay_(get) {
   return [g('years_experience') ? g('years_experience') + ' yrs' : '', g('favourite_colour'),
     range('age_min', 'age_max', ''), range('min_hours', 'max_hours', ' h')].filter(Boolean).join(' · ') || 'none';
 }
-/* THE VENUES OPEN ON THEIR TICKS AT ONCE — the fold is the one tap; the map is under them, following them. */
+/* THE VENUES OPEN ON THEIR TICKS AT ONCE. No map (491, the owner: "this column is just configuration"): the map is on the profile. */
 function ceWhere_(L, val, box) {
   const n = profList_(val('venues_ok')).length;
   const ticks = L.indexOf('venues_ok') !== -1 ? box('venues_ok', {}).replace('<details class="many-d"', '<details open class="many-d"') : '';
   return ceFold_('where', 'Venues', esc(ceCount_(n, 'venue', 'venues')),
-      ticks + `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>`)
+      ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
 const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
@@ -4451,10 +4460,6 @@ on('card-cancel', el => {
   cardSeatSync_(form, t, ev);
   cardKeep_(form);
   ceSums_(form);
-  if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
-    const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');
-    if (box && heat) heat.innerHTML = profHeat_(profList_(box.value));
-  }
 }));
 
 /* ---------- PEOPLE, MADE, CHANGED AND REMOVED BY AN ADMIN, ON THE PEOPLE COLUMN (373) ---------- */

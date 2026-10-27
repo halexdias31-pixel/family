@@ -79,14 +79,14 @@ for (const n of ['FreeSerif12pt7b', 'FreeSerif9pt7b', 'FreeSerifItalic9pt7b']) {
   if (!new RegExp('#include <Fonts/' + n + '\\.h>').test(cpp)) bad.push('verse.cpp no longer uses ' + n + ' — the widget would draw a different font');
   if (!f || f.first !== 32 || f.last !== 126 || !Array.isArray(f.glyphs) || f.glyphs.length !== 95 || !f.bitmap) bad.push('data/eink-fonts.json lacks ' + n + ' — run node tools/epaper-verse/gfx-fonts.js');
 }
-for (const k of ['M = 8, W = 200 - 2 * M, REF_TOP = 176', 'lineH[] = { 24, 18 }', 'drawFastHLine(70, REF_TOP, 60', 'drawBitmap((200 - PIC_W) / 2, 4', '(200 - textWidth(t)) / 2), 192'])
+for (const k of ['M = 8, W = 200 - 2 * M, REF_TOP = 176', 'lineH[] = { 24, 18 }', 'drawFastHLine(70, REF_TOP, 60', 'PX0 = titled ? 22 : 25', 'x * 4 / 5, sy = y * 4 / 5', 'setRotation(3)', '(200 - textWidth(t)) / 2), 192'])
   if (cpp.indexOf(k) < 0) bad.push('verse.cpp changed "' + k + '" — change einkPage_ (js/records.js) to match, then this line');
-for (const k of ['M = 8, W = 200 - 2 * M, REF_TOP = 176', 'lineH = [24, 18]', 'x = 70; x < 130', 'einkDot_(px, 40 + x, 4 + y)', '(200 - einkWidth_(ital, t)) / 2)), 192'])
+for (const k of ['M = 8, W = 200 - 2 * M, REF_TOP = 176', 'lineH = [24, 18]', 'x = 70; x < 130', 'PX0 = item.bare ? 25 : 22', 'Math.trunc(y * 4 / 5) * 120 + Math.trunc(x * 4 / 5)', 'einkDot_(px, Math.floor(i / EINK_PX), 199 - (i % EINK_PX))', '(200 - einkWidth_(ital, t)) / 2)), 192'])
   if (rec.indexOf(k) < 0) bad.push('js/records.js einkPage_ lost "' + k + '" — it must draw as verse.cpp does');
 if (!/ARDUINO_USB_CDC_ON_BOOT=1/.test(rd(path.join(EP, 'platformio.ini')))) bad.push('tools/epaper-verse/platformio.ini is missing or does not build USB CDC on boot');
 const bin = (() => { try { return fs.readFileSync(path.join(EP, 'epaper-verse.bin')); } catch (e) { return Buffer.alloc(0); } })();
 if (bin[0] !== 0xe9 || bin[0x8000] !== 0xaa || bin[0x10000] !== 0xe9) bad.push('epaper-verse.bin is not a merged image (bootloader at 0, partitions at 0x8000, app at 0x10000) — run tools/epaper-verse/build.sh');
-if (bin.indexOf('READY epaper-verse 482') < 0) bad.push('epaper-verse.bin predates 482 (it does not stay awake for Sync) — run tools/epaper-verse/build.sh');
+if (bin.indexOf('READY epaper-verse 491') < 0) bad.push('epaper-verse.bin predates 491 (no picture filling the panel, no SHOW BARE) — run tools/epaper-verse/build.sh');
 /* THE WIDGET STAYS IN THE WIDGET: nothing on the site links to the install page again. */
 for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f))) {
   if (/epaper-verse\/install\.html/.test(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'))) bad.push('js/' + f + ' links to epaper-verse/install.html — the screen is the widget (470)');

@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-27-zb-report";
+const DOGET_VERSION = "2026-10-27-zc-n2c";
 
 
 function doGet(e) {
@@ -237,6 +237,8 @@ function doGet(e) {
                  'saveTimetable',
                  /* The admin's layout (462, 463): the order of widgets and which are deleted. */
                  'layoutSave',
+                 /* The weekly email's words (491), edited on the Site column. */
+                 'digestWordsSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
                  'claudeNoteAdd', 'claudeNoteDone',
                  /* One report for everything (486). */

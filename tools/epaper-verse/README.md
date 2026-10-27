@@ -37,10 +37,10 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   in the PlatformIO registry), xtensa gcc 14.2.0, GxEPD2 1.6.9, Adafruit GFX 1.13.0, BusIO 1.17.4, esptool 5.6.0 (merge).
   Board esp32-s3-devkitc-1, flash 8MB QIO 80MHz, huge_app.csv, PSRAM unused, `ARDUINO_USB_MODE=0` (TinyUSB, so the
   USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 703,440 bytes,
-  sha256 `65979625976a417b78a72aee573e2697e4a27de93c9d32f6e02b1f946a1b6b09` (485); its MD5 is `epaper-verse.md5`, which both installers read the flash back against. Not yet tried on a board.
+  sha256 `b15054251659fd41566de1ec491c08a1cf28bfac99c86eda139496e0554ebf33` (491; MD5 `5425e39a485abe3cf81513b7b6773486`); its MD5 is `epaper-verse.md5`, which both installers read the flash back against. Not yet tried on a board.
 - **Awake for USB** (482): deep sleep switches the S3's USB off, so the computer saw the screen and lost it. Now after a
   plug-in, RESET or ⏻ it draws, then listens 60 s, and for as long as a computer has it mounted (`tud_mounted()`);
-  each `SHOW` redraws and restarts the minute; `HELLO` gets `READY epaper-verse 482`. The daily timer wake listens 3 s.
+  each `SHOW` redraws and restarts the minute; `HELLO` gets `READY epaper-verse 491`. The daily timer wake listens 3 s.
 - **The widget's pixels** (482): `gfx-fonts.js` copies verse.cpp's three fonts into `data/eink-fonts.json`; `einkPage_`
   (js/records.js) is `drawVerse`/`drawPicture` line for line on a 200x200 canvas. `check-eink` holds the two together.
 - **Picture version** (447): the same program built with `-DVERSE_ICONS` draws one of the site's icons
@@ -50,7 +50,7 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   `-DVERSE_ICONS` to `build_flags`, run build.sh, rename the result to `epaper-verse-icons.bin` and put it beside `install.html`: the page then offers "Verse with a picture".
 - Pins (Waveshare demo `github.com/waveshareteam/ESP32-S3-ePaper-1.54`): DC 10, CS 11, SCK 12, MOSI 13,
   RST 9, BUSY 8, panel power GPIO 6 (low = on). Panel: GxEPD2 `GxEPD2_154_D67`.
-- **Sync from the site** (470): the Tools widget "E-ink screen" sends `SHOW VERSE n` or `SHOW ICON n` over Web
+- **Sync from the site** (470): the Tools widget "E-ink screen" sends `SHOW VERSE n`, `SHOW ICON n` or `SHOW BARE n` (an icon without its title, 491) over Web
   Serial (115200); `listen()` in verse.cpp reads it while awake (above), answers `OK`, keeps it in NVS.
   Icon mode draws `pictures.h` (every row of data/icons.json at 120x160, written by `make-icons.js`) with its title.
   The widget also installs the `.bin` in place.

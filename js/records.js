@@ -46,7 +46,7 @@ function bizNeed_(key, n, say) {
 }
 const bizNeedsTotal_ = () => Object.keys(BIZ_NEEDS).reduce((t, k) => t + (BIZ_NEEDS[k] || 0), 0);
 function bizNeedsPaint_() {
-  document.querySelectorAll('#s-biz [data-need]').forEach(c => c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0));
+  document.querySelectorAll('#s-biz [data-need], #s-site [data-need]').forEach(c => c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0));
   const n = (typeof isAdmin === 'function' && isAdmin()) ? bizNeedsTotal_() : 0;
   let dot = document.getElementById('biz-dot');
   if (!n) { if (dot) dot.remove(); return; }
@@ -56,7 +56,7 @@ function bizNeedsPaint_() {
     document.body.appendChild(dot);
   }
   dot.textContent = String(n);
-  dot.setAttribute('aria-label', n + (n === 1 ? ' thing needs you' : ' things need you') + ' in Business');
+  dot.setAttribute('aria-label', n + (n === 1 ? ' thing needs you' : ' things need you') + ' in Business and Site');
 }
 on('biz-dot', () => go('biz'));
 /* THE RECORDS DUE ON ONE CARD: soon or overdue, counted only once the sheet has answered. */
@@ -126,11 +126,16 @@ function bizCard_(pg) {
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  /* PROFIT FIRST, as the column opens; then Setup (400, moved from You), applications, reports, the records. */
-  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  /* PROFIT FIRST, as the column opens; then applications, staff and the records. The site's own cards are the Site column's (491). */
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), libImpCard_(), [].concat(...BIZ_PAGES.map(bizCard_)));   /* Verse screen is a Tools widget (461) */
+  return profitCards_().concat(appsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
+}
+/* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
+function siteBizPages_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
@@ -386,10 +391,10 @@ const EINK_KEY = 'eink:pick';
 const EINK = (() => {
   let o = {};
   try { o = JSON.parse(localStorage.getItem(EINK_KEY) || '{}') || {}; } catch (e) { o = {}; }
-  return { mode: o.mode === 'icon' ? 'icon' : 'verse', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0),
+  return { mode: o.mode === 'icon' ? 'icon' : 'verse', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0), bare: !!o.bare,
            verses: null, icons: null, fonts: null, bits: {}, steps: '', asked: false, failed: false, say: '', busy: false, install: false };
 })();
-const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon })); } catch (e) {} };
+const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon, bare: EINK.bare })); } catch (e) {} };
 /* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database; data/icons/120/ the icons' own 1-bit bitmaps. */
 function einkLoad_() {
   if (EINK.asked) return;
@@ -440,10 +445,17 @@ function einkPage_(mode, item, iconBits) {   // -> Uint8Array(200*200), 1 = blac
   const big = einkFont_('FreeSerif12pt7b'), small = einkFont_('FreeSerif9pt7b'), ital = einkFont_('FreeSerifItalic9pt7b');
   if (!big || !small || !ital || !item) return null;
   const px = new Uint8Array(EINK_PX * EINK_PX), M = 8, W = 200 - 2 * M, REF_TOP = 176;
-  if (mode === 'icon') {   // drawPicture(): 120x160 at the top, the title in italic beneath
-    if (iconBits) for (let y = 0; y < 160; y++) for (let x = 0; x < 120; x++) if (iconBits[y * 120 + x]) einkDot_(px, 40 + x, 4 + y);
-    const t = String(item.title || '');
-    einkText_(px, ital, t, Math.max(0, Math.trunc((200 - einkWidth_(ital, t)) / 2)), 192);
+  if (mode === 'icon') {   // drawPicture(k, titled) (491): 120x160 at 5/4 filling the height, the title vertical in the right margin
+    const PX0 = item.bare ? 25 : 22;
+    if (iconBits) for (let y = 0; y < 200; y++) for (let x = 0; x < 150; x++) if (iconBits[Math.trunc(y * 4 / 5) * 120 + Math.trunc(x * 4 / 5)]) einkDot_(px, PX0 + x, y);
+    if (!item.bare) {
+      let t = String(item.title || '');
+      while (t.length > 1 && einkWidth_(ital, t) > 196) t = t.slice(0, -1);
+      /* setRotation(3): a pixel at (x, y) of the turned screen is (y, 199 - x) of the panel. */
+      const turned = new Uint8Array(EINK_PX * EINK_PX);
+      einkText_(turned, ital, t, Math.max(0, Math.trunc((200 - einkWidth_(ital, t)) / 2)), 192);
+      for (let i = 0; i < turned.length; i++) if (turned[i]) einkDot_(px, Math.floor(i / EINK_PX), 199 - (i % EINK_PX));
+    }
     return px;
   }
   const fonts = [big, small], lineH = [24, 18];   // drawVerse(): the bigger font if the verse fits in it
@@ -477,7 +489,7 @@ function einkDraw_(cv) {
   const list = einkList_(), icon = EINK.mode === 'icon', item = list[(icon ? EINK.icon : EINK.verse) % (list.length || 1)];
   const put = bits => {
     let g = null; try { g = cv.getContext('2d'); } catch (e) {}
-    const px = einkPage_(EINK.mode, item, bits); if (!g || !px) return;
+    const px = einkPage_(EINK.mode, icon ? Object.assign({}, item, { bare: EINK.bare }) : item, bits); if (!g || !px) return;
     const im = g.createImageData(EINK_PX, EINK_PX);
     for (let i = 0; i < px.length; i++) { const v = px[i] ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
     g.putImageData(im, 0, 0);
@@ -508,6 +520,7 @@ function paintEink_() {
       <div class="tile-row">${[
         tile_({ icon: 'book', label: 'Verse', note: 'show verses', act: 'eink-mode', data: { mode: 'verse' }, on: !icon, pressed: !icon }),
         tile_({ icon: 'figure', label: 'Icon', note: 'show icons', act: 'eink-mode', data: { mode: 'icon' }, on: icon, pressed: icon }),
+        icon ? tile_({ icon: 'show', label: 'Title', note: EINK.bare ? 'off' : 'small, at the side', act: 'eink-title', on: !EINK.bare, pressed: !EINK.bare }) : '',
         tile_({ icon: 'left', label: 'Back', act: 'eink-step', data: { d: -1 }, off: !ready }),
         tile_({ icon: 'right', label: 'Next', act: 'eink-step', data: { d: 1 }, off: !ready }),
         tile_({ icon: 'again', label: 'Shuffle', act: 'eink-shuffle', off: !ready }),
@@ -522,6 +535,7 @@ function paintEink_() {
 }
 const einkSay_ = t => { EINK.say = t; paintEink_(); };
 on('eink-mode', el => { EINK.mode = el.dataset.mode === 'icon' ? 'icon' : 'verse'; EINK.say = ''; einkKeep_(); paintEink_(); });
+on('eink-title', () => { EINK.bare = !EINK.bare; einkKeep_(); paintEink_(); });
 on('eink-step', el => {
   const n = einkList_().length; if (!n) return;
   const k = EINK.mode === 'icon' ? 'icon' : 'verse';
@@ -558,7 +572,7 @@ on('eink-sync', async () => {
     try { await port.setSignals({ dataTerminalReady: true, requestToSend: false }); } catch (e) {}
     einkSay_('Connected — asking the screen…');
     const enc = s => new TextEncoder().encode(s + '\n');
-    const hello = enc('HELLO'), show = enc(EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse);
+    const hello = enc('HELLO'), show = enc(EINK.mode === 'icon' ? (EINK.bare ? 'SHOW BARE ' : 'SHOW ICON ') + EINK.icon : 'SHOW VERSE ' + EINK.verse);
     const w = port.writable.getWriter(), r = port.readable.getReader(), dec = new TextDecoder();
     const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += dec.decode(x.value, { stream: true });
       if (/READY/.test(got)) ready = true; if (/(^|\n)OK\b/.test(got)) ok = true; } } catch (e) {} })();
@@ -905,11 +919,65 @@ on('profit-reset', el => {
 
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
-  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {}
-    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {}
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {}
     try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
     try { bizNeedsPaint_(); } catch (e) {} }, 0);
   return pages('biz', typeof cardsOf_ === 'function' ? cardsOf_('biz') : adminPages_());
+});
+screen('site', () => {
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { if (!REPS.list) reportsStart_(); } catch (e) {}
+    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {} }, 0);
+  return pages('site', typeof cardsOf_ === 'function' ? cardsOf_('site') : sitePages_());
+});
+
+/* ---------- THE WEEKLY EMAIL, SEEN AND WORDED HERE (491): digestRender_'s frame (backend/digest.gs) with a made-up child; its four lines are config rows. ---------- */
+const DIGEST_WORDS_ = [
+  ['digest_subject', 'Subject', '{child}’s week: {count}'],
+  ['digest_greeting', 'Greeting', 'Hi {parent},'],
+  ['digest_intro', 'First line', 'Here’s what {child} worked on this week: {count} ({span}).'],
+  ['digest_footer', 'Last line', 'Don’t want these any more? Just reply and say so.'],
+];
+const DIGEST_SAMPLE_ = { child: 'Sam', parent: 'Alex', count: '3 questions', span: 'Mon 19 Oct – Sun 25 Oct, up to 6pm on Sunday' };
+const digestVars_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.constants && DATA.constants.vars) || {});
+const digestFillJs_ = (t, v) => String(t).replace(/\{(child|parent|count|span)\}/g, (m, k) => v[k] == null ? '' : String(v[k])).replace(/ +([,.!?])/g, '$1').replace(/ {2,}/g, ' ');
+/* THE EMAIL'S OWN COLOURS (`digestInk_`): black page, grey pane, the verdicts green and red. */
+function digestPreviewHtml_(w) {
+  const f = k => esc(digestFillJs_(w[k], DIGEST_SAMPLE_));
+  const q = (ok, t, sub) => `<div class="dp-q"><span class="dp-v ${ok ? 'is-right' : 'is-wrong'}">${ok ? '✓ right' : '✗ not right'}</span><b>${esc(t)}</b><span class="dp-sub">${esc(sub)}</span></div>`;
+  return `<div class="dp" aria-label="How the email looks"><p class="dp-subj"><span>Subject</span> ${f('digest_subject')}</p>
+    <div class="dp-body"><p>${f('digest_greeting')}</p><p>${f('digest_intro')}</p>
+    <p class="dp-sum">2 right, 1 not yet · Fractions, Ratio</p>
+    ${q(true, 'Add 2/3 and 1/4', 'Fractions · Foundation')}${q(false, 'Simplify 18/24', 'Fractions · Foundation')}
+    <p class="dp-foot">${f('digest_footer')}</p></div></div>`;
+}
+function digestWordsCard_() {
+  const v = digestVars_(), w = {};
+  DIGEST_WORDS_.forEach(([k, , d]) => { w[k] = String(v[k] || '').trim() || d; });
+  const rows = DIGEST_WORDS_.map(([k, label, d]) => `<label class="field dw-row"><span>${esc(label)}</span><input data-dw="${k}" value="${esc(w[k])}" placeholder="${esc(d)}" maxlength="300" aria-label="${esc(label)}"></label>`).join('');
+  /* TWO CARDS, the look and the words: together they are taller than a pane, and the look follows the typing either way. */
+  return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestPreviewHtml_(w)}</div></div>`,
+    `<div class="card biz digest-words"><h3>Weekly email's words</h3>
+    ${rows}<p class="faint">{child}, {parent}, {count} and {span} are filled in for each family.</p>
+    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'the email\'s words', act: 'digest-words-save', tone: 'admin' })}</div>
+    <p class="faint dw-said" aria-live="polite"></p></div>`];
+}
+const digestWordsNow_ = card => { const w = {}; DIGEST_WORDS_.forEach(([k, , d]) => { const el = card.querySelector('[data-dw="' + k + '"]'); w[k] = (el && String(el.value).trim()) || d; }); return w; };
+document.addEventListener('input', e => {
+  const el = e.target, card = el && el.closest && el.dataset && el.dataset.dw ? el.closest('.digest-words') : null;
+  if (!card) return;
+  document.querySelectorAll('.digest-look .dw-preview').forEach(box => { box.innerHTML = digestPreviewHtml_(digestWordsNow_(card)); });
+});
+on('digest-words-save', el => {
+  const card = el.closest('.digest-words');
+  if (!card || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
+  const words = {};
+  DIGEST_WORDS_.forEach(([k, , d]) => { const i = card.querySelector('[data-dw="' + k + '"]'); const t = i ? String(i.value).trim() : ''; words[k] = t === d ? '' : t; });
+  send_({ action: 'digestWordsSave', name: USER.name, personId: USER.personId || '', words }, { button: el, where: card.querySelector('.dw-said') || undefined, busy: 'Saving…' })
+    .then(d => {
+      if (!d || !d.success) return;
+      try { Object.assign(digestVars_(), d.words || words); } catch (x) {}
+      toast('The email\'s words are saved');
+    });
 });
 
 /* WHAT ARRIVED, WRITTEN INTO THE CARDS ALREADY ON THE PAGE rather than a repaint of the column. § */
