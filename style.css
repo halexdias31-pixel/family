@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-ze-front";
+  --css-version: "2026-10-27-zf-inbox";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6865,3 +6865,26 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .is-writing > :not(.ncl-box):not(.rep-box) { display: none !important; }
 .is-writing > .ncl-box, .is-writing > .rep-box { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-top: 0; border-top: 0; }
 .is-writing > .ncl-box .ncl-text { flex: 1 1 auto; min-height: 4rem; }
+
+/* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent, a message read in place. */
+.ib-chips { margin-top: .5rem; }
+.ib-list { display: flex; flex-direction: column; }
+.ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: .45rem; text-align: left;
+  min-height: 48px; padding: .55rem 0; background: none; border: 0; border-bottom: 1px solid var(--line);
+  color: var(--ink); font: inherit; width: 100%; cursor: pointer; }
+.ib-dot { grid-row: 1; align-self: center; width: 8px; height: 8px; border-radius: 50%; }
+.ib-row.is-unread .ib-dot { background: var(--gold); }
+.ib-from, .ib-subj, .ib-snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ib-from { grid-column: 2; }
+.ib-row.is-unread .ib-from, .ib-row.is-unread .ib-subj { font-weight: 700; }
+.ib-at { grid-column: 3; font-size: .8rem; color: var(--faint); }
+.ib-subj, .ib-snip { grid-column: 2 / 4; }
+.ib-snip { font-size: .85rem; color: var(--faint); }
+.ib-h { margin: .6rem 0 .2rem; overflow-wrap: anywhere; }
+.ib-meta { overflow-wrap: anywhere; }
+.ib-body { overflow-wrap: anywhere; overflow-x: auto; max-width: 100%; }
+.ib-body img { max-width: 100%; height: auto; }
+.ib-body img[data-blocked] { display: inline-block; min-width: 1rem; min-height: 1rem; border: 1px dashed var(--line); }
+.ib-body table { max-width: 100%; }
+.ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
+.ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }

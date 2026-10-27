@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-27-ze-front";
+const DOGET_VERSION = "2026-10-27-zf-inbox";
 
 
 function doGet(e) {
@@ -251,6 +251,8 @@ function doGet(e) {
                  /* `attemptWords` WAS HERE — the phone sent a question's words with `markDone` and backfilled them for a backend that listed it. § */
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
+                 /* The Email widget (493), so an old backend says so instead of failing. */
+                 'inboxList', 'inboxRead',
                  /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
                  'filmsSync',
                  /* The Colliers Wood racer's Build the map tile, for an admin (426). */

@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-ze-front";
+const DOPOST_VERSION = "2026-10-27-zf-inbox";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -135,6 +135,13 @@ function doPost(e) {
 
     /* PHONE NOTIFICATIONS (492): the card's four actions, all in push.gs. */
     if (action === 'pushState' || action === 'pushSubscribe' || action === 'pushUnsubscribe' || action === 'pushSet') return jsonOut(pushAction_(action, body));
+
+    /* THE EMAIL WIDGET (493): the owner's Gmail, read-only, admin only (gated twice), never kept — inbox.gs. */
+    if (action === 'inboxList' || action === 'inboxRead') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      return jsonOut(action === 'inboxList' ? inboxList_(body) : inboxRead_(body));
+    }
 
     /* register ------------------------------------------------------------------------------ Anyone may create a STUDENT or a CLIENT (parent) account. § */
     /* ---------- WHO THE ACCOUNT IS FOR IS ASKED, AND THE ANSWER IS THE ROLE § */

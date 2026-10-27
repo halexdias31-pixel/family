@@ -310,6 +310,14 @@ const WIDGETS = [
     <h3>Library cards</h3>
     <div id="lib-box"></div>
   </div>` },
+  /* THE EMAIL WIDGET (493): the owner's Gmail, read-only, admin only — js/inbox.js, backend/inbox.gs. */
+  { id: 'inbox', kind: 'tool', name: 'Email', solid: true, admin: true,
+    start: () => initInbox?.(),
+    into: 'ib-box', what: 'The inbox',
+    html: `<div class="card">
+    <h3>Email</h3>
+    <div class="ib-box" id="ib-box"></div>
+  </div>` },
 ];
 
 
