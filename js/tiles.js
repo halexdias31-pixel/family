@@ -134,6 +134,10 @@ const TILE_ICONS = {
   speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };
 
+/* ONE SEARCH BAR (487): the pill Reels draws -- a magnifier inside a round box -- for every search; `attrs` is the input's own markup. */
+function searchPill_(attrs, cls) {
+  return `<label class="search-pill${cls ? ' ' + cls : ''}">${tileIcon_('search')}<input type="search" autocomplete="off" enterkeyhint="search" ${attrs}></label>`;
+}
 function tileIcon_(name) {
   const d = TILE_ICONS[name];
   if (!d) return '';
@@ -401,16 +405,16 @@ function cardTiles_(x) {
   const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
-    + finderOpenTile_(x) + (x.more || '');
+    + finderOpenTile_(x) + (x.more || '')
+    /* AND `Report` ON EVERY CARD, Student rank and up (486) — `reportTileFor_` in submit.js. */
+    + (typeof reportTileFor_ === 'function' ? reportTileFor_(x) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
   return tileRow_(mine + admin, '', x.kind === 'me');
 }
 
-/* ---------- EVERY TILE SHOWN, ROWS BALANCED (420) ---------- */
-/* SIX 44px TILES FIT A CARD AT 390px. Past six the row breaks into even lines (7 is 4+3, never 6+1); nothing hides behind a "More" — "I DONT LIKE POP UP MENUS" (420). */
-const TILE_ROW_MAX = 6;
+/* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
 const TILE_ADMIN_ORDER_ = ['card-edit', 'spot', 'set-listed'];
@@ -421,17 +425,12 @@ function tileAdminRank_(t) {
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
 }
-/* HOW MANY TILES ON EACH LINE: as few lines as fit, as even as they divide. */
-function tileLines_(n) {
-  const lines = Math.max(1, Math.ceil(n / TILE_ROW_MAX)), base = Math.floor(n / lines);
-  return Array.from({ length: lines }, (_, i) => base + (i < n % lines ? 1 : 0));
-}
 function tileRow_(html, cls, own) {
   const src = String(html || '');
   const wrap = inner => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
   const all = src.match(TILE_RE_) || [];
   const admin = own ? [] : all.filter(tileIsAdmin_);
-  if (!admin.length && all.length <= TILE_ROW_MAX) return wrap(src);
+  if (!admin.length) return wrap(src);
   const viewer = all.filter(t => admin.indexOf(t) === -1);
   /* WHAT IS NOT A TILE (a verdict, a note) stays, after the viewer's tiles; the old admin wrapper goes, regrouped below. */
   const rest = all.reduce((s, t) => s.replace(t, ''), src)
@@ -439,21 +438,8 @@ function tileRow_(html, cls, own) {
   const sorted = admin.map((t, i) => [t, i]).sort((a, b) => tileAdminRank_(a[0]) - tileAdminRank_(b[0]) || a[1] - b[1]).map(p => p[0]);
   const group = list => (list.length ? `<span class="tile-group is-admin" role="group" aria-label="Admin">${list.join('')}</span>` : '');
   const brk = '<span class="tile-break" aria-hidden="true"></span>';
-  if (all.length <= TILE_ROW_MAX) return wrap(viewer.join('') + rest + group(sorted));
-  /* THE VIEWER'S LINE, THEN THE ADMIN'S, when each is a line of two to six. */
-  if (viewer.length >= 2 && sorted.length >= 2 && viewer.length <= TILE_ROW_MAX && sorted.length <= TILE_ROW_MAX) {
-    return wrap(viewer.join('') + rest + brk + group(sorted));
-  }
-  /* OTHERWISE EVEN LINES, in order: the viewer's first, the admin's grouped at the end of whichever lines they reach. */
-  const seq = viewer.concat(sorted);
-  let at = 0, out = '', restPut = !rest;
-  tileLines_(seq.length).forEach((n, li) => {
-    const line = seq.slice(at, at + n); at += n;
-    let here = line.filter(t => sorted.indexOf(t) === -1).join('');
-    if (!restPut && at >= viewer.length) { here += rest; restPut = true; }
-    out += (li ? brk : '') + here + group(line.filter(t => sorted.indexOf(t) !== -1));
-  });
-  return wrap(out);
+  /* ONE FLOW LIKE WORDS (487): every tile in one left-aligned wrapping run, the admin's last; no line breaks or rebalancing. */
+  return wrap(viewer.join('') + rest + group(sorted));
 }
 
 function cardActions_(x) {
@@ -475,9 +461,7 @@ function cardActions_(x) {
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */
-  if (x.kind === 'question') return (typeof questionTiles_ === 'function' ? questionTiles_(x) : '')
-    /* AND `Report`, for anybody signed in (395) — `reportTile_` in submit.js. */
-    + (typeof reportTile_ === 'function' ? reportTile_(x) : '');
+  if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. § */
   return '';
 }
@@ -489,8 +473,16 @@ function jobTiles_(x) {
   const id = String(j.id || j.jobId || '');
   if (!id || !USER) return '';
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
+  /* THE ASKED TUTOR, OR AN ADMIN, ANSWERS IN PLACE (488) — Accept, or Decline with an optional line why. */
+  const asked = requestAsked_(j);
+  const answer = asked && (norm(asked) === norm(USER.name) || (typeof isAdmin === 'function' && isAdmin()))
+    ? tile_({ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking',
+              act: 'job-request-answer', data: { id: id, yes: '1' } })
+      + tile_({ icon: 'close', label: 'Decline request', note: 'a line why, if you like',
+                act: 'job-request-answer', data: { id: id, yes: '' } })
+    : '';
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
-  if (!mine) return childView_() ? '' : joinTile_(j, id);
+  if (!mine) return answer || (childView_() ? '' : joinTile_(j, id));
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
@@ -501,6 +493,30 @@ function jobTiles_(x) {
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
   `;
+}
+
+/* WHICH TUTOR A REQUEST IS WAITING ON (488): a named tutor not yet Confirmed on a job not open to others. */
+function requestAsked_(j) {
+  if (!j || j.stealable) return '';
+  const t = (j.tutorSlots || []).find(sl => /^applied$/i.test(String(sl.status || '')));
+  return t ? String(t.name || '') : '';
+}
+
+/* WHERE A REQUEST STANDS, IN ONE LINE BOTH SIDES READ (488): waiting, accepted, or declined and why. */
+function requestSaid_(j) {
+  if (!j) return '';
+  const asked = requestAsked_(j);
+  if (asked) return 'Waiting for ' + asked + ' to accept or decline.';
+  const evs = j.events || [];
+  const last = evs.filter(e => e.role === 'tutor' && (e.action === 'Decline' || e.action === 'Accept')).pop();
+  if (!last) return '';
+  if (last.action === 'Decline' && norm(last.target) === norm(last.actor) && !(j.tutorSlots || []).length) {
+    return 'Declined by ' + last.actor + (last.message && last.message !== 'declined the request' ? ': \u201c' + last.message + '\u201d' : '.');
+  }
+  if (last.action === 'Accept' && /^accepted the request/.test(String(last.message || ''))) {
+    return 'Accepted by ' + last.actor + '.';
+  }
+  return '';
 }
 
 /* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT § */
@@ -558,6 +574,7 @@ function postTiles_(p) {
   if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
   /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
   if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
+  if (!p.mine && typeof reportTile_ === 'function') rows.push(reportTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
   if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }

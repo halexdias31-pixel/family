@@ -8,7 +8,7 @@ const { backend } = require('./check-gas-load.js');
 const bad = [];
 let asked = 0;
 const WANT = ['report_id', 'at', 'person_id', 'handle', 'question_id', 'paper_id', 'part', 'label',
-              'reason', 'note', 'finder', 'device', 'status', 'status_at'];
+              'reason', 'note', 'finder', 'device', 'status', 'status_at', 'kind', 'item_id', 'reporter_rank', 'status_by'];
 
 function world(lockFree) {
   const b = backend(lockFree === false
@@ -71,7 +71,7 @@ const rep = more => Object.assign({ action: 'reportQuestion', questionId: 'Q-T-1
     if (x.question_id !== 'Q-T-1' || x.paper_id !== 'RS1-1' || x.part !== 'b' || x.label !== 'Q5b · Paper 1') bad.push('the row lost what the question was: ' + JSON.stringify(x));
     if (x.reason !== 'The answer is wrong') bad.push('the reason is kept as ' + JSON.stringify(x.reason) + ' — wanted the words, so the sheet reads by itself');
     if (x.note !== 'the answer says 12 but it is 15' || x.finder !== 'stuff' || x.device !== 'phone') bad.push('note, finder or device lost: ' + JSON.stringify(x));
-    if (x.status !== '') bad.push('a new report is ' + JSON.stringify(x.status) + ', not open (blank)');
+    if (x.status !== 'open' || x.kind !== 'question' || x.item_id !== 'q:Q-T-1' || x.reporter_rank !== 'student') bad.push('a child’s new report is ' + JSON.stringify([x.status, x.kind, x.item_id, x.reporter_rank]) + ' — wanted open, question, q:Q-T-1, student');
     if (!(x.at instanceof Date) || x.at.getTime() < t0) bad.push('`at` is not the server’s clock: ' + JSON.stringify(x.at));
     if (!/^R-\d+-\d+$/.test(String(x.report_id))) bad.push('report_id is ' + JSON.stringify(x.report_id));
     if (Object.values(x).some(v => /Pupil/.test(String(v)))) bad.push('the row carries a surname: ' + JSON.stringify(x));
@@ -96,7 +96,7 @@ const rep = more => Object.assign({ action: 'reportQuestion', questionId: 'Q-T-1
   const { ask, rows } = world();
   const out = ask('', rep());
   if (!out.error || rows().length) bad.push('signed out, a report answered ' + JSON.stringify(out) + ' and left ' + rows().length + ' rows');
-  const why = ask(ADA, rep({ reason: 'rude' }));
+  const why = ask(ADA, rep({ reason: 'nonsense' }));
   if (!why.error || rows().length) bad.push('a reason not on the list answered ' + JSON.stringify(why));
   const proto = ask(ADA, rep({ reason: 'constructor' }));
   if (!proto.error || rows().length) bad.push('reason "constructor" (an Object property) was taken: ' + JSON.stringify(proto));
@@ -120,7 +120,7 @@ const rep = more => Object.assign({ action: 'reportQuestion', questionId: 'Q-T-1
   const peek = ask(BEN, { action: 'listReports' });
   if (!peek.error || peek.reports) bad.push('a child asking listReports was answered ' + JSON.stringify(peek).slice(0, 200));
   const shut = ask(BEN, { action: 'setReportStatus', id: rows()[0].report_id, status: 'fixed' });
-  if (!shut.error || rows()[0].status !== '') bad.push('a child closed somebody’s report: ' + JSON.stringify(shut));
+  if (!shut.error || rows()[0].status !== 'open') bad.push('a child closed somebody’s report: ' + JSON.stringify(shut));
   /* AND THE PAYLOAD, which everybody is sent, carries none. */
   b.cache.clear();
   asked++;
@@ -142,9 +142,51 @@ const rep = more => Object.assign({ action: 'reportQuestion', questionId: 'Q-T-1
   const after = ask(HAL, { action: 'listReports' });
   if (after.open !== 1 || after.total !== 2 || (after.reports || []).some(r => r.id === id)) bad.push('after Fixed the list still counts ' + after.open + ' open of ' + after.total);
   ask(HAL, { action: 'setReportStatus', id: rows()[1].report_id, status: 'not a problem' });
-  if (rows()[1].status !== 'not a problem') bad.push('Not a problem was written as ' + JSON.stringify(rows()[1].status));
+  if (rows()[1].status !== 'dismissed') bad.push('Not a problem (an old phone) was written as ' + JSON.stringify(rows()[1].status));
   const none = ask(HAL, { action: 'setReportStatus', id: 'R-0-0', status: 'fixed' });
   if (!none.error) bad.push('closing a report that is not there answered ' + JSON.stringify(none));
+}
+
+/* ---------- 4. ONE RULE FOR EVERYTHING (486): an admin's report is to fix, anybody else's a signal -------------- */
+{
+  const { b, ask, rows } = world();
+  b.seed('claude_notes', []);
+  const ct = { action: 'report', kind: 'content', itemId: 'ct:TB-X#3', label: 'Bayes', reason: 'wrong', note: 'the tree is wrong' };
+  const kid = ask(ADA, ct);
+  if (!kid.success || kid.serious) bad.push('a child’s content report answered ' + JSON.stringify(kid));
+  const notes = () => (b.tabs.claude_notes || [[]]).slice(1);
+  const marked = () => { b.cache.clear(); asked++; return (b.get({}).reportedItems || []); };
+  if (rows()[0].status !== 'open' || notes().length || marked().length) bad.push('a child’s report changed the item: status ' + rows()[0].status + ', notes ' + notes().length + ', marked ' + JSON.stringify(marked()));
+  const adm = ask(HAL, { action: 'report', kind: 'widget', itemId: 'calc', label: 'Calculator', reason: 'broken' });
+  const ar = rows()[1] || {};
+  if (!adm.success || !adm.serious || ar.status !== 'confirmed' || ar.reporter_rank !== 'admin') bad.push('an admin’s report answered ' + JSON.stringify(adm) + ', row ' + ar.status);
+  if (notes().length !== 1 || !/calc/.test(JSON.stringify(notes()[0]))) bad.push('an admin’s report made ' + notes().length + ' Notes for Claude — wanted one naming the widget');
+  if (JSON.stringify(marked()) !== '["widget|calc"]') bad.push('the payload marks ' + JSON.stringify(marked()) + ' — wanted the admin’s widget only');
+  const l = ask(HAL, { action: 'listReports' });
+  if (!l.success || l.serious !== 1 || !(l.reports[0] || {}).serious || (l.reports[1] || {}).kind !== 'content') bad.push('listReports does not put the admin’s first and the child’s after: ' + JSON.stringify(l).slice(0, 300));
+  const cf = ask(HAL, { action: 'setReportStatus', id: rows()[0].report_id, status: 'confirmed' });
+  if (!cf.success || rows()[0].status !== 'confirmed' || notes().length !== 2 || marked().indexOf('content|ct:TB-X#3') === -1) bad.push('Confirm did not make the child’s report one to fix: ' + JSON.stringify(cf).slice(0, 200));
+  ask(BEN, Object.assign({}, ct, { itemId: 'ct:TB-X#4' }));
+  ask(HAL, { action: 'setReportStatus', id: rows()[2].report_id, status: 'dismissed' });
+  if (rows()[2].status !== 'dismissed' || notes().length !== 2) bad.push('Dismiss wrote ' + rows()[2].status + ' and ' + notes().length + ' notes');
+  const fx = ask(HAL, { action: 'setReportStatus', id: rows()[1].report_id, status: 'fixed' });
+  if (JSON.stringify(fx.reportedItems) !== '["content|ct:TB-X#3"]') bad.push('after Fixed the marked list is ' + JSON.stringify(fx.reportedItems));
+  if (!ask(ADA, Object.assign({}, ct, { kind: 'Bad Kind' })).error) bad.push('a kind that is not a word was taken');
+}
+
+/* ---------- 5. EVERY REPORT TILE IS `reportTile_` (486): no other `act: 'rep-box'` and no other flag labelled Report ---------- */
+{
+  const fs = require('fs'), path = require('path');
+  const dir = path.join(__dirname);
+  asked++;
+  fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8');
+    const own = f === 'submit.js' ? src.replace(/function reportTile_\([\s\S]*?\n\}/, '') : src;
+    if (/act:\s*'rep-box'|label:\s*'Report'/.test(own)) bad.push('js/' + f + ' draws a Report tile of its own — use reportTile_(kind, id, label)');
+    if (/data-do="(q-report|msg-report)"|'(q-report|msg-report)'/.test(src)) bad.push('js/' + f + ' still has the old q-report/msg-report tile');
+  });
+  const uses = fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).filter(f => /reportTile(For)?_\(/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+  ['tiles.js', 'arcade.js', 'layout.js', 'me.js'].forEach(f => { if (uses.indexOf(f) === -1) bad.push(f + ' no longer calls reportTile_ — cards, widgets, column cards and messages each need it'); });
 }
 
 console.log(`requests asked of the backend: ${asked}`);
@@ -152,4 +194,4 @@ if (bad.length) {
   console.log('\nFAILED — ' + bad.length + ':\n  ' + bad.join('\n  '));
   process.exit(1);
 }
-console.log('OK — a report is one row as the token’s person, once a day per question, capped, and only an admin reads or closes them.');
+console.log('OK — a report is one row as the token’s person, once a day per item, capped; an admin’s is to fix (marked, a Note for Claude), anybody else’s a signal to Confirm or Dismiss; every tile is reportTile_.');

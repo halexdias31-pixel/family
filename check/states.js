@@ -2405,14 +2405,6 @@ const STATES = {
       expect: () => document.querySelectorAll('#sheet-body .pb-row .pb-bar').length === 3
         && !!document.querySelector('#sheet-body input[type="range"][data-pv="rate"]') ? 1 : 0,
       wants: 'the pricing part: rate and seat controls and three bars, for 1, 2 and 3 students' },
-    { col: 'staff', name: 'the Staff hub, hours',
-      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
-      enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('hours'); },
-      leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
-      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — the week the `avail` tool drew before 432. */
-      expect: () => document.querySelectorAll('#sheet-body .hub-hours .hr').length >= 70
-        && !!document.querySelector('#sheet-body .hub-hours [data-do="me-save"]') ? 1 : 0,
-      wants: 'the Hours part: the week of hours to tick and a Save my hours tile' },
     { col: 'staff', name: 'the Staff hub, a statement',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {

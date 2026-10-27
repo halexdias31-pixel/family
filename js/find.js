@@ -9303,7 +9303,10 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
-  const foot = tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '';
+  /* THE REQUEST'S STANDING, one paragraph under the row (488). */
+  const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
+  const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')
+    + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
@@ -9436,7 +9439,8 @@ function accountPages_(col) {
     const share = col === 'tutors' && rankAtLeast_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
-    const tiles = share;
+    /* AND REPORT (486): everything has one, your own card too. */
+    const tiles = share + (typeof reportTile_ === 'function' ? reportTile_('person', String(USER.personId), row.title || '') : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
 

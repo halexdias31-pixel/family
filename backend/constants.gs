@@ -122,7 +122,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-z7-claude-notes";
+const BACKEND_VERSION = "2026-10-27-zb-report";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -474,13 +474,14 @@ const SCHEMA = {
     "event_id", "pressed_at",
   ],
 
-  /* ---------- REPORTS: A QUESTION SOMEBODY SAYS IS WRONG OR BROKEN (395) ----------
-     `handle`, never a surname; `status` is blank (open), `fixed` or `not a problem`, set from the Business column. */
+  /* ---------- REPORTS: ANYTHING SOMEBODY SAYS IS WRONG (395, 486) ----------
+     `status`: open, confirmed (to fix), dismissed or fixed; before 486 blank and `not a problem` (open, dismissed). Blank `kind` is a question. */
   reports: [
     "report_id", "at", "person_id", "handle",
     "question_id", "paper_id", "part", "label",
     "reason", "note", "finder", "device",
     "status", "status_at",
+    "kind", "item_id", "reporter_rank", "status_by",
   ],
 
   /* ---------- NOTES FOR CLAUDE (484): what the owner wants changed on one widget or card ----------
@@ -930,9 +931,17 @@ const REPORT_REASONS = {
   'unreadable': "Can't read it / picture missing",
   'broken': "Doesn't work",
   'other': 'Something else',
+  /* 486: a card or widget, and a message or post (413's reasons). */
+  'wrong': 'Something in it is wrong',
+  'unkind': 'Unkind or bullying',
+  'unsafe': 'It makes me feel unsafe',
+  'rude': 'Rude, or a picture that should not be there',
+  'stranger': "Spam, or I don't know them",
 };
-/* AND WHAT AN ADMIN MAY CALL ONE — blank is open. */
-const REPORT_STATUSES = ['', 'fixed', 'not a problem'];
+/* AND WHAT AN ADMIN MAY CALL ONE (486); `not a problem` is kept as dismissed for an old phone. */
+const REPORT_STATUSES = ['open', 'confirmed', 'dismissed', 'fixed', 'not a problem'];
+/* WHAT CAN BE REPORTED: any card kind or widget — a lower-case word, as the phone's `x.kind`. */
+const REPORT_KIND_RE = /^[a-z]{2,20}$/;
 const REPORT_NOTE_MAX = 300;
 const REPORT_FIELD_MAX = 120;
 /* THE OPEN ONES AN ADMIN IS SENT AT ONCE, newest first; the count is of all of them. */
@@ -1525,7 +1534,7 @@ const ACTION_ACCESS = {
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
-  move: 'self', createJob: 'self',
+  move: 'self', createJob: 'self', answerRequest: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
   joinWaitlist: 'self',
   /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */
@@ -1548,7 +1557,7 @@ const ACTION_ACCESS = {
   /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). § */
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
-  reportQuestion: 'self',
+  reportQuestion: 'self', report: 'self',
   listReports: 'admin', setReportStatus: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',

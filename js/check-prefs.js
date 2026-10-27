@@ -94,7 +94,7 @@ const CALLS = {
   'doPost:approvePost · Your post is up':                         ['posts'],
   'doPost:addPost · A post is waiting for you':                   ['approvals'],
   'doPost:sendMessage · A message from ':                         ['messages'],
-  'doPost:flagMessage · A message was reported':                  ['reported'],
+  'doPost:report · A message was reported':                       ['reported'],
   'doPost:claimChild · Someone has added you to their account':   ['family'],
   'doPost:answerClaim · They accepted':                           ['family'],
   'doPost:resetPin · Your PIN was changed':                       ['security'],
@@ -109,6 +109,8 @@ const CALLS = {
     when: 'act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW' },
   'doPost:createJob · Booking received 🎉':                       ['booked'],
   'doPost:createJob · New request: ':                             ['booked'],
+  /* 488: a tutor's answer to a request is the booking decision itself, as Accept/Decline in `move` are. */
+  'doPost:answerRequest · Accepted: ':                           ['booked'],
   'doPost:joinFestive · Somebody is coming to ':                  ['bookings'],
   'doPost:deleteJob · Cancelled: ':                               ['booked'],
 };

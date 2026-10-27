@@ -355,7 +355,7 @@ const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acc
 const cardReg_ = id => CARD_REG.find(r => r.id === id);
 /* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
 /* A SPLIT CARD'S PIECE is `<card>#<field>` (466); a progress series card is `prog:series:<name>`. */
-const CARD_DYN = /^((set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
+const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
 const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
 function cardHome0_(id) {
   const r = cardReg_(id);
@@ -469,7 +469,12 @@ function cardsOf_(col) {
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
   if (!admin && !(L && (L.cards || L.start || L.merged || (L.deleted || []).some(cardIs_))))
-    return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h))), []);
+    return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => {
+      const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
+      /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
+      const rep = g.id && i === g.pages.length - 1 && !personOf_(h) ? cardReportRow_(g.id, page) : '';
+      return rep ? cardRowIn_(page, rep) : page;
+    })), []);
   const groups = cardArrange_(col, raw);
   const start = cardStartOf_(col, L);
   const out = [];
@@ -532,7 +537,24 @@ function cardAdminRow_(id, col, mergeable) {
     startTile_(col, id, start)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }), noteTile_(id, col, ''))}</div>`;
+    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
+      noteTile_(id, col, '') + (typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || id) : ''))}</div>`;
+}
+/* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
+function cardReportRow_(id, page) {
+  /* NOT ON A LOCKED CARD (467: nothing pressable) NOR AN EMPTY ONE (its title alone). */
+  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\b(is-empty|is-locked)\b/.test(page)) return '';
+  const t = typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
+  return t ? `<div class="tile-row card-rep">${t}</div>` : '';
+}
+
+/* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
+const itemGone_ = id => { try { return ((layoutNow_() || {}).deleted || []).indexOf(id) !== -1; } catch (e) { return false; } };
+function itemMark_(id, col, html) {
+  if (!html || itemGone_(id)) return '';
+  if (!layoutIsAdmin_()) return html;
+  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
+    tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}${noteTile_(id, col, '')}</div>`);
 }
 
 /* ---------- NOTES FOR CLAUDE (484): "add a tile on each widget I click then I write a prompt for what I want to edit" ----------
@@ -543,8 +565,8 @@ function noteTile_(id, col, label) {
   const n = noteOpen_(id).length;
   return tile_({ icon: 'pen', label: 'Note for Claude', note: n ? n + ' open' : '', act: 'ncl-open', tone: 'admin', data: { ci: id, col: col, cl: label } });
 }
-/* DELETE AND THE NOTE WRAP TOGETHER, so the longer row never leaves the note alone under a full line (467's orphan rule). */
-function notePair_(del, note) { return del && note ? `<span class="tile-pair">${del}${note}</span>` : del + note; }
+/* DELETE THEN THE NOTE, in the one flow (487). */
+function notePair_(del, note) { return del + note; }
 /* THE THING'S OWN TITLE, so the note names what a person sees and not only its id. */
 function noteLabelOf_(el, id) {
   const said = el.getAttribute('data-cl');

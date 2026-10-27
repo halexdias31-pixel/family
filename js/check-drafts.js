@@ -84,12 +84,13 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
   { file: 'layout.js', fn: 'customHead_', has: 'class="lay-col-name"', why: 'a custom column\'s name (467) — a few words typed and Renamed in one go; a reload draws the saved title' },
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
   { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
-  { file: 'me.js', fn: 'peopleSearchPage_', has: 'data-psearch', why: 'the People search (442) — a handle looked up, not work; half a child\'s handle is better forgotten' },
+  { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-now"', why: PIN },
@@ -121,7 +122,6 @@ const EXEMPT = [
   { file: 'flyer.js', fn: 'flyControls', has: 'type="checkbox"', why: 'the admin\'s flyer maker — picks, re-made in a tap; nothing is written' },
   { file: 'flyer.js', fn: 'flyControls', has: 'type="color"', count: 3, why: 'the admin\'s flyer maker — colours, re-picked in a tap' },
   { file: 'games.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
-  { file: 'games.js', fn: 'vidPaint_', has: 'vid-q', why: 'a search — retyped in a second, and it may be a film\'s title, which signing out clears (`VID.q`)' },
 ];
 
 /* ---------- THE BOXES ------------------------------------------------------------------------------------ */

@@ -443,7 +443,8 @@ function widgetOnColumn_(w, own) {
   /* ONE PLACE FOR A WIDGET'S TILES (472): title, content (its own tiles last), then one row — the star, the padlock, then the admin's layout tiles. */
   const keep = typeof favTile_ === 'function'
     ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
-      w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</span>` : '';
+      w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}${
+      typeof reportTile_ === 'function' ? reportTile_('widget', String(w.id), w.title || w.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
@@ -455,7 +456,8 @@ function widgetOnColumn_(w, own) {
 /* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
-  const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}</span>` : '';
+  const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}${
+    typeof reportTile_ === 'function' ? reportTile_('widget', String(top.id), top.title || top.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';

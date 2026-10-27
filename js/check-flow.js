@@ -2066,10 +2066,10 @@ const cardOpen_ = async (W, who, more) => {
 };
 /* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only (docs/history/339) — the owner, 11 Oct: § */
 const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
-/* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate and the week, which the Staff hub edits. */
+/* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
-const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where'];
-const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$|^(m|tu|w|th|f|sa|su)\d\d$/;
+const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$/;
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
 const cardEditEverything_ = async c => {
   const f = c.form();
@@ -2129,7 +2129,8 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   if (missing.length) bad.push('the cards have no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
   ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('there is no ' + f + ' — where they tutor is not editable'); });
   /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.card-ed .me-week, .card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate or the week, which the Staff hub edits');
+  if (form.querySelector('.card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate, which the Staff hub edits');
+  if (!form.querySelector('.card-ed .me-week')) bad.push('Tutor settings has no Available week (487)');
   /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: § */
   const lazy = [...form.querySelectorAll('.card-ed img')].filter(i => i.getAttribute('loading') === 'lazy');
   if (!form.querySelector('.ph-shelf .ph-thumb img')) bad.push('the editor drew no photograph thumbnail, so whether they wait to be scrolled to was NOT checked');
@@ -2681,6 +2682,33 @@ const editorsOf_ = (d, into) => {
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => { if (live(el)) add('pin', el); });
   return into;
 };
+/* ---------- EVERYTHING HAS A REPORT TILE (486): owner, "everything should have a report button" ---------- */
+check('486: every top-level card and widget in every column has the one Report tile, for a signed-in student and an admin', async () => {
+  const W = hubWorld_();
+  const bad = [];
+  for (const [who, rank] of RANK_COLS_.filter(r => r[1] === 'student' || r[1] === 'admin')) {
+    const a = await hubBoot_(W, who);
+    if (a.err) { bad.push(rank + ': ' + a.err); continue; }
+    let seen = 0;
+    for (const tab of a.t.TABS.map(x => x.id)) {
+      try { a.w.paint(tab); } catch (e) {}
+      await wait(30);
+      const sec = a.d.getElementById('s-' + tab);
+      if (!sec) continue;
+      /* TOP-LEVEL: a card inside no other card; empty, locked and the padlock line have nothing to press (467). */
+      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-empty, .is-locked, .rank-off, .col-lock, .add-card, .people-none, .set-none'));
+      cards.forEach(c => {
+        seen++;
+        /* A PERSON'S CARD HAS ITS ROW RIGHT AFTER IT (`withTiles_`, find.js). */
+        const next = c.nextElementSibling;
+        if (!c.querySelector('[data-do="rep-box"]') && !(next && next.matches('.tile-row') && next.querySelector('[data-do="rep-box"]'))) bad.push(rank + ' ' + tab + ': no Report on “' + String((c.querySelector('h2, h3') || c).textContent).replace(/\s+/g, ' ').trim().slice(0, 50) + '” (' + c.className + ')');
+      });
+    }
+    if (seen < 10) bad.push(rank + ': only ' + seen + ' cards were seen, so the rule was NOT checked');
+  }
+  return bad;
+});
+
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
@@ -2770,7 +2798,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const hub = q('#s-staff [data-do="hub-open"]:not([disabled])');
     if (hub) {
       a.A('hub-open', hub); await wait(200);
-      for (const k of ['hours', 'pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
+      for (const k of ['pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
     }
     Object.keys(ed).filter(f => ed[f].size > 1)
       .forEach(f => bad.push(rank + ': "' + f + '" is edited in ' + ed[f].size + ' places (' + [...ed[f]].join('; ') + ')'));
@@ -2826,35 +2854,40 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
   return bad;
 });
 
-check('Staff hub hours (432): the week a tutor teaches is the hub\'s fourth part, saved through updateProfile to the row; Tools has no `avail` tool and Settings no week for staff', async () => {
+check('Availability on Tutor settings (487): the week a tutor teaches is the Available card there, saved through updateProfile to the row; the hub has no Hours, Tools no `avail` tool, Student settings no week', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
   a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(150);
   const parts = [...a.sheet().querySelectorAll('[data-do="hub-part"]')].map(x => x.dataset.part).join(',');
-  if (parts !== 'terms,hours,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,hours,pricing,statement');
-  if (!(await a.part('hours'))) return bad.concat(['the hub has no Hours tile']);
-  const S = a.sheet();
-  const hrs = [...S.querySelectorAll('.hub-hours input[data-me]')];
-  if (hrs.length < 70) return bad.concat(['the Hours part draws ' + hrs.length + ' hours, wanted the week of seventy']);
+  if (parts !== 'terms,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,pricing,statement');
+  try { a.w.closeSheet(); } catch (e) {}
+  try { a.t.go('staff', false, true); a.w.paint('staff'); } catch (e) { return bad.concat(['drawing Tutor settings threw: ' + e.message]); }
+  await wait(250);
+  const sec = a.d.querySelector('#s-staff .ce-sec[data-sec="week"]');
+  if (!sec) return bad.concat(['Tutor settings has no Available card']);
+  const hrs = [...sec.querySelectorAll('input[data-me]')];
+  if (hrs.length < 70) return bad.concat(['the Available card draws ' + hrs.length + ' hours, wanted the week of seventy']);
   const box = hrs.find(x => !x.checked && !x.disabled);
   if (!box) return bad.concat(['every hour is already ticked or locked — nothing to tick']);
   const code = box.dataset.me;
-  /* THE HOURS ARE PACKED INTO ONE `availability` CELL by `availGridIn` (dopost.gs), so the cell is read before and after. */
   const cell = () => W.sheet("String(read(TAB.people).rows.find(r => r.person_id === 'P-T1').availability ?? '')");
   const before = cell();
   box.checked = true; box.dispatchEvent(new a.w.Event('change', { bubbles: true }));
-  a.A('me-save', S.querySelector('.hub-hours [data-do="me-save"]'));
+  box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  const save = sec.closest('.card') && sec.closest('.card').querySelector('[data-do="card-save"]') || a.d.querySelector('#s-staff [data-do="card-save"]');
+  if (!save) return bad.concat(['the Available card has no Save']);
+  a.A('card-save', save);
   for (let k = 0; k < 30 && !a.sent.some(x => x.action === 'updateProfile' && x.fields && x.fields[code] === 'TRUE'); k++) await wait(100);
   const post = a.sent.filter(x => x.action === 'updateProfile').pop();
-  if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save my hours posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
+  if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
   await wait(300);
   if (cell() === before) bad.push('the server row\'s availability was not written for ' + code + ': ' + JSON.stringify(before));
   if (a.t.widgetsOf('tool').some(x => String(x.id) === 'avail')) bad.push('Tools still carries the `avail` hours tool');
   try { a.t.go('account', false, true); a.w.paint('account'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
   await wait(200);
-  if (a.d.querySelector('#s-account .me-week')) bad.push('Settings still draws the week for a tutor — it is the Staff hub\'s Hours');
+  if (a.d.querySelector('#s-account .me-week')) bad.push('Student settings still draws the week for a tutor — it is Tutor settings\' Available');
   return bad;
 });
 
@@ -3091,7 +3124,7 @@ check('every role\'s own card is edited, a card per section, with picture, figur
   const bad = [];
   const bare = ['picture', 'figure', 'name', 'handle'];
   /* ONE FORM ON TUTORS FOR A TUTOR AND A LISTED ADMIN (453): the four, then the rest less what the hub edits; an admin with no hub keeps the week. */
-  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare.concat(CARD_STAFF_)], ['admin@example.org', 'P-A1', bare.concat(CARD_STAFF_, ['week'])],
+  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare.concat(CARD_STAFF_)], ['admin@example.org', 'P-A1', bare.concat(CARD_STAFF_)],
                                    ['parent@example.org', 'P-C1', bare], ['student@example.org', 'P-S1', bare]]) {
     const c = await cardOpen_(W, who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
@@ -11194,14 +11227,9 @@ check('an admin sees every tile on a tutor card — Message, Share, Save on one 
   const inGroup = grp ? [...grp.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
   ['spot', 'person-del'].forEach(a => { if (inGroup.indexOf(a) === -1) bad.push('the admin group, shown in the row, has no ' + a + ': ' + inGroup.join(' ')); });
   if (inGroup[inGroup.length - 1] !== 'person-del') bad.push('Delete is not last in the admin group: ' + inGroup.join(' '));
-  if (tiles.length > 6 && !r.querySelector(':scope > .tile-break')) bad.push(tiles.length + ' tiles and no break into balanced lines');
-  /* BALANCED: past six, no line of one — seven is 4+3, nine is 5+4, thirteen is 5+4+4. */
+  /* ONE FLOW (487): however many tiles, no break into lines. */
   const fake = n => Array.from({ length: n }, (_, i) => w.tile_({ icon: 'chat', label: 'T' + i, act: 'msg-open' })).join('');
-  [7, 9, 13].forEach(n => {
-    const h = d.createElement('div'); h.innerHTML = w.tileRow_(fake(n));
-    const lines = h.firstElementChild.innerHTML.split('tile-break').map(x => (x.match(/class="tile[ "]/g) || []).length);
-    if (lines.reduce((a, b) => a + b, 0) !== n || lines.some(k => k > 6 || k < 2) || Math.max(...lines) - Math.min(...lines) > 1) bad.push(n + ' tiles broke into lines of ' + lines.join('+'));
-  });
+  if (/tile-break/.test(w.tileRow_(fake(13)))) bad.push('13 tiles broke into lines — tiles flow like words (487)');
   /* A SHORT ROW IS LEFT AS IT IS. */
   const plain = w.tileRow_(w.tile_({ icon: 'chat', label: 'Message', act: 'msg-open' }) + w.tile_({ icon: 'share', label: 'Share', act: 'tutor-share' }));
   if (/tile-more|tile-sheet|tile-break/.test(plain)) bad.push('a row of two tiles grew a More tile or a break');
@@ -14473,18 +14501,12 @@ check('while a failed first payload is asked for again, the score board and the 
     if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
     if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   }
-  /* THE HOURS ARE THE STAFF HUB'S NOW (432, `hoursHtml_`), drawn when the hub opens — asked as drawn. */
-  const hours = () => { const x = d.createElement('div'); try { x.innerHTML = b.w.hoursHtml_(); } catch (e) { bad.push('hoursHtml_ threw: ' + e.message); } return x; };
-  const h0 = hours();
-  if (!h0.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Staff hub\'s Hours shows no loader: "' + h0.textContent.trim().slice(0, 80) + '"');
-  if (words.test(h0.textContent)) bad.push('while the retry is out the Staff hub\'s Hours says "' + h0.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
   open();
   for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
   if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
   for (let k = 0; k < 50 && d.querySelector('#s-games #tt-board .loading'); k++) await wait(100);
   const bb = d.querySelector('#s-games #tt-board');
-  if (hours().querySelector('.loading')) bad.push('the retry landed and the Staff hub\'s Hours still shows the loader');
   if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
   if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
   return bad;
@@ -17046,7 +17068,7 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const h = w.document.createElement('div');
     h.innerHTML = html;
     /* `q-report` IS THE PERSON'S TOO, like the star: drawn for anybody signed in (395). */
-    h.querySelectorAll('[data-do="fav"], [data-do="q-report"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    h.querySelectorAll('[data-do="fav"], [data-do="rep-box"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
     /* YOUR RESULT IS THE PERSON'S TOO (463): a tag only somebody signed in has. */
     h.querySelectorAll('.qtag[data-f="myResult"]').forEach(n => n.remove());
     /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
@@ -19164,8 +19186,8 @@ check('a tutor\'s ticked hours are on their card as lines (467), taught ones sai
   if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
   /* AND SAYS WHY THEY CANNOT BE BOOKED BY NAME — *"tutor with no hours wont be bookable"*. It drew
      nothing at all, which left the greyed name in the booking form unexplained. */
-  if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
-    bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  if (!/hasn.t set usual hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
+    bad.push('a tutor with no hours ticked does not say "hasn\'t set usual hours yet" on their card');
   }
   return bad;
 });
@@ -19211,7 +19233,7 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
 });
 
 /* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THE BOOKING FORM § */
-check('the booking week shows all seven days with no tutor, and only the chosen tutor\'s days once one is named', async () => {
+check('488: the booking week shows all seven days whoever is named; a tutor\'s hours are a guide, said under it, and only a venue shuts a day', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
@@ -19221,7 +19243,7 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   const blank = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
   const tia = { title: 'Tia Tutor', rate: 14, teaches: ['Maths (GCSE)'], listed: true,
-                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: {} };
+                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: { th16: 'Maths' } };
   D.tutors = [tia];
   const B = t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
@@ -19230,59 +19252,29 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   const week = () => [...doc().querySelectorAll('.bk-row.bk-wk')].map(r => ({
     day: ((r.querySelector('.bk-k') || {}).textContent || '').trim(), shut: r.classList.contains('is-shut'), row: r }));
   const named = () => week().map(x => x.day).join(' ');
-  const dashed = () => [...doc().querySelectorAll('.bk-row.is-blank .bk-k')].map(k => k.textContent.trim())
-    .filter(k => t.days().indexOf(k) !== -1);
   const bad = [];
   const seven = t.days().join(' ');
   if (named() !== seven) bad.push('with no tutor chosen the week draws [' + named() + '], wanted all seven');
-  B.tutor = 'No preference';
-  if (named() !== seven) bad.push('with No preference the week draws [' + named() + '], wanted all seven');
   B.tutor = 'Tia Tutor';
-  if (named() !== 'Tuesday Thursday') bad.push('with Tia (Tuesday and Thursday) chosen the week draws [' + named() + '], wanted [Tuesday Thursday]');
-  if (dashed().length) bad.push('the spine put back the days the week left out, as dashes: [' + dashed().join(' ') + ']');
-  if (week().some(x => x.shut)) bad.push('a day Tia works with hours free is drawn collapsed');
-  /* A DAY SHE WORKS WITH EVERY HOUR TAKEN STAYS, collapsed. */
-  tia.busy = { th16: 'Maths' };
-  const th = week().find(x => x.day === 'Thursday');
-  if (!th) bad.push('Tia\'s Thursday, fully taught, left the week — a day she works with nothing free is not a day she does not work');
-  else if (!th.shut) bad.push('Tia\'s Thursday, fully taught, is drawn as a full row with nothing on it to press');
-  tia.busy = {};
-  /* ---------- AND A DAY SHE WORKS AT A VENUE SHUT THAT DAY STAYS TOO § */
+  if (named() !== seven) bad.push('with Tia chosen the week draws [' + named() + '], wanted all seven — any day can be asked');
+  if (week().some(x => x.shut)) bad.push('a day is drawn shut with Tia named and no venue — her week must not lock a day');
+  const g = w.slotGrid();
+  if (!g.rows.every(r => r.hours.every(h => h.open))) bad.push('an hour outside Tia\'s week, or one she already teaches, is shut');
+  if (!/usually free Tue 10–12; Thu 16–17/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '", wanted "…usually free Tue 10–12; Thu 16–17…"');
+  const said = [...doc().querySelectorAll('.bk-say')].map(p => p.textContent).join(' ');
+  if (!/usually free/.test(said)) bad.push('the guide sentence is not drawn under the week');
+  /* A VENUE STILL SHUTS A DAY: that is the room, not the tutor. */
   const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
                  avail: Object.assign({}, blank) };
   ['m', 'tu', 'w', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) hall.avail[p + String(h).padStart(2, '0')] = 'TRUE'; });
   const venuesWas = D.venues;
   D.venues = (venuesWas || []).concat([hall]);
   B.loc = hall.title;
-  const thV = week().find(x => x.day === 'Thursday');
-  const tuV = week().find(x => x.day === 'Tuesday');
-  if (named() !== 'Tuesday Thursday') bad.push('with Tia chosen at a hall shut on Thursdays the week draws [' + named() + '], wanted [Tuesday Thursday] — a worked day the venue shuts is still a day she works');
-  if (thV && !thV.shut) bad.push('Tia\'s Thursday at a hall shut on Thursdays is drawn as a full row with nothing on it to press');
-  if (!tuV || tuV.shut) bad.push('Tia\'s Tuesday at a hall open on Tuesdays is ' + (tuV ? 'collapsed' : 'missing') + ' — the venue test is not reading the hall');
+  const thV = week().find(x => x.day === 'Thursday'), tuV = week().find(x => x.day === 'Tuesday');
+  if (!thV || !thV.shut) bad.push('Thursday at a hall shut on Thursdays is not drawn shut');
+  if (!tuV || tuV.shut) bad.push('Tuesday at a hall open on Tuesdays is shut');
   B.loc = '';
   D.venues = venuesWas;
-  /* A TICK MADE BEFORE SHE WAS CHOSEN, on a day she does not work: kept, drawn, greyed, counted. */
-  B.tutor = 'No preference';
-  B.slots = ['m10'];
-  B.tutor = 'Tia Tutor';
-  const mon = week().find(x => x.day === 'Monday');
-  if (named() !== 'Monday Tuesday Thursday') bad.push('a Monday tick made before choosing Tia leaves the week as [' + named() + '], wanted [Monday Tuesday Thursday] — the tick would be priced and not seen');
-  const cell = mon && mon.row.querySelector('[data-code="m10"]');
-  if (mon && (!cell || !cell.classList.contains('on') || !cell.classList.contains('shut') || !cell.hasAttribute('disabled'))) {
-    bad.push('the kept Monday 10:00 tick is not drawn lit and greyed: ' + (cell ? cell.className : 'no cell'));
-  }
-  if ((B.slots || []).join(',') !== 'm10') bad.push('choosing a tutor changed the ticked hours to [' + (B.slots || []).join(',') + ']');
-  /* A NAMED TUTOR WITH NO DAY TO DRAW KEEPS ALL SEVEN, so the week can still say why it is shut —
-     `weekRows_` puts the sentence under the last row, and an empty week has none. */
-  B.slots = [];
-  D.tutors = [tia, { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, blank) }];
-  B.tutor = 'Nia Nohours';
-  /* THE WEEK'S OWN SENTENCE — `weekRows_` writes it `warn: false` — not the Tutor row's refusal
-     (`.bk-say.is-warn`) nor Nia's option, which both carry the same words. */
-  const why = [...doc().querySelectorAll('.bk-say:not(.is-warn)')].map(p => p.textContent).join(' ');
-  if (named() !== seven || !/hasn.t set their hours yet/.test(why)) {
-    bad.push('a named tutor with no hours draws [' + named() + ']' + (/hasn.t set their hours yet/.test(why) ? '' : ' and loses the sentence under the week saying why') + ', wanted all seven, greyed, with the reason');
-  }
   return bad;
 });
 
@@ -22867,7 +22859,7 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
 });
 
 /* ---------- A TUTOR WITH NO HOURS CANNOT BE BOOKED BY NAME § */
-check('a tutor with no hours is greyed, shuts the grid and is not sent for; No preference still books', async () => {
+check('488: a tutor with no hours can be chosen and asked at any hour; a named tutor never shuts the grid; No preference still books', async () => {
   const { w, sent } = boot();
   await wait(300);
   const t = w.__t;
@@ -22879,10 +22871,9 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   const D = t.DATA();
   const avail = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
-  const some = Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' });
   D.tutors = [
     { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail) },
-    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: some },
+    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' }) },
   ];
   const B = t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
@@ -22892,45 +22883,68 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   const bad = [];
   const box = w.document.createElement('div');
   box.innerHTML = w.stepSelect_(st);
-  const opt = name => [...box.querySelectorAll('option')].find(o => o.value === name);
-  const nia = opt('Nia Nohours'), ada = opt('Ada Hours');
-  if (!nia) bad.push('a tutor with no hours is not in the list at all — greyed, not absent');
-  else if (!nia.disabled || !/hasn.t set their hours yet/.test(nia.textContent)) {
-    bad.push('Nia (no hours) is offered as "' + nia.textContent.trim() + '"' + (nia.disabled ? '' : ', pressable'));
-  }
-  if (!ada || ada.disabled) bad.push('Ada (hours ticked) cannot be chosen');
-  /* A CHANGE NAMING HER ANYWAY is refused by the handler, not only by the markup. */
-  const sel = w.document.createElement('select');
-  sel.setAttribute('data-do', 'book-set'); sel.setAttribute('data-step', 'tutor');
-  sel.innerHTML = '<option value="Nia Nohours">Nia Nohours</option>';
-  sel.value = 'Nia Nohours';
-  w.document.body.appendChild(sel);
-  sel.dispatchEvent(new w.Event('change', { bubbles: true }));
-  if (B.tutor === 'Nia Nohours') bad.push('a change event naming Nia was taken by the book-set handler');
-  /* THE GRID, NAMED: every hour shut, and why. */
+  const nia = [...box.querySelectorAll('option')].find(o => o.value === 'Nia Nohours');
+  if (!nia || nia.disabled) bad.push('Nia (no hours) is ' + (nia ? 'greyed' : 'missing') + ' — any tutor may be asked');
   B.tutor = 'Nia Nohours';
   const g = w.slotGrid();
-  if (g.anyOpen || !/hasn.t set their hours yet/.test(g.why)) bad.push('with Nia chosen the grid is ' + (g.anyOpen ? 'open' : 'shut') + ' and says "' + g.why + '"');
-  /* AND THE SEND STOPS BEFORE `createJob`. */
-  B.slots = ['m16'];
-  sent.length = 0;
-  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
-  await wait(200);
-  if (sent.some(x => x.action === 'createJob')) bad.push('a booking naming Nia (no hours) was sent as createJob');
-  /* ADA: her two hours open, the rest shut; and the send carries every ticked hour as `slots`. */
+  if (!g.anyOpen) bad.push('with Nia chosen the grid shuts, saying "' + g.why + '"');
+  if (!/hasn.t set usual hours/.test(g.guide || '')) bad.push('with Nia chosen the guide reads "' + g.guide + '"');
+  /* ADA, ASKED AT AN HOUR OUTSIDE HER WEEK: open, and sent with the hour as `slots`. */
   B.tutor = 'Ada Hours';
-  const ga = w.slotGrid();
-  const openCodes = ga.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
-  if (openCodes !== 'm16,m17') bad.push('with Ada chosen the open hours are [' + openCodes + '], wanted [m16,m17]');
+  B.slots = ['sa10'];
+  const cell = w.slotGrid().rows.flatMap(r => r.hours).find(h => h.code === 'sa10') || {};
+  if (!cell.open) bad.push('Saturday 10:00, outside Ada\'s week, is shut');
   sent.length = 0;
   try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
   await wait(200);
   const job = sent.find(x => x.action === 'createJob');
-  if (!job) bad.push('a booking naming Ada (hours ticked) was not sent');
-  else if (job.slots !== 'm16') bad.push('createJob carried slots "' + job.slots + '", wanted "m16" — the server checks every ticked hour');
-  /* NO PREFERENCE: unchanged — nobody's hours are consulted, the venue decides. */
+  if (!job) bad.push('a request naming Ada outside her hours was not sent');
+  else if (job.slots !== 'sa10') bad.push('createJob carried slots "' + job.slots + '", wanted "sa10"');
   B.tutor = 'No preference';
-  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts — a booking nobody named a tutor for must still be bookable');
+  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts');
+  return bad;
+});
+
+/* ---------- 488: A REQUEST WAITS ON ITS TUTOR, WHO ANSWERS IN PLACE ---------- */
+check('488: the asked tutor (and an admin) gets Accept/Decline tiles, Decline opens a line why and posts answerRequest; both sides read the status', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'answerRequest' ? { success: true, accepted: !!b.yes } : null });
+  await wait(300);
+  const t = w.__t;
+  if (typeof t.jobPage !== 'function') return ['`jobPage_` is not exported, so the request tiles were NOT checked — not a pass'];
+  const bad = [];
+  const job = { id: 'J-R', jobId: 'J-R', kind: '', subject: 'Maths', level: 'GCSE', price: 30, stealable: false,
+    location: 'Online', dates: '06/12/26', slots: [{ n: 1, client: 'Pat Parent', status: 'Waiting' }],
+    tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Applied' }], events: [] };
+  const host = h => { const d = w.document.createElement('div'); d.innerHTML = h; w.document.body.appendChild(d); return d; };
+  const labels = d => [...d.querySelectorAll('[data-do="job-request-answer"]')].map(x => x.dataset.yes ? 'yes' : 'no').join(',');
+  t.USER({ name: 'Ada Tutor', personId: 'P2', role: 'tutor', roles: ['tutor'] });
+  const ada = host(t.jobPage(job));
+  if (labels(ada) !== 'yes,no') bad.push('the asked tutor sees request tiles [' + labels(ada) + '], wanted Accept and Decline');
+  if (!/Waiting for Ada Tutor/.test(ada.textContent)) bad.push('the tutor does not read "Waiting for Ada Tutor…"');
+  const no = ada.querySelector('[data-do="job-request-answer"]:not([data-yes="1"])');
+  if (no) {
+    no.click();
+    await wait(50);
+    const form = ada.querySelector('form.req-why');
+    if (!form) bad.push('Decline did not open a line for why, in place');
+    else {
+      form.querySelector('input').value = 'Away that week';
+      form.querySelector('button').click();
+      await wait(200);
+      const post = sent.find(x => x.action === 'answerRequest');
+      if (!post || post.yes || post.reason !== 'Away that week' || post.jobId !== 'J-R') bad.push('the decline posted ' + JSON.stringify(post));
+    }
+  }
+  t.USER({ name: 'Nia Other', personId: 'P5', role: 'tutor', roles: ['tutor'] });
+  if (labels(host(t.jobPage(job)))) bad.push('a tutor who was not asked sees the request tiles');
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const pat = host(t.jobPage(job));
+  if (labels(pat)) bad.push('the family sees the tutor\'s Accept/Decline tiles');
+  if (!/Waiting for Ada Tutor/.test(pat.textContent)) bad.push('the family does not read "Waiting for Ada Tutor…"');
+  const declined = Object.assign({}, job, { tutorSlots: [], events: [{ actor: 'Ada Tutor', role: 'tutor', action: 'Decline', target: 'Ada Tutor', message: 'Away that week' }] });
+  if (!/Declined by Ada Tutor: .Away that week/.test(host(t.jobPage(declined)).textContent)) bad.push('the family does not read the decline and its reason');
+  t.USER({ name: 'Hal Admin', personId: 'P9', role: 'admin', roles: ['admin'] });
+  if (labels(host(t.jobPage(job))) !== 'yes,no') bad.push('the admin does not get the request tiles');
   return bad;
 });
 
@@ -22961,7 +22975,7 @@ check('a room already booked at an hour greys that hour on the grid, for that ro
 });
 
 /* ---------- A CLIENT'S HOUSE KEEPS NO HOURS (445): its grid is the tutor's ---------- */
-check('with Client House chosen the week grid shows exactly the tutor\'s hours, whatever stray hours its row carries', async () => {
+check('with Client House chosen the week grid is open every hour — the house keeps no hours, and the tutor\'s are a guide (445, 488)', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
@@ -22973,9 +22987,10 @@ check('with Client House chosen the week grid shows exactly the tutor\'s hours, 
   const B = t.BOOKING;
   B.tutor = 'Ada Hours'; B.slots = []; B.loc = 'Client House';
   const g = w.slotGrid();
-  const open = g.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
+  const all = g.rows.flatMap(r => r.hours), shut = all.filter(h => !h.open).map(h => h.code);
   const bad = [];
-  if (open !== 'm16,m17,sa10') bad.push('at Client House the open hours are [' + open + '], wanted the tutor\'s [m16,m17,sa10]; it says "' + g.why + '"');
+  if (shut.length) bad.push('at Client House these hours are shut: [' + shut.slice(0, 8).join(',') + '] — "' + g.why + '"');
+  if (!/Mon 16–18; Sat 10–11/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '"');
   return bad;
 });
 
@@ -28226,63 +28241,77 @@ check('device voice only (463): signed in, Read aloud sends nothing to the backe
   return bad;
 });
 
-/* ---------- REPORTING A QUESTION (395): the tile, the sheet, the send, the toast — and the admin's card. */
-check('a signed-in child reports a question from its tile row: a reason, a note, one send, "Thanks — sent"; an admin sees the count', async () => {
-  const reply = b => b.action === 'reportQuestion' ? { success: true }
-    : b.action === 'listReports' ? { success: true, open: 1, total: 3, reports: [{ id: 'R-1-1', at: Date.now(), handle: 'aa2026',
-        questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
+/* ---------- ONE RULE FOR REPORTING (395, 486): the tile on a question and a content card, the box in place, the send — and the admin's card. */
+check('Report is one tile on a question and a content card for a student and an admin, none signed out; the box opens in place; an admin’s is to fix; the admin confirms or dismisses a child’s', async () => {
+  const reply = b => b.action === 'report' ? { success: true, serious: b.token === 'tok-P1' }
+    : b.action === 'listReports' ? { success: true, open: 2, serious: 1, total: 3, reports: [
+        { id: 'R-2-2', at: Date.now(), kind: 'widget', itemId: 'calc', serious: true, status: 'confirmed', rank: 'admin', handle: 'hl2026', label: 'Calculator', reason: 'Doesn\'t work' },
+        { id: 'R-1-1', at: Date.now(), kind: 'question', itemId: 'q:Q-REP-1', serious: false, status: 'open', rank: 'student', handle: 'aa2026',
+          questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
+    : b.action === 'setReportStatus' ? { success: true, id: b.id, status: b.status, reportedItems: [] }
     : { success: true, messages: [] };
   const { w, sent } = boot({ reply });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
+  /* A CONTENT CARD AS `libraryExtras_` MAKES ONE — its kind and key are all the row asks of it. */
+  const ct = { kind: 'content', key: 'ct:TB-REP#1', name: 'Bayes', sub: 'Statistics', subject: 'Statistics', row: { bookId: 'TB-REP', n: 1, title: 'Bayes', animations: [] } };
   const lib = mpLibrary_(w, [mpRow_('P-REP', 'Paper 1', 1, 'a')]);
   const x = lib.items.find(i => i && i.kind === 'question' && i.key);
-  if (!x) { lib.put(); return ['the one-question library made no question, so the Report tile was NOT checked']; }
+  if (!x || !ct) { lib.put(); return ['no question or no content card was made, so the Report tile was NOT checked']; }
   t.USER(null);
-  if (/data-do="q-report"/.test(w.cardTiles_(x))) bad.push('signed out, the question row offers Report');
-  t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' });
+  if (/data-do="rep-box"/.test(w.cardTiles_(x) + w.cardTiles_(ct))) bad.push('signed out, a card row offers Report');
+  const KID = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' };
+  const HAL = { name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' };
+  for (const who of [KID, HAL]) {
+    t.USER(who);
+    [x, ct].forEach(c => { if (!/data-do="rep-box"/.test(w.cardTiles_(c))) bad.push(who.role + ': the ' + c.kind + ' row has no Report tile'); });
+  }
+  /* A CHILD REPORTS THE CONTENT CARD: the box opens IN PLACE under the row, no sheet. */
+  t.USER(KID);
   const host = d.createElement('div');
   host.className = 'card';
-  host.innerHTML = w.cardTiles_(x);
+  host.innerHTML = w.cardTiles_(ct);
   d.body.appendChild(host);
-  const tile = host.querySelector('.tile-row [data-do="q-report"]');
-  if (!tile) { host.remove(); lib.put(); return bad.concat(['a signed-in child’s question row has no Report tile']); }
+  const tile = host.querySelector('.tile-row [data-do="rep-box"]');
   if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-flag')) bad.push('Report is not a tile with the flag mark');
-  t.ACTIONS['q-report'](tile);
+  t.ACTIONS['rep-box'](tile);
   await wait(20);
-  if (!sheetOpen_(d)) { host.remove(); lib.put(); return bad.concat(['pressing Report opened no sheet']); }
-  const form = d.querySelector('#sheet-body .rep-form');
-  const opts = form ? [].map.call(form.querySelectorAll('select.rep-why-in option[value]:not([value=""])'), b => b.textContent.trim()) : [];
-  if (form && (form.querySelector('[data-do="rep-why"], [role="radio"]') || !form.querySelector('label.field > select.rep-why-in'))) bad.push('the reason is not one row with the phone\'s own picker');
-  const WANT = ['The answer is wrong', 'It marked me wrong but I was right', 'Can’t read it / picture missing', 'Doesn’t work', 'Something else'];
-  if (JSON.stringify(opts) !== JSON.stringify(WANT)) bad.push('the reasons are ' + JSON.stringify(opts));
-  const note = form && form.querySelector('textarea.rep-note-in');
+  if (sheetOpen_(d)) bad.push('pressing Report opened a sheet — the box belongs in place');
+  const form = host.querySelector('.rep-box');
+  if (!form) { host.remove(); lib.put(); return bad.concat(['pressing Report drew no box under the row']); }
+  if (!form.querySelector('label.field > select.rep-why-in')) bad.push('the reason is not one row with the phone\'s own picker');
+  const note = form.querySelector('textarea.rep-note-in');
   if (!note || note.getAttribute('autocomplete') !== 'off' || note.getAttribute('maxlength') !== '300') bad.push('the note box is missing, suggests, or has no 300 cap');
-  /* SEND WITH NO REASON IS REFUSED ON THE PHONE, and nothing goes. */
-  const sendT = form && form.querySelector('[data-do="rep-send"]');
-  if (!sendT || !sendT.classList.contains('tile')) { lib.put(); return bad.concat(['the sheet has no Send tile']); }
+  const sendT = form.querySelector('[data-do="rep-send"]');
   t.ACTIONS['rep-send'](sendT);
   await wait(20);
-  if (sent.some(b => b.action === 'reportQuestion')) bad.push('Send with no reason chosen still sent');
-  if (!/Choose what is wrong/.test(form.querySelector('.rep-said').textContent)) bad.push('Send with no reason said nothing');
-  form.querySelector('select.rep-why-in').selectedIndex = 2;
-  note.value = 'I put 15';
+  if (sent.some(b => b.action === 'report')) bad.push('Send with no reason chosen still sent');
+  form.querySelector('select.rep-why-in').value = 'wrong';
+  note.value = 'the tree is wrong';
   t.ACTIONS['rep-send'](sendT);
   await wait(300);
-  const went = sent.filter(b => b.action === 'reportQuestion');
-  if (went.length !== 1) bad.push(went.length + ' reportQuestion requests went — wanted one');
-  else {
-    const b = went[0];
-    if (b.questionId !== x.key.replace(/^q:/, '') || b.reason !== 'marked-wrong' || b.note !== 'I put 15' || b.token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(b));
-    if ('personId' in b && b.personId !== 'P7') bad.push('the request named somebody else');
-  }
-  if (toastOf_(d) !== 'Thanks — sent') bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — wanted "Thanks — sent"');
-  if (sheetOpen_(d)) bad.push('the sheet stayed open after the report went');
+  const went = sent.filter(b => b.action === 'report');
+  if (went.length !== 1 || went[0].kind !== 'content' || went[0].itemId !== ct.key || went[0].reason !== 'wrong' || went[0].token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(went));
+  if (toastOf_(d) !== 'Thanks — sent') bad.push('a child’s toast says ' + JSON.stringify(toastOf_(d)));
+  if (/flagged to fix/.test(w.cardTiles_(ct))) bad.push('a child’s report marked the card');
+  if (host.querySelector('.rep-box')) bad.push('the box stayed after the report went');
+  /* AN ADMIN REPORTS THE QUESTION: marked, and the tile says so. */
+  t.USER(HAL);
+  host.innerHTML = w.cardTiles_(x);
+  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
+  await wait(20);
+  const f2 = host.querySelector('.rep-box');
+  if (!/Notes for Claude/.test(f2.textContent)) bad.push('the admin’s box does not say a report of theirs goes to Notes for Claude');
+  f2.querySelector('select.rep-why-in').value = 'answer-wrong';
+  t.ACTIONS['rep-send'](f2.querySelector('[data-do="rep-send"]'));
+  await wait(300);
+  if (!/flagged to fix/.test(w.cardTiles_(x))) bad.push('a marked question’s Report tile does not say "flagged to fix"');
   host.remove();
-  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin is, with the count, once `listReports` answers. */
+  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin sees To fix and To review, and confirms or dismisses. */
+  t.USER(KID);
   if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Reports card');
   if (sent.some(b => b.action === 'listReports')) bad.push('a child’s phone asked for listReports');
-  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  t.USER(HAL);
   const biz = d.createElement('div');
   biz.innerHTML = w.bizPages_().join('');
   d.body.appendChild(biz);
@@ -28291,8 +28320,20 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   const card = biz.querySelector('[data-reports]');
   if (!card) bad.push('an admin’s Business column has no Reports card');
   else {
-    if (!/1 open/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)) + ' — wanted "1 open"');
-    if (!card.querySelector('[data-do="rep-status"][data-status="fixed"]') || !card.querySelector('[data-do="rep-open"]')) bad.push('a listed report has no Fixed or Open tile');
+    if (!/1 to fix · 1 to review/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
+    const conf = card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="confirmed"]');
+    if (!conf || !card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="dismissed"]')) bad.push('a child’s report has no Confirm or Dismiss');
+    if (!card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="fixed"]')) bad.push('an admin’s report has no Fixed');
+    if (conf) {
+      t.ACTIONS['rep-status'](conf);
+      await wait(300);
+      if (!sent.some(b => b.action === 'setReportStatus' && b.id === 'R-1-1' && b.status === 'confirmed')) bad.push('Confirm sent nothing');
+      if (!/2 to fix · 0 to review/.test(card.textContent)) bad.push('after Confirm the card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
+      const dis = card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="dismissed"]');
+      t.ACTIONS['rep-status'](dis);
+      await wait(300);
+      if (card.querySelector('.rep-item[data-id="R-2-2"]')) bad.push('Dismiss left the report on the card');
+    }
   }
   biz.remove();
   lib.put();
@@ -28754,7 +28795,7 @@ check('a child sees a tutor card, the booking form and her session without any �
 
 /* ---------- POSTS WAIT FOR APPROVAL, PICTURES ARE FILES, A POST SHARES AS A PNG (413) ----------
    Through the real doPost and doGet: Ada's waiting post as she, a parent and the admin see it; Approve; a child's columns. */
-const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'listReports', 'setReportStatus', 'readMessage'];
+const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'report', 'listReports', 'setReportStatus', 'readMessage'];
 const postWorld_ = () => {
   const W = cardWorld_();
   W.real.seed('posts', [
@@ -28980,7 +29021,7 @@ check('Share on a post (413) draws the whole post on a canvas and hands a PNG to
   return bad;
 });
 
-check('a child reports a message she was sent (413): a Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until Dealt with', async () => {
+check('a child reports a message she was sent (413, 486): the one Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until dismissed', async () => {
   const W = postWorld_(), bad = [];
   W.real.seed('messages', [
     { message_id: 'M-IN1', from_id: 'P-A1', to_id: 'P-S1', sent_at: '23/10/2026 10:00', body: 'Homework is due Friday' },
@@ -28990,39 +29031,40 @@ check('a child reports a message she was sent (413): a Report tile on received m
   if (kid.err) return [kid.err];
   try { kid.t.go('dm', false, true); kid.w.paint('dm'); } catch (e) { return ['opening Messages threw: ' + e.message]; }
   for (let k = 0; k < 40 && !kid.d.querySelector('#s-dm .msg'); k++) { await wait(100); try { kid.w.paint('dm'); } catch (e) {} }
-  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="msg-report"]')].map(x => x.dataset.id);
+  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="rep-box"][data-rk="message"]')].map(x => x.dataset.ri);
   if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Report tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
-  kid.A('msg-report', kid.d.querySelector('#s-dm [data-do="msg-report"]'));
+  kid.A('rep-box', kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]'));
   await wait(150);
-  const form = kid.d.querySelector('#sheet-body .msg-rep-form');
-  if (!form) return ['Report did not open a sheet'];
+  /* ONE BOX FOR EVERY REPORT (486), in place under the message. */
+  const form = kid.d.querySelector('#s-dm .rep-box[data-rk="message"]');
+  if (!form) return ['Report did not open its box under the message'];
   const opts = form.querySelectorAll('select.rep-why-in option:not([value=""])');
-  if (opts.length !== 5) bad.push('the sheet offers ' + opts.length + ' reasons, not five');
-  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  if (opts.length !== 5) bad.push('the box offers ' + opts.length + ' reasons, not five');
+  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
   await wait(150);
-  if (kid.sent.some(b => b.action === 'flagMessage')) bad.push('Send went with no reason chosen');
+  if (kid.sent.some(b => b.action === 'report')) bad.push('Send went with no reason chosen');
   opts[1].selected = true;
   const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
-  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
   for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
-  const post = kid.sent.find(b => b.action === 'flagMessage');
-  if (!post || post.messageId !== 'M-IN1' || !/unsafe/.test(post.reason) || !/it was scary/.test(post.reason)) bad.push('flagMessage did not carry the message and the reason: ' + JSON.stringify(post));
+  const post = kid.sent.find(b => b.action === 'report');
+  if (!post || post.kind !== 'message' || post.itemId !== 'M-IN1' || post.reason !== 'unsafe' || !/it was scary/.test(post.note)) bad.push('report did not carry the message and the reason: ' + JSON.stringify(post));
   if (!/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || '')) bad.push('no "Thanks — sent"');
-  if (!/^true$/i.test(String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')))) bad.push('the message was not flagged on the sheet');
+  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'open') bad.push('the report is not an open row of the reports tab');
   const hal = await postOpen_(W, 'admin@example.org');
   if (hal.err) return bad.concat([hal.err]);
   try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) {}
-  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-msg'); k++) await wait(100);
+  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-item'); k++) await wait(100);
   await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
-  const item = hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]');
-  if (!item || !/unsafe/.test(item.textContent) || !/Homework is due Friday/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
+  const item = [...hal.d.querySelectorAll('#s-biz .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
+  if (!item || !/unsafe/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
   const card = hal.d.querySelector('#s-biz [data-need="reports"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Reports card does not glow with a message reported');
-  const done = item && item.querySelector('[data-do="rep-status"][data-kind="message"]');
-  if (!done) bad.push('no Dealt with tile on the reported message');
+  const done = item && item.querySelector('[data-do="rep-status"][data-status="dismissed"]');
+  if (!done) bad.push('no Dismiss tile on the reported message');
   else { hal.A('rep-status', done); await wait(400); }
-  if (hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]')) bad.push('Dealt with left the message on the card');
-  if (String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')) !== 'CLEARED') bad.push('Dealt with did not clear the flag on the sheet');
+  if ([...hal.d.querySelectorAll('#s-biz .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
+  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;
 });
@@ -29137,7 +29179,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   for (const k of Object.keys(pick)) {
     const x = pick[k];
     host.innerHTML = w.stuffCard(x);
-    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'rep-box'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
     const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
     if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');

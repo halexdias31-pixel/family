@@ -644,21 +644,45 @@ function subForget_() {
   SUB_AGAIN = false;
 }
 
-/* ---------- REPORTING A QUESTION (395) ----------
-   The owner: "a tile so kids can report a question". One row in the `reports` tab (`reportQuestion`, dopost.gs); the reasons are `REPORT_REASONS` there, by id. */
+/* ---------- REPORTING ANYTHING (395, 413, 486): one tile, one in-place box, one `reports` row ----------
+   The owner: "a report button on ALL widgets. for admin and students. however admin reports are taken much more seriously." */
 const REPORT_WHY = [
   ['answer-wrong', 'The answer is wrong'],
   ['marked-wrong', 'It marked me wrong but I was right'],
+  ['wrong', 'Something in it is wrong'],
   ['unreadable', 'Can’t read it / picture missing'],
   ['broken', 'Doesn’t work'],
   ['other', 'Something else'],
 ];
+/* A MESSAGE OR POST IS WRONG IN A PERSON'S WAY, not a mark scheme's (413). */
+const REPORT_WHY_PEOPLE = [
+  ['unkind', 'Unkind or bullying'],
+  ['unsafe', 'It makes me feel unsafe'],
+  ['rude', 'Rude, or a picture that should not be there'],
+  ['stranger', 'Spam, or I don’t know them'],
+  ['other', 'Something else'],
+];
 const REPORT_NOTE_MAX = 300;
+const reportWhyFor_ = kind => kind === 'message' || kind === 'post' ? REPORT_WHY_PEOPLE
+  : kind === 'question' ? REPORT_WHY.filter(r => r[0] !== 'wrong') : REPORT_WHY.filter(r => !/^(answer|marked)-wrong$/.test(r[0]));
+/* WHAT AN ADMIN HAS REPORTED AND NOBODY HAS FIXED, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
+const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 
-/* THE TILE, under every question for anybody signed in — signed out it is not drawn, as the star is not. */
-function reportTile_(x) {
-  if (!x || x.kind !== 'question' || !x.key || typeof USER === 'undefined' || !USER) return '';
-  return tile_({ icon: 'flag', label: 'Report', note: 'something wrong', act: 'q-report', data: { key: x.key } });
+/* THE ONE TILE (486), on every reportable thing: Student rank and up; signed out it is not drawn. `check-reports` holds every Report tile to it. */
+function reportTile_(kind, id, label, cls) {
+  if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
+  return tile_({ icon: 'flag', label: 'Report', note: reportedNow_(kind, id) ? 'flagged to fix' : 'something wrong',
+                 act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
+}
+/* A CARD WITH NO TILE ROW OF ITS OWN takes the Report tile in one of its own, put inside the card by `cardRowIn_`. */
+function reportRowIn_(html, kind, id, label) {
+  const t = reportTile_(kind, id, label);
+  return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
+}
+/* A FIND CARD'S KIND AND ID: a question by its key (`q:…`), and so every card in both finders. */
+function reportTileFor_(x) {
+  if (!x || !x.key) return '';
+  return reportTile_(x.kind, x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
 
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */
@@ -678,50 +702,66 @@ function repWhyRow_(list) {
 }
 const repWhy_ = form => String(((form && form.querySelector('select.rep-why-in')) || {}).value || '');
 
-function reportForm_(x, finder) {
-  const label = [x.name, x.sub].filter(Boolean).join(' · ');
-  return `<div class="me-form rep-form" data-key="${esc(x.key)}" data-finder="${esc(finder || '')}">
-    <p class="faint rep-what">${esc(label)}</p>
-    ${repWhyRow_(REPORT_WHY)}
-    <label class="field rep-note"><span>Anything else? (optional)</span>
+/* IN PLACE UNDER THE TILE ROW, as Note for Claude's box is (484) — no sheet over the thing being reported. */
+function reportBoxHtml_(kind, id, label, finder) {
+  const admin = typeof rankAtLeast_ === 'function' && rankAtLeast_('admin');
+  const dk = kind + '|' + id;
+  return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}">
+    ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}
+    ${repWhyRow_(reportWhyFor_(kind))}
+    <label class="field rep-note"><span>Anything else?</span>
       <textarea class="rep-note-in" rows="2" maxlength="${REPORT_NOTE_MAX}" autocomplete="off"
-        placeholder="A few words" aria-label="Anything else about this question"${draftAttr_('rep', x.key)}>${esc(draftVal_('rep', x.key))}</textarea></label>
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'the report', act: 'rep-send', cls: 'rep-send' })}</div>
-    <p class="faint me-said rep-said" aria-live="polite"></p>
+        placeholder="A few words (optional)" aria-label="Anything else about this"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea></label>
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to fix' : 'to the admin', act: 'rep-send', cls: 'rep-send' })}${
+      tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
+    <p class="faint me-said rep-said" aria-live="polite">${admin
+      ? 'Yours is taken as needing a fix: it is marked and goes to Notes for Claude.'
+      : 'Only the admin sees a report. Nothing changes until they look.'}</p>
   </div>`;
 }
+const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 
-on('q-report', el => {
-  if (!USER) { toast('Sign in to report a question.'); return; }
-  const k = el && el.getAttribute('data-key');
-  let x = null;
-  try { x = k ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
-  if (!x) { toast('That question is not loaded — try again in a moment.'); return; }
+on('rep-box', el => {
+  if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to report something.'); return; }
+  const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
+  const had = reportBoxOf_(kind, id);
+  if (had) { had.remove(); return; }
+  const row = el.closest('.tile-row');
   let finder = '';
   try { finder = (finderAt_(el) || {}).id || ''; } catch (e) {}
-  openSheet('Report this question', reportForm_(x, finder));
+  /* A MESSAGE'S TILE SITS BESIDE ITS BUBBLE: the box goes under the whole message. */
+  const at = el.closest('.msg') || row;
+  if (!at) return;
+  at.insertAdjacentHTML('afterend', reportBoxHtml_(kind, id, el.getAttribute('data-rl') || '', finder));
+  const s = reportBoxOf_(kind, id)?.querySelector('select');
+  if (s) try { s.focus({ preventScroll: true }); } catch (e) {}
 });
+/* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
+on('rep-cancel', el => { el.closest('.rep-box')?.remove(); });
 
 on('rep-send', el => {
-  const form = el.closest('.rep-form');
-  if (!form || form.classList.contains('is-sending')) return;
+  const form = el.closest('.rep-box');
+  if (!form || form.classList.contains('is-sending') || !USER) return;
   const said = form.querySelector('.rep-said');
   if (!repWhy_(form)) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
-  const k = form.dataset.key;
+  const kind = form.dataset.rk, id = form.dataset.ri;
   let x = null;
-  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  try { x = kind === 'question' ? stuffItemsAll_().find(i => i && i.key === id) || null : null; } catch (e) { x = null; }
   const box = form.querySelector('.rep-note-in');
-  send_({ action: 'reportQuestion', personId: (USER && USER.personId) || '', questionId: String(k || '').replace(/^q:/, ''),
-          paperId: x && typeof paperIdOf_ === 'function' ? paperIdOf_(x.row) : '',
-          part: (x && x.qPart) || '', label: x ? [x.name, x.sub].filter(Boolean).join(' · ') : '',
+  send_({ action: 'report', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '',
+          paperId: x && typeof paperIdOf_ === 'function' ? paperIdOf_(x.row) : '', part: (x && x.qPart) || '',
           reason: repWhy_(form), note: String((box && box.value) || '').slice(0, REPORT_NOTE_MAX),
           finder: form.dataset.finder || '', device: reportDevice_() },
         { button: el, where: said })
     .then(d => {
       /* SENT, SO THE NOTE'S DRAFT GOES — a reload must not bring back words already in the sheet. */
-      try { draftDrop_('rep', k); } catch (e) {}
-      closeSheet();
-      toast(d && d.already ? 'Thanks — you already sent that one today' : 'Thanks — sent');
+      try { draftDrop_('rep', kind + '|' + id); } catch (e) {}
+      form.remove();
+      if (d && d.serious && DATA) {
+        DATA.reportedItems = (DATA.reportedItems || []).concat(kind + '|' + id);
+        if (Array.isArray(d.notes)) DATA.claudeNotes = d.notes;
+      }
+      toast(d && d.already ? 'Thanks — you already sent that one today' : d && d.serious ? 'Reported — marked to fix' : 'Thanks — sent');
     })
     .catch(() => {});
 });

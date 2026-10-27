@@ -1271,48 +1271,7 @@ on('msg-drop', el => {
   }, 0);
 });
 
-/* ---------- REPORTING A MESSAGE (413): the question Report's sheet (395), with reasons a message has ----------
-   `flagMessage` marks the row and emails the admin; it shows on Business → Reports. Only a message sent to you. */
-const MSG_REPORT_WHY = [
-  ['unkind', 'Unkind or bullying'],
-  ['unsafe', 'It makes me feel unsafe'],
-  ['rude', 'Rude, or a picture that should not be there'],
-  ['stranger', 'Spam, or I don\u2019t know them'],
-  ['other', 'Something else'],
-];
-on('msg-report', el => {
-  if (!USER) return;
-  const id = el.getAttribute('data-id') || '';
-  const m = (MESSAGES || []).find(x => x && x.id === id);
-  if (!m) { toast('That message is not loaded — try again in a moment.'); return; }
-  openSheet('Report this message', `<div class="me-form rep-form msg-rep-form" data-id="${esc(id)}">
-    <p class="faint rep-what">From ${esc(m.fromName || m.withName || 'someone')}${m.body ? ': “' + esc(String(m.body).slice(0, 80)) + (String(m.body).length > 80 ? '…' : '') + '”' : ''}</p>
-    ${repWhyRow_(MSG_REPORT_WHY)}
-    <label class="field rep-note"><span>Anything else? (optional)</span>
-      <textarea class="rep-note-in" rows="2" maxlength="300" autocomplete="off" placeholder="A few words"
-        aria-label="Anything else about this message"${draftAttr_('msg-rep', id)}>${esc(draftVal_('msg-rep', id))}</textarea></label>
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to the admin', act: 'msg-report-send', cls: 'rep-send' })}</div>
-    <p class="faint me-said rep-said" aria-live="polite">Only the admin sees a report. The message stays where it is.</p>
-  </div>`);
-});
-on('msg-report-send', el => {
-  const form = el.closest('.msg-rep-form');
-  if (!form || !USER) return;
-  const said = form.querySelector('.rep-said');
-  const why = repWhy_(form);
-  if (!why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
-  const id = form.dataset.id;
-  const say = (MSG_REPORT_WHY.find(r => r[0] === why) || [])[1] || why;
-  const note = String((form.querySelector('.rep-note-in') || {}).value || '').trim().slice(0, 300);
-  send_({ action: 'flagMessage', name: USER.name, personId: USER.personId || '', messageId: id,
-          reason: say + (note ? ' — ' + note : '') }, { button: el, where: said })
-    .then(() => {
-      try { draftDrop_('msg-rep', id); } catch (e) {}
-      closeSheet();
-      toast('Thanks — sent');
-    })
-    .catch(() => {});
-});
+/* REPORTING A MESSAGE (413) is `reportTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
@@ -1470,10 +1429,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`flagMessage`). */''}
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`reportTile_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? tile_({ icon: 'flag', label: 'Report', note: 'this message', act: 'msg-report', cls: 'msg-flag', data: { id: m.id } }) + '</div>' : ''}
+        ? reportTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;
@@ -1809,7 +1768,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 /* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
-  /* AND STAFF SET THEIR WEEK IN THE STAFF HUB'S HOURS (432), so the week group is not drawn here a second time. */
+  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so the week group is not drawn here a second time. */
   if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
@@ -3233,7 +3192,7 @@ function photoPicker_(value, said, o) {
   };
   const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
   const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture"${CE_OPEN.has('picture') ? ' open' : ''}>
+  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
     <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
     <div class="pfp-side">
       <div class="tile-row">
@@ -3447,7 +3406,7 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* `initAvail` WAS HERE — the `avail` tool's week; the hours are the Staff hub's Hours now (432, staff.js `hoursHtml_`). */
+/* `initAvail` WAS HERE — the `avail` tool's week; the hours are Tutor settings' Available card now (487). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
@@ -3793,9 +3752,9 @@ const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name'
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
   staff: ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
-/* WHAT THE STAFF HUB EDITS — Pricing's rate and seat, Hours' week — so no card or settings page offers it a second time (444). */
+/* WHAT THE STAFF HUB EDITS — Pricing's rate and seat — so no card offers it a second time (444); the week is Tutor settings' Available card (487). */
 const hubOwns_ = f => typeof hubFor_ === 'function' && hubFor_()
-  && (f === 'rate_per_hour' || f === 'extra_seat_rate' || /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+  && (f === 'rate_per_hour' || f === 'extra_seat_rate');
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
 
 /* ---------- WHO HAS A PUBLIC CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM § */
@@ -4051,8 +4010,13 @@ document.addEventListener('toggle', e => {
   const k = d.dataset.fold || '';
   if (d.open) CE_OPEN.add(k); else if (d.isConnected) CE_OPEN.delete(k);
 }, true);
+document.addEventListener('click', e => {
+  const s = e.target && e.target.closest && e.target.closest('details.ce-fold > summary');
+  if (s) e.preventDefault();
+}, true);
 /* `val` IS MARKUP (a face, a live line); the label is text. */
-const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}"${CE_OPEN.has(key) ? ' open' : ''}>
+/* ALWAYS OPEN (487): "it's literally just a widget of one thing so does not need to be opened" -- the line is a heading, and a tap on it does nothing. */
+const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}" open>
   <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
   <div class="ce-body">${body}</div></details>`;
 /* THE FIGURE'S LINE: a small copy of it, its level and credits — redrawn by `avatarDraw_` after a pick. */
@@ -4578,7 +4542,7 @@ function peopleSearchPage_() {
   if (!USER) return '';
   /* ONE SEARCH BAR, THE FIND INLINE (469) — the owner: "it just needs to be a search bar widget"; the placeholder is its label. */
   return `<div class="card ps-card">
-    <div class="ps-bar"><input type="search" data-psearch aria-label="Find someone by handle" placeholder="@handle" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(PSEARCH_.q)}">
+    <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" value="${esc(PSEARCH_.q)}"`)}
     ${psMayChild_() ? `<button class="btn quiet ps-go" data-do="ps-find" aria-label="Find">Find</button>` : ''}</div>
     <div class="ps-out" aria-live="polite">${psResults_()}</div>
   </div>`;
