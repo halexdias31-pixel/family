@@ -20284,7 +20284,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
   /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
   if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');
-  const route = ['Learning', 'Content', 'Statistics'];
+  const route = ['Learning', 'Library', 'Statistics'];
   const rungs = ['forLabel', 'kindLabel', 'subject'];
   const pressed = [], offered = [];
   for (let guard = 0; route.length && guard < 10; guard++) {
@@ -20311,7 +20311,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   }
   if (route.length) return bad;
   /* `Content` IS ITS OWN ANSWER UNDER WHAT KIND, pressed — not a shelf of Resources. */
-  if (pressed.indexOf('Content') < 0 && pressed.indexOf('~Content') < 0) bad.push('What kind did not offer Content on Find 2: ' + pressed.join(' → '));
+  if (pressed.indexOf('Library') < 0 && pressed.indexOf('~Library') < 0) bad.push('What kind did not offer Library on Find 2: ' + pressed.join(' → '));
   if (offered.some(o => /^shelf:@family\. textbooks$/.test(o))) bad.push('the @family. textbooks shelf was offered — it went with the books');
   const left = R.stuffFiltered();
   if (left.length !== stats.chapters.length || left.some(i => i.kind !== 'content' || i.subject !== 'Statistics')) {
@@ -20343,7 +20343,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   /* WHAT IT IS, FIRST IN THE ONE ROW EVERY CARD WEARS: § */
   /* EVERY FACET A TAG SINCE 396, in the tab's order: What for, then What kind. */
   const lead = [...card.querySelectorAll('.qtags .qtag')].slice(0, 2).map(e => e.getAttribute('data-f') + ':' + e.textContent.trim());
-  if (lead.join(' ') !== 'forLabel:Learning kindLabel:Content') bad.push('the card\'s row does not open on [Learning] [Content]: ' + (lead.join(' ') || 'no tag'));
+  if (lead.join(' ') !== 'forLabel:Learning kindLabel:Library') bad.push('the card\'s row does not open on [Learning] [Library]: ' + (lead.join(' ') || 'no tag'));
   if (card.querySelector('.fc-flag')) bad.push('the card still wears a head pill of its own');
   const tags = [...card.querySelectorAll('.qtags .qtag')].map(e => e.textContent.trim());
   ['GCSE', 'Statistics', 'Mean', 'Median'].forEach(v => { if (tags.indexOf(v) < 0) bad.push('the Averages card has no "' + v + '" tag: ' + tags.join(' | ')); });
@@ -20611,7 +20611,7 @@ check('both finders carry the same items — the same keys, the same count, ever
   const said = l => w.facetValues(l, kl).map(v => String(v.value) + ' ' + v.n).join(', ');
   const fSaid = said(find), rSaid = inRes_(w, () => said(res));
   if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
-  if (!/\bContent\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Content: ' + fSaid);
+  if (!/\bLibrary\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Library: ' + fSaid);
   if (/\bResources\b/.test(fSaid)) bad.push('What kind still offers Resources — it went into Content (445): ' + fSaid);
   /* SEARCH: a word that is only inside a content card's words finds the card on both. */
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
@@ -20719,7 +20719,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   T.go('res');
   await wait(80);
   /* A CONTENT CARD'S ANIMATION, a page past its card: Bayes's, under Probability. */
-  const chips = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Statistics' }];
+  const chips = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Statistics' }];
   T.RES().filters = chips.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   const pages = inRes_(W, () => W.stuffPages_());
@@ -20877,7 +20877,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   });
   /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
-  t.RES().filters = [{ field: 'kindLabel', value: 'Content' }]; t.RES().q = 'ali';
+  t.RES().filters = [{ field: 'kindLabel', value: 'Library' }]; t.RES().q = 'ali';
   const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
   t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
@@ -20908,7 +20908,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
 });
 
 /* ---------- THE HISTORY DATABASE (459): EACH KIND FOUND BY THE FUNNEL, ITS CARD OPENED, A LINK FOLLOWED IN PLACE ---------- */
-check('the Talmud (473): Berakhot 2 is found under Learning, Content, Talmud, Zeraim, Berakhot, Chapter 1, Daf 2; its tile opens the Vilna page with Gemara, Rashi and Tosafot from the real files, and the next side is 2b', async () => {
+check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learning, Library, Talmud, Zeraim, Berakhot, Chapter 1, Daf 2, Side a; the card itself draws the Vilna page from the real files, and its text-size tiles are remembered', async () => {
   const tdir = path.join(dir, '..', 'data', 'talmud');
   const serve = url => {
     const m = /(?:^|\/)data\/talmud\/([a-z-]+\/\d+\.json|index\.json)(?:\?|$)/.exec(url);
@@ -20916,7 +20916,8 @@ check('the Talmud (473): Berakhot 2 is found under Learning, Content, Talmud, Ze
     const p = path.join(tdir, m[1]);
     return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
   };
-  const b = boot({ serve, member: true });
+  const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '2', dob_m: '3', dob_y: String(new Date().getFullYear() - 30) } });
+  const b = boot({ serve, before: signedInAs_(adult) });
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
@@ -20925,36 +20926,130 @@ check('the Talmud (473): Berakhot 2 is found under Learning, Content, Talmud, Ze
   w.paintStuff();
   for (let i = 0; i < 80 && !w.talmudItems_().length; i++) await wait(25);
   if (!w.talmudItems_().length) return ['data/talmud/index.json never arrived — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')];
-  const x = w.stuffItemsAll_().find(y => y.key === 'tal:berakhot:2');
-  if (!x) return ['Berakhot 2 is not on the list of everything — NOT checked'];
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }, { field: 'shelf', value: 'Talmud' },
-    { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter }, { field: 'talDaf', value: '2' }];
+  const x = w.stuffItemsAll_().find(y => y.key === 'tal:berakhot:2a');
+  if (!x) return ['Berakhot 2a is not on the list of everything — NOT checked'];
+  if (!w.stuffItemsAll_().some(y => y.key === 'tal:berakhot:2b')) bad.push('Berakhot 2b is not a card of its own');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Talmud' },
+    { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter },
+    { field: 'talDaf', value: '2' }, { field: 'talSide', value: 'Side a' }];
   const got = w.stuffFiltered();
-  if (got.length !== 1 || got[0] !== x) bad.push('the seven answers keep ' + got.length + ' thing(s), not Berakhot 2 alone');
-  if (x.talChapter !== 'Chapter 1 · מאימתי') bad.push('Berakhot 2 is in "' + x.talChapter + '", not Chapter 1 · מאימתי');
+  if (got.length !== 1 || got[0] !== x) bad.push('the eight answers keep ' + got.length + ' thing(s), not Berakhot 2a alone');
+  if (x.talChapter !== 'Chapter 1 · מאימתי') bad.push('Berakhot 2a is in "' + x.talChapter + '", not Chapter 1 · מאימתי');
   const walk = w.finderWalk_(x);
   t.STUFF().filters = walk;
-  if (w.stuffFiltered().indexOf(x) < 0) bad.push('the funnel\'s own walk loses Berakhot 2: ' + JSON.stringify(walk));
+  if (w.stuffFiltered().indexOf(x) < 0) bad.push('the funnel\'s own walk loses Berakhot 2a: ' + JSON.stringify(walk));
   const el = d.createElement('div'); el.innerHTML = w.stuffCard(x) + w.cardTiles_(x);
-  if (!el.querySelector('.card.tal')) bad.push('Berakhot 2 draws no Talmud card');
-  const tile = el.querySelector('[data-do="tal-open"][data-i="2"]');
-  if (!tile) return bad.concat(['the card has no tile opening side 2a']);
-  t.ACTIONS['tal-open'](tile);
-  for (let i = 0; i < 80 && !d.querySelector('#sheet-body .tal-body'); i++) await wait(25);
-  const v = d.getElementById('sheet');
-  if (!v || !v.querySelector('.tal-body')) return bad.concat(['pressing the tile drew no page — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')]);
-  const txt = s => ((v.querySelector(s) || {}).textContent || '').trim();
+  d.body.appendChild(el);
+  if (!el.querySelector('.card.tal .tal-card-page')) return bad.concat(['Berakhot 2a draws no page on its card']);
+  if (el.querySelector('[data-do="tal-open"]')) bad.push('the card still has a tile to open the page — the card is the page (490)');
+  w.talCardsFit_(el);
+  for (let i = 0; i < 80 && !el.querySelector('.tal-card-page .tal-body'); i++) await wait(25);
+  if (!el.querySelector('.tal-body')) return bad.concat(['the card never drew its page — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')]);
+  const txt = s2 => ((el.querySelector(s2) || {}).textContent || '').trim();
   if (!/מאימתי קורין את שמע בערבין/.test(txt('.tal-gem'))) bad.push('the Gemara of 2a does not open with the Mishnah');
   if (!txt('.tal-rashi')) bad.push('2a has no Rashi');
   if (!txt('.tal-tos')) bad.push('2a has no Tosafot');
   if (!/ברכות/.test(txt('.tal-head')) || !/ב\./.test(txt('.tal-hd-daf'))) bad.push('the header does not say ברכות and ב.');
   if (!/CC BY-SA/.test(txt('.tal-credit'))) bad.push('the page carries no attribution line');
-  if (!v.querySelector('.tal-body.tal-a')) bad.push('2a is not laid out as an a side (Rashi inner, on the right)');
-  t.ACTIONS['tal-step'](v.querySelector('[data-do="tal-step"][data-by="1"]'));
-  await wait(60);
-  if (!/Berakhot 2b/.test(txt('.tal-where'))) bad.push('Next went to "' + txt('.tal-where') + '", not Berakhot 2b');
-  w.closeSheet();
-  if (d.querySelector('#sheet-body .tal-sheet')) bad.push('closing the sheet left the page drawn');
+  if (!el.querySelector('.tal-body.tal-a')) bad.push('2a is not laid out as an a side (Rashi inner, on the right)');
+  const up = el.querySelector('[data-do="tal-size"][data-by="1"]');
+  if (!up || !el.querySelector('[data-do="tal-size"][data-by="-1"]')) return bad.concat(['the card has no text-size tiles']);
+  t.ACTIONS['tal-size'](up);
+  if (w.localStorage.getItem('tal:scale') !== '1.15') bad.push('Text + did not remember a larger size: ' + w.localStorage.getItem('tal:scale'));
+  return bad;
+});
+
+/* ---------- AN AGE LIMIT (490): the Talmud and the Quran carry min_age 18 — a child, an adult with no date of birth and a signed-out visitor are never sent them ---------- */
+check('an age limit (490): a ten-year-old, a member with no date of birth and a signed-out visitor are never shown or sent the Talmud, the Quran or the Bible; an adult is shown the Talmud and the Quran; an item with min_age is hidden alike', async () => {
+  const serve = url => {
+    const m = /(?:^|\/)data\/(talmud|quran)\/([a-z0-9-]+\/\d+\.json|[a-z0-9]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(dir, '..', 'data', m[1], m[2]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const y = new Date().getFullYear();
+  const who = [['a ten-year-old', Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 10) } }), false],
+               ['a member with no date of birth', MEMBER_, false],
+               ['a signed-out visitor', null, false],
+               ['an adult', Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 30) } }), true]];
+  const bad = [];
+  for (const [what, u, ok] of who) {
+    const b = boot({ serve, before: u ? signedInAs_(u) : (() => {}) });
+    for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+    if (!b.w.__t) { bad.push(what + ': the app did not boot — NOT checked'); continue; }
+    const { w } = b, t = w.__t;
+    t.go('stuff'); w.paintStuff();
+    for (let i = 0; i < 80 && ok && !(w.talmudItems_().length && w.quranItems_().length); i++) await wait(25);
+    if (!ok) await wait(150);
+    const all = w.stuffItemsAll_();
+    const kinds = k => all.filter(x => x.kind === k).length;
+    const sent = b.gets.filter(g => /data\/(talmud|quran|bible)\//.test(g));
+    if (ok) {
+      if (!kinds('talmud') || !kinds('quran')) bad.push(what + ' is not shown the Talmud (' + kinds('talmud') + ') and the Quran (' + kinds('quran') + ')');
+      if (kinds('bible')) bad.push(what + ' is shown the Bible — it is for admins only');
+    } else {
+      if (kinds('talmud') || kinds('quran') || kinds('bible')) bad.push(what + ' is shown ' + ['talmud', 'quran', 'bible'].map(k => kinds(k) + ' ' + k).join(', '));
+      if (sent.length) bad.push(what + ' was sent ' + sent.join(', '));
+    }
+    if (w.itemAgeOk_({ min_age: 18 }) !== ok) bad.push(what + ': an item with min_age 18 is ' + (ok ? 'hidden' : 'shown'));
+    if (!w.itemAgeOk_({ row: {} })) bad.push(what + ': an item with no min_age is hidden');
+  }
+  return bad;
+});
+
+/* ---------- THE QURAN (490): a verse a card, its tags ordinary facets, its text fetched when its card is drawn ---------- */
+check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Library, Quran, Surah, Ayah — tagged Juz 3 and Medinan — and its card draws the Arabic and Pickthall\'s English from the real files', async () => {
+  const serve = url => {
+    const m = /(?:^|\/)data\/quran\/([0-9]{3}\.json|index\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(dir, '..', 'data', 'quran', m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '2', dob_m: '3', dob_y: String(new Date().getFullYear() - 30) } });
+  const b = boot({ serve, before: signedInAs_(adult) });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  t.go('stuff'); w.paintStuff();
+  for (let i = 0; i < 80 && !w.quranItems_().length; i++) await wait(25);
+  if (w.quranItems_().length !== 6236) return ['the Quran holds ' + w.quranItems_().length + ' verses, not 6236 — fetched: ' + b.gets.filter(u => /quran/.test(u)).join(', ')];
+  if (b.gets.some(u => /quran\/\d{3}\.json/.test(u))) bad.push('a surah\'s text was fetched before any card of it was drawn');
+  const x = w.stuffItemsAll_().find(y => y.key === 'qr:2:255');
+  if (!x) return bad.concat(['Al-Baqara 2:255 is not on the list of everything']);
+  if (x.quranJuz !== 'Juz 3' || x.quranPlace !== 'Medinan') bad.push('2:255 is tagged ' + x.quranJuz + ', ' + x.quranPlace + ' — not Juz 3, Medinan');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Quran' },
+    { field: 'quranSurah', value: '2 · Al-Baqara' }, { field: 'quranAyah', value: '255' }];
+  const got = w.stuffFiltered();
+  if (got.length !== 1 || got[0] !== x) bad.push('the five answers keep ' + got.length + ' thing(s), not 2:255 alone');
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); d.body.appendChild(el);
+  const tags = [...el.querySelectorAll('.qtag')].map(q => q.getAttribute('data-f'));
+  ['quranSurah', 'quranAyah', 'quranJuz', 'quranPlace'].forEach(f => { if (tags.indexOf(f) < 0) bad.push('the card has no ' + f + ' tag: ' + tags.join(', ')); });
+  for (let i = 0; i < 80 && !el.querySelector('.qr-ar'); i++) await wait(25);
+  if (!el.querySelector('.qr-ar')) return bad.concat(['the card never drew its verse']);
+  const want = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'quran', '002.json'), 'utf8')).ar[254];
+  if (el.querySelector('.qr-ar').textContent.indexOf(want) !== 0) bad.push('the Arabic is not the Throne Verse: ' + el.querySelector('.qr-ar').textContent.slice(0, 40));
+  if (!/Allah! There is no deity save Him/.test((el.querySelector('.qr-en') || {}).textContent || '')) bad.push('the English is not Pickthall\'s 2:255');
+  if (!/Tanzil/.test((el.querySelector('.qr-credit') || {}).textContent || '')) bad.push('the verse carries no attribution');
+  return bad;
+});
+
+/* ---------- A MANUSCRIPT AS IT LOOKS (490): tags first, the drawing, then the facts ---------- */
+check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing of the fragment, then one line of when it was found, dated to and held', async () => {
+  const b = boot({});
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, d = w.document, bad = [];
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'manuscripts.json'), 'utf8'));
+  const r = rows.find(q => q.id === 'MS-0001');
+  if (!r) return ['data/manuscripts.json has no MS-0001 — NOT checked'];
+  const el = d.createElement('div'); el.innerHTML = w.histCard_({ kind: 'manuscript', name: r.name, key: 'hdb:MS-0001', row: r, histKind: 'Manuscripts' });
+  const card = el.firstElementChild;
+  if (!card || !card.firstElementChild || !card.firstElementChild.matches('.qcard-tags')) bad.push('the card does not start with its tags');
+  if (card && card.querySelector('h3')) bad.push('the card still has a title');
+  const svg = card && card.querySelector('.hdb-ms svg');
+  if (!svg || !svg.querySelector('clipPath path') || !svg.querySelectorAll('text').length) bad.push('the card has no drawing of the fragment');
+  const facts = (card && card.querySelector('.hdb-facts') || {}).textContent || '';
+  if (!/Found: .*1920/.test(facts) || !/Dated: /.test(facts) || !/Held: John Rylands Library/.test(facts)) bad.push('the facts line says "' + facts + '"');
   return bad;
 });
 
@@ -20981,7 +21076,7 @@ check('the history database: a manuscript, a historical figure and a writing are
   };
   for (const [x, kind] of [[ms, 'Manuscripts'], [fig, 'Historical figures'], [wr, 'Writings']]) {
     /* THE FUNNEL ITSELF: these four answers keep it, and the walk the funnel asks reaches it. */
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                          { field: 'shelf', value: 'History' }, { field: 'histKind', value: kind }];
     if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is not found by Learning, Content, History, ' + kind);
     if (w.stuffFiltered().some(y => !y.hdb)) bad.push('History, ' + kind + ' keeps a thing that is not in the history database');
@@ -20991,7 +21086,10 @@ check('the history database: a manuscript, a historical figure and a writing are
     /* THE CARD: its name, its tags, one line per field, an era tag. */
     const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
     const h3 = el.querySelector('.hdb .fc-head h3');
-    if (!h3 || h3.textContent.trim() !== x.name) bad.push(x.name + '\'s card is not headed with its name');
+    /* A DRAWN MANUSCRIPT (490) leads with its tags and is named by its aria-label instead. */
+    const drawn = el.querySelector('.hdb-msc');
+    if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.firstElementChild.matches('.qtags')
+              : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
     if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
     if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
     if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
@@ -21037,7 +21135,7 @@ check('the history timeline: events are found under Learning, Content, History, 
   const evs = read('timeline').filter(e => e.era === 'World War 2');
   if (!tl || evs.length < 20) return ['no World War 2 timeline item, or data/timeline.json has fewer than 20 of its events — NOT checked'];
   const get = id => all.find(x => x.key === 'hdb:' + id);
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                        { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
   const found = w.stuffFiltered();
   if (found.indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Content, History, Events');
@@ -21150,7 +21248,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
   if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
   T.go('stuff'); await wait(80);
-  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }, { field: 'shelf', value: 'Books' },
+  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' },
     { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
   T.STUFF().filters = chips.map(f => Object.assign({}, f));
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
@@ -21184,7 +21282,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   const t3 = three.w.__t;
   for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
   await wait(200);
-  const want = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }];
+  const want = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }];
   if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify(want)) bad.push('kept by somebody the Bible is not for, the place came back as ' + JSON.stringify(t3.STUFF().filters) + ' — wanted the Bible\'s chips and the Books shelf dropped: ' + JSON.stringify(want));
   if (three.w.bibleInside_()) bad.push('a non-admin\'s Find came back inside the Bible');
   return bad;
@@ -21272,7 +21370,7 @@ check('a content card plays its animation on Find 2: Pythagoras after the Pythag
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters.length = 0;
-  S.filters.push({ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Maths' });
+  S.filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Maths' });
   w.paintFinder_('res');
   const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
@@ -21451,7 +21549,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
     t.go('res');
     t.RES().q = '';
-    t.RES().filters = [{ field: 'kindLabel', value: 'Content' }];
+    t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
     w.paintFinder_('res');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
@@ -21551,7 +21649,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
   /* ---------- 1. RESOURCES: THE COVER AMONG THEM, AND NO SHELF QUESTION (396) — one Bible against the boxing is a split the
      one rule's balance refuses, so the cover is found as a result (or by search), and its Open tile goes in. */
   /* CONTENT SINCE 445 (Resources went): the cover sits among the content cards and the boxing. */
-  const route = ['Learning', 'Content'];
+  const route = ['Learning', 'Library'];
   const pressed = [];
   for (let guard = 0; route.length && guard < 6; guard++) {
     const btns = answersOn();
@@ -21667,7 +21765,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     /* EVERY TAG A BIBLE ANSWER, IN THE ORDER THE FINDER ASKS (355): the book, chapter and verse three tags
        -- [Genesis] [1] [1], both ones kept, a number being a position and not a name -- and no `Verse`. */
-    if (i === 0 && tags.join('|') !== 'Learning|Content|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
+    if (i === 0 && tags.join('|') !== 'Learning|Library|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
   const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
@@ -22015,7 +22113,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     try { return JSON.parse(LIB_FULL.serve(p) || fs.readFileSync(p, 'utf8')); } catch (e) { return undefined; }
   };
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
-  const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
+  const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'], profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } }],
                ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
   /* BOTH FINDERS, THE SAME STARTS (docs/history/347): § */
   const PLACES = [
@@ -22025,8 +22123,8 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
     ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
     ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
-    ['Learning → Content', [['forLabel', 'Learning'], ['kindLabel', 'Content']]],
-    ['Learning → Content → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Content'], ['shelf', 'Boxing']]],
+    ['Learning → Library', [['forLabel', 'Learning'], ['kindLabel', 'Library']]],
+    ['Learning → Library → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Library'], ['shelf', 'Boxing']]],
   ];
   const STARTS = [].concat(...['stuff', 'res'].map(fid => PLACES.map(([say, steps]) => [(fid === 'res' ? 'Find 2, ' : 'Find, ') + say, steps, fid])));
   const bad = [];
@@ -22095,6 +22193,9 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
       const ps = p[i], as = a[i];
       const show = s => (typeof s === 'string' ? s : s ? s.field + ' [' + s.vals.slice(0, 6).join(', ') + (s.vals.length > 6 ? '…' : '') + ']' : 'nothing');
       if (typeof ps === 'string' || typeof as === 'string' || !ps || !as) {
+        /* AN END THE BIBLE'S COVER ALONE MAKES ONE LONGER (490): with the Quran and the Talmud both walks can end on the whole Learning shelf. */
+        const endN = v => { const m = /^\(end, (\d+)\)$/.exec(typeof v === 'string' ? v : ''); return m ? Number(m[1]) : -1; };
+        if (endN(ps) >= 0 && endN(as) - endN(ps) === 1) continue;
         if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
         continue;
       }
@@ -22147,6 +22248,12 @@ check('every Find kind that is not a question is made of the shared parts: head,
       const host = box(w.stuffCard(x));
       const card = host.querySelector('.favwrap > .card') || host.firstElementChild;
       if (!card || !card.classList.contains('fc')) { bad.push(name + ' is not a `.card.fc`'); return; }
+      /* A FIGHT HAS NO HEAD (490): "just have the tags of both boxes' names" -- it opens on its tag row. */
+      if (kind === 'fight') {
+        const tr0 = card.firstElementChild;
+        if (!tr0 || !tr0.classList.contains('qtags') || card.querySelector('h3')) bad.push(name + ' does not open on its tag row');
+        return;
+      }
       const head = card.firstElementChild;
       if (!head || !head.classList.contains('fc-head')) bad.push(name + ' does not open on `.fc-head`');
       else if (!head.querySelector(':scope > h3') || head.querySelector('.fc-flag, .fc-flags')) {
@@ -22431,7 +22538,7 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
     if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
     /* ITS FACTS ARE TAGS, LIKE A QUESTION'S (445): each fighter, the month, the year, the weight, the round, how it ended — then the picture. */
     const tags = fc ? [...fc.querySelectorAll('.qcard-tags .qtag')].map(el => el.getAttribute('data-f') + '=' + el.textContent.trim()) : [];
-    ['fighter=Muhammad Ali', 'fighter=Joe Frazier', 'boutMonth=October', 'boutYear=1975', 'division=Heavyweight', 'boutRound=Round 14', 'boutMethod=RTD']
+    ['fighter=Muhammad Ali', 'fighter=Joe Frazier', 'boutMonth=October', 'boutYear=1975', 'division=Heavyweight', 'boutRound=Round 14', 'boutMethod=RTD', 'boutEvent=The Thrilla in Manila']
       .forEach(want => { if (tags.indexOf(want) < 0) bad.push('the fight card has no tag ' + want + ': ' + tags.join(', ')); });
     if (tags.some(x => /^kindLabel=Resources$/.test(x))) bad.push('the fight card still wears Resources');
     if (fc && fc.querySelector(':scope > .sub')) bad.push('the fight card still prints a line of the facts its tags carry: ' + fc.querySelector(':scope > .sub').textContent.trim());
@@ -22439,6 +22546,8 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
     const at = sel => kids.findIndex(el => el.matches(sel));
     if (fc && !(at('.qcard-tags') >= 0 && at('.fight-faces') > at('.qcard-tags') && kids.slice(at('.fight-faces') + 1).every(el => el.matches('.fight-credit')))) bad.push('the picture is not at the bottom under the tags: ' + kids.map(el => el.className).join(' | '));
     if (fc && /\d{4}-\d{2}-\d{2}/.test(fc.textContent)) bad.push('the fight card prints an ISO date');
+    /* NO "A v B" TITLE (490): the fighters are tags, and the card starts with them. */
+    if (fc && (fc.querySelector('h3') || !fc.firstElementChild.matches('.qcard-tags'))) bad.push('the fight card still has a title above its tags');
   }
   if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
   return bad;
@@ -23590,9 +23699,9 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   const kind = w.facetList().find(f => f.field === 'kindLabel');
   if (!kind || typeof w.facetValues !== 'function' || typeof w.answerCmp_ !== 'function') return ['the What kind facet, facetValues or answerCmp_ is not reachable — the order was NOT checked'];
   /* ONE SORT FOR EVERY FACET (396): answers that are all kinds go in the kinds tab's order — data, not a table in What kind. */
-  const all = ['Answers', 'Content', 'Projects', 'Practicals', 'Questions'];
+  const all = ['Answers', 'Library', 'Projects', 'Practicals', 'Questions'];
   const got = all.slice().sort(w.answerCmp_(all)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Content') bad.push('What kind orders its answers "' + got + '"');
+  if (got !== 'Questions Answers Practicals Projects Library') bad.push('What kind orders its answers "' + got + '"');
   if (Object.keys(kind).some(k => ['orderOf', 'cmp', 'bucketOf'].indexOf(k) >= 0)) bad.push('What kind carries an order of its own again: ' + Object.keys(kind).join(', '));
   const labels = Object.values(w.kindMap_()).map(k => k.label);
   if (labels.indexOf('Films') >= 0 || labels.indexOf('Bundles') >= 0) bad.push('the kinds name ' + labels.filter(l => /Films|Bundles/.test(l)).join(', ') + ' — neither is a kind in Find');
@@ -28559,7 +28668,7 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
     const x = W.stuffItemsAll_().find(it => it.kind === 'content' && it.row && it.row.bookId === target.book_id && it.row.n === +target.chapter);
     if (!x) return [target.book_id + ' chapter ' + target.chapter + ' did not come into Find as a content card — nothing was checked'];
     if (!x.row.pending) bad.push('the chapter row says lib_pending and its content card is not marked pending');
-    W.__t.STUFF().filters = [{ field: 'kindLabel', value: 'Content' }];
+    W.__t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }];
     W.__t.go('stuff');
     W.paintStuff();
     const i = W.stuffPages_().findIndex(pg => pg.x === x);
@@ -28613,7 +28722,7 @@ check('a reading insert is Content in Find (no Insert tile on its question), ask
     if (/data-do="ins-show"/.test(W.stuffCard(x, 0)) || A['ins-show']) bad.push(mode + ': a question still carries an Insert tile, or ins-show still has a handler');
     const ins = W.stuffItemsAll_().find(it => it.kind === 'insert' && it.row && it.row.id === card.insert_id);
     const kinds = W.__t.facetBy('kindLabel').of(ins), type = W.__t.facetBy('documentType').of(ins);
-    if (String(kinds) !== 'Content' || type) bad.push(mode + ': the insert is What kind ' + JSON.stringify(kinds) + ', Type ' + JSON.stringify(type) + ' -- wanted Content and no Type (463)');
+    if (String(kinds) !== 'Library' || type) bad.push(mode + ': the insert is What kind ' + JSON.stringify(kinds) + ', Type ' + JSON.stringify(type) + ' -- wanted Content and no Type (463)');
     const host = d.createElement('div');
     host.innerHTML = W.stuffCard(ins, 0);
     d.querySelector('#s-stuff').appendChild(host);

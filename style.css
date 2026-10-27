@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-zb-report";
+  --css-version: "2026-10-27-n2b-library";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4851,13 +4851,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
                 font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
 
 
-/* THE TWO NAMES ARE THE TITLE NOW — an `h3` in the shared head — so they take the title's size and lose the 1rem they set for themselves. § */
-.fight-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .4rem; }
-.fight-who { font-style: normal; font-weight: 600; color: var(--dim); }
-/* THE ONE THAT WON. Colour and weight together, because weight alone is lost at this size on a
-   phone and colour alone is lost on paper. */
-.fight-who.won { color: var(--ink); font-weight: 700; }
-.fight-line em { font: 400 .72rem/1 var(--mono); font-style: normal; color: var(--faint); }
+/* THE TWO NAMES WERE THE TITLE (`.fight-line`, `.fight-who`) until 490: the fighters and the winner are tags now. */
 /* `.fight-how` AND `.fight-note` WERE HERE: § */
 
 /* THE PAPER PAGE WAS HERE — `.qpaper`, `.qp-head`, `.qp-sec`, `.qp-q`, `.qp-part`, `.qp-body`, `.qp-marks`, `.qp-end` and a print rule — about sixty lines that § */
@@ -6825,6 +6819,27 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tal-rashi b, .tal-tos b { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', serif; font-weight: 700; }
 .tal-hadran { display: block; text-align: center; margin: .5em 0; font-weight: 700; }
 .tal-blank, .tal-miss { display: block; font-family: inherit; color: var(--paper-dim); font-size: .8rem; text-align: center; }
+
+/* A TALMUD SIDE AS A CARD (490): the page itself, at the card's width; its text size is the viewer's (`--tal-fs`, set by `talLayout_`). */
+.tal-card-page { max-width: none; margin: .5rem 0 0; padding: .7em .55em 1em; overflow: hidden; }
+
+/* THE QURAN (490): a verse a card — the Arabic large and right to left, the English under it, the credit last. */
+.qr-ar { margin: .5rem 0 .4rem; font: 400 1.45rem/2 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', 'Traditional Arabic', serif;
+  text-align: right; overflow-wrap: anywhere; }
+.qr-no { font-size: .85em; color: var(--dim); }
+.qr-en { margin: 0 0 .4rem; font-size: .95rem; line-height: 1.5; }
+.qr-credit { margin: .3rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
+
+/* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
+.hdb-ms { margin: .6rem 0 .3rem; }
+.hdb-ms svg { display: block; width: 100%; height: auto; }
+.hdb-ms .mfr-leaf { fill: var(--paper); }
+.hdb-ms-papyrus .mfr-leaf { fill: var(--paper-strip); }
+.hdb-ms .mfr-fibre line { stroke: var(--paper-rule); stroke-width: .6; opacity: .7; }
+.hdb-ms .mfr-ink text { fill: var(--paper-ink); font: 400 15px/1 'Noto Serif', 'GFS Didot', 'Times New Roman', serif; }
+.hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 1.2; }
+.hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: var(--faint); }
+.hdb-facts { margin: .2rem 0 .5rem; }
 
 /* ---------- MERGED CARDS (480): one frame, the parts stacked, the lower titles small subheadings, one tile row at the foot */
 .card.is-merged > .merged-part > .card { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
