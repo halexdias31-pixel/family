@@ -79,7 +79,7 @@ if (!kindM) {
 } else {
   if (kindM[1] !== 'Learning') fail.push('the content kind is in group "' + kindM[1] + '", not Learning');
   /* THE CODE'S OWN LABEL, so an empty `kinds` tab still says it — the owner's word, "content card". */
-  if (kindM[2] !== 'Content') fail.push('the content kind is labelled "' + kindM[2] + '" — it is its own answer, `Content`, under What kind');
+  if (kindM[2] !== 'Library') fail.push('the content kind is labelled "' + kindM[2] + '" — it is its own answer, `Library` (490), under What kind');
 }
 /* THE SHELF, AN ORDINARY QUESTION (396): asked by the one rule like every facet. The textbooks' shelf on it went with the books. */
 const shelfM = /\{\s*field:\s*'shelf',[^}]*\}/.exec(findSrc);

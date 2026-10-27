@@ -263,7 +263,7 @@ if (listSrc.some(s => !s)) {
 /* ---------- WHO IS SHOWN IT, READ OUT OF THE FILES THAT DECIDE -------------------------------------- */
 const kindM = /\n\s*bible:\s*\{\s*group:\s*'([^']*)',\s*label:\s*'([^']*)'/.exec(findSrc);
 if (!kindM) fail.push('js/find.js has no `bible:` entry in KINDS — Find cannot offer the Bible');
-else if (kindM[1] !== 'Learning' || kindM[2] !== 'Content') fail.push('the bible kind is ' + kindM[1] + ' · ' + kindM[2] + ', not Learning · Content — Resources went at the owner\'s word (445)');
+else if (kindM[1] !== 'Learning' || kindM[2] !== 'Library') fail.push('the bible kind is ' + kindM[1] + ' · ' + kindM[2] + ', not Learning · Library — Resources went at the owner\'s word (445)');
 /* THE GATE IS ONE LINE AND IT IS `isAdmin()`. A tutor check, a role list, or nothing at all here is
    the Bible shown to somebody the owner did not name. */
 const gateM = /const bibleFor_ = \(\) => ([^;]+);/.exec(findSrc);

@@ -1,6 +1,6 @@
 /* ================= THE TALMUD (473): THE VILNA PAGE, FOUND IN FIND ================= */
-/* Content on a shelf of its own: one item a daf, asked by four ordinary facets (Order, Tractate, Chapter, Daf), and a
-   page drawn as the Romm printers set it — Gemara in the middle, Rashi on the inner side, Tosafot on the outer. */
+/* One card a side of a daf (490), asked by ordinary facets; the card IS the page as the Romm printers set it — Gemara in the middle, Rashi
+   inner, Tosafot outer — scaled to the card. */
 
 const TALMUD_SHELF = () => brand('talmud_shelf', 'Talmud');
 const TALMUD_NAME = () => brand('talmud_name', 'Babylonian Talmud');
@@ -21,8 +21,11 @@ function talmudGet_(file) {
 }
 
 /* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */
+/* ONLY FOR A VIEWER OF AGE (490): under it, or signed out, the index is never even fetched. */
+const talmudFor_ = () => viewerOfAge_(SCRIPTURE_MIN_AGE);
 function talmudIndex_() {
   if (TALMUD.index) return TALMUD.index;
+  if (!talmudFor_()) return null;
   if (TALMUD.asking || TALMUD.failed || typeof fetch !== 'function') return null;
   TALMUD.asking = talmudGet_('index.json').then(d => {
     const ok = !!d && Array.isArray(d.tractates) && d.tractates.length > 0 && Array.isArray(d.sedarim)
@@ -62,21 +65,21 @@ function talChapterAt_(t, i) {
   return at;
 }
 
-/* ---------- ONE ITEM A DAF, built once an index has come. */
+/* ---------- ONE ITEM A SIDE (490): the owner expected "one page of the Talmud" as the card, not a card that opens one. */
 function talmudItems_() {
   const ix = TALMUD.index;
-  if (!ix) return [];
+  if (!ix || !talmudFor_()) return [];
   if (TALMUD.items && TALMUD.from === ix) return TALMUD.items;
   const list = [], shelf = TALMUD_SHELF();
   ix.tractates.forEach(t => {
-    for (let d = talDafOf_(t.first); d <= talDafOf_(t.last); d++) {
-      const i = Math.max(t.first, 2 * d - 2), c = talChapterAt_(t, i), ch = t.chapters[c];
+    for (let i = t.first; i <= t.last; i++) {
+      const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
       list.push({
-        kind: 'talmud', key: 'tal:' + t.slug + ':' + d, name: t.en + ' ' + d, image: '', row: null, shelf: shelf,
-        sub: t.he + ' ' + talHeb_(d) + ' · ' + 'פרק ' + ch.he,
-        talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d),
+        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf,
+        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: SCRIPTURE_MIN_AGE,
+        talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d), talSide: 'Side ' + side,
         text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
-        tal: { slug: t.slug, d: d, first: i },
+        tal: { slug: t.slug, d: d, i: i },
       });
     }
   });
@@ -84,25 +87,38 @@ function talmudItems_() {
   return list;
 }
 
+/* THE TEXT SIZE, the viewer's own: a factor on the page's fitted size, kept on this device only. */
+const TAL_SCALE_KEY = 'tal:scale', TAL_SCALES = [0.6, 0.75, 0.9, 1, 1.15, 1.35, 1.6, 2];
+function talScale_() {
+  let v = 1;
+  try { v = Number(localStorage.getItem(TAL_SCALE_KEY)) || 1; } catch (e) {}
+  return TAL_SCALES.indexOf(v) >= 0 ? v : 1;
+}
+function talScaleSet_(by) {
+  const at = TAL_SCALES.indexOf(talScale_());
+  const v = TAL_SCALES[Math.max(0, Math.min(TAL_SCALES.length - 1, at + by))];
+  try { localStorage.setItem(TAL_SCALE_KEY, String(v)); } catch (e) {}
+  return v;
+}
+
+/* THE CARD: the tags, then the side itself — drawn when its file of ten dafim is here, the one loader until then. */
 function talmudCard_(x) {
   const t = x && x.tal ? talTractate_(x.tal.slug) : null;
+  if (!t) return `<div class="card fc tal" data-key="${esc(x.key)}">${tagRow_(x)}</div>`;
+  const i = x.tal.i, d = TALMUD.chunks[t.slug + '/' + talChunkOf_(i)] || null;
   return `<div class="card fc tal" data-key="${esc(x.key)}">
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
-    <p class="sub tal-he" lang="he" dir="rtl">${esc(x.sub)}</p>
-    <p class="fc-lede">${esc(TALMUD_NAME())}, ${t ? 'Seder ' + esc(t.seder) + ', ' : ''}the page as the Vilna edition
-      printed it: the Gemara in the middle, Rashi on the inner side and Tosafot on the outer.</p>
+    <article class="tal-page tal-card-page" dir="rtl" lang="he" data-t="${esc(t.slug)}" data-i="${i}" data-drawn="${d ? 1 : 0}"
+      aria-label="${esc(x.name)}">${talPage_(t, i, d)}</article>
   </div>`;
 }
 
-/* BOTH SIDES OF THE LEAF, a tile each; a side the tractate does not have (Tamid opens on 25b) is left out. */
+/* THE TEXT-SIZE TILES, one each way; the page grows downward and the card with it. */
 function talmudTiles_(x) {
   if (!x || !x.tal) return '';
-  const t = talTractate_(x.tal.slug);
-  if (!t) return '';
-  return [2 * x.tal.d - 2, 2 * x.tal.d - 1].filter(i => i >= t.first && i <= t.last).map(i =>
-    tile_({ icon: 'open', label: 'Page ' + x.tal.d + talSide_(i), note: talHeb_(x.tal.d) + (i % 2 ? ' :' : ' .'),
-      act: 'tal-open', data: { t: t.slug, i: i } })).join('');
+  const v = talScale_();
+  return tile_({ icon: 'down', label: 'Text −', note: 'smaller', act: 'tal-size', data: { by: -1 }, off: v <= TAL_SCALES[0] })
+    + tile_({ icon: 'up', label: 'Text +', note: 'larger', act: 'tal-size', data: { by: 1 }, off: v >= TAL_SCALES[TAL_SCALES.length - 1] });
 }
 
 /* ---------- THE TEXT OF ONE SIDE, from its file of ten dafim. */
@@ -175,7 +191,7 @@ function talLayout_(body) {
   const W = body.clientWidth;
   if (!W) return;
   const page = body.closest('.tal-page');
-  const fs = Math.max(11, Math.min(19, W / 40));
+  const fs = Math.max(4, Math.min(48, W / 40 * talScale_()));
   if (page) page.style.setProperty('--tal-fs', fs.toFixed(2) + 'px');
   const gap = Math.round(fs * 0.9), gW = Math.round(W * 0.46), s = Math.floor((W - gW) / 2 - gap);
   const aSide = body.classList.contains('tal-a');
@@ -208,82 +224,49 @@ function talLayout_(body) {
   body.style.height = Math.ceil(H) + 'px';
 }
 
-/* ---------- THE VIEW: one side at a time, in the sheet under the tile pressed (nothing opens over the app, 420). */
-const talBodyEl_ = () => document.querySelector('#sheet-body .tal-sheet');
-function talHtml_(t, i, d) {
-  const opts = [];
-  for (let n = talDafOf_(t.first); n <= talDafOf_(t.last); n++) opts.push(`<option value="${n}"${n === talDafOf_(i) ? ' selected' : ''}>${n} · ${talHeb_(n)}</option>`);
-  const p = Math.max(t.first, i - 1), q = Math.min(t.last, i + 1);
-  return `<div class="tal-sheet" aria-label="${esc(t.en + ' ' + talDafOf_(i) + talSide_(i))}"><div class="tal-bar">
-      <span class="tal-where">${esc(t.en)} ${talDafOf_(i)}${talSide_(i)}</span>
-      <button class="btn" data-do="tal-step" data-by="-1"${i <= t.first ? ' disabled' : ''} aria-label="Previous side">‹ ${talDafOf_(p)}${talSide_(p)}</button>
-      <label class="tal-jump"><select data-tal-jump aria-label="Daf">${opts.join('')}</select></label>
-      <button class="btn" data-do="tal-side" aria-label="Other side">Side ${i % 2 ? 'a' : 'b'}</button>
-      <button class="btn" data-do="tal-step" data-by="1"${i >= t.last ? ' disabled' : ''} aria-label="Next side">${talDafOf_(q)}${talSide_(q)} ›</button>
-    </div>
-    <article class="tal-page" dir="rtl" lang="he">${talPage_(t, i, d)}</article></div>`;
+/* ---------- THE PAGES IN A PANE, as the pane is reached (`paneReach_`): fetched then, laid out to the card's width. */
+function talCardsFit_(root) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.tal-card-page').forEach(el => {
+    const t = talTractate_(el.getAttribute('data-t')), i = Number(el.getAttribute('data-i'));
+    if (!t) return;
+    const k = t.slug + '/' + talChunkOf_(i), d = TALMUD.chunks[k];
+    if (d && el.getAttribute('data-drawn') !== '1') { el.innerHTML = talPage_(t, i, d); el.setAttribute('data-drawn', '1'); }
+    if (d) {
+      const body = el.querySelector('.tal-body');
+      talLayout_(body);
+      try { document.fonts && document.fonts.ready.then(() => talLayout_(body)); } catch (e) {}
+      return;
+    }
+    if (TALMUD.missed[k] && !TALMUD.loading[k]) { el.innerHTML = talPage_(t, i, null); return; }
+    talLoad_(t.slug, i).then(got => {
+      if (!el.isConnected) return;
+      el.setAttribute('data-drawn', '0');
+      if (!got) { el.innerHTML = talPage_(t, i, null); return; }
+      talCardsFit_(el.parentElement);
+      const pane = el.closest('.pane');
+      if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
+    });
+  });
 }
-function talDraw_(el) {
-  const at = TALMUD.at;
-  if (!at) return;
-  const t = talTractate_(at.slug);
-  if (!t) return;
-  const i = at.i, k = t.slug + '/' + talChunkOf_(i), d = TALMUD.chunks[k] || null;
-  const html = talHtml_(t, i, d), here = talBodyEl_();
-  if (here && !el) {
-    here.outerHTML = html;
-    const ti = document.getElementById('sheet-title');
-    if (ti) ti.textContent = TALMUD_NAME();
-  } else {
-    if (el) sheetHere_(el);
-    openSheet(TALMUD_NAME(), html, () => { TALMUD.at = null; });
-  }
-  if (d) {
-    const body = document.querySelector('#sheet-body .tal-body');
-    talLayout_(body);
-    try { document.fonts && document.fonts.ready.then(() => talLayout_(body)); } catch (e) {}
-  } else if (!TALMUD.missed[k] || TALMUD.loading[k]) {
-    talLoad_(t.slug, i).then(() => { if (TALMUD.at && TALMUD.at.slug === at.slug && TALMUD.at.i === i && talBodyEl_()) talDraw_(); });
-  }
-}
-function talmudOpen_(slug, i, el) {
-  const t = talTractate_(slug);
-  if (!t) return;
-  TALMUD.at = { slug: slug, i: Math.max(t.first, Math.min(t.last, Number(i) || t.first)) };
-  talDraw_(el || null);
-}
-function talClose_() {
-  if (TALMUD.at && talBodyEl_()) closeSheet();
-  TALMUD.at = null;
-}
-function talGo_(i) {
-  if (!TALMUD.at) return;
-  const t = talTractate_(TALMUD.at.slug);
-  if (!t) return;
-  TALMUD.at.i = Math.max(t.first, Math.min(t.last, i));
-  talDraw_();
-}
+const talAllFit_ = () => { if (typeof document !== 'undefined') document.querySelectorAll('.tal-card-page .tal-body').forEach(talLayout_); };
 
-on('tal-open', el => talmudOpen_(el.getAttribute('data-t'), Number(el.getAttribute('data-i')), el));
-on('tal-step', el => { if (TALMUD.at) talGo_(TALMUD.at.i + Number(el.getAttribute('data-by') || 0)); });
-on('tal-side', () => { if (TALMUD.at) talGo_(TALMUD.at.i % 2 ? TALMUD.at.i - 1 : TALMUD.at.i + 1); });
-on('tal-retry', () => {
-  if (!TALMUD.at) return;
-  const k = TALMUD.at.slug + '/' + talChunkOf_(TALMUD.at.i);
-  TALMUD.missed[k] = false;
-  talDraw_();
+on('tal-size', el => {
+  talScaleSet_(Number(el.getAttribute('data-by')) || 0);
+  talAllFit_();
+  /* THE TILES SAY WHICH WAY IS LEFT: redrawn where they stand. */
+  if (typeof document !== 'undefined') document.querySelectorAll('.card.tal').forEach(c => {
+    const x = (typeof talmudItems_ === 'function' ? talmudItems_() : []).find(y => y.key === c.getAttribute('data-key'));
+    const wrap = c.parentElement && c.parentElement.classList.contains('favwrap') ? c.parentElement : null;
+    const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row') ? wrap.nextElementSibling : null;
+    if (x && row) row.outerHTML = cardTiles_(x);
+  });
 });
-if (typeof document !== 'undefined') {
-  document.addEventListener('change', e => {
-    const s = e.target && e.target.closest ? e.target.closest('#sheet-body select[data-tal-jump]') : null;
-    if (s && TALMUD.at) { const t = talTractate_(TALMUD.at.slug); talGo_(Math.max(t.first, 2 * Number(s.value) - 2)); }
-  });
-  document.addEventListener('keydown', e => {
-    if (!TALMUD.at || !talBodyEl_()) return;
-    if (e.key === 'Escape') talClose_();
-    /* A HEBREW BOOK TURNS LEFTWARDS: the left arrow is the next side. */
-    else if (e.key === 'ArrowLeft') talGo_(TALMUD.at.i + 1);
-    else if (e.key === 'ArrowRight') talGo_(TALMUD.at.i - 1);
-  });
-  window.addEventListener('resize', () => { const b = document.querySelector('#sheet-body .tal-body'); if (b) talLayout_(b); });
-}
+on('tal-retry', el => {
+  const page = el && el.closest ? el.closest('.tal-card-page') : null;
+  if (!page) return;
+  TALMUD.missed[page.getAttribute('data-t') + '/' + talChunkOf_(Number(page.getAttribute('data-i')))] = false;
+  page.setAttribute('data-drawn', '0');
+  talCardsFit_(page.parentElement);
+});
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', talAllFit_);

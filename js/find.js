@@ -132,26 +132,28 @@ const KINDS = {
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
   /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
-  content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
+  content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
-  insert: { group: 'Learning', label: 'Content', card: x => insertCard_(x) },
-  /* THE HISTORY DATABASE (459): three kinds, Content on the History shelf as boxers are on Boxing's; `histKind` says which. */
-  manuscript: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
-  figure: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
-  writing: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
+  /* THE HISTORY DATABASE (459): three kinds, Library on the History shelf as boxers are on Boxing's; `histKind` says which. */
+  manuscript: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  figure: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  writing: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
-  event: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
-  timeline: { group: 'Learning', label: 'Content', card: x => histTimelineCard_(x) },
+  event: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  timeline: { group: 'Learning', label: 'Library', card: x => histTimelineCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
-  boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
+  boxer: { group: 'Learning', label: 'Library', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Learning', label: 'Content', card: x => fightCard_(x) },
+  fight: { group: 'Learning', label: 'Library', card: x => fightCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
-  bible: { group: 'Learning', label: 'Content', card: x => bibleCard_(x) },
+  bible: { group: 'Learning', label: 'Library', card: x => bibleCard_(x) },
   /* THE TALMUD (473): one item a daf, its page drawn by js/talmud.js. */
-  talmud: { group: 'Learning', label: 'Content', card: x => talmudCard_(x) },
+  talmud: { group: 'Learning', label: 'Library', card: x => talmudCard_(x) },
+  /* THE QURAN (490): one card a verse. */
+  quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -272,7 +274,8 @@ function kindMap_() {
       group: asList_(s && s.group).length ? s.group : base.group,
       /* A KIND THE SHEET INVENTED AND DID NOT NAME falls back to the kind itself rather than to
          `undefined`, which would print as an empty answer in the second question. */
-      label: (s && s.label) || base.label || k,
+      /* `Content` IS `Library` NOW (490): the owner, "it's the library for all the resources" -- a sheet still saying the old word is read as the new. */
+      label: ((s && s.label) === 'Content' ? 'Library' : (s && s.label)) || base.label || k,
       at:    facetNum_(s && s.order, (i + 1) * 10),
     });
   });
@@ -386,6 +389,9 @@ const FACETS = [
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
   { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
+  /* THE TITLE THE FIGHT CARD LOST (490) said who won and which night: tags now, like everything else. */
+  { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
+  { field: 'boutEvent', label: 'Event',       of: x => (x.kind === 'fight' && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   { field: 'histKind',  label: 'Manuscripts, figures, writings or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
@@ -402,6 +408,14 @@ const FACETS = [
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
   { field: 'talChapter', label: 'Chapter',    of: x => x.talChapter || '' },
   { field: 'talDaf',    label: 'Daf',         of: x => x.talDaf || '' },
+  /* EACH SIDE A CARD (490), so the side is asked like any other tag. */
+  { field: 'talSide',   label: 'Side',        of: x => x.talSide || '' },
+  /* THE QURAN'S (490): ordinary tags on every verse. */
+  { field: 'quranSurah', label: 'Surah',      of: x => x.quranSurah || '' },
+  { field: 'quranAyah', label: 'Ayah',        of: x => x.quranAyah || '' },
+  { field: 'quranJuz',  label: 'Juz',         of: x => x.quranJuz || '' },
+  { field: 'quranPlace', label: 'Revealed',   of: x => x.quranPlace || '' },
+  { field: 'quranSajda', label: 'Prostration', of: x => x.quranSajda || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -970,7 +984,6 @@ function fightCard_(x) {
                     : !!(f.winner && norm(f.winner) === norm(f.a));
   const wonB = byId ? String(f.winnerId) === String(f.bId)
                     : !!(f.winner && norm(f.winner) === norm(f.b));
-  const corner = (name, won) => `<span class="fight-who${won ? ' won' : ''}">${esc(name)}</span>`;
 
   /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
      printed them as two rows would be a form rather than a result. */
@@ -992,10 +1005,8 @@ function fightCard_(x) {
      profile's rule, so the two cards cannot credit the same picture two ways. */
   const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
     boxerCredit_(bx, 'Photo of ' + bx.name + ': ' + bx.imageCredit.replace(/^photo:\s*/i, '')));
-  return `<div class="card fc fight">
-    <div class="fc-head">
-      <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
-    </div>
+  /* NO "A v B" TITLE (490): the owner, "it's redundant: just have the tags of both boxes' names" -- the Fighter, Winner and Event tags say it. */
+  return `<div class="card fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">
     ${/* THE FACTS ARE THE TAGS (445) — fighters, month, year, weight, round, result — so no line repeats them; the picture last, as a question's. */
       tagRow_(x)}
     ${bout || how2 ? `<p class="fc-meta">${esc([bout, how2].filter(Boolean).join(' · '))}</p>` : ''}
@@ -1008,6 +1019,14 @@ function fightCard_(x) {
   </div>`;
 }
 
+/* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
+function boutWinner_(x) {
+  const f = x && x.kind === 'fight' ? x.row : null;
+  if (!f) return '';
+  if (f.winnerId && String(f.winnerId) === String(f.aId)) return f.a || '';
+  if (f.winnerId && String(f.winnerId) === String(f.bId)) return f.b || '';
+  return String(f.winner || '').trim();
+}
 /* A BOUT'S MONTH AND YEAR, off its `YYYY-MM-DD` date; blank for anything else. */
 function boutDate_(x) {
   const m = x && x.kind === 'fight' && x.row ? /^(\d{4})(?:-(\d{2}))?/.exec(String(x.row.date || '')) : null;
@@ -1437,7 +1456,7 @@ function insLanded_() {
     else el.innerHTML = insSay_(r);
   });
 }
-/* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Content, found like any card. */
+/* NO INSERT TILE ON A QUESTION (463): the owner, "they can open it in their 2nd finder" -- an insert is Library, found like any card. */
 const insertRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
 /* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
 function insertSheet_(r) {
@@ -1568,7 +1587,7 @@ function histLinks_(r) {
 }
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
 
-/* THE ITEM: Content, on the History shelf, as boxers are on Boxing's. */
+/* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
 function histItem_(kind, r) {
   const fig = kind === 'figure';
   const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
@@ -1601,6 +1620,89 @@ const HIST_LINES = {
     ['Public-domain translations', 'pd_translation']],
   event: [['Date', 'date_text'], ['Places', 'places'], ['Theatre', 'theatre'], ['Part of', 'era'], ['What happened', 'summary']],
 };
+/* ---------- A MANUSCRIPT AS IT LOOKS (490): an original drawing, not a photograph — the real text in its script, clipped to the
+   surviving shape. `keep` is each line's surviving letters [from, to); none, a whole leaf. */
+const MS_LOOK = {
+  'MS-0001': { stuff: 'papyrus', cols: 1, keep: [[0, 10], [11, 25], [10, 23], [9, 24], [11, 25], [12, 18]],
+    lines: ['ΟΙΙΟΥΔΑΙΟΙΗΜΕΙΝΟΥΚΕΞΕΣΤΙΝΑΠΟΚΤΕΙΝΑΙ', 'ΟΥΔΕΝΑΙΝΑΟΛΟΓΟΣΤΟΥΙΗΣΟΥΠΛΗΡΩΘΗΟΝΕΙ', 'ΠΕΝΣΗΜΑΙΝΩΝΠΟΙΩΘΑΝΑΤΩΗΜΕΛΛΕΝΑΠΟ',
+      'ΘΝΗΣΚΕΙΝΙΣΗΛΘΕΝΟΥΝΠΑΛΙΝΕΙΣΤΟΠΡΑΙΤΩ', 'ΡΙΟΝΟΠΙΛΑΤΟΣΚΑΙΕΦΩΝΗΣΕΝΤΟΝΙΗΣΟΥΝ', 'ΚΑΙΕΙΠΕΝΑΥΤΩΣΥΕΙΟΒΑΣΙΛΕΥΣΤΩΝΙΟΥ'],
+    what: 'John 18:31–33 in Greek uncials, as the recto keeps it' },
+  'MS-0002': { stuff: 'parchment', cols: 2, keep: null,
+    lines: ['ΕΝΑΡΧΗΗΝΟΛΟΓΟΣ', 'ΚΑΙΟΛΟΓΟΣΗΝΠΡΟΣ', 'ΤΟΝΘΝΚΑΙΘΣΗΝΟ', 'ΛΟΓΟΣΟΥΤΟΣΗΝΕΝ', 'ΑΡΧΗΠΡΟΣΤΟΝΘΝ', 'ΠΑΝΤΑΔΙΑΥΤΟΥ', 'ΕΓΕΝΕΤΟΚΑΙΧΩ',
+      'ΡΙΣΑΥΤΟΥΕΓΕΝΕ', 'ΤΟΟΥΔΕΕΝΟΓΕ', 'ΓΟΝΕΝΕΝΑΥΤΩ', 'ΖΩΗΗΝΚΑΙΗΖΩΗ', 'ΗΝΤΟΦΩΣΤΩΝΑΝ', 'ΘΡΩΠΩΝΚΑΙΤΟ', 'ΦΩΣΕΝΤΗΣΚΟΤΙΑ',
+      'ΦΑΙΝΕΙΚΑΙΗΣΚΟ', 'ΤΙΑΑΥΤΟΟΥΚΑΤΕ'],
+    what: 'John 1:1–5 in two columns of Greek uncials, as a page of the codex sets them' },
+};
+/* THE DRAWING. A seeded wobble, so the torn edge is the same on every phone and every visit. */
+function msFragSvg_(r) {
+  const L = MS_LOOK[r.id];
+  if (!L) return '';
+  let seed = 7;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const W = 300, lh = 21, top = 26, pad = 18, cols = L.cols || 1, per = Math.ceil(L.lines.length / cols);
+  const colW = (W - pad * 2 - (cols - 1) * 16) / cols, H = top + per * lh + 18;
+  const chars = Math.max(...L.lines.map(l => l.length));
+  const cx = (c, col) => pad + col * (colW + 16) + c / chars * colW;
+  let edge;
+  if (L.keep) {
+    const left = [], right = [];
+    L.keep.forEach((k, i) => {
+      const y0 = top + i * lh - 16, y1 = y0 + lh;
+      right.push([cx(k[1], 0) + 4 + rnd() * 6, y0 + rnd() * 4], [cx(k[1], 0) + rnd() * 8, y1 - rnd() * 4]);
+      left.unshift([cx(k[0], 0) - 4 - rnd() * 6, y1 - rnd() * 4], [cx(k[0], 0) - rnd() * 8, y0 + rnd() * 4]);
+    });
+    /* A TEAR, NOT A STAIRCASE: each side eased between lines and broken into short jagged steps. */
+    const tear = pts => {
+      const soft = pts.map((p, i) => [(pts[Math.max(0, i - 1)][0] + p[0] * 2 + pts[Math.min(pts.length - 1, i + 1)][0]) / 4, p[1]]);
+      const out = [];
+      soft.forEach((p, i) => {
+        out.push(p);
+        const q = soft[i + 1];
+        if (q) for (let k = 1; k < 4; k++) out.push([p[0] + (q[0] - p[0]) * k / 4 + (rnd() - .5) * 5, p[1] + (q[1] - p[1]) * k / 4]);
+      });
+      return out;
+    };
+    const topY = top - 18, botY = top + (L.keep.length - 1) * lh + 8;
+    const r2 = tear(right), l2 = tear(left);
+    const across = (a, b, y) => Array.from({ length: 6 }, (_, k) => [a + (b - a) * (k + 1) / 7, y + (rnd() - .5) * 4]);
+    edge = [[l2[l2.length - 1][0], topY]].concat(across(l2[l2.length - 1][0], r2[0][0], topY), [[r2[0][0], topY]], r2,
+      [[r2[r2.length - 1][0], botY]], across(r2[r2.length - 1][0], l2[0][0], botY), [[l2[0][0], botY]], l2);
+  } else {
+    const w = W - 4, h = H - 4, pts = [];
+    for (let i = 0; i <= 10; i++) pts.push([2 + w * i / 10, 2 + rnd() * 3]);
+    for (let i = 1; i <= 10; i++) pts.push([w - rnd() * 3, 2 + h * i / 10]);
+    for (let i = 9; i >= 0; i--) pts.push([2 + w * i / 10 + (i > 7 ? -rnd() * 10 : 0), h - rnd() * 3 - (i > 7 ? 12 : 0)]);
+    for (let i = 9; i >= 1; i--) pts.push([2 + rnd() * 3, 2 + h * i / 10]);
+    edge = pts;
+  }
+  const d = 'M' + edge.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+  const id = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
+  const fibres = L.stuff === 'papyrus'
+    ? Array.from({ length: Math.ceil(H / 5) }, (_, i) => `<line x1="0" x2="${W}" y1="${i * 5 + rnd() * 2}" y2="${i * 5 + rnd() * 2}"/>`).join('')
+    : '';
+  const text = L.lines.map((l, i) => {
+    const col = Math.floor(i / per), row = i % per;
+    return `<text x="${cx(0, col).toFixed(1)}" y="${top + row * lh}" textLength="${(l.length / chars * colW).toFixed(1)}" lengthAdjust="spacingAndGlyphs">${esc(l)}</text>`;
+  }).join('');
+  return `<figure class="hdb-ms hdb-ms-${L.stuff}">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('A drawing of ' + (r.name || 'the manuscript') + ': ' + L.what)}">
+      <defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
+      <g clip-path="url(#${id})"><rect class="mfr-leaf" width="${W}" height="${H}"/><g class="mfr-fibre">${fibres}</g><g class="mfr-ink">${text}</g></g>
+      <path class="mfr-edge" d="${d}"/>
+    </svg>
+    <figcaption>${esc(L.what)} — a drawing after the original, not a photograph</figcaption>
+  </figure>`;
+}
+/* THE LINES THE FACTS LINE ALREADY SAYS, left out of the list under it. */
+const MS_SAID = ['Repository', 'City', 'Date'];
+/* THE FACTS UNDER IT, one short line: when and where it was found, when it is dated to, where it is held. */
+function msFacts_(r) {
+  const found = histList_(r.provenance)[0] || '';
+  const held = [r.repository, r.city].filter(Boolean).join(', ');
+  return [found ? 'Found: ' + found : '', r.date_text ? 'Dated: ' + r.date_text : '', held ? 'Held: ' + held : '']
+    .filter(Boolean).map(esc).join(' · ');
+}
+
 function histCard_(x) {
   const r = x.row || {};
   const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
@@ -1609,6 +1711,18 @@ function histCard_(x) {
     label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
     .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
+  /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
+  const look = x.kind === 'manuscript' ? msFragSvg_(r) : '';
+  if (look) {
+    return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">
+    ${tagRow_(x)}
+    ${look}
+    <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
+    <section class="fc-sec hdb-lines"><dl>${rows.filter(l => MS_SAID.indexOf(l[0]) < 0).map(l => `<div><dt>${esc(l[0])}</dt><dd>${
+      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
+  </div>`;
+  }
   return `<div class="card fc hdb">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
@@ -1677,6 +1791,8 @@ FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1
 
 /* ---------- WHO IS SHOWN IT § */
 const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
+/* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
+const SCRIPTURE_MIN_AGE = 18;
 
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
@@ -1899,7 +2015,7 @@ function bibleItems_() {
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. § */
   const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF,
-              text: BIBLE_WORDS, row: null };
+              text: BIBLE_WORDS, row: null, min_age: SCRIPTURE_MIN_AGE };
   x.holds = words => bibleHolds_(x, words);
   BIBLE.item = x;
   return [x];
@@ -8480,13 +8596,25 @@ let ALL_MEMO = { key: null, from: null, items: null };
 
 /* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. § */
 const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
-  + (typeof bibleFor_ === 'function' && bibleFor_() ? '+bible' : '');
+  + (typeof bibleFor_ === 'function' && bibleFor_() ? '+bible' : '') + '@' + viewerAgeCapKey_();
+
+/* ---------- AN AGE LIMIT ON ANY ITEM (490): `min_age` on the item or its row. Under it, of no known age or signed out, it is
+   not listed and so cannot be opened; an admin sees all (`viewerAgeCap_`, games.js). */
+const viewerAgeCapKey_ = () => { try { return String(typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0); } catch (e) { return '0'; } };
+const itemMinAge_ = x => Number((x && (x.min_age || (x.row && x.row.min_age))) || 0) || 0;
+function itemAgeOk_(x) {
+  const m = itemMinAge_(x);
+  if (!m) return true;
+  try { return (typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0) >= m; } catch (e) { return false; }
+}
+/* WHETHER THIS VIEWER MAY HAVE A WHOLE SHELF OF A GIVEN AGE, asked before its files are even fetched (the Talmud, the Quran). */
+const viewerOfAge_ = m => itemAgeOk_({ min_age: m });
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER § */
 function stuffItemsAll_() {
   const key = itemMemoKey_();
   if (ALL_MEMO.from === DATA && ALL_MEMO.key === key) return ALL_MEMO.items;
-  const built = stuffItemsRaw_();
+  const built = stuffItemsRaw_().filter(itemAgeOk_);
   ALL_MEMO = { key: key, from: DATA, items: built };
   return built;
 }
@@ -8555,7 +8683,7 @@ function findPlaceBack_(F) {
 /* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER § */
 const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 /* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
-const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts'], documentType: ['Insert'] };
+const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts', 'Content'], documentType: ['Insert'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
@@ -8740,6 +8868,9 @@ function stuffItemsRaw_() {
 
     /* ---------- THE TALMUD (473), once its index has come */
     ...(typeof talmudItems_ === 'function' ? talmudItems_() : []),
+
+    /* ---------- THE QURAN (490), one item a verse, once its index has come */
+    ...(typeof quranItems_ === 'function' ? quranItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -9956,7 +10087,7 @@ const TAG_OF = {
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
-  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type',
+  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type', boutWinner: 'topic', boutEvent: 'board',
   fighter: 'topic', boutMonth: 'sitting', boutYear: 'sitting', boutRound: 'paper',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
@@ -9975,7 +10106,8 @@ const TAG_OF = {
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
   /* THE TALMUD'S (473), the same way. */
-  talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper',
+  talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
+  quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -10142,6 +10274,8 @@ function stuffKeepPlace_(host, d) {
 function paintStuff(keepPage) {
   /* THE TALMUD'S INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473), never by a widget drawing the list ahead. */
   if (typeof talmudIndex_ === 'function') talmudIndex_();
+  /* AND THE QURAN'S (490), the same way. */
+  if (typeof quranIndex_ === 'function') quranIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
@@ -10322,6 +10456,8 @@ function paneReach_(panes) {
     if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
     if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
+    /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */
+    if (typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
     /* AND A CARD WITH A FIGURE IN IT GIVES WAY THE SAME WAY -- `cardFigFit_`, the sheet's answer for a picture (356): § */
     list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
     /* ---------- AND A CARD WITH A FIGURE IN IT IS NEVER DRAWN SMALLER WHOLE § */
