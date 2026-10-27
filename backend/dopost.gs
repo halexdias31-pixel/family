@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-zb-report";
+const DOPOST_VERSION = "2026-10-27-zc-push";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -132,6 +132,9 @@ function doPost(e) {
         || (action === 'move' && KID_MONEY_MOVES.indexOf(norm(body.move)) !== -1))) {
       return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
     }
+
+    /* PHONE NOTIFICATIONS (492): the card's four actions, all in push.gs. */
+    if (action === 'pushState' || action === 'pushSubscribe' || action === 'pushUnsubscribe' || action === 'pushSet') return jsonOut(pushAction_(action, body));
 
     /* register ------------------------------------------------------------------------------ Anyone may create a STUDENT or a CLIENT (parent) account. § */
     /* ---------- WHO THE ACCOUNT IS FOR IS ASKED, AND THE ANSWER IS THE ROLE § */
@@ -1218,6 +1221,11 @@ function doPost(e) {
         active: 'TRUE',
       });
       clearCache();
+      /* THE POST'S AUTHOR HEARS OF A REPLY (492) — not of their own. */
+      const author = post && S(post.author) ? findPerson(S(post.author)) : null;
+      if (author && S(author.person_id) !== S(me.person_id)) {
+        pushTo_(author, 'posts', personDisplayName(me) + ' replied to your post', text, 'post:' + S(body.postId));
+      }
       return jsonOut({ success: true, commentId: id });
     }
 
@@ -1368,6 +1376,7 @@ function doPost(e) {
       notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
         (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
         + extra + '\n\n— reply on the site.', 'messages');
+      pushTo_(to, 'messages', personDisplayName(me), text || 'Sent you a file.', 'dm:' + S(me.person_id));
 
       return jsonOut({ success: true, id: id, attachments: saved.list });
     }
@@ -2466,6 +2475,8 @@ function doPost(e) {
       } finally {
         lock.releaseLock();
       }
+      clients.forEach(c => pushTo_(c.name, 'bookings', (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
+        tutorName + (yes ? ' accepted. Open to pay and confirm.' : ' cannot take it.'), 'job:' + (S(j.job_id) || String(j._row))));
       clients.forEach(c => notify(c.name,
         (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
         tutorName + (yes ? ' accepted your request for ' + S(j.subject) + '.\n\nLog in to @family. to pay and confirm.'
@@ -2608,6 +2619,8 @@ function doPost(e) {
         '• Total: £' + S(body.price) + '\n\n— @family.', 'booked');
       /* ---------- AND THE NAMED TUTOR'S — `booked` TOO, WHICH THE SURVEY OF 9 OCT HAD AS OPTIONAL § */
       if (named) {
+        pushTo_(S(body.requestedTutor), 'bookings', 'New request: ' + S(body.subject),
+          me + ' · ' + S(body.day) + ' ' + fmtTime(body.time), 'job:' + jobId);
         notify(S(body.requestedTutor),
           'New request: ' + S(body.subject) + ' — ' + me,
           me + ' has requested you.\n\n' +
