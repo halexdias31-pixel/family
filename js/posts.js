@@ -329,7 +329,7 @@ function postsBlocks() {
 
   const posts = feedPosts();
   /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED § */
-  const festive = (DATA.festive || []).map(festiveCard);
+  const festive = (DATA.festive || []).map(f => typeof itemMark_ === 'function' ? itemMark_('item:feed:festive', 'feed', festiveCard(f)) : festiveCard(f)).filter(Boolean);
 
 
   /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
@@ -1813,7 +1813,8 @@ function camCardRedraw_() {
   const card = document.querySelector('#s-feed .cam-card') || document.querySelector('.cam-card');
   if (!card) return false;
   const box = document.createElement('div');
-  box.innerHTML = cameraCard();
+  box.innerHTML = camItem_(cameraCard());
+  if (!box.firstElementChild) { card.remove(); return true; }
   card.replaceWith(box.firstElementChild);
   return true;
 }
@@ -2008,7 +2009,10 @@ on('post-delete', el => {
 /* ---------- MAKING ONE § */
 /* ONE PAGE, AND IT IS THE CAMERA. § */
 /* ---------- IT WAS A COLUMN, AND IT IS ONE PAGE OF THE FEED NOW § */
-function feedCamCard_() {
+/* THE CAMERA IS AN ITEM (487): an admin's Delete and Note on it, and gone for everyone once deleted. */
+const camItem_ = h => typeof itemMark_ === 'function' ? itemMark_('item:feed:camera', 'feed', h) : h;
+function feedCamCard_() { return camItem_(feedCamCard0_()); }
+function feedCamCard0_() {
   /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
   if (USER && !mayUpload_()) {
     return `<div class="card cam-kid"><h3>Camera</h3>
@@ -2030,7 +2034,7 @@ function feedColumn_() {
   const blocks = postsBlocks();
   if (!LOADED || !Array.isArray(blocks)) return blocks;
   const at = feedCamAt_();
-  return blocks.slice(0, at).concat([feedCamCard_()], blocks.slice(at));
+  return blocks.slice(0, at).concat([feedCamCard_()].filter(Boolean), blocks.slice(at));
 }
 screen('feed', () => pages('feed', feedColumn_()));
 
@@ -2620,12 +2624,12 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return [daivePage_(), { name: '', html: `<div class="card"><h3>Messages</h3>
+  if (!threads.length) return daivePages_().concat([{ name: '', html: `<div class="card"><h3>Messages</h3>
     ${MSG_FAILED
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
          <button class="btn quiet" data-do="dm-refresh">Try again</button>`
-      : emptyMessages_}</div>` }];
+      : emptyMessages_}</div>` }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2633,7 +2637,7 @@ function dmPages_() {
   threads.forEach(t2 => markRead_(t2.msgs));
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
-  return [daivePage_()].concat(threads.map(t => ({
+  return daivePages_().concat(threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
       <div class="dm-head">${dmFace_(t)}
@@ -2709,12 +2713,15 @@ function daiveHtml_() {
     </div>
   </div>`;
 }
-function daivePage_() { return { name: DAIVE, html: daiveHtml_() }; }
+/* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
+const daiveItem_ = () => typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
+function daivePage_() { return { name: DAIVE, html: daiveItem_() }; }
+const daivePages_ = () => [daivePage_()].filter(p => p.html);
 /* REDRAWN IN PLACE, and the column forgets what it drew, so a later paint never judges against the old card. */
 function asstRedraw_() {
   const col = $('s-dm'), card = col && col.querySelector('[data-daive]');
   if (!card) return;
-  card.outerHTML = daiveHtml_();
+  card.outerHTML = daiveItem_() || '<span hidden></span>';
   const body = col.querySelector('[data-daive] .msg-body');
   if (body) body.scrollTop = body.scrollHeight;
   try { col.DRAWN = null; } catch (e) {}

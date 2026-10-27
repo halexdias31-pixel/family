@@ -355,7 +355,7 @@ const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acc
 const cardReg_ = id => CARD_REG.find(r => r.id === id);
 /* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
 /* A SPLIT CARD'S PIECE is `<card>#<field>` (466); a progress series card is `prog:series:<name>`. */
-const CARD_DYN = /^((set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
+const CARD_DYN = /^(item:[a-z]+:[A-Za-z0-9_.-]{1,48}|(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)(#[A-Za-z0-9_.-]{1,40})?|prog:series:[A-Za-z0-9_.-]{1,48})$/;
 const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
 function cardHome0_(id) {
   const r = cardReg_(id);
@@ -535,6 +535,15 @@ function cardAdminRow_(id, col, mergeable) {
     notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }), noteTile_(id, col, ''))}</div>`;
 }
 
+/* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
+const itemGone_ = id => { try { return ((layoutNow_() || {}).deleted || []).indexOf(id) !== -1; } catch (e) { return false; } };
+function itemMark_(id, col, html) {
+  if (!html || itemGone_(id)) return '';
+  if (!layoutIsAdmin_()) return html;
+  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
+    tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}${noteTile_(id, col, '')}</div>`);
+}
+
 /* ---------- NOTES FOR CLAUDE (484): "add a tile on each widget I click then I write a prompt for what I want to edit" ----------
    Kept in the Ledger's `claude_notes` and the Drive file "Notes for Claude", where a session reads them. */
 function noteOpen_(id) { return ((typeof DATA !== 'undefined' && DATA && DATA.claudeNotes) || []).filter(n => n && n.itemId === id); }
@@ -543,8 +552,8 @@ function noteTile_(id, col, label) {
   const n = noteOpen_(id).length;
   return tile_({ icon: 'pen', label: 'Note for Claude', note: n ? n + ' open' : '', act: 'ncl-open', tone: 'admin', data: { ci: id, col: col, cl: label } });
 }
-/* DELETE AND THE NOTE WRAP TOGETHER, so the longer row never leaves the note alone under a full line (467's orphan rule). */
-function notePair_(del, note) { return del && note ? `<span class="tile-pair">${del}${note}</span>` : del + note; }
+/* DELETE THEN THE NOTE, in the one flow (487). */
+function notePair_(del, note) { return del + note; }
 /* THE THING'S OWN TITLE, so the note names what a person sees and not only its id. */
 function noteLabelOf_(el, id) {
   const said = el.getAttribute('data-cl');
