@@ -266,6 +266,13 @@ Follow it. It is unusual and it is deliberate.
   ones as "Not deployed".
 
 
+## Notes for Claude
+
+When the owner says "read my notes", open the Drive file "Notes for Claude" (plain text, in the `family-library-imports`
+folder; or the Ledger tab `claude_notes`) and work through the open ones. Each block is
+`[note_id] column › item_label (item_id) — date` then the note; `item_id` is the widget's or card's layout id. The owner
+marks one done from its Done tile on the site. See docs/history/484.
+
 ## History
 
 The full record of past bugs and decisions (about 1.2 MB) lives in `docs/history/`, one file per topic, listed in `docs/history/README.md`. It is NOT loaded automatically. Before changing an area, `grep -ril <keyword> docs/history` and read the matching file: those notes record why the code is shaped the way it is and what was tried and reverted.

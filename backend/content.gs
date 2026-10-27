@@ -1697,6 +1697,30 @@ function libDriveFolder_() {
 function libDriveDone_(folder) {
   return libDriveFind_(folder.getFoldersByName(LIB_DRIVE_DONE)) || folder.createFolder(LIB_DRIVE_DONE);
 }
+/* ---------- NOTES FOR CLAUDE (484): every open row of `claude_notes`, newest first, and the plain-text file a session reads ---------- */
+function claudeNotesOpen_() {
+  const t = read(TAB.claude_notes);
+  if (!t.sheet) return [];
+  const at = v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0);
+  return t.rows.filter(r => S(r.note_id) && norm(r.status) !== 'done')
+    .map((r, i) => ({ id: S(r.note_id), at: at(r.made_at), by: S(r.made_by), column: S(r.column), itemId: S(r.item_id),
+                      itemLabel: S(r.item_label), note: S(r.note), _i: i }))
+    .sort((a, b) => (b.at - a.at) || (b._i - a._i)).map(r => { delete r._i; return r; });
+}
+/* THE WORDS OF THE FILE: one block per open note, so a session reads them all at once. */
+function claudeNotesText_(notes) {
+  const day = ms => ms ? Utilities.formatDate(new Date(ms), 'Europe/London', 'yyyy-MM-dd') : '';
+  const head = CLAUDE_NOTES_FILE + ' — the open notes from the site\'s Note for Claude tiles (Ledger tab claude_notes). Rewritten on every add and done.\n\n';
+  if (!notes.length) return head + 'No open notes.\n';
+  return head + notes.map(n => '[' + n.id + '] ' + (n.column || '?') + ' › ' + (n.itemLabel || n.itemId) + ' (' + n.itemId + ') — ' + day(n.at) + '\n' + n.note).join('\n\n') + '\n';
+}
+/* ONE FILE, BY EXACT TITLE, in the library imports folder a session already reaches (407); made if missing, else its words replaced. */
+function claudeNotesWrite_(notes) {
+  const folder = libDriveFolder_(), text = claudeNotesText_(notes || claudeNotesOpen_());
+  const f = libDriveFind_(folder.getFilesByName(CLAUDE_NOTES_FILE));
+  if (f) { f.setContent(text); return f.getId(); }
+  return folder.createFile(CLAUDE_NOTES_FILE, text, MimeType.PLAIN_TEXT).getId();
+}
 /* THE FILES WAITING: in the folder itself (not `imported`), named lib-import-<timestamp>.json, oldest name first. */
 function libDrivePending_(folder) {
   const out = [];

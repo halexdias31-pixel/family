@@ -30055,6 +30055,99 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
   return bad;
 });
 
+/* ---------- NOTES FOR CLAUDE (484): a Note for Claude tile on every widget and card for an admin; a box in place; Send, Done; the Ledger tab and the Drive file ---------- */
+const cnRow_ = (w, id) => (w.document.querySelector(`#wgt-${id}`)?.closest('.card')?.querySelector('.wgt-foot')) || null;
+check('notes for Claude (484): an admin has a Note for Claude tile on a widget and on a card, a client has none; it opens a box in place, a draft survives Cancel, Send posts the item id and title, the note is listed, Done hides it', async () => {
+  const notes = [];
+  const { w, sent } = layBoot_({ reply: b => {
+    if (b.action === 'claudeNoteAdd') { notes.unshift({ id: 'N-1', at: Date.now(), column: b.column, itemId: b.itemId, itemLabel: b.itemLabel, note: b.note }); return { success: true, id: 'N-1', notes: notes.slice() }; }
+    if (b.action === 'claudeNoteDone') { notes.splice(0); return { success: true, id: b.id, notes: [] }; }
+    return undefined;
+  } });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['ncl-open'] || !A['ncl-send'] || !A['ncl-done']) return ['no ncl-open / ncl-send / ncl-done — NOT checked'];
+  t.go('tools', false, true); await wait(300);
+  const a = layIds_(t, 'tool')[0];
+  const tile = cnRow_(w, a)?.querySelector('.wgt-admin [data-do="ncl-open"]');
+  if (!tile) return ['the first tool has no Note for Claude tile in its admin group'];
+  if (tile.getAttribute('aria-label') !== 'Note for Claude') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
+  await layPaintAll_(w);
+  const card = d.querySelector('.card-admin[data-lay-for] [data-do="ncl-open"]');
+  if (!card) bad.push('no right-hand card has a Note for Claude tile');
+  A['ncl-open'](tile); await wait(50);
+  const box = d.querySelector(`.ncl-box[data-cn="${a}"]`);
+  if (!box) return bad.concat(['Note for Claude opened no box']);
+  if (box.previousElementSibling !== cnRow_(w, a)) bad.push('the box is not in place under the tile row');
+  const ta = box.querySelector('textarea');
+  if (!ta || ta.getAttribute('placeholder') !== 'What should change here?') bad.push('the box has no "What should change here?" textarea');
+  if (!box.querySelector('[data-do="ncl-send"]') || !box.querySelector('[data-do="ncl-cancel"]')) bad.push('the box has no Send and Cancel tiles');
+  /* A DRAFT: typed, cancelled, opened again — the words are still there. */
+  ta.value = 'Make the title bigger'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
+  A['ncl-cancel'](box.querySelector('[data-do="ncl-cancel"]')); await wait(50);
+  if (d.querySelector(`.ncl-box[data-cn="${a}"]`)) bad.push('Cancel did not close the box');
+  A['ncl-open'](tile); await wait(50);
+  const box2 = d.querySelector(`.ncl-box[data-cn="${a}"]`), ta2 = box2 && box2.querySelector('textarea');
+  if (!ta2 || ta2.value !== 'Make the title bigger') bad.push('the draft did not survive Cancel: ' + (ta2 && ta2.value));
+  A['ncl-send'](box2.querySelector('[data-do="ncl-send"]')); await wait(200);
+  const post = sent.filter(x => x.action === 'claudeNoteAdd');
+  if (post.length !== 1) bad.push(post.length + ' claudeNoteAdd posts after one Send');
+  else {
+    if (post[0].itemId !== a) bad.push('the note went for ' + post[0].itemId + ', not ' + a);
+    if (!post[0].itemLabel || post[0].column !== 'tools' || post[0].note !== 'Make the title bigger') bad.push('the note went without its title, column or words: ' + JSON.stringify(post[0]));
+  }
+  const item = d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`);
+  if (!item || item.textContent.indexOf('Make the title bigger') === -1) bad.push('the sent note is not listed under the box');
+  if (ta2 && ta2.value) bad.push('the box kept the words after Send');
+  if (item) { A['ncl-done'](item.querySelector('[data-do="ncl-done"]')); await wait(200); }
+  if (sent.filter(x => x.action === 'claudeNoteDone').length !== 1) bad.push('Done sent no claudeNoteDone');
+  if (d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`)) bad.push('Done did not hide the note');
+  /* A CLIENT: no tile anywhere. */
+  const c = boot({ before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
+  await wait(300);
+  c.w.__t.go('tools', false, true); await wait(200); await layPaintAll_(c.w);
+  if (c.w.document.querySelector('[data-do="ncl-open"]')) bad.push('a client has a Note for Claude tile');
+  return bad;
+});
+check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with the item id and title and rewrites the Drive file "Notes for Claude"; a client is refused; doGet sends open notes to an admin only; Done takes it out of both', async () => {
+  const { backend } = require('./check-gas-load.js');
+  const files = [];
+  const iter = a => { let i = 0; return { hasNext: () => i < a.length, next: () => a[i++] }; };
+  const folder = { getFilesByName: n => iter(files.filter(f => f.name === n)), getFoldersByName: () => iter([]),
+    createFile: (n, text) => { const f = { name: n, text: text, getId: () => 'F' + files.length, setContent(t) { this.text = t; } }; files.push(f); return f; } };
+  const b = backend({ DriveApp: { getFolderById: () => null, getFileById: () => null, getFoldersByName: () => iter([folder]), createFolder: () => folder },
+    MimeType: { PLAIN_TEXT: 'text/plain' } });
+  const base = { pin: '0000', verified: 'TRUE', city: 'London' };
+  b.seed('people', [Object.assign({ person_id: 'P-A1', first_name: 'Hal', last_name: 'Admin', handle: 'hl2026', email: 'a1@example.org', role: 'admin' }, base),
+                    Object.assign({ person_id: 'P-C1', first_name: 'Cal', last_name: 'Client', handle: 'cl2026', email: 'c1@example.org', role: 'client' }, base)]);
+  const tk = {};
+  ['a1@example.org', 'c1@example.org'].forEach(e => { tk[e] = b.post({ action: 'verifyLogin', email: e, pin: '0000' }); });
+  const bad = [];
+  if (!tk['a1@example.org'].token) return ['the admin could not sign in — NOT checked'];
+  const as = (e, body) => b.post(Object.assign({ token: tk[e].token, personId: tk[e].personId || tk[e].person_id || '' }, body));
+  const no = as('c1@example.org', { action: 'claudeNoteAdd', itemId: 'clock', itemLabel: 'Clock', column: 'tools', note: 'x' });
+  if (!no.error) bad.push('a client could add a note');
+  const r = as('a1@example.org', { action: 'claudeNoteAdd', itemId: 'clock', itemLabel: 'Clock', column: 'tools', note: 'Bigger hands\nand a second line' });
+  if (!r.success) return bad.concat(['claudeNoteAdd failed: ' + r.error]);
+  const tab = b.tabs.claude_notes, h = tab[0], row = tab[1] || [];
+  const cell = k => row[h.indexOf(k)];
+  if (tab.length !== 2 || cell('item_id') !== 'clock' || cell('item_label') !== 'Clock' || cell('status') !== 'open' || cell('made_by') !== 'P-A1') bad.push('the row is not right: ' + JSON.stringify(row));
+  const f = files.find(x => x.name === 'Notes for Claude');
+  if (!f) bad.push('no Drive file called "Notes for Claude"');
+  else if (f.text.indexOf('[' + r.id + '] tools › Clock (clock) — ') === -1 || f.text.indexOf('Bigger hands\nand a second line') === -1) bad.push('the Drive file does not say the note: ' + f.text);
+  const ga = b.get({ token: tk['a1@example.org'].token }), gc = b.get({ token: tk['c1@example.org'].token });
+  if (!Array.isArray(ga.claudeNotes) || ga.claudeNotes.length !== 1 || ga.claudeNotes[0].itemId !== 'clock') bad.push('an admin\'s payload has not the open note: ' + JSON.stringify(ga.claudeNotes));
+  if ('claudeNotes' in gc) bad.push('a client\'s payload carries claudeNotes');
+  const dn = as('a1@example.org', { action: 'claudeNoteDone', id: r.id });
+  if (!dn.success || (dn.notes || []).length) bad.push('Done did not close it: ' + JSON.stringify(dn));
+  if (cell('status') !== 'done' || !cell('done_at')) bad.push('the row is not done: ' + JSON.stringify(tab[1]));
+  if (files.length !== 1) bad.push(files.length + ' Drive files, not one rewritten');
+  else if (files[0].text.indexOf('No open notes') === -1) bad.push('the Drive file still lists a done note: ' + files[0].text);
+  const ga2 = b.get({ token: tk['a1@example.org'].token });
+  if ((ga2.claudeNotes || []).length) bad.push('the payload still carries a done note');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

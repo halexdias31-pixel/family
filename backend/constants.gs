@@ -44,6 +44,8 @@ const WHERE = {
   reports:        { file: 'ledger' },
   /* AN APPLICATION TO TEACH (400) — the Ledger, because the app writes it. Admin-only to read; the applicant sees only their own status. */
   applications:   { file: 'ledger' },
+  /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
+  claude_notes:   { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
   spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
@@ -120,7 +122,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-z6-merge-above";
+const BACKEND_VERSION = "2026-10-27-z7-claude-notes";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -154,6 +156,8 @@ const TAB = {
   reports: 'reports',
   /* An application to teach — see SCHEMA.applications. */
   applications: 'applications',
+  /* A note for Claude on a widget or card — see SCHEMA.claude_notes. */
+  claude_notes: 'claude_notes',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -479,6 +483,12 @@ const SCHEMA = {
     "status", "status_at",
   ],
 
+  /* ---------- NOTES FOR CLAUDE (484): what the owner wants changed on one widget or card ----------
+     `status` is open or done; every open one is also written to the Drive file `CLAUDE_NOTES_FILE`. */
+  claude_notes: [
+    "note_id", "made_at", "made_by", "column", "item_id", "item_label", "note", "status", "done_at",
+  ],
+
   /* ---------- APPLICATIONS TO TEACH (400) ----------
      `status` is new, interview, approved or declined, set from the Business column; Approve makes the person Staff. */
   applications: [
@@ -673,6 +683,9 @@ const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
 const LAYOUT_KEY = 'layout';
 const LAYOUT_MAX = 8000;
+/* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
+const CLAUDE_NOTES_FILE = 'Notes for Claude';
+const CLAUDE_NOTE_MAX = 4000;
 
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
 const FILMS_FOLDER_NAME = 'notflix';
@@ -1556,6 +1569,8 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
+  /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
+  claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
   /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
