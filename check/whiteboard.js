@@ -309,7 +309,7 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       const n0 = (await items(env)).length, watch = frames(env, 900);
       if (how === 'tile') {
         const t = await env.page.evaluate(() => { const r = document.querySelector('#s-tools .nb-line').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
-        want(t[2] >= 44 && t[3] >= 44, 'the New line tile is a 44px target', JSON.stringify(t));
+        want(t[2] >= 22 && t[3] >= 22, 'the New line tile is the tile size (22px, 487)', JSON.stringify(t));
         await tapN(env, [t]);
       } else if (how === 'swipe') {
         const y = g.pad.t + g.py0 - g.xh * 0.5;
@@ -384,8 +384,8 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
     /* A FRACTION: what is written above the bar goes in its top, below in its bottom, beside it back on the line. */
     if (!(await fresh(env))) throw new Error('stop');
     {
-      const t = await env.page.evaluate(() => { const r = document.querySelector('#s-tools .nb-shape[data-shape="frac"]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
-      await tapN(env, [t]);
+      /* No Fraction tile since 491: a board that holds one is still written into, so put it down as the tile did. */
+      await env.page.evaluate(() => { const h = document.querySelector('#s-tools .nb-box'); nbShape_(h.NB, 'frac'); });
       await sleep(300);
       g = await geo(env);
       const at = (nx, ny) => [g.pad.l + (nx - g.x0) / g.S, g.pad.t + (ny - g.y0) / g.S + g.py0];

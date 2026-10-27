@@ -142,11 +142,10 @@ function gtasksCard_() {
       + row('One way: changes here reach Google; a tick in Google stays in Google.')
       + tileRow_(tile_({ icon: 'sync', label: 'Sync now', act: 'gtasks-sync' }) + tile_({ icon: 'out', label: 'Disconnect', act: 'gtasks-off' }), '', true);
   }
-  return `<div class="card gtasks-card"><h3>Google Tasks</h3>${body}${GT.err ? `<p class="faint gtasks-err">${esc(GT.err)}</p>` : ''}</div>`;
+  return `<div class="gtasks-card"><p class="k">Google Tasks</p>${body}${GT.err ? `<p class="faint gtasks-err">${esc(GT.err)}</p>` : ''}</div>`;
 }
-/* A REDRAW, not an in-place swap, so the layout's what-it-is-for line and admin row stay with the card. */
-function gtPaint_() { try { if (typeof repaint === 'function') repaint(true); } catch (e) {} }
+/* The block sits under the Docket widget's list (491), so a change redraws the docket. */
+function gtPaint_() { try { if (typeof paintDocket === 'function') paintDocket(); } catch (e) {} }
 on('gtasks-connect', () => gtConnect_());
 on('gtasks-sync', () => gtSync_());
 on('gtasks-off', () => gtDisconnect_());
-try { CARD_REG.push({ id: 'acct:gtasks', col: 'account', label: 'Google Tasks', re: /^<div class="card gtasks-card/, say: 'Copy your sessions and exam dates into your own Google Tasks.' }); } catch (e) {}

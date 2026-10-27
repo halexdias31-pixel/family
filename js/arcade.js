@@ -164,13 +164,18 @@ function calcEval(row, ans) {
     while (peek().k === '+' || peek().k === '−') v = tk[p++].k === '+' ? cAdd(v, term()) : cAdd(v, cNeg(term()));
     return v;
   };
-  const term = () => {
+  /* AN IMPLIED × BINDS TIGHTER THAN × AND ÷, as on the ClassWiz (491): 1÷2π is 1/(2π), 6÷2(1+2) is 1. */
+  const imp = () => {
     let v = unary();
+    while (starts(peek())) v = cMul(v, unary());   // 2π, 3√2, 2sin(30)
+    return v;
+  };
+  const term = () => {
+    let v = imp();
     for (;;) {
       const k = peek().k;
-      if (k === '×') { p++; v = cMul(v, unary()); }
-      else if (k === '÷') { p++; v = cDiv(v, unary()); }
-      else if (starts(peek())) v = cMul(v, unary());   // 2π, 3√2, 2sin(30): an implied ×
+      if (k === '×') { p++; v = cMul(v, imp()); }
+      else if (k === '÷') { p++; v = cDiv(v, imp()); }
       else return v;
     }
   };
@@ -212,18 +217,95 @@ function calcDec(v) {
   }
   return s + String(Number(a.toPrecision(10)));
 }
-function calcSay(v, dec) {
-  if (cIsQ(v) && v.d !== 1n && !dec && (v.n.toString().length + v.d.toString().length) <= 11) {
+/* A FLOAT THAT IS A RATIONAL TIMES √r OR π IS SHOWN SO, as the Natural display does (491): √2, 3√2, √2/2, 2π, π/3. */
+function cRat_(x, maxD) {               // p/q within rounding of x, q ≤ maxD, or null
+  if (!isFinite(x) || Math.abs(x) > 1e9) return null;
+  let h0 = 0, h1 = 1, k0 = 1, k1 = 0, y = x;
+  for (let i = 0; i < 40; i++) {
+    const a = Math.floor(y), h = a * h1 + h0, k = a * k1 + k0;
+    if (k > maxD) break;
+    if (Math.abs(h / k - x) <= 1e-11 * Math.max(1, Math.abs(x))) return [h, k];
+    h0 = h1; h1 = h; k0 = k1; k1 = k;
+    if (y === a) break;
+    y = 1 / (y - a);
+  }
+  return null;
+}
+function cExact_(v) {                   // {k: [p, q], r} for (p/q)√r, or {k, pi: true}; null when it is neither
+  if (cIsQ(v) || !isFinite(v) || v === 0) return null;
+  const q = cRat_(v, 10000);
+  if (q) return { k: q, r: 1 };
+  const pi = cRat_(v / Math.PI, 1000);
+  if (pi && pi[0] !== 0 && Math.abs(pi[0]) < 1e6) return { k: pi, pi: true };
+  const sq = cRat_(v * v, 10000);
+  if (!sq || sq[0] <= 0) return null;
+  let n = sq[0] * sq[1], out = 1;       // √(p/q) = √(pq)/q, square factors out of the root
+  for (let f = 2; f * f <= n; f++) while (n % (f * f) === 0) { n /= f * f; out *= f; }
+  if (n === 1 || n > 1e6) return null;
+  const g = (a, b) => b ? g(b, a % b) : a, d = g(out, sq[1]);
+  return { k: [(v < 0 ? -1 : 1) * out / d, sq[1] / d], r: n };
+}
+function cExactHtml_(e) {
+  const p = Math.abs(e.k[0]), q = e.k[1], s = e.k[0] < 0 ? '−' : '';
+  const sym = e.r === 1 ? '' : e.pi ? 'π' : '<span class="mc-sqrt"><span class="mc-rad">√</span><span class="mc-under">' + e.r + '</span></span>';
+  const top = (p === 1 && sym ? '' : p) + sym;
+  return s + (q === 1 ? top : '<span class="mc-frac"><span class="mc-num">' + top + '</span><span class="mc-den">' + q + '</span></span>');
+}
+/* THE FORMATS FORMAT OFFERS (fx-991CW): the ones that mean something for this answer, in the Casio's order. */
+const CALC_FMT_SAY = { std: 'Standard', dec: 'Decimal', frac: 'Fraction', mixed: 'Mixed fraction', prime: 'Prime factor', eng: 'Engineering', sexa: 'Sexagesimal' };
+function calcFormats(v) {
+  const q = cIsQ(v), whole = q && v.d === 1n;
+  return ['std', 'dec'].concat(q && !whole ? ['frac'] : [], q && !whole && (v.n < 0n ? -v.n : v.n) > v.d ? ['mixed'] : [],
+    whole && v.n > 1n && v.n < 10000000000n ? ['prime'] : [], ['eng'], Math.abs(cF(v)) < 1e7 ? ['sexa'] : []);
+}
+const cSup_ = e => '<sup>' + String(e).replace('-', '−') + '</sup>';
+function calcEng_(x) {
+  if (x === 0) return '0';
+  const s = x < 0 ? '−' : '', a = Math.abs(x);
+  let e = Math.floor(Math.log10(a) / 3) * 3, m = Number((a / Math.pow(10, e)).toPrecision(10));
+  if (m >= 1000) { m = Number((m / 1000).toPrecision(10)); e += 3; }
+  return s + String(m) + '×10' + cSup_(e);
+}
+function calcPrime_(n) {
+  let out = [], x = n;
+  for (let f = 2n; f * f <= x && f < 100000n; f += f === 2n ? 1n : 2n) {
+    let c = 0; while (x % f === 0n) { x /= f; c++; }
+    if (c) out.push(f + (c > 1 ? cSup_(c) : ''));
+  }
+  if (x > 1n) out.push(String(x));
+  return out.join('×');
+}
+function calcSexa_(x) {
+  const s = x < 0 ? '−' : '';
+  let a = Math.abs(x), d = Math.floor(a), m = Math.floor((a - d) * 60 + 1e-9), sec = Math.round(((a - d) * 3600 - m * 60) * 100) / 100;
+  if (sec >= 60) { sec -= 60; m++; }
+  if (m >= 60) { m -= 60; d++; }
+  return s + d + '°' + m + '′' + String(Number(sec.toFixed(2))) + '″';
+}
+/* `f` is the format (true is the old S⇔D's decimal): Standard shows a fraction, a surd or π when exact. */
+function calcSay(v, f) {
+  f = f === true ? 'dec' : f || 'std';
+  if (f === 'eng') return calcEng_(cF(v));
+  if (f === 'sexa') return calcSexa_(cF(v));
+  if (f === 'prime' && cIsQ(v) && v.d === 1n && v.n > 1n) return calcPrime_(v.n);
+  if (f === 'mixed' && cIsQ(v) && v.d !== 1n) {
+    const neg = v.n < 0n, a = neg ? -v.n : v.n, w = a / v.d, r = a % v.d;
+    return (neg ? '−' : '') + (w ? w + ' ' : '') + '<span class="mc-frac"><span class="mc-num">' + r + '</span><span class="mc-den">' + v.d + '</span></span>';
+  }
+  const dec = f === 'dec';
+  if (cIsQ(v) && v.d !== 1n && !dec && (f === 'frac' || (v.n.toString().length + v.d.toString().length) <= 11)) {
     const neg = v.n < 0n;
     return (neg ? '−' : '') + '<span class="mc-frac"><span class="mc-num">' + (neg ? -v.n : v.n)
       + '</span><span class="mc-den">' + v.d + '</span></span>';
   }
   if (cIsQ(v) && v.d === 1n && v.n.toString().replace('-', '').length <= 10) return (v.n < 0n ? '−' : '') + (v.n < 0n ? -v.n : v.n);
+  if (!dec) { const e = cExact_(v); if (e) return cExactHtml_(e); }
   return calcDec(v);
 }
-/* An answer as plain text (3/4, 1.5×10^12), for the check and anything that wants a string. */
-const calcText = (v, dec) => calcSay(v, dec).replace(/<span class="mc-num">(.*?)<\/span><span class="mc-den">(.*?)<\/span>/, '$1/$2')
-  .replace(/<sup>(.*?)<\/sup>/, '^$1').replace(/<[^>]+>/g, '');
+/* An answer as plain text (3/4, 1.5×10^12, √2/2, 1 1/2, 2^3×3), for the check and anything that wants a string. */
+const calcText = (v, dec) => calcSay(v, dec).replace(/<span class="mc-sqrt"><span class="mc-rad">√<\/span><span class="mc-under">(.*?)<\/span><\/span>/g, '√$1')
+  .replace(/<span class="mc-num">(.*?)<\/span><span class="mc-den">(.*?)<\/span>/, '$1/$2')
+  .replace(/<sup>(.*?)<\/sup>/g, '^$1').replace(/<[^>]+>/g, '');
 
 /* ---- editing: the cursor is a row and an index between its nodes */
 function calcNew() {
@@ -312,9 +394,18 @@ function calcKey(st, k) {
   else if (sh && calcLegend(k)) { st.note = 'SHIFT ' + calcLegend(k) + ' is not on this calculator'; return st; }
   k = CALC_AS[k] || k;
   if (k !== 'up' && k !== 'down') st.back = -1;
-  if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '' }); return st; }
-  if (k === 'sd') { if (st.fresh && st.val != null) st.dec = !st.dec; return st; }
-  if (k === 'approx') { calcKey(st, '='); if (st.fresh) st.dec = true; return st; }
+  if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '', menu: null }); return st; }
+  /* FORMAT (491) OPENS THE CASIO'S LIST for the answer on the glass: ▲▼ or FORMAT again to move, OK/EXE or the item's digit to choose, AC to leave. */
+  if (st.menu) {
+    const L = st.menu, d = /^[1-9]$/.test(k) ? Number(k) - 1 : -1;
+    if (k === 'sd' || k === 'down' || k === 'pgdn') { st.mi = (st.mi + 1) % L.length; return st; }
+    if (k === 'up' || k === 'pgup') { st.mi = (st.mi + L.length - 1) % L.length; return st; }
+    st.menu = null;
+    if (k === '=' || k === 'ok' || (d >= 0 && d < L.length)) { st.dec = L[d >= 0 ? d : st.mi]; return st; }
+    if (k === 'C' || k === 'on' || k === 'back' || k === 'home') return st;
+  }
+  if (k === 'sd') { if (st.fresh && st.val != null) { st.menu = calcFormats(st.val); st.mi = Math.max(0, st.menu.indexOf(st.dec || 'std')); } else st.note = 'FORMAT changes an answer: press EXE first'; return st; }
+  if (k === 'approx') { calcKey(st, '='); if (st.fresh) st.dec = 'dec'; return st; }
   if (k === '=') {
     if (!st.root.length) return st;
     const was = calcClone(st.root);
@@ -389,7 +480,9 @@ function calcRowHtml(st, row, top) {
 }
 const calcHtml = st => ({
   input: calcRowHtml(st, st.root, true),
-  output: st.err ? cEsc(st.err) : st.fresh && st.val != null ? calcSay(st.val, st.dec)
+  output: st.err ? cEsc(st.err) : st.menu ? '<span class="mc-menu">FORMAT <b>' + (st.mi + 1) + ' ' + CALC_FMT_SAY[st.menu[st.mi]] + '</b> ▾ '
+      + (st.mi + 1) + '/' + st.menu.length + '</span>'
+    : st.fresh && st.val != null ? calcSay(st.val, st.dec)
     : st.note ? '<span class="mc-note">' + cEsc(st.note) + '</span>' : '',
 });
 /* ---------- END OF THE CALCULATOR ENGINE */
@@ -444,7 +537,7 @@ function widgetOnColumn_(w, own) {
   const keep = typeof favTile_ === 'function'
     ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
       w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}${
-      typeof reportTile_ === 'function' ? reportTile_('widget', String(w.id), w.title || w.label || '') : ''}</span>` : '';
+      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.title || w.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
@@ -457,7 +550,7 @@ function widgetOnColumn_(w, own) {
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}${
-    typeof reportTile_ === 'function' ? reportTile_('widget', String(top.id), top.title || top.label || '') : ''}</span>` : '';
+    typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.title || top.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
@@ -992,27 +1085,80 @@ function paintCountdowns_() {
   });
 }
 
-/* ---------- TERM DATES (466): the end of each of the next three terms and half terms, one line each; the calendar no longer shows them ---------- */
-function termDatesRows_() {
-  const t = progressToday_();
-  const all = typeof intervals_ === 'function' ? intervals_() : ((typeof DATA !== 'undefined' && DATA && DATA.intervals) || []);
-  return all.filter(x => String(x.kind || '') !== 'holiday')
-    .map(x => ({ name: x.label || x.term || 'Term', d: typeof parseDMY === 'function' ? parseDMY(x.endDate) : null }))
-    .filter(x => x.d && x.d >= t)
-    .sort((a, b) => a.d - b.d)
-    .slice(0, 3);
+/* ---------- TERM DATES (491): THE YEAR AS INTERVALS — terms, half-terms and holidays, each with its real first and last day ---------- */
+/* The usual England pattern, the backend's `schoolYear` (booking.gs) in the browser: a term runs Monday to Friday, a holiday Saturday to Sunday. */
+function tdYear_(y) {
+  const D = (yy, m, d) => new Date(yy, m, d), add = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const nth = (yy, mo, wd, n) => {
+    if (n > 0) { const d = D(yy, mo, 1); return add(d, ((wd - d.getDay() + 7) % 7) + 7 * (n - 1)); }
+    const d = D(yy, mo + 1, 0); return add(d, -((d.getDay() - wd + 7) % 7));
+  };
+  const easter = yy => {
+    const a = yy % 19, b = Math.floor(yy / 100), c = yy % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+      g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+      l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    return D(yy, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+  };
+  let autumn = nth(y, 8, 1, 1); if (autumn.getDate() <= 2) autumn = add(autumn, 3);
+  const octMon = nth(y, 9, 1, -1), octHalf = octMon.getDate() + 4 > 31 ? add(octMon, -7) : octMon;
+  const decFri = nth(y, 11, 5, -1), xmas = decFri.getDate() > 22 ? add(decFri, -7) : decFri;
+  let jan = D(y + 1, 0, 2); while (jan.getDay() === 0 || jan.getDay() === 6) jan = add(jan, 1);
+  const feb = nth(y + 1, 1, 1, 3), easStart = add(easter(y + 1), -6), easEnd = add(easStart, 11), may = nth(y + 1, 4, 1, -1), jul = nth(y + 1, 6, 5, 3);
+  const terms = [['Autumn 1', autumn, add(octHalf, -3)], ['Autumn 2', add(octHalf, 7), xmas], ['Spring 1', jan, add(feb, -3)],
+    ['Spring 2', add(feb, 7), add(easStart, -3)], ['Summer 1', add(easEnd, 3), add(may, -3)], ['Summer 2', add(may, 7), jul]];
+  const hols = [['October half-term', 'half'], ['Christmas holidays', 'holiday'], ['February half-term', 'half'], ['Easter holidays', 'holiday'], ['May half-term', 'half']];
+  const out = [];
+  terms.forEach((t, i) => {
+    out.push({ name: t[0], kind: 'term', from: t[1], to: t[2] });
+    if (i < hols.length) out.push({ name: hols[i][0], kind: hols[i][1], from: add(t[2], 1), to: add(terms[i + 1][1], -1) });
+  });
+  out.push({ name: 'Summer holidays', kind: 'holiday', from: add(jul, 1), to: add(tdYear0_(y + 1), -1) });
+  return out;
+}
+/* THE FIRST DAY OF A YEAR'S AUTUMN TERM, which ends the summer before it. */
+function tdYear0_(y) { let d = new Date(y, 8, 1); d = new Date(y, 8, 1 + ((8 - d.getDay()) % 7)); return d.getDate() <= 2 ? new Date(y, 8, d.getDate() + 3) : d; }
+/* MY SCHOOL (491): starts and ends a few school days earlier or later, kept on this phone for whoever is signed in. */
+const tdKey_ = () => 'familyTermShift:' + ((typeof USER !== 'undefined' && USER && USER.personId) || 'anon');
+function tdShift_() { try { const o = JSON.parse(localStorage.getItem(tdKey_()) || 'null'); return { s: +(o && o.s) || 0, e: +(o && o.e) || 0 }; } catch (e) { return { s: 0, e: 0 }; } }
+/* N SCHOOL DAYS ON from a weekday, weekends skipped, so a shift never lands a first day on a Saturday. */
+function tdSchoolDays_(d, n) { let x = new Date(d.getTime()); const st = n < 0 ? -1 : 1; for (let k = Math.abs(n); k > 0;) { x.setDate(x.getDate() + st); if (x.getDay() % 6) k--; } return x; }
+function termDatesRows_(today) {
+  const t = today || progressToday_(), y = t.getMonth() >= 7 ? t.getFullYear() : t.getFullYear() - 1, sh = tdShift_();
+  const all = tdYear_(y - 1).concat(tdYear_(y), tdYear_(y + 1)).map(x => Object.assign({}, x));
+  all.forEach((x, i) => {
+    if (x.kind !== 'term') return;
+    if (sh.s) { x.from = tdSchoolDays_(x.from, sh.s); if (all[i - 1]) all[i - 1].to = new Date(x.from.getFullYear(), x.from.getMonth(), x.from.getDate() - 1); }
+    if (sh.e) { x.to = tdSchoolDays_(x.to, sh.e); if (all[i + 1]) all[i + 1].from = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1); }
+  });
+  const i = all.findIndex(x => x.from <= t && t <= x.to);
+  return all.slice(Math.max(0, i), Math.max(0, i) + 4).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
+}
+const tdDay_ = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+/* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
+function tdLine_(x) {
+  const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
+  while (back.getDay() % 6 === 0) back.setDate(back.getDate() + 1);
+  const v = x.kind === 'term' ? `${tdDay_(x.from)} – last day of term ${tdDay_(x.to)}` : `from ${tdDay_(x.from)} · first day back ${tdDay_(back)}`;
+  return `<div class="row td-${x.kind}${x.now ? ' td-now' : ''}"><span class="k">${x.now ? 'Now: ' : ''}${esc(x.name)}</span><span class="v">${esc(v)}</span></div>`;
 }
 function paintTermDates_() {
-  const rows = termDatesRows_();
-  const wait = !rows.length && typeof awaiting_ === 'function' && awaiting_();
+  const rows = termDatesRows_(), sh = tdShift_();
+  const adj = (id, v, label) => `<div class="row"><span class="k">${label}</span><span class="v"><select class="td-adj" data-td="${id}" aria-label="${label}">${
+    [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === v ? ' selected' : ''}>${n ? (n > 0 ? n + ' later' : -n + ' earlier') : 'as usual'}</option>`).join('')}</select></span></div>`;
   document.querySelectorAll('.td-box').forEach(box => {
-    if (wait) { box.setAttribute('aria-busy', 'true'); box.innerHTML = loading_(); return; }
     box.removeAttribute('aria-busy');
-    box.innerHTML = rows.length ? rows.map(r => `<div class="row"><span class="k">${esc(r.name)}</span><span class="v">ends ${
-      esc(r.d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}</span></div>`).join('')
-      : '<p class="faint">No term dates yet.</p>';
+    box.innerHTML = rows.map(tdLine_).join('')
+      + '<p class="faint td-say">The usual England dates. Schools vary by a few days, so set yours below (school days, kept on this phone).</p>'
+      + adj('s', sh.s, 'My school starts') + adj('e', sh.e, 'My school ends');
   });
 }
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('.td-adj');
+  if (!el) return;
+  const o = tdShift_(); o[el.dataset.td] = Number(el.value) || 0;
+  try { localStorage.setItem(tdKey_(), JSON.stringify(o)); } catch (x) {}
+  paintTermDates_();
+});
 
 /* ---------- WHAT WAS ANSWERED ---------- */
 /* THE LATEST PRESS PER QUESTION: the account's (`DATA.submissions`, this person's only) and this device's (`subAll_`), the later winning, as `subAdopt_` decides. */

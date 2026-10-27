@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-ze-front";
+const BACKEND_VERSION = "2026-10-27-zh-suggest";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -483,8 +483,8 @@ const SCHEMA = {
     "event_id", "pressed_at",
   ],
 
-  /* ---------- REPORTS: ANYTHING SOMEBODY SAYS IS WRONG (395, 486) ----------
-     `status`: open, confirmed (to fix), dismissed or fixed; before 486 blank and `not a problem` (open, dismissed). Blank `kind` is a question. */
+  /* ---------- REPORTS (395, 486), HISTORY SINCE 494: read once into `claude_notes` by `reports-to-notes`, each row then `migrated`.
+     Nothing writes here now. Blank `kind` is a question. */
   reports: [
     "report_id", "at", "person_id", "handle",
     "question_id", "paper_id", "part", "label",
@@ -493,8 +493,8 @@ const SCHEMA = {
     "kind", "item_id", "reporter_rank", "status_by",
   ],
 
-  /* ---------- NOTES FOR CLAUDE (484): what the owner wants changed on one widget or card ----------
-     `status` is open or done; every open one is also written to the Drive file `CLAUDE_NOTES_FILE`. */
+  /* ---------- NOTES FOR CLAUDE (484, 494): what should change on one thing ----------
+     `status`: open (or blank), done, pending (a non-admin's, 494) or dismissed; open ones are in the Drive file. */
   claude_notes: [
     "note_id", "made_at", "made_by", "column", "item_id", "item_label", "note", "status", "done_at",
   ],
@@ -692,6 +692,14 @@ const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
 const LAYOUT_KEY = 'layout';
+/* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
+const DIGEST_WORDS = {
+  digest_subject: '{child}’s week: {count}',
+  digest_greeting: 'Hi {parent},',
+  digest_intro: 'Here’s what {child} worked on this week: {count} ({span}).',
+  digest_footer: 'Don’t want these any more? Just reply and say so.',
+};
+const DIGEST_WORD_MAX = 300;
 const LAYOUT_MAX = 8000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
@@ -1458,6 +1466,12 @@ const MIGRATIONS = [
     what: 'a backup copy of the Ledger, then the attempts, post_likes, widgets and orders tabs and the columns nothing reads are removed',
     run: () => tidyOldTabs_() },
 
+  /* THE OWNER (494): the old reports read, then the table retired — every row not closed becomes a note for Claude, marked `migrated`. */
+  { id: 'reports-to-notes',
+    retry: true,
+    what: 'every open report becomes a Note for Claude, as its reporter on its date; the reports tab is history after',
+    run: () => reportsMigrate_() },
+
   /* THE LIBRARY MOVES INTO THE LEDGER (397): copied from LIB_SOURCE_COMMIT a few minutes at a time by a trigger, then every row checked against its source. */
   { id: 'library-to-ledger',
     retry: true,
@@ -1569,7 +1583,7 @@ const ACTION_ACCESS = {
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
-  listReports: 'admin', setReportStatus: 'admin',
+  suggest: 'self', listSuggestions: 'admin', decideSuggestion: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
   /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */
@@ -1589,6 +1603,8 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
+  /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
+  digestWordsSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
   claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
@@ -1607,6 +1623,8 @@ const ACTION_ACCESS = {
   pushState: 'self', pushSubscribe: 'self', pushUnsubscribe: 'self', pushSet: 'self',
   /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
   getProfile: 'admin',
+  /* THE EMAIL WIDGET (493): the owner's own Gmail, read-only — inbox.gs. */
+  inboxList: 'admin', inboxRead: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
   editPost: 'self', deletePost: 'self',

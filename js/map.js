@@ -219,6 +219,7 @@ const WIDGETS = [
       <button class="btn quiet tiny" data-do="dock-add">＋</button>
     </div>
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
+    <div id="docket-gtasks"></div>
   </div>` },
   { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, start: () => initPad?.(),
     into: 'notepad', what: 'The notepad',
@@ -261,6 +262,11 @@ const WIDGETS = [
     ${/* BOTH AN ID AND A CLASS. § */
           ''}
     <div id="cart-box" class="cart-box"></div>` },
+  /* SEARCH THE SHOP (491): the shared pill, and what matches listed under it; a tap goes to the item. */
+  { id: 'shopfind', kind: 'shop', name: 'Search the shop', pure: true, start: () => paintShopFind_?.(),
+    into: 'shop-find-box', what: 'The shop search',
+    html: `<h3>Search the shop</h3>
+    <div id="shop-find-box" class="shop-find"></div>` },
 
   { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
@@ -274,7 +280,7 @@ const WIDGETS = [
   </div>` },
 
   /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
-  { id: 'termdates', kind: 'tool', name: 'Term dates', start: () => paintTermDates_?.(),
+  { id: 'termdates', kind: 'tool', name: 'Term dates', pure: true, start: () => paintTermDates_?.(),
     draw: () => paintTermDates_?.(),
     into: 'td-box', what: 'The term dates',
     html: `<h3>Term dates</h3>
@@ -309,6 +315,14 @@ const WIDGETS = [
     html: `<div class="card">
     <h3>Library cards</h3>
     <div id="lib-box"></div>
+  </div>` },
+  /* THE EMAIL WIDGET (493): the owner's Gmail, read-only, admin only — js/inbox.js, backend/inbox.gs. */
+  { id: 'inbox', kind: 'tool', name: 'Email', solid: true, admin: true,
+    start: () => initInbox?.(),
+    into: 'ib-box', what: 'The inbox',
+    html: `<div class="card">
+    <h3>Email</h3>
+    <div class="ib-box" id="ib-box"></div>
   </div>` },
 ];
 

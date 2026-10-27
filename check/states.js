@@ -2905,7 +2905,7 @@ const STATES = {
           && form.querySelectorAll('[data-me^="qual_"]').length === 70
           && form.querySelectorAll('.q-list .q-line').length === 3
           && form.querySelectorAll('.ph-shelf .ph-thumb img').length === 3
-          && !!form.querySelector('.ce-heat .prof-heat')
+          && !form.querySelector('.prof-heat')
           && !pg.querySelector('[data-do="card-edit"]')
           /* AT FULL SIZE, AND THE PANE SCROLLS TO ITS SAVE — `paneReach_` draws a card being edited at
              zoom 1 (it is taller than any pane even at the 0.70 floor), so its boxes keep their size. */

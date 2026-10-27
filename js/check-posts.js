@@ -173,26 +173,26 @@ const aIn = as('P-A1', { action: 'messages' });
 const toKid = (aIn.messages || []).find(m => m.id === k2.id) || {};
 rule(k2.success && toKid.withFace && toKid.withFace.pic === 'pfp:avatar', 'a child\'s own photograph is sent as her message head', [k2, toKid.withFace]);
 
-/* ---------- 10. A MESSAGE REPORTED: by whoever it was sent to (a child too), seen and closed on the admin's Reports ---------- */
+/* ---------- 10. A MESSAGE SENT ON: by whoever it was sent to (a child too), seen and closed on the admin's Suggestions (494) ---------- */
 const mrow = id => { const g = b.tabs.messages, h = g[0]; const r = g.slice(1).find(x => x[h.indexOf('message_id')] === id) || []; const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; };
 const notMine = as('P-C1', { action: 'flagMessage', messageId: k2.id, reason: 'Unkind or bullying' });
 rule(!notMine.success && !/^true$/i.test(String(mrow(k2.id).flagged)), 'a parent reported a message that was not sent to her', notMine);
 const kFlag = as('P-K1', { action: 'flagMessage', messageId: k2.id, reason: 'It makes me feel unsafe — a few words' });
-/* SINCE 486 A REPORT IS A ROW OF `reports` (kind message), and the message itself is left as it was. */
-const repRow = () => { const g = b.tabs.reports || [[]], h = g[0]; return g.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; }).find(o => o.item_id === k2.id) || {}; };
-rule(kFlag.success && repRow().kind === 'message' && /unsafe/.test(repRow().note) && !/^true$/i.test(String(mrow(k2.id).flagged)), 'a child could not report a message sent to her', [kFlag, repRow()]);
-const reps = as('P-A1', { action: 'listReports' });
-const seen = (reps.reports || []).find(m => m.itemId === k2.id);
-rule(seen && /unsafe/.test(seen.note) && seen.from === 'Hal Boss' && /^Kit\b/.test(seen.to) && seen.to.indexOf('Child') < 0 && /Well done/.test(seen.body), 'the admin\'s Reports do not list the reported message with who, to whom and why', reps.reports);
-rule(!as('P-T1', { action: 'listReports' }).success, 'a tutor was shown the reports');
-const close = as('P-A1', { action: 'setReportStatus', id: seen && seen.id, status: 'fixed' });
-rule(close.success && !(as('P-A1', { action: 'listReports' }).reports || []).some(m => m.itemId === k2.id),
-  'Fixed did not take the message off the Reports card', close);
+/* SINCE 494 IT IS A WAITING ROW OF `claude_notes` (kind message), and the message itself is left as it was. */
+const repRow = () => { const g = b.tabs.claude_notes || [[]], h = g[0]; return g.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; }).find(o => o.item_id === 'message|' + k2.id) || {}; };
+rule(kFlag.success && repRow().column === 'message' && repRow().status === 'pending' && /unsafe/.test(repRow().note) && !/^true$/i.test(String(mrow(k2.id).flagged)), 'a child could not send on a message sent to her', [kFlag, repRow()]);
+const reps = as('P-A1', { action: 'listSuggestions' });
+const seen = (reps.suggestions || []).find(m => m.itemId === k2.id);
+rule(seen && /unsafe/.test(seen.note) && seen.from === 'Hal Boss' && /^Kit\b/.test(seen.to) && seen.to.indexOf('Child') < 0 && /Well done/.test(seen.body), 'the admin\'s Suggestions do not list the message with who, to whom and why', reps.suggestions);
+rule(!as('P-T1', { action: 'listSuggestions' }).success, 'a tutor was shown the suggestions');
+const close = as('P-A1', { action: 'decideSuggestion', id: seen && seen.id, decision: 'dismiss' });
+rule(close.success && !(as('P-A1', { action: 'listSuggestions' }).suggestions || []).some(m => m.itemId === k2.id),
+  'Dismiss did not take the message off the Suggestions card', close);
 /* A MESSAGE FLAGGED BEFORE 486 is still read from its own row and closed there. */
 b.ev("(function(){ const t = read(TAB.messages); const r = t.rows.find(x => S(x.message_id) === '" + k2.id + "'); setCell(t, r, 'flagged', 'TRUE'); setCell(t, r, 'flag_reason', 'old'); clearCache(); })()");
-const old = as('P-A1', { action: 'listReports' });
-rule((old.messages || []).some(m => m.id === k2.id), 'a message flagged before 486 is no longer on the Reports card', old.messages);
-const oclose = as('P-A1', { action: 'setReportStatus', id: k2.id, status: 'fixed', kind: 'message' });
+const old = as('P-A1', { action: 'listSuggestions' });
+rule((old.messages || []).some(m => m.id === k2.id), 'a message flagged before 486 is no longer on the Suggestions card', old.messages);
+const oclose = as('P-A1', { action: 'decideSuggestion', id: k2.id, decision: 'dismiss', kind: 'message' });
 rule(oclose.success && String(mrow(k2.id).flagged) === 'CLEARED', 'Dealt with did not close an old flagged message', oclose);
 
 if (bad.length) {

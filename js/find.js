@@ -369,7 +369,12 @@ const FACETS = [
       return x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k;
     },
     tagOf: (x, page) => page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label) },
+  /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
+  { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
+  { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
+  /* WHICH BOOK ON THE BOOKS SHELF (494): the Bible, the Quran or the Talmud, before each one's own questions. */
+  { field: 'libBook',   label: 'Which book',  of: x => x.libBook || '' },
   /* THE BIBLE'S SIX: admin-only data (`bibleFor_`), and ordinary questions about it. */
   { field: 'bibleTranslation', label: 'Translation',
     of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
@@ -378,8 +383,6 @@ const FACETS = [
   { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
   { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
   { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
-  { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
-  { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
@@ -1793,6 +1796,8 @@ FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1
 const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
 /* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
 const SCRIPTURE_MIN_AGE = 18;
+/* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
+const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
@@ -1927,7 +1932,7 @@ const bibleV_ = t => '<p class="bb-v">'
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
   const list = [], starts = [];
-  const tr = String(ix.translation), head = 'bible:' + tr.toLowerCase() + ':';
+  const tr = String(ix.translation), head = 'bible:' + tr.toLowerCase() + ':', rs = SCRIPTURE_SUBJECT();
   ix.books.forEach(b => {
     const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: tr,
                  words: bibleBookWords_(b) };
@@ -1937,7 +1942,7 @@ function bibleVerseList_(ix) {
       at.push(list.length);
       for (let v = 1; v <= count; v++) {
         list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                    shelf: BIBLE_SHELF, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
+                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
       }
     });
   });
@@ -2014,7 +2019,7 @@ function bibleItems_() {
   /* ---------- NOT BEFORE THE LIBRARY § */
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. § */
-  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF,
+  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF, libBook: 'Bible', subject: SCRIPTURE_SUBJECT(),
               text: BIBLE_WORDS, row: null, min_age: SCRIPTURE_MIN_AGE };
   x.holds = words => bibleHolds_(x, words);
   BIBLE.item = x;
@@ -8165,7 +8170,7 @@ function qToolkit_(x) {
     magnify: true,                 // the Magnifier (463): words, figures, pictures and the pen, under the glass
     lock: true,                    // every page has an input, a figure or a pen
     read: true,                    // Read aloud on every question, not only a primary one (394)
-    help: true, report: true,      // `helpRow_` in the card, `reportTile_` in the row
+    help: true, report: true,      // `helpRow_` in the card, `suggestTile_` in the row
     pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
     measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
   };
@@ -9434,7 +9439,7 @@ function jobPage_(j) {
   const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
-    + (typeof reportTile_ === 'function' && j && j.id ? reportTile_('session', String(j.id), 'Booking') : '')
+    + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
@@ -9573,7 +9578,7 @@ function accountPages_(col) {
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */
-    const tiles = share + (typeof reportTile_ === 'function' ? reportTile_('person', String(USER.personId), row.title || '') : '');
+    const tiles = share + (typeof suggestTile_ === 'function' ? suggestTile_('person', String(USER.personId), row.title || '') : '');
     mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
 
@@ -9899,7 +9904,8 @@ function bundleCard_(b) {
         label: inCart ? 'In your basket' : 'Add bundle to basket', note: note,
         act: 'cart-add', on: inCart, off: inCart,
         data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })}${
-      tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}</div>`;
+      tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}${
+      typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : ''}</div>`;
 }
 
 
@@ -10096,7 +10102,7 @@ const TAG_OF = {
   topic: 'topic',
   needs: 'needs',
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
-  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
+  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind', libBook: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
   histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histMaterial: 'tier',
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
@@ -11007,6 +11013,9 @@ function finderScreen_() {
           ''}
     <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
+    ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
+      typeof suggestTile_ === 'function' && suggestTile_('finder', F.id, F.id === 'res' ? 'Find 2' : 'Find')
+        ? `<div class="tile-row rep-row find-sg">${suggestTile_('finder', F.id, F.id === 'res' ? 'Find 2' : 'Find')}</div>` : ''}
   </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */
@@ -11137,6 +11146,9 @@ function paintDocket() {
   const host = $('docket-body');
   if (!host) return;
   if (!USER) { host.innerHTML = '<p class="empty">Sign in to keep a docket.</p>'; return; }
+  /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
+  const gt = $('docket-gtasks');
+  if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';
 
   const list = docketLines();
   if (!list.length) {

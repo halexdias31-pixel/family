@@ -94,7 +94,7 @@ const CALLS = {
   'doPost:approvePost · Your post is up':                         ['posts'],
   'doPost:addPost · A post is waiting for you':                   ['approvals'],
   'doPost:sendMessage · A message from ':                         ['messages'],
-  'doPost:report · A message was reported':                       ['reported'],
+  'doPost:suggest · A message was sent to you to look at':        ['reported'],
   'doPost:claimChild · Someone has added you to their account':   ['family'],
   'doPost:answerClaim · They accepted':                           ['family'],
   'doPost:resetPin · Your PIN was changed':                       ['security'],
@@ -444,7 +444,7 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
   const m0 = E.mark();
   const msg = E.as('P-A1', { action: 'sendMessage', to: 'Sam Student', toId: 'P-S1', body: 'Hello from the office.' });
   rule(msg.success && !E.to('student@example.org', m0, /A message from/).length, 'the admin\'s message reached a student whose messages_email says no — ' + JSON.stringify(msg));
-  sentTo('admin@example.org', /was reported/, () => E.as('P-S1', { action: 'flagMessage', messageId: msg.id, reason: 'test' }), 'reported: "A message was reported"');
+  sentTo('admin@example.org', /was sent to you to look at/, () => E.as('P-S1', { action: 'flagMessage', messageId: msg.id, reason: 'test' }), 'reported: "A message was sent to you to look at"');
   /* AND THE `move` ACTS THAT DECIDE: a Withdraw by the family is the tutor's `booked`. */
   const jid = job && (job.jobId || job.id);
   if (jid) sentTo('tutor@example.org', /withdrew from/, () => E.as('P-C1', { action: 'move', jobId: jid, role: 'client', move: 'Withdraw', requestId: 'w-1' }),
