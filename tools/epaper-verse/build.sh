@@ -6,7 +6,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-${TMPDIR:-/tmp}/epaper-verse-build}
 PIO=${PIO:-pio}
 export PLATFORMIO_CORE_DIR="$OUT/core" PLATFORMIO_BUILD_DIR="$OUT/build" PLATFORMIO_LIBDEPS_DIR="$OUT/libdeps"
-"$PIO" run -d "$HERE" -e epaper-verse
+"$PIO" run ${PIO_JOBS:+-j $PIO_JOBS} -d "$HERE" -e epaper-verse
 B="$OUT/build/epaper-verse"
 ESPTOOL="python3 $OUT/core/packages/tool-esptool/esptool.py"
 [ -f "$OUT/core/packages/tool-esptool/esptool.py" ] || ESPTOOL="$(dirname "$PIO")/python -m esptool"

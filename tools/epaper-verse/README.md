@@ -32,12 +32,12 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   needed: `node tools/epaper-verse/test/install-test.js` (Playwright, a pretend board).
 - **Build (482): `tools/epaper-verse/build.sh`** (PlatformIO, `platformio.ini`; `PIO=` and `OUT=` choose the pio binary and
   the cache dir) builds and merges bootloader 0x0, partitions 0x8000, boot_app0 0xe000, app 0x10000 into `epaper-verse.bin`.
-  Re-run it whenever `verse.cpp`, `pictures.h` or `icons.h` change. Built 26 Oct 2026 with PlatformIO Core 6.2.0, platform
+  Re-run it whenever `verse.cpp`, `pictures.h` or `icons.h` change. Built 27 Oct 2026 with PlatformIO Core 6.2.0, platform
   espressif32 8.0.0, framework-arduinoespressif32 4.30312.261024 = arduino-esp32 3.3.12 on ESP-IDF 5.5.5 (3.0.7 is not
   in the PlatformIO registry), xtensa gcc 14.2.0, GxEPD2 1.6.9, Adafruit GFX 1.13.0, BusIO 1.17.4, esptool 5.6.0 (merge).
   Board esp32-s3-devkitc-1, flash 8MB QIO 80MHz, huge_app.csv, PSRAM unused, `ARDUINO_USB_MODE=0` (TinyUSB, so the
   USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 724,336 bytes,
-  sha256 `b6a803d69f5a38eb19fecab0c42a883d3eff332e82134e41b06d515c5ee8138f`. Not yet tried on a board.
+  sha256 `4f7975d14d797d65d35152d73e9d79b1d080917a01a42ddecdd5428deca70289`. Not yet tried on a board.
 - **Awake for USB** (482): deep sleep switches the S3's USB off, so the computer saw the screen and lost it. Now after a
   plug-in, RESET or ⏻ it draws, then listens 60 s, and for as long as a computer has it mounted (`tud_mounted()`);
   each `SHOW` redraws and restarts the minute; `HELLO` gets `READY epaper-verse 482`. The daily timer wake listens 3 s.
