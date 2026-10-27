@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zf-n2c";
+const BACKEND_VERSION = "2026-10-27-zg-inbox";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1617,6 +1617,8 @@ const ACTION_ACCESS = {
   pushState: 'self', pushSubscribe: 'self', pushUnsubscribe: 'self', pushSet: 'self',
   /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
   getProfile: 'admin',
+  /* THE EMAIL WIDGET (493): the owner's own Gmail, read-only — inbox.gs. */
+  inboxList: 'admin', inboxRead: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
   editPost: 'self', deletePost: 'self',
