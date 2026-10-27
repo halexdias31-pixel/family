@@ -1544,8 +1544,9 @@ const PAGE_HOME = {
   /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER § */
   feed:    () => {
     if (typeof feedCamAt_ !== 'function') return 0;
-    const at = feedCamAt_();
-    return pageCount('feed') > at + 1 ? at + 1 : Math.max(0, at - 1);
+    /* THE NEWEST POST; with no post, the page after the camera, never the camera itself (489: camera first). */
+    const at = typeof feedPostsAt_ === 'function' ? feedPostsAt_() : feedCamAt_() + 1, n = pageCount('feed');
+    return n > at ? at : n > 1 && feedCamAt_() === 0 ? 1 : 0;
   },
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
   account: () => 0,
@@ -1948,8 +1949,10 @@ function adoptMarks_() {
   try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}
 }
 
+/* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
+const rowsOne_ = c => (typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(c) : c);
 const pages = (id, cards) =>
-  cards.map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+  cards.map(c => `<section class="page"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
@@ -1957,7 +1960,7 @@ const emptyCard_ = title => `<div class="card is-empty"><h3>${esc(String(title |
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>
-  `<section class="page"><div class="pane">${cards.join('')}</div></section>`;
+  `<section class="page"><div class="pane">${rowsOne_(cards.join(''))}</div></section>`;
 
 /** The glass inside a page — where content actually goes. */
 /* THE PANE INSIDE A PAGE — AND ONE IS MADE IF THERE IS NOT ONE. § */
@@ -3004,6 +3007,8 @@ async function loadOnce_(again, n) {
   LOADED = true;
   /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
   bootLoaded_(true);
+  /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
+  try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) {}
 
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
@@ -3029,6 +3034,7 @@ async function loadOnce_(again, n) {
   }
   openSharedPost();     // if the app was opened on a shared link, go to that post
   try { openSharedTutor(); } catch (e) {}   // or on a tutor's own link (400)
+  try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) {}   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();

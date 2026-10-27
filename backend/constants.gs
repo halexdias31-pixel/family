@@ -46,6 +46,8 @@ const WHERE = {
   applications:   { file: 'ledger' },
   /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
   claude_notes:   { file: 'ledger' },
+  /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
+  push_tokens:    { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
   spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
@@ -122,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zb-report";
+const BACKEND_VERSION = "2026-10-27-ze-front";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -171,6 +173,8 @@ const TAB = {
   media: 'media',
   posts: 'posts', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
+  /* Phone notifications (492) — see SCHEMA.push_tokens and push.gs. */
+  push_tokens: 'push_tokens',
   family: 'family',
   /* THE LIBRARY'S PRIVATE HALF (397) — read a row at a time by `libContent_`, never through `read()`: see LIB_FILES. */
   libQuestions: 'lib_questions', libContent: 'lib_content', libPracticals: 'lib_practicals',
@@ -415,6 +419,11 @@ const SCHEMA = {
   /* A COMMENT is a row, and the shape is deliberately the reaction's and the vote's: § */
   post_comments: [
     "comment_id", "post_id", "person_id", "body", "said_on", "active",
+  ],
+
+  /* ONE ROW PER DEVICE THAT SAID YES TO NOTIFICATIONS (492). `off`: the kinds this person turned off, the same on each of their rows. */
+  push_tokens: [
+    "token_id", "person_id", "token", "device", "off", "added_on",
   ],
 
   /* MESSAGES. One row per message — a thread is messages sharing a pair, not a thing of its own, so nothing has to be created before somebody can write. § */
@@ -937,6 +946,8 @@ const REPORT_REASONS = {
   'unsafe': 'It makes me feel unsafe',
   'rude': 'Rude, or a picture that should not be there',
   'stranger': "Spam, or I don't know them",
+  /* 489: suggesting a change and reporting are one tile. */
+  'suggest': 'Suggest a change',
 };
 /* AND WHAT AN ADMIN MAY CALL ONE (486); `not a problem` is kept as dismissed for an old phone. */
 const REPORT_STATUSES = ['open', 'confirmed', 'dismissed', 'fixed', 'not a problem'];
@@ -1592,6 +1603,8 @@ const ACTION_ACCESS = {
   myProfile: 'self',
   /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). § */
   setNotify: 'self',
+  /* PHONE NOTIFICATIONS (492), each on the caller's own devices only — push.gs. */
+  pushState: 'self', pushSubscribe: 'self', pushUnsubscribe: 'self', pushSet: 'self',
   /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
   getProfile: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */

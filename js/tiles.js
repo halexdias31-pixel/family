@@ -31,8 +31,10 @@ const TILE_ICONS = {
   /* START HERE (466): a house — where the column opens. */
   home:  '<path d="M2.5 8.5 9 3l6.5 5.5"/><path d="M4.5 7v7.5h9V7"/><path d="M7.5 14.5v-4h3v4"/>',
   flag:  '<path d="M4 15.5v-13"/><path d="M4 3h9l-2 3 2 3H4"/>',
-  spot:  '<path d="M9 1.5v2.5"/><path d="M9 14v2.5"/><path d="M2.2 8.5h2.4"/>'
-       + '<path d="M13.4 8.5h2.4"/><circle cx="9" cy="8.5" r="3"/>',
+  /* FRONT DOOR (489): a door ajar — where everybody lands on opening the app; the house is where one column opens. */
+  door:  '<path d="M3.5 15.5h11"/><path d="M5 15.5v-13h8v13"/><path d="M5 2.5l5 1.5v12"/><circle cx="8.6" cy="9.5" r=".5"/>',
+  /* SPOTLIGHT IS A MEGAPHONE (489): its rayed circle read as a second star beside Save's — "two different stars". */
+  spot:  '<path d="M2.5 7v4h2.5l7 3.5v-11L5 7z"/><path d="M5.5 11l1 4h2l-1-3.5"/><path d="M14.5 7.5v3"/>',
   edit:  '<path d="M11.5 2.8 14.2 5.5 6 13.7l-3.4.7.7-3.4z"/><path d="m10.2 4.1 2.7 2.7"/>',
   bin:   '<path d="M2.8 4.5h12.4"/><path d="M6.5 4.5V2.8h5v1.7"/>'
        + '<path d="M4.5 4.5 5.3 15h7.4l.8-10.5"/>',
@@ -580,3 +582,37 @@ function postTiles_(p) {
 }
 
 on('noop', () => {});
+
+/* ---------- ONE TILE ROW PER THING (489): rows one under another become one; a joined row is a `tile-group` keeping its classes and data ---------- */
+function tileRowsJoin_(html) {
+  const h = String(html == null ? '' : html);
+  if (h.indexOf('tile-row') === h.lastIndexOf('tile-row') || typeof document === 'undefined') return h;
+  let t;
+  try { t = document.createElement('template'); t.innerHTML = h; } catch (e) { return h; }
+  let joined = 0;
+  const group = (from, into, first) => {
+    const g = document.createElement('span');
+    g.className = ['tile-group'].concat([...from.classList].filter(c => c !== 'tile-row')).join(' ');
+    [...from.attributes].forEach(a => { if (a.name !== 'class') g.setAttribute(a.name, a.value); });
+    while (from.firstChild) g.appendChild(from.firstChild);
+    if (first) into.insertBefore(g, into.firstChild); else into.appendChild(g);
+    from.remove();
+    joined++;
+  };
+  /* A ROW UNDER A BOX THAT ENDS IN A ROW (a form's Save, a list's last item): it joins that row, inside the box, so the box's own handlers still hold. */
+  t.content.querySelectorAll('.tile-row').forEach(row => {
+    const prev = row.previousElementSibling;
+    if (!prev || prev.hidden || prev.classList.contains('tile-row') || prev.matches('.merged-part, .widget-slot') || row.classList.contains('wgt-foot') || (row.parentElement && row.parentElement.closest('.me-form'))) return;
+    /* AN EMPTY STATUS LINE AFTER THE ROW (a form's "Saved" before anything is saved) does not count as something between. */
+    const last = e => { let k = e.lastElementChild; while (k && k.tagName === 'P' && !k.textContent.trim()) k = k.previousElementSibling; return k; };
+    let d = prev;
+    while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .ncl-box, .rep-box, .me-form, form, [class*="qual"], ul, ol, table')) d = last(d);
+    if (d !== prev && d.classList.contains('tile-row')) group(row, d, false);
+  });
+  t.content.querySelectorAll('.tile-row').forEach(row => {
+    const prev = row.previousElementSibling;
+    if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || prev.closest('.me-form')) return;
+    group(prev, row, true);
+  });
+  return joined ? t.innerHTML : h;
+}

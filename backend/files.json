@@ -8,6 +8,7 @@
   "doget.gs",
   "dopost.gs",
   "people.gs",
+  "push.gs",
   "records.gs",
   "setup.gs",
   "sync.gs"

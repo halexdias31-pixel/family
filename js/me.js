@@ -1906,7 +1906,9 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), typeof gtasksCard_ === 'function' ? [gtasksCard_()].filter(Boolean) : [], prog, wait);
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), typeof gtasksCard_ === 'function' ? [gtasksCard_()].filter(Boolean) : [],
+    /* PHONE NOTIFICATIONS (492), push.js — here because every account has this column. */
+    typeof pushCard_ === 'function' ? [pushCard_()].filter(Boolean) : [], prog, wait);
 }
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
@@ -3077,11 +3079,15 @@ function qualYears_(current) {
 }
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY § */
 function libraryShelf_(list, value) {
-  const nums = [...new Set((list || []).filter(isLibraryCard_)
+  const all = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
   const quiet = 'spellcheck="false"';
+  const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
+  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already
+     filled, else the first; no Add another, and a new card is written over it. */
+  const nums = all.length ? [all.find(has) || all[0]] : [];
   return `<div class="lib-shelf">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
+    has,
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">

@@ -301,6 +301,8 @@ function drawBooker_() {
       ${tile_({ icon: 'share', label: 'Share this booking',
                 /* `data: { stage: 'screen' }` WAS HERE and it was the second half of a choice this document made twice, back when sharing drew the receipt again onto a canvas. § */
                 act: 'book-share' })}
+      ${/* REPORT OR SUGGEST A CHANGE ON THE BOOKING FORM TOO (489): "I still don't see it on booking". */
+        typeof reportTile_ === 'function' ? reportTile_('widget', 'booking', 'Booking') : ''}
     </div>
     ${/* ---------- THE FOOTER LINE WENT § */
           ''}`;

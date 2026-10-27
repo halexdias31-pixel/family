@@ -122,9 +122,9 @@ Object.keys(SCHEMA).forEach(f => {
   if (!new RegExp("file: '" + f + "'").test(lib) || !new RegExp("'" + f + "'").test(lib.slice(lib.indexOf('const LIB_EXTRA'), lib.indexOf('const LIB_EXTRA') + 400))) bad.push('js/library.js does not load ' + f + ' (LIB_EXTRA and HIST_DB)');
   if (!new RegExp('\\b' + f + ': \\[\\]').test(doget)) bad.push('backend/doget.gs does not declare ' + f + ': [] — check-payload would call it read-and-never-sent');
 });
-['manuscript', 'figure', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Content', card: x => histCard_\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by histCard_'); });
+['manuscript', 'figure', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => histCard_\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by histCard_'); });
 
-if (!/\n  timeline: \{ group: 'Learning', label: 'Content', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
+if (!/\n  timeline: \{ group: 'Learning', label: 'Library', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
 const n = Object.keys(T).map(f => T[f].length + ' ' + f).join(', ');
 if (bad.length) { bad.forEach(b => console.log('FAIL ' + b)); console.log(bad.length + ' problem(s) in the history database (' + n + ')'); process.exit(1); }
 console.log('history database: ' + n + ' — schema, ids, links both ways, years and sources all sound');

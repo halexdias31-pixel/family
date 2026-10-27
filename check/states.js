@@ -1828,7 +1828,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
         if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
@@ -1840,7 +1840,7 @@ const STATES = {
         /* ONE WIDGET PER THING (408): the card is its key words; its formulas and worked lines are the next pages. */
         return !!ch && !ch.querySelector('.fc-flag')
                /* WHAT KIND, WHEREVER IN THE ROW: the row opens on What for since 396, which left this state unmeasured. */
-               && ((ch.querySelector('.qtags .qtag[data-f="kindLabel"]') || {}).textContent || '').trim() === 'Content'
+               && ((ch.querySelector('.qtags .qtag[data-f="kindLabel"]') || {}).textContent || '').trim() === 'Library'
                && !!ch.querySelector('.qtags .qtag[data-tag="topic"]')
                && !!ch.querySelector('.tb-words li b')
                && !ch.querySelector('.tb-math, .tb-points')
@@ -1856,7 +1856,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-STATS-9', P = '${P}', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
@@ -1893,7 +1893,7 @@ const STATES = {
         const K = 'ct:TB-KS2-MATHS-1', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
         if (at < 0) throw new Error(K + ' has no ' + (P || 'card') + ' page under Content · ' + x.subject);
@@ -1915,7 +1915,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
@@ -1938,7 +1938,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
@@ -1961,7 +1961,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
         if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
@@ -2135,20 +2135,16 @@ const STATES = {
         const c = document.querySelector('#s-res .page.on .card.fc.fight')
                || document.querySelector('#s-res .card.fc.fight');
         if (!c || c.querySelector('p.note')) return false;
-        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
+        const flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
         const how = c.querySelector('.fc-meta');
-        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fights' || c.querySelector('.fc-flag')) return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE TAG ROW — lifted there by `order`, which only a
-           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        if (c.querySelector('h3') || !flag || !how || flag.textContent.trim() !== 'Fights' || c.querySelector('.fc-flag')) return false;
+        /* NO "A v B" TITLE (490): the tags lead, and both corners' faces stand square under them. */
         const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().top >= h3.getBoundingClientRect().bottom - .5
+        return c.firstElementChild.matches('.qcard-tags')
                && getComputedStyle(how).textTransform === 'none'
-               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
-                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5);
       },
-      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title with its [Fights] tag under it, how it ended in sentence case, no loose note paragraphs',
+      wants: 'a fight led by its tags (no A v B title, 490), its [Fights] tag, how it ended in sentence case, both corners\' faces square, no loose note paragraphs',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS § */
     { name: 'a boxer who looks like himself',
@@ -2352,7 +2348,7 @@ const STATES = {
         const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
         if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: x.subject }];
         paintStuff();
         const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
         if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
