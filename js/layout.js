@@ -178,7 +178,8 @@ function layoutTiles_(w) {
     tile_({ icon: 'right', label: 'Move to next column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: 1 }, off: ci >= cols.length - 1 })}${
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    (grp || [id]).every(x => LAYOUT_KEEP.indexOf(x) === -1) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : ''}</span>`;
+    notePair_((grp || [id]).every(x => LAYOUT_KEEP.indexOf(x) === -1) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
+      noteTile_(id, col, w.title || w.label || ''))}</span>`;
 }
 
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once ---------- */
@@ -531,8 +532,92 @@ function cardAdminRow_(id, col, mergeable) {
     startTile_(col, id, start)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`;
+    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }), noteTile_(id, col, ''))}</div>`;
 }
+
+/* ---------- NOTES FOR CLAUDE (484): "add a tile on each widget I click then I write a prompt for what I want to edit" ----------
+   Kept in the Ledger's `claude_notes` and the Drive file "Notes for Claude", where a session reads them. */
+function noteOpen_(id) { return ((typeof DATA !== 'undefined' && DATA && DATA.claudeNotes) || []).filter(n => n && n.itemId === id); }
+function noteTile_(id, col, label) {
+  if (!layoutIsAdmin_()) return '';
+  const n = noteOpen_(id).length;
+  return tile_({ icon: 'pen', label: 'Note for Claude', note: n ? n + ' open' : '', act: 'ncl-open', tone: 'admin', data: { ci: id, col: col, cl: label } });
+}
+/* DELETE AND THE NOTE WRAP TOGETHER, so the longer row never leaves the note alone under a full line (467's orphan rule). */
+function notePair_(del, note) { return del && note ? `<span class="tile-pair">${del}${note}</span>` : del + note; }
+/* THE THING'S OWN TITLE, so the note names what a person sees and not only its id. */
+function noteLabelOf_(el, id) {
+  const said = el.getAttribute('data-cl');
+  if (said) return said;
+  const box = el.closest('.card, .own-set');
+  const h = box && box.querySelector('h2, h3, .wgt-title');
+  return ((h && h.textContent) || id).trim().slice(0, 200);
+}
+function noteListHtml_(id) {
+  const all = noteOpen_(id);
+  if (!all.length) return '';
+  const day = ms => { try { return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+  return `<ul class="ncl-list">${all.map(n => `<li class="ncl-item"><span class="ncl-say">${esc(day(n.at))} · ${esc(String(n.note || '').split('\n')[0])}</span>${
+    tile_({ icon: 'tick', label: 'Done', act: 'ncl-done', tone: 'admin', data: { nid: n.id, ci: id } })}</li>`).join('')}</ul>`;
+}
+/* ONE LINE PER THING, IN PLACE under the tile row (421): the words, then Send and Cancel, then this thing's open notes. */
+function noteBoxHtml_(id, col, label) {
+  return `<div class="ncl-box" data-cn="${esc(id)}" data-col="${esc(col)}" data-cl="${esc(label)}">
+    <textarea class="ncl-text" rows="3" maxlength="4000" aria-label="Note for Claude on ${esc(label)}"
+      placeholder="What should change here?"${draftAttr_('cn', id)}>${esc(draftVal_('cn', id))}</textarea>
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to Claude', act: 'ncl-send', tone: 'admin', data: { ci: id } })}${
+      tile_({ icon: 'close', label: 'Cancel', act: 'ncl-cancel', data: { ci: id } })}</div>
+    <p class="faint ncl-said"></p>
+    ${noteListHtml_(id)}
+  </div>`;
+}
+const noteBoxOf_ = id => [...document.querySelectorAll('.ncl-box')].find(b => b.getAttribute('data-cn') === id) || null;
+on('ncl-open', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-ci'), had = noteBoxOf_(id);
+  if (had) { had.remove(); return; }
+  const row = el.closest('.tile-row');
+  if (!row) return;
+  row.insertAdjacentHTML('afterend', noteBoxHtml_(id, el.getAttribute('data-col') || '', noteLabelOf_(el, id)));
+  const t = noteBoxOf_(id)?.querySelector('.ncl-text');
+  if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
+});
+/* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
+on('ncl-cancel', el => { noteBoxOf_(el.getAttribute('data-ci'))?.remove(); });
+function noteRedraw_(id) {
+  const b = noteBoxOf_(id);
+  if (!b) return;
+  b.querySelector('.ncl-list')?.remove();
+  b.insertAdjacentHTML('beforeend', noteListHtml_(id));
+}
+on('ncl-send', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-ci'), b = noteBoxOf_(id);
+  const box = b && b.querySelector('.ncl-text'), said = b && b.querySelector('.ncl-said');
+  const text = ((box && box.value) || '').trim();
+  if (!b || !text) { box && box.focus(); return; }
+  el.disabled = true; el.classList.add('is-busy');
+  const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
+  try { draftSent_('cn', id, text); } catch (e) {}
+  send({ action: 'claudeNoteAdd', personId: (USER && USER.personId) || '', itemId: id, column: b.getAttribute('data-col') || '',
+         itemLabel: b.getAttribute('data-cl') || id, note: text })
+    .then(d => { done(); try { draftSentDone_('cn', id, text); } catch (e) {}
+      if (d && Array.isArray(d.notes)) { try { DATA.claudeNotes = d.notes; } catch (e) {} }
+      if (box) box.value = '';
+      if (said) said.textContent = 'Sent. Claude reads it in "Notes for Claude".';
+      noteRedraw_(id); })
+    .catch(err => { done(); try { draftSentBack_('cn', id, text); } catch (e) {}
+      if (said) said.textContent = String((err && err.message) || 'Not sent.'); });
+});
+on('ncl-done', el => {
+  if (!layoutIsAdmin_()) return;
+  const nid = el.getAttribute('data-nid'), id = el.getAttribute('data-ci');
+  el.disabled = true;
+  send({ action: 'claudeNoteDone', personId: (USER && USER.personId) || '', id: nid })
+    .then(d => { try { DATA.claudeNotes = d && Array.isArray(d.notes) ? d.notes : (DATA.claudeNotes || []).filter(n => n.id !== nid); } catch (e) {}
+      noteRedraw_(id); })
+    .catch(err => { el.disabled = false; toast(String((err && err.message) || 'Not marked done')); });
+});
 /* A COLUMN'S LIST AS THE ADMIN SEES IT, with any card named there but not drawn for them kept at the end. */
 function cardListOf_(col, L) {
   if (!CARD_SEEN[col]) { try { cardArrange_(col, (CARD_BUILD[col]() || []).filter(Boolean)); } catch (e) {} }

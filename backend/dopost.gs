@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-z6-merge-above";
+const DOPOST_VERSION = "2026-10-27-z7-claude-notes";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2997,6 +2997,43 @@ function doPost(e) {
       else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
+    }
+
+    /* ---------- NOTES FOR CLAUDE (484): an admin's words on one widget or card, a row in `claude_notes` and the Drive file rewritten ---------- */
+    if (action === 'claudeNoteAdd' || action === 'claudeNoteDone') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      let out = {};
+      try {
+        clearCache();
+        const t = read(TAB.claude_notes);
+        if (!t.sheet) out = { error: 'Notes are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
+        else if (action === 'claudeNoteAdd') {
+          const note = S(body.note).trim().slice(0, CLAUDE_NOTE_MAX), item = S(body.itemId).trim().slice(0, 120);
+          if (!note) out = { error: 'Write what should change first.' };
+          else if (!item) out = { error: 'Which widget? Nothing was sent.' };
+          else {
+            const id = 'N-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            addRow(t, { note_id: id, made_at: new Date(), made_by: S(me.person_id), column: S(body.column).trim().slice(0, 40),
+                        item_id: item, item_label: S(body.itemLabel).trim().slice(0, 200), note: note, status: 'open', done_at: '' });
+            out = { success: true, id: id };
+          }
+        } else {
+          const row = t.rows.find(r => S(r.note_id) && S(r.note_id) === S(body.id));
+          if (!row) out = { error: 'That note is not there any more.' };
+          else { setCells(t, row, { status: 'done', done_at: new Date() }); out = { success: true, id: S(row.note_id) }; }
+        }
+      } finally {
+        lock.releaseLock();
+      }
+      if (out.success) {
+        clearCache();
+        out.notes = claudeNotesOpen_();
+        try { out.file = claudeNotesWrite_(out.notes); } catch (err) { out.fileError = S(err && err.message || err); }
+      }
+      return jsonOut(out);
     }
 
     /* ---------- THE FILMS, FILLED FROM THE NOTFLIX FOLDER § */

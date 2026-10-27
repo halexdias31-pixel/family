@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-z8-eink-built";
+  --css-version: "2026-10-27-z1-claude-notes";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6879,3 +6879,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @container (max-width: 293.9px) {
   .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3 of .tile):nth-last-child(4 of .tile) { margin-right: 0; }
 }
+
+/* NOTES FOR CLAUDE (484): the box opened in place under a widget's or card's tile row — the words, Send and Cancel, then its open notes. */
+.ncl-box { margin: .5rem 0 0; display: flex; flex-direction: column; gap: .4rem; }
+.ncl-text { width: 100%; box-sizing: border-box; min-height: 4.5rem; padding: .5rem .6rem; font: inherit; color: var(--ink);
+  background: transparent; border: 1px solid var(--line); border-radius: .5rem; resize: vertical; }
+.ncl-text:focus { outline: 0; border-color: var(--gold); }
+.ncl-text::placeholder { color: var(--faint); opacity: 1; }
+.ncl-said:empty { display: none; }
+.ncl-list { list-style: none; margin: 0; padding: 0; color: var(--faint); font-size: .85rem; }
+.ncl-item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .25rem 0; border-top: 1px solid var(--line); }
+.ncl-say { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-pair { display: inline-flex; gap: var(--tile-gap); flex: none; }

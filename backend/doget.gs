@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-26-z6-merge-above";
+const DOGET_VERSION = "2026-10-27-z7-claude-notes";
 
 
 function doGet(e) {
@@ -237,6 +237,8 @@ function doGet(e) {
                  'saveTimetable',
                  /* The admin's layout (462, 463): the order of widgets and which are deleted. */
                  'layoutSave',
+                 /* Notes for Claude (484): an admin's note on a widget or card. */
+                 'claudeNoteAdd', 'claudeNoteDone',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
@@ -885,6 +887,8 @@ function doGet(e) {
       try { payload.filmsSync = filmsSyncSays_(); } catch (err) { payload.filmsSync = { at: '', more: false }; }
       /* THE SETUP CARD ON YOU (361) — versions, run-once jobs, triggers. Fresh every time, like filmsSync. */
       try { payload.setup = setupStatus_(); } catch (err) { payload.setup = { error: String(err && err.message || err) }; }
+      /* THE OPEN NOTES FOR CLAUDE (484), the admin's alone. */
+      try { payload.claudeNotes = claudeNotesOpen_(); } catch (err) { payload.claudeNotes = []; }
     }
 
     /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY § */
@@ -1170,7 +1174,7 @@ function doGet(e) {
       /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
       try { kidPricesOff_(payload); } catch (err) {}
       const fresh = {};
-      ['submissions', 'films', 'filmsSync', 'setup'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+      ['submissions', 'films', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
       return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -1233,6 +1237,7 @@ function freshFor_(viewer) {
   if (admin) {
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
     try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
+    try { out.claudeNotes = claudeNotesOpen_(); } catch (err) { out.claudeNotes = []; }
   }
   /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
   try { kidNamesOff_(out); } catch (err) {}
@@ -1245,6 +1250,7 @@ function payloadWithFresh_(body, fresh, cached) {
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
+    + (f.claudeNotes ? ',"claudeNotes":' + JSON.stringify(f.claudeNotes) : '')
     + (cached ? ',"cached":true' : '') + '}';
 }
 
