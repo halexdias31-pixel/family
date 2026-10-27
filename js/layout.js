@@ -293,7 +293,10 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
 /* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
-const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
+/* THE ADMIN'S TWO COLUMNS (491): Business and Site; a card moves between them, and no other card moves onto either. */
+const ADMIN_COLS_ = ['biz', 'site'];
+const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1;
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
@@ -323,13 +326,15 @@ const CARD_REG = [
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
   { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
-  { id: 'biz:setup', col: 'biz', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
-  { id: 'biz:posts', col: 'biz', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
+  { id: 'biz:setup', col: 'site', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
+  { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
   { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
-  { id: 'biz:reports', col: 'biz', label: 'Reports', re: /^<div class="card biz reports/, say: 'Reports people have sent about posts or questions.' },
-  { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
-  { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
+  { id: 'biz:reports', col: 'site', label: 'Reports', re: /^<div class="card biz reports/, say: 'Reports people have sent about posts or questions.' },
+  { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
+  { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
+  { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
+  { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
 function ownSecReg_() {
@@ -380,7 +385,7 @@ function cardHome0_(id) {
   const r = cardReg_(id);
   if (r) return r.col;
   const m = /^set:([a-z]+):/.exec(id);
-  return m ? m[1] : /^biz:/.test(id) ? 'biz' : /^prog:series:/.test(id) ? 'account' : '';
+  return m ? m[1] : /^biz:/.test(id) ? 'biz' : /^site:/.test(id) ? 'site' : /^prog:series:/.test(id) ? 'account' : '';
 }
 /* A PIECE'S CARD: `set:account:contact#email` is a piece of `set:account:contact`; '' for a whole card. */
 const cardBase_ = id => { const i = String(id || '').indexOf('#'); return i === -1 ? '' : String(id).slice(0, i); };
@@ -430,18 +435,18 @@ const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)
 const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
   tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
-  biz: () => adminPages_(),
+  biz: () => adminPages_(), site: () => sitePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {
   let seq = [];
   try { seq = COLUMNS.map(t => t.id); } catch (e) { seq = []; }
-  return cardCols_().filter(c => seq.indexOf(c) !== -1 && (c !== 'biz' || cardHome0_(id) === 'biz'))
+  return cardCols_().filter(c => seq.indexOf(c) !== -1 && (!adminCol_(c) || adminCol_(cardHome0_(id))))
     .sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 function cardHome_(id, L) {
   const c = (L && L.cards) || {};
-  for (const k of cardCols_(L)) if (c[k] && c[k].indexOf(id) !== -1 && (k !== 'biz' || cardHome0_(id) === 'biz')) return k;
+  for (const k of cardCols_(L)) if (c[k] && c[k].indexOf(id) !== -1 && (!adminCol_(k) || adminCol_(cardHome0_(id)))) return k;
   return cardHome0_(id);
 }
 function cardGroups_(raw) {
@@ -551,8 +556,8 @@ function cardAdminRow_(id, col, mergeable) {
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
     tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-c-col', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: ci <= 0 })}${
-    tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 && col !== 'biz' ? 'Move to a new column' : 'Move to next column', act: 'lay-c-col', tone: 'admin',
-      data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (col === 'biz' || !customRoom_())) })}${
+    tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 && !adminCol_(col) ? 'Move to a new column' : 'Move to next column', act: 'lay-c-col', tone: 'admin',
+      data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (adminCol_(col) || !customRoom_())) })}${
     startTile_(col, id, start)}${
     frontTile_(col, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
@@ -765,7 +770,7 @@ on('lay-c-col', el => {
   let to = cols[cols.indexOf(col) + d];
   if (cols.indexOf(col) === -1) return;
   /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; ◀ from the first stays put. */
-  if (!to && d > 0 && col !== 'biz' && customRoom_()) {
+  if (!to && d > 0 && !adminCol_(col) && customRoom_()) {
     const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
     to = 'custom-' + n;
     D.custom = cu.concat([{ id: to, title: 'New column' }]);

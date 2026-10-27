@@ -322,6 +322,66 @@ function shopGroups_() {
   });
 }
 
+/* ---------- AN ICON FOR EVERY ITEM (491, the owner: "easy to navigate, while also nice to look at") § */
+/* Line drawings in the tiles' 18x17 frame and weight; the first word that names the thing wins, else its group's. */
+const SHOP_ICONS = {
+  pencil: '<path d="M3 14l1-4 8.5-8.5 3 3L7 13z"/><path d="M11 3l3 3M3 14l3-1"/>',
+  pen: '<path d="M4 13l1.5-4.5L12 2l3 3-6.5 6.5z"/><path d="M3 15h5"/>',
+  ruler: '<rect x="1.5" y="5.5" width="15" height="6" rx=".8"/><path d="M4 5.5v2.5M6.5 5.5v1.6M9 5.5v2.5M11.5 5.5v1.6M14 5.5v2.5"/>',
+  calc: '<rect x="4" y="1.5" width="10" height="14" rx="1.2"/><rect x="6" y="3.5" width="6" height="3"/><path d="M6.5 9h.1M9 9h.1M11.5 9h.1M6.5 11.5h.1M9 11.5h.1M11.5 11.5h.1M6.5 14h.1M9 14h.1M11.5 14h.1"/>',
+  sticker: '<path d="M3 2.5h12v7l-5 5H3z"/><path d="M15 9.5h-5v5"/><path d="M6.5 6.5h.1M10.5 6.5h.1M6.5 9.5c.8.8 2 .8 2.8 0"/>',
+  papers: '<path d="M5 1.5h7l3 3v10H5z"/><path d="M12 1.5v3h3M7.5 8h5M7.5 10.5h5M7.5 13h3"/><path d="M5 4H3v11.5h10"/>',
+  game: '<rect x="2.5" y="2.5" width="12" height="12" rx="2"/><path d="M6 6h.1M11 6h.1M8.5 8.5h.1M6 11h.1M11 11h.1"/>',
+  print3d: '<path d="M2.5 15.5h13M4 15.5V3h10v12.5"/><path d="M4 5.5h10M9 5.5v3"/><path d="M7 12.5h4l-1-2.5H8z"/>',
+  wheel: '<circle cx="9" cy="11" r="4.5"/><circle cx="9" cy="11" r=".6"/><path d="M9 11L14.5 1.5M13 1.5h3"/>',
+  ink: '<path d="M9 2C6.5 6 5 8.3 5 10.5a4 4 0 008 0C13 8.3 11.5 6 9 2z"/>',
+  bike: '<circle cx="4" cy="11.5" r="3"/><circle cx="14" cy="11.5" r="3"/><path d="M4 11.5l3-6h5l2 6M7 5.5l2.5 6H4M11 3.5h2"/>',
+  book: '<path d="M2 3.5c2.5-1 5-1 7 .5v11c-2-1.5-4.5-1.5-7-.5zM16 3.5c-2.5-1-5-1-7 .5v11c2-1.5 4.5-1.5 7-.5z"/>',
+  kit: '<path d="M2 6.5h14v8.5H2z"/><path d="M6.5 6.5V4.5h5v2M2 10h14M8 10v1.5h2V10"/>',
+  tool: '<path d="M10.5 2.5a3.5 3.5 0 004 4.5L8 13.5a1.8 1.8 0 01-2.5-2.5L12 4.5a3.5 3.5 0 01-1.5-2z"/>',
+  bag: '<path d="M3 6h12l-1 9.5H4z"/><path d="M6.5 6V4.5a2.5 2.5 0 015 0V6"/>',
+  spark: '<path d="M9 1.5l1.6 5 5 1.6-5 1.6L9 15l-1.6-5.3-5-1.6 5-1.6z"/>',
+};
+const SHOP_ICON_WORDS = [[/pencil|crayon/i, 'pencil'], [/\bpens?\b|marker|highlighter/i, 'pen'], [/ruler|protractor|set square/i, 'ruler'],
+  [/calculat/i, 'calc'], [/sticker|label/i, 'sticker'], [/3d|print(ed|ing)?\b/i, 'print3d'], [/wheel|trundle|tape measure/i, 'wheel'],
+  [/toner|ink|cartridge/i, 'ink'], [/bike|scooter|cycle/i, 'bike'], [/book|reader|novel/i, 'book'], [/paper|pack|worksheet|bundle/i, 'papers'],
+  [/game|dice|cards?\b|puzzle/i, 'game'], [/kit|box|set\b/i, 'kit'], [/bag|case|pouch/i, 'bag']];
+const SHOP_ICON_OF_GROUP = { bundle: 'papers', game: 'game', kit: 'kit', equipment: 'tool', stationery: 'pencil', consumable: 'bag', service: 'spark' };
+function shopIconName_(name, group) {
+  const w = SHOP_ICON_WORDS.find(([re]) => re.test(String(name || '')));
+  return w ? w[1] : SHOP_ICON_OF_GROUP[group] || 'bag';
+}
+const shopIcon_ = (name, group) => `<svg class="shop-ic shop-ic-${shopIconName_(name, group)}" viewBox="0 0 18 17" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${SHOP_ICONS[shopIconName_(name, group)]}</svg>`;
+/* THE ICON GOES IN FRONT OF THE CARD'S BODY, so stuffCard (find.js) stays the one drawing of a thing. */
+const shopWithIcon_ = (html, x, group) => String(html).replace('<div class="thing">', '<div class="thing shop-thing">' + shopIcon_(x.title || x.name || x.key, group));
+
+/* ---------- SEARCH THE SHOP (491): the shared pill at the top; a list of what matches under it, a tap going to the item's page ---------- */
+let SHOP_FIND = { q: '', at: [] };
+/* THE WIDGET'S `start`: the pill drawn once per box, so a repaint around somebody typing never takes their word away. */
+function paintShopFind_() {
+  if (!SHOP_FIND.at.length) try { shopCards_(); } catch (e) {}
+  document.querySelectorAll('.shop-find').forEach(box => {
+    if (!box.querySelector('.shop-q')) box.innerHTML = searchPill_(`class="shop-q" placeholder="Search the shop" aria-label="Search the shop" value="${esc(SHOP_FIND.q)}"`, 'shop-search') + '<div class="shop-hits" aria-live="polite"></div>';
+    const h = box.querySelector('.shop-hits'); if (h) h.innerHTML = shopHits_();
+  });
+}
+function shopHits_() {
+  const q = SHOP_FIND.q.trim().toLowerCase();
+  if (!q) return '';
+  const hits = SHOP_FIND.at.filter(h => h.say.indexOf(q) !== -1).slice(0, 8);
+  if (!hits.length) return '<p class="faint">Nothing in the shop matches.</p>';
+  return hits.map(h => `<button type="button" class="shop-hit" data-do="shop-go" data-page="${h.page}">${shopIcon_(h.name, h.group)}<span>${esc(h.name)}</span></button>`).join('');
+}
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('shop-q')) return;
+  SHOP_FIND.q = el.value || '';
+  document.querySelectorAll('.shop-find .shop-hits').forEach(b => { b.innerHTML = shopHits_(); });
+  /* THE OTHER COPY (Saved's) shows the same word. */
+  document.querySelectorAll('.shop-q').forEach(q => { if (q !== el) q.value = SHOP_FIND.q; });
+});
+on('shop-go', el => { try { goPage('shop', Number(el.dataset.page) || 0); } catch (e) {} });
+
 function shopCards_() {
   /* THE BASKET, AND ANY OTHER WIDGET THE ROSTER FILES UNDER THE SHOP, drawn exactly as Tools draws
      its own — the star on it, the widget in its slot, started by `toolsStart_('shop')`. */
@@ -337,14 +397,19 @@ function shopCards_() {
     return wgts.concat([loading_()]);
   }
   const credits = collCredits_();
+  const groups = shopGroups_();
   const out = wgts.slice();
-  shopGroups_().forEach(g => {
+  const at = [];
+  groups.forEach(g => {
     for (let i = 0; i < g.items.length; i += SHOP_PER) {
+      g.items.slice(i, i + SHOP_PER).forEach(x => at.push({ name: x.title || x.name || x.key || '', group: g.kind, page: out.length,
+        say: [x.title, x.name, x.key, x.sub, x.description, x.desc, g.label].filter(Boolean).join(' ').toLowerCase() }));
       /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts on. § */
       out.push(`<h2><span>${esc(g.label)}</span><span class="faint">${g.items.length}</span></h2>`
-        + g.items.slice(i, i + SHOP_PER).map(x => stuffCard(x, credits)).join(''));
+        + g.items.slice(i, i + SHOP_PER).map(x => shopWithIcon_(stuffCard(x, credits), x, g.kind)).join(''));
     }
   });
+  SHOP_FIND.at = at;
   if (out.length > wgts.length) return out;
   return out.concat([emptyCard_('Shop')]);
 }

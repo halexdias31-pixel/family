@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-ze-front";
+const DOPOST_VERSION = "2026-10-27-zf-n2c";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3084,6 +3084,26 @@ function doPost(e) {
       else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
+    }
+
+    /* ---------- THE WEEKLY EMAIL'S WORDS (491): the four `digest_*` config rows, blank meaning the default ---------- */
+    if (action === 'digestWordsSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const w = body.words && typeof body.words === 'object' ? body.words : {};
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the words on.' });
+      const out = {};
+      Object.keys(DIGEST_WORDS).forEach(k => {
+        if (!(k in w)) return;
+        const v = S(w[k]).slice(0, DIGEST_WORD_MAX);
+        const row = t.rows.find(r => norm(r.key) === k);
+        if (row) setCell(t, row, 'value', v);
+        else addRow(t, { key: k, value: v, what_it_does: 'The weekly parent email (491): blank is "' + DIGEST_WORDS[k] + '". {child} {parent} {count} {span} are filled in.' });
+        out[k] = v;
+      });
+      clearCache();
+      return jsonOut({ success: true, words: out });
     }
 
     /* ---------- NOTES FOR CLAUDE (484): an admin's words on one widget or card, a row in `claude_notes` and the Drive file rewritten ---------- */

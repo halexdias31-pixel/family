@@ -1097,14 +1097,14 @@ function nbUp_(b, surf, e, cancel) {
 /* ---------- BUILDING ONE, AND EVERY COPY ON THE PAGE ---------- */
 const NB_HOW = ['Write big here; it lands small above.', 'Swipe back, right to left: a new line.', 'Tap two fingers: undo. Three: redo.', 'Scribble: rub out. Hold still: straighten.'];
 function nbHtml_(k) {
-  const tiles = Object.keys(NB_SHAPES).map(t => tile_({ icon: NB_SHAPES[t].icon, label: NB_SHAPES[t].label, note: 'boxes to write in',
-    act: 'nb-shape', cls: 'nb-shape', data: { shape: t } })).join('');
+  /* No maths tiles (491, the owner: "kind of not needed"): a board that has a shape still draws it; nbShape_ stays for check/whiteboard.js. */
+  const tiles = '';
   const say = typeof padNoteSay_ === 'function' ? padNoteSay_(k) : 'Kept on this device only.';
   /* NEW LINE SITS IN THE PAD'S CORNER, under the writing hand: the row above is full at 390px, and a second row would cost the pad its height. */
   const ret = tile_({ icon: 'newline', label: 'New line', note: 'or swipe back across the pad', act: 'nb-line', cls: 'nb-line' });
   return `<div class="nb" data-k="${esc(k)}">
     <div class="nb-book" aria-label="The page"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas></div>
-    <div class="nb-bar tile-row" role="toolbar" aria-label="Maths">${tiles}${tile_({ icon: 'figure', label: 'Picture', note: 'a photo, a screenshot, or paste one', act: 'nb-pic', cls: 'nb-pic' })}${tile_({ icon: 'bin', label: 'Clear', note: 'the whole board', act: 'nb-clear', cls: 'nb-clear' })}</div>
+    <div class="nb-bar tile-row" role="toolbar" aria-label="Board">${tiles}${tile_({ icon: 'figure', label: 'Picture', note: 'a photo, a screenshot, or paste one', act: 'nb-pic', cls: 'nb-pic' })}${tile_({ icon: 'bin', label: 'Clear', note: 'the whole board', act: 'nb-clear', cls: 'nb-clear' })}</div>
     <div class="nb-pad" data-noswipe aria-label="Write here"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas>${ret}</div>
     <p class="nb-note" data-kept-k="${esc(k)}">${esc(say)}</p>
   </div>`;
@@ -1188,7 +1188,6 @@ function boardHold_(id) {
 }
 const nbOf_ = el => { const h = el && el.closest && el.closest('.nb-box'); return h && h.NB && h.NB.el.isConnected ? h.NB : null; };
 
-on('nb-shape', el => { const b = nbOf_(el); if (b) nbShape_(b, el.getAttribute('data-shape')); });
 on('nb-line', el => { const b = nbOf_(el); if (b) nbNewLine_(b); });
 on('nb-pic', el => { const b = nbOf_(el); if (b) nbPicAsk_(b); });
 on('nb-clear', el => { const b = nbOf_(el); if (b) nbClear_(b); });

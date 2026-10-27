@@ -11137,6 +11137,9 @@ function paintDocket() {
   const host = $('docket-body');
   if (!host) return;
   if (!USER) { host.innerHTML = '<p class="empty">Sign in to keep a docket.</p>'; return; }
+  /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
+  const gt = $('docket-gtasks');
+  if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';
 
   const list = docketLines();
   if (!list.length) {

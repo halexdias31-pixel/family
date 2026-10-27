@@ -175,7 +175,7 @@ function digestRender_(L, P, week, look) {
   const kid = S(L.first) || 'Your child';
   /* THE OWNER (372): each parent by their first name, casual, no branding anywhere. A name that is not safe to print is just "Hi,". */
   const pf = S(P && P.first).split(/\s+/)[0];
-  const hi = 'Hi' + (pf && pf.length <= 30 && digestSafe_(pf) ? ' ' + pf : '') + ',';
+  const W = (look && look.words) || digestWords_({});
   const items = (L.fresh || []).concat(L.again || []);
   const n = items.length;
   const qs = x => x + ' question' + (x === 1 ? '' : 's');
@@ -193,8 +193,10 @@ function digestRender_(L, P, week, look) {
   /* EACH QUESTION AS IT IS ON THE SITE when the library has it (`look.lib`, 18 Oct) — see `digestPartOut_`. */
   const opts = { lib: look && look.lib, site: S(look && look.site) || SITE_URL, kid: kid, cut: {} };
   /* ONE PLAIN LINE TO STOP, and no business name, logo or link (372). */
-  const foot = 'Don’t want these any more? Just reply and say so.';
-  const subject = kid + '’s week: ' + qs(n);
+  const fill = { child: kid, parent: pf && pf.length <= 30 && digestSafe_(pf) ? pf : '', count: qs(n), span: digestSpan_(week) + upTo };
+  const hi = digestFill_(W.digest_greeting, fill);
+  const foot = digestFill_(W.digest_footer, fill);
+  const subject = digestFill_(W.digest_subject, fill);
   const S0 = digestSummary_(items, L.days, opts.lib, week);
   const make = Q => {
     /* THE KEY IS SAID FOR THE MARKS THE LIST PRINTS — not every item of the week. § */
@@ -207,7 +209,7 @@ function digestRender_(L, P, week, look) {
     const unnamed = n && !Q.printed
       ? (n === 1 ? ' It could not be named here, so it is not listed.' : ' They could not be named here, so they are not listed.')
       : '';
-    const first = 'Here’s what ' + kid + ' worked on this week: ' + qs(n) + ' (' + digestSpan_(week) + upTo + ').';
+    const first = digestFill_(W.digest_intro, fill);
     /* THE KEY IS FOR THE PLAIN BODY: in the HTML each card says its verdict in words (380). */
     const lead = first + (said ? (Q.fromLib ? ' How each one went: ' : ' Beside each one is how it went: ') + said + '.' : '') + unnamed;
     const p = (t, st) => '<p style="margin:0 0 12px;' + (st || '') + '">' + t + '</p>';
@@ -849,7 +851,17 @@ function digestLook_(now, week) {
   } else if (!week || today < week.end) {
     hour = digestBookedHour_(cfg);
   }
-  return { brand: brand || BRAND_NAME, site: site || SITE_URL, hour: hour, minute: minute };
+  return { brand: brand || BRAND_NAME, site: site || SITE_URL, hour: hour, minute: minute, words: digestWords_(cfg) };
+}
+/* THE EMAIL'S FOUR LINES (491): the config row where an admin wrote one, else the default. */
+function digestWords_(cfg) {
+  const out = {};
+  Object.keys(DIGEST_WORDS).forEach(k => { const v = S(cfg && cfg[k]); out[k] = v || DIGEST_WORDS[k]; });
+  return out;
+}
+/* {child} {parent} {count} {span} filled in; a parent with no printable name leaves "Hi," as before. */
+function digestFill_(t, v) {
+  return String(t).replace(/\{(child|parent|count|span)\}/g, (m, k) => v[k] == null ? '' : String(v[k])).replace(/ +([,.!?])/g, '$1').replace(/ {2,}/g, ' ');
 }
 
 /* THE PLAN FOR A WEEK, OFF THE SHEET AS IT IS. The only impure step: three reads and the real

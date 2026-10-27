@@ -37,6 +37,8 @@ const TABS = [
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
   { id: 'biz', icon: '📋', label: 'Business', title: 'Business', admin: true },
+  /* ---------- AND THE SITE'S OWN SETTINGS, SPLIT FROM BUSINESS (491), FOR AN ADMIN AND NOBODY ELSE ---------- */
+  { id: 'site', icon: '🌐', label: 'Site', title: 'Site', admin: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -47,7 +49,7 @@ const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social
                    'games',
                    'family', 'staff', 'account',                      /* Parent, Tutor and Student account settings (461) */
                    'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
-                   'biz'];
+                   'biz', 'site'];                                    /* the admin's two: Business, then Site (491) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
@@ -1486,6 +1488,7 @@ const PAGER = {
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
   biz: () => cardCount_('biz', () => adminPages_().length, 0),
+  site: () => cardCount_('site', () => sitePages_().length, 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {

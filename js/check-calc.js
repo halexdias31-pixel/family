@@ -16,7 +16,7 @@ const press = (keys, st = calcNew()) => { keys.forEach(k => calcKey(st, k)); ret
 const sum = (label, keys, want, dec) => {
   n++;
   const st = press(keys.concat('='));
-  if (dec) calcKey(st, 'sd');
+  if (dec) { calcKey(st, 'sd'); calcKey(st, '2'); }   // FORMAT, 2 Decimal
   const got = st.err || (st.val == null ? '(nothing)' : calcText(st.val, st.dec));
   if (got !== want) bad.push(label + ': got ' + got + ', wanted ' + want);
 };
@@ -40,8 +40,11 @@ sum('x⁻¹ of 4', ['4', 'inv'], '1/4');
 sum('x³ by SHIFT x²', ['3', 'shift', 'sq'], '27');
 sum('√16', ['sqrt', '1', '6'], '4');
 sum('√(9/4)', ['sqrt', 'frac', '9', 'down', '4'], '3/2');
-sum('√2', ['sqrt', '2'], '1.414213562');
-sum('3√2 implied ×', ['3', 'sqrt', '2'], '4.242640687');
+sum('√2 stays a surd', ['sqrt', '2'], '√2');
+sum('√2 as a decimal', ['sqrt', '2'], '1.414213562', true);
+sum('3√2 implied ×', ['3', 'sqrt', '2'], '3√2');
+sum('√8 simplifies', ['sqrt', '8'], '2√2');
+sum('1÷√2 is √2/2', ['1', '÷', 'sqrt', '2'], '√2/2');
 sum('∛27 by SHIFT √', ['shift', 'sqrt', '2', '7'], '3');
 sum('∛−8', ['shift', 'sqrt', 'neg', '8'], '−2');
 sum('√−1', ['sqrt', 'neg', '1'], 'Math ERROR');
@@ -56,8 +59,14 @@ sum('sin⁻¹ 0.5 by SHIFT', ['shift', 'sin', '0', '.', '5'], '30');
 sum('cos⁻¹ ½', ['shift', 'cos', 'frac', '1', 'down', '2'], '60');
 sum('tan⁻¹ 1', ['shift', 'tan', '1'], '45');
 sum('2sin(30) implied ×', ['2', 'sin', '3', '0', ')'], '1');
-sum('π', ['pi'], '3.141592654');
-sum('2π', ['2', 'pi'], '6.283185307');
+sum('π', ['pi'], 'π');
+sum('π as a decimal', ['pi'], '3.141592654', true);
+sum('2π', ['2', 'pi'], '2π');
+sum('π÷3', ['pi', '÷', '3'], 'π/3');
+sum('1÷2π: implied × first, as the ClassWiz', ['1', '÷', '2', 'pi', '×', 'pi'], '1/2');
+sum('6÷2(1+2) is 1 on the ClassWiz', K('6÷2(1+2)'), '1');
+sum('2×3÷4 left to right', K('2×3÷4'), '3/2');
+sum('a long fraction falls to a decimal', K('1234567÷1000003'), '1.234563296');
 sum('e by SHIFT π', ['shift', 'pi'], '2.718281828');
 sum('log 1000', ['log', '1', '0', '0', '0'], '3');
 sum('ln e', ['ln', 'shift', 'pi'], '1');
@@ -127,13 +136,49 @@ n++;
     bad.push('the keypad is not the ClassWiz face: two rows of six function keys, four rows of five'); }
 
 /* The ClassWiz's own keys: SHIFT legends as printed, FORMAT, EXE, ≈, OK and the scroll keys. */
-sum('π by SHIFT 7', ['2', 'shift', '7'], '6.283185307');
+sum('π by SHIFT 7', ['2', 'shift', '7'], '2π');
 sum('e by SHIFT 8', ['shift', '8'], '2.718281828');
 sum('(−) by SHIFT −', ['shift', '−', '5', '+', '8'], '3');
 sum('■⁻¹ by SHIFT ■^■', ['4', 'shift', 'pow'], '1/4');
 sum('ln by SHIFT log', ['shift', 'log', 'shift', '8'], '1');
 sum('OK is EXE', ['frac', '1', 'down', '4', 'ok'], '1/4');
-sum('FORMAT is S⇔D', ['frac', '1', 'down', '4'], '0.25', true);
+/* FORMAT (491): the fx-991CW's list, the formats that apply, chosen by digit, by ▼ and OK, or by FORMAT again. */
+const fmt = (label, keys, pick, want, list) => {
+  n++;
+  const st = press(keys.concat('=', 'sd'));
+  const said = st.menu ? st.menu.join(',') : '(no list)';
+  if (list && said !== list) bad.push(label + ': FORMAT offered ' + said + ', wanted ' + list);
+  pick.forEach(k => calcKey(st, k));
+  const got = st.err || calcText(st.val, st.dec);
+  if (got !== want) bad.push(label + ': got ' + got + ', wanted ' + want);
+};
+fmt('FORMAT 2 is Decimal', ['frac', '1', 'down', '4'], ['2'], '0.25', 'std,dec,frac,eng,sexa');
+fmt('FORMAT ▼ OK is Decimal', ['frac', '1', 'down', '4'], ['down', 'ok'], '0.25');
+fmt('FORMAT FORMAT EXE is Decimal', ['frac', '1', 'down', '4'], ['sd', '='], '0.25');
+fmt('mixed fraction', ['frac', '7', 'down', '2'], ['4'], '3 1/2', 'std,dec,frac,mixed,eng,sexa');
+fmt('negative mixed', ['neg', 'frac', '7', 'down', '2'], ['4'], '−3 1/2');
+fmt('improper fraction of a decimal sum', K('1.25'), ['3'], '5/4');
+fmt('prime factors of 360', K('360'), ['3'], '2^3×3^2×5', 'std,dec,prime,eng,sexa');
+fmt('prime factors of a prime', K('97'), ['3'], '97');
+fmt('engineering 12345', K('12345'), ['4'], '12.345×10^3');
+fmt('engineering 0.00025', K('0.00025'), ['4'], '250×10^−6', 'std,dec,frac,eng,sexa');
+fmt('sexagesimal 1.5', K('1.5'), ['6'], '1°30′0″');
+fmt('sexagesimal 2.258', K('2.258'), ['6'], '2°15′28.8″');
+fmt('surd to decimal', ['sqrt', '2'], ['2'], '1.414213562', 'std,dec,eng,sexa');
+fmt('back to Standard', ['sqrt', '2'], ['2', 'sd', '1'], '√2');
+n++;
+{ const st = press(K('5').concat('=', 'sd', 'C'));
+  if (st.menu || st.val != null) bad.push('AC did not leave the FORMAT list and clear'); }
+n++;
+{ const st = press(['frac', '1', 'down', '4', '=', 'sd']);
+  const one = calcHtml(st).output; calcKey(st, 'down');
+  if (!/1 Standard/.test(one) || !/2 Decimal/.test(calcHtml(st).output)) bad.push('FORMAT does not show its list: ' + one); }
+n++;
+{ const st = press(['5', 'sd']);
+  if (st.menu || !/EXE first/.test(st.note)) bad.push('FORMAT before an answer should say to press EXE first'); }
+n++;
+{ const st = press(['frac', '1', 'down', '4', '=', 'sd', '2', '+', '1', '=']);
+  if (calcText(st.val, st.dec) !== '5/4') bad.push('a new sum after FORMAT is back in Standard: ' + calcText(st.val, st.dec)); }
 n++;
 { const st = press(['frac', '1', 'down', '8', 'shift', '=']);
   if (calcText(st.val, st.dec) !== '0.125') bad.push('SHIFT EXE (≈) should give the decimal: got ' + calcText(st.val, st.dec)); }

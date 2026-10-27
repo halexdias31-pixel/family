@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-ze-front";
+const BACKEND_VERSION = "2026-10-27-zf-n2c";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -692,6 +692,14 @@ const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
 const LAYOUT_KEY = 'layout';
+/* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
+const DIGEST_WORDS = {
+  digest_subject: '{child}’s week: {count}',
+  digest_greeting: 'Hi {parent},',
+  digest_intro: 'Here’s what {child} worked on this week: {count} ({span}).',
+  digest_footer: 'Don’t want these any more? Just reply and say so.',
+};
+const DIGEST_WORD_MAX = 300;
 const LAYOUT_MAX = 8000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
@@ -1589,6 +1597,8 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
+  /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
+  digestWordsSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
   claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */

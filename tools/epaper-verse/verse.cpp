@@ -196,18 +196,29 @@ void drawVerseIcon(const String &text, const String &ref, int which) {
 }
 #endif
 
-// Icon mode (470): one icon, its title beneath; the website's widget chose it.
-void drawPicture(int k) {
+// Icon mode (491): the picture fills the panel's height at 5/4 (150x200, nearest pixel), its title small and
+// vertical in the right margin, read bottom to top; "bare" leaves the title off and centres the picture.
+void drawPicture(int k, bool titled) {
+  const int PX0 = titled ? 22 : 25, PW = PIC_W * 5 / 4, PH = PIC_H * 5 / 4, BPR = (PIC_W + 7) / 8;
   display.setFullWindow();
   display.firstPage();
   do {
+    display.setRotation(0);
     display.fillScreen(GxEPD_WHITE);
-    display.drawBitmap((200 - PIC_W) / 2, 4, PICS[k], PIC_W, PIC_H, GxEPD_BLACK);
-    display.setTextColor(GxEPD_BLACK);
-    display.setFont(&FreeSerifItalic9pt7b);
-    String t = PIC_TITLES[k];
-    display.setCursor(max(0, (200 - textWidth(t)) / 2), 192);
-    display.print(t);
+    for (int y = 0; y < PH; y++) for (int x = 0; x < PW; x++) {
+      int sx = x * 4 / 5, sy = y * 4 / 5;
+      if (pgm_read_byte(PICS[k] + sy * BPR + (sx >> 3)) & (0x80 >> (sx & 7))) display.drawPixel(PX0 + x, y, GxEPD_BLACK);
+    }
+    if (titled) {
+      display.setRotation(3);   // text along the right edge, bottom to top
+      display.setTextColor(GxEPD_BLACK);
+      display.setFont(&FreeSerifItalic9pt7b);
+      String t = PIC_TITLES[k];
+      while (t.length() > 1 && textWidth(t) > 196) t.remove(t.length() - 1);
+      display.setCursor(max(0, (200 - textWidth(t)) / 2), 192);
+      display.print(t);
+      display.setRotation(0);
+    }
   } while (display.nextPage());
 }
 
@@ -222,7 +233,8 @@ bool hear(int &mode, int &i) {
     int m = -1, k = 0;
     if (heard.startsWith("SHOW VERSE ")) { m = 0; k = heard.substring(11).toInt(); }
     else if (heard.startsWith("SHOW ICON ")) { m = 1; k = heard.substring(10).toInt(); }
-    else if (heard == "HELLO") Serial.println("READY epaper-verse 482");
+    else if (heard.startsWith("SHOW BARE ")) { m = 2; k = heard.substring(10).toInt(); }   // an icon without its title (491)
+    else if (heard == "HELLO") Serial.println("READY epaper-verse 491");
     heard = "";
     if (m < 0) continue;
     mode = m; i = max(0, k) % (mode ? NPICS : N);
@@ -237,7 +249,7 @@ void draw(int mode, int i) {
   pinMode(EPD_PWR, OUTPUT); digitalWrite(EPD_PWR, LOW);
   display.init(0, true, 2, false);
   display.clearScreen();   // a full refresh to white first: nothing old (an earlier picture, a ghost) survives
-  if (mode) drawPicture(i);
+  if (mode) drawPicture(i, mode == 1);
   else
 #ifdef VERSE_ICONS
   drawVerseIcon(VERSES[i][0], VERSES[i][1], VERSE_ICON[i]);
@@ -269,7 +281,7 @@ void setup() {
   SPI.begin(12, -1, 13, 11);
   display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   draw(mode, i);
-  Serial.println("READY epaper-verse 482");
+  Serial.println("READY epaper-verse 491");
   unsigned long drawn = millis(), until = millis() + (daily ? 3000 : AWAKE);
   while ((long)(until - millis()) > 0 || tud_mounted()) {
     if (hear(mode, i)) {
