@@ -376,13 +376,13 @@ const EINK = (() => {
            verses: null, icons: null, fonts: null, bits: {}, steps: '', asked: false, failed: false, say: '', busy: false, install: false };
 })();
 const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon })); } catch (e) {} };
-/* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database with its drawings. */
+/* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database; data/icons/120/ the icons' own 1-bit bitmaps. */
 function einkLoad_() {
   if (EINK.asked) return;
   EINK.asked = true;
   const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
   Promise.all([get('eink-verses.json'), get('icons.json'), get('eink-fonts.json').catch(() => null)])
-    .then(([v, i, f]) => { EINK.fonts = f; EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.svg); })
+    .then(([v, i, f]) => { EINK.fonts = f; EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.image); })
     .catch(() => { EINK.failed = true; })
     .then(() => paintEink_());
 }
@@ -442,22 +442,22 @@ function einkPage_(mode, item, iconBits) {   // -> Uint8Array(200*200), 1 = blac
   einkText_(px, ital, item.ref, M + Math.trunc((W - einkWidth_(ital, item.ref)) / 2), 194);
   return px;
 }
-/* The icon's 1-bit 120x160, from its drawing as make-icons.js rasterises it (black where darker than mid-grey). */
+/* The icon's 1-bit 120x160 exactly as the screen has it (483): data/icons/120/<id>.png is the bitmap pictures.h is written from. */
 function einkIconBits_(ic, then) {
-  if (!ic || !ic.svg) return then(null);
+  if (!ic || !ic.image) return then(null);
   if (EINK.bits[ic.id]) return then(EINK.bits[ic.id]);
   const img = new Image();
   img.onload = () => {
     try {
       const c = document.createElement('canvas'); c.width = 120; c.height = 160;
-      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 120, 160); g.drawImage(img, 0, 0, 120, 160);
+      const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#fff'; g.fillRect(0, 0, 120, 160); g.drawImage(img, 0, 0, 120, 160);
       const d = g.getImageData(0, 0, 120, 160).data, b = new Uint8Array(120 * 160);
-      for (let i = 0; i < b.length; i++) b[i] = d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2] < 384 ? 1 : 0;
+      for (let i = 0; i < b.length; i++) b[i] = d[i * 4] < 128 ? 1 : 0;
       EINK.bits[ic.id] = b; then(b);
     } catch (e) { then(null); }
   };
   img.onerror = () => then(null);
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ic.svg);
+  img.src = 'data/icons/120/' + ic.id + '.png';
 }
 function einkDraw_(cv) {
   const list = einkList_(), icon = EINK.mode === 'icon', item = list[(icon ? EINK.icon : EINK.verse) % (list.length || 1)];

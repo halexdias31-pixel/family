@@ -86,4 +86,5 @@ the tab over it would have been a migration backwards.
 ## `icons.json` LEFT THIS FOLDER (470)
 
 The 81 Orthodox icons are now `data/icons.json`, read by the E-ink screen widget on Tools, each row carrying
-an original black-and-white `svg` written by `tools/epaper-verse/icon-svgs.js` (`check-eink`).
+an original black-and-white `svg` written by `tools/epaper-verse/icon-svgs.js` (`check-eink`). Since 483 the
+drawings are gone: each icon is its public-domain image, and the nine without one were left out.
