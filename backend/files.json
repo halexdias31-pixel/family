@@ -7,7 +7,6 @@
   "digest.gs",
   "doget.gs",
   "dopost.gs",
-  "inbox.gs",
   "people.gs",
   "push.gs",
   "records.gs",
