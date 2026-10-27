@@ -94,7 +94,7 @@ const CALLS = {
   'doPost:approvePost · Your post is up':                         ['posts'],
   'doPost:addPost · A post is waiting for you':                   ['approvals'],
   'doPost:sendMessage · A message from ':                         ['messages'],
-  'doPost:flagMessage · A message was reported':                  ['reported'],
+  'doPost:report · A message was reported':                       ['reported'],
   'doPost:claimChild · Someone has added you to their account':   ['family'],
   'doPost:answerClaim · They accepted':                           ['family'],
   'doPost:resetPin · Your PIN was changed':                       ['security'],

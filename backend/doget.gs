@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-27-z7-claude-notes";
+const DOGET_VERSION = "2026-10-27-z8-one-report-rule";
 
 
 function doGet(e) {
@@ -239,6 +239,8 @@ function doGet(e) {
                  'layoutSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
                  'claudeNoteAdd', 'claudeNoteDone',
+                 /* One report for everything (486). */
+                 'report',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
@@ -890,6 +892,9 @@ function doGet(e) {
       /* THE OPEN NOTES FOR CLAUDE (484), the admin's alone. */
       try { payload.claudeNotes = claudeNotesOpen_(); } catch (err) { payload.claudeNotes = []; }
     }
+
+    /* ---------- WHAT AN ADMIN REPORTED AND NOBODY HAS FIXED (486): `kind|id` only, so a card can say "flagged to fix" ---------- */
+    try { payload.reportedItems = reportedItems_(); } catch (err) { payload.reportedItems = []; }
 
     /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY § */
     /* AND A TAB WITH NO ROWS SENDS NO KEY, because the filter below cannot tell "an admin switched the last one off" from "nobody has ever spotlit anything" — both § */

@@ -625,6 +625,38 @@ function flaggedMessages_() {
     .sort((a, b) => b.at - a.at).slice(0, 50);
 }
 
+/* ---------- ONE REPORT RULE (486): a row's kind, item, state and weight, old rows included ---------- */
+function reportRow_(r) {
+  const kind = norm(r.kind) || 'question';
+  const qid = S(r.question_id);
+  const item = S(r.item_id) || (kind === 'question' && qid ? 'q:' + qid : '');
+  const s = norm(r.status);
+  const status = !s || s === 'open' ? 'open' : s === 'not a problem' ? 'dismissed' : s;
+  return { kind: kind, item_id: item, status: status };
+}
+/* WHAT IS MARKED: every confirmed report not yet fixed or dismissed, as `kind|id`. */
+function reportedItems_() {
+  const t = read(TAB.reports);
+  if (!t.sheet) return [];
+  const out = [];
+  t.rows.forEach(r => { const x = reportRow_(r); if (x.status === 'confirmed' && x.item_id && out.indexOf(x.kind + '|' + x.item_id) === -1) out.push(x.kind + '|' + x.item_id); });
+  return out;
+}
+/* AN ADMIN'S REPORT GOES TO NOTES FOR CLAUDE (484) as a note on the item, so "read my notes" reaches it. */
+function reportToNote_(row, by) {
+  const t = read(TAB.claude_notes);
+  if (!t.sheet) return null;
+  const x = reportRow_(row);
+  addRow(t, { note_id: 'N-' + Date.now() + '-' + Math.floor(Math.random() * 1000), made_at: new Date(), made_by: S(by),
+              column: 'reports', item_id: (x.kind + '|' + x.item_id).slice(0, 120), item_label: S(row.label).slice(0, 200),
+              note: ('Reported (' + S(row.report_id) + '): ' + S(row.reason) + (S(row.note) ? ' — ' + S(row.note) : '')).slice(0, CLAUDE_NOTE_MAX),
+              status: 'open', done_at: '' });
+  clearCache();
+  const notes = claudeNotesOpen_();
+  try { claudeNotesWrite_(notes); } catch (err) {}
+  return notes;
+}
+
 /* A CHILD UPLOADS NO PICTURE (413): rank Student, refused at every door that would keep one. */
 const CHILD_NO_UPLOAD = 'Pictures are put up by a grown-up — ask your parent or tutor. Nothing was sent.';
 

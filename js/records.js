@@ -217,8 +217,8 @@ on('app-decide', el => {
     .catch(() => {});
 });
 
-/* ---------- REPORTS: QUESTIONS SOMEBODY SAID ARE WRONG (395) ----------
-   Asked with `listReports`, admin at the gate, so nobody else is ever sent one; `null` is "not asked yet", as `BIZ.list` is. */
+/* ---------- REPORTS (395, 413, 486): an admin's are TO FIX; anybody else's are signals to Confirm or Dismiss ----------
+   Asked with `listReports`, admin at the gate; `null` is "not asked yet", as `BIZ.list` is. */
 const REPS = { list: null, open: 0, msgs: [], asking: false, error: '' };
 const REPS_DRAWN = 20;
 
@@ -226,19 +226,23 @@ function reportsCard_() {
   const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
   return `<div class="card biz reports" data-reports data-need="reports">${reportsInner_(wait)}</div>`;
 }
+const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud'];
 function reportsInner_(wait) {
   const list = REPS.list || [];
   const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
-  const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.label || r.questionId)}</b> <span class="biz-when">· ${esc(r.reason)}</span></p>
+  const st = (r, status, icon, label) => tile_({ icon, label, act: 'rep-status', data: { id: r.id, status } });
+  const item = r => `<div class="biz-item rep-item${r.serious ? ' is-serious' : ''}" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="biz-when">· ${esc(r.kind)} · ${esc(r.reason)}</span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
-      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', when(r.at), r.finder, r.device].filter(Boolean).join(' · '))}</p>
-      <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'the question', act: 'rep-open', data: { q: r.questionId } })}${
-        tile_({ icon: 'tick', label: 'Fixed', act: 'rep-status', data: { id: r.id, status: 'fixed' } })}${
-        tile_({ icon: 'close', label: 'Not a problem', act: 'rep-status', data: { id: r.id, status: 'not a problem' } })}</div>
+      ${r.body ? `<p class="faint rep-who">${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}: “${esc(r.body)}”</p>` : ''}
+      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', r.rank, when(r.at), r.finder, r.device].filter(Boolean).join(' · '))}</p>
+      <div class="tile-row">${REP_FINDS_.indexOf(r.kind) !== -1 ? tile_({ icon: 'open', label: 'Open', note: 'the card', act: 'rep-open', data: { k: r.itemId } }) : ''}${
+        r.serious ? st(r, 'fixed', 'tick', 'Fixed') + st(r, 'dismissed', 'close', 'Dismiss')
+                  : st(r, 'confirmed', 'flag', 'Confirm') + st(r, 'dismissed', 'close', 'Dismiss')}</div>
     </div>`;
+  const fix = list.filter(r => r.serious), sig = list.filter(r => !r.serious);
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
-  /* MESSAGES SOMEBODY REPORTED (413), first: a person may be upset or unsafe, a question only wrong. */
+  /* MESSAGES FLAGGED BEFORE 486 stay on their own rows (`messages.flagged`), read until each is dealt with. */
   const msgs = REPS.msgs || [];
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="biz-when">· ${esc(when(r.at))}</span></p>
@@ -250,9 +254,10 @@ function reportsInner_(wait) {
   return `<h3>Reports</h3>
     ${bizNeed_('reports', n, n + ' open to look at')}
     <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
-      ${REPS.list ? `<p class="rep-count">${n ? n + ' open' : 'None open'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
+      ${REPS.list ? `<p class="rep-count">${n ? fix.length + ' to fix · ' + sig.length + ' to review' : 'None open'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
       ${msgs.map(mItem).join('')}
-      ${list.slice(0, REPS_DRAWN).map(item).join('')}
+      ${fix.length ? '<p class="rep-head">To fix — reported by an admin</p>' + fix.slice(0, REPS_DRAWN).map(item).join('') : ''}
+      ${sig.length ? '<p class="rep-head">To review — Confirm makes it one to fix</p>' + sig.slice(0, REPS_DRAWN).map(item).join('') : ''}
       ${more ? `<p class="faint">And ${more} more in the reports tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
@@ -278,24 +283,33 @@ on('rep-status', el => {
   const id = el.getAttribute('data-id'), status = el.getAttribute('data-status') || '';
   const kind = el.getAttribute('data-kind') || '';
   const card = el.closest('[data-reports]');
-  send_({ action: 'setReportStatus', id, status, kind }, { button: el, where: card && card.querySelector('.rep-said') })
-    .then(() => {
+  send_({ action: 'setReportStatus', personId: (USER && USER.personId) || '', id, status, kind }, { button: el, where: card && card.querySelector('.rep-said') })
+    .then(d => {
       if (kind === 'message') { REPS.msgs = (REPS.msgs || []).filter(r => r.id !== id); reportsDraw_(); toast('Marked dealt with'); return; }
-      const was = (REPS.list || []).length;
-      REPS.list = (REPS.list || []).filter(r => r.id !== id);
-      if (REPS.list.length < was) REPS.open = Math.max(0, REPS.open - 1);
+      const r = (REPS.list || []).find(x => x.id === id);
+      /* CONFIRMED STAYS, as one to fix; fixed or dismissed leaves the list. */
+      if (status === 'confirmed' && r) {
+        r.serious = true; r.status = 'confirmed';
+        if (DATA && r.kind && r.itemId) DATA.reportedItems = (DATA.reportedItems || []).concat(r.kind + '|' + r.itemId);
+        if (DATA && d && Array.isArray(d.notes)) DATA.claudeNotes = d.notes;
+      } else if (r) {
+        REPS.list = REPS.list.filter(x => x.id !== id);
+        REPS.open = Math.max(0, REPS.open - 1);
+        if (DATA && d && Array.isArray(d.reportedItems)) DATA.reportedItems = d.reportedItems;
+      }
       reportsDraw_();
-      toast(status === 'fixed' ? 'Marked fixed' : 'Marked not a problem');
+      toast(status === 'confirmed' ? 'Confirmed — marked to fix' : status === 'fixed' ? 'Marked fixed' : 'Dismissed');
     })
     .catch(() => {});
 });
 
-/* OPEN TAKES THE ADMIN TO THE QUESTION IN FIND, by its key — `find-open`'s route. */
+/* OPEN TAKES THE ADMIN TO THE CARD IN FIND, by its key — `find-open`'s route. A report from before 486 named a question by its bare id. */
 on('rep-open', el => {
-  const k = 'q:' + (el.getAttribute('data-q') || '');
+  const raw = el.getAttribute('data-k') || '';
+  const k = /^[a-z]{1,3}:/.test(raw) ? raw : 'q:' + raw;
   let x = null;
   try { x = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
-  if (!x) { toast('That question is not in the list any more.'); return; }
+  if (!x) { toast('That card is not in the list any more.'); return; }
   finderOpen_(x, null, FINDERS.stuff);
 });
 

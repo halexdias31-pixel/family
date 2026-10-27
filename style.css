@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-z1-claude-notes";
+  --css-version: "2026-10-27-z2-one-report-rule";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6459,6 +6459,9 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .rep-count { margin: 0 0 .5rem; color: var(--gold); font-weight: 700; font-size: .85rem; }
 .rep-note-said { margin: 0 0 .2rem; font-size: .78rem; color: var(--ink); overflow-wrap: anywhere; }
 .rep-who { margin: 0 0 .3rem; font-size: .7rem; }
+/* THE REPORT BOX IN PLACE under a tile row (486), and the two heads of the admin's Reports card. */
+.rep-box { margin: .5rem 0; padding-top: .5rem; border-top: 1px solid var(--line); }
+.rep-head { margin: .6rem 0 .3rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 
 /* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393): the sum, its figures, two charts, a control per term. */
 .profit { --pf-cost: var(--dim); }

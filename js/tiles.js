@@ -401,7 +401,9 @@ function cardTiles_(x) {
   const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
-    + finderOpenTile_(x) + (x.more || '');
+    + finderOpenTile_(x) + (x.more || '')
+    /* AND `Report` ON EVERY CARD, Student rank and up (486) — `reportTileFor_` in submit.js. */
+    + (typeof reportTileFor_ === 'function' ? reportTileFor_(x) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
@@ -475,9 +477,7 @@ function cardActions_(x) {
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */
-  if (x.kind === 'question') return (typeof questionTiles_ === 'function' ? questionTiles_(x) : '')
-    /* AND `Report`, for anybody signed in (395) — `reportTile_` in submit.js. */
-    + (typeof reportTile_ === 'function' ? reportTile_(x) : '');
+  if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. § */
   return '';
 }
@@ -558,6 +558,7 @@ function postTiles_(p) {
   if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
   /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
   if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
+  if (!p.mine && typeof reportTile_ === 'function') rows.push(reportTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
   if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }

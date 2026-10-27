@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-z7-claude-notes";
+const DOPOST_VERSION = "2026-10-27-z8-one-report-rule";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -115,7 +115,7 @@ function doPost(e) {
     /* NOBODY YET — the last request's viewer is not this one's (`NET_VIEWER_`, constants.gs). */
     NET_VIEWER_ = null;
     const body = JSON.parse(e.postData.contents);
-    const action = S(body.action);
+    let action = S(body.action);
 
     /* ONE GATE, before anything runs. § */
     const denied = accessDenied(action, body);
@@ -1425,25 +1425,10 @@ function doPost(e) {
       return jsonOut({ success: true });
     }
 
-    /* Reporting one. It is NOT deleted — a message somebody reported is the one you will most
-       want to be able to show afterwards, and a deleted message cannot be shown to anybody. */
+    /* Reporting one (413) is the one `report` below since 486: an old phone's `flagMessage` goes the same way. It is NOT deleted. */
     if (action === 'flagMessage') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-      const t = read(TAB.messages);
-      const r = t.rows.find(x => S(x.message_id) === S(body.messageId));
-      if (!r) return jsonOut({ error: 'Not found.' });
-      if (S(r.to_id) !== S(me.person_id) && !isAdminPerson(S(body.name))) {
-        return jsonOut({ error: 'Not yours to report.' });
-      }
-      setCell(t, r, 'flagged', 'TRUE');
-      setCell(t, r, 'flag_reason', S(body.reason));
-      clearCache();
-      /* `reported` — ESSENTIAL: a report is a safeguarding matter and the admin is the only one told. */
-      notify(adminName_(), 'A message was reported',
-        'Reported by ' + personDisplayName(me) + '\n\nReason: ' + (S(body.reason) || '(none given)')
-        + '\n\nMessage id: ' + S(r.message_id) + '\n\nIt is still in the messages tab.', 'reported');
-      return jsonOut({ success: true });
+      action = 'report';
+      body.kind = 'message'; body.itemId = S(body.messageId); body.note = S(body.reason); body.reason = 'other';
     }
 
     /* claiming a child ------------------------------------------------------------------ A parent types a first and last name. § */
@@ -2722,18 +2707,31 @@ function doPost(e) {
       return jsonOut({ success: true, for: S(me.person_id), answers: answersFor_(S(me.person_id)) });
     }
 
-    /* ---------- A QUESTION REPORTED (395): one row in `reports`, as the token's person, once a day per question ---------- */
-    if (action === 'reportQuestion') {
+    /* ---------- ONE REPORT FOR EVERYTHING (395, 413, 486): a `reports` row as the token's person, once a day per item ----------
+       An admin's is `confirmed`: the item marked, a Note for Claude made. Anybody else's is `open`, a signal. */
+    if (action === 'reportQuestion') { action = 'report'; body.kind = 'question'; body.itemId = 'q:' + S(body.questionId).trim(); }
+    if (action === 'report') {
       const me = findPerson('', S(body.personId));
-      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
-      /* THE ID AS SENT, not as cleaned — a tag around one is not a question id. */
-      const qid = S(body.questionId).trim();
-      if (qid.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9_.:|-]*$/.test(qid)) return jsonOut({ error: 'Which question? Nothing was sent.' });
+      if (!me || !S(me.person_id) || !rankAtLeast_(me, 'student')) return jsonOut({ error: 'Sign in first.' });
+      const kind = norm(body.kind);
+      if (!REPORT_KIND_RE.test(kind)) return jsonOut({ error: 'What is being reported? Nothing was sent.' });
+      /* THE ID AS SENT, not as cleaned — a tag around one is not an id. */
+      const item = S(body.itemId).trim();
+      if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9_.:|#\/-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
+        return jsonOut({ error: 'Which one? Nothing was sent.' });
       const reason = Object.prototype.hasOwnProperty.call(REPORT_REASONS, S(body.reason)) ? REPORT_REASONS[S(body.reason)] : '';
       if (!reason) return jsonOut({ error: 'Choose what is wrong first.' });
+      const admin = rankAtLeast_(me, 'admin');
+      /* A MESSAGE IS ONLY YOURS TO REPORT IF IT WAS SENT TO YOU (413). */
+      let msg = null;
+      if (kind === 'message') {
+        msg = read(TAB.messages).rows.find(x => S(x.message_id) === item);
+        if (!msg) return jsonOut({ error: 'Not found.' });
+        if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to report.' });
+      }
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
-      let out = {};
+      let out = {}, made = null;
       const wroteBefore = POST_WROTE;
       try {
         /* FRESH ROWS UNDER THE LOCK, `submitAnswer`'s rule: two taps at once must not both find "not yet today". */
@@ -2742,74 +2740,100 @@ function doPost(e) {
         if (!t.sheet) out = { error: 'Reports are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
         else {
           const pid = S(me.person_id), today = reportDay_(new Date());
-          const had = t.rows.find(r => S(r.person_id) === pid && S(r.question_id) === qid && reportDay_(r.at) === today);
+          const had = t.rows.find(r => S(r.person_id) === pid && reportRow_(r).kind === kind && reportRow_(r).item_id === item && reportDay_(r.at) === today);
           if (had) out = { success: true, already: true };
           else {
-            addRow(t, {
+            made = {
               report_id: 'R-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
               at: new Date(), person_id: pid, handle: S(me.handle),
-              question_id: qid, paper_id: reportCut_(body.paperId, REPORT_FIELD_MAX),
+              question_id: kind === 'question' ? item.replace(/^q:/, '') : '', paper_id: reportCut_(body.paperId, REPORT_FIELD_MAX),
               part: reportCut_(body.part, 20), label: reportCut_(body.label, REPORT_FIELD_MAX),
               reason: reason, note: reportCut_(body.note, REPORT_NOTE_MAX),
-              finder: reportCut_(body.finder, 20), device: reportCut_(body.device, 20), status: '',
-            });
-            out = { success: true };
+              finder: reportCut_(body.finder, 20), device: reportCut_(body.device, 20),
+              status: admin ? 'confirmed' : 'open', status_at: admin ? new Date() : '',
+              kind: kind, item_id: item, reporter_rank: rankOf(me), status_by: admin ? pid : '',
+            };
+            addRow(t, made);
+            out = { success: true, serious: admin };
           }
         }
       } finally {
         lock.releaseLock();
       }
-      /* NOTHING IN THE PAYLOAD CHANGED — no viewer is sent `reports` with it — so the stored payload stands. */
-      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      if (made && admin) { try { const n = reportToNote_(made, S(me.person_id)); if (n) out.notes = n; } catch (err) {} }
+      /* A SIGNAL CHANGES NOTHING ANYBODY IS SENT, so the stored payload stands; an admin's marks the item (`reportedItems`). */
+      if (POST_WROTE && !wroteBefore && !(made && admin)) POST_WROTE = false;
+      /* `reported` — ESSENTIAL: a message reported is a safeguarding matter and the admin is the only one told (413). */
+      if (made && msg && !admin) {
+        notify(adminName_(), 'A message was reported',
+          'Reported by ' + personDisplayName(me) + '\n\nReason: ' + reason + (S(made.note) ? ' — ' + S(made.note) : '')
+          + '\n\nMessage id: ' + item + '\n\nIt is still in the messages tab; the report is on Business → Reports.', 'reported');
+      }
       return jsonOut(out);
     }
 
-    /* ---------- THE OPEN REPORTS, FOR THE BUSINESS COLUMN (395). Admin only, at the gate. ---------- */
+    /* ---------- THE OPEN REPORTS, FOR THE BUSINESS COLUMN (395, 486). Admin only, at the gate: to fix first, then the signals. ---------- */
     if (action === 'listReports') {
       clearCache();
       const t = read(TAB.reports);
-      if (!t.sheet) return jsonOut({ success: true, open: 0, total: 0, reports: [], missing: true });
-      const open = t.rows.filter(r => !S(r.status))
-        .map(r => ({ id: S(r.report_id), at: r.at instanceof Date ? r.at.getTime() : (Date.parse(S(r.at)) || 0),
+      if (!t.sheet) return jsonOut({ success: true, open: 0, total: 0, reports: [], missing: true, messages: flaggedMessages_() });
+      const open = t.rows.map(r => Object.assign({ r: r }, reportRow_(r))).filter(x => x.status === 'open' || x.status === 'confirmed')
+        .map(x => { const r = x.r; return { id: S(r.report_id), at: r.at instanceof Date ? r.at.getTime() : (Date.parse(S(r.at)) || 0),
+                     kind: x.kind, itemId: x.item_id, serious: x.status === 'confirmed', status: x.status, rank: S(r.reporter_rank),
                      handle: S(r.handle), questionId: S(r.question_id), paperId: S(r.paper_id), part: S(r.part),
-                     label: S(r.label), reason: S(r.reason), note: S(r.note), finder: S(r.finder), device: S(r.device) }))
-        /* NEWEST FIRST, and the later row first where two share a millisecond. */
-        .map((r, i) => Object.assign(r, { _i: i })).sort((a, b) => (b.at - a.at) || (b._i - a._i))
+                     label: S(r.label), reason: S(r.reason), note: S(r.note), finder: S(r.finder), device: S(r.device) }; })
+        /* TO FIX FIRST, NEWEST FIRST, and the later row first where two share a millisecond. */
+        .map((r, i) => Object.assign(r, { _i: i })).sort((y, z) => (z.serious - y.serious) || (z.at - y.at) || (z._i - y._i))
         .map(r => { delete r._i; return r; });
-      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX),
-                       messages: flaggedMessages_() });
+      /* A REPORTED MESSAGE CARRIES WHO, TO WHOM AND ITS WORDS (413) — the admin judges it without opening the tab. */
+      if (open.some(r => r.kind === 'message')) {
+        const tm = read(TAB.messages);
+        const nm = id => { const p = id ? findPerson('', id) : null; return p ? personDisplayName(p) : ''; };
+        open.filter(r => r.kind === 'message').forEach(r => {
+          const m = tm.rows.find(x => S(x.message_id) === r.itemId);
+          if (m) Object.assign(r, { from: nm(S(m.from_id)), to: nm(S(m.to_id)), body: S(m.body).slice(0, 300) });
+        });
+      }
+      return jsonOut({ success: true, open: open.length, serious: open.filter(y => y.serious).length, total: t.rows.length,
+                       reports: open.slice(0, REPORTS_LIST_MAX), messages: flaggedMessages_() });
     }
 
-    /* ---------- AND ONE CLOSED: `fixed` or `not a problem`; blank opens it again ---------- */
+    /* ---------- AND ONE DECIDED: confirmed (a signal made one to fix), dismissed or fixed; open opens it again ---------- */
     if (action === 'setReportStatus') {
-      const status = norm(body.status);
+      let status = norm(body.status);
+      if (status === '') status = 'open';
       if (REPORT_STATUSES.indexOf(status) < 0) return jsonOut({ error: 'Not a status a report can have.' });
-      /* A REPORTED MESSAGE (413) is closed on its own row: `flagged` CLEARED, kept for the record, never deleted. */
+      if (status === 'not a problem') status = 'dismissed';
+      /* A MESSAGE FLAGGED BEFORE 486 is closed on its own row: `flagged` CLEARED, kept for the record, never deleted. */
       if (norm(body.kind) === 'message') {
         const tm = read(TAB.messages);
         const mr = tm.rows.find(r => S(r.message_id) && S(r.message_id) === S(body.id));
         if (!mr) return jsonOut({ error: 'That message is not there any more.' });
-        setCell(tm, mr, 'flagged', status ? 'CLEARED' : 'TRUE');
+        setCell(tm, mr, 'flagged', status !== 'open' ? 'CLEARED' : 'TRUE');
         clearCache();
         return jsonOut({ success: true, id: S(mr.message_id), status: status, kind: 'message' });
       }
+      const me = findPerson('', S(body.personId));
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
-      let out = {};
-      const wroteBefore = POST_WROTE;
+      let out = {}, confirmed = null;
       try {
         clearCache();
         const t = read(TAB.reports);
         const row = t.sheet ? t.rows.find(r => S(r.report_id) && S(r.report_id) === S(body.id)) : null;
         if (!row) out = { error: 'That report is not there any more.' };
         else {
-          setCells(t, row, { status: status, status_at: status ? new Date() : '' });
+          const was = reportRow_(row).status;
+          setCells(t, row, { status: status, status_at: new Date(), status_by: S(me && me.person_id),
+                             kind: reportRow_(row).kind, item_id: reportRow_(row).item_id });
+          if (status === 'confirmed' && was !== 'confirmed') confirmed = row;
           out = { success: true, id: S(row.report_id), status: status };
         }
       } finally {
         lock.releaseLock();
       }
-      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      if (confirmed) { try { const n = reportToNote_(confirmed, S(me && me.person_id)); if (n) out.notes = n; } catch (err) {} }
+      if (out.success) { clearCache(); out.reportedItems = reportedItems_(); }
       return jsonOut(out);
     }
 
