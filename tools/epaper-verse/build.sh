@@ -13,4 +13,5 @@ ESPTOOL="python3 $OUT/core/packages/tool-esptool/esptool.py"
 $ESPTOOL --chip esp32s3 merge-bin -o "$HERE/epaper-verse.bin" --flash-mode keep --flash-freq keep --flash-size keep \
   0x0 "$B/bootloader.bin" 0x8000 "$B/partitions.bin" \
   0xe000 "$OUT/core/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" 0x10000 "$B/firmware.bin"
+md5sum "$HERE/epaper-verse.bin" | cut -c1-32 > "$HERE/epaper-verse.md5"   # the installers read the flash back against it (485)
 sha256sum "$HERE/epaper-verse.bin"

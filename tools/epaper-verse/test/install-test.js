@@ -6,11 +6,12 @@ const DIR = path.join(__dirname, '..');
 
 /* A pretend esptool-js: records what the page asked, fails where the case says. */
 const FAKE_ESPTOOL = `
-export class Transport { constructor(port) { this.port = port; } async disconnect() { LOG.push('disconnect'); } }
+export class Transport { constructor(port) { this.port = port; } async disconnect() { LOG.push('disconnect'); }
+  async setDTR(v) { LOG.push('dtr ' + v); } async setRTS(v) { LOG.push('rts ' + v); } }
 export class ESPLoader {
   constructor(o) { this.t = o.transport; LOG.push('filters ' + JSON.stringify(FILTERS)); }
   async main() { if (CASE.main) { const e = new Error('x'); e.name = CASE.main; throw e; } LOG.push('main'); }
-  async writeFlash(o) { LOG.push('write ' + o.fileArray[0].address + ' ' + o.fileArray[0].data.length); o.reportProgress(0, 5, 10); o.reportProgress(0, 10, 10); }
+  async writeFlash(o) { LOG.push('write ' + o.fileArray[0].address + ' ' + o.fileArray[0].data.length + ' md5 ' + (o.calculateMD5Hash ? o.calculateMD5Hash() : 'none')); o.reportProgress(0, 5, 10); o.reportProgress(0, 10, 10); }
   async after(m) { LOG.push('after ' + m); }
 }`;
 
@@ -33,8 +34,10 @@ const cases = [
   ['happy path: filtered, written at 0, reset, done', {}, async p => {
     await p.waitForFunction(() => /^Done/.test(document.getElementById('say').textContent), null, { timeout: 10000 });
     const log = await p.evaluate(() => LOG.join('; '));
-    return (await say(p)) === 'Done. Now unplug the screen and plug it into its charger — the verse appears in a few seconds.' && log.includes('filters [{"usbVendorId":12346}]')
-      && log.includes('write 0 ' + fs.statSync(path.join(DIR, 'epaper-verse.bin')).size) && log.includes('after hard_reset')
+    const md5 = require('crypto').createHash('md5').update(fs.readFileSync(path.join(DIR, 'epaper-verse.bin'))).digest('hex');
+    /* verified against the MD5, then a real reset: RTS raised with DTR low, then lowered (485) */
+    return (await say(p)) === 'Done. Now unplug the screen and plug it back in (or into its charger) — the verse appears in a few seconds.' && log.includes('filters [{"usbVendorId":12346}]')
+      && log.includes('write 0 ' + fs.statSync(path.join(DIR, 'epaper-verse.bin')).size + ' md5 ' + md5) && log.includes('dtr false; rts true; rts false; disconnect')
       && !(await p.locator('input').count());
   }],
 ];
