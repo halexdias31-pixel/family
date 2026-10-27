@@ -27,6 +27,16 @@ function ownIdNow_(x) {
   const m = /^own:(account|family|staff):([a-z]+)$/.exec(x), c = m && typeof OWN_SET_OF_SEC_ === 'function' ? OWN_SET_OF_SEC_(m[2]) : '';
   return c ? 'own:' + c + ':' + m[2] : x;
 }
+/* THE LAYOUT'S SHAPE NUMBER: 2 since 489's one-off repair below; `layoutClean_` (backend/core.gs) keeps the same rule. */
+const LAYOUT_V = 2;
+/* ONE-OFF (489): a layout older than v2 gets the camera back and the festive card deleted, as the owner meant; saved as v2, it never runs again. */
+function layoutMigrate2_(o, deleted) {
+  if ((Number(o.v) || 1) >= 2) return;
+  const cam = deleted.indexOf('item:feed:camera');
+  if (cam === -1) return;
+  deleted.splice(cam, 1);
+  if (deleted.indexOf('item:feed:festive') === -1) deleted.push('item:feed:festive');
+}
 function layoutSane_(v) {
   let o = v;
   try {
@@ -35,7 +45,8 @@ function layoutSane_(v) {
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
   const ids = a => (Array.isArray(a) ? a : []).map(String).filter(x => LAYOUT_ID.test(x)).map(ownIdNow_)
     .filter((x, i, all) => all.indexOf(x) === i);
-  const out = { v: 1, widgets: {}, deleted: ids(o.deleted) };
+  const out = { v: LAYOUT_V, widgets: {}, deleted: ids(o.deleted) };
+  layoutMigrate2_(o, out.deleted);
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
   Object.keys(w).forEach(k => { if (LAYOUT_ID.test(k)) out.widgets[k] = ids(w[k]); });
   /* SPLIT CARDS (464): a settings or Business card drawn a field a card. */
@@ -51,14 +62,19 @@ function layoutSane_(v) {
   if (cu.length) out.custom = cu;
   const colOk = k => CARD_COLS.indexOf(k) !== -1 || cu.some(x => x.id === k);
   Object.keys(c).forEach(k => { if (colOk(k)) cards[k] = ids(c[k]).slice(0, 300); });
+  /* A WIDGET COLUMN HAS A START HERE TOO (489): "why can't I make the 1st widget… for this page". */
+  const startOk = k => colOk(k) || Object.keys(LAYOUT_COL).some(x => LAYOUT_COL[x] === k);
   if (Object.keys(cards).length) out.cards = cards;
   /* START HERE (465): `start: {col: cardId | 'person:<id>' | 'first-person'}`, where a column opens. */
   const st = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {}, start = {};
-  Object.keys(st).forEach(k => { if (colOk(k) && typeof st[k] === 'string' && LAYOUT_START_ID.test(st[k])) start[k] = st[k]; });
+  Object.keys(st).forEach(k => { if (startOk(k) && typeof st[k] === 'string' && LAYOUT_START_ID.test(st[k])) start[k] = st[k]; });
   if (Object.keys(start).length) out.start = start;
   /* MERGED CARDS (480): `merged: [[top, …, bottom]]`, two to twelve ids each, an id in one group only. */
   const mg = mergeSane_(o.merged);
   if (mg.length) out.merged = mg;
+  /* FRONT DOOR (489): `front: {col, id}`, the one place everybody lands on opening the app. */
+  const fr = o.front && typeof o.front === 'object' && !Array.isArray(o.front) ? o.front : null;
+  if (fr && LAYOUT_ID.test(String(fr.col || '')) && LAYOUT_ID.test(String(fr.id || ''))) out.front = { col: String(fr.col), id: String(fr.id) };
   return out;
 }
 const MERGE_MAX = 12;
@@ -149,7 +165,8 @@ function layoutIsAdmin_() { return typeof rankAtLeast_ === 'function' && rankAtL
 function layoutDraftOf_(L) {
   const widgets = {}, all = layoutAllWidgets_();
   layoutWidgetCols_().forEach(c => { widgets[c] = layoutWidgetsIn_(c, all, L).map(w => String(w.id)); });
-  const out = { v: 1, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
+  const out = { v: LAYOUT_V, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
+  if (L && L.front) out.front = Object.assign({}, L.front);
   if (L && L.split && L.split.length) out.split = L.split.slice();
   if (L && L.start) out.start = Object.assign({}, L.start);
   if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
@@ -178,6 +195,8 @@ function layoutTiles_(w) {
     tile_({ icon: 'right', label: 'Move to next column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: 1 }, off: ci >= cols.length - 1 })}${
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
+    startTile_(col, id, ((layoutNow_() || {}).start || {})[col] || '')}${
+    frontTile_(col, id)}${
     notePair_((grp || [id]).every(x => LAYOUT_KEEP.indexOf(x) === -1) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
       noteTile_(id, col, w.title || w.label || ''))}</span>`;
 }
@@ -461,7 +480,7 @@ function cardArrange_(col, raw) {
 }
 /* WHERE A COLUMN OPENS (Start here), as a page number of the column last drawn — `PAGE_HOME` asks. */
 const CARD_START_AT = {};
-const cardStartOf_ = (col, L) => { const s = L && L.start && L.start[col]; return typeof s === 'string' ? s : ''; };
+const cardStartOf_ = (col, L) => { const s = L && L.start && L.start[col]; return typeof s === 'string' ? s : L && L.front && L.front.col === col ? L.front.id : ''; };
 /* THE COLUMN DRAWN: unchanged when there is no layout of cards and nobody to arrange them; else arranged, an admin's row on each card. */
 function cardsOf_(col) {
   const raw = (CARD_BUILD[col] ? CARD_BUILD[col]() : []).filter(Boolean);
@@ -515,7 +534,7 @@ function startTile_(col, id, start, note) {
 function cardRowIn_(h, row) {
   const t = h.replace(/\s+$/, '');
   /* ONLY WHEN THE LAST `</div>` CLOSES THE CARD: a page that is a card then a tile row took the row inside that row (467). */
-  if (/^\s*<div class="(card|own-set)/.test(t) && /<\/div>$/.test(t)) {
+  if (/^\s*<div\b[^>]*\sclass="(card|own-set|fest)/.test(t) && /<\/div>$/.test(t)) {
     let depth = 0, end = -1;
     const re = /<(\/?)div\b[^>]*>/g;
     for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
@@ -535,6 +554,7 @@ function cardAdminRow_(id, col, mergeable) {
     tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 && col !== 'biz' ? 'Move to a new column' : 'Move to next column', act: 'lay-c-col', tone: 'admin',
       data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (col === 'biz' || !customRoom_())) })}${
     startTile_(col, id, start)}${
+    frontTile_(col, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
@@ -552,9 +572,66 @@ function cardReportRow_(id, page) {
 const itemGone_ = id => { try { return ((layoutNow_() || {}).deleted || []).indexOf(id) !== -1; } catch (e) { return false; } };
 function itemMark_(id, col, html) {
   if (!html || itemGone_(id)) return '';
-  if (!layoutIsAdmin_()) return html;
-  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
-    tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}${noteTile_(id, col, '')}</div>`);
+  /* ITS ID ON ITS OWN BOX (489), so a Delete is read from the thing it sits on and the front door can find it. */
+  const h = String(html).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
+  if (!layoutIsAdmin_()) return h;
+  return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
+    frontTile_(col, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}${noteTile_(id, col, '')}</div>`);
+}
+
+/* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
+const frontNow_ = () => { const f = (layoutNow_() || {}).front; return f && f.col && f.id ? f : null; };
+function frontTile_(col, id) {
+  if (!layoutIsAdmin_() || !col || !id) return '';
+  const f = frontNow_(), on = !!(f && f.col === col && f.id === id);
+  return tile_({ icon: 'door', label: on ? 'Front door (on)' : 'Front door', note: on ? 'everybody lands here' : 'land everybody here', act: 'lay-front', tone: 'admin',
+    on: on, pressed: on, data: { lc: id, col: col } });
+}
+on('lay-front', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
+  if (!LAYOUT_ID.test(id || '') || !LAYOUT_ID.test(col || '')) return;
+  const D = layoutDraftOf_(layoutNow_()), f = D.front;
+  if (f && f.col === col && f.id === id) delete D.front; else D.front = { col: col, id: id };
+  layoutSave_(D);
+});
+/* THE PAGE THE FRONT DOOR'S THING IS ON in its column, or -1: a widget by its column's order, an item by the feed's, a card by Start here's count. */
+function frontPageOf_(col) {
+  const L = layoutNow_() || {}, st = (L.start || {})[col], fr = frontNow_();
+  const kind = Object.keys(LAYOUT_COL).find(k => LAYOUT_COL[k] === col);
+  /* A WIDGET COLUMN'S OWN START HERE when the door is elsewhere. */
+  const f = fr && fr.col === col ? fr : kind && st ? { col: col, id: st } : null;
+  if (!f) return -1;
+  if (kind && typeof widgetPagesOf_ === 'function') {
+    const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
+    if (n !== -1) return n;
+  }
+  if (col === 'feed' && typeof feedCamAt_ === 'function') {
+    if (f.id === 'item:feed:camera') return feedCamAt_();
+    if (f.id === 'item:feed:festive' && FEED_FEST_N) return feedCamAt_() + 1;
+  }
+  const n = CARD_START_AT[col];
+  return typeof n === 'number' && n >= 0 ? n : -1;
+}
+/* THE DOOR'S COLUMN OPENS ON ITS THING; every other column as before. */
+function frontHomes_() {
+  const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(['feed', 'dm']).concat(CARD_COLS);
+  cols.forEach(c => {
+    const was = PAGE_HOME[c];
+    PAGE_HOME[c] = () => { const n = frontPageOf_(c); if (n >= 0) return n; try { return was ? was() : 0; } catch (e) { return 0; } };
+  });
+}
+/* A REMEMBERED COLUMN (shell.js, a reload within minutes) wins; otherwise the app opens at the door, once. */
+const FRONT_KEPT = (() => { try { return AT !== TAB_HOME; } catch (e) { return true; } })();
+let FRONT_GONE = false;
+function frontGo_() {
+  const f = frontNow_();
+  if (FRONT_GONE || FRONT_KEPT || !f) return;
+  if (!TABS.some(t => t.id === f.col)) return;
+  FRONT_GONE = true;
+  if (AT !== TAB_HOME && AT !== f.col) return;
+  try { PAGE_OPENED[f.col] = false; } catch (e) {}
+  if (AT !== f.col) go(f.col, false);
 }
 
 /* ---------- NOTES FOR CLAUDE (484): "add a tile on each widget I click then I write a prompt for what I want to edit" ----------
@@ -594,18 +671,36 @@ function noteBoxHtml_(id, col, label) {
   </div>`;
 }
 const noteBoxOf_ = id => [...document.querySelectorAll('.ncl-box')].find(b => b.getAttribute('data-cn') === id) || null;
+/* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
+function boxInPlace_(el, html) {
+  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .fest, .post');
+  if (!thing) { const at = el.closest('.msg') || el.closest('.tile-row'); if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
+  thing.querySelectorAll(':scope > .ncl-box, :scope > .rep-box').forEach(b => b.remove());
+  const h = thing.getBoundingClientRect().height;
+  thing.insertAdjacentHTML('beforeend', html);
+  thing.classList.add('is-writing');
+  if (h) thing.style.setProperty('--writing-h', Math.round(h) + 'px');
+  return thing.lastElementChild;
+}
+function boxOut_(box) {
+  if (!box) return;
+  const thing = box.parentElement;
+  box.remove();
+  if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .ncl-box, :scope > .rep-box')) {
+    thing.classList.remove('is-writing');
+    thing.style.removeProperty('--writing-h');
+  }
+}
 on('ncl-open', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-ci'), had = noteBoxOf_(id);
-  if (had) { had.remove(); return; }
-  const row = el.closest('.tile-row');
-  if (!row) return;
-  row.insertAdjacentHTML('afterend', noteBoxHtml_(id, el.getAttribute('data-col') || '', noteLabelOf_(el, id)));
-  const t = noteBoxOf_(id)?.querySelector('.ncl-text');
+  if (had) { boxOut_(had); return; }
+  const box = boxInPlace_(el, noteBoxHtml_(id, el.getAttribute('data-col') || '', noteLabelOf_(el, id)));
+  const t = box && box.querySelector('.ncl-text');
   if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
 });
 /* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
-on('ncl-cancel', el => { noteBoxOf_(el.getAttribute('data-ci'))?.remove(); });
+on('ncl-cancel', el => { boxOut_(noteBoxOf_(el.getAttribute('data-ci'))); });
 function noteRedraw_(id) {
   const b = noteBoxOf_(id);
   if (!b) return;
@@ -623,11 +718,12 @@ on('ncl-send', el => {
   try { draftSent_('cn', id, text); } catch (e) {}
   send({ action: 'claudeNoteAdd', personId: (USER && USER.personId) || '', itemId: id, column: b.getAttribute('data-col') || '',
          itemLabel: b.getAttribute('data-cl') || id, note: text })
-    .then(d => { done(); try { draftSentDone_('cn', id, text); } catch (e) {}
+    .then(d => { done(); try { draftSentDone_('cn', id, text); draftDrop_('cn', id); } catch (e) {}
       if (d && Array.isArray(d.notes)) { try { DATA.claudeNotes = d.notes; } catch (e) {} }
+      /* SENT, THE WORDS GO (489): the next open is an empty box, never the last note again. */
       if (box) box.value = '';
-      if (said) said.textContent = 'Sent. Claude reads it in "Notes for Claude".';
-      noteRedraw_(id); })
+      boxOut_(b);
+      toast('Sent. Claude reads it in "Notes for Claude".'); })
     .catch(err => { done(); try { draftSentBack_('cn', id, text); } catch (e) {}
       if (said) said.textContent = String((err && err.message) || 'Not sent.'); });
 });
@@ -709,7 +805,7 @@ on('lay-c-del', el => {
 on('lay-start', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
-  if (cardCols_().indexOf(col) === -1 || !LAYOUT_START_ID.test(id || '')) return;
+  if ((cardCols_().indexOf(col) === -1 && !Object.keys(LAYOUT_COL).some(k => LAYOUT_COL[k] === col)) || !LAYOUT_START_ID.test(id || '')) return;
   const D = layoutDraftOf_(layoutNow_());
   const s = Object.assign({}, D.start || {});
   if (s[col] === id) delete s[col]; else s[col] = id;
@@ -727,6 +823,9 @@ CARD_COLS.forEach(c => {
     try { return was ? was() : 0; } catch (e) { return 0; }
   };
 });
+frontHomes_();
+/* THE KEPT LAYOUT'S DOOR FROM THE FIRST FRAME, before the payload; `frontGo_` again once it has come (shell.js `load`). */
+try { const f = frontNow_(); if (f && !FRONT_KEPT && TABS.some(t => t.id === f.col)) { AT = f.col; FRONT_GONE = true; } } catch (e) {}
 /* FOR THE JOURNEYS: a column's arranged cards, and the page it opens on. */
 function cardSeen_(col) { return (CARD_SEEN[col] || []).slice(); }
 function cardStartAt_(col) { try { return PAGE_HOME[col](); } catch (e) { return 0; } }

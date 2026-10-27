@@ -11974,7 +11974,8 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: pat, festive: true });
     await wait(400);
-    if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
+    /* THE CAMERA IS FIRST (489), the festive card under it. */
+    if (b.cam() !== 0) bad.push(`with one festive card the camera is page ${b.cam()}, not 0 — the camera stays first`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
     if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
@@ -13854,9 +13855,11 @@ check('each library card is drawn as a card: one face per entry, its three boxes
   if (!form) return ['the Tools column drew no library cards widget — nothing was checked'];
   const bad = [];
   const slots = [...form.querySelectorAll('.lib-shelf > .lib-card')];
-  if (slots.length !== 5) bad.push('the shelf holds ' + slots.length + ' slots, wanted five (`LIBRARY_CARDS`), each drawn whether shown or not');
+  /* ONE CARD (489, the owner: "change this to be only 1 card allowed"): the first filled one, no Add another. */
+  if (slots.length !== 1) bad.push('the shelf holds ' + slots.length + ' slots, wanted one');
+  if (form.querySelector('[data-do="shelf-more"]')) bad.push('the shelf still offers Add another');
   const shown = slots.filter(s => !s.hidden);
-  if (shown.length !== 3) bad.push(shown.length + ' cards are shown for three filled libraries, wanted three');
+  if (shown.length !== 1) bad.push(shown.length + ' cards are shown, wanted one');
   slots.forEach((s, at) => {
     const n = at + 1, faces = s.querySelectorAll('.lib-face');
     if (faces.length !== 1) { bad.push('slot ' + n + ' holds ' + faces.length + ' card faces, wanted one'); return; }
@@ -13885,8 +13888,6 @@ check('each library card is drawn as a card: one face per entry, its three boxes
     const drafted = [...f.querySelectorAll('[data-draft]')].map(e => e.getAttribute('data-me'));
     if (drafted.length) bad.push('card ' + n + ' carries drafts now: ' + drafted.join(', ') + ' — a library card was never drafted (its PIN is on it)');
   });
-  const ds = shown.map(s => libD_(s.querySelector('.lib-face')));
-  if (new Set(ds).size !== ds.length) bad.push('three different numbers drew ' + new Set(ds).size + ' different barcodes — every card should look like its own');
   /* NAME FIRST IN THE ORDER A KEYBOARD AND A READER MEET THEM, whatever the grid puts where. */
   const order = [...shown[0].querySelectorAll('input[data-me]')].map(e => e.getAttribute('data-me'));
   if (JSON.stringify(order) !== '["lib1_name","lib1_pin","lib1_no"]') bad.push('a card\'s boxes come in the order ' + JSON.stringify(order) + ', wanted the name, the PIN, then the number');
@@ -13908,23 +13909,21 @@ check('typing a library card number redraws its bars; the same number always dra
   if (box(1).value !== '2000000000005') bad.push('the number printed under the bars reads ' + JSON.stringify(box(1).value) + ' after typing 2000000000005');
   draftType_(w, box(1), '2000000000000');
   if (libD_(face(1)) !== d1) bad.push('typing the first number back did not draw the first bars back — the bars are not the number\'s');
-  draftType_(w, box(2), '2000000000000');
-  if (libD_(face(2)) !== d1) bad.push('the same number on another card drew different bars');
   if (JSON.stringify(w.libBarsOf_('2000000000000')) !== JSON.stringify(w.libBarsOf_('2000000000000'))) bad.push('libBarsOf_ gave two answers for one number');
   if (JSON.stringify(w.libBarsOf_('2000000000000')) === JSON.stringify(w.libBarsOf_('2000000000001'))) bad.push('two numbers one digit apart drew the same bars');
   /* NO NUMBER: the even stand-in, marked so the stylesheet draws it faint. */
-  draftType_(w, box(3), '');
-  const blank = face(3).querySelector('svg.lib-bars');
+  draftType_(w, box(1), '');
+  const blank = face(1).querySelector('svg.lib-bars');
   if (!blank || !blank.classList.contains('is-blank')) bad.push('an empty number\'s bars are not marked is-blank');
-  const runs = [...String(libD_(face(3)) || '').matchAll(/M(\d+) 0h(\d+)/g)].map(m => [Number(m[1]), Number(m[2])]);
+  const runs = [...String(libD_(face(1)) || '').matchAll(/M(\d+) 0h(\d+)/g)].map(m => [Number(m[1]), Number(m[2])]);
   const widths = new Set(runs.map(r => r[1])), steps = new Set(runs.slice(1).map((r, i) => r[0] - runs[i][0]));
   if (runs.length < 10 || widths.size !== 1 || steps.size !== 1) bad.push('an empty number drew ' + runs.length + ' bars of ' + widths.size + ' widths at ' + steps.size + ' spacings — wanted an even pattern');
-  draftType_(w, box(3), '2000000000002');
-  if (face(3).querySelector('svg.lib-bars.is-blank')) bad.push('a number typed into an empty card left its bars marked blank');
+  draftType_(w, box(1), '2000000000002');
+  if (face(1).querySelector('svg.lib-bars.is-blank')) bad.push('a number typed into an empty card left its bars marked blank');
   return bad;
 });
 
-check('the library cards on Tools still save the fifteen fields they always did, Add another reveals the next card, and a reload keeps Settings\' drafts but never a library card\'s', async () => {
+check('the library card on Tools saves its three fields (489: one card), and a reload keeps Settings\' drafts but never a library card\'s', async () => {
   const one = libBoot_();
   await wait(300);
   const form1 = await libDraw_(one.w);
@@ -13935,8 +13934,8 @@ check('the library cards on Tools still save the fifteen fields they always did,
   const head = one.w.document.querySelector('#s-account [data-me="headline"]');
   if (!head) return ['no headline box on the settings column — the reload was NOT checked'];
   draftType_(one.w, head, 'Typed, never saved');
-  draftType_(one.w, form1.querySelector('[data-me="lib2_name"]'), 'Typed on a card, never saved');
-  draftType_(one.w, form1.querySelector('[data-me="lib2_pin"]'), '0000 typed');
+  draftType_(one.w, form1.querySelector('[data-me="lib1_name"]'), 'Typed on a card, never saved');
+  draftType_(one.w, form1.querySelector('[data-me="lib1_pin"]'), '0000 typed');
   one.w.dispatchEvent(new one.w.Event('pagehide'));
   const kept = keptStore_(one.w);
   const leaked = Object.keys(kept).filter(k => /^draft:/.test(k) && /lib\d|pin/i.test(k));
@@ -13951,19 +13950,10 @@ check('the library cards on Tools still save the fifteen fields they always did,
   try { two.w.paint('account'); } catch (e) {}
   const head2 = d.querySelector('#s-account [data-me="headline"]');
   if (!head2 || head2.value !== 'Typed, never saved') bad.push('after a reload the headline box holds ' + JSON.stringify(head2 && head2.value) + ' — the column\'s drafts were lost');
-  const lib2 = form.querySelector('[data-me="lib2_name"]');
-  if (lib2.value !== 'Sutton Central') bad.push('after a reload card 2 holds ' + JSON.stringify(lib2.value) + ', wanted its saved name: no box of a library card is a draft');
-  const savedD = (String(two.w.libBars_('2000000000001')).match(/ d="([^"]+)"/) || [])[1];
-  if (!savedD || libD_(lib2.closest('.lib-face')) !== savedD) bad.push('after a reload card 2\'s bars are not its saved number\'s');
-  /* ADD ANOTHER, STILL: the fourth card shown, its name box focused, and the button still there for the fifth. */
-  try { t.ACTIONS['shelf-more'](form.querySelector('[data-do="shelf-more"]')); } catch (e) { bad.push('Add another threw: ' + e.message); }
-  const four = form.querySelector('[data-me="lib4_name"]').closest('.lib-card');
-  if (four.hidden) bad.push('Add another did not reveal the fourth card');
-  if (d.activeElement !== form.querySelector('[data-me="lib4_name"]')) bad.push('Add another focused ' + JSON.stringify(d.activeElement && d.activeElement.getAttribute('data-me')) + ', wanted the new card\'s name');
-  if (!form.querySelector('[data-do="shelf-more"]')) bad.push('Add another went after the fourth card, with a fifth still to come');
-  draftType_(two.w, form.querySelector('[data-me="lib4_name"]'), 'Mitcham');
-  draftType_(two.w, form.querySelector('[data-me="lib4_no"]'), ' 2000000000003 ');
-  draftType_(two.w, form.querySelector('[data-me="lib4_pin"]'), '0000');
+  const lib1 = form.querySelector('[data-me="lib1_name"]');
+  if (lib1.value !== 'Merton') bad.push('after a reload the card holds ' + JSON.stringify(lib1.value) + ', wanted its saved name: no box of a library card is a draft');
+  const savedD = (String(two.w.libBars_('2000000000000')).match(/ d="([^"]+)"/) || [])[1];
+  if (!savedD || libD_(lib1.closest('.lib-face')) !== savedD) bad.push('after a reload the card\'s bars are not its saved number\'s');
   draftType_(two.w, form.querySelector('[data-me="lib1_name"]'), 'Merton Park');
   two.posts.length = 0;
   try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
@@ -13971,9 +13961,8 @@ check('the library cards on Tools still save the fifteen fields they always did,
   const post = two.posts.find(b => b.action === 'updateProfile');
   if (!post) return bad.concat(['Save posted ' + JSON.stringify(two.posts.map(b => b.action)) + ' and no updateProfile']);
   const keys = Object.keys(post.fields || {}).sort();
-  if (JSON.stringify(keys) !== JSON.stringify(LIB_FIELDS_.slice().sort())) bad.push('Save posted ' + JSON.stringify(keys) + ' — wanted exactly the fifteen library fields, as before');
-  const want = { lib1_name: 'Merton Park', lib1_no: '2000000000000', lib1_pin: '0000', lib2_name: 'Sutton Central',
-                 lib3_name: 'Wandsworth Town and Putney', lib4_name: 'Mitcham', lib4_no: '2000000000003', lib4_pin: '0000', lib5_name: '', lib5_no: '' };
+  if (JSON.stringify(keys) !== JSON.stringify(['lib1_name', 'lib1_no', 'lib1_pin'])) bad.push('Save posted ' + JSON.stringify(keys) + ' — wanted the one card\'s three fields');
+  const want = { lib1_name: 'Merton Park', lib1_no: '2000000000000', lib1_pin: '0000' };
   Object.keys(want).forEach(k => { if ((post.fields || {})[k] !== want[k]) bad.push('Save posted ' + k + ' as ' + JSON.stringify((post.fields || {})[k]) + ', wanted ' + JSON.stringify(want[k])); });
   if (post.targetId !== 'P001' || post.personId !== 'P001') bad.push('the Tools card saved to ' + JSON.stringify(post.targetId) + ', not the person signed in');
   return bad;
@@ -14002,7 +13991,7 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
     /* LAST — appended, because its gate is signing in, and above another tool it moved
        that tool's page under somebody on Tools when they signed in (the review of 339). */
     if (list[list.length - 1] !== 'libcards') bad.push('a ' + role + '\'s library cards are tool ' + list.indexOf('libcards') + ' of ' + JSON.stringify(list) + ', wanted the last');
-    if (form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length !== 3) bad.push('a ' + role + '\'s library cards widget draws ' + form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length + ' cards for three saved');
+    if (form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length !== 1) bad.push('a ' + role + '\'s library cards widget draws ' + form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length + ' cards, wanted one (489)');
     try { w.paint('account'); } catch (e) {}
     if (d.querySelector('#s-account .lib-face, #s-account [data-me^="lib1_"]')) bad.push('a ' + role + '\'s Settings still draws a library card');
   }
@@ -14032,14 +14021,14 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton from the sheet') bad.push('myProfile landed and the library cards on Tools still show ' + JSON.stringify((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value));
   /* BUT NOT UNDER THE CARET — a box focused and not yet typed into is not dirty, and redrawing it takes the caret
      away (`libCardsRedraw_`). It keeps its element; it is drawn from the sheet the next time it starts. */
-  const focused = d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]');
+  const focused = d.querySelector('#s-tools #wgt-libcards [data-me="lib1_no"]');
   if (!focused) return bad.concat(['no second library card box to focus — the caret was NOT checked']);
   focused.focus();
   if (d.activeElement !== focused) return bad.concat(['the box could not be focused here — the caret was NOT checked']);
-  mine = Object.assign({}, mine, { lib2_name: 'Sutton from the sheet' });
+  mine = Object.assign({}, mine, { lib1_no: '2000000000009' });
   try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
   await wait(400);
-  if (d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
+  if (d.querySelector('#s-tools #wgt-libcards [data-me="lib1_no"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
   return bad;
 });
 
@@ -30337,7 +30326,9 @@ check('notes for Claude (484): an admin has a Note for Claude tile on a widget a
   A['ncl-open'](tile); await wait(50);
   const box = d.querySelector(`.ncl-box[data-cn="${a}"]`);
   if (!box) return bad.concat(['Note for Claude opened no box']);
-  if (box.previousElementSibling !== cnRow_(w, a)) bad.push('the box is not in place under the tile row');
+  /* IN PLACE OF THE WIDGET (489): the box is inside its card and the rest of the card is hidden while writing. */
+  const wcard = d.querySelector(`#wgt-${a}`)?.closest('.card');
+  if (box.parentElement !== wcard || !wcard.classList.contains('is-writing')) bad.push('the box did not open in place of the widget');
   const ta = box.querySelector('textarea');
   if (!ta || ta.getAttribute('placeholder') !== 'What should change here?') bad.push('the box has no "What should change here?" textarea');
   if (!box.querySelector('[data-do="ncl-send"]') || !box.querySelector('[data-do="ncl-cancel"]')) bad.push('the box has no Send and Cancel tiles');
@@ -30355,9 +30346,14 @@ check('notes for Claude (484): an admin has a Note for Claude tile on a widget a
     if (post[0].itemId !== a) bad.push('the note went for ' + post[0].itemId + ', not ' + a);
     if (!post[0].itemLabel || post[0].column !== 'tools' || post[0].note !== 'Make the title bigger') bad.push('the note went without its title, column or words: ' + JSON.stringify(post[0]));
   }
+  /* SENT, THE BOX CLOSES AND THE THING COMES BACK (489); opened again it is empty, the note listed. */
+  if (d.querySelector(`.ncl-box[data-cn="${a}"]`)) bad.push('Send did not close the box');
+  if (d.querySelector(`#wgt-${a}`)?.closest('.card')?.classList.contains('is-writing')) bad.push('the widget is still hidden after Send');
+  A['ncl-open'](tile); await wait(50);
+  const ta3 = d.querySelector(`.ncl-box[data-cn="${a}"] textarea`);
+  if (ta3 && ta3.value) bad.push('the box opened again with the sent words in it: ' + ta3.value);
   const item = d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`);
-  if (!item || item.textContent.indexOf('Make the title bigger') === -1) bad.push('the sent note is not listed under the box');
-  if (ta2 && ta2.value) bad.push('the box kept the words after Send');
+  if (!item || item.textContent.indexOf('Make the title bigger') === -1) bad.push('the sent note is not listed in the box');
   if (item) { A['ncl-done'](item.querySelector('[data-do="ncl-done"]')); await wait(200); }
   if (sent.filter(x => x.action === 'claudeNoteDone').length !== 1) bad.push('Done sent no claudeNoteDone');
   if (d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`)) bad.push('Done did not hide the note');
@@ -30408,6 +30404,118 @@ check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with 
 });
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
+/* ---------- THE OWNER'S NOTES, ROUND TWO (489) ---------- */
+check('the festive card deletes alone (489): an admin deletes item:feed:festive, the camera stays and stays first, the newest post comes after it; a v1 layout with the camera deleted gets it back and the festive card deleted', async () => {
+  const p = payload();
+  p.festive = [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party', venue: 'Hall', date: '25 Dec', price: 10, left: 5, seats: 10 }];
+  p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '', image: '', media: [], caption: 'Post ' + i, body: '', location: '',
+    when: '0' + i + '/09/2026', at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false, reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
+  const { w, sent } = layBoot_({ payload: p });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('feed', false, true); await wait(300);
+  const pagesOf = () => [...d.querySelectorAll('#s-feed > .page')];
+  const fest = d.querySelector('#s-feed [data-item="item:feed:festive"]');
+  if (!fest) return ['no festive card on the feed — NOT checked'];
+  if (!pagesOf()[0] || !pagesOf()[0].querySelector('[data-item="item:feed:camera"]')) bad.push('the camera is not the feed\'s first page');
+  const del = fest.querySelector('.card-admin[data-lay-for="item:feed:festive"] [data-do="lay-c-del"]');
+  if (!del) return bad.concat(['the festive card has no Delete inside it']);
+  A['lay-c-del'](del); A['lay-c-del'](del); await wait(300);
+  const L = layLast_(sent);
+  if (!L) return bad.concat(['the festive delete saved no layout']);
+  if (L.deleted.indexOf('item:feed:festive') === -1) bad.push('the festive card is not in deleted: ' + L.deleted.join());
+  if (L.deleted.indexOf('item:feed:camera') !== -1) bad.push('deleting the festive card deleted the camera');
+  if (L.v !== 2) bad.push('the saved layout is v' + L.v + ', not 2 — the one-off repair would run again');
+  t.go('feed', false, true); await wait(300);
+  if (d.querySelector('#s-feed [data-item="item:feed:festive"]')) bad.push('the festive card is still drawn');
+  const first = pagesOf()[0], second = pagesOf()[1];
+  if (!first || !first.querySelector('[data-item="item:feed:camera"]')) bad.push('after the delete the camera is not first: ' + (first ? first.textContent.trim().slice(0, 60) : 'no page'));
+  if (!second || !second.querySelector('[data-post]')) bad.push('after the delete the newest post is not right under the camera');
+  if (w.feedCamAt_() !== 0 || w.feedPostsAt_() !== 1) bad.push(`the feed counts camera ${w.feedCamAt_()} and posts from ${w.feedPostsAt_()}, not 0 and 1`);
+  /* THE ONE-OFF REPAIR: a v1 layout with the camera deleted and the festive card not. */
+  const fixed = w.layoutSane_({ v: 1, widgets: {}, deleted: ['item:feed:camera', 'x1'] });
+  if (fixed.deleted.indexOf('item:feed:camera') !== -1 || fixed.deleted.indexOf('item:feed:festive') === -1 || fixed.v !== 2) bad.push('the v1 repair did not move the delete to the festive card: ' + JSON.stringify(fixed));
+  const kept = w.layoutSane_({ v: 2, widgets: {}, deleted: ['item:feed:camera'] });
+  if (kept.deleted.indexOf('item:feed:camera') === -1) bad.push('a v2 layout\'s camera delete was undone — the repair must run once');
+  const { backend } = require('./check-gas-load.js');
+  const g = backend();
+  const back = g.ev('layoutClean_(' + JSON.stringify({ v: 1, widgets: {}, deleted: ['item:feed:camera'] }) + ')');
+  if (!back || back.deleted.indexOf('item:feed:camera') !== -1 || back.deleted.indexOf('item:feed:festive') === -1 || back.v !== 2) bad.push('layoutClean_ does not make the same repair: ' + JSON.stringify(back));
+  return bad;
+});
+check('front door (489): an admin\'s door tile on a widget sets layout.front for everybody, distinct from Start here; a member opening the app lands on that widget; pressed again it clears; layoutClean_ keeps it', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-front']) return ['no lay-front handler — NOT checked'];
+  t.go('tools', false, true); await wait(300);
+  const ids = layIds_(t, 'tool'), id = ids[2];
+  const door = layTile_(d, id, 'lay-front'), home = layTile_(d, id, 'lay-start');
+  if (!door) return ['the third tool has no Front door tile'];
+  if (!home) bad.push('a widget has no Start here tile');
+  if (home && door.innerHTML === home.innerHTML) bad.push('Front door and Start here look the same');
+  A['lay-front'](door); await wait(200);
+  const L = layLast_(sent);
+  if (!L || !L.front || L.front.col !== 'tools' || L.front.id !== id) return bad.concat(['the door saved ' + JSON.stringify(L && L.front)]);
+  const { backend } = require('./check-gas-load.js');
+  const kept = backend().ev('layoutClean_(' + JSON.stringify(L) + ')');
+  if (!kept || !kept.front || kept.front.id !== id) bad.push('layoutClean_ dropped front: ' + JSON.stringify(kept && kept.front));
+  /* A MEMBER, the layout in the payload: the app opens on Tools, at that widget. */
+  const p = payload(); p.layout = L;
+  const m = boot({ payload: p, before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
+  await wait(600);
+  if (m.w.__t.AT() !== 'tools') bad.push('a member opened the app on ' + m.w.__t.AT() + ', not the front door\'s Tools');
+  else {
+    const want = m.w.__t.widgetsOf('tool').map(x => String(x.id)).indexOf(id);
+    if ((m.w.__t.PAGE() || {}).tools !== want) bad.push(`Tools opened on page ${(m.w.__t.PAGE() || {}).tools}, not the door's ${want}`);
+  }
+  t.go('tools', false, true); await wait(200);
+  A['lay-front'](layTile_(d, id, 'lay-front')); await wait(200);
+  if ((layLast_(sent) || {}).front) bad.push('pressed again, the door did not clear');
+  return bad;
+});
+check('report or suggest a change (489): one tile with that name on a widget and the booking form, "Suggest a change" a reason; the box opens in place of the widget; after Send the words are gone when it opens again', async () => {
+  const { w, sent } = layBoot_({ reply: b => (b.action === 'report' ? { success: true } : undefined) });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('tools', false, true); await wait(300);
+  const id = layIds_(t, 'tool')[0];
+  const card = d.querySelector(`#wgt-${id}`)?.closest('.card');
+  const tile = card && card.querySelector('[data-do="rep-box"]');
+  if (!tile) return ['the first tool has no report tile'];
+  if (tile.getAttribute('aria-label') !== 'Report or suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
+  if (card.querySelectorAll('[data-do="rep-box"]').length !== 1) bad.push('the widget has more than one report tile');
+  A['rep-box'](tile); await wait(50);
+  const box = card.querySelector(':scope > .rep-box');
+  if (!box || !card.classList.contains('is-writing')) return bad.concat(['the report box did not open in place of the widget']);
+  if (![...box.querySelectorAll('option')].some(o => o.textContent === 'Suggest a change')) bad.push('"Suggest a change" is not a reason');
+  box.querySelector('select').value = 'suggest';
+  const ta = box.querySelector('textarea');
+  ta.value = 'Bigger keys please'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
+  A['rep-send'](box.querySelector('[data-do="rep-send"]')); await wait(300);
+  if (sent.filter(x => x.action === 'report' && x.reason === 'suggest').length !== 1) bad.push('Send did not post one report with reason suggest');
+  if (card.querySelector('.rep-box') || card.classList.contains('is-writing')) bad.push('after Send the widget did not come back');
+  A['rep-box'](card.querySelector('[data-do="rep-box"]')); await wait(50);
+  const again = card.querySelector('.rep-box textarea');
+  if (!again || again.value) bad.push('the report box opened again with the last report in it: ' + (again && again.value));
+  t.go('booking', false, true); await wait(300);
+  if (!d.querySelector('#s-booking [data-do="rep-box"]')) bad.push('the booking form has no report tile');
+  return bad;
+});
+check('library cards (489): the widget holds one card — no Add another, the one filled shown', async () => {
+  const { w } = layBoot_();
+  await wait(300);
+  const bad = [];
+  if (typeof w.libraryShelf_ !== 'function') return ['no libraryShelf_ — NOT checked'];
+  const list = ['lib1_name', 'lib1_no', 'lib1_pin', 'lib2_name', 'lib2_no', 'lib2_pin'];
+  const h = w.libraryShelf_(list, f => (f === 'lib2_name' ? 'Town library' : ''));
+  const box = w.document.createElement('div'); box.innerHTML = h;
+  if (box.querySelectorAll('.lib-card').length !== 1) bad.push(box.querySelectorAll('.lib-card').length + ' card slots, not one');
+  if (box.querySelector('[data-do="shelf-more"]')) bad.push('there is still an Add another');
+  if (!box.querySelector('[name="lib2_name"], [data-me="lib2_name"], [data-f="lib2_name"]') && h.indexOf('Town library') === -1) bad.push('the filled card is not the one shown');
+  return bad;
+});
+
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
 if (FLOW_PART_) {

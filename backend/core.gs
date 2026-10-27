@@ -589,7 +589,12 @@ function layoutClean_(v) {
   const ids = (a, max) => (Array.isArray(a) ? a : []).map(x => String(x)).filter(x => ID.test(x))
     .filter((x, i, all) => all.indexOf(x) === i).slice(0, max);
   /* WIDGETS AND DELETED ONLY (463): a 462 value's `columns` and `hidden` are cleaned out. */
-  const out = { v: 1, widgets: {}, deleted: ids(o.deleted, 300) };
+  const out = { v: 2, widgets: {}, deleted: ids(o.deleted, 300) };
+  /* ONE-OFF (489): before v2 the festive card's delete left the camera looking deleted; a v1 layout gets the camera back and the festive card deleted. */
+  if ((Number(o.v) || 1) < 2 && out.deleted.indexOf('item:feed:camera') !== -1) {
+    out.deleted = out.deleted.filter(x => x !== 'item:feed:camera');
+    if (out.deleted.indexOf('item:feed:festive') === -1) out.deleted.push('item:feed:festive');
+  }
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
   Object.keys(w).filter(k => ID.test(k)).slice(0, 20).forEach(k => { out.widgets[k] = ids(w[k], 300); });
   /* SPLIT CARDS (464): the ids of the settings and Business cards drawn a field a card; presentation only. */
@@ -608,13 +613,17 @@ function layoutClean_(v) {
   if (Object.keys(cards).length) out.cards = cards;
   const s = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {};
   const start = {};
-  Object.keys(s).filter(k => COLS.indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
+  /* A WIDGET COLUMN'S START HERE TOO (489). */
+  Object.keys(s).filter(k => COLS.concat(['reel', 'tools', 'games', 'shop']).indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
   if (Object.keys(start).length) out.start = start;
   /* MERGED CARDS (480): `merged: [[top, …, bottom]]`, two to twelve ids each, an id in one group only, a hundred groups at most. */
   const used = {};
   const merged = (Array.isArray(o.merged) ? o.merged : []).filter(g => Array.isArray(g))
     .map(g => ids(g, 12).filter(x => !used[x])).filter(g => g.length > 1 && g.every(x => (used[x] = 1))).slice(0, 100);
   if (merged.length) out.merged = merged;
+  /* FRONT DOOR (489): `front: {col, id}`, where everybody lands on opening the app; one at a time. */
+  const fr = o.front && typeof o.front === 'object' && !Array.isArray(o.front) ? o.front : null;
+  if (fr && ID.test(String(fr.col || '')) && ID.test(String(fr.id || ''))) out.front = { col: String(fr.col), id: String(fr.id) };
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;
   return out;
 }

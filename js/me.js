@@ -3079,11 +3079,15 @@ function qualYears_(current) {
 }
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY § */
 function libraryShelf_(list, value) {
-  const nums = [...new Set((list || []).filter(isLibraryCard_)
+  const all = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
   const quiet = 'spellcheck="false"';
+  const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
+  /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already
+     filled, else the first; no Add another, and a new card is written over it. */
+  const nums = all.length ? [all.find(has) || all[0]] : [];
   return `<div class="lib-shelf">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
+    has,
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">
