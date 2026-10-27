@@ -228,7 +228,8 @@ function make() {
   const fri = book(L1, 'Friday', '17:00', 1, 'f17');
   rule('7. the room\'s Friday 17:00 is refused', !fri.success && /Friday 17:00/.test(String(fri.error || '')), J(fri).slice(0, 200));
   const ada = book(CW, 'Friday', '17:00', 1, 'f17', 'Ada Tutor');
-  rule('7. Ada\'s Friday 17:00 is refused', !ada.success && /already teaching at Friday 17:00/.test(String(ada.error || '')), J(ada).slice(0, 200));
+  /* 488: the tutor's own hours no longer refuse — the request waits on Ada, who decides. The ROOM still refuses (above). */
+  rule('7. Ada\'s Friday 17:00 is asked of her, not refused', !!ada.success, J(ada).slice(0, 200));
   const adaFree = book(CW, 'Friday', '16:00', 1, 'f16', 'Ada Tutor');
   rule('7. Ada\'s Friday 16:00 (never booked) is free', !!adaFree.success, J(adaFree).slice(0, 200));
 })();

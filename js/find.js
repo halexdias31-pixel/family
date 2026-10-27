@@ -9303,7 +9303,10 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
-  const foot = tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '';
+  /* THE REQUEST'S STANDING, one paragraph under the row (488). */
+  const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
+  const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')
+    + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 

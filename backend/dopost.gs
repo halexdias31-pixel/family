@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-z7-claude-notes";
+const DOPOST_VERSION = "2026-10-27-z8-booking-requests";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2330,6 +2330,11 @@ function doPost(e) {
                                              : 'No one on the other side to respond to.' });
       }
 
+      /* A NAMED TUTOR ANSWERS FOR THEMSELVES (488): a family cannot accept them on their behalf while they are still asked. */
+      if (!asAdmin && role === 'client' && act === ACT.ACCEPT && target && target.role === 'tutor'
+          && target.status === BM.WAITING && !TRUE_(j.stealable)) {
+        return jsonOut({ error: 'Waiting for ' + target.name + ' to accept or decline.' });
+      }
       // Permission is judged against whoever is on the other side of the lobby, named or not —
       // that's what decides whether the client may pay. Only the WRITE is targeted.
       const facing = target || others[0] || before[0] || null;
@@ -2435,6 +2440,56 @@ function doPost(e) {
                        participants: after });
     }
 
+    /* --- A TUTOR ANSWERING A REQUEST (488) ----------------------------------------------------- the named tutor, or an admin, says yes or no in one press. */
+    if (action === 'answerRequest') {
+      const asker = findPerson('', S(body.personId));
+      if (!asker) return jsonOut({ error: 'Sign in first.' });
+      const yes = TRUE_(body.yes), reason = S(body.reason).slice(0, 200);
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(10000)) return jsonOut({ error: 'Busy — please press again in a moment.' });
+      let j = null, tutorName = '', clients = [], status = '';
+      try {
+        clearCache();
+        const t = read(TAB.jobs);
+        j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
+        if (!j) return jsonOut({ error: 'Job not found.' });
+        const jobId = S(j.job_id) || String(j._row);
+        const me = personDisplayName(asker), admin = rankAtLeast_(asker, 'admin');
+        const pending = tutorsIn(jobId).filter(p2 => p2.status === BM.WAITING);
+        const mine = pending.find(p2 => key(p2.name) === key(me));
+        const who = mine || (admin ? pending[0] : null);
+        if (!who) return jsonOut({ error: admin ? 'Nothing is waiting for an answer.' : 'This request is not yours to answer.' });
+        if (!admin && !rankAtLeast_(asker, 'staff')) return jsonOut({ error: 'Only a tutor can answer a request.' });
+        tutorName = who.name;
+        clients = clientsIn(jobId);
+        const by = mine ? '' : ' (answered by ' + me + ')';
+        if (yes) {
+          /* MUTUAL, as the lobby's Accept is: the client is Agreed too, so Pay and confirm is theirs next. */
+          clients.forEach(c => logEvent({ jobId, actor: tutorName, role: 'tutor', action: ACT.ACCEPT,
+            target: c.name, message: 'accepted the request' + by }));
+          if (jobAgreed_(jobId)) {
+            const frozen = jobMoneyFreeze_(j, config(), new Date());
+            if (frozen) Object.keys(frozen).forEach(f => setCell(t, j, f, frozen[f]));
+          }
+        } else {
+          /* THE TUTOR LEAVES, THE FAMILY STAYS: their card reads Declined, with the reason, from this event. */
+          logEvent({ jobId, actor: tutorName, role: 'tutor', action: ACT.DECLINE, target: tutorName,
+            message: (reason || 'declined the request') + by });
+        }
+        status = jobStatusOf(jobId);
+        setCell(t, j, 'status', status);
+      } finally {
+        lock.releaseLock();
+      }
+      clients.forEach(c => notify(c.name,
+        (yes ? 'Accepted: ' : 'Declined: ') + S(j.subject),
+        tutorName + (yes ? ' accepted your request for ' + S(j.subject) + '.\n\nLog in to @family. to pay and confirm.'
+                         : ' cannot take ' + S(j.subject) + (reason ? ':\n"' + reason + '"' : '.')
+                           + '\n\nYou can ask another tutor, or choose No preference.')
+        + '\n\n— @family.', 'booked'));
+      return jsonOut({ success: true, accepted: yes, jobStatus: status });
+    }
+
     /* --- a new booking ----------------------------------------------------------------------- */
     if (action === 'createJob') {
       const cfg3 = config();
@@ -2493,10 +2548,7 @@ function doPost(e) {
       try {
         /* Fresh rows under the lock: a copy read before it may lack the booking that just took the hour. */
         clearCache();
-        /* THE GREY CELLS WERE ADVICE, and this makes them a rule — see `tutorHoursRefusal_`. Asked
-           before anything is written, like the two refusals above it. */
-        const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
-        if (outside) return jsonOut({ error: outside });
+        /* A TUTOR'S WEEK NO LONGER REFUSES (488): any day and hour may be asked; the tutor answers it (`answerRequest`). */
         /* AND THE ROOM'S HOURS (434): a room taken at any booked hour in those weeks refuses, whoever teaches. */
         const roomTaken = roomClashRefusal_(body);
         if (roomTaken) return jsonOut({ error: roomTaken });
@@ -2553,11 +2605,9 @@ function doPost(e) {
         logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
                    message: S(body.message), requestId: body.requestId });
         if (named) {
-          /* ---------- NAMING A TUTOR CONFIRMS THE TUTOR, NOT THE BOOKING § */
+          /* PENDING, NOT ACCEPTED (488): the named tutor is asked and answers it; nobody accepts on their behalf. */
           logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
                      message: 'requested directly by the family' });
-          logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.ACCEPT,
-                     message: 'chosen by the family at booking' });
         }
       } finally {
         bookLock.releaseLock();
@@ -2580,7 +2630,7 @@ function doPost(e) {
           '• ' + S(body.day) + ' at ' + fmtTime(body.time) + '\n' +
           '• ' + S(body.location) + '\n' +
           (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
-          '\nLog in to @family. to accept, decline, or ask for a change.\n\n— @family.', 'booked');
+          '\nIt may be outside your usual hours. Log in to @family. to accept or decline.\n\n— @family.', 'booked');
       }
       /* THE RECEIPT, WRITTEN AT THE MOMENT OF ASKING. § */
       /* THE RECEIPT BELONGS TO THE FAMILY, NOT TO WHOEVER TYPED IT. § */

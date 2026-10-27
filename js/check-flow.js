@@ -19164,8 +19164,8 @@ check('a tutor\'s ticked hours are on their card as lines (467), taught ones sai
   if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
   /* AND SAYS WHY THEY CANNOT BE BOOKED BY NAME — *"tutor with no hours wont be bookable"*. It drew
      nothing at all, which left the greyed name in the booking form unexplained. */
-  if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
-    bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  if (!/hasn.t set usual hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
+    bad.push('a tutor with no hours ticked does not say "hasn\'t set usual hours yet" on their card');
   }
   return bad;
 });
@@ -19211,7 +19211,7 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
 });
 
 /* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THE BOOKING FORM § */
-check('the booking week shows all seven days with no tutor, and only the chosen tutor\'s days once one is named', async () => {
+check('488: the booking week shows all seven days whoever is named; a tutor\'s hours are a guide, said under it, and only a venue shuts a day', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
@@ -19221,7 +19221,7 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   const blank = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
   const tia = { title: 'Tia Tutor', rate: 14, teaches: ['Maths (GCSE)'], listed: true,
-                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: {} };
+                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: { th16: 'Maths' } };
   D.tutors = [tia];
   const B = t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
@@ -19230,59 +19230,29 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   const week = () => [...doc().querySelectorAll('.bk-row.bk-wk')].map(r => ({
     day: ((r.querySelector('.bk-k') || {}).textContent || '').trim(), shut: r.classList.contains('is-shut'), row: r }));
   const named = () => week().map(x => x.day).join(' ');
-  const dashed = () => [...doc().querySelectorAll('.bk-row.is-blank .bk-k')].map(k => k.textContent.trim())
-    .filter(k => t.days().indexOf(k) !== -1);
   const bad = [];
   const seven = t.days().join(' ');
   if (named() !== seven) bad.push('with no tutor chosen the week draws [' + named() + '], wanted all seven');
-  B.tutor = 'No preference';
-  if (named() !== seven) bad.push('with No preference the week draws [' + named() + '], wanted all seven');
   B.tutor = 'Tia Tutor';
-  if (named() !== 'Tuesday Thursday') bad.push('with Tia (Tuesday and Thursday) chosen the week draws [' + named() + '], wanted [Tuesday Thursday]');
-  if (dashed().length) bad.push('the spine put back the days the week left out, as dashes: [' + dashed().join(' ') + ']');
-  if (week().some(x => x.shut)) bad.push('a day Tia works with hours free is drawn collapsed');
-  /* A DAY SHE WORKS WITH EVERY HOUR TAKEN STAYS, collapsed. */
-  tia.busy = { th16: 'Maths' };
-  const th = week().find(x => x.day === 'Thursday');
-  if (!th) bad.push('Tia\'s Thursday, fully taught, left the week — a day she works with nothing free is not a day she does not work');
-  else if (!th.shut) bad.push('Tia\'s Thursday, fully taught, is drawn as a full row with nothing on it to press');
-  tia.busy = {};
-  /* ---------- AND A DAY SHE WORKS AT A VENUE SHUT THAT DAY STAYS TOO § */
+  if (named() !== seven) bad.push('with Tia chosen the week draws [' + named() + '], wanted all seven — any day can be asked');
+  if (week().some(x => x.shut)) bad.push('a day is drawn shut with Tia named and no venue — her week must not lock a day');
+  const g = w.slotGrid();
+  if (!g.rows.every(r => r.hours.every(h => h.open))) bad.push('an hour outside Tia\'s week, or one she already teaches, is shut');
+  if (!/usually free Tue 10–12; Thu 16–17/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '", wanted "…usually free Tue 10–12; Thu 16–17…"');
+  const said = [...doc().querySelectorAll('.bk-say')].map(p => p.textContent).join(' ');
+  if (!/usually free/.test(said)) bad.push('the guide sentence is not drawn under the week');
+  /* A VENUE STILL SHUTS A DAY: that is the room, not the tutor. */
   const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
                  avail: Object.assign({}, blank) };
   ['m', 'tu', 'w', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) hall.avail[p + String(h).padStart(2, '0')] = 'TRUE'; });
   const venuesWas = D.venues;
   D.venues = (venuesWas || []).concat([hall]);
   B.loc = hall.title;
-  const thV = week().find(x => x.day === 'Thursday');
-  const tuV = week().find(x => x.day === 'Tuesday');
-  if (named() !== 'Tuesday Thursday') bad.push('with Tia chosen at a hall shut on Thursdays the week draws [' + named() + '], wanted [Tuesday Thursday] — a worked day the venue shuts is still a day she works');
-  if (thV && !thV.shut) bad.push('Tia\'s Thursday at a hall shut on Thursdays is drawn as a full row with nothing on it to press');
-  if (!tuV || tuV.shut) bad.push('Tia\'s Tuesday at a hall open on Tuesdays is ' + (tuV ? 'collapsed' : 'missing') + ' — the venue test is not reading the hall');
+  const thV = week().find(x => x.day === 'Thursday'), tuV = week().find(x => x.day === 'Tuesday');
+  if (!thV || !thV.shut) bad.push('Thursday at a hall shut on Thursdays is not drawn shut');
+  if (!tuV || tuV.shut) bad.push('Tuesday at a hall open on Tuesdays is shut');
   B.loc = '';
   D.venues = venuesWas;
-  /* A TICK MADE BEFORE SHE WAS CHOSEN, on a day she does not work: kept, drawn, greyed, counted. */
-  B.tutor = 'No preference';
-  B.slots = ['m10'];
-  B.tutor = 'Tia Tutor';
-  const mon = week().find(x => x.day === 'Monday');
-  if (named() !== 'Monday Tuesday Thursday') bad.push('a Monday tick made before choosing Tia leaves the week as [' + named() + '], wanted [Monday Tuesday Thursday] — the tick would be priced and not seen');
-  const cell = mon && mon.row.querySelector('[data-code="m10"]');
-  if (mon && (!cell || !cell.classList.contains('on') || !cell.classList.contains('shut') || !cell.hasAttribute('disabled'))) {
-    bad.push('the kept Monday 10:00 tick is not drawn lit and greyed: ' + (cell ? cell.className : 'no cell'));
-  }
-  if ((B.slots || []).join(',') !== 'm10') bad.push('choosing a tutor changed the ticked hours to [' + (B.slots || []).join(',') + ']');
-  /* A NAMED TUTOR WITH NO DAY TO DRAW KEEPS ALL SEVEN, so the week can still say why it is shut —
-     `weekRows_` puts the sentence under the last row, and an empty week has none. */
-  B.slots = [];
-  D.tutors = [tia, { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, blank) }];
-  B.tutor = 'Nia Nohours';
-  /* THE WEEK'S OWN SENTENCE — `weekRows_` writes it `warn: false` — not the Tutor row's refusal
-     (`.bk-say.is-warn`) nor Nia's option, which both carry the same words. */
-  const why = [...doc().querySelectorAll('.bk-say:not(.is-warn)')].map(p => p.textContent).join(' ');
-  if (named() !== seven || !/hasn.t set their hours yet/.test(why)) {
-    bad.push('a named tutor with no hours draws [' + named() + ']' + (/hasn.t set their hours yet/.test(why) ? '' : ' and loses the sentence under the week saying why') + ', wanted all seven, greyed, with the reason');
-  }
   return bad;
 });
 
@@ -22867,7 +22837,7 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
 });
 
 /* ---------- A TUTOR WITH NO HOURS CANNOT BE BOOKED BY NAME § */
-check('a tutor with no hours is greyed, shuts the grid and is not sent for; No preference still books', async () => {
+check('488: a tutor with no hours can be chosen and asked at any hour; a named tutor never shuts the grid; No preference still books', async () => {
   const { w, sent } = boot();
   await wait(300);
   const t = w.__t;
@@ -22879,10 +22849,9 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   const D = t.DATA();
   const avail = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
-  const some = Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' });
   D.tutors = [
     { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail) },
-    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: some },
+    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' }) },
   ];
   const B = t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
@@ -22892,45 +22861,68 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   const bad = [];
   const box = w.document.createElement('div');
   box.innerHTML = w.stepSelect_(st);
-  const opt = name => [...box.querySelectorAll('option')].find(o => o.value === name);
-  const nia = opt('Nia Nohours'), ada = opt('Ada Hours');
-  if (!nia) bad.push('a tutor with no hours is not in the list at all — greyed, not absent');
-  else if (!nia.disabled || !/hasn.t set their hours yet/.test(nia.textContent)) {
-    bad.push('Nia (no hours) is offered as "' + nia.textContent.trim() + '"' + (nia.disabled ? '' : ', pressable'));
-  }
-  if (!ada || ada.disabled) bad.push('Ada (hours ticked) cannot be chosen');
-  /* A CHANGE NAMING HER ANYWAY is refused by the handler, not only by the markup. */
-  const sel = w.document.createElement('select');
-  sel.setAttribute('data-do', 'book-set'); sel.setAttribute('data-step', 'tutor');
-  sel.innerHTML = '<option value="Nia Nohours">Nia Nohours</option>';
-  sel.value = 'Nia Nohours';
-  w.document.body.appendChild(sel);
-  sel.dispatchEvent(new w.Event('change', { bubbles: true }));
-  if (B.tutor === 'Nia Nohours') bad.push('a change event naming Nia was taken by the book-set handler');
-  /* THE GRID, NAMED: every hour shut, and why. */
+  const nia = [...box.querySelectorAll('option')].find(o => o.value === 'Nia Nohours');
+  if (!nia || nia.disabled) bad.push('Nia (no hours) is ' + (nia ? 'greyed' : 'missing') + ' — any tutor may be asked');
   B.tutor = 'Nia Nohours';
   const g = w.slotGrid();
-  if (g.anyOpen || !/hasn.t set their hours yet/.test(g.why)) bad.push('with Nia chosen the grid is ' + (g.anyOpen ? 'open' : 'shut') + ' and says "' + g.why + '"');
-  /* AND THE SEND STOPS BEFORE `createJob`. */
-  B.slots = ['m16'];
-  sent.length = 0;
-  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
-  await wait(200);
-  if (sent.some(x => x.action === 'createJob')) bad.push('a booking naming Nia (no hours) was sent as createJob');
-  /* ADA: her two hours open, the rest shut; and the send carries every ticked hour as `slots`. */
+  if (!g.anyOpen) bad.push('with Nia chosen the grid shuts, saying "' + g.why + '"');
+  if (!/hasn.t set usual hours/.test(g.guide || '')) bad.push('with Nia chosen the guide reads "' + g.guide + '"');
+  /* ADA, ASKED AT AN HOUR OUTSIDE HER WEEK: open, and sent with the hour as `slots`. */
   B.tutor = 'Ada Hours';
-  const ga = w.slotGrid();
-  const openCodes = ga.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
-  if (openCodes !== 'm16,m17') bad.push('with Ada chosen the open hours are [' + openCodes + '], wanted [m16,m17]');
+  B.slots = ['sa10'];
+  const cell = w.slotGrid().rows.flatMap(r => r.hours).find(h => h.code === 'sa10') || {};
+  if (!cell.open) bad.push('Saturday 10:00, outside Ada\'s week, is shut');
   sent.length = 0;
   try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
   await wait(200);
   const job = sent.find(x => x.action === 'createJob');
-  if (!job) bad.push('a booking naming Ada (hours ticked) was not sent');
-  else if (job.slots !== 'm16') bad.push('createJob carried slots "' + job.slots + '", wanted "m16" — the server checks every ticked hour');
-  /* NO PREFERENCE: unchanged — nobody's hours are consulted, the venue decides. */
+  if (!job) bad.push('a request naming Ada outside her hours was not sent');
+  else if (job.slots !== 'sa10') bad.push('createJob carried slots "' + job.slots + '", wanted "sa10"');
   B.tutor = 'No preference';
-  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts — a booking nobody named a tutor for must still be bookable');
+  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts');
+  return bad;
+});
+
+/* ---------- 488: A REQUEST WAITS ON ITS TUTOR, WHO ANSWERS IN PLACE ---------- */
+check('488: the asked tutor (and an admin) gets Accept/Decline tiles, Decline opens a line why and posts answerRequest; both sides read the status', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'answerRequest' ? { success: true, accepted: !!b.yes } : null });
+  await wait(300);
+  const t = w.__t;
+  if (typeof t.jobPage !== 'function') return ['`jobPage_` is not exported, so the request tiles were NOT checked — not a pass'];
+  const bad = [];
+  const job = { id: 'J-R', jobId: 'J-R', kind: '', subject: 'Maths', level: 'GCSE', price: 30, stealable: false,
+    location: 'Online', dates: '06/12/26', slots: [{ n: 1, client: 'Pat Parent', status: 'Waiting' }],
+    tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Applied' }], events: [] };
+  const host = h => { const d = w.document.createElement('div'); d.innerHTML = h; w.document.body.appendChild(d); return d; };
+  const labels = d => [...d.querySelectorAll('[data-do="job-request-answer"]')].map(x => x.dataset.yes ? 'yes' : 'no').join(',');
+  t.USER({ name: 'Ada Tutor', personId: 'P2', role: 'tutor', roles: ['tutor'] });
+  const ada = host(t.jobPage(job));
+  if (labels(ada) !== 'yes,no') bad.push('the asked tutor sees request tiles [' + labels(ada) + '], wanted Accept and Decline');
+  if (!/Waiting for Ada Tutor/.test(ada.textContent)) bad.push('the tutor does not read "Waiting for Ada Tutor…"');
+  const no = ada.querySelector('[data-do="job-request-answer"]:not([data-yes="1"])');
+  if (no) {
+    no.click();
+    await wait(50);
+    const form = ada.querySelector('form.req-why');
+    if (!form) bad.push('Decline did not open a line for why, in place');
+    else {
+      form.querySelector('input').value = 'Away that week';
+      form.querySelector('button').click();
+      await wait(200);
+      const post = sent.find(x => x.action === 'answerRequest');
+      if (!post || post.yes || post.reason !== 'Away that week' || post.jobId !== 'J-R') bad.push('the decline posted ' + JSON.stringify(post));
+    }
+  }
+  t.USER({ name: 'Nia Other', personId: 'P5', role: 'tutor', roles: ['tutor'] });
+  if (labels(host(t.jobPage(job)))) bad.push('a tutor who was not asked sees the request tiles');
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const pat = host(t.jobPage(job));
+  if (labels(pat)) bad.push('the family sees the tutor\'s Accept/Decline tiles');
+  if (!/Waiting for Ada Tutor/.test(pat.textContent)) bad.push('the family does not read "Waiting for Ada Tutor…"');
+  const declined = Object.assign({}, job, { tutorSlots: [], events: [{ actor: 'Ada Tutor', role: 'tutor', action: 'Decline', target: 'Ada Tutor', message: 'Away that week' }] });
+  if (!/Declined by Ada Tutor: .Away that week/.test(host(t.jobPage(declined)).textContent)) bad.push('the family does not read the decline and its reason');
+  t.USER({ name: 'Hal Admin', personId: 'P9', role: 'admin', roles: ['admin'] });
+  if (labels(host(t.jobPage(job))) !== 'yes,no') bad.push('the admin does not get the request tiles');
   return bad;
 });
 
@@ -22961,7 +22953,7 @@ check('a room already booked at an hour greys that hour on the grid, for that ro
 });
 
 /* ---------- A CLIENT'S HOUSE KEEPS NO HOURS (445): its grid is the tutor's ---------- */
-check('with Client House chosen the week grid shows exactly the tutor\'s hours, whatever stray hours its row carries', async () => {
+check('with Client House chosen the week grid is open every hour — the house keeps no hours, and the tutor\'s are a guide (445, 488)', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
@@ -22973,9 +22965,10 @@ check('with Client House chosen the week grid shows exactly the tutor\'s hours, 
   const B = t.BOOKING;
   B.tutor = 'Ada Hours'; B.slots = []; B.loc = 'Client House';
   const g = w.slotGrid();
-  const open = g.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
+  const all = g.rows.flatMap(r => r.hours), shut = all.filter(h => !h.open).map(h => h.code);
   const bad = [];
-  if (open !== 'm16,m17,sa10') bad.push('at Client House the open hours are [' + open + '], wanted the tutor\'s [m16,m17,sa10]; it says "' + g.why + '"');
+  if (shut.length) bad.push('at Client House these hours are shut: [' + shut.slice(0, 8).join(',') + '] — "' + g.why + '"');
+  if (!/Mon 16–18; Sat 10–11/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '"');
   return bad;
 });
 

@@ -322,19 +322,18 @@ function slotGrid() {
   const tBusy = (t && t.busy) || {};
   /* AND WHAT THE ROOM ALREADY HOLDS (434): the server refuses a clash, so the grid says so first. */
   const sBusy = (sp && sp.busy) || {};
-  const tNone = !!t && !haveT;
-  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code] && !sBusy[code];
+  /* A TUTOR'S WEEK IS A GUIDE, NEVER A LOCK (488): any hour may be asked and the tutor accepts or declines. Only the room shuts a cell. */
+  const open = code => (!haveV || vAvail[code]) && !sBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
   /* `whyShut` rather than `why` — there is already a `why` below for the grid as a WHOLE ("nobody
      has set any hours yet"), and this is per cell. Two different questions and they were one word
      apart from being the same variable. */
-  const whyShut = code => tNone ? 'no hours set'
-    : tBusy[code] ? 'teaching ' + tBusy[code]
-    : sBusy[code] ? 'room booked'
-    : (haveT && !tAvail[code]) ? 'not available'
-    : (haveV && !vAvail[code]) ? 'venue closed' : '';
+  const whyShut = code => sBusy[code] ? 'room booked'
+    : (haveV && !vAvail[code]) ? 'venue closed'
+    : tBusy[code] ? 'tutor usually teaching then — they decide'
+    : (haveT && !tAvail[code]) ? 'outside their usual hours — they decide' : '';
 
   /* EVERY DAY AND EVERY HOUR, ALWAYS — the ones nobody is free for greyed rather than removed. § */
   /* ---------- `rows` IS STILL ALL SEVEN; `days` IS WHAT THE WEEK DRAWS § */
@@ -352,19 +351,27 @@ function slotGrid() {
   const anyOpen = rows.some(r => r.hours.some(h => h.open));
 
   /* ---------- THE DAYS THE WEEK DRAWS § */
-  const ticked = Array.isArray(BOOKING.slots) ? BOOKING.slots : [];
-  const works = r => haveT && r.hours.some(h => tAvail[h.code]);
-  const days = (t && rows.some(works))
-    ? rows.filter(r => works(r) || r.hours.some(h => ticked.indexOf(h.code) !== -1))
-    : rows;
+  const days = rows;
 
-  const why = anyOpen ? ''
-    : tNone ? 'That tutor hasn\u2019t set their hours yet, so they cannot be booked by name. Choose No preference, or another tutor.'
-    : !haveT && !haveV ? 'Nobody has set any hours yet.'
-    : !haveT ? 'That venue is open, but the tutor has no hours set.'
-    : !haveV ? 'The tutor has hours, but that venue has none set.'
-    : 'The tutor’s hours and the venue’s do not overlap.';
-  return { rows, days, why, anyOpen };
+  const why = anyOpen ? '' : 'That venue has no free hours.';
+  /* THE GUIDE, SAID (488): "Ada is usually free Mon 16–18" — and that any other hour may still be asked. */
+  const guide = !t ? '' : (haveT
+    ? t.title + ' is usually free ' + usualSaid_(tAvail) + '. Any other hour can be asked; they accept or decline.'
+    : t.title + ' hasn\u2019t set usual hours. Ask for any hour; they accept or decline.');
+  return { rows, days, why, anyOpen, guide };
+}
+
+/* A TUTOR'S USUAL WEEK IN WORDS — `Mon 16–18, Sat 11–12` — from their `m16` codes (488). */
+function usualSaid_(have) {
+  const out = [];
+  SLOT_DAYS.forEach(([p, label]) => {
+    const hs = Object.keys(have).filter(c => c.replace(/\d+$/, '') === p)
+      .map(c => Number(c.slice(p.length))).sort((a, b) => a - b);
+    const runs = [];
+    hs.forEach(h => { const r = runs[runs.length - 1]; if (r && r[1] === h) r[1] = h + 1; else runs.push([h, h + 1]); });
+    if (runs.length) out.push(label.slice(0, 3) + ' ' + runs.map(r => r[0] + '\u2013' + r[1]).join(', '));
+  });
+  return out.join('; ') || 'at no set hours';
 }
 
 /* THE TICKED HOURS, GROUPED INTO SESSIONS. § */
@@ -496,15 +503,10 @@ const BOOK_STEPS = [
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       return t && t.listed === false ? v + ' · not listed' : v;
     },
-    /* ---------- A TUTOR WITH NO HOURS CANNOT BE CHOSEN, AND SAYS WHY § */
-    off: v => tutorNoHours_(v) ? 'hasn\'t set their hours yet' : '',
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
     fallback: () => isWaiting_() ? 'No preference' : '',
     why: v => {
       if (v === 'No preference') return '';
-      /* AND SAID ON THE ROW TOO, for a name that arrived some other way — a saved form, a tutor who
-         unticked their last hour while somebody had them chosen. The send refuses it as well. */
-      if (tutorNoHours_(v)) return 'hasn\'t set their hours yet, so cannot be booked by name';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       if (!t || !BOOKING.subjects.length) return '';
       const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
@@ -642,13 +644,6 @@ const BOOK_STEPS = [
 ];
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
-
-/* ---------- HAS THIS TUTOR SAID WHEN THEY CAN TEACH § */
-function tutorNoHours_(name) {
-  if (!name || norm(name) === norm('No preference')) return false;
-  const t = (DATA.tutors || []).find(x => norm(x.title) === norm(name));
-  return !!t && !Object.keys(availSet_(t.avail)).length;
-}
 
 /* What the chosen place costs an hour — the ROOM's own rate where there is one, because a small
    room and a large one at the same venue are different prices and the building's single figure
@@ -1439,14 +1434,14 @@ function stepWeekRows_(st) {
       ${/* THE REASON, not just "not available". An hour the tutor never works and an hour they are
             already teaching are the same grey box, and only the second is worth trying a different
             week for. */''}
-      title="${h.h}:00${h.open ? '' : ' — ' + esc(h.why || 'not available')}"
+      title="${h.h}:00${h.why ? ' — ' + esc(h.why) : h.open ? '' : ' — not available'}"
       ${/* THE NAME THE CELL USED TO CARRY AS TEXT. § */
             ''}
       aria-label="${esc(d.label)} ${h.h}:00${h.open ? '' : ', ' + esc(h.why || 'not available')}"
       data-do="book-slot" data-code="${esc(h.code)}"></button>`,
     { id: st.id, off: off, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN § */
-      say: g.anyOpen ? '' : g.why });
+      say: g.anyOpen ? g.guide : g.why });
 }
 
 /* Which steps open something under their row rather than answering in it. */

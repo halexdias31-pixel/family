@@ -122,7 +122,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-z7-claude-notes";
+const BACKEND_VERSION = "2026-10-27-z8-booking-requests";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1525,7 +1525,7 @@ const ACTION_ACCESS = {
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
-  move: 'self', createJob: 'self',
+  move: 'self', createJob: 'self', answerRequest: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
   joinWaitlist: 'self',
   /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */

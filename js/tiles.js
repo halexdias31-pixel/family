@@ -489,8 +489,16 @@ function jobTiles_(x) {
   const id = String(j.id || j.jobId || '');
   if (!id || !USER) return '';
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
+  /* THE ASKED TUTOR, OR AN ADMIN, ANSWERS IN PLACE (488) — Accept, or Decline with an optional line why. */
+  const asked = requestAsked_(j);
+  const answer = asked && (norm(asked) === norm(USER.name) || (typeof isAdmin === 'function' && isAdmin()))
+    ? tile_({ icon: 'tick', label: 'Accept request', tone: 'buy', note: 'it becomes a booking',
+              act: 'job-request-answer', data: { id: id, yes: '1' } })
+      + tile_({ icon: 'close', label: 'Decline request', note: 'a line why, if you like',
+                act: 'job-request-answer', data: { id: id, yes: '' } })
+    : '';
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
-  if (!mine) return childView_() ? '' : joinTile_(j, id);
+  if (!mine) return answer || (childView_() ? '' : joinTile_(j, id));
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
@@ -501,6 +509,30 @@ function jobTiles_(x) {
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
   `;
+}
+
+/* WHICH TUTOR A REQUEST IS WAITING ON (488): a named tutor not yet Confirmed on a job not open to others. */
+function requestAsked_(j) {
+  if (!j || j.stealable) return '';
+  const t = (j.tutorSlots || []).find(sl => /^applied$/i.test(String(sl.status || '')));
+  return t ? String(t.name || '') : '';
+}
+
+/* WHERE A REQUEST STANDS, IN ONE LINE BOTH SIDES READ (488): waiting, accepted, or declined and why. */
+function requestSaid_(j) {
+  if (!j) return '';
+  const asked = requestAsked_(j);
+  if (asked) return 'Waiting for ' + asked + ' to accept or decline.';
+  const evs = j.events || [];
+  const last = evs.filter(e => e.role === 'tutor' && (e.action === 'Decline' || e.action === 'Accept')).pop();
+  if (!last) return '';
+  if (last.action === 'Decline' && norm(last.target) === norm(last.actor) && !(j.tutorSlots || []).length) {
+    return 'Declined by ' + last.actor + (last.message && last.message !== 'declined the request' ? ': \u201c' + last.message + '\u201d' : '.');
+  }
+  if (last.action === 'Accept' && /^accepted the request/.test(String(last.message || ''))) {
+    return 'Accepted by ' + last.actor + '.';
+  }
+  return '';
 }
 
 /* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT § */

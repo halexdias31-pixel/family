@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-27-z7-claude-notes";
+const BOOKING_VERSION = "2026-10-27-z8-booking-requests";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -515,29 +515,7 @@ function codeSaid_(c) {
   return day.charAt(0).toUpperCase() + day.slice(1) + ' ' + h + ':00';
 }
 
-/* ---------- A BOOKING BY NAME MUST FIT THE TUTOR'S WEEK, AND NOT LAND ON ANOTHER SESSION § */
-function tutorHoursRefusal_(row, body) {
-  const who = personDisplayName(row);
-  const have = availSet(row.availability);
-  if (!Object.keys(have).length) {
-    return who + ' hasn\u2019t set their hours yet, so they cannot be booked by name. '
-      + 'Choose No preference, or another tutor.';
-  }
-  const codes = bookingCodes_(body);
-  const off = codes.filter(c => !have[c]);
-  if (off.length) {
-    return who + ' does not teach at ' + off.slice(0, 3).map(codeSaid_).join(', ')
-      + (off.length > 3 ? ' and ' + (off.length - 3) + ' more' : '') + '. Pick hours from their week.';
-  }
-  const dates = S(body.dates).split(',').map(sheetDate).filter(Boolean).sort((a, b) => a - b);
-  const busy = busyHours(who, dates[0], dates[dates.length - 1]);
-  const taken = codes.filter(c => busy[c]);
-  if (taken.length) {
-    return who + ' is already teaching at ' + taken.slice(0, 3).map(codeSaid_).join(', ')
-      + ' in those weeks. Pick other hours, or No preference.';
-  }
-  return '';
-}
+/* `tutorHoursRefusal_` WAS HERE (488): a tutor's week is a guide now, never a refusal — the tutor accepts or declines (`answerRequest`). */
 
 /* THE SCHOOL YEAR, WORKED OUT RATHER THAN TYPED. § */
 function easter(y) {

@@ -226,8 +226,8 @@ function profAvail_(t) {
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
     return `<div class="prof-cap">Available</div>
-      <p class="prof-say prof-hid prof-nohours">Hasn\u2019t set their hours yet, so they can\u2019t be
-        booked by name.${typeof isAdmin === 'function' && isAdmin()
+      <p class="prof-say prof-hid prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
+        they accept or decline.${typeof isAdmin === 'function' && isAdmin()
           ? ' They tick them in Settings, under their week.' : ''}</p>`;
   }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend
