@@ -16,6 +16,7 @@
 #include "pictures.h"   // every icon of data/icons.json at 120x160, written by make-icons.js (470)
 
 #define EPD_PWR 6   // panel power, LOW = on; e-paper keeps its picture with the power off
+#define VBAT_PWR 17   // the battery latch (Waveshare demo, schematic): HIGH keeps a battery-only board on after ⏻ (485)
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
 
 // Short KJV verses (brackets removed), each fits 200x200. One a day, in order, then round again.
@@ -252,6 +253,9 @@ const unsigned long DAY = 24UL * 3600 * 1000, AWAKE = 60000;
 // Deep sleep switches the S3's own USB off, so the computer loses the screen (482). After a plug-in, RESET or PWR the
 // screen stays awake 60 s, and as long as a computer is attached, listening; it sleeps only on a charger or battery.
 void setup() {
+  gpio_hold_dis((gpio_num_t)VBAT_PWR);
+  pinMode(VBAT_PWR, OUTPUT); digitalWrite(VBAT_PWR, HIGH);
+  gpio_hold_en((gpio_num_t)VBAT_PWR);   // held through deep sleep too, or the daily wake has no power
   Preferences keep;
   keep.begin("verse", false);
   int mode = keep.getInt("mode", 0), i = keep.getInt("i", 0);
@@ -281,6 +285,7 @@ void setup() {
   }
   keep.end();
   unsigned long left = DAY - min(DAY - 60000, millis() - drawn);   // the next day counts from the last drawing
+  gpio_deep_sleep_hold_en();
   esp_sleep_enable_timer_wakeup((uint64_t)left * 1000ULL);
   esp_deep_sleep_start();
 }

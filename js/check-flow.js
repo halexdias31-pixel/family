@@ -13175,25 +13175,42 @@ check('470, 482: the E-ink screen on Tools is the real 200x200 panel drawn in th
   await press(tile('eink-sync')); await wait(100);
   if (opened) bad.push('Sync opened a window');
   if (!/Chrome or Edge/.test((box.querySelector('.eink-say') || {}).textContent || '')) bad.push('Sync with no Web Serial says nothing in the widget');
-  /* SYNC, THREE WAYS (482): not in the list -> press ⏻; answers -> done; in the list but silent -> old software, Install with the ☀ steps. */
+  /* SYNC (482, 485): not listed -> press ⏻; READY then OK -> done; silent -> "didn't answer" + Details; other text -> old software. A fresh port each time, DTR on, RTS off. */
   const say = () => (box.querySelector('.eink-say') || {}).textContent || '';
-  const fakePort = answer => ({ readable: null, writable: null, open() {
-      let push; this.readable = { getReader: () => ({ read: () => new Promise(r => { push = r; }), cancel: () => { if (push) push({ done: true }); }, releaseLock() {} }) };
-      this.writable = { getWriter: () => ({ write: async () => { if (answer && push) { const p = push; push = null; p({ value: new TextEncoder().encode('OK\n') }); } }, releaseLock() {} }) };
+  const details = () => (box.querySelector('.eink-details') || {}).textContent || '';
+  const SIG = [];
+  const fakePort = answer => ({ readable: null, writable: null, getInfo: () => ({ usbVendorId: 0x303a, usbProductId: 0x1001 }),
+    setSignals(o) { SIG.push(o); return Promise.resolve(); }, open() {
+      let push; const sent = [];
+      const reply = t => { if (push) { const p = push; push = null; p({ value: new TextEncoder().encode(t) }); } };
+      this.readable = { getReader: () => ({ read: () => new Promise(r => { push = r; }), cancel: () => { if (push) push({ done: true }); }, releaseLock() {} }) };
+      this.writable = { getWriter: () => ({ write: async b => { const t = new TextDecoder().decode(b); sent.push(t);
+        if (answer === 'new') reply(/HELLO/.test(t) ? 'READY epaper-verse 482\r\n' : /SHOW/.test(t) ? 'OK\r\n' : '');
+        else if (answer === 'old') reply('verse v1\r\n'); }, releaseLock() {} }) };
       return Promise.resolve(); }, close: () => Promise.resolve() });
   if (!w.TextDecoder) { w.TextDecoder = TextDecoder; w.TextEncoder = TextEncoder; }   // jsdom has neither; every browser with Web Serial has both
-  const serial = f => { try { Object.defineProperty(w.navigator, 'serial', { value: { requestPort: f }, configurable: true }); } catch (e) {} };
+  let asked = 0;
+  const serial = f => { try { Object.defineProperty(w.navigator, 'serial', { value: { requestPort: o => { asked++; return f(o); } }, configurable: true }); } catch (e) {} };
   serial(() => Promise.reject(new Error('none')));
   await press(tile('eink-sync')); await wait(100);
   if (!/press ⏻/.test(say())) bad.push('a screen not in the list does not say "press ⏻ once": ' + JSON.stringify(say()));
-  serial(() => Promise.resolve(fakePort(true)));
-  await press(tile('eink-sync')); for (let i = 0; i < 40 && !/Done/.test(say()); i++) await wait(100);
-  if (!/Done — the screen is updating/.test(say())) bad.push('a screen that answers OK does not say Done: ' + JSON.stringify(say()));
-  serial(() => Promise.resolve(fakePort(false)));
-  await press(tile('eink-sync')); for (let i = 0; i < 120 && !/old software/.test(say()); i++) await wait(100);
-  if (!/old software — tap Install/.test(say()) || !tile('eink-install')) bad.push('a silent screen does not say it has old software and offer Install: ' + JSON.stringify(say()));
+  serial(() => Promise.resolve(fakePort('new'))); asked = 0; SIG.length = 0;
+  await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
+  if (!/Done — the screen is updating/.test(say())) bad.push('a screen that answers READY then OK does not say Done: ' + JSON.stringify(say()));
+  if (!SIG.some(o => o.dataTerminalReady === true && o.requestToSend === false)) bad.push('Sync does not set DTR on and RTS off after opening: ' + JSON.stringify(SIG));
+  if (!/303a:1001/.test(details()) || !/READY/.test(details())) bad.push('the Details line does not show the USB id and what came back: ' + JSON.stringify(details()));
+  await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
+  if (asked !== 2) bad.push('Sync reused a port instead of asking Chrome each time: asked ' + asked);
+  serial(() => Promise.resolve(fakePort('')));
+  await press(tile('eink-sync')); for (let i = 0; i < 150 && !/didn’t answer/.test(say()); i++) await wait(100);
+  if (!/The screen didn’t answer — unplug it, plug it back in/.test(say())) bad.push('a silent screen does not say it did not answer, with one step: ' + JSON.stringify(say()));
+  if (/old software/.test(say())) bad.push('a silent screen is called old software');
+  if (!/heard nothing/.test(details())) bad.push('a silent screen has no "heard nothing" Details line: ' + JSON.stringify(details()));
+  serial(() => Promise.resolve(fakePort('old')));
+  await press(tile('eink-sync')); for (let i = 0; i < 150 && !/old software/.test(say()); i++) await wait(100);
+  if (!/old software — tap Install/.test(say()) || !tile('eink-install')) bad.push('a screen that answers but not READY does not say old software and offer Install: ' + JSON.stringify(say()));
   const steps = [...box.querySelectorAll('.eink-steps li')].map(li => li.textContent);
-  if (steps.length < 4 || !steps.some(t => /Hold ☀/.test(t)) || !steps.some(t => /⏻/.test(t))) bad.push('the install steps do not name the ☀ and ⏻ buttons one line each: ' + JSON.stringify(steps));
+  if (steps.length < 4 || !steps.some(t => /Hold ☀/.test(t)) || !steps.some(t => /unplug the screen and plug it back in/.test(t))) bad.push('the install steps do not say hold ☀, and after installing unplug and plug back in (⏻ does not restart it, 485): ' + JSON.stringify(steps));
   return bad;
 });
 

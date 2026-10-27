@@ -480,7 +480,7 @@ function einkFace_() {
 /* THE STEPS, with the symbols printed on the screen's two buttons (482): ☀ is BOOT, ⏻ is PWR. One line each, only when it applies. */
 const EINK_STEPS = {
   sync: ['Plug the screen into this computer.', 'Tap Sync and choose “@family. screen”.'],
-  install: ['Unplug the screen.', 'Hold ☀ (BOOT).', 'Plug it in while holding ☀, then let go.', 'Tap Install and choose the screen — in this mode it may be called “USB JTAG/serial debug unit”.', 'When it says Installed, press ⏻ (PWR) once, then tap Sync.'],
+  install: ['Unplug the screen.', 'Hold ☀ (BOOT).', 'Plug it in while holding ☀, then let go.', 'Tap Install and choose the screen — in this mode it may be called “USB JTAG/serial debug unit”.', 'When it says Installed, unplug the screen and plug it back in without touching ☀ — ⏻ does not restart it (485). Then tap Sync.'],
 };
 function paintEink_() {
   const list = einkList_(), ready = list.length > 0, icon = EINK.mode === 'icon';
@@ -501,6 +501,7 @@ function paintEink_() {
         EINK.install ? tile_({ icon: 'in', label: 'Install', note: 'the screen’s program, by USB', act: 'eink-install', off: EINK.busy }) : '',
       ].join('')}</div>
       ${EINK.say ? `<p class="eink-say" role="status">${esc(EINK.say)}</p>` : ''}
+      ${EINK.details ? `<p class="eink-say eink-details">${esc(EINK.details)}</p>` : ''}
       ${EINK.steps ? `<ol class="eink-steps">${EINK_STEPS[EINK.steps].map(t => `<li>${esc(t)}</li>`).join('')}</ol>` : ''}`;
     const cv = box.querySelector('.eink-px'); if (cv) einkDraw_(cv);
   });
@@ -527,30 +528,52 @@ async function einkPort_() {
   try { return await navigator.serial.requestPort({ filters: [{ usbVendorId: EINK_USB }] }); }
   catch (e) { EINK.steps = 'sync'; einkSay_(EINK_GONE); return null; }
 }
+const EINK_HUSH = 'The screen didn’t answer — unplug it, plug it back in without touching ☀, then tap Sync again.';
+const einkUsb_ = port => { try { const i = port.getInfo ? port.getInfo() : {}; const h = n => (n == null ? '????' : (+n).toString(16).padStart(4, '0'));
+  return i && i.usbVendorId != null ? h(i.usbVendorId) + ':' + h(i.usbProductId) : 'unknown'; } catch (e) { return 'unknown'; } };
+/* HELLO first, then SHOW: what came back (or nothing) is said, and a Details line keeps the bytes and USB id for the next screenshot (485). */
 on('eink-sync', async () => {
   if (EINK.busy) return;
-  const port = await einkPort_(); if (!port) return;
-  EINK.busy = true;
-  let ok = false, opened = false, got = '';
+  const port = await einkPort_(); if (!port) return;   // a fresh pick every time: after an install the screen is a new USB device
+  EINK.busy = true; EINK.details = '';
+  let ok = false, ready = false, opened = false, got = '';
+  const usb = einkUsb_(port);
   try {
     await port.open({ baudRate: 115200 }); opened = true;
-    einkSay_('Connected — sending…');
-    const line = new TextEncoder().encode('HELLO\n' + (EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse) + '\n');
-    const w = port.writable.getWriter(), r = port.readable.getReader();
-    const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += new TextDecoder().decode(x.value); if (/\bOK\b/.test(got)) ok = true; } } catch (e) {} })();
-    const until = Date.now() + 8000;   // asks again every 0.4 s: a screen that has just woken is listening within a second or two
-    while (!ok && Date.now() < until) { try { await w.write(line); } catch (e) {} await new Promise(res => setTimeout(res, 400)); }
+    /* DTR on (TinyUSB writes only to a port with DTR), RTS off: never a step of USBCDC's DTR/RTS reboot-to-bootloader dance (485). */
+    try { await port.setSignals({ dataTerminalReady: true, requestToSend: false }); } catch (e) {}
+    einkSay_('Connected — asking the screen…');
+    const enc = s => new TextEncoder().encode(s + '\n');
+    const hello = enc('HELLO'), show = enc(EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse);
+    const w = port.writable.getWriter(), r = port.readable.getReader(), dec = new TextDecoder();
+    const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += dec.decode(x.value, { stream: true });
+      if (/READY/.test(got)) ready = true; if (/(^|\n)OK\b/.test(got)) ok = true; } } catch (e) {} })();
+    const until = Date.now() + 10000;   // the screen may still be drawing its first picture; it reads what queued when it is done
+    let last = 0;
+    while (!ok && Date.now() < until) {
+      if (!ready) { try { await w.write(hello); } catch (e) {} }
+      else if (Date.now() - last > 1500) { if (last) einkSay_('The screen answered — sending…'); try { await w.write(show); } catch (e) {} last = Date.now(); }
+      await new Promise(res => setTimeout(res, ready ? 100 : 400));
+    }
     try { await r.cancel(); } catch (e) {}
     await reading;
     try { r.releaseLock(); w.releaseLock(); } catch (e) {}
   } catch (e) {}
   try { await port.close(); } catch (e) {}
   EINK.busy = false;
-  /* It was in the list, so it was awake; awake and silent is the program from before 482, which listened only 6 s. */
+  const tail = got.replace(/\s+/g, ' ').trim().slice(-60);
+  EINK.details = 'Details: USB ' + usb + ' · ' + (got ? 'heard ' + got.length + ' bytes: “' + tail + '”' : 'heard nothing') + (opened ? '' : ' · port would not open');
   if (ok) { EINK.install = false; EINK.steps = ''; einkSay_('Done — the screen is updating.'); }
   else if (!opened) { EINK.steps = 'sync'; einkSay_('The screen is busy in another tab — close it, then tap Sync again.'); }
-  else { EINK.install = true; EINK.steps = 'install'; einkSay_('This screen has old software — tap Install.'); }
+  else if (ready) { EINK.steps = ''; einkSay_('The screen answered but did not take the picture — tap Sync again.'); }
+  else if (/waiting for download|DOWNLOAD|ESP-ROM/i.test(got)) { EINK.steps = ''; einkSay_('The screen is still in install mode — unplug it, plug it back in without touching ☀, then tap Sync again.'); }
+  else if (got.trim()) { EINK.install = true; EINK.steps = 'install'; einkSay_('This screen has old software — tap Install.'); }
+  else { EINK.install = true; EINK.steps = ''; einkSay_(EINK_HUSH); }
 });
+/* esptool-js 0.6.1's hard_reset only lowers RTS, which was already low: the S3 stayed in its installer (485). RTS high with DTR low resets it. */
+async function einkReset_(t) {
+  try { await t.setDTR(false); await t.setRTS(true); await new Promise(res => setTimeout(res, 120)); await t.setRTS(false); } catch (e) {}
+}
 /* INSTALL, IN PLACE: what install.html did, here — esptool-js writes the program; the page never changes. */
 on('eink-install', async () => {
   if (EINK.busy) return;
@@ -563,11 +586,15 @@ on('eink-install', async () => {
     const loader = new ESPLoader({ transport, baudrate: 460800, romBaudrate: 115200, terminal: quiet });
     await loader.main();
     const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin')).arrayBuffer());
+    const md5 = (await (await fetch('tools/epaper-verse/epaper-verse.md5')).text()).trim();
+    if (!/^[0-9a-f]{32}$/.test(md5)) throw new Error('no md5');
+    /* calculateMD5Hash makes esptool-js read the flash back and throw on a mismatch: Installed is said only after that (485). */
     await loader.writeFlash({ fileArray: [{ data, address: 0 }], flashMode: 'keep', flashFreq: 'keep', flashSize: 'keep', eraseAll: false, compress: true,
+      calculateMD5Hash: () => md5,
       reportProgress: (i, done, all) => { EINK.say = 'Installing… ' + Math.round(100 * done / all) + '%'; paintEink_(); } });
-    await loader.after('hard_reset');
+    await einkReset_(transport);
     try { await transport.disconnect(); } catch (e) {}
-    EINK.install = false; EINK.steps = ''; EINK.say = 'Installed — press ⏻ (PWR) once, then tap Sync.';
+    EINK.install = false; EINK.steps = ''; EINK.details = ''; EINK.say = 'Installed and checked — unplug the screen, plug it back in, then tap Sync.';
   } catch (e) { EINK.steps = 'install'; EINK.say = 'The install did not finish — follow these steps, then tap Install again.'; }
   EINK.busy = false; paintEink_();
 });
