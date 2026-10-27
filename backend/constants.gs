@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zg-inbox";
+const BACKEND_VERSION = "2026-10-27-zh-suggest";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -483,8 +483,8 @@ const SCHEMA = {
     "event_id", "pressed_at",
   ],
 
-  /* ---------- REPORTS: ANYTHING SOMEBODY SAYS IS WRONG (395, 486) ----------
-     `status`: open, confirmed (to fix), dismissed or fixed; before 486 blank and `not a problem` (open, dismissed). Blank `kind` is a question. */
+  /* ---------- REPORTS (395, 486), HISTORY SINCE 494: read once into `claude_notes` by `reports-to-notes`, each row then `migrated`.
+     Nothing writes here now. Blank `kind` is a question. */
   reports: [
     "report_id", "at", "person_id", "handle",
     "question_id", "paper_id", "part", "label",
@@ -493,8 +493,8 @@ const SCHEMA = {
     "kind", "item_id", "reporter_rank", "status_by",
   ],
 
-  /* ---------- NOTES FOR CLAUDE (484): what the owner wants changed on one widget or card ----------
-     `status` is open or done; every open one is also written to the Drive file `CLAUDE_NOTES_FILE`. */
+  /* ---------- NOTES FOR CLAUDE (484, 494): what should change on one thing ----------
+     `status`: open (or blank), done, pending (a non-admin's, 494) or dismissed; open ones are in the Drive file. */
   claude_notes: [
     "note_id", "made_at", "made_by", "column", "item_id", "item_label", "note", "status", "done_at",
   ],
@@ -1466,6 +1466,12 @@ const MIGRATIONS = [
     what: 'a backup copy of the Ledger, then the attempts, post_likes, widgets and orders tabs and the columns nothing reads are removed',
     run: () => tidyOldTabs_() },
 
+  /* THE OWNER (494): the old reports read, then the table retired — every row not closed becomes a note for Claude, marked `migrated`. */
+  { id: 'reports-to-notes',
+    retry: true,
+    what: 'every open report becomes a Note for Claude, as its reporter on its date; the reports tab is history after',
+    run: () => reportsMigrate_() },
+
   /* THE LIBRARY MOVES INTO THE LEDGER (397): copied from LIB_SOURCE_COMMIT a few minutes at a time by a trigger, then every row checked against its source. */
   { id: 'library-to-ledger',
     retry: true,
@@ -1577,7 +1583,7 @@ const ACTION_ACCESS = {
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
-  listReports: 'admin', setReportStatus: 'admin',
+  suggest: 'self', listSuggestions: 'admin', decideSuggestion: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
   /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */

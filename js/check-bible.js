@@ -214,14 +214,14 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
   fail.push('`' + LIST_NAMES.filter((n, i) => !listSrc[i]).join('`, `') + '` not found in js/find.js — the verse list was NOT checked, which is not a pass');
 } else if (index && books.length) {
   let made = null;
-  try { made = new Function(listSrc.join('\n') + '\nreturn bibleVerseList_;')()(index); }
+  try { made = new Function('const brand = (k, or) => or;\n' + listSrc.join('\n') + '\nreturn bibleVerseList_;')()(index); }
   catch (e) { fail.push('bibleVerseList_ threw on the real index: ' + e.message); }
   const list = made && Array.isArray(made.list) ? made.list : [];
   listed = list.length;

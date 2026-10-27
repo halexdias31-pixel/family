@@ -2,7 +2,7 @@
 /* One card a side of a daf (490), asked by ordinary facets; the card IS the page as the Romm printers set it — Gemara in the middle, Rashi
    inner, Tosafot outer — scaled to the card. */
 
-const TALMUD_SHELF = () => brand('talmud_shelf', 'Talmud');
+const TALMUD_SHELF = () => brand('talmud_shelf', BIBLE_SHELF);
 const TALMUD_NAME = () => brand('talmud_name', 'Babylonian Talmud');
 /* WHAT A SEARCH FINDS IT BY that a daf's own name does not say. */
 const TALMUD_WORDS = 'Talmud Bavli Babylonian Gemara Mishnah Rashi Tosafot Vilna Romm Shas daf';
@@ -70,12 +70,12 @@ function talmudItems_() {
   const ix = TALMUD.index;
   if (!ix || !talmudFor_()) return [];
   if (TALMUD.items && TALMUD.from === ix) return TALMUD.items;
-  const list = [], shelf = TALMUD_SHELF();
+  const list = [], shelf = TALMUD_SHELF(), rs = SCRIPTURE_SUBJECT();
   ix.tractates.forEach(t => {
     for (let i = t.first; i <= t.last; i++) {
       const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
       list.push({
-        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf,
+        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf, libBook: 'Talmud', subject: rs,
         sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: SCRIPTURE_MIN_AGE,
         talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d), talSide: 'Side ' + side,
         text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
@@ -184,8 +184,8 @@ function talPage_(t, i, d) {
     </div>`;
 }
 
-/* ---------- TZURAT HA-DAF: measured, then commentaries longer than the Gemara run under it at half the page, or a
-   longer Gemara widens under them. Rashi is inner: right on an a side. */
+/* ---------- TZURAT HA-DAF (494): the Gemara centred, Rashi (inner) and Tosafot round it; whatever runs longer
+   continues under the rest across the freed width — a balanced rectangle, never one long column. */
 function talLayout_(body) {
   if (!body || !body.isConnected) return;
   const W = body.clientWidth;
@@ -199,27 +199,42 @@ function talLayout_(body) {
   const sp = el => el.querySelectorAll('.tal-spacer');
   const reset = el => { el.style.cssText = ''; sp(el).forEach(x => { x.style.cssText = 'display:none'; }); };
   [L.r, L.t, L.g].forEach(reset);
-  const outer = (el, right) => Object.assign(el.style, { position: 'absolute', top: '0', width: s + 'px', [right ? 'right' : 'left']: '0' });
-  const rRight = aSide, tRight = !aSide;
-  outer(L.r, rRight); outer(L.t, tRight);
+  const put = (el, right, w) => Object.assign(el.style, { position: 'absolute', top: '0', width: w + 'px', left: right ? (W - w) + 'px' : '0' });
+  const hole = (x, right, w, h, clear) => { x.style.cssText = h > 0 ? `display:block;float:${right ? 'right' : 'left'};width:${Math.ceil(w)}px;height:${Math.ceil(h)}px;clear:${clear ? (right ? 'right' : 'left') : 'none'}` : 'display:none'; };
+  const empty = el => !el.querySelector('.tal-txt').textContent.trim();
+  const rRight = aSide;
+  put(L.r, rRight, s); put(L.t, !rRight, s);
   Object.assign(L.g.style, { position: 'absolute', top: '0', width: gW + 'px', left: Math.round((W - gW) / 2) + 'px' });
-  const Hr = L.r.offsetHeight, Ht = L.t.offsetHeight, Hg = L.g.offsetHeight;
+  const Hr = empty(L.r) ? 0 : L.r.offsetHeight, Ht = empty(L.t) ? 0 : L.t.offsetHeight, Hg = L.g.offsetHeight;
+  /* C is the shorter commentary, B the longer; cR/bR say which side each stands on. */
+  const [C, Hc, cR, B, Hb, bR] = Hr <= Ht ? [L.r, Hr, rRight, L.t, Ht, !rRight] : [L.t, Ht, !rRight, L.r, Hr, rRight];
   let H;
-  if (Hr >= Hg && Ht >= Hg && Hg > 0) {
-    /* EACH COMMENTARY TAKES HALF THE PAGE, with a hole the Gemara's height on the side towards it. */
-    [[L.r, rRight], [L.t, tRight]].forEach(([el, right]) => {
-      Object.assign(el.style, { width: Math.floor(W / 2 - gap / 2) + 'px' });
-      const x = sp(el)[0];
-      x.style.cssText = `display:block;float:${right ? 'left' : 'right'};width:${Math.ceil(gW / 2 + gap / 2)}px;height:${Hg + gap / 2}px`;
-    });
-    H = Math.max(L.r.offsetHeight, L.t.offsetHeight, Hg);
-  } else {
-    /* THE GEMARA TAKES THE WHOLE WIDTH, with a hole each commentary's height on its side. */
-    Object.assign(L.g.style, { width: W + 'px', left: '0' });
-    const hole = (x, right, h) => { x.style.cssText = `display:${h ? 'block' : 'none'};float:${right ? 'right' : 'left'};width:${s + gap}px;height:${h + gap / 2}px;clear:none`; };
-    hole(L.g.querySelector('.tal-sp-r'), true, rRight ? Hr : Ht);
-    hole(L.g.querySelector('.tal-sp-l'), false, rRight ? Ht : Hr);
+  if (Hb <= Hg) {
+    /* THE GEMARA IS LONGEST: it takes the whole width, with a hole each commentary's height on its side. */
+    put(L.g, false, W);
+    hole(L.g.querySelector('.tal-sp-r'), true, s + gap, rRight ? (Hr && Hr + gap / 2) : (Ht && Ht + gap / 2));
+    hole(L.g.querySelector('.tal-sp-l'), false, s + gap, rRight ? (Ht && Ht + gap / 2) : (Hr && Hr + gap / 2));
     H = Math.max(L.g.offsetHeight, Hr, Ht);
+  } else if (Hc <= Hg) {
+    /* ONE COMMENTARY ENDS BESIDE THE GEMARA: the Gemara widens under it, and the longer one runs under both across the page. */
+    const gw = W - s - gap;
+    put(L.g, cR, gw);
+    hole(L.g.querySelector(cR ? '.tal-sp-r' : '.tal-sp-l'), cR, s + gap, Hc && Hc + gap / 2);
+    const Hg2 = L.g.offsetHeight;
+    put(B, bR, W);
+    hole(sp(B)[0], !bR, gw + gap, Hg2 + gap / 2);
+    H = Math.max(B.offsetHeight, Hg2, Hc);
+  } else {
+    /* BOTH OUTRUN THE GEMARA: under it they share the page in two columns; the longer one, once the other ends, takes the full width. */
+    const half = Math.floor(W / 2 - gap / 2), cut = Math.ceil(gW / 2 + gap / 2);
+    [[C, cR], [B, bR]].forEach(([el, right]) => { put(el, right, half); hole(sp(el)[0], !right, cut, Hg + gap / 2); });
+    const Hc2 = C.offsetHeight, Hb2 = B.offsetHeight;
+    if (Hb2 - Hc2 > fs * 3) {
+      put(B, bR, W);
+      hole(sp(B)[0], !bR, W - half + cut, Hg + gap / 2);
+      hole(sp(B)[1], !bR, W - half, Hc2 + gap / 2 - (Hg + gap / 2), true);
+    }
+    H = Math.max(C.offsetHeight, B.offsetHeight, Hg);
   }
   body.style.height = Math.ceil(H) + 'px';
 }

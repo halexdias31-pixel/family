@@ -1,6 +1,7 @@
 [
 {"field": "forLabel", "label": "What for", "sort_order": 10, "note": "what the thing is for (a group of kinds); asked by the one rule like every facet", "active": true},
 {"field": "kindLabel", "label": "What kind", "sort_order": 20, "note": "what kind of thing: Questions, Answers, Practicals, Projects, Library (boxers, bouts and the Bible are in the Library; Content until 490). Answers keeps a question's answer pages; its answers are ordered by the kinds tab", "active": true},
+{"field": "libBook", "label": "Which book", "sort_order": 24.05, "note": "on the Books shelf: the Bible, the Quran or the Talmud (494)", "active": true},
 {"field": "shelf", "label": "Shelf", "sort_order": 24, "note": "which shelf of the Library: Boxing, and for an admin Books (the Bible)", "active": true},
 {"field": "bibleTranslation", "label": "Translation", "sort_order": 25.1, "note": "admins only (the Bible is admin-only data); an ordinary question", "active": true},
 {"field": "bibleTestament", "label": "Testament", "sort_order": 25.2, "note": "admins only; an ordinary question", "active": true},
@@ -19,8 +20,8 @@
 {"field": "quranPlace", "label": "Revealed", "sort_order": 26.9, "note": "the Quran only: Meccan or Medinan (490)", "active": true},
 {"field": "quranSajda", "label": "Prostration", "sort_order": 26.95, "note": "the Quran only: a verse of prostration (490)", "active": true},
 {"field": "book", "label": "Book", "sort_order": 31, "note": "off and retired in code: it asked which @family. textbook, and since 12 Oct every chapter is a content card of its own, so nothing answers it (docs/history/347, part 2)", "active": false},
-{"field": "projectType", "label": "Project or coursework", "sort_order": 28, "note": "projects only, which the coverage rule decides: asked once half the list is projects", "active": true},
-{"field": "subject", "label": "Subject", "sort_order": 30, "note": "", "active": true},
+{"field": "projectType", "label": "Project or coursework", "sort_order": 21, "note": "projects only, which the coverage rule decides: asked once half the list is projects", "active": true},
+{"field": "subject", "label": "Subject", "sort_order": 22, "note": "asked first after What kind (494): \"the library should go subject first\"; every Library item carries one (scripture is Religious Studies)", "active": true},
 {"field": "boxKind", "label": "Boxers or fights", "sort_order": 34, "note": "boxers or bouts", "active": true},
 {"field": "fighter", "label": "Fighter", "sort_order": 34.1, "note": "a bout's two corners, and a boxer's own name (445)", "active": true},
 {"field": "boutMonth", "label": "Month", "sort_order": 34.2, "note": "the month a bout was fought (445)", "active": true},

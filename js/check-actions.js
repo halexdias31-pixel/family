@@ -10,8 +10,10 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 /* ---------- A HANDLER NO CODE CALLS, KEPT ON PURPOSE. One sentence each: who reaches it, and why it stays. */
 const REASONS = {
   makeChild: 'kept only to refuse an old page plainly: a child makes their own account and a parent claims it (461, the owner: "making a child\'s account shouldn\'t be a thing").',
-  reportQuestion: 'kept for a phone loaded before 486: it is routed into the one `report` action (check-reports proves it).',
-  flagMessage: 'kept for a phone loaded before 486: a message report routed into the one `report` action (check-posts proves it).',
+  reportQuestion: 'kept for a phone loaded before 486: it is routed into the one `suggest` action (check-suggest proves it).',
+  report: 'kept for a phone loaded before 494: it is routed into the one `suggest` action (check-suggest proves it).',
+  claudeNoteAdd: 'kept for a phone loaded before 494, whose admin tile was Note for Claude; Suggest a change replaced it (check-suggest).',
+  flagMessage: 'kept for a phone loaded before 486: a message routed into the one `suggest` action (check-posts proves it).',
   linkChild: 'the one way an admin settles a HELD family link besides typing in the sheet (check-signin proves the '
     + 'address rule on it). Posted by hand for now; no admin card yet (433).',
   digestPreview: 'the Sunday email\'s dry run against the LIVE sheet, posted by hand by an admin (the card went in '

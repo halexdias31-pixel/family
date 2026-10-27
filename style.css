@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-zg-inbox";
+  --css-version: "2026-10-27-zh-suggest";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6431,6 +6431,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .rep-note-in { display: block; width: 100%; box-sizing: border-box; min-height: 44px; padding: .55rem .7rem;
                background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
                color: var(--ink); font: inherit; font-size: .85rem; line-height: 1.4; resize: none; }
+.rep-box > .rep-note-in { margin-bottom: .5rem; min-height: 4.5rem; resize: vertical; }
 .rep-note-in:focus { outline: 0; border-color: var(--gold); }
 .rep-count { margin: 0 0 .5rem; color: var(--gold); font-weight: 700; font-size: .85rem; }
 .rep-note-said { margin: 0 0 .2rem; font-size: .78rem; color: var(--ink); overflow-wrap: anywhere; }
@@ -6850,21 +6851,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.is-merged > .merged-part + .merged-part h3:first-of-type { font-size: .8rem; font-family: var(--mono); font-weight: 600;
   text-transform: uppercase; letter-spacing: .04em; color: var(--dim); margin: 0 0 .35rem; }
 
-/* NOTES FOR CLAUDE (484): the box opened in place under a widget's or card's tile row — the words, Send and Cancel, then its open notes. */
-.ncl-box { margin: .5rem 0 0; display: flex; flex-direction: column; gap: .4rem; }
-.ncl-text { width: 100%; box-sizing: border-box; min-height: 4.5rem; padding: .5rem .6rem; font: inherit; color: var(--ink);
-  background: transparent; border: 1px solid var(--line); border-radius: .5rem; resize: vertical; }
-.ncl-text:focus { outline: 0; border-color: var(--gold); }
-.ncl-text::placeholder { color: var(--faint); opacity: 1; }
-.ncl-said:empty { display: none; }
+/* NOTES FOR CLAUDE (484, 494): the open notes an admin sees under a Suggest a change box. */
 .ncl-list { list-style: none; margin: 0; padding: 0; color: var(--faint); font-size: .85rem; }
 .ncl-item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .25rem 0; border-top: 1px solid var(--line); }
 .ncl-say { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* WRITING IN PLACE OF THE THING (489, `boxInPlace_`): the note or report box takes the thing's own footprint, its content hidden until Cancel or Send. */
 .is-writing { height: var(--writing-h, auto); min-height: 12rem; overflow: hidden; display: flex; flex-direction: column; }
-.is-writing > :not(.ncl-box):not(.rep-box) { display: none !important; }
-.is-writing > .ncl-box, .is-writing > .rep-box { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-top: 0; border-top: 0; }
+.is-writing > :not(.rep-box) { display: none !important; }
+.is-writing > .rep-box { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-top: 0; border-top: 0; }
 .is-writing > .ncl-box .ncl-text { flex: 1 1 auto; min-height: 4rem; }
 /* THE SHOP (491): an icon in front of every item, and the search card's list of matches. */
 .shop-thing { display: flex; gap: .8rem; align-items: flex-start; }

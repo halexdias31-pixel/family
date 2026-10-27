@@ -20923,7 +20923,12 @@ check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learn
   const x = w.stuffItemsAll_().find(y => y.key === 'tal:berakhot:2a');
   if (!x) return ['Berakhot 2a is not on the list of everything — NOT checked'];
   if (!w.stuffItemsAll_().some(y => y.key === 'tal:berakhot:2b')) bad.push('Berakhot 2b is not a card of its own');
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Talmud' },
+  /* SUBJECT FIRST IN THE LIBRARY (494): "the library should go subject first"; under Religious Studies, which book before the Talmud's own. */
+  const order = w.facetList().map(f => f.field), at = f => order.indexOf(f);
+  if (!(at('kindLabel') < at('subject') && at('subject') < at('shelf') && at('shelf') < at('libBook') && at('libBook') < at('talSeder') && at('libBook') < at('bibleTranslation')))
+    bad.push('the funnel does not ask What kind, Subject, Shelf, Which book, then each book’s own: ' + ['kindLabel', 'subject', 'shelf', 'libBook', 'talSeder', 'bibleTranslation'].map(f => f + '@' + at(f)).join(' '));
+  if (x.subject !== 'Religious Studies' || x.shelf !== 'Books' || x.libBook !== 'Talmud') bad.push('Berakhot 2a is ' + [x.subject, x.shelf, x.libBook].join(', ') + ' — wanted Religious Studies, on Books, the Talmud (494)');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' }, { field: 'libBook', value: 'Talmud' },
     { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter },
     { field: 'talDaf', value: '2' }, { field: 'talSide', value: 'Side a' }];
   const got = w.stuffFiltered();
@@ -21011,7 +21016,7 @@ check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Lib
   const x = w.stuffItemsAll_().find(y => y.key === 'qr:2:255');
   if (!x) return bad.concat(['Al-Baqara 2:255 is not on the list of everything']);
   if (x.quranJuz !== 'Juz 3' || x.quranPlace !== 'Medinan') bad.push('2:255 is tagged ' + x.quranJuz + ', ' + x.quranPlace + ' — not Juz 3, Medinan');
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Quran' },
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' }, { field: 'libBook', value: 'Quran' },
     { field: 'quranSurah', value: '2 · Al-Baqara' }, { field: 'quranAyah', value: '255' }];
   const got = w.stuffFiltered();
   if (got.length !== 1 || got[0] !== x) bad.push('the five answers keep ' + got.length + ' thing(s), not 2:255 alone');
@@ -21759,7 +21764,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     /* EVERY TAG A BIBLE ANSWER, IN THE ORDER THE FINDER ASKS (355): the book, chapter and verse three tags
        -- [Genesis] [1] [1], both ones kept, a number being a position and not a name -- and no `Verse`. */
-    if (i === 0 && tags.join('|') !== 'Learning|Library|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
+    if (i === 0 && tags.join('|') !== 'Learning|Library|Religious Studies|Books|Bible|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
   const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
@@ -22097,7 +22102,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
 });
 
 /* ---------- THE FUNNEL ASKS AN ADMIN WHAT IT ASKS A PARENT, THE BOOKS SHELF APART § */
-check('the funnel asks an admin exactly what it asks a parent, the Books shelf apart — the Bible costs nobody else a question', async () => {
+check('the funnel asks an admin exactly what it asks a parent, the Bible apart — the Bible costs nobody else a question', async () => {
   /* EVERY `data/` FILE FROM DISK, the library included — `check-funnel.js`'s rule, so the walk is over
      the questions a phone holds rather than over a payload of two tutors. */
   const serveAll = url => {
@@ -22177,10 +22182,10 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
   let compared = 0;
   STARTS.forEach(([say]) => {
     const p = parent[say] || [], a = (admin[say] || []).slice();
-    /* THE ONE STEP ONLY AN ADMIN MAY BE ASKED: Shelf, where Books is the second shelf and the parent's
-       one shelf is skipped by the one-answer rule. Taken out of the admin's walk, the rest must match. */
-    const k = a.findIndex((s, i) => s && typeof s === 'object' && s.field === 'shelf' && s.vals.filter(v => v !== 'Books').length <= 1
-      && !(p[i] && typeof p[i] === 'object' && p[i].field === 'shelf'));
+    /* THE ONE STEP ONLY AN ADMIN MAY BE ASKED: Which book, the Bible an admin's answer alone (Books is shared since 494),
+       skipped for a parent left one book. Taken out of the admin's walk, the rest must match. */
+    const k = a.findIndex((s, i) => s && typeof s === 'object' && s.field === 'libBook' && s.vals.filter(v => v !== 'Bible').length <= 1
+      && !(p[i] && typeof p[i] === 'object' && p[i].field === 'libBook'));
     if (k >= 0) a.splice(k, 1);
     const n = Math.max(p.length, a.length);
     for (let i = 0; i < n; i++) {
@@ -22193,7 +22198,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
         if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
         continue;
       }
-      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books') : as.vals;
+      const avals = ps.field === 'libBook' ? as.vals.filter(v => v !== 'Bible') : as.vals;
       if (ps.field !== as.field || ps.vals.join('|') !== avals.join('|')) {
         const onlyAdmin = avals.filter(v => ps.vals.indexOf(v) < 0), onlyParent = ps.vals.filter(v => avals.indexOf(v) < 0);
         bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)
@@ -22201,7 +22206,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
                     + ', only the parent ' + JSON.stringify(onlyParent) : ' — the same answers in a different order'));
         break;
       }
-      if (ps.field === 'shelf' && as.vals.indexOf('Books') < 0) bad.push('from ' + say + ' an admin is asked Shelf without Books');
+      if (ps.field === 'libBook' && as.vals.indexOf('Bible') < 0) bad.push('from ' + say + ' an admin is asked Which book without the Bible');
       compared++;
     }
   });
@@ -28344,98 +28349,95 @@ check('device voice only (463): signed in, Read aloud sends nothing to the backe
   return bad;
 });
 
-/* ---------- ONE RULE FOR REPORTING (395, 486): the tile on a question and a content card, the box in place, the send — and the admin's card. */
-check('Report is one tile on a question and a content card for a student and an admin, none signed out; the box opens in place; an admin’s is to fix; the admin confirms or dismisses a child’s', async () => {
-  const reply = b => b.action === 'report' ? { success: true, serious: b.token === 'tok-P1' }
-    : b.action === 'listReports' ? { success: true, open: 2, serious: 1, total: 3, reports: [
-        { id: 'R-2-2', at: Date.now(), kind: 'widget', itemId: 'calc', serious: true, status: 'confirmed', rank: 'admin', handle: 'hl2026', label: 'Calculator', reason: 'Doesn\'t work' },
-        { id: 'R-1-1', at: Date.now(), kind: 'question', itemId: 'q:Q-REP-1', serious: false, status: 'open', rank: 'student', handle: 'aa2026',
-          questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
-    : b.action === 'setReportStatus' ? { success: true, id: b.id, status: b.status, reportedItems: [] }
+/* ---------- SUGGEST A CHANGE (494): the one tile on a question and a content card, the box in place, the send — and the admin's Suggestions card. */
+check('Suggest a change is one tile on a question and a content card for a student and an admin, none signed out; one text box in place; an admin’s goes to Notes for Claude; the admin confirms or dismisses a child’s', async () => {
+  const reply = b => b.action === 'suggest' ? { success: true, serious: b.token === 'tok-P1' }
+    : b.action === 'listSuggestions' ? { success: true, open: 2, suggestions: [
+        { id: 'N-2-2', at: Date.now(), kind: 'widget', itemId: 'calc', rank: 'student', handle: 'bn2026', label: 'Calculator', note: 'bigger keys' },
+        { id: 'N-1-1', at: Date.now(), kind: 'question', itemId: 'q:Q-REP-1', rank: 'student', handle: 'aa2026', label: 'Q1 · Paper 1', note: 'it is 15' }] }
+    : b.action === 'decideSuggestion' ? { success: true, id: b.id, decision: b.decision, reportedItems: [], notes: [] }
     : { success: true, messages: [] };
   const { w, sent } = boot({ reply });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
-  /* A CONTENT CARD AS `libraryExtras_` MAKES ONE — its kind and key are all the row asks of it. */
   const ct = { kind: 'content', key: 'ct:TB-REP#1', name: 'Bayes', sub: 'Statistics', subject: 'Statistics', row: { bookId: 'TB-REP', n: 1, title: 'Bayes', animations: [] } };
   const lib = mpLibrary_(w, [mpRow_('P-REP', 'Paper 1', 1, 'a')]);
   const x = lib.items.find(i => i && i.kind === 'question' && i.key);
-  if (!x || !ct) { lib.put(); return ['no question or no content card was made, so the Report tile was NOT checked']; }
+  if (!x || !ct) { lib.put(); return ['no question or no content card was made, so the Suggest tile was NOT checked']; }
   t.USER(null);
-  if (/data-do="rep-box"/.test(w.cardTiles_(x) + w.cardTiles_(ct))) bad.push('signed out, a card row offers Report');
+  if (/data-do="rep-box"/.test(w.cardTiles_(x) + w.cardTiles_(ct))) bad.push('signed out, a card row offers Suggest a change');
   const KID = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' };
   const HAL = { name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' };
   for (const who of [KID, HAL]) {
     t.USER(who);
-    [x, ct].forEach(c => { if (!/data-do="rep-box"/.test(w.cardTiles_(c))) bad.push(who.role + ': the ' + c.kind + ' row has no Report tile'); });
+    [x, ct].forEach(c => {
+      const n = (w.cardTiles_(c).match(/data-do="rep-box"/g) || []).length;
+      if (n !== 1) bad.push(who.role + ': the ' + c.kind + ' row has ' + n + ' Suggest tiles — wanted one');
+      if (/data-do="ncl-open"|aria-label="Report/.test(w.cardTiles_(c))) bad.push(who.role + ': the ' + c.kind + ' row still has a Report or Note tile');
+    });
   }
-  /* A CHILD REPORTS THE CONTENT CARD: the box opens IN PLACE under the row, no sheet. */
   t.USER(KID);
   const host = d.createElement('div');
   host.className = 'card';
   host.innerHTML = w.cardTiles_(ct);
   d.body.appendChild(host);
   const tile = host.querySelector('.tile-row [data-do="rep-box"]');
-  if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-flag')) bad.push('Report is not a tile with the flag mark');
+  if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-suggest')) bad.push('Suggest a change is not a tile with the suggest mark');
+  if (tile.getAttribute('aria-label') !== 'Suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
   t.ACTIONS['rep-box'](tile);
   await wait(20);
-  if (sheetOpen_(d)) bad.push('pressing Report opened a sheet — the box belongs in place');
+  if (sheetOpen_(d)) bad.push('pressing Suggest opened a sheet — the box belongs in place');
   const form = host.querySelector('.rep-box');
-  if (!form) { host.remove(); lib.put(); return bad.concat(['pressing Report drew no box under the row']); }
-  if (!form.querySelector('label.field > select.rep-why-in')) bad.push('the reason is not one row with the phone\'s own picker');
+  if (!form) { host.remove(); lib.put(); return bad.concat(['pressing Suggest drew no box']); }
+  if (form.querySelector('select')) bad.push('the box still asks for a reason — one text area is the whole of it');
   const note = form.querySelector('textarea.rep-note-in');
-  if (!note || note.getAttribute('autocomplete') !== 'off' || note.getAttribute('maxlength') !== '300') bad.push('the note box is missing, suggests, or has no 300 cap');
+  if (!note || note.getAttribute('autocomplete') !== 'off') bad.push('the text box is missing or suggests');
   const sendT = form.querySelector('[data-do="rep-send"]');
   t.ACTIONS['rep-send'](sendT);
   await wait(20);
-  if (sent.some(b => b.action === 'report')) bad.push('Send with no reason chosen still sent');
-  form.querySelector('select.rep-why-in').value = 'wrong';
+  if (sent.some(b => b.action === 'suggest')) bad.push('Send with no words still sent');
   note.value = 'the tree is wrong';
   t.ACTIONS['rep-send'](sendT);
   await wait(300);
-  const went = sent.filter(b => b.action === 'report');
-  if (went.length !== 1 || went[0].kind !== 'content' || went[0].itemId !== ct.key || went[0].reason !== 'wrong' || went[0].token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(went));
-  if (toastOf_(d) !== 'Thanks — sent') bad.push('a child’s toast says ' + JSON.stringify(toastOf_(d)));
-  if (/flagged to fix/.test(w.cardTiles_(ct))) bad.push('a child’s report marked the card');
-  if (host.querySelector('.rep-box')) bad.push('the box stayed after the report went');
-  /* AN ADMIN REPORTS THE QUESTION: marked, and the tile says so. */
+  const went = sent.filter(b => b.action === 'suggest');
+  if (went.length !== 1 || went[0].kind !== 'content' || went[0].itemId !== ct.key || went[0].note !== 'the tree is wrong' || went[0].token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(went));
+  if (toastOf_(d) !== 'Thanks — sent to the admin') bad.push('a child’s toast says ' + JSON.stringify(toastOf_(d)));
+  if (/to change/.test(w.cardTiles_(ct))) bad.push('a child’s suggestion marked the card');
+  if (host.querySelector('.rep-box')) bad.push('the box stayed after it went');
   t.USER(HAL);
   host.innerHTML = w.cardTiles_(x);
   t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
   await wait(20);
   const f2 = host.querySelector('.rep-box');
-  if (!/Notes for Claude/.test(f2.textContent)) bad.push('the admin’s box does not say a report of theirs goes to Notes for Claude');
-  f2.querySelector('select.rep-why-in').value = 'answer-wrong';
+  if (!/Notes for Claude/.test(f2.textContent)) bad.push('the admin’s box does not say theirs goes to Notes for Claude');
+  f2.querySelector('textarea').value = 'answer is 15';
   t.ACTIONS['rep-send'](f2.querySelector('[data-do="rep-send"]'));
   await wait(300);
-  if (!/flagged to fix/.test(w.cardTiles_(x))) bad.push('a marked question’s Report tile does not say "flagged to fix"');
+  if (!/to change/.test(w.cardTiles_(x))) bad.push('a marked question’s tile does not say "to change"');
   host.remove();
-  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin sees To fix and To review, and confirms or dismisses. */
   t.USER(KID);
-  if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Reports card');
-  if (sent.some(b => b.action === 'listReports')) bad.push('a child’s phone asked for listReports');
+  if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Suggestions card');
+  if (sent.some(b => b.action === 'listSuggestions')) bad.push('a child’s phone asked for listSuggestions');
   t.USER(HAL);
   const biz = d.createElement('div');
-  biz.innerHTML = w.siteBizPages_().join('');   // Reports is on the Site column since 491
+  biz.innerHTML = w.siteBizPages_().join('');
   d.body.appendChild(biz);
   w.reportsStart_();
   await wait(300);
   const card = biz.querySelector('[data-reports]');
-  if (!card) bad.push('an admin’s Site column has no Reports card');
+  if (!card) bad.push('an admin’s Site column has no Suggestions card');
   else {
-    if (!/1 to fix · 1 to review/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
-    const conf = card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="confirmed"]');
-    if (!conf || !card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="dismissed"]')) bad.push('a child’s report has no Confirm or Dismiss');
-    if (!card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="fixed"]')) bad.push('an admin’s report has no Fixed');
+    if (!/^\s*Suggestions/.test(card.querySelector('h3').textContent) || /Report/.test(card.textContent)) bad.push('the card is not called Suggestions, or still says Report: ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
+    const conf = card.querySelector('.rep-item[data-id="N-1-1"] [data-do="rep-status"][data-decision="confirm"]');
+    if (!conf || !card.querySelector('.rep-item[data-id="N-1-1"] [data-do="rep-status"][data-decision="dismiss"]')) bad.push('a suggestion has no Confirm or Dismiss');
     if (conf) {
       t.ACTIONS['rep-status'](conf);
       await wait(300);
-      if (!sent.some(b => b.action === 'setReportStatus' && b.id === 'R-1-1' && b.status === 'confirmed')) bad.push('Confirm sent nothing');
-      if (!/2 to fix · 0 to review/.test(card.textContent)) bad.push('after Confirm the card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
-      const dis = card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="dismissed"]');
-      t.ACTIONS['rep-status'](dis);
+      if (!sent.some(b => b.action === 'decideSuggestion' && b.id === 'N-1-1' && b.decision === 'confirm')) bad.push('Confirm sent nothing');
+      if (card.querySelector('.rep-item[data-id="N-1-1"]')) bad.push('Confirm left the suggestion waiting on the card');
+      t.ACTIONS['rep-status'](card.querySelector('.rep-item[data-id="N-2-2"] [data-do="rep-status"][data-decision="dismiss"]'));
       await wait(300);
-      if (card.querySelector('.rep-item[data-id="R-2-2"]')) bad.push('Dismiss left the report on the card');
+      if (card.querySelector('.rep-item[data-id="N-2-2"]')) bad.push('Dismiss left the suggestion on the card');
     }
   }
   biz.remove();
@@ -28898,7 +28900,7 @@ check('a child sees a tutor card, the booking form and her session without any �
 
 /* ---------- POSTS WAIT FOR APPROVAL, PICTURES ARE FILES, A POST SHARES AS A PNG (413) ----------
    Through the real doPost and doGet: Ada's waiting post as she, a parent and the admin see it; Approve; a child's columns. */
-const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'report', 'listReports', 'setReportStatus', 'readMessage'];
+const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'report', 'suggest', 'listSuggestions', 'decideSuggestion', 'readMessage'];
 const postWorld_ = () => {
   const W = cardWorld_();
   W.real.seed('posts', [
@@ -29124,7 +29126,7 @@ check('Share on a post (413) draws the whole post on a canvas and hands a PNG to
   return bad;
 });
 
-check('a child reports a message she was sent (413, 486): the one Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until dismissed', async () => {
+check('a child sends on a message she was sent (413, 494): the one Tell the admin tile on received messages only, words optional, "Thanks — sent to the admin"; it waits on Suggestions, glowing, until dismissed', async () => {
   const W = postWorld_(), bad = [];
   W.real.seed('messages', [
     { message_id: 'M-IN1', from_id: 'P-A1', to_id: 'P-S1', sent_at: '23/10/2026 10:00', body: 'Homework is due Friday' },
@@ -29135,39 +29137,36 @@ check('a child reports a message she was sent (413, 486): the one Report tile on
   try { kid.t.go('dm', false, true); kid.w.paint('dm'); } catch (e) { return ['opening Messages threw: ' + e.message]; }
   for (let k = 0; k < 40 && !kid.d.querySelector('#s-dm .msg'); k++) { await wait(100); try { kid.w.paint('dm'); } catch (e) {} }
   const flags = [...kid.d.querySelectorAll('#s-dm [data-do="rep-box"][data-rk="message"]')].map(x => x.dataset.ri);
-  if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Report tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
+  if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Tell the admin tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
   kid.A('rep-box', kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]'));
   await wait(150);
   /* ONE BOX FOR EVERY REPORT (486), in place under the message. */
   const form = kid.d.querySelector('#s-dm .rep-box[data-rk="message"]');
-  if (!form) return ['Report did not open its box under the message'];
-  const opts = form.querySelectorAll('select.rep-why-in option:not([value=""])');
-  if (opts.length !== 5) bad.push('the box offers ' + opts.length + ' reasons, not five');
-  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
-  await wait(150);
-  if (kid.sent.some(b => b.action === 'report')) bad.push('Send went with no reason chosen');
-  opts[1].selected = true;
+  if (!form) return ['Tell the admin did not open its box under the message'];
+  if (form.querySelector('select')) bad.push('the box still asks for a reason');
+  const tl = kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]');
+  if (tl.getAttribute('aria-label') !== 'Tell the admin') bad.push('the message tile is called ' + tl.getAttribute('aria-label'));
   const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
   kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
   for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
-  const post = kid.sent.find(b => b.action === 'report');
-  if (!post || post.kind !== 'message' || post.itemId !== 'M-IN1' || post.reason !== 'unsafe' || !/it was scary/.test(post.note)) bad.push('report did not carry the message and the reason: ' + JSON.stringify(post));
+  const post = kid.sent.find(b => b.action === 'suggest');
+  if (!post || post.kind !== 'message' || post.itemId !== 'M-IN1' || !/it was scary/.test(post.note)) bad.push('the send did not carry the message and the words: ' + JSON.stringify(post));
   if (!/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || '')) bad.push('no "Thanks — sent"');
-  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'open') bad.push('the report is not an open row of the reports tab');
+  if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'pending') bad.push('it is not a waiting row of claude_notes');
   const hal = await postOpen_(W, 'admin@example.org');
   if (hal.err) return bad.concat([hal.err]);
   try { hal.t.go('site', false, true); hal.w.paint('site'); } catch (e) {}
   for (let k = 0; k < 40 && !hal.d.querySelector('#s-site .rep-item'); k++) await wait(100);
   await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
   const item = [...hal.d.querySelectorAll('#s-site .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
-  if (!item || !/unsafe/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
+  if (!item || !/scary/.test(item.textContent)) bad.push('the Suggestions card does not show the message and the words');
   const card = hal.d.querySelector('#s-site [data-need="reports"]');
-  if (!card || !card.classList.contains('needs-you')) bad.push('the Reports card does not glow with a message reported');
-  const done = item && item.querySelector('[data-do="rep-status"][data-status="dismissed"]');
+  if (!card || !card.classList.contains('needs-you')) bad.push('the Suggestions card does not glow with a message waiting');
+  const done = item && item.querySelector('[data-do="rep-status"][data-decision="dismiss"]');
   if (!done) bad.push('no Dismiss tile on the reported message');
   else { hal.A('rep-status', done); await wait(400); }
   if ([...hal.d.querySelectorAll('#s-site .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
-  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
+  if (String(W.sheet('S((read(TAB.claude_notes).rows.find(r => r.item_id === "message|M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;
 });
@@ -30309,65 +30308,65 @@ check('phone notifications (492): Student settings has a Notifications card; Tur
   return bad;
 });
 
-/* ---------- NOTES FOR CLAUDE (484): a Note for Claude tile on every widget and card for an admin; a box in place; Send, Done; the Ledger tab and the Drive file ---------- */
+/* ---------- NOTES FOR CLAUDE BY SUGGEST A CHANGE (484, 494): one Suggest tile on every widget and card; a box in place; Send, Done ---------- */
 const cnRow_ = (w, id) => (w.document.querySelector(`#wgt-${id}`)?.closest('.card')?.querySelector('.wgt-foot')) || null;
-check('notes for Claude (484): an admin has a Note for Claude tile on a widget and on a card, a client has none; it opens a box in place, a draft survives Cancel, Send posts the item id and title, the note is listed, Done hides it', async () => {
+check('notes for Claude by Suggest a change (494): an admin has one Suggest tile on a widget and on a card and no Note for Claude tile; it opens a box in place, a draft survives Cancel, Send posts the item id and title, the note is listed, Done hides it', async () => {
   const notes = [];
   const { w, sent } = layBoot_({ reply: b => {
-    if (b.action === 'claudeNoteAdd') { notes.unshift({ id: 'N-1', at: Date.now(), column: b.column, itemId: b.itemId, itemLabel: b.itemLabel, note: b.note }); return { success: true, id: 'N-1', notes: notes.slice() }; }
+    if (b.action === 'suggest') { notes.unshift({ id: 'N-1', at: Date.now(), column: b.kind, itemId: b.kind + '|' + b.itemId, itemLabel: b.label, note: b.note }); return { success: true, serious: true, id: 'N-1', notes: notes.slice() }; }
     if (b.action === 'claudeNoteDone') { notes.splice(0); return { success: true, id: b.id, notes: [] }; }
     return undefined;
   } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['ncl-open'] || !A['ncl-send'] || !A['ncl-done']) return ['no ncl-open / ncl-send / ncl-done — NOT checked'];
+  if (!A['rep-box'] || !A['rep-send'] || !A['ncl-done']) return ['no rep-box / rep-send / ncl-done — NOT checked'];
+  if (A['ncl-open'] || A['ncl-send']) bad.push('the old Note for Claude box is still wired');
   t.go('tools', false, true); await wait(300);
   const a = layIds_(t, 'tool')[0];
-  const tile = cnRow_(w, a)?.querySelector('.wgt-admin [data-do="ncl-open"]');
-  if (!tile) return ['the first tool has no Note for Claude tile in its admin group'];
-  if (tile.getAttribute('aria-label') !== 'Note for Claude') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
+  const row = cnRow_(w, a);
+  const tiles = row ? row.querySelectorAll('[data-do="rep-box"]') : [];
+  if (tiles.length !== 1) return ['the first tool has ' + tiles.length + ' Suggest tiles in its row — wanted one'];
+  const tile = tiles[0];
+  if (tile.getAttribute('aria-label') !== 'Suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
+  if (d.querySelector('[data-do="ncl-open"]')) bad.push('a Note for Claude tile is still drawn');
   await layPaintAll_(w);
-  const card = d.querySelector('.card-admin[data-lay-for] [data-do="ncl-open"]');
-  if (!card) bad.push('no right-hand card has a Note for Claude tile');
-  A['ncl-open'](tile); await wait(50);
-  const box = d.querySelector(`.ncl-box[data-cn="${a}"]`);
-  if (!box) return bad.concat(['Note for Claude opened no box']);
-  /* IN PLACE OF THE WIDGET (489): the box is inside its card and the rest of the card is hidden while writing. */
+  const cardRow = d.querySelector('.card-admin[data-lay-for]');
+  if (cardRow && cardRow.querySelectorAll('[data-do="rep-box"]').length > 1) bad.push('a right-hand card’s admin row has two Suggest tiles');
+  A['rep-box'](tile); await wait(50);
+  const boxOf = () => [...d.querySelectorAll('.rep-box')].find(x => x.dataset.rk === 'widget' && x.dataset.ri === a);
+  const box = boxOf();
+  if (!box) return bad.concat(['Suggest a change opened no box']);
   const wcard = d.querySelector(`#wgt-${a}`)?.closest('.card');
   if (box.parentElement !== wcard || !wcard.classList.contains('is-writing')) bad.push('the box did not open in place of the widget');
   const ta = box.querySelector('textarea');
   if (!ta || ta.getAttribute('placeholder') !== 'What should change here?') bad.push('the box has no "What should change here?" textarea');
-  if (!box.querySelector('[data-do="ncl-send"]') || !box.querySelector('[data-do="ncl-cancel"]')) bad.push('the box has no Send and Cancel tiles');
-  /* A DRAFT: typed, cancelled, opened again — the words are still there. */
+  if (!box.querySelector('[data-do="rep-send"]') || !box.querySelector('[data-do="rep-cancel"]')) bad.push('the box has no Send and Cancel tiles');
   ta.value = 'Make the title bigger'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
-  A['ncl-cancel'](box.querySelector('[data-do="ncl-cancel"]')); await wait(50);
-  if (d.querySelector(`.ncl-box[data-cn="${a}"]`)) bad.push('Cancel did not close the box');
-  A['ncl-open'](tile); await wait(50);
-  const box2 = d.querySelector(`.ncl-box[data-cn="${a}"]`), ta2 = box2 && box2.querySelector('textarea');
+  A['rep-cancel'](box.querySelector('[data-do="rep-cancel"]')); await wait(50);
+  if (boxOf()) bad.push('Cancel did not close the box');
+  A['rep-box'](tile); await wait(50);
+  const box2 = boxOf(), ta2 = box2 && box2.querySelector('textarea');
   if (!ta2 || ta2.value !== 'Make the title bigger') bad.push('the draft did not survive Cancel: ' + (ta2 && ta2.value));
-  A['ncl-send'](box2.querySelector('[data-do="ncl-send"]')); await wait(200);
-  const post = sent.filter(x => x.action === 'claudeNoteAdd');
-  if (post.length !== 1) bad.push(post.length + ' claudeNoteAdd posts after one Send');
-  else {
-    if (post[0].itemId !== a) bad.push('the note went for ' + post[0].itemId + ', not ' + a);
-    if (!post[0].itemLabel || post[0].column !== 'tools' || post[0].note !== 'Make the title bigger') bad.push('the note went without its title, column or words: ' + JSON.stringify(post[0]));
-  }
-  /* SENT, THE BOX CLOSES AND THE THING COMES BACK (489); opened again it is empty, the note listed. */
-  if (d.querySelector(`.ncl-box[data-cn="${a}"]`)) bad.push('Send did not close the box');
+  A['rep-send'](box2.querySelector('[data-do="rep-send"]')); await wait(300);
+  const post = sent.filter(x => x.action === 'suggest');
+  if (post.length !== 1) bad.push(post.length + ' suggest posts after one Send');
+  else if (post[0].itemId !== a || post[0].kind !== 'widget' || !post[0].label || post[0].note !== 'Make the title bigger') bad.push('the suggestion went as ' + JSON.stringify(post[0]));
+  if (boxOf()) bad.push('Send did not close the box');
   if (d.querySelector(`#wgt-${a}`)?.closest('.card')?.classList.contains('is-writing')) bad.push('the widget is still hidden after Send');
-  A['ncl-open'](tile); await wait(50);
-  const ta3 = d.querySelector(`.ncl-box[data-cn="${a}"] textarea`);
+  const tile2 = cnRow_(w, a)?.querySelector('[data-do="rep-box"]') || tile;
+  A['rep-box'](tile2); await wait(50);
+  const ta3 = boxOf()?.querySelector('textarea');
   if (ta3 && ta3.value) bad.push('the box opened again with the sent words in it: ' + ta3.value);
-  const item = d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`);
+  const item = boxOf()?.querySelector('.ncl-item');
   if (!item || item.textContent.indexOf('Make the title bigger') === -1) bad.push('the sent note is not listed in the box');
   if (item) { A['ncl-done'](item.querySelector('[data-do="ncl-done"]')); await wait(200); }
   if (sent.filter(x => x.action === 'claudeNoteDone').length !== 1) bad.push('Done sent no claudeNoteDone');
-  if (d.querySelector(`.ncl-box[data-cn="${a}"] .ncl-item`)) bad.push('Done did not hide the note');
-  /* A CLIENT: no tile anywhere. */
+  if (boxOf()?.querySelector('.ncl-item')) bad.push('Done did not hide the note');
   const c = boot({ before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(300);
   c.w.__t.go('tools', false, true); await wait(200); await layPaintAll_(c.w);
   if (c.w.document.querySelector('[data-do="ncl-open"]')) bad.push('a client has a Note for Claude tile');
+  if (!c.w.document.querySelector('#s-tools [data-do="rep-box"]')) bad.push('a client has no Suggest a change tile on Tools');
   return bad;
 });
 check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with the item id and title and rewrites the Drive file "Notes for Claude"; a client is refused; doGet sends open notes to an admin only; Done takes it out of both', async () => {
@@ -30480,32 +30479,37 @@ check('front door (489): an admin\'s door tile on a widget sets layout.front for
   if ((layLast_(sent) || {}).front) bad.push('pressed again, the door did not clear');
   return bad;
 });
-check('report or suggest a change (489): one tile with that name on a widget and the booking form, "Suggest a change" a reason; the box opens in place of the widget; after Send the words are gone when it opens again', async () => {
-  const { w, sent } = layBoot_({ reply: b => (b.action === 'report' ? { success: true } : undefined) });
+check('suggest a change (489, 494): one tile with that name on a widget, the booking form and the finder itself; the box opens in place of the widget; after Send the words are gone when it opens again', async () => {
+  const { w, sent } = layBoot_({ reply: b => (b.action === 'suggest' ? { success: true } : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   t.go('tools', false, true); await wait(300);
   const id = layIds_(t, 'tool')[0];
   const card = d.querySelector(`#wgt-${id}`)?.closest('.card');
   const tile = card && card.querySelector('[data-do="rep-box"]');
-  if (!tile) return ['the first tool has no report tile'];
-  if (tile.getAttribute('aria-label') !== 'Report or suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
-  if (card.querySelectorAll('[data-do="rep-box"]').length !== 1) bad.push('the widget has more than one report tile');
+  if (!tile) return ['the first tool has no Suggest tile'];
+  if (tile.getAttribute('aria-label') !== 'Suggest a change') bad.push('the tile is called ' + tile.getAttribute('aria-label'));
+  if (card.querySelectorAll('[data-do="rep-box"]').length !== 1) bad.push('the widget has more than one Suggest tile');
   A['rep-box'](tile); await wait(50);
   const box = card.querySelector(':scope > .rep-box');
-  if (!box || !card.classList.contains('is-writing')) return bad.concat(['the report box did not open in place of the widget']);
-  if (![...box.querySelectorAll('option')].some(o => o.textContent === 'Suggest a change')) bad.push('"Suggest a change" is not a reason');
-  box.querySelector('select').value = 'suggest';
+  if (!box || !card.classList.contains('is-writing')) return bad.concat(['the Suggest box did not open in place of the widget']);
+  if (box.querySelector('select')) bad.push('the box still asks for a reason');
   const ta = box.querySelector('textarea');
   ta.value = 'Bigger keys please'; ta.dispatchEvent(new w.Event('input', { bubbles: true })); await wait(50);
   A['rep-send'](box.querySelector('[data-do="rep-send"]')); await wait(300);
-  if (sent.filter(x => x.action === 'report' && x.reason === 'suggest').length !== 1) bad.push('Send did not post one report with reason suggest');
+  if (sent.filter(x => x.action === 'suggest' && x.note === 'Bigger keys please').length !== 1) bad.push('Send did not post one suggestion with the words');
   if (card.querySelector('.rep-box') || card.classList.contains('is-writing')) bad.push('after Send the widget did not come back');
   A['rep-box'](card.querySelector('[data-do="rep-box"]')); await wait(50);
   const again = card.querySelector('.rep-box textarea');
-  if (!again || again.value) bad.push('the report box opened again with the last report in it: ' + (again && again.value));
+  if (!again || again.value) bad.push('the Suggest box opened again with the last words in it: ' + (again && again.value));
   t.go('booking', false, true); await wait(300);
-  if (!d.querySelector('#s-booking [data-do="rep-box"]')) bad.push('the booking form has no report tile');
+  if (!d.querySelector('#s-booking [data-do="rep-box"]')) bad.push('the booking form has no Suggest tile');
+  /* THE FINDER ITSELF (494): "should be on finder widget too" — Find and Find 2 each carry one on the question's page. */
+  for (const f of ['stuff', 'res']) {
+    t.go(f, false, true); await wait(300);
+    const n = d.querySelectorAll(`#${f}-controls [data-do="rep-box"][data-rk="finder"]`).length;
+    if (n !== 1) bad.push(`#${f}-controls has ${n} Suggest tiles for the finder itself — wanted one`);
+  }
   return bad;
 });
 check('library cards (489): the widget holds one card — no Add another, the one filled shown', async () => {

@@ -2,7 +2,7 @@
 /* The owner: "each verse can be a widget ... all tags like everything else". Ordinary facets; the index when a finder paints, a surah's text
    only when one of its cards is drawn. */
 
-const QURAN_SHELF = () => brand('quran_shelf', 'Quran');
+const QURAN_SHELF = () => brand('quran_shelf', BIBLE_SHELF);
 const QURAN_NAME = () => brand('quran_name', 'The Quran');
 /* WHAT A SEARCH FINDS IT BY that a verse's own name does not say. */
 const QURAN_WORDS = 'Quran Koran Qur\'an surah sura ayah aya verse Pickthall Tanzil';
@@ -49,13 +49,13 @@ function quranItems_() {
   const ix = QURAN.index;
   if (!ix || !quranFor_()) return [];
   if (QURAN.items && QURAN.from === ix) return QURAN.items;
-  const list = [], shelf = QURAN_SHELF(), sajda = {};
+  const list = [], shelf = QURAN_SHELF(), rs = SCRIPTURE_SUBJECT(), sajda = {};
   (ix.sajda || []).forEach(p => { sajda[p[0] + ':' + p[1]] = 1; });
   ix.surahs.forEach(s => {
     const say = quranSurahSay_(s), words = [QURAN_NAME(), QURAN_WORDS, s.name, s.meaning, s.ar, s.place].join(' ');
     for (let a = 1; a <= s.ayahs; a++) {
       list.push({
-        kind: 'quran', key: 'qr:' + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf,
+        kind: 'quran', key: 'qr:' + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf, libBook: 'Quran', subject: rs,
         sub: s.meaning, min_age: SCRIPTURE_MIN_AGE, text: words,
         quranSurah: say, quranAyah: String(a), quranJuz: 'Juz ' + quranJuzOf_(s, a), quranPlace: s.place,
         quranSajda: sajda[s.n + ':' + a] ? 'Prostration' : '',
