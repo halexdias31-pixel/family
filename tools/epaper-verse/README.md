@@ -36,8 +36,8 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   espressif32 8.0.0, framework-arduinoespressif32 4.30312.261024 = arduino-esp32 3.3.12 on ESP-IDF 5.5.5 (3.0.7 is not
   in the PlatformIO registry), xtensa gcc 14.2.0, GxEPD2 1.6.9, Adafruit GFX 1.13.0, BusIO 1.17.4, esptool 5.6.0 (merge).
   Board esp32-s3-devkitc-1, flash 8MB QIO 80MHz, huge_app.csv, PSRAM unused, `ARDUINO_USB_MODE=0` (TinyUSB, so the
-  USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 724,336 bytes,
-  sha256 `4f7975d14d797d65d35152d73e9d79b1d080917a01a42ddecdd5428deca70289`. Not yet tried on a board.
+  USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 703,440 bytes,
+  sha256 `65979625976a417b78a72aee573e2697e4a27de93c9d32f6e02b1f946a1b6b09` (485); its MD5 is `epaper-verse.md5`, which both installers read the flash back against. Not yet tried on a board.
 - **Awake for USB** (482): deep sleep switches the S3's USB off, so the computer saw the screen and lost it. Now after a
   plug-in, RESET or ⏻ it draws, then listens 60 s, and for as long as a computer has it mounted (`tud_mounted()`);
   each `SHOW` redraws and restarts the minute; `HELLO` gets `READY epaper-verse 482`. The daily timer wake listens 3 s.
@@ -54,4 +54,8 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   Serial (115200); `listen()` in verse.cpp reads it while awake (above), answers `OK`, keeps it in NVS.
   Icon mode draws `pictures.h` (every row of data/icons.json at 120x160, written by `make-icons.js`) with its title.
   The widget also installs the `.bin` in place.
+- **Why Sync did not answer** (485). The owner, 27 Oct: "still isn't working. I'm following all the instructions. when it
+  comes time to sync it just doesn't work". esptool-js 0.6.1's `hard_reset` only lowers RTS (already low), so the S3 stayed in
+  its installer; ⏻ is GPIO18 and the battery latch (GPIO17), not EN, so it never restarted it. Both installers now reset
+  with RTS high/DTR low and verify the MD5; after Install: unplug and plug back in. Sync sends `HELLO` and shows a Details line.
 - Licence GPL-3.0 (`COPYING`), as GxEPD2; other notices in `NOTICE.txt`.
