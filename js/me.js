@@ -1809,7 +1809,7 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 /* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
-  /* AND STAFF SET THEIR WEEK IN THE STAFF HUB'S HOURS (432), so the week group is not drawn here a second time. */
+  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so the week group is not drawn here a second time. */
   if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
@@ -3233,7 +3233,7 @@ function photoPicker_(value, said, o) {
   };
   const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
   const fold = !!(o && o.fold);
-  return `${fold ? `<details class="pfp ce-fold" data-fold="picture"${CE_OPEN.has('picture') ? ' open' : ''}>
+  return `${fold ? `<details class="pfp ce-fold" data-fold="picture" open>
     <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
     <div class="pfp-side">
       <div class="tile-row">
@@ -3447,7 +3447,7 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* `initAvail` WAS HERE — the `avail` tool's week; the hours are the Staff hub's Hours now (432, staff.js `hoursHtml_`). */
+/* `initAvail` WAS HERE — the `avail` tool's week; the hours are Tutor settings' Available card now (487). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
@@ -3793,9 +3793,9 @@ const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name'
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
   staff: ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
-/* WHAT THE STAFF HUB EDITS — Pricing's rate and seat, Hours' week — so no card or settings page offers it a second time (444). */
+/* WHAT THE STAFF HUB EDITS — Pricing's rate and seat — so no card offers it a second time (444); the week is Tutor settings' Available card (487). */
 const hubOwns_ = f => typeof hubFor_ === 'function' && hubFor_()
-  && (f === 'rate_per_hour' || f === 'extra_seat_rate' || /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
+  && (f === 'rate_per_hour' || f === 'extra_seat_rate');
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
 
 /* ---------- WHO HAS A PUBLIC CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM § */
@@ -4051,8 +4051,13 @@ document.addEventListener('toggle', e => {
   const k = d.dataset.fold || '';
   if (d.open) CE_OPEN.add(k); else if (d.isConnected) CE_OPEN.delete(k);
 }, true);
+document.addEventListener('click', e => {
+  const s = e.target && e.target.closest && e.target.closest('details.ce-fold > summary');
+  if (s) e.preventDefault();
+}, true);
 /* `val` IS MARKUP (a face, a live line); the label is text. */
-const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}"${CE_OPEN.has(key) ? ' open' : ''}>
+/* ALWAYS OPEN (487): "it's literally just a widget of one thing so does not need to be opened" -- the line is a heading, and a tap on it does nothing. */
+const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}" open>
   <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
   <div class="ce-body">${body}</div></details>`;
 /* THE FIGURE'S LINE: a small copy of it, its level and credits — redrawn by `avatarDraw_` after a pick. */
@@ -4578,7 +4583,7 @@ function peopleSearchPage_() {
   if (!USER) return '';
   /* ONE SEARCH BAR, THE FIND INLINE (469) — the owner: "it just needs to be a search bar widget"; the placeholder is its label. */
   return `<div class="card ps-card">
-    <div class="ps-bar"><input type="search" data-psearch aria-label="Find someone by handle" placeholder="@handle" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(PSEARCH_.q)}">
+    <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" value="${esc(PSEARCH_.q)}"`)}
     ${psMayChild_() ? `<button class="btn quiet ps-go" data-do="ps-find" aria-label="Find">Find</button>` : ''}</div>
     <div class="ps-out" aria-live="polite">${psResults_()}</div>
   </div>`;

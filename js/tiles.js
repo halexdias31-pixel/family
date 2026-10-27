@@ -134,6 +134,10 @@ const TILE_ICONS = {
   speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };
 
+/* ONE SEARCH BAR (487): the pill Reels draws -- a magnifier inside a round box -- for every search; `attrs` is the input's own markup. */
+function searchPill_(attrs, cls) {
+  return `<label class="search-pill${cls ? ' ' + cls : ''}">${tileIcon_('search')}<input type="search" autocomplete="off" enterkeyhint="search" ${attrs}></label>`;
+}
 function tileIcon_(name) {
   const d = TILE_ICONS[name];
   if (!d) return '';
@@ -408,9 +412,7 @@ function cardTiles_(x) {
   return tileRow_(mine + admin, '', x.kind === 'me');
 }
 
-/* ---------- EVERY TILE SHOWN, ROWS BALANCED (420) ---------- */
-/* SIX 44px TILES FIT A CARD AT 390px. Past six the row breaks into even lines (7 is 4+3, never 6+1); nothing hides behind a "More" — "I DONT LIKE POP UP MENUS" (420). */
-const TILE_ROW_MAX = 6;
+/* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
 const TILE_ADMIN_ORDER_ = ['card-edit', 'spot', 'set-listed'];
@@ -421,17 +423,12 @@ function tileAdminRank_(t) {
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
 }
-/* HOW MANY TILES ON EACH LINE: as few lines as fit, as even as they divide. */
-function tileLines_(n) {
-  const lines = Math.max(1, Math.ceil(n / TILE_ROW_MAX)), base = Math.floor(n / lines);
-  return Array.from({ length: lines }, (_, i) => base + (i < n % lines ? 1 : 0));
-}
 function tileRow_(html, cls, own) {
   const src = String(html || '');
   const wrap = inner => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
   const all = src.match(TILE_RE_) || [];
   const admin = own ? [] : all.filter(tileIsAdmin_);
-  if (!admin.length && all.length <= TILE_ROW_MAX) return wrap(src);
+  if (!admin.length) return wrap(src);
   const viewer = all.filter(t => admin.indexOf(t) === -1);
   /* WHAT IS NOT A TILE (a verdict, a note) stays, after the viewer's tiles; the old admin wrapper goes, regrouped below. */
   const rest = all.reduce((s, t) => s.replace(t, ''), src)
@@ -439,21 +436,8 @@ function tileRow_(html, cls, own) {
   const sorted = admin.map((t, i) => [t, i]).sort((a, b) => tileAdminRank_(a[0]) - tileAdminRank_(b[0]) || a[1] - b[1]).map(p => p[0]);
   const group = list => (list.length ? `<span class="tile-group is-admin" role="group" aria-label="Admin">${list.join('')}</span>` : '');
   const brk = '<span class="tile-break" aria-hidden="true"></span>';
-  if (all.length <= TILE_ROW_MAX) return wrap(viewer.join('') + rest + group(sorted));
-  /* THE VIEWER'S LINE, THEN THE ADMIN'S, when each is a line of two to six. */
-  if (viewer.length >= 2 && sorted.length >= 2 && viewer.length <= TILE_ROW_MAX && sorted.length <= TILE_ROW_MAX) {
-    return wrap(viewer.join('') + rest + brk + group(sorted));
-  }
-  /* OTHERWISE EVEN LINES, in order: the viewer's first, the admin's grouped at the end of whichever lines they reach. */
-  const seq = viewer.concat(sorted);
-  let at = 0, out = '', restPut = !rest;
-  tileLines_(seq.length).forEach((n, li) => {
-    const line = seq.slice(at, at + n); at += n;
-    let here = line.filter(t => sorted.indexOf(t) === -1).join('');
-    if (!restPut && at >= viewer.length) { here += rest; restPut = true; }
-    out += (li ? brk : '') + here + group(line.filter(t => sorted.indexOf(t) !== -1));
-  });
-  return wrap(out);
+  /* ONE FLOW LIKE WORDS (487): every tile in one left-aligned wrapping run, the admin's last; no line breaks or rebalancing. */
+  return wrap(viewer.join('') + rest + group(sorted));
 }
 
 function cardActions_(x) {

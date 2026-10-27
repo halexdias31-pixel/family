@@ -49,3 +49,7 @@ look reduced-motion already had. Desktop and Android keep the blur. If the line 
 iPhone after this, the next suspect is `will-change` on `.screen`.
 
 css 2026-10-26-q-tiles-one-spec
+
+## Changed in 487
+
+The owner halved the plate both ways (22px, 10px mark, 3px gap) and dropped the no-orphan rebalancing: tiles flow left like words. See 487.

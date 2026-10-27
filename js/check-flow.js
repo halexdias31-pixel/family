@@ -2066,10 +2066,10 @@ const cardOpen_ = async (W, who, more) => {
 };
 /* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only (docs/history/339) — the owner, 11 Oct: § */
 const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
-/* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate and the week, which the Staff hub edits. */
+/* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
-const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where'];
-const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$|^(m|tu|w|th|f|sa|su)\d\d$/;
+const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$/;
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
 const cardEditEverything_ = async c => {
   const f = c.form();
@@ -2129,7 +2129,8 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   if (missing.length) bad.push('the cards have no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
   ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('there is no ' + f + ' — where they tutor is not editable'); });
   /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.card-ed .me-week, .card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate or the week, which the Staff hub edits');
+  if (form.querySelector('.card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate, which the Staff hub edits');
+  if (!form.querySelector('.card-ed .me-week')) bad.push('Tutor settings has no Available week (487)');
   /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: § */
   const lazy = [...form.querySelectorAll('.card-ed img')].filter(i => i.getAttribute('loading') === 'lazy');
   if (!form.querySelector('.ph-shelf .ph-thumb img')) bad.push('the editor drew no photograph thumbnail, so whether they wait to be scrolled to was NOT checked');
@@ -2770,7 +2771,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     const hub = q('#s-staff [data-do="hub-open"]:not([disabled])');
     if (hub) {
       a.A('hub-open', hub); await wait(200);
-      for (const k of ['hours', 'pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
+      for (const k of ['pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
     }
     Object.keys(ed).filter(f => ed[f].size > 1)
       .forEach(f => bad.push(rank + ': "' + f + '" is edited in ' + ed[f].size + ' places (' + [...ed[f]].join('; ') + ')'));
@@ -2826,35 +2827,40 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
   return bad;
 });
 
-check('Staff hub hours (432): the week a tutor teaches is the hub\'s fourth part, saved through updateProfile to the row; Tools has no `avail` tool and Settings no week for staff', async () => {
+check('Availability on Tutor settings (487): the week a tutor teaches is the Available card there, saved through updateProfile to the row; the hub has no Hours, Tools no `avail` tool, Student settings no week', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
   a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(150);
   const parts = [...a.sheet().querySelectorAll('[data-do="hub-part"]')].map(x => x.dataset.part).join(',');
-  if (parts !== 'terms,hours,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,hours,pricing,statement');
-  if (!(await a.part('hours'))) return bad.concat(['the hub has no Hours tile']);
-  const S = a.sheet();
-  const hrs = [...S.querySelectorAll('.hub-hours input[data-me]')];
-  if (hrs.length < 70) return bad.concat(['the Hours part draws ' + hrs.length + ' hours, wanted the week of seventy']);
+  if (parts !== 'terms,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,pricing,statement');
+  try { a.w.closeSheet(); } catch (e) {}
+  try { a.t.go('staff', false, true); a.w.paint('staff'); } catch (e) { return bad.concat(['drawing Tutor settings threw: ' + e.message]); }
+  await wait(250);
+  const sec = a.d.querySelector('#s-staff .ce-sec[data-sec="week"]');
+  if (!sec) return bad.concat(['Tutor settings has no Available card']);
+  const hrs = [...sec.querySelectorAll('input[data-me]')];
+  if (hrs.length < 70) return bad.concat(['the Available card draws ' + hrs.length + ' hours, wanted the week of seventy']);
   const box = hrs.find(x => !x.checked && !x.disabled);
   if (!box) return bad.concat(['every hour is already ticked or locked — nothing to tick']);
   const code = box.dataset.me;
-  /* THE HOURS ARE PACKED INTO ONE `availability` CELL by `availGridIn` (dopost.gs), so the cell is read before and after. */
   const cell = () => W.sheet("String(read(TAB.people).rows.find(r => r.person_id === 'P-T1').availability ?? '')");
   const before = cell();
   box.checked = true; box.dispatchEvent(new a.w.Event('change', { bubbles: true }));
-  a.A('me-save', S.querySelector('.hub-hours [data-do="me-save"]'));
+  box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  const save = sec.closest('.card') && sec.closest('.card').querySelector('[data-do="card-save"]') || a.d.querySelector('#s-staff [data-do="card-save"]');
+  if (!save) return bad.concat(['the Available card has no Save']);
+  a.A('card-save', save);
   for (let k = 0; k < 30 && !a.sent.some(x => x.action === 'updateProfile' && x.fields && x.fields[code] === 'TRUE'); k++) await wait(100);
   const post = a.sent.filter(x => x.action === 'updateProfile').pop();
-  if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save my hours posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
+  if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
   await wait(300);
   if (cell() === before) bad.push('the server row\'s availability was not written for ' + code + ': ' + JSON.stringify(before));
   if (a.t.widgetsOf('tool').some(x => String(x.id) === 'avail')) bad.push('Tools still carries the `avail` hours tool');
   try { a.t.go('account', false, true); a.w.paint('account'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
   await wait(200);
-  if (a.d.querySelector('#s-account .me-week')) bad.push('Settings still draws the week for a tutor — it is the Staff hub\'s Hours');
+  if (a.d.querySelector('#s-account .me-week')) bad.push('Student settings still draws the week for a tutor — it is Tutor settings\' Available');
   return bad;
 });
 
@@ -3091,7 +3097,7 @@ check('every role\'s own card is edited, a card per section, with picture, figur
   const bad = [];
   const bare = ['picture', 'figure', 'name', 'handle'];
   /* ONE FORM ON TUTORS FOR A TUTOR AND A LISTED ADMIN (453): the four, then the rest less what the hub edits; an admin with no hub keeps the week. */
-  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare.concat(CARD_STAFF_)], ['admin@example.org', 'P-A1', bare.concat(CARD_STAFF_, ['week'])],
+  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare.concat(CARD_STAFF_)], ['admin@example.org', 'P-A1', bare.concat(CARD_STAFF_)],
                                    ['parent@example.org', 'P-C1', bare], ['student@example.org', 'P-S1', bare]]) {
     const c = await cardOpen_(W, who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
@@ -11194,14 +11200,9 @@ check('an admin sees every tile on a tutor card — Message, Share, Save on one 
   const inGroup = grp ? [...grp.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
   ['spot', 'person-del'].forEach(a => { if (inGroup.indexOf(a) === -1) bad.push('the admin group, shown in the row, has no ' + a + ': ' + inGroup.join(' ')); });
   if (inGroup[inGroup.length - 1] !== 'person-del') bad.push('Delete is not last in the admin group: ' + inGroup.join(' '));
-  if (tiles.length > 6 && !r.querySelector(':scope > .tile-break')) bad.push(tiles.length + ' tiles and no break into balanced lines');
-  /* BALANCED: past six, no line of one — seven is 4+3, nine is 5+4, thirteen is 5+4+4. */
+  /* ONE FLOW (487): however many tiles, no break into lines. */
   const fake = n => Array.from({ length: n }, (_, i) => w.tile_({ icon: 'chat', label: 'T' + i, act: 'msg-open' })).join('');
-  [7, 9, 13].forEach(n => {
-    const h = d.createElement('div'); h.innerHTML = w.tileRow_(fake(n));
-    const lines = h.firstElementChild.innerHTML.split('tile-break').map(x => (x.match(/class="tile[ "]/g) || []).length);
-    if (lines.reduce((a, b) => a + b, 0) !== n || lines.some(k => k > 6 || k < 2) || Math.max(...lines) - Math.min(...lines) > 1) bad.push(n + ' tiles broke into lines of ' + lines.join('+'));
-  });
+  if (/tile-break/.test(w.tileRow_(fake(13)))) bad.push('13 tiles broke into lines — tiles flow like words (487)');
   /* A SHORT ROW IS LEFT AS IT IS. */
   const plain = w.tileRow_(w.tile_({ icon: 'chat', label: 'Message', act: 'msg-open' }) + w.tile_({ icon: 'share', label: 'Share', act: 'tutor-share' }));
   if (/tile-more|tile-sheet|tile-break/.test(plain)) bad.push('a row of two tiles grew a More tile or a break');
@@ -14456,18 +14457,12 @@ check('while a failed first payload is asked for again, the score board and the 
     if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
     if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   }
-  /* THE HOURS ARE THE STAFF HUB'S NOW (432, `hoursHtml_`), drawn when the hub opens — asked as drawn. */
-  const hours = () => { const x = d.createElement('div'); try { x.innerHTML = b.w.hoursHtml_(); } catch (e) { bad.push('hoursHtml_ threw: ' + e.message); } return x; };
-  const h0 = hours();
-  if (!h0.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Staff hub\'s Hours shows no loader: "' + h0.textContent.trim().slice(0, 80) + '"');
-  if (words.test(h0.textContent)) bad.push('while the retry is out the Staff hub\'s Hours says "' + h0.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
   open();
   for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
   if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
   for (let k = 0; k < 50 && d.querySelector('#s-games #tt-board .loading'); k++) await wait(100);
   const bb = d.querySelector('#s-games #tt-board');
-  if (hours().querySelector('.loading')) bad.push('the retry landed and the Staff hub\'s Hours still shows the loader');
   if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
   if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
   return bad;

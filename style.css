@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-z1-claude-notes";
+  --css-version: "2026-10-27-z2-notes-round1";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -54,8 +54,8 @@
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
-  /* ONE TILE SPEC (467): every tile is a 44px plate, an 18px mark, 6px apart -- px, because a fingertip does not scale. */
-  --tile: 44px; --tile-i: 18px; --tile-gap: 6px;
+  /* ONE TILE SPEC (467, 487): a 22px plate, a 10px mark, 3px apart -- a quarter of the old 44px area, the owner's choice (487). */
+  --tile: 22px; --tile-i: 10px; --tile-gap: 3px;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -374,7 +374,7 @@ html.wide body { max-width: none; box-shadow: none; }
 .tile.is-busy, .tile.is-busy[disabled] { opacity: 1; background: rgb(255 255 255 / .03);
   border-color: var(--line-soft); cursor: progress; }
 .tile.is-busy svg { display: none; }
-.tile.is-busy::before { content: ''; width: 16px; height: 16px; border-radius: 50%;
+.tile.is-busy::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: 50%;
   border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
@@ -553,8 +553,8 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   background: none; border: 0; text-align: right; font: inherit; cursor: pointer; }
 .q-mark-b:active { background: rgb(255 255 255 / .05); }
 .q-slot.is-cert .q-mark-b, .q-slot[data-new] > .q-mark-b { display: none; }
-/* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them, which is the tile rows' own rule for keeping a bin away from § */
-.tile-row.q-tiles { justify-content: space-between; margin-top: .45rem; }
+/* THE TICK AND THE BIN IN THE ONE LEFT-ALIGNED FLOW (487) -- the owner wants every tile row read like a paragraph. */
+.tile-row.q-tiles { margin-top: .45rem; }
 .tile-row.q-adds { margin-top: .3rem; }
 .q-tip { margin-left: .4rem; font-size: .72rem; color: var(--dim); }
 .q-full { margin: .3rem 0 0; font-size: .74rem; }
@@ -1808,14 +1808,15 @@ button.text-drop { color: var(--bad); }
 .vid-box { display: flow-root; }
 
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`, and the `<label>` round both hands a tap on it to the box. § */
-.vid-search { position: relative; display: block; margin: 0 0 .5rem; }
-.vid-search .tile-i { position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
+.search-pill { position: relative; display: block; }
+.vid-search { margin: 0 0 .5rem; }
+.search-pill .tile-i { width: 18px; height: 18px; position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
                       color: var(--dim); pointer-events: none; }
-.vid-search:focus-within .tile-i { color: var(--gold); }
-.vid-box .vid-q { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
+.search-pill:focus-within .tile-i { color: var(--gold); }
+.search-pill > input { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
                   border-radius: 999px; }
 /* THE ✕ A BROWSER DRAWS IN A SEARCH BOX, IN THE CARD'S OWN GREY. § */
-.vid-box .vid-q::-webkit-search-cancel-button {
+.search-pill > input::-webkit-search-cancel-button {
   -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0; cursor: pointer;
   background: var(--dim);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -3388,13 +3389,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .card-ed .many-d[open] { flex-basis: 100%; padding-bottom: .4rem; }
 .card-ed .many-list { margin-top: .3rem; }
 /* A FOLD: its line is a summary, the value right-aligned; open, its inside sits under the line. */
-.card-ed .ce-fold > summary { list-style: none; cursor: pointer; }
+.card-ed .ce-fold > summary { list-style: none; cursor: default; }
 .card-ed .ce-fold > summary::-webkit-details-marker { display: none; }
 .card-ed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
   font-size: .82rem; line-height: 1.4; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-ed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: .15rem;
   border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
-.card-ed .ce-fold[open] > .ce-line::after { transform: rotate(225deg) translateY(-2px); }
+.card-ed .ce-fold > .ce-line::after { content: none; }   /* always open (487): no chevron to promise a fold */
 .card-ed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
 .card-ed .ce-body, .card-ed details.pfp > :not(summary) { padding: .2rem 0 .5rem; }
 .card-ed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
@@ -3473,7 +3474,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .ps-out:empty { display: none; }
 /* ONE SEARCH BAR (469): the box and Find on one line, nothing under them. */
 .ps-bar { display: flex; gap: .4rem; align-items: stretch; }
-.ps-bar > input { flex: 1; min-width: 0; min-height: 44px; }
+.ps-bar > .search-pill { flex: 1; min-width: 0; }
+.ps-bar .search-pill > input { min-height: 44px; }
 .ps-bar > .ps-go { flex: none; width: auto; margin: 0; min-height: 44px; padding: 0 1rem; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
@@ -4893,22 +4895,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    finder ("1 in Resources"). It went with the tile: both finders hold the same list (docs/history/347). */
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
-/* ONE TILE SPEC (467): the admin group keeps the row's gap and left edge (no push to the far end) and wraps whole before it wraps inside. */
-.tile-group.is-admin { display: inline-flex; flex-wrap: wrap; gap: var(--tile-gap); max-width: 100%; }
-/* ---------- A ROW PAST SIX TILES BREAKS INTO EVEN LINES (420, `tileRow_`): a zero-height item a whole line wide */
-.tile-break { flex: 0 0 100%; height: 0; }
-/* NO LONE ORPHAN (467): the row measures itself, and where a row of five fits only four (a 320px phone) it breaks 3 + 2, a row of six that fits five 3 + 3, a row of four that fits three 2 + 2. */
-.tile-row { container-type: inline-size; }
-.kid-row > .tile-row, .ps-hit > .tile-row { container-type: normal; }
-@container (max-width: 293.9px) {
-  .tile:nth-child(3 of .tile):nth-last-child(4 of .tile) { margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
-}
-@container (max-width: 243.9px) {
-  .tile:nth-child(3 of .tile):nth-last-child(3 of .tile) { margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
-}
-@container (max-width: 193.9px) {
-  .tile:nth-child(2 of .tile):nth-last-child(3 of .tile) { margin-right: calc(100% - 2 * var(--tile) - var(--tile-gap)); }
-}
+/* ONE FLOW LIKE WORDS (487): the admin group and a pair are no box of their own, so their tiles wrap with the rest, left-aligned. */
+.tile-group.is-admin { display: contents; }
 /* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
 .card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
@@ -5382,15 +5370,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .card.is-widget > .wgt-foot { margin: .5rem 0 0; }
 .cs-one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card.is-widget > .wgt-foot > .tile-group { display: contents; }
-/* Star plus five admin tiles where five fit: 3 + 3, not 5 + a lone one (the 467 orphan rule, across the two groups). */
-@container (min-width: 244px) and (max-width: 293.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(5):last-child) > .tile:nth-child(2) {
-    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
-}
-@container (max-width: 243.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(4):last-child) > .tile:nth-child(2) {
-    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
-}
 .card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
@@ -6758,7 +6737,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .col-lock { text-align: center; }
 .col-lock-i { display: block; color: var(--gold); margin: .4rem auto .2rem; }
 .col-lock-i svg { width: 44px; height: 44px; }
-.col-lock .tile-row { justify-content: center; }
 
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
@@ -6850,35 +6828,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.is-merged > .merged-part + .merged-part { margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--line); }
 .card.is-merged > .merged-part + .merged-part h3:first-of-type { font-size: .8rem; font-family: var(--mono); font-weight: 600;
   text-transform: uppercase; letter-spacing: .04em; color: var(--dim); margin: 0 0 .35rem; }
-/* MERGE AND SPLIT MAKE A ROW LONGER (480): one tile more than fits breaks near the middle, never a lone tile under a full line. */
-@container (min-width: 294px) and (max-width: 343.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3) {
-    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
-}
-@container (min-width: 344px) and (max-width: 393.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(7):last-child) > .tile:nth-child(3) {
-    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
-}
-@container (min-width: 244px) and (max-width: 293.9px) {
-  .tile-row.card-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3) {
-    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
-}
-@container (min-width: 294px) and (max-width: 343.9px) {
-  .tile-row.card-admin:has(> .tile:nth-child(7):last-child) > .tile:nth-child(4) {
-    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
-}
-@container (min-width: 344px) and (max-width: 393.9px) {
-  .tile-row.card-admin:has(> .tile:nth-child(8):last-child) > .tile:nth-child(4) {
-    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
-}
-@container (min-width: 394px) and (max-width: 443.9px) {
-  .tile-row.card-admin:has(> .tile:nth-child(9):last-child) > .tile:nth-child(5) {
-    margin-right: calc(100% - 5 * var(--tile) - 4 * var(--tile-gap)); }
-}
-/* Star plus six admin tiles where five fit: 5 + 2 as they fall — the six-tile rule above (3 + 3) would break the admin group alone, leaving one under. */
-@container (max-width: 293.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3 of .tile):nth-last-child(4 of .tile) { margin-right: 0; }
-}
 
 /* NOTES FOR CLAUDE (484): the box opened in place under a widget's or card's tile row — the words, Send and Cancel, then its open notes. */
 .ncl-box { margin: .5rem 0 0; display: flex; flex-direction: column; gap: .4rem; }
@@ -6890,4 +6839,3 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ncl-list { list-style: none; margin: 0; padding: 0; color: var(--faint); font-size: .85rem; }
 .ncl-item { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .25rem 0; border-top: 1px solid var(--line); }
 .ncl-say { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tile-pair { display: inline-flex; gap: var(--tile-gap); flex: none; }

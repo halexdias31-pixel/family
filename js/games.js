@@ -4851,8 +4851,7 @@ function vidPaint_() {
   boxes.forEach(box => {
     if (!box.querySelector('.vid-q')) {
       /* THE PILL IS A `<label>` ROUND THE BOX, so a tap on the magnifier is a tap on the box. § */
-      box.innerHTML = `<div class="vid-add"></div><label class="vid-search">${tileIcon_('search')}<input class="vid-q" type="search" placeholder="Search"
-        autocomplete="off" enterkeyhint="search" aria-label="Search videos"></label>
+      box.innerHTML = `<div class="vid-add"></div>${searchPill_('class="vid-q" placeholder="Search" aria-label="Search videos"', 'vid-search')}
       <div class="vid-watch">
         <div class="vid-stage"></div>
         <div class="vid-under"><div class="vid-now"></div><div class="tile-row vid-acts"></div></div>

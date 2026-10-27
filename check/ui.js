@@ -857,24 +857,7 @@ function inspect(opts) {
     }
   }
 
-  /* ---------- A TILE ALONE ON ANY LINE (414, 420) — every tile is shown and a row past six breaks into even lines (`tileRow_`, tiles.js): 4+3, never 6+1 */
-  found.orphans = [];
-  if (vw <= 430) {
-    inside.filter(el => el.classList && el.classList.contains('tile-row')).forEach(row => {
-      const tiles = [...row.children].flatMap(k => (k.classList.contains('tile-group') ? [...k.children] : [k]))
-        .filter(k => k.classList.contains('tile') && vis(k));
-      const lines = [];
-      tiles.forEach(k => {
-        const top = Math.round(k.getBoundingClientRect().top);
-        const ln = lines.find(l => Math.abs(l.top - top) <= 4);
-        if (ln) ln.n++; else lines.push({ top, n: 1 });
-      });
-      if (lines.length > 1 && lines.some(l => l.n === 1)) {
-        found.orphans.push({ cls: String(row.className || ''), lines: lines.map(l => l.n).join('+'),
-          acts: tiles.map(k => k.getAttribute('data-do') || k.getAttribute('aria-label') || '').join(' ') });
-      }
-    });
-  }
+  /* `found.orphans` WAS HERE -- a tile alone on a line (414, 420). Tiles flow left like words now (487), so a last line of one is right. */
 
   /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
      top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
@@ -1540,8 +1523,6 @@ function inspect(opts) {
     (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
       `${f} is running beside the column in front, 3s after the screen settled`, at));
     (r.floating || []).forEach(f => add('A POP-UP: SOMETHING FLOATS OVER THE APP (420)', f, at));
-    (r.orphans || []).forEach(o => add('A TILE ALONE ON A LINE',
-      `.${o.cls.replace(/\s+/g, '.')} wraps ${o.lines} tiles (${o.acts.slice(0, 120)})`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
