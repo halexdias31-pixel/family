@@ -122,7 +122,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zb-report";
+const BACKEND_VERSION = "2026-10-27-zc-front";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -937,6 +937,8 @@ const REPORT_REASONS = {
   'unsafe': 'It makes me feel unsafe',
   'rude': 'Rude, or a picture that should not be there',
   'stranger': "Spam, or I don't know them",
+  /* 489: suggesting a change and reporting are one tile. */
+  'suggest': 'Suggest a change',
 };
 /* AND WHAT AN ADMIN MAY CALL ONE (486); `not a problem` is kept as dismissed for an old phone. */
 const REPORT_STATUSES = ['open', 'confirmed', 'dismissed', 'fixed', 'not a problem'];

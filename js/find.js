@@ -2094,7 +2094,8 @@ function finderOpenTile_(x) {
   try { parts = pageParts_(x); } catch (e) { return ''; }
   if (parts.every(keptPart_)) return '';
   const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
-  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
+  /* A MAGNIFIER, NOT THE LEAVE-THE-SITE ARROW (489): it opens the card in Find, not "a new place". */
+  return tile_({ icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
@@ -9302,6 +9303,7 @@ function jobPage_(j) {
   const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
+    + (typeof reportTile_ === 'function' && j && j.id ? reportTile_('session', String(j.id), 'Booking') : '')
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';

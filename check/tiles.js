@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/tiles.js ONE TILE SPEC (467, 487): each tile is `tile_`, a 22px plate with a 10px mark (487), flowing left like words, no overlap or spill. Flags: --width=390. Port: TILES_PORT. */
+/* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 22px plate with a 10px mark, flowing left like words, one row per thing, no overlap or spill. Flags: --width=390. Port: TILES_PORT. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -72,6 +72,18 @@ function measure(id) {
     for (let k = 1; k < ts.length; k++) {
       const p = ts[k - 1].getBoundingClientRect(), q = ts[k].getBoundingClientRect();
       if (Math.abs(p.top - q.top) < 4 && q.left - p.right > 8 && ts[k - 1].nextElementSibling === ts[k]) out.push(`${where}: "${ts[k].getAttribute('aria-label')}" sits ${Math.round(q.left - p.right)}px from the tile before it, not one gap`);
+    }
+  });
+  /* ONE TILE ROW PER THING (489): "none are separated by a return" -- no tile row stands straight under another, nor under a box ending in one. */
+  const lastKid = e => { let k = e.lastElementChild; while (k && k.tagName === 'P' && !k.textContent.trim()) k = k.previousElementSibling; return k; };
+  sec.querySelectorAll('.tile-row').forEach(row => {
+    if (!row.getBoundingClientRect().width || row.closest('.ncl-box, .rep-box') || (row.parentElement && row.parentElement.closest('.me-form')) || (row.previousElementSibling && row.previousElementSibling.hidden)) return;
+    const prev = row.previousElementSibling;
+    let d = prev;
+    while (d && !d.classList.contains('tile-row') && lastKid(d) && !d.matches('.merged-part, .widget-slot, .me-form, form, [class*="qual"], ul, ol, table')) d = lastKid(d);
+    if (d && d.classList.contains('tile-row') && !row.classList.contains('wgt-foot') && !(prev && prev.matches('.merged-part, .widget-slot'))) {
+      const c = row.closest('.card, .own-set, .fest'), h = c && c.querySelector('h2, h3, .wgt-title');
+      out.push(`#s-${id}: "${((h && h.textContent) || '?').trim().slice(0, 40)}" has its tiles in two rows, one under the other`);
     }
   });
   /* ONE PLACE FOR A WIDGET'S TILES (472): the star, padlock and admin group sit in one `.wgt-foot` row, the card's last child, in that order. */

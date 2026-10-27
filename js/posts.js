@@ -323,6 +323,8 @@ function feedPosts() {
 }
 
 /* ---------- THE FEED IS A FUNNEL ANSWER, NOT A COLUMN § */
+/* HOW MANY FESTIVE CARDS `postsBlocks` DREW — counted from what was drawn, never from `DATA.festive`: a deleted festive item drew none and the count still said one (489). */
+let FEED_FEST_N = 0;
 function postsBlocks() {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: § */
   if (!LOADED) return [loading_()];
@@ -330,7 +332,7 @@ function postsBlocks() {
   const posts = feedPosts();
   /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED § */
   const festive = (DATA.festive || []).map(f => typeof itemMark_ === 'function' ? itemMark_('item:feed:festive', 'feed', festiveCard(f)) : festiveCard(f)).filter(Boolean);
-
+  FEED_FEST_N = festive.length;
 
   /* THE FEED IS NEVER EMPTY WHEN SOMEBODY IS SIGNED OUT — the sign-in card is always there — so the
      nothing-here message is only right when there is genuinely nothing and somebody to see it. */
@@ -1279,10 +1281,10 @@ function openSharedPost() {
   /* TURN THE DIAL TO IT, rather than scrolling. § */
   postGo_(id);
 }
-/* THE FEED'S PAGE FOR ONE POST: the festive cards, then the camera, then the posts (`feedColumn_`) — the index alone landed short by the camera and the festive cards (413). */
+/* THE FEED'S PAGE FOR ONE POST: the camera, then the festive cards, then the posts (`feedColumn_`) — the index alone landed short by the camera and the festive cards (413). */
 function feedPageOf_(id) {
   const n = feedPosts().findIndex(p => String(p.id) === String(id));
-  return n < 0 ? -1 : feedCamAt_() + 1 + n;
+  return n < 0 ? -1 : feedPostsAt_() + n;
 }
 function postGo_(id) {
   const n = feedPageOf_(id);
@@ -2027,14 +2029,19 @@ function feedCamCard0_() {
 /* ---------- READING THEM § */
 /* ---------- THE CAMERA IS THE PAGE ABOVE THE NEWEST POST § */
 function feedCamAt_() {
-  /* `postsBlocks` PUTS THE FESTIVE CARDS FIRST and nothing else in front of the posts — and when there is nothing at all it returns one "Nothing posted yet" card § */
-  return LOADED ? (DATA.festive || []).length : 0;
+  /* THE CAMERA IS THE FEED'S FIRST PAGE (489), the festive cards and the posts under it; deleted, there is no camera page (-1). */
+  return LOADED && !(typeof itemGone_ === 'function' && itemGone_('item:feed:camera')) ? 0 : -1;
+}
+/* WHERE THE POSTS START: past the camera and the festive cards actually drawn. */
+function feedPostsAt_() {
+  if (!LOADED) return 0;
+  try { postsBlocks(); } catch (e) {}
+  return (feedCamAt_() === 0 ? 1 : 0) + FEED_FEST_N;
 }
 function feedColumn_() {
   const blocks = postsBlocks();
   if (!LOADED || !Array.isArray(blocks)) return blocks;
-  const at = feedCamAt_();
-  return blocks.slice(0, at).concat([feedCamCard_()].filter(Boolean), blocks.slice(at));
+  return [feedCamCard_()].filter(Boolean).concat(blocks);
 }
 screen('feed', () => pages('feed', feedColumn_()));
 

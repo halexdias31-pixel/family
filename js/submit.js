@@ -652,6 +652,8 @@ const REPORT_WHY = [
   ['wrong', 'Something in it is wrong'],
   ['unreadable', 'Can’t read it / picture missing'],
   ['broken', 'Doesn’t work'],
+  /* 489: "suggesting a change and reporting is the same thing" — one tile, and this is its reason. */
+  ['suggest', 'Suggest a change'],
   ['other', 'Something else'],
 ];
 /* A MESSAGE OR POST IS WRONG IN A PERSON'S WAY, not a mark scheme's (413). */
@@ -671,7 +673,7 @@ const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA
 /* THE ONE TILE (486), on every reportable thing: Student rank and up; signed out it is not drawn. `check-reports` holds every Report tile to it. */
 function reportTile_(kind, id, label, cls) {
   if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
-  return tile_({ icon: 'flag', label: 'Report', note: reportedNow_(kind, id) ? 'flagged to fix' : 'something wrong',
+  return tile_({ icon: 'flag', label: 'Report or suggest a change', note: reportedNow_(kind, id) ? 'flagged to fix' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the Report tile in one of its own, put inside the card by `cardRowIn_`. */
@@ -697,7 +699,7 @@ function reportDevice_() {
 
 /* THE REASON IS ONE ROW WITH THE PHONE'S OWN PICKER, never a stack of buttons standing in for a select. */
 function repWhyRow_(list) {
-  return `<label class="field rep-why"><span>What is wrong</span><select class="rep-why-in" aria-label="What is wrong">
+  return `<label class="field rep-why"><span>What is it</span><select class="rep-why-in" aria-label="What is it">
       <option value="" selected>Choose</option>${list.map(([id, say]) => `<option value="${esc(id)}">${esc(say)}</option>`).join('')}</select></label>`;
 }
 const repWhy_ = form => String(((form && form.querySelector('select.rep-why-in')) || {}).value || '');
@@ -725,25 +727,22 @@ on('rep-box', el => {
   if (!(typeof rankAtLeast_ === 'function' && rankAtLeast_('student'))) { toast('Sign in to report something.'); return; }
   const kind = el.getAttribute('data-rk') || '', id = el.getAttribute('data-ri') || '';
   const had = reportBoxOf_(kind, id);
-  if (had) { had.remove(); return; }
-  const row = el.closest('.tile-row');
+  if (had) { boxOut_(had); return; }
   let finder = '';
   try { finder = (finderAt_(el) || {}).id || ''; } catch (e) {}
-  /* A MESSAGE'S TILE SITS BESIDE ITS BUBBLE: the box goes under the whole message. */
-  const at = el.closest('.msg') || row;
-  if (!at) return;
-  at.insertAdjacentHTML('afterend', reportBoxHtml_(kind, id, el.getAttribute('data-rl') || '', finder));
-  const s = reportBoxOf_(kind, id)?.querySelector('select');
+  /* IN PLACE OF THE THING (489, `boxInPlace_`); a message's box still goes under the whole message. */
+  const box = boxInPlace_(el, reportBoxHtml_(kind, id, el.getAttribute('data-rl') || '', finder));
+  const s = box && box.querySelector('select');
   if (s) try { s.focus({ preventScroll: true }); } catch (e) {}
 });
 /* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
-on('rep-cancel', el => { el.closest('.rep-box')?.remove(); });
+on('rep-cancel', el => { boxOut_(el.closest('.rep-box')); });
 
 on('rep-send', el => {
   const form = el.closest('.rep-box');
   if (!form || form.classList.contains('is-sending') || !USER) return;
   const said = form.querySelector('.rep-said');
-  if (!repWhy_(form)) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  if (!repWhy_(form)) { if (said) said.textContent = 'Choose what it is first.'; return; }
   const kind = form.dataset.rk, id = form.dataset.ri;
   let x = null;
   try { x = kind === 'question' ? stuffItemsAll_().find(i => i && i.key === id) || null : null; } catch (e) { x = null; }
@@ -756,7 +755,8 @@ on('rep-send', el => {
     .then(d => {
       /* SENT, SO THE NOTE'S DRAFT GOES — a reload must not bring back words already in the sheet. */
       try { draftDrop_('rep', kind + '|' + id); } catch (e) {}
-      form.remove();
+      if (box) box.value = '';
+      boxOut_(form);
       if (d && d.serious && DATA) {
         DATA.reportedItems = (DATA.reportedItems || []).concat(kind + '|' + id);
         if (Array.isArray(d.notes)) DATA.claudeNotes = d.notes;
