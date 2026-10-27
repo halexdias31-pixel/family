@@ -2015,11 +2015,11 @@ function feedCamCard_() { return camItem_(feedCamCard0_()); }
 function feedCamCard0_() {
   /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
   if (USER && !mayUpload_()) {
-    return `<div class="card cam-kid"><h3>Camera</h3>
-      <p class="sub">Pictures go up from a grown-up's account — ask your parent or tutor to post one.</p></div>`;
+    return reportRowIn_(`<div class="card cam-kid"><h3>Camera</h3>
+      <p class="sub">Pictures go up from a grown-up's account — ask your parent or tutor to post one.</p></div>`, 'widget', 'camera', 'Camera');
   }
   return USER
-    ? cameraCard()
+    ? reportRowIn_(cameraCard(), 'widget', 'camera', 'Camera')
     : `<div class="card"><h3>Camera</h3>
       <p class="sub">Sign in to post — your account is a few screens to the right.</p></div>`;
 }
@@ -2149,7 +2149,8 @@ function reelCards_(count) {
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${typeof mediaAgeSay_ === 'function' && mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(mediaAgeSay_(it.age))}">${esc(mediaAgeSay_(it.age))}</span>` : ''}` +
       `${reelSoundTile_(false)}</div>
-    </div></div>`);
+    </div>${typeof reportTile_ === 'function' && reportTile_('reel', String(it.id || it.clip || ''), it.title || '')
+      ? `<div class="tile-row rep-row">${reportTile_('reel', String(it.id || it.clip || ''), it.title || '')}</div>` : ''}</div>`);
     REEL_SHOWN++;
   }
   return out;
@@ -2624,12 +2625,12 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return daivePages_().concat([{ name: '', html: `<div class="card"><h3>Messages</h3>
+  if (!threads.length) return daivePages_().concat([{ name: '', html: reportRowIn_(`<div class="card"><h3>Messages</h3>
     ${MSG_FAILED
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
          <button class="btn quiet" data-do="dm-refresh">Try again</button>`
-      : emptyMessages_}</div>` }]);
+      : emptyMessages_}</div>`, 'widget', 'messages', 'Messages') }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2714,7 +2715,10 @@ function daiveHtml_() {
   </div>`;
 }
 /* DAIVE IS AN ITEM (487): an admin's Delete and Note on it; deleted, it is gone for everyone. */
-const daiveItem_ = () => typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
+const daiveItem_ = () => {
+  const h = typeof itemMark_ === 'function' ? itemMark_('item:dm:daive', 'dm', daiveHtml_()) : daiveHtml_();
+  return h ? reportRowIn_(h, 'widget', 'daive', DAIVE) : '';
+};
 function daivePage_() { return { name: DAIVE, html: daiveItem_() }; }
 const daivePages_ = () => [daivePage_()].filter(p => p.html);
 /* REDRAWN IN PLACE, and the column forgets what it drew, so a later paint never judges against the old card. */

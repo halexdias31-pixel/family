@@ -1271,48 +1271,7 @@ on('msg-drop', el => {
   }, 0);
 });
 
-/* ---------- REPORTING A MESSAGE (413): the question Report's sheet (395), with reasons a message has ----------
-   `flagMessage` marks the row and emails the admin; it shows on Business → Reports. Only a message sent to you. */
-const MSG_REPORT_WHY = [
-  ['unkind', 'Unkind or bullying'],
-  ['unsafe', 'It makes me feel unsafe'],
-  ['rude', 'Rude, or a picture that should not be there'],
-  ['stranger', 'Spam, or I don\u2019t know them'],
-  ['other', 'Something else'],
-];
-on('msg-report', el => {
-  if (!USER) return;
-  const id = el.getAttribute('data-id') || '';
-  const m = (MESSAGES || []).find(x => x && x.id === id);
-  if (!m) { toast('That message is not loaded — try again in a moment.'); return; }
-  openSheet('Report this message', `<div class="me-form rep-form msg-rep-form" data-id="${esc(id)}">
-    <p class="faint rep-what">From ${esc(m.fromName || m.withName || 'someone')}${m.body ? ': “' + esc(String(m.body).slice(0, 80)) + (String(m.body).length > 80 ? '…' : '') + '”' : ''}</p>
-    ${repWhyRow_(MSG_REPORT_WHY)}
-    <label class="field rep-note"><span>Anything else? (optional)</span>
-      <textarea class="rep-note-in" rows="2" maxlength="300" autocomplete="off" placeholder="A few words"
-        aria-label="Anything else about this message"${draftAttr_('msg-rep', id)}>${esc(draftVal_('msg-rep', id))}</textarea></label>
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to the admin', act: 'msg-report-send', cls: 'rep-send' })}</div>
-    <p class="faint me-said rep-said" aria-live="polite">Only the admin sees a report. The message stays where it is.</p>
-  </div>`);
-});
-on('msg-report-send', el => {
-  const form = el.closest('.msg-rep-form');
-  if (!form || !USER) return;
-  const said = form.querySelector('.rep-said');
-  const why = repWhy_(form);
-  if (!why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
-  const id = form.dataset.id;
-  const say = (MSG_REPORT_WHY.find(r => r[0] === why) || [])[1] || why;
-  const note = String((form.querySelector('.rep-note-in') || {}).value || '').trim().slice(0, 300);
-  send_({ action: 'flagMessage', name: USER.name, personId: USER.personId || '', messageId: id,
-          reason: say + (note ? ' — ' + note : '') }, { button: el, where: said })
-    .then(() => {
-      try { draftDrop_('msg-rep', id); } catch (e) {}
-      closeSheet();
-      toast('Thanks — sent');
-    })
-    .catch(() => {});
-});
+/* REPORTING A MESSAGE (413) is `reportTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
@@ -1470,10 +1429,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`flagMessage`). */''}
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`reportTile_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? tile_({ icon: 'flag', label: 'Report', note: 'this message', act: 'msg-report', cls: 'msg-flag', data: { id: m.id } }) + '</div>' : ''}
+        ? reportTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;

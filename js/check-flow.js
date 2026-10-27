@@ -2682,6 +2682,33 @@ const editorsOf_ = (d, into) => {
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => { if (live(el)) add('pin', el); });
   return into;
 };
+/* ---------- EVERYTHING HAS A REPORT TILE (486): owner, "everything should have a report button" ---------- */
+check('486: every top-level card and widget in every column has the one Report tile, for a signed-in student and an admin', async () => {
+  const W = hubWorld_();
+  const bad = [];
+  for (const [who, rank] of RANK_COLS_.filter(r => r[1] === 'student' || r[1] === 'admin')) {
+    const a = await hubBoot_(W, who);
+    if (a.err) { bad.push(rank + ': ' + a.err); continue; }
+    let seen = 0;
+    for (const tab of a.t.TABS.map(x => x.id)) {
+      try { a.w.paint(tab); } catch (e) {}
+      await wait(30);
+      const sec = a.d.getElementById('s-' + tab);
+      if (!sec) continue;
+      /* TOP-LEVEL: a card inside no other card; empty, locked and the padlock line have nothing to press (467). */
+      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-empty, .is-locked, .rank-off, .col-lock, .add-card, .people-none, .set-none'));
+      cards.forEach(c => {
+        seen++;
+        /* A PERSON'S CARD HAS ITS ROW RIGHT AFTER IT (`withTiles_`, find.js). */
+        const next = c.nextElementSibling;
+        if (!c.querySelector('[data-do="rep-box"]') && !(next && next.matches('.tile-row') && next.querySelector('[data-do="rep-box"]'))) bad.push(rank + ' ' + tab + ': no Report on “' + String((c.querySelector('h2, h3') || c).textContent).replace(/\s+/g, ' ').trim().slice(0, 50) + '” (' + c.className + ')');
+      });
+    }
+    if (seen < 10) bad.push(rank + ': only ' + seen + ' cards were seen, so the rule was NOT checked');
+  }
+  return bad;
+});
+
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
@@ -17041,7 +17068,7 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const h = w.document.createElement('div');
     h.innerHTML = html;
     /* `q-report` IS THE PERSON'S TOO, like the star: drawn for anybody signed in (395). */
-    h.querySelectorAll('[data-do="fav"], [data-do="q-report"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    h.querySelectorAll('[data-do="fav"], [data-do="rep-box"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
     /* YOUR RESULT IS THE PERSON'S TOO (463): a tag only somebody signed in has. */
     h.querySelectorAll('.qtag[data-f="myResult"]').forEach(n => n.remove());
     /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
@@ -28214,63 +28241,77 @@ check('device voice only (463): signed in, Read aloud sends nothing to the backe
   return bad;
 });
 
-/* ---------- REPORTING A QUESTION (395): the tile, the sheet, the send, the toast — and the admin's card. */
-check('a signed-in child reports a question from its tile row: a reason, a note, one send, "Thanks — sent"; an admin sees the count', async () => {
-  const reply = b => b.action === 'reportQuestion' ? { success: true }
-    : b.action === 'listReports' ? { success: true, open: 1, total: 3, reports: [{ id: 'R-1-1', at: Date.now(), handle: 'aa2026',
-        questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
+/* ---------- ONE RULE FOR REPORTING (395, 486): the tile on a question and a content card, the box in place, the send — and the admin's card. */
+check('Report is one tile on a question and a content card for a student and an admin, none signed out; the box opens in place; an admin’s is to fix; the admin confirms or dismisses a child’s', async () => {
+  const reply = b => b.action === 'report' ? { success: true, serious: b.token === 'tok-P1' }
+    : b.action === 'listReports' ? { success: true, open: 2, serious: 1, total: 3, reports: [
+        { id: 'R-2-2', at: Date.now(), kind: 'widget', itemId: 'calc', serious: true, status: 'confirmed', rank: 'admin', handle: 'hl2026', label: 'Calculator', reason: 'Doesn\'t work' },
+        { id: 'R-1-1', at: Date.now(), kind: 'question', itemId: 'q:Q-REP-1', serious: false, status: 'open', rank: 'student', handle: 'aa2026',
+          questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
+    : b.action === 'setReportStatus' ? { success: true, id: b.id, status: b.status, reportedItems: [] }
     : { success: true, messages: [] };
   const { w, sent } = boot({ reply });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
+  /* A CONTENT CARD AS `libraryExtras_` MAKES ONE — its kind and key are all the row asks of it. */
+  const ct = { kind: 'content', key: 'ct:TB-REP#1', name: 'Bayes', sub: 'Statistics', subject: 'Statistics', row: { bookId: 'TB-REP', n: 1, title: 'Bayes', animations: [] } };
   const lib = mpLibrary_(w, [mpRow_('P-REP', 'Paper 1', 1, 'a')]);
   const x = lib.items.find(i => i && i.kind === 'question' && i.key);
-  if (!x) { lib.put(); return ['the one-question library made no question, so the Report tile was NOT checked']; }
+  if (!x || !ct) { lib.put(); return ['no question or no content card was made, so the Report tile was NOT checked']; }
   t.USER(null);
-  if (/data-do="q-report"/.test(w.cardTiles_(x))) bad.push('signed out, the question row offers Report');
-  t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' });
+  if (/data-do="rep-box"/.test(w.cardTiles_(x) + w.cardTiles_(ct))) bad.push('signed out, a card row offers Report');
+  const KID = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' };
+  const HAL = { name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' };
+  for (const who of [KID, HAL]) {
+    t.USER(who);
+    [x, ct].forEach(c => { if (!/data-do="rep-box"/.test(w.cardTiles_(c))) bad.push(who.role + ': the ' + c.kind + ' row has no Report tile'); });
+  }
+  /* A CHILD REPORTS THE CONTENT CARD: the box opens IN PLACE under the row, no sheet. */
+  t.USER(KID);
   const host = d.createElement('div');
   host.className = 'card';
-  host.innerHTML = w.cardTiles_(x);
+  host.innerHTML = w.cardTiles_(ct);
   d.body.appendChild(host);
-  const tile = host.querySelector('.tile-row [data-do="q-report"]');
-  if (!tile) { host.remove(); lib.put(); return bad.concat(['a signed-in child’s question row has no Report tile']); }
+  const tile = host.querySelector('.tile-row [data-do="rep-box"]');
   if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-flag')) bad.push('Report is not a tile with the flag mark');
-  t.ACTIONS['q-report'](tile);
+  t.ACTIONS['rep-box'](tile);
   await wait(20);
-  if (!sheetOpen_(d)) { host.remove(); lib.put(); return bad.concat(['pressing Report opened no sheet']); }
-  const form = d.querySelector('#sheet-body .rep-form');
-  const opts = form ? [].map.call(form.querySelectorAll('select.rep-why-in option[value]:not([value=""])'), b => b.textContent.trim()) : [];
-  if (form && (form.querySelector('[data-do="rep-why"], [role="radio"]') || !form.querySelector('label.field > select.rep-why-in'))) bad.push('the reason is not one row with the phone\'s own picker');
-  const WANT = ['The answer is wrong', 'It marked me wrong but I was right', 'Can’t read it / picture missing', 'Doesn’t work', 'Something else'];
-  if (JSON.stringify(opts) !== JSON.stringify(WANT)) bad.push('the reasons are ' + JSON.stringify(opts));
-  const note = form && form.querySelector('textarea.rep-note-in');
+  if (sheetOpen_(d)) bad.push('pressing Report opened a sheet — the box belongs in place');
+  const form = host.querySelector('.rep-box');
+  if (!form) { host.remove(); lib.put(); return bad.concat(['pressing Report drew no box under the row']); }
+  if (!form.querySelector('label.field > select.rep-why-in')) bad.push('the reason is not one row with the phone\'s own picker');
+  const note = form.querySelector('textarea.rep-note-in');
   if (!note || note.getAttribute('autocomplete') !== 'off' || note.getAttribute('maxlength') !== '300') bad.push('the note box is missing, suggests, or has no 300 cap');
-  /* SEND WITH NO REASON IS REFUSED ON THE PHONE, and nothing goes. */
-  const sendT = form && form.querySelector('[data-do="rep-send"]');
-  if (!sendT || !sendT.classList.contains('tile')) { lib.put(); return bad.concat(['the sheet has no Send tile']); }
+  const sendT = form.querySelector('[data-do="rep-send"]');
   t.ACTIONS['rep-send'](sendT);
   await wait(20);
-  if (sent.some(b => b.action === 'reportQuestion')) bad.push('Send with no reason chosen still sent');
-  if (!/Choose what is wrong/.test(form.querySelector('.rep-said').textContent)) bad.push('Send with no reason said nothing');
-  form.querySelector('select.rep-why-in').selectedIndex = 2;
-  note.value = 'I put 15';
+  if (sent.some(b => b.action === 'report')) bad.push('Send with no reason chosen still sent');
+  form.querySelector('select.rep-why-in').value = 'wrong';
+  note.value = 'the tree is wrong';
   t.ACTIONS['rep-send'](sendT);
   await wait(300);
-  const went = sent.filter(b => b.action === 'reportQuestion');
-  if (went.length !== 1) bad.push(went.length + ' reportQuestion requests went — wanted one');
-  else {
-    const b = went[0];
-    if (b.questionId !== x.key.replace(/^q:/, '') || b.reason !== 'marked-wrong' || b.note !== 'I put 15' || b.token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(b));
-    if ('personId' in b && b.personId !== 'P7') bad.push('the request named somebody else');
-  }
-  if (toastOf_(d) !== 'Thanks — sent') bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — wanted "Thanks — sent"');
-  if (sheetOpen_(d)) bad.push('the sheet stayed open after the report went');
+  const went = sent.filter(b => b.action === 'report');
+  if (went.length !== 1 || went[0].kind !== 'content' || went[0].itemId !== ct.key || went[0].reason !== 'wrong' || went[0].token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(went));
+  if (toastOf_(d) !== 'Thanks — sent') bad.push('a child’s toast says ' + JSON.stringify(toastOf_(d)));
+  if (/flagged to fix/.test(w.cardTiles_(ct))) bad.push('a child’s report marked the card');
+  if (host.querySelector('.rep-box')) bad.push('the box stayed after the report went');
+  /* AN ADMIN REPORTS THE QUESTION: marked, and the tile says so. */
+  t.USER(HAL);
+  host.innerHTML = w.cardTiles_(x);
+  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
+  await wait(20);
+  const f2 = host.querySelector('.rep-box');
+  if (!/Notes for Claude/.test(f2.textContent)) bad.push('the admin’s box does not say a report of theirs goes to Notes for Claude');
+  f2.querySelector('select.rep-why-in').value = 'answer-wrong';
+  t.ACTIONS['rep-send'](f2.querySelector('[data-do="rep-send"]'));
+  await wait(300);
+  if (!/flagged to fix/.test(w.cardTiles_(x))) bad.push('a marked question’s Report tile does not say "flagged to fix"');
   host.remove();
-  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin is, with the count, once `listReports` answers. */
+  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin sees To fix and To review, and confirms or dismisses. */
+  t.USER(KID);
   if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Reports card');
   if (sent.some(b => b.action === 'listReports')) bad.push('a child’s phone asked for listReports');
-  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  t.USER(HAL);
   const biz = d.createElement('div');
   biz.innerHTML = w.bizPages_().join('');
   d.body.appendChild(biz);
@@ -28279,8 +28320,20 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   const card = biz.querySelector('[data-reports]');
   if (!card) bad.push('an admin’s Business column has no Reports card');
   else {
-    if (!/1 open/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)) + ' — wanted "1 open"');
-    if (!card.querySelector('[data-do="rep-status"][data-status="fixed"]') || !card.querySelector('[data-do="rep-open"]')) bad.push('a listed report has no Fixed or Open tile');
+    if (!/1 to fix · 1 to review/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
+    const conf = card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="confirmed"]');
+    if (!conf || !card.querySelector('.rep-item[data-id="R-1-1"] [data-do="rep-status"][data-status="dismissed"]')) bad.push('a child’s report has no Confirm or Dismiss');
+    if (!card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="fixed"]')) bad.push('an admin’s report has no Fixed');
+    if (conf) {
+      t.ACTIONS['rep-status'](conf);
+      await wait(300);
+      if (!sent.some(b => b.action === 'setReportStatus' && b.id === 'R-1-1' && b.status === 'confirmed')) bad.push('Confirm sent nothing');
+      if (!/2 to fix · 0 to review/.test(card.textContent)) bad.push('after Confirm the card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)));
+      const dis = card.querySelector('.rep-item[data-id="R-2-2"] [data-do="rep-status"][data-status="dismissed"]');
+      t.ACTIONS['rep-status'](dis);
+      await wait(300);
+      if (card.querySelector('.rep-item[data-id="R-2-2"]')) bad.push('Dismiss left the report on the card');
+    }
   }
   biz.remove();
   lib.put();
@@ -28742,7 +28795,7 @@ check('a child sees a tutor card, the booking form and her session without any �
 
 /* ---------- POSTS WAIT FOR APPROVAL, PICTURES ARE FILES, A POST SHARES AS A PNG (413) ----------
    Through the real doPost and doGet: Ada's waiting post as she, a parent and the admin see it; Approve; a child's columns. */
-const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'listReports', 'setReportStatus', 'readMessage'];
+const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'report', 'listReports', 'setReportStatus', 'readMessage'];
 const postWorld_ = () => {
   const W = cardWorld_();
   W.real.seed('posts', [
@@ -28968,7 +29021,7 @@ check('Share on a post (413) draws the whole post on a canvas and hands a PNG to
   return bad;
 });
 
-check('a child reports a message she was sent (413): a Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until Dealt with', async () => {
+check('a child reports a message she was sent (413, 486): the one Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until dismissed', async () => {
   const W = postWorld_(), bad = [];
   W.real.seed('messages', [
     { message_id: 'M-IN1', from_id: 'P-A1', to_id: 'P-S1', sent_at: '23/10/2026 10:00', body: 'Homework is due Friday' },
@@ -28978,39 +29031,40 @@ check('a child reports a message she was sent (413): a Report tile on received m
   if (kid.err) return [kid.err];
   try { kid.t.go('dm', false, true); kid.w.paint('dm'); } catch (e) { return ['opening Messages threw: ' + e.message]; }
   for (let k = 0; k < 40 && !kid.d.querySelector('#s-dm .msg'); k++) { await wait(100); try { kid.w.paint('dm'); } catch (e) {} }
-  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="msg-report"]')].map(x => x.dataset.id);
+  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="rep-box"][data-rk="message"]')].map(x => x.dataset.ri);
   if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Report tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
-  kid.A('msg-report', kid.d.querySelector('#s-dm [data-do="msg-report"]'));
+  kid.A('rep-box', kid.d.querySelector('#s-dm [data-do="rep-box"][data-rk="message"]'));
   await wait(150);
-  const form = kid.d.querySelector('#sheet-body .msg-rep-form');
-  if (!form) return ['Report did not open a sheet'];
+  /* ONE BOX FOR EVERY REPORT (486), in place under the message. */
+  const form = kid.d.querySelector('#s-dm .rep-box[data-rk="message"]');
+  if (!form) return ['Report did not open its box under the message'];
   const opts = form.querySelectorAll('select.rep-why-in option:not([value=""])');
-  if (opts.length !== 5) bad.push('the sheet offers ' + opts.length + ' reasons, not five');
-  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  if (opts.length !== 5) bad.push('the box offers ' + opts.length + ' reasons, not five');
+  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
   await wait(150);
-  if (kid.sent.some(b => b.action === 'flagMessage')) bad.push('Send went with no reason chosen');
+  if (kid.sent.some(b => b.action === 'report')) bad.push('Send went with no reason chosen');
   opts[1].selected = true;
   const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
-  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  kid.A('rep-send', form.querySelector('[data-do="rep-send"]'));
   for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
-  const post = kid.sent.find(b => b.action === 'flagMessage');
-  if (!post || post.messageId !== 'M-IN1' || !/unsafe/.test(post.reason) || !/it was scary/.test(post.reason)) bad.push('flagMessage did not carry the message and the reason: ' + JSON.stringify(post));
+  const post = kid.sent.find(b => b.action === 'report');
+  if (!post || post.kind !== 'message' || post.itemId !== 'M-IN1' || post.reason !== 'unsafe' || !/it was scary/.test(post.note)) bad.push('report did not carry the message and the reason: ' + JSON.stringify(post));
   if (!/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || '')) bad.push('no "Thanks — sent"');
-  if (!/^true$/i.test(String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')))) bad.push('the message was not flagged on the sheet');
+  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'open') bad.push('the report is not an open row of the reports tab');
   const hal = await postOpen_(W, 'admin@example.org');
   if (hal.err) return bad.concat([hal.err]);
   try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) {}
-  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-msg'); k++) await wait(100);
+  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-item'); k++) await wait(100);
   await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
-  const item = hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]');
-  if (!item || !/unsafe/.test(item.textContent) || !/Homework is due Friday/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
+  const item = [...hal.d.querySelectorAll('#s-biz .rep-item')].find(n => /Homework is due Friday/.test(n.textContent));
+  if (!item || !/unsafe/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
   const card = hal.d.querySelector('#s-biz [data-need="reports"]');
   if (!card || !card.classList.contains('needs-you')) bad.push('the Reports card does not glow with a message reported');
-  const done = item && item.querySelector('[data-do="rep-status"][data-kind="message"]');
-  if (!done) bad.push('no Dealt with tile on the reported message');
+  const done = item && item.querySelector('[data-do="rep-status"][data-status="dismissed"]');
+  if (!done) bad.push('no Dismiss tile on the reported message');
   else { hal.A('rep-status', done); await wait(400); }
-  if (hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]')) bad.push('Dealt with left the message on the card');
-  if (String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')) !== 'CLEARED') bad.push('Dealt with did not clear the flag on the sheet');
+  if ([...hal.d.querySelectorAll('#s-biz .rep-item')].some(n => /Homework is due Friday/.test(n.textContent))) bad.push('Dismiss left the message on the card');
+  if (String(W.sheet('S((read(TAB.reports).rows.find(r => r.item_id === "M-IN1") || {}).status)')) !== 'dismissed') bad.push('Dismiss did not write dismissed on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;
 });
@@ -29125,7 +29179,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   for (const k of Object.keys(pick)) {
     const x = pick[k];
     host.innerHTML = w.stuffCard(x);
-    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'rep-box'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
     const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
     if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');

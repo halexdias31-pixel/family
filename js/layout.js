@@ -469,7 +469,12 @@ function cardsOf_(col) {
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
   if (!admin && !(L && (L.cards || L.start || L.merged || (L.deleted || []).some(cardIs_))))
-    return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h))), []);
+    return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => {
+      const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
+      /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
+      const rep = g.id && i === g.pages.length - 1 && !personOf_(h) ? cardReportRow_(g.id, page) : '';
+      return rep ? cardRowIn_(page, rep) : page;
+    })), []);
   const groups = cardArrange_(col, raw);
   const start = cardStartOf_(col, L);
   const out = [];
@@ -532,7 +537,15 @@ function cardAdminRow_(id, col, mergeable) {
     startTile_(col, id, start)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }), noteTile_(id, col, ''))}</div>`;
+    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
+      noteTile_(id, col, '') + (typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || id) : ''))}</div>`;
+}
+/* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
+function cardReportRow_(id, page) {
+  /* NOT ON A LOCKED CARD (467: nothing pressable) NOR AN EMPTY ONE (its title alone). */
+  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\b(is-empty|is-locked)\b/.test(page)) return '';
+  const t = typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
+  return t ? `<div class="tile-row card-rep">${t}</div>` : '';
 }
 
 /* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
