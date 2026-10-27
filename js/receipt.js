@@ -382,13 +382,7 @@ on('book-send', el => {
     return;
   }
 
-  /* ---------- A TUTOR WITH NO HOURS IS NOT SENT FOR § */
-  if (spec.tutor && typeof tutorNoHours_ === 'function' && tutorNoHours_(spec.tutor)) {
-    el.disabled = false;
-    if (said) said.textContent = spec.tutor + ' hasn\u2019t set their hours yet, so they cannot be booked by name. '
-      + 'Choose No preference, or another tutor.';
-    return;
-  }
+  /* A TUTOR WITH NO HOURS IS ASKED ALL THE SAME (488): they accept or decline. */
 
   /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
      button did nothing and the request was never sent, and nobody was told either fact. */
@@ -512,6 +506,33 @@ on('job-answer', el => {
       load();
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
+});
+
+/* ---------- A TUTOR ANSWERING A REQUEST (488) — Accept at once; Decline opens one line for why, in place. */
+on('job-request-answer', el => {
+  const yes = !!el.dataset.yes, id = el.dataset.id;
+  const send = reason => {
+    el.disabled = true;
+    api({ action: 'answerRequest', jobId: id, yes: yes ? '1' : '', reason: reason || '',
+          name: USER.name, personId: (USER && USER.personId) || '' })
+      .then(d => {
+        el.disabled = false;
+        if (d && d.error) { toast(d.error); return; }
+        toast(yes ? 'Accepted — the family can pay and confirm' : 'Declined — the family has been told');
+        closeSheet();
+        load();
+      })
+      .catch(err => { el.disabled = false; toast(why_(err)); });
+  };
+  if (yes) { send(''); return; }
+  const row = el.closest('.tile-row');
+  if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
+  row.insertAdjacentHTML('afterend', `<form class="req-why" data-id="${esc(id)}">
+    <label>Why not? <input name="why" maxlength="200" placeholder="optional, one line" autocomplete="off"></label>
+    <button class="btn" type="submit">Decline</button></form>`);
+  const form = row.nextElementSibling;
+  form.addEventListener('submit', e => { e.preventDefault(); form.querySelector('button').disabled = true; send(form.querySelector('input').value.trim()); });
+  form.querySelector('input').focus();
 });
 
 /* ---------- THE FAMILY LEAVING § */

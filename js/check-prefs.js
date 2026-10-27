@@ -109,6 +109,8 @@ const CALLS = {
     when: 'act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW' },
   'doPost:createJob · Booking received 🎉':                       ['booked'],
   'doPost:createJob · New request: ':                             ['booked'],
+  /* 488: a tutor's answer to a request is the booking decision itself, as Accept/Decline in `move` are. */
+  'doPost:answerRequest · Accepted: ':                           ['booked'],
   'doPost:joinFestive · Somebody is coming to ':                  ['bookings'],
   'doPost:deleteJob · Cancelled: ':                               ['booked'],
 };

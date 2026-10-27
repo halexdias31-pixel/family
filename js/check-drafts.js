@@ -84,6 +84,7 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },
   { file: 'layout.js', fn: 'customHead_', has: 'class="lay-col-name"', why: 'a custom column\'s name (467) — a few words typed and Renamed in one go; a reload draws the saved title' },
   /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },

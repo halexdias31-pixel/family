@@ -810,27 +810,46 @@ let hoursRules = 0;
   const rule = (ok, said) => { if (ok) hoursRules++; else bad.push('tutor hours: ' + said); };
   if (!tk || !tk.success) bad.push('tutor hours: the booking parent could not sign in — ' + JSON.stringify(tk));
   else {
+    /* 488: A TUTOR'S WEEK IS A GUIDE — every hour may be asked, the request waits on the tutor, who accepts or declines. */
+    const sign = p => f.post({ action: 'verifyLogin', email: p.email, pin: '0000' });
+    const tTk = sign(tutor), aTk = sign(admin), pTk = sign(parent), nTk = sign(nia);
+    const seen = (tok, id) => { f.ev('clearCache()'); return ((f.get({ token: tok.token }).jobs) || []).find(j => j.id === id) || null; };
+    const answer = (tok, id, yes, reason) => f.post({ action: 'answerRequest', token: tok.token, jobId: id, yes: yes ? '1' : '', reason: reason || '' });
     let r = ask('Nia Nohours', { day: 'Saturday', time: '11:00', slots: 'sa11', dates: dmy(day(40)) });
-    rule(!r.d.success && /hasn.t set their hours/.test(String(r.d.error)) && !r.wrote,
-      'a tutor with no hours was booked by name, or the refusal wrote a job — ' + JSON.stringify(r.d));
-    r = ask('Ada Tutor', { day: 'Saturday', time: '11:00', slots: 'sa11', dates: dmy(day(40)) });
-    rule(r.d.success && r.wrote === 1, 'Ada could not be booked inside her own week (Saturday 11:00) — ' + JSON.stringify(r.d));
+    rule(r.d.success && r.wrote === 1, 'a tutor with no hours could not be asked by name — ' + JSON.stringify(r.d));
+    const niaJob = r.d.jobId;
     r = ask('Ada Tutor', { day: 'Sunday', time: '10:00', slots: 'su10', dates: dmy(day(40)) });
-    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
-      'an hour outside Ada\'s week was booked, or refused without naming it — ' + JSON.stringify(r.d));
-    r = ask('Ada Tutor', { day: 'Saturday, Sunday', time: '11:00', slots: 'sa11,su10', dates: dmy(day(47)) });
-    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
-      'a booking whose SECOND day is outside Ada\'s week went through — ' + JSON.stringify(r.d));
+    rule(r.d.success && r.wrote === 1, 'an hour outside Ada\'s week (Sunday 10:00) was refused — ' + JSON.stringify(r.d));
+    const sunJob = r.d.jobId;
     r = ask('Ada Tutor', { day: 'Monday', time: '09:00', slots: 'm09', dates: [plus(m1, 7), plus(m1, 14)].map(dmy).join(', ') });
-    rule(!r.d.success && /already teaching at Monday 9:00|already teaching at Monday 09:00/.test(String(r.d.error)) && !r.wrote,
-      'Monday 09:00 was sold twice in the weeks Ada already teaches it — ' + JSON.stringify(r.d));
-    r = ask('Ada Tutor', { day: 'Monday', time: '09:00', slots: 'm09', dates: [plus(m1, 70), plus(m1, 77)].map(dmy).join(', ') });
-    rule(r.d.success && r.wrote === 1, 'Monday 09:00 after Ada\'s session has ended was refused as busy — ' + JSON.stringify(r.d));
+    rule(r.d.success && r.wrote === 1, 'an hour Ada already teaches was refused rather than left to her — ' + JSON.stringify(r.d));
+    const monJob = r.d.jobId;
+    const pend = seen(tk, sunJob);
+    rule(pend && (pend.tutorSlots || []).some(t2 => t2.name === 'Ada Tutor' && t2.status === 'Applied') && !pend.stealable,
+      'the request outside her hours is not pending on Ada — ' + JSON.stringify(pend && pend.tutorSlots));
+    rule(!!seen(tTk, sunJob), 'Ada cannot see the request made to her');
+    rule(!seen(pTk, sunJob), 'another family can see Quinn\'s request');
+    rule(!seen(nTk, sunJob), 'another tutor can see a request made to Ada');
+    rule(!!seen(aTk, sunJob) && !!seen(aTk, niaJob), 'the admin does not see every request');
+    const early = f.post({ action: 'move', token: tk.token, jobId: sunJob, role: 'client', move: 'Accept', counterpart: 'Ada Tutor' });
+    rule(!early.success && /Waiting for Ada Tutor/.test(String(early.error)), 'the family accepted Ada on her behalf — ' + JSON.stringify(early));
+    rule(!answer(nTk, sunJob, true).success, 'Nia answered a request made to Ada');
+    rule(!answer(pTk, sunJob, true).success, 'a family answered a request made to Ada');
+    let d = answer(tTk, sunJob, true);
+    rule(d.success && d.accepted, 'Ada could not accept — ' + JSON.stringify(d));
+    const acc = seen(tk, sunJob);
+    rule(acc && (acc.tutorSlots || []).every(t2 => t2.status === 'Confirmed') && (acc.slots || []).every(sl => sl.status === 'Agreed'),
+      'after Ada accepted, the booking is not agreed both sides (ready to pay) — ' + JSON.stringify(acc && [acc.slots, acc.tutorSlots]));
+    d = answer(tTk, monJob, false, 'I teach then already');
+    rule(d.success && d.accepted === false, 'Ada could not decline — ' + JSON.stringify(d));
+    const dec = seen(tk, monJob);
+    rule(dec && !(dec.tutorSlots || []).length && (dec.events || []).some(e => e.action === 'Decline' && e.message === 'I teach then already'),
+      'the family does not see Ada\'s decline and her reason — ' + JSON.stringify(dec && dec.events));
+    rule(!seen(tTk, monJob), 'Ada still holds a request she declined');
+    d = answer(aTk, niaJob, false, '');
+    rule(d.success, 'the admin could not decline for Nia — ' + JSON.stringify(d));
     r = ask('No preference', { day: 'Sunday', time: '10:00', slots: 'su10', dates: dmy(day(40)) });
     rule(r.d.success && r.wrote === 1, 'a booking with no tutor named was refused — ' + JSON.stringify(r.d));
-    r = ask('Ada Tutor', { day: 'Sunday', time: '10:00', dates: dmy(day(54)) });
-    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
-      'an older phone sending no slots booked Ada outside her week — ' + JSON.stringify(r.d));
   }
 }
 
