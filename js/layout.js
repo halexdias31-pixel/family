@@ -198,7 +198,7 @@ function layoutTiles_(w) {
     startTile_(col, id, ((layoutNow_() || {}).start || {})[col] || '')}${
     frontTile_(col, id)}${
     notePair_((grp || [id]).every(x => LAYOUT_KEEP.indexOf(x) === -1) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
-      noteTile_(id, col, w.title || w.label || ''))}</span>`;
+      '')}</span>`;
 }
 
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once ---------- */
@@ -330,7 +330,7 @@ const CARD_REG = [
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
   { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
-  { id: 'biz:reports', col: 'site', label: 'Reports', re: /^<div class="card biz reports/, say: 'Reports people have sent about posts or questions.' },
+  { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
   { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
   { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
@@ -563,13 +563,13 @@ function cardAdminRow_(id, col, mergeable) {
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
-      noteTile_(id, col, '') + (typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || id) : ''))}</div>`;
+      typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR AN EMPTY ONE (its title alone). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\b(is-empty|is-locked)\b/.test(page)) return '';
-  const t = typeof reportTile_ === 'function' ? reportTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
+  const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
   return t ? `<div class="tile-row card-rep">${t}</div>` : '';
 }
 
@@ -581,7 +581,7 @@ function itemMark_(id, col, html) {
   const h = String(html).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
   if (!layoutIsAdmin_()) return h;
   return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
-    frontTile_(col, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}${noteTile_(id, col, '')}</div>`);
+    frontTile_(col, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
 }
 
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
@@ -639,24 +639,11 @@ function frontGo_() {
   if (AT !== f.col) go(f.col, false);
 }
 
-/* ---------- NOTES FOR CLAUDE (484): "add a tile on each widget I click then I write a prompt for what I want to edit" ----------
+/* ---------- NOTES FOR CLAUDE (484, 494): made by Suggest a change now (submit.js); here the open ones and Done ----------
    Kept in the Ledger's `claude_notes` and the Drive file "Notes for Claude", where a session reads them. */
 function noteOpen_(id) { return ((typeof DATA !== 'undefined' && DATA && DATA.claudeNotes) || []).filter(n => n && n.itemId === id); }
-function noteTile_(id, col, label) {
-  if (!layoutIsAdmin_()) return '';
-  const n = noteOpen_(id).length;
-  return tile_({ icon: 'pen', label: 'Note for Claude', note: n ? n + ' open' : '', act: 'ncl-open', tone: 'admin', data: { ci: id, col: col, cl: label } });
-}
 /* DELETE THEN THE NOTE, in the one flow (487). */
 function notePair_(del, note) { return del + note; }
-/* THE THING'S OWN TITLE, so the note names what a person sees and not only its id. */
-function noteLabelOf_(el, id) {
-  const said = el.getAttribute('data-cl');
-  if (said) return said;
-  const box = el.closest('.card, .own-set');
-  const h = box && box.querySelector('h2, h3, .wgt-title');
-  return ((h && h.textContent) || id).trim().slice(0, 200);
-}
 function noteListHtml_(id) {
   const all = noteOpen_(id);
   if (!all.length) return '';
@@ -664,23 +651,11 @@ function noteListHtml_(id) {
   return `<ul class="ncl-list">${all.map(n => `<li class="ncl-item"><span class="ncl-say">${esc(day(n.at))} · ${esc(String(n.note || '').split('\n')[0])}</span>${
     tile_({ icon: 'tick', label: 'Done', act: 'ncl-done', tone: 'admin', data: { nid: n.id, ci: id } })}</li>`).join('')}</ul>`;
 }
-/* ONE LINE PER THING, IN PLACE under the tile row (421): the words, then Send and Cancel, then this thing's open notes. */
-function noteBoxHtml_(id, col, label) {
-  return `<div class="ncl-box" data-cn="${esc(id)}" data-col="${esc(col)}" data-cl="${esc(label)}">
-    <textarea class="ncl-text" rows="3" maxlength="4000" aria-label="Note for Claude on ${esc(label)}"
-      placeholder="What should change here?"${draftAttr_('cn', id)}>${esc(draftVal_('cn', id))}</textarea>
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to Claude', act: 'ncl-send', tone: 'admin', data: { ci: id } })}${
-      tile_({ icon: 'close', label: 'Cancel', act: 'ncl-cancel', data: { ci: id } })}</div>
-    <p class="faint ncl-said"></p>
-    ${noteListHtml_(id)}
-  </div>`;
-}
-const noteBoxOf_ = id => [...document.querySelectorAll('.ncl-box')].find(b => b.getAttribute('data-cn') === id) || null;
 /* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
 function boxInPlace_(el, html) {
   const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .fest, .post');
   if (!thing) { const at = el.closest('.msg') || el.closest('.tile-row'); if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
-  thing.querySelectorAll(':scope > .ncl-box, :scope > .rep-box').forEach(b => b.remove());
+  thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
   const h = thing.getBoundingClientRect().height;
   thing.insertAdjacentHTML('beforeend', html);
   thing.classList.add('is-writing');
@@ -691,47 +666,18 @@ function boxOut_(box) {
   if (!box) return;
   const thing = box.parentElement;
   box.remove();
-  if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .ncl-box, :scope > .rep-box')) {
+  if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .rep-box')) {
     thing.classList.remove('is-writing');
     thing.style.removeProperty('--writing-h');
   }
 }
-on('ncl-open', el => {
-  if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-ci'), had = noteBoxOf_(id);
-  if (had) { boxOut_(had); return; }
-  const box = boxInPlace_(el, noteBoxHtml_(id, el.getAttribute('data-col') || '', noteLabelOf_(el, id)));
-  const t = box && box.querySelector('.ncl-text');
-  if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
-});
-/* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
-on('ncl-cancel', el => { boxOut_(noteBoxOf_(el.getAttribute('data-ci'))); });
+/* THE OPEN NOTES UNDER A SUGGEST BOX (494), redrawn when one is marked done. */
 function noteRedraw_(id) {
-  const b = noteBoxOf_(id);
+  const b = [...document.querySelectorAll('.rep-box')].find(x => x.dataset.rk + '|' + x.dataset.ri === id);
   if (!b) return;
   b.querySelector('.ncl-list')?.remove();
   b.insertAdjacentHTML('beforeend', noteListHtml_(id));
 }
-on('ncl-send', el => {
-  if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-ci'), b = noteBoxOf_(id);
-  const box = b && b.querySelector('.ncl-text'), said = b && b.querySelector('.ncl-said');
-  const text = ((box && box.value) || '').trim();
-  if (!b || !text) { box && box.focus(); return; }
-  el.disabled = true; el.classList.add('is-busy');
-  const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
-  try { draftSent_('cn', id, text); } catch (e) {}
-  send({ action: 'claudeNoteAdd', personId: (USER && USER.personId) || '', itemId: id, column: b.getAttribute('data-col') || '',
-         itemLabel: b.getAttribute('data-cl') || id, note: text })
-    .then(d => { done(); try { draftSentDone_('cn', id, text); draftDrop_('cn', id); } catch (e) {}
-      if (d && Array.isArray(d.notes)) { try { DATA.claudeNotes = d.notes; } catch (e) {} }
-      /* SENT, THE WORDS GO (489): the next open is an empty box, never the last note again. */
-      if (box) box.value = '';
-      boxOut_(b);
-      toast('Sent. Claude reads it in "Notes for Claude".'); })
-    .catch(err => { done(); try { draftSentBack_('cn', id, text); } catch (e) {}
-      if (said) said.textContent = String((err && err.message) || 'Not sent.'); });
-});
 on('ncl-done', el => {
   if (!layoutIsAdmin_()) return;
   const nid = el.getAttribute('data-nid'), id = el.getAttribute('data-ci');

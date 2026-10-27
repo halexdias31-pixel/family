@@ -634,27 +634,55 @@ function reportRow_(r) {
   const status = !s || s === 'open' ? 'open' : s === 'not a problem' ? 'dismissed' : s;
   return { kind: kind, item_id: item, status: status };
 }
-/* WHAT IS MARKED: every confirmed report not yet fixed or dismissed, as `kind|id`. */
+/* WHAT IS MARKED (494): every item with an open note for Claude, as `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 function reportedItems_() {
-  const t = read(TAB.reports);
-  if (!t.sheet) return [];
   const out = [];
-  t.rows.forEach(r => { const x = reportRow_(r); if (x.status === 'confirmed' && x.item_id && out.indexOf(x.kind + '|' + x.item_id) === -1) out.push(x.kind + '|' + x.item_id); });
+  claudeNotesOpen_().forEach(n => { if (/\|/.test(n.itemId) && out.indexOf(n.itemId) === -1) out.push(n.itemId); });
   return out;
 }
-/* AN ADMIN'S REPORT GOES TO NOTES FOR CLAUDE (484) as a note on the item, so "read my notes" reaches it. */
-function reportToNote_(row, by) {
+/* ---------- SUGGEST A CHANGE (494): one row in `claude_notes` — an admin's `open` at once, anybody else's `pending` until an admin confirms ---------- */
+function suggestRow_(t, me, kind, item, label, note, status, at) {
+  const row = { note_id: 'N-' + Date.now() + '-' + Math.floor(Math.random() * 100000), made_at: at || new Date(), made_by: S(me),
+                column: S(kind).slice(0, 40), item_id: (S(kind) + '|' + S(item)).slice(0, 120), item_label: S(label).slice(0, 200),
+                note: S(note).slice(0, CLAUDE_NOTE_MAX), status: status, done_at: '' };
+  addRow(t, row);
+  return row;
+}
+/* THE SUGGESTIONS WAITING FOR THE ADMIN, newest first, each with the handle and rank of who sent it; a message carries who, to whom and its words. */
+function claudeNotesPending_() {
   const t = read(TAB.claude_notes);
-  if (!t.sheet) return null;
-  const x = reportRow_(row);
-  addRow(t, { note_id: 'N-' + Date.now() + '-' + Math.floor(Math.random() * 1000), made_at: new Date(), made_by: S(by),
-              column: 'reports', item_id: (x.kind + '|' + x.item_id).slice(0, 120), item_label: S(row.label).slice(0, 200),
-              note: ('Reported (' + S(row.report_id) + '): ' + S(row.reason) + (S(row.note) ? ' — ' + S(row.note) : '')).slice(0, CLAUDE_NOTE_MAX),
-              status: 'open', done_at: '' });
+  if (!t.sheet) return [];
+  const at = v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0);
+  const tm = read(TAB.messages);
+  const nm = id => { const p = id ? findPerson('', id) : null; return p ? personDisplayName(p) : ''; };
+  return t.rows.filter(r => S(r.note_id) && norm(r.status) === 'pending').map(r => {
+    const p = findPerson('', S(r.made_by)), item = S(r.item_id), kind = S(r.column) || item.split('|')[0];
+    const o = { id: S(r.note_id), at: at(r.made_at), kind: kind, itemId: item.slice(kind.length + 1), label: S(r.item_label), note: S(r.note),
+                handle: p ? S(p.handle) : '', rank: p ? rankOf(p) : '' };
+    if (kind === 'message') {
+      const m = tm.rows.find(x => S(x.message_id) === o.itemId);
+      if (m) Object.assign(o, { from: nm(S(m.from_id)), to: nm(S(m.to_id)), body: S(m.body).slice(0, 300) });
+    }
+    return o;
+  }).sort((a, b) => b.at - a.at);
+}
+/* THE OLD REPORTS, READ ONCE (494): every row not closed becomes a note for Claude, as its reporter on its own date, and is marked `migrated`; the tab is history after. */
+function reportsMigrate_() {
+  const tr = read(TAB.reports), tn = read(TAB.claude_notes);
+  if (!tr.sheet) return 'no reports tab';
+  if (!tn.sheet) throw new Error('no claude_notes tab yet');
+  let moved = 0;
+  tr.rows.forEach(r => {
+    const x = reportRow_(r);
+    if (x.status !== 'open' && x.status !== 'confirmed') return;
+    const note = '[old report] ' + S(r.reason) + (S(r.note) ? ' — ' + S(r.note) : '');
+    suggestRow_(tn, S(r.person_id), x.kind, x.item_id, S(r.label), note, 'open', r.at instanceof Date ? r.at : (sheetDate(r.at) || new Date()));
+    setCells(tr, r, { status: 'migrated', status_at: new Date() });
+    moved++;
+  });
   clearCache();
-  const notes = claudeNotesOpen_();
-  try { claudeNotesWrite_(notes); } catch (err) {}
-  return notes;
+  try { claudeNotesWrite_(claudeNotesOpen_()); } catch (err) {}
+  return moved + ' old report' + (moved === 1 ? '' : 's') + ' moved to Notes for Claude';
 }
 
 /* A CHILD UPLOADS NO PICTURE (413): rank Student, refused at every door that would keep one. */
@@ -1734,7 +1762,8 @@ function claudeNotesOpen_() {
   const t = read(TAB.claude_notes);
   if (!t.sheet) return [];
   const at = v => v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0);
-  return t.rows.filter(r => S(r.note_id) && norm(r.status) !== 'done')
+  /* OPEN IS BLANK OR `open`: not done, dismissed or still waiting for the admin (`pending`, 494). */
+  return t.rows.filter(r => S(r.note_id) && (!norm(r.status) || norm(r.status) === 'open'))
     .map((r, i) => ({ id: S(r.note_id), at: at(r.made_at), by: S(r.made_by), column: S(r.column), itemId: S(r.item_id),
                       itemLabel: S(r.item_label), note: S(r.note), _i: i }))
     .sort((a, b) => (b.at - a.at) || (b._i - a._i)).map(r => { delete r._i; return r; });
@@ -1742,7 +1771,7 @@ function claudeNotesOpen_() {
 /* THE WORDS OF THE FILE: one block per open note, so a session reads them all at once. */
 function claudeNotesText_(notes) {
   const day = ms => ms ? Utilities.formatDate(new Date(ms), 'Europe/London', 'yyyy-MM-dd') : '';
-  const head = CLAUDE_NOTES_FILE + ' — the open notes from the site\'s Note for Claude tiles (Ledger tab claude_notes). Rewritten on every add and done.\n\n';
+  const head = CLAUDE_NOTES_FILE + ' — the open notes from the site\'s Suggest a change tiles (Ledger tab claude_notes). Rewritten on every add and done.\n\n';
   if (!notes.length) return head + 'No open notes.\n';
   return head + notes.map(n => '[' + n.id + '] ' + (n.column || '?') + ' › ' + (n.itemLabel || n.itemId) + ' (' + n.itemId + ') — ' + day(n.at) + '\n' + n.note).join('\n\n') + '\n';
 }

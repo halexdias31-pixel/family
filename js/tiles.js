@@ -31,6 +31,8 @@ const TILE_ICONS = {
   /* START HERE (466): a house — where the column opens. */
   home:  '<path d="M2.5 8.5 9 3l6.5 5.5"/><path d="M4.5 7v7.5h9V7"/><path d="M7.5 14.5v-4h3v4"/>',
   flag:  '<path d="M4 15.5v-13"/><path d="M4 3h9l-2 3 2 3H4"/>',
+  /* SUGGEST A CHANGE (494): a speech bubble with a pencil in it — words to Claude about this thing; not the pen, not the flag. */
+  suggest: '<path d="M3.5 2.5h11a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H8.5l-4 3.5v-3.5h-1A1.5 1.5 0 0 1 2 11V4a1.5 1.5 0 0 1 1.5-1.5z"/><path d="m6 10.5.5-2 4-4 1.5 1.5-4 4z"/>',
   /* FRONT DOOR (489): a door ajar — where everybody lands on opening the app; the house is where one column opens. */
   door:  '<path d="M3.5 15.5h11"/><path d="M5 15.5v-13h8v13"/><path d="M5 2.5l5 1.5v12"/><circle cx="8.6" cy="9.5" r=".5"/>',
   /* SPOTLIGHT IS A MEGAPHONE (489): its rayed circle read as a second star beside Save's — "two different stars". */
@@ -408,8 +410,8 @@ function cardTiles_(x) {
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '')
-    /* AND `Report` ON EVERY CARD, Student rank and up (486) — `reportTileFor_` in submit.js. */
-    + (typeof reportTileFor_ === 'function' ? reportTileFor_(x) : '');
+    /* AND `Suggest a change` ON EVERY CARD, Student rank and up (486, 494) — `suggestTileFor_` in submit.js. */
+    + (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
@@ -576,7 +578,7 @@ function postTiles_(p) {
   if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
   /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
   if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
-  if (!p.mine && typeof reportTile_ === 'function') rows.push(reportTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
+  if (!p.mine && typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
   if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }
@@ -606,7 +608,7 @@ function tileRowsJoin_(html) {
     /* AN EMPTY STATUS LINE AFTER THE ROW (a form's "Saved" before anything is saved) does not count as something between. */
     const last = e => { let k = e.lastElementChild; while (k && k.tagName === 'P' && !k.textContent.trim()) k = k.previousElementSibling; return k; };
     let d = prev;
-    while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .ncl-box, .rep-box, .me-form, form, [class*="qual"], ul, ol, table')) d = last(d);
+    while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .rep-box, .me-form, form, [class*="qual"], ul, ol, table')) d = last(d);
     if (d !== prev && d.classList.contains('tile-row')) group(row, d, false);
   });
   t.content.querySelectorAll('.tile-row').forEach(row => {

@@ -1271,7 +1271,7 @@ on('msg-drop', el => {
   }, 0);
 });
 
-/* REPORTING A MESSAGE (413) is `reportTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
+/* REPORTING A MESSAGE (413) is `suggestTile_` and its box in submit.js since 486; the email to the admin is the backend's. */
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
@@ -1429,10 +1429,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`reportTile_`, 486). */''}
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestTile_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? reportTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
+        ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;

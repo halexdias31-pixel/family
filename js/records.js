@@ -222,8 +222,8 @@ on('app-decide', el => {
     .catch(() => {});
 });
 
-/* ---------- REPORTS (395, 413, 486): an admin's are TO FIX; anybody else's are signals to Confirm or Dismiss ----------
-   Asked with `listReports`, admin at the gate; `null` is "not asked yet", as `BIZ.list` is. */
+/* ---------- SUGGESTIONS (494): a non-admin's, waiting — Confirm sends it to Notes for Claude, Dismiss drops it ----------
+   `listSuggestions`, admin at the gate; `null` is "not asked yet". Messages flagged before 486 too. */
 const REPS = { list: null, open: 0, msgs: [], asking: false, error: '' };
 const REPS_DRAWN = 20;
 
@@ -231,39 +231,35 @@ function reportsCard_() {
   const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
   return `<div class="card biz reports" data-reports data-need="reports">${reportsInner_(wait)}</div>`;
 }
-const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud'];
+const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud', 'quran', 'bible'];
 function reportsInner_(wait) {
   const list = REPS.list || [];
   const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
-  const st = (r, status, icon, label) => tile_({ icon, label, act: 'rep-status', data: { id: r.id, status } });
-  const item = r => `<div class="biz-item rep-item${r.serious ? ' is-serious' : ''}" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="biz-when">· ${esc(r.kind)} · ${esc(r.reason)}</span></p>
+  const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
+  const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="biz-when">· ${esc(r.kind)}</span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
       ${r.body ? `<p class="faint rep-who">${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}: “${esc(r.body)}”</p>` : ''}
-      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', r.rank, when(r.at), r.finder, r.device].filter(Boolean).join(' · '))}</p>
+      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', r.rank, when(r.at)].filter(Boolean).join(' · '))}</p>
       <div class="tile-row">${REP_FINDS_.indexOf(r.kind) !== -1 ? tile_({ icon: 'open', label: 'Open', note: 'the card', act: 'rep-open', data: { k: r.itemId } }) : ''}${
-        r.serious ? st(r, 'fixed', 'tick', 'Fixed') + st(r, 'dismissed', 'close', 'Dismiss')
-                  : st(r, 'confirmed', 'flag', 'Confirm') + st(r, 'dismissed', 'close', 'Dismiss')}</div>
+        st(r, 'confirm', 'tick', 'Confirm', 'to Notes for Claude') + st(r, 'dismiss', 'close', 'Dismiss')}</div>
     </div>`;
-  const fix = list.filter(r => r.serious), sig = list.filter(r => !r.serious);
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
-  /* MESSAGES FLAGGED BEFORE 486 stay on their own rows (`messages.flagged`), read until each is dealt with. */
   const msgs = REPS.msgs || [];
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="biz-when">· ${esc(when(r.at))}</span></p>
       <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
       ${r.body ? `<p class="faint rep-who">“${esc(r.body)}”</p>` : ''}${r.files ? `<p class="faint rep-who">${r.files} attachment${r.files === 1 ? '' : 's'} — in the messages tab</p>` : ''}
-      <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, status: 'fixed', kind: 'message' } })}</div>
+      <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, decision: 'dismiss', kind: 'message' } })}</div>
     </div>`;
   const n = REPS.list ? REPS.open + msgs.length : 0;
-  return `<h3>Reports</h3>
-    ${bizNeed_('reports', n, n + ' open to look at')}
+  return `<h3>Suggestions</h3>
+    ${bizNeed_('reports', n, n + ' waiting')}
     <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
-      ${REPS.list ? `<p class="rep-count">${n ? fix.length + ' to fix · ' + sig.length + ' to review' : 'None open'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
+      ${REPS.list ? `<p class="rep-count">${n ? REPS.open + ' waiting' : 'None waiting'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
       ${msgs.map(mItem).join('')}
-      ${fix.length ? '<p class="rep-head">To fix — reported by an admin</p>' + fix.slice(0, REPS_DRAWN).map(item).join('') : ''}
-      ${sig.length ? '<p class="rep-head">To review — Confirm makes it one to fix</p>' + sig.slice(0, REPS_DRAWN).map(item).join('') : ''}
-      ${more ? `<p class="faint">And ${more} more in the reports tab.</p>` : ''}
+      ${list.slice(0, REPS_DRAWN).map(item).join('')}
+      ${more ? `<p class="faint">And ${more} more in the claude_notes tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
 }
@@ -272,38 +268,31 @@ const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach
 function reportsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
   REPS.asking = true;
-  api({ action: 'listReports' })
+  api({ action: 'listSuggestions' })
     .then(d => {
       REPS.asking = false;
-      if (!d || d.error) { REPS.error = String((d && d.error) || 'The reports did not come.'); return; }
-      REPS.error = ''; REPS.list = Array.isArray(d.reports) ? d.reports : []; REPS.open = Number(d.open) || 0;
+      if (!d || d.error) { REPS.error = String((d && d.error) || 'The suggestions did not come.'); return; }
+      REPS.error = ''; REPS.list = Array.isArray(d.suggestions) ? d.suggestions : []; REPS.open = Number(d.open) || 0;
       REPS.msgs = Array.isArray(d.messages) ? d.messages : [];
     })
-    .catch(() => { REPS.asking = false; REPS.error = 'The reports could not be fetched — check the connection.'; })
+    .catch(() => { REPS.asking = false; REPS.error = 'The suggestions could not be fetched — check the connection.'; })
     .then(reportsDraw_);
 }
 
 on('rep-status', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
-  const id = el.getAttribute('data-id'), status = el.getAttribute('data-status') || '';
+  const id = el.getAttribute('data-id'), decision = el.getAttribute('data-decision') || '';
   const kind = el.getAttribute('data-kind') || '';
   const card = el.closest('[data-reports]');
-  send_({ action: 'setReportStatus', personId: (USER && USER.personId) || '', id, status, kind }, { button: el, where: card && card.querySelector('.rep-said') })
+  send_({ action: 'decideSuggestion', personId: (USER && USER.personId) || '', id, decision, kind }, { button: el, where: card && card.querySelector('.rep-said') })
     .then(d => {
       if (kind === 'message') { REPS.msgs = (REPS.msgs || []).filter(r => r.id !== id); reportsDraw_(); toast('Marked dealt with'); return; }
-      const r = (REPS.list || []).find(x => x.id === id);
-      /* CONFIRMED STAYS, as one to fix; fixed or dismissed leaves the list. */
-      if (status === 'confirmed' && r) {
-        r.serious = true; r.status = 'confirmed';
-        if (DATA && r.kind && r.itemId) DATA.reportedItems = (DATA.reportedItems || []).concat(r.kind + '|' + r.itemId);
-        if (DATA && d && Array.isArray(d.notes)) DATA.claudeNotes = d.notes;
-      } else if (r) {
-        REPS.list = REPS.list.filter(x => x.id !== id);
-        REPS.open = Math.max(0, REPS.open - 1);
-        if (DATA && d && Array.isArray(d.reportedItems)) DATA.reportedItems = d.reportedItems;
-      }
+      REPS.list = (REPS.list || []).filter(x => x.id !== id);
+      REPS.open = Math.max(0, REPS.open - 1);
+      if (DATA && d && Array.isArray(d.notes)) DATA.claudeNotes = d.notes;
+      if (DATA && d && Array.isArray(d.reportedItems)) DATA.reportedItems = d.reportedItems;
       reportsDraw_();
-      toast(status === 'confirmed' ? 'Confirmed — marked to fix' : status === 'fixed' ? 'Marked fixed' : 'Dismissed');
+      toast(decision === 'confirm' ? 'Sent to Notes for Claude' : 'Dismissed');
     })
     .catch(() => {});
 });

@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-27-zf-n2c";
+const DOGET_VERSION = "2026-10-27-zf-n3";
 
 
 function doGet(e) {
@@ -241,8 +241,8 @@ function doGet(e) {
                  'digestWordsSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
                  'claudeNoteAdd', 'claudeNoteDone',
-                 /* One report for everything (486). */
-                 'report',
+                 /* Suggest a change (494), and an old phone's report. */
+                 'suggest', 'report',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
