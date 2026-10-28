@@ -1623,8 +1623,7 @@ const HIST_LINES = {
     ['Public-domain translations', 'pd_translation']],
   event: [['Date', 'date_text'], ['Places', 'places'], ['Theatre', 'theatre'], ['Part of', 'era'], ['What happened', 'summary']],
 };
-/* ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and
-   the letters that survive, where they stand. Coordinates are the photograph's pixels; `·` is a lost letter's room. */
+/* ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and § */
 const MS_LOOK = {
   'MS-0001': { stuff: 'papyrus', box: [30, 80, 630, 940],
     ref: 'Commons: File:P52 recto.jpg (PD-Art, PD-old-100) and File:P52 verso.jpg (PD-scan, PD-old-70)',
