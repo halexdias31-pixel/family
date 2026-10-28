@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zo-n4b";
+  --css-version: "2026-10-28-zr-qtools";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6104,6 +6104,19 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); white-space: pre-line; }
 .qp-essay + .qp-ai-why { margin-inline: 4px; }
 .qp-ai-why:empty { display: none; }
+/* A PHOTO OF THE WORKING (501): the pages as thumbnails under the box, each with its remove; Mark my working in its own tile row. */
+.qp-work { margin: .3rem 14px .2rem; }
+.qp-work[hidden] { display: none; }
+.qp-work-pics { display: flex; flex-wrap: wrap; gap: .5rem; }
+.qp-work-pic { position: relative; display: block; width: 5.5rem; height: 7rem; border: 1px solid var(--line); border-radius: .4rem; overflow: hidden; }
+.qp-work-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font: 400 1.1rem/1 var(--font); padding: 0; cursor: pointer; }
+.qp-work-say { margin: .3rem 0 0; font: 400 .8rem/1.45 var(--font); color: var(--dim); white-space: pre-line; }
+.qp-work-say:empty { display: none; }
+.work-seen { margin: .4rem 14px; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+.work-seen-row + .work-seen-row { margin-top: .6rem; }
+.work-seen-say { margin: 0 0 .3rem; }
 
 /* ---------- `.resume` WAS HERE § */
 

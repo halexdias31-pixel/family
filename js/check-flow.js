@@ -15802,6 +15802,61 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
+/* ---------- A PHOTO OF THE WORKING (501): the tile only where working is asked, the photos sent with the question, and only the AI marks ---------- */
+check('Photo of my working: shown only on working questions, sends its photos to markWorking, and a mark that cannot happen keeps them for later', async () => {
+  const bad = [];
+  let mode = 'mark';
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), reply: b => {
+    if (b.action !== 'markWorking') return null;
+    return mode === 'off' ? { success: false, why: 'ai-off', message: 'Marking isn’t available right now — your photos are still here, so tap Mark my working again later.' }
+      : { success: true, ai: true, saved: true, awarded: 2, available: 3, feedback: 'The expansion is right; the conclusion line is missing.' };
+  } });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS;
+  if (!A['qp-work'] || !A['qp-work-send'] || !A['qp-work-x']) return ['the photo tiles have no handlers'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const proof = { kind: 'question', key: 'q-wk-1', name: 'Q5', marks: 3, answerType: 'proof', accept: '',
+    row: { row_id: 'Q-WK-1', paper_id: 'P-WK', subject: 'Maths', name: 'Algebra' },
+    html: '<p>Show that (x + 1)<sup>2</sup> = x<sup>2</sup> + 2x + 1</p>', answer: 'Expands (1); collects (1); conclusion (1)' };
+  const plain = { kind: 'question', key: 'q-wk-2', name: 'Q1', marks: 1, answerType: 'number', accept: '7',
+    row: { row_id: 'Q-WK-2', paper_id: 'P-WK', subject: 'Maths', name: 'Number' }, html: '<p>Work out 3 + 4</p>', answer: '7' };
+  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const card = draw(proof), other = draw(plain);
+  const tile = card.querySelector('.tile[data-do="qp-work"]');
+  if (!tile) bad.push('a "show that" proof drew no Photo of my working tile');
+  else if (!tile.closest('.qp-bar, .qp-sheet-foot')) bad.push('the photo tile is not in the question’s answer row');
+  if (other.querySelector('[data-do="qp-work"]')) bad.push('a plain sum with an exact answer was offered a photo of its working');
+  /* TWO PAGES ADDED (the phone's shrink is a canvas; here the pictures arrive already small) */
+  const k = w.__t.ansKey(proof);
+  w.workPics_(k).push({ url: 'data:image/jpeg;base64,AAAA' }, { url: 'data:image/jpeg;base64,BBBB' });
+  w.workPaint_(k);
+  const strip = card.querySelector('.qp-work');
+  if (!strip || strip.hidden || strip.querySelectorAll('.qp-work-pic img').length !== 2) bad.push('two photos were not drawn as thumbnails under the box');
+  const x1 = strip && strip.querySelector('[data-do="qp-work-x"]');
+  if (x1) { w.workPics_(k).push({ url: 'data:image/jpeg;base64,CCCC' }); w.workPaint_(k); A['qp-work-x'](card.querySelector('[data-do="qp-work-x"]')); }
+  if (w.workPics_(k).length !== 2) bad.push('remove did not take one page away');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [proof];
+  try { A['qp-work-send'](card.querySelector('[data-do="qp-work-send"]')); await wait(50); } finally { w.stuffItemsAll_ = held; }
+  const s = sent.find(b => b.action === 'markWorking');
+  if (!s) bad.push('Mark my working sent nothing');
+  else {
+    if (!Array.isArray(s.photos) || s.photos.length !== 2 || !/^data:image\/jpeg;base64,/.test(s.photos[0])) bad.push('the photos were not sent as JPEG data: ' + JSON.stringify(s.photos));
+    if (!/Show that/.test(s.question || '') || !/conclusion/.test(s.scheme || '') || s.personId !== 'P-S1' || s.marks !== 3) bad.push('markWorking lacked the question, scheme, person or marks: ' + JSON.stringify(s).slice(0, 200));
+  }
+  if (!/2 of 3 marks/.test(card.querySelector('.qp-work-say').textContent)) bad.push('the AI’s mark was not drawn: ' + card.querySelector('.qp-work-say').textContent);
+  /* NO AI: SAID PLAINLY, PHOTOS KEPT, NOTHING FOR A PERSON */
+  mode = 'off';
+  w.stuffItemsAll_ = () => [proof];
+  try { A['qp-work-send'](card.querySelector('[data-do="qp-work-send"]')); await wait(50); } finally { w.stuffItemsAll_ = held; }
+  const said = card.querySelector('.qp-work-say').textContent;
+  if (!/isn’t available right now/.test(said)) bad.push('with no AI the student was not told marking is unavailable: ' + said);
+  if (/tutor|by hand/i.test(card.querySelector('.qp-work').textContent)) bad.push('the photo strip speaks of a person marking: ' + card.querySelector('.qp-work').textContent.slice(0, 120));
+  if (w.workPics_(k).length !== 2 || !card.querySelector('[data-do="qp-work-send"]')) bad.push('a mark that could not happen lost the photos or the way to try again');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- MARK WITH AI SAYS WHERE IT IS (456): "it just says marking ... we didn't feel blind" § */
 check('Mark with AI shows its stages and the seconds beside the dots, says when it is slow, and offers Try again on a failure', async () => {
   const bad = [];
@@ -27769,7 +27824,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 });
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
-check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card does not; it says the question in words, stops on a second tap and on leaving', async () => {
+check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card too (502); it says the question in words, stops on a second tap and on leaving', async () => {
   const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
@@ -27804,7 +27859,7 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   if (!ctKs2 || !ctGcse) bad.push('no KS2 and GCSE content cards to hold the tile against');
   else {
     if (!tileOf(ctKs2)) bad.push('the KS2 content card "' + ctKs2.name + '" has no Read aloud tile');
-    if (tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" carries the Read aloud tile');
+    if (!tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" has no Read aloud tile (502: every content card)');
     /* HEAR IT (427): a French card says its worked lines' French halves, each in fr-FR; a maths card has no Hear it. */
     const ctFr = ct.find(x => x.subject === 'French' && x.row && (x.row.points || []).length);
     const ctMaths = ct.find(x => x.subject === 'Maths');

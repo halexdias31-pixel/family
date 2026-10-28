@@ -111,6 +111,7 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
+  { file: 'check-working.js', what: 'a photo of the working (501): marked by the AI only, sent as images, kept with its mark, read back only by those who may' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. § */
@@ -182,6 +183,7 @@ const SUITE = [
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
   /* ---------- AND EVERY INTERACTION TYPE ANSWERED WRONG, CHANGED, AND RIGHT (385) ---------- */
+  { file: 'check/ruler.js',   what: 'two touch points move, turn and cross over the ruler and protractor exactly; every figure question has both (502)', slow: true },
   { file: 'check/types.js',   what: 'every interaction type answered wrong, changed and right by touch and mouse; boxes edit like iOS', slow: true },
   /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
   { file: 'check/whiteboard.js', what: 'the whiteboard notebook: written big it lands small, the pad moves on, gestures undo, rub out, straighten and move', slow: true },

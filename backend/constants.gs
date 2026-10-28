@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zn-n4c";
+const BACKEND_VERSION = "2026-10-28-zp-w501";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -481,6 +481,8 @@ const SCHEMA = {
     "person_id", "key", "label", "words",
     "answer", "verdict", "submitted_at",
     "event_id", "pressed_at",
+    /* PHOTOS OF THE WORKING (501): Drive links, never public, read back by `workingOf` alone. */
+    "photos",
   ],
 
   /* ---------- REPORTS (395, 486), HISTORY SINCE 494: read once into `claude_notes` by `reports-to-notes`, each row then `migrated`.
@@ -694,9 +696,9 @@ const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 const LAYOUT_KEY = 'layout';
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
-const RULE_IDS = ['tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'kjv-admin', 'finder-members',
+const RULE_IDS = ['meas-wordy', 'meas-under-pen', 'pen-chosen', 'mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'kjv-admin', 'finder-members',
   'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
-const RULES_LOCKED = ['keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
+const RULES_LOCKED = ['meas-under-pen', 'pen-chosen', 'hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
 const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
 const DIGEST_WORDS = {
@@ -943,6 +945,11 @@ const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 
 /* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY § */
 const SUBMISSIONS_PER_POST = 25;
+/* ---------- PHOTOS OF THE WORKING (501): three pages, each shrunk on the phone to about 500 KB (base64 is 4/3 of that, and some room) */
+const WORKING_PHOTOS_MAX = 3, WORKING_PHOTO_CHARS = 760000, WORKING_ROWS_MAX = 10;
+const WORKING_LINK = /^https:\/\/drive\.google\.com\/file\/d\/([\w-]{10,})\/view$/;
+/* THE ANSWER A ROW HOLDS WHEN NOTHING WAS TYPED -- the column is never blank. */
+const WORKING_ANSWER = '(photo of working)';
 /* THE WHOLE VOCABULARY OF `submissions.verdict`: § */
 const SUBMISSION_VERDICT = /^(right|wrong|sent|(?:ai|rule):\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
@@ -1594,6 +1601,8 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* A PHOTO OF THE WORKING (501): sent as yourself; read back by yourself, a linked parent, staff or admin (the handler checks). */
+  markWorking: 'self', workingOf: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
   askAssistant: 'self',
   /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */
