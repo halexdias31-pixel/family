@@ -14,7 +14,8 @@ function inboxGet_(path) {
   const r = UrlFetchApp.fetch(INBOX_API_ + path, { muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
   const code = r.getResponseCode();
-  if (code === 401 || code === 403) throw new Error(INBOX_NOT_ALLOWED_);
+  /* GOOGLE'S OWN WORDS IN THE LOG: a 403 is either the permission not allowed or the Gmail API not turned on — they need different fixes. */
+  if (code === 401 || code === 403) { let why = ''; try { why = JSON.parse(r.getContentText()).error.message; } catch (e) {} throw new Error(INBOX_NOT_ALLOWED_ + (why ? ' Google says: ' + why : '')); }
   if (code >= 300) throw new Error('Gmail said ' + code + '.');
   return JSON.parse(r.getContentText());
 }

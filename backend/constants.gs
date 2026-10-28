@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zs-no-tutor-working";
+const BACKEND_VERSION = "2026-10-28-zt-gmail-why";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
