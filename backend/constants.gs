@@ -96,8 +96,7 @@ const NOTIFY_KINDS = {
   messages:  { col: 'messages_email', roles: NOTIFY_ALL_ROLES,
                label: 'Messages', note: 'When somebody messages you here' },
   bookings:  { col: 'bookings_email', roles: ['client', 'tutor', 'admin'],
-               label: 'Booking updates', note: 'Notes, new terms and payments on a session',
-               noteFor: { admin: 'Sign-ups to a festive event' } },
+               label: 'Booking updates', note: 'Notes, new terms and payments on a session' },
   posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
                label: 'Your posts', note: 'When one goes up, or is not put up' },
   /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. § */
@@ -126,7 +125,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zx-links";
+const BACKEND_VERSION = "2026-10-28-zz5-merge4";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -617,7 +616,7 @@ const AI_SPENT_MAX_S = 21600;
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
 const FAV_LINKS_MAX = 10, FAV_TITLE_MAX = 80, FAV_URL_MAX = 2000;
 /* THE REWRITE COACH (509): its daily cap when the config cell is blank, and the longest text it reads. */
-const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 1500;
+const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 6000, REWRITE_FACTS_MAX = 12;
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
@@ -1609,9 +1608,6 @@ const ACTION_ACCESS = {
      from the signed-in name and never trusts a person_id off the body, so one person cannot star
      something as another. */
   favourite: 'self',
-  /* JOINING A FESTIVE EVENT. `self` — anybody signed in may take a place, and the handler checks it
-     is their own name going down. */
-  joinFestive: 'self',
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
@@ -1626,7 +1622,7 @@ const ACTION_ACCESS = {
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
-  suggest: 'self', listSuggestions: 'admin', decideSuggestion: 'admin',
+  suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
   /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */

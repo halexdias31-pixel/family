@@ -699,7 +699,7 @@ const KID_PRICE_VARS = ['M', 's', 'c', 'B', 'b', 'a', 'open_tutor_rate', 'waitli
 /* WHAT A CHILD IS TOLD INSTEAD OF A PRICE, by a refused action and by the phone (`KID_ASK_PARENT`, core.js). */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one. Nothing was booked.';
 /* THE ACTIONS THAT SPEND MONEY. A child's phone has no price to send, so these are a parent's. */
-const KID_MONEY_ACTIONS = ['createJob', 'createCheckout', 'finalizePayment', 'joinWaitlist', 'joinFestive'];
+const KID_MONEY_ACTIONS = ['createJob', 'createCheckout', 'finalizePayment', 'joinWaitlist'];
 const KID_MONEY_MOVES = ['request', 'pay'];
 
 function netViewerIsChild_() { return !!(NET_VIEWER_ && NET_VIEWER_.child); }

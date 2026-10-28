@@ -128,7 +128,6 @@ const EXEMPT = [
   { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'receipt.js', fn: 'askHow_', has: 'id="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the same sheet' },
-  { file: 'receipt.js', has: 'id="fest-kids"', why: 'a one-line sheet, answered and sent in one go' },
   { file: 'flyer.js', fn: 'flyControls', has: 'type="checkbox"', why: 'the admin\'s flyer maker — picks, re-made in a tap; nothing is written' },
   { file: 'flyer.js', fn: 'flyControls', has: 'type="color"', count: 3, why: 'the admin\'s flyer maker — colours, re-picked in a tap' },
   { file: 'games.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },

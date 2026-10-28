@@ -14,11 +14,7 @@ ANSWER_ORDERS.push(QURAN_ORDER);
 const quranFor_ = () => viewerOfAge_(scriptureMinAge_());
 
 function quranGet_(file) {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
-  return Promise.resolve()
-    .then(() => fetch('data/quran/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
+  return scriptureFetch_(o => fetch('data/quran/' + file + scriptureStamp_(), o));
 }
 
 function quranIndex_() {
@@ -28,7 +24,8 @@ function quranIndex_() {
     const ok = !!d && Array.isArray(d.surahs) && d.surahs.length === 114
       && d.surahs.every((s, i) => s && s.n === i + 1 && s.name && s.ayahs > 0 && Array.isArray(s.juz) && s.juz.length > 0);
     QURAN.asking = null;
-    if (!ok) { QURAN.failed = true; return null; }
+    /* A MISS IS REDRAWN TOO (504), so the dots under its question end in words. */
+    if (!ok) { QURAN.failed = true; if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); }); return null; }
     QURAN.index = d;
     QURAN_ORDER.push(...d.surahs.map(quranSurahSay_));
     if (typeof stuffForget_ === 'function') stuffForget_();
@@ -44,25 +41,29 @@ function quranJuzOf_(s, a) {
   return j;
 }
 
-/* ---------- ONE ITEM A VERSE, built once the index has come. */
+/* ONE CARD, ONE LANGUAGE (504): the owner, "1 widget is one verse ... the translation is a tag". The Arabic keeps the old key `qr:s:a`, so a
+   star from before is the Arabic card; Pickthall's English is `qr:en:s:a`. */
+const QURAN_TRS = [{ id: '', say: 'Arabic (Tanzil)', lang: 'ar' }, { id: 'en', say: 'English (Pickthall)', lang: 'en' }];
+
+/* ---------- ONE ITEM A VERSE IN ONE LANGUAGE, built once the index has come. */
 function quranItems_() {
   const ix = QURAN.index;
   if (!ix || !quranFor_()) return [];
   if (QURAN.items && QURAN.from === ix) return QURAN.items;
   const list = [], shelf = QURAN_SHELF(), rs = SCRIPTURE_SUBJECT(), sajda = {};
   (ix.sajda || []).forEach(p => { sajda[p[0] + ':' + p[1]] = 1; });
-  ix.surahs.forEach(s => {
-    const say = quranSurahSay_(s), words = [QURAN_NAME(), QURAN_WORDS, s.name, s.meaning, s.ar, s.place].join(' ');
+  QURAN_TRS.forEach(t => ix.surahs.forEach(s => {
+    const say = quranSurahSay_(s), words = [QURAN_NAME(), QURAN_WORDS, s.name, s.meaning, s.ar, s.place, t.say].join(' ');
     for (let a = 1; a <= s.ayahs; a++) {
       list.push({
-        kind: 'quran', key: 'qr:' + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf, libBook: 'Quran', subject: rs,
+        kind: 'quran', key: 'qr:' + (t.id ? t.id + ':' : '') + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf, libBook: 'Quran', unit: WRITING_UNIT.quran, subject: rs,
         sub: s.meaning, min_age: scriptureMinAge_(), text: words,
-        quranSurah: say, quranAyah: String(a), quranJuz: 'Juz ' + quranJuzOf_(s, a), quranPlace: s.place,
+        quranTranslation: t.say, quranSurah: say, quranAyah: String(a), quranJuz: 'Juz ' + quranJuzOf_(s, a), quranPlace: s.place,
         quranSajda: sajda[s.n + ':' + a] ? 'Prostration' : '',
-        qr: { s: s.n, a: a },
+        qr: { s: s.n, a: a, lang: t.lang },
       });
     }
-  });
+  }));
   QURAN.items = list; QURAN.from = ix;
   return list;
 }
@@ -83,13 +84,15 @@ function quranLoad_(n) {
   return QURAN.loading[n];
 }
 
-/* THE VERSE ITSELF: the Arabic as Tanzil gives it, Pickthall's English under it, and whose words they are. */
+/* THE VERSE ITSELF, in the card's one language, and whose words they are. */
 function quranBody_(x) {
   const n = x.qr.s, d = QURAN.surahs[n];
   if (d) {
-    return `<p class="qr-ar" dir="rtl" lang="ar">${esc(d.ar[x.qr.a - 1])} <span class="qr-no">﴿${x.qr.a}﴾</span></p>
-      <p class="qr-en">${esc(d.en[x.qr.a - 1])}</p>
-      <p class="qr-credit">Arabic: Tanzil Quran Text (Simple 1.1), CC BY 3.0, tanzil.net · English: Pickthall (1930), public domain</p>`;
+    return x.qr.lang === 'en'
+      ? `<p class="qr-en">${esc(d.en[x.qr.a - 1])}</p>
+      <p class="qr-credit">Pickthall (1930), public domain</p>`
+      : `<p class="qr-ar" dir="rtl" lang="ar">${esc(d.ar[x.qr.a - 1])} <span class="qr-no">﴿${x.qr.a}﴾</span></p>
+      <p class="qr-credit">Tanzil Quran Text (Simple 1.1), CC BY 3.0, tanzil.net</p>`;
   }
   if (QURAN.missed[n] && !QURAN.loading[n]) {
     return `<p class="fc-note">This surah did not arrive. <button class="btn" data-do="qr-retry" data-s="${n}">Try again</button></p>`;
@@ -100,14 +103,14 @@ function quranBody_(x) {
 function quranCard_(x) {
   return `<div class="card fc qr" data-key="${esc(x.key)}">
     ${tagRow_(x)}
-    <div class="qr-body" data-qs="${x.qr ? x.qr.s : 0}" data-qa="${x.qr ? x.qr.a : 0}">${x.qr ? quranBody_(x) : ''}</div>
+    <div class="qr-body" data-qs="${x.qr ? x.qr.s : 0}" data-qa="${x.qr ? x.qr.a : 0}" data-ql="${x.qr && x.qr.lang === 'en' ? 'en' : 'ar'}">${x.qr ? quranBody_(x) : ''}</div>
   </div>`;
 }
 /* ITS TEXT CAME: every card of that surah on screen is filled where it stands. */
 function quranRedraw_(n) {
   if (typeof document === 'undefined') return;
   document.querySelectorAll('.qr-body[data-qs="' + Number(n) + '"]').forEach(el => {
-    el.innerHTML = quranBody_({ qr: { s: Number(n), a: Number(el.getAttribute('data-qa')) } });
+    el.innerHTML = quranBody_({ qr: { s: Number(n), a: Number(el.getAttribute('data-qa')), lang: el.getAttribute('data-ql') } });
     const pane = el.closest('.pane');
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });

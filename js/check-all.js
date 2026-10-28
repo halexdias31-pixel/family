@@ -63,6 +63,8 @@ const SUITE = [
   /* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN § */
   { file: 'check-dropdowns.js', what: 'every dropdown the platform\'s own, nothing in front of one' },
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ § */
+  /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
+  { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
@@ -88,6 +90,8 @@ const SUITE = [
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
+  { file: 'check-texts.js', what: 'more writings (513): every text loads, a unit a card, each with its source and licence; scripture-like texts held to the age rule' },
+  { file: 'check-hymns.js', what: 'the hymns shelf (517): every hymn in the index has words, a pre-1929 public-domain source and a licence; audio only a Spotify link' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
   { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
@@ -130,6 +134,8 @@ const SUITE = [
   { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
   { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
+  /* THE SHIPPED COLLIERS WOOD'S GEOMETRY (511): one road surface, nothing overlapping, no gaps, OSM's buildings. */
+  { file: 'check/race-geometry.js', what: 'the racer map\'s geometry: one road surface, no overlaps or gaps, junctions covered, OSM\'s buildings with roofs' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; no date of birth or signed out = underage, 450) is not sent; the admin gets all' },
@@ -137,7 +143,7 @@ const SUITE = [
   { file: 'check-film-shares.js', what: 'a film reaches only the people its Drive file is shared with, a revoked share goes within ten minutes, the admin sees who' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-favlinks.js', what: 'Favourite links (509): signed in only, ten at most, http(s) only, own links alone in the payload' },
-  { file: 'check-rewrite.js', what: 'the Rewrite coach (509): admin only, its own cap, the text fenced as data, ideas and questions never a rewrite, copied phrases marked' },
+  { file: 'check-rewrite.js', what: 'the Rewrite coach (509, 519): admin only, its own cap, the text fenced as data, the AI narrowed to one fact per answer with a real quote, never a rewrite; the phone\'s substance scanner and copying check' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
@@ -182,6 +188,7 @@ const SUITE = [
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
+  { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },

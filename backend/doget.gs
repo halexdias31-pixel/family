@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-zx-links";
+const DOGET_VERSION = "2026-10-28-zz5-merge4";
 
 
 function doGet(e) {
@@ -248,7 +248,7 @@ function doGet(e) {
                  /* Favourite links and the Rewrite coach (509). */
                  'favLinksSave', 'rewriteIdeas', 'rewriteCheck',
                  /* Suggest a change (494), and an old phone's report. */
-                 'suggest', 'report',
+                 'suggest', 'report', 'suggestUpload',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
@@ -279,7 +279,7 @@ function doGet(e) {
                  'joinWaitlist',
                  /* The site checks this before offering the button, so an older deployment says so
                     rather than answering "that action is not recognised" on a payment. */
-                 'markPaid', 'joinFestive',
+                 'markPaid',
                  /* The site checks this before it draws "Mark with AI", so a phone ahead of the
                     deployment shows no button rather than one answering "not recognised". */
                  'aiMark',
@@ -356,8 +356,6 @@ function doGet(e) {
       /* THE SITE'S OWN WORDS (497): an admin's text over the code's, `{key: text}`; {} for the code's own. */
       words: wordsClean_(cfg[WORDS_KEY]),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
-      /* WHAT THE CALENDAR IS OFFERING TODAY. § */
-      festive: [],
       /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
       closures: [],
       exams: [], birthdays: [], posts: [], laws: [],
@@ -864,7 +862,6 @@ function doGet(e) {
       });
     }
 
-    /* THE FESTIVE EVENTS, if the date says so. Sent to everybody: that is the point of them. */
     /* ---------- WHAT A WAITING-LIST SEAT COSTS, WORKED OUT HERE § */
     /* AND ONE PER ROOM, UNDER THE LABEL THE PHONE LOOKS IT UP BY. § */
     try {
@@ -925,10 +922,7 @@ function doGet(e) {
       } else delete payload.spotlight;
     } catch (err) { delete payload.spotlight; }
 
-    try { payload.festive = festiveOffers(); }
-    catch (err) { payload.festive = []; }
-
-    /* THE DAYS NOBODY IS TAUGHT — bank holidays, INSET days, a festive event. § */
+    /* THE DAYS NOBODY IS TAUGHT — bank holidays and INSET days. § */
     try { payload.closures = closures(); }
     catch (err) { payload.closures = []; }
 

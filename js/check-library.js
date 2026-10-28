@@ -13,7 +13,7 @@ const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
   subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
-                  'Physics', 'Religious Studies', 'Driving Theory'],
+                  'Physics', 'Religious Studies', 'Driving Theory', 'Statistics'],
   /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the reason it is a value rather than a naming convention: § */
   document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;

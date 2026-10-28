@@ -273,6 +273,10 @@ folder; or the Ledger tab `claude_notes`) and work through the open ones. Each b
 `[note_id] column › item_label (item_id) — date` then the note; `item_id` is the widget's or card's layout id. A note made
 on Find or Find 2 carries its funnel `Path:`; one with a picture carries a `Picture:` Drive link. See docs/history/484.
 
+**Files from the owner (515)** are in the Drive folder "Claude inbox" (beside "Notes for Claude", in `family-library-imports`),
+one subfolder per batch with the chosen folder's paths kept; the note carries a `Files: Claude inbox/<batch> (N files) — <link>` line
+and the first names. A session incorporates them **only when the owner asks** — never on its own because they are there.
+
 **Marking one done is Claude's job (498).** A session that addresses a note appends its `note_id` to `data/notes-done.json`
 (a JSON array of ids only — never the note's words: the repo is public) and commits it with the fix. On the admin's next
 open (`setupOnAdminLoad_` → `claudeNotesDoneSync_`, at most every ten minutes) the backend marks those ids done in

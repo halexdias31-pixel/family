@@ -63,7 +63,7 @@ function layoutSane_(v) {
   const cards = {};
   /* CUSTOM COLUMNS (466): `custom: [{id: 'custom-N', title}]`, made by ▶ past the last right-hand column. */
   const cu = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && CUSTOM_ID.test(String(x.id)))
-    .map(x => ({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }))
+    .map(x => Object.assign({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }, x.admin === true ? { admin: true } : {}))
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, CUSTOM_MAX);
   if (cu.length) out.custom = cu;
   const colOk = k => CARD_COLS.indexOf(k) !== -1 || cu.some(x => x.id === k);
@@ -180,7 +180,7 @@ function layoutDraftOf_(L) {
   if (L && L.split && L.split.length) out.split = L.split.slice();
   if (L && L.start) out.start = Object.assign({}, L.start);
   if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
-  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => ({ id: x.id, title: x.title }));
+  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id, title: x.title }, x.admin ? { admin: true } : {}));
   if (L && L.merged && L.merged.length) out.merged = L.merged.map(g => g.slice());
   if (L && L.seen) out.seen = Object.assign({}, L.seen);
   return out;
@@ -356,7 +356,11 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
 /* THE ADMIN'S TWO COLUMNS (491): Business and Site; a card moves between them, and no other card moves onto either. */
 const ADMIN_COLS_ = ['biz', 'site'];
-const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1;
+/* AND AN ADMIN-ONLY CUSTOM COLUMN (508, `admin: true`), made by ▶ past Site: Business and Site cards move onto it, nothing else. */
+const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1 || customAdmin_(c);
+function customAdmin_(c) {
+  try { return /^custom-\d{1,3}$/.test(String(c || '')) && (((layoutNow_() || {}).custom) || []).some(x => x.id === c && x.admin); } catch (e) { return false; }
+}
 /* A RULE (496), locked: `admin-cols` — Business and Site cards stay put and nothing else moves onto them. */
 const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(typeof ruleOn_ !== 'function' || ruleOn_('admin-cols'));
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
@@ -604,7 +608,7 @@ function startTile_(col, id, start, note) {
 function cardRowIn_(h, row) {
   const t = h.replace(/\s+$/, '');
   /* ONLY WHEN THE LAST `</div>` CLOSES THE CARD: a page that is a card then a tile row took the row inside that row (467). */
-  if (/^\s*<div\b[^>]*\sclass="(card|own-set|fest)/.test(t) && /<\/div>$/.test(t)) {
+  if (/^\s*<div\b[^>]*\sclass="(card|own-set)/.test(t) && /<\/div>$/.test(t)) {
     let depth = 0, end = -1;
     const re = /<(\/?)div\b[^>]*>/g;
     for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
@@ -621,8 +625,8 @@ function cardAdminRow_(id, col, mergeable) {
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
     tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-c-col', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: ci <= 0 })}${
-    tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 && !adminCol_(col) ? 'Move to a new column' : 'Move to next column', act: 'lay-c-col', tone: 'admin',
-      data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (adminCol_(col) || !customRoom_())) })}${
+    tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 ? (adminCol_(col) ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: 'lay-c-col', tone: 'admin',
+      data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && !customRoom_()) })}${
     startTile_(col, id, start)}${
     frontTile_(col, id)}${wordsTiles_(id, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
@@ -681,7 +685,6 @@ function frontPageOf_(col) {
   }
   if (col === 'feed' && typeof feedCamAt_ === 'function') {
     if (f.id === 'item:feed:camera') return feedCamAt_();
-    if (f.id === 'item:feed:festive' && FEED_FEST_N) return feedCamAt_() + 1;
   }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
@@ -714,7 +717,7 @@ function frontGo_() {
 function notePair_(del, note) { return del + note; }
 /* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
 function boxInPlace_(el, html) {
-  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .fest, .post');
+  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .post');
   if (!thing) return boxBeside_(el, html);
   thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
   const h = thing.getBoundingClientRect().height;
@@ -776,11 +779,11 @@ on('lay-c-col', el => {
   const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
   let to = cols[cols.indexOf(col) + d];
   if (cols.indexOf(col) === -1) return;
-  /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; ◀ from the first stays put. */
-  if (!to && d > 0 && !adminCol_(col) && customRoom_()) {
+  /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; past Site, an admin-only one after it (508). ◀ from the first stays put. */
+  if (!to && d > 0 && customRoom_()) {
     const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
     to = 'custom-' + n;
-    D.custom = cu.concat([{ id: to, title: 'New column' }]);
+    D.custom = cu.concat([adminCol_(col) ? { id: to, title: 'New admin column', admin: true } : { id: to, title: 'New column' }]);
   }
   if (!to) return;
   const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
@@ -853,10 +856,12 @@ function customTabsSync_() {
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
   let at = COLUMNS.findIndex(t => t.id === 'biz');
   if (at === -1) at = COLUMNS.length;
-  want.forEach((c, k) => {
+  /* AN ADMIN-ONLY ONE (508) goes after Site and is `admin`, so `columnsFor_` leaves it out for everybody else. */
+  want.filter(c => !c.admin).concat(want.filter(c => c.admin)).forEach((c, k) => {
     const t = CUSTOM_TABS[c.id] || (CUSTOM_TABS[c.id] = { id: c.id, icon: '▦', custom: true });
     t.label = t.title = c.title;
-    COLUMNS.splice(at + k, 0, t);
+    t.admin = !!c.admin;
+    if (c.admin) COLUMNS.push(t); else COLUMNS.splice(at + k, 0, t);
     if (!SCREENS[c.id]) screen(c.id, () => pages(c.id, cardsOf_(c.id)));
     if (!PAGE_HOME[c.id]) PAGE_HOME[c.id] = () => { const n = CARD_START_AT[c.id]; return typeof n === 'number' && n >= 0 ? n : 0; };
   });

@@ -385,7 +385,6 @@
    "P-E1": {"n": 12, "last": "2026-10-04"}
   }
  },
- "festive": [],
  "closures": [
   {"date":"01/01/2025","name":"New Year's Day","kind":"bank"},
   {"date":"18/04/2025","name":"Good Friday","kind":"bank"},

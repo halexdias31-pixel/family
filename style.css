@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zx-links";
+  --css-version: "2026-10-28-zz5-merge4";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -54,8 +54,8 @@
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
-  /* ONE TILE SPEC (467, 487): a 22px plate, a 10px mark, 3px apart -- a quarter of the old 44px area, the owner's choice (487). */
-  --tile: 22px; --tile-i: 10px; --tile-gap: 3px;
+  /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
+  --tile: 36px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -3525,38 +3525,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* The styling for a card opened in place was here, and has gone with the mechanism — see the note in shell.js. § */
 /* FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED. § */
 
-/* A FESTIVE EVENT IS AN INVITATION. § */
-.fest {
-  background: linear-gradient(160deg, #1a1a1a, #101010);
-  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
-  border-radius: 12px;
-  padding: 1.1rem 1rem 1rem;
-  margin: .2rem 0 .4rem;
-  position: relative;
-  overflow: hidden;
-}
-/* A rule of light across the top, the way a card with a foil edge catches it. One gradient, no
-   image, and it costs nothing. */
-.fest::before {
-  content: '';
-  position: absolute; left: 0; right: 0; top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 90%, transparent), transparent);
-}
-.fest-when {
-  font: 700 .62rem/1 var(--mono);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin: 0 0 .45rem;
-}
-.fest-name { margin: 0 0 .3rem; color: #fff2dc; font-size: 1.15rem; }
-.fest-say { margin: 0 0 .7rem; color: #c9b997; font-size: .86rem; line-height: 1.45; }
-.fest-rows { margin-bottom: .8rem; }
-/* The rows are the shared `row()` markup, so they inherit their layout and only the ink changes. */
-.fest .k { color: #a08a5e; }
-.fest .v { color: #f0e2c8; }
-.fest .btn { width: 100%; background: var(--gold); color: #17130b; font-weight: 700; }
-
 /* `#install-bar` AND `.ib-*` WERE HERE — the "Keep @family. on your phone" bar. Removed at the owner's
    word (6 Oct); see me.js. */
 
@@ -4913,7 +4881,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile {
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--tile); height: var(--tile); padding: 0; flex: none; box-sizing: border-box;
-  color: var(--dim); border-radius: var(--r);
+  /* ROUND (508): the owner, "turn all tiles into circles"; a square plate, so a circle; its focus ring follows the radius. */
+  color: var(--dim); border-radius: 50%;
   background: rgb(255 255 255 / .03);
   border: 1px solid var(--line);
   font: 600 .72rem/1 var(--mono);
@@ -4935,7 +4904,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    one today, and a blank 44px square would be worse than an ugly one. */
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
 /* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
-.tile.is-sure { width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
+.tile.is-submit { width: var(--tile-send); height: var(--tile-send); }
+.tile.is-sure { border-radius: 999px; width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 
@@ -6860,7 +6830,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .bb-tr { margin: .5rem 0 .1rem; font: 600 .6rem/1.2 var(--mono); color: var(--faint); letter-spacing: .05em; }
 .bb-credit, .wt-credit { margin: .4rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
 .wt-text { margin: 0; font-size: .95rem; line-height: 1.55; }
-.wt-text[lang="grc"] { font-family: var(--serif, Georgia, serif); }
+
+/* THE BIBLE'S ORIGINAL TEXTS (504): Hebrew right to left in the Talmud's Noto Serif Hebrew; polytonic Greek in Noto Serif's Greek subsets (OFL, self-hosted). */
+@font-face { font-family: 'Noto Serif Greek'; src: url('fonts/noto-serif-greek.woff2') format('woff2'); font-display: swap;
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF; }
+@font-face { font-family: 'Noto Serif Greek'; src: url('fonts/noto-serif-greek-ext.woff2') format('woff2'); font-display: swap;
+  unicode-range: U+1F00-1FFF; }
+.bb-he { font: 400 1.3rem/1.9 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; text-align: right; overflow-wrap: anywhere; }
+.bb-grc, .wt-text[lang="grc"] { font-family: 'Noto Serif Greek', var(--serif, Georgia, serif); }
+
+/* A WRITING'S REFERENCES (504): the bibliography, small and quiet under the credit. */
+.wt-refs { margin: .5rem 0 0; }
+.wt-refs-h { margin: 0 0 .15rem; font: 600 .6rem/1.2 var(--mono); color: var(--faint); letter-spacing: .05em; }
+.wt-refs ol { margin: 0; padding-left: 1.5rem; font-size: .7rem; line-height: 1.4; color: var(--dim); }
+.tx-text p { margin: 0 0 .7rem; font-size: .95rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }
@@ -6929,6 +6912,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rules-card .rule-opt { min-height: 44px; flex: 1 1 0; }
 .rules-card .rule-opt.on { border-color: var(--gold); color: var(--gold); }
 :root[data-uni~="tap-44"] .kp-key, :root[data-uni~="tap-44"] .qp-opt { min-height: var(--tile); }
+:root[data-uni~="tap-44"] .tile.is-submit { width: var(--tile); height: var(--tile); }
 :root[data-uni~="search-icon"] .search-pill .tile-i { width: var(--tile-i); height: var(--tile-i); }
 /* ---------- EDIT WORDS IN PLACE AND WHO SEES THIS (497, words.js) ---------- */
 .wk-editing [data-wk] { outline: 1px dashed var(--gold); outline-offset: 2px; cursor: text; min-width: 2rem; display: inline-block; }
@@ -6986,7 +6970,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- THE REWRITE COACH (509) ---------- */
 .rw-line textarea { width: 100%; min-height: 4rem; }
-.rw-src summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
 .rw-src-text { white-space: pre-wrap; font-size: .85rem; }
 .rw-h { margin: .7rem 0 .3rem; font-size: .9rem; }
 .rw-vocab { margin: 0; }
@@ -6995,9 +6978,25 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-v dd { margin: 0; color: var(--dim); }
 .rw-fb { margin: .2rem 0 .5rem; }
 .rw-kept { margin: 0; font-weight: 600; font-size: .82rem; }
-.rw-kept.is-no { color: var(--warn); }
 .rw-qs { margin: .2rem 0 0 1.1rem; padding: 0; font-size: .85rem; }
-.rw-pct { font-weight: 700; margin: .5rem 0 .2rem; }
-.rw-pct.is-high { color: var(--warn); }
 .rw-marked { white-space: pre-wrap; font-size: .85rem; }
 .rw-copied { background: var(--gold); color: var(--bg); }
+.rw-facts, .rw-verdicts, .rw-tips { margin: .2rem 0 .4rem 1.1rem; padding: 0; font-size: .85rem; }
+.rw-terms { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
+.rw-term { font-weight: 600; border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; font-size: .78rem; }
+.rw-hidden { font-style: italic; }
+.rw-cov { margin: 0; font-size: .8rem; color: var(--dim); }
+.rw-chips { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
+.rw-chip { font-weight: 400; border: 1px dashed var(--line); border-radius: .3rem; padding: 0 .3rem; }
+.rw-chip.is-rare { font-weight: 600; border-style: solid; }
+.rw-score { font-weight: 600; margin: .5rem 0 .2rem; }
+.rw-score .is-high { color: var(--warn); }
+.rw-kept.is-changed, .rw-kept.is-missing { color: var(--warn); }
+.rw-quote { margin: .1rem 0; font-size: .85rem; color: var(--dim); }
+.rw-q { margin: .1rem 0; font-size: .85rem; }
+/* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
+.rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
+.rep-file.is-failed { color: var(--ink); font-weight: 600; }
+/* THE HYMNS SHELF (517): its facts line and a gap between verses. */
+.hy-facts { margin: 0 0 .4rem; font: 400 .65rem/1.4 var(--mono); color: var(--faint); }
+.hy-verse + .hy-verse { margin-top: .6rem; }

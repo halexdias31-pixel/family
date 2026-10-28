@@ -618,12 +618,12 @@ function layoutClean_(v) {
   const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
   if (split.length) out.split = split;
   /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
-  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title}]`, at most twelve, each a column cards may stand on. */
+  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title, admin?}]`, at most twelve; `admin: true` is shown to admins alone (508). */
   const custom = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && /^custom-\d{1,3}$/.test(String(x.id)))
-    .map(x => ({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }))
+    .map(x => { const o2 = { id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }; if (x.admin === true) o2.admin = true; return o2; })
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
   if (custom.length) out.custom = custom;
-  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'].concat(custom.map(x => x.id));
+  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'].concat(custom.map(x => x.id));
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};
   Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });

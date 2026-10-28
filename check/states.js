@@ -1982,7 +1982,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
         bibleLoad_(1);
@@ -1994,12 +1994,12 @@ const STATES = {
         return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
-      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
                          { field: 'bibleBook', value: 'Psalms' }];
         paintStuff();
@@ -2011,7 +2011,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
                          { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
         paintStuff();
@@ -2023,7 +2023,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
                          { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
                          { field: 'bibleVerse', value: '3' }];
@@ -2041,7 +2041,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
                          { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
                          { field: 'bibleVerse', value: '9' }];
@@ -4284,14 +4284,13 @@ const STATES = {
         const now = new Date(), y = now.getFullYear(), m = now.getMonth();
         const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
         window.__CAL_HELD = { live: DATA.liveJobs, jobs: DATA.jobs, intervals: DATA.intervals,
-          closures: DATA.closures, festive: DATA.festive, exams: DATA.exams };
+          closures: DATA.closures, exams: DATA.exams };
         DATA.liveJobs = DATA.jobs = [{ id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday',
           client: USER.name, tutor: 'Ada Tutor', status: 'active', dates: [on(6), on(13), on(20)].join(', '),
           location: 'Colliers Wood Library', slots: [] }];
         DATA.intervals = [{ term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(2), endDate: '19/12/' + (y + 1) },
           { term: 'Half Term', label: 'Half Term', kind: 'half-term', startDate: on(26), endDate: on(28) }];
         DATA.closures = [{ date: on(13), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Bank holiday', kind: 'bank' }];
-        DATA.festive = [{ id: 'H1', name: 'Pumpkin carving', venue: 'Colliers Wood Library', date: on(13) }];
         DATA.exams = [{ personId: USER.personId, who: USER.name, label: 'Small exam', date: on(13), kind: 'mock' },
           { personId: USER.personId, who: USER.name, subject: 'Maths', label: 'Paper 1', date: on(15), kind: 'exam' }];
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'calendar');
@@ -4306,7 +4305,7 @@ const STATES = {
       leave: () => {
         const h = window.__CAL_HELD || {};
         DATA.liveJobs = h.live; DATA.jobs = h.jobs; DATA.intervals = h.intervals;
-        DATA.closures = h.closures; DATA.festive = h.festive; DATA.exams = h.exams;
+        DATA.closures = h.closures; DATA.exams = h.exams;
         initCalendar();
       } },
 
@@ -6076,7 +6075,7 @@ const STATES = {
     state('a tutor', { role: 'tutor', roles: ['tutor'] }, tutor, true, ticks(count(tutor, false), count(tutor, true)),
       'a tutor\'s ticks — messages, booking updates, posts — and the three always sent'),
     state('the admin', { role: 'admin', roles: ['admin'] }, admin, true, ticks(count(admin, false), count(admin, true)),
-      'the admin\'s ticks — messages, festive sign-ups, posts waiting — and the three always sent'),
+      'the admin\'s ticks — messages, booking updates, posts waiting — and the three always sent'),
     state('a backend older than the site', { role: 'parent', roles: ['parent'] }, null, false, said('/does not have notification choices yet/'),
       'one sentence saying the backend has no notification choices yet, and nothing to tick'));
 })();

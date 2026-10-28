@@ -32,7 +32,7 @@ function speedText_(x) {
   if (x.kind === 'question') return add([], [x.lead, x.html].concat((x.stems || []).map(p => p && p.html)).filter(Boolean)).join('\n\n');
   if (x.kind === 'project') return add(add(add([x.name], r.summary), r.makes), r.steps).join('\n\n');
   if (x.kind === 'bible' && x.bb) {
-    const d = typeof BIBLE !== 'undefined' && BIBLE.books[x.bb.n];
+    const d = typeof BIBLE !== 'undefined' && BIBLE.books[x.bb.slot || x.bb.n];
     const v = d && d.chapters[Number(x.ch) - 1] && d.chapters[Number(x.ch) - 1][Number(x.v) - 1];
     return v ? String(v).replace(/^#\s*/, '').replace(/[\[\]]/g, '') : '';
   }
@@ -104,7 +104,7 @@ function speedLoad_(text) {
 /* WAITING FOR THE WORDS: the Ledger's (`libItems`) or a book of the Bible — the three dots until they come. */
 function speedAwait_(x) {
   if (x && x.kind === 'bible' && x.bb && typeof bibleLoad_ === 'function') {
-    bibleLoad_(x.bb.n).then(() => {
+    bibleLoad_(x.bb.n, x.bb.dir).then(() => {
       if (SPEED.x !== x) return;
       const t = speedText_(x);
       if (t) speedLoad_(t);

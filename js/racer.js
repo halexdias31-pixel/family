@@ -20,6 +20,10 @@ const RACE_COL = {
   slate: [0.3, 0.32, 0.36], flatroof: [0.48, 0.48, 0.47],
   areas: { res: [0.45, 0.52, 0.38], ind: [0.5, 0.49, 0.47], retail: [0.56, 0.55, 0.53], lot: [0.4, 0.4, 0.41],
     park: [0.33, 0.58, 0.27], wood: [0.2, 0.4, 0.2], pitch: [0.4, 0.66, 0.32], water: [0.25, 0.45, 0.62] },
+  /* The ground's layers, bottom to top (511): one road surface, pavement and kerb where OSM has a footway, white markings. */
+  surf: { res: [0.45, 0.52, 0.38], ind: [0.5, 0.49, 0.47], retail: [0.56, 0.55, 0.53], lot: [0.4, 0.4, 0.41], park: [0.33, 0.58, 0.27],
+    wood: [0.2, 0.4, 0.2], pitch: [0.4, 0.66, 0.32], water: [0.25, 0.45, 0.62], rail: [0.45, 0.41, 0.37], rails: [0.62, 0.62, 0.64],
+    pave: [0.62, 0.61, 0.58], kerb: [0.78, 0.77, 0.74], road: [0.27, 0.27, 0.29], mark: [0.92, 0.92, 0.88] },
   roundel: [0.86, 0.1, 0.12], bar: [0.0, 0.1, 0.53], sign: [0.95, 0.95, 0.92],
   car: [0.85, 0.66, 0.16], glass: [0.12, 0.14, 0.18], tyre: [0.08, 0.08, 0.08], gate: [0.95, 0.74, 0.2],
 };
@@ -97,9 +101,8 @@ function raceWorld_(map) {
   /* THE GROUND between the grid's points, bilinear; outside the grid it holds the edge. */
   W.ground = (x, y) => {
     const fx = Math.min(Math.max((x - G.x0) / G.cell, 0), G.nx - 1.0001), fy = Math.min(Math.max((y - G.y0) / G.cell, 0), G.ny - 1.0001);
-    const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j;
-    const at = (a, b) => G.h[Math.min(b, G.ny - 1) * G.nx + Math.min(a, G.nx - 1)] || 0;
-    return at(i, j) * (1 - u) * (1 - v) + at(i + 1, j) * u * (1 - v) + at(i, j + 1) * (1 - u) * v + at(i + 1, j + 1) * u * v;
+    const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, i1 = Math.min(i + 1, G.nx - 1), j1 = Math.min(j + 1, G.ny - 1), H = G.h;
+    return (H[j * G.nx + i] || 0) * (1 - u) * (1 - v) + (H[j * G.nx + i1] || 0) * u * (1 - v) + (H[j1 * G.nx + i] || 0) * (1 - u) * v + (H[j1 * G.nx + i1] || 0) * u * v;
   };
   W.half = [Math.max(G.nx - 1, 1) * G.cell / 2, Math.max(G.ny - 1, 1) * G.cell / 2];
   W.mid = [G.x0 + W.half[0], G.y0 + W.half[1]];
@@ -158,6 +161,8 @@ function raceWorld_(map) {
   });
   /* THE LANDMARKS a local would name: a post where each stands, its name on the HUD when near (500). */
   (map.marks || []).forEach(m => W.marks.push({ name: String(m[0] || ''), kind: String(m[1] || ''), x: (m[2] || 0) / 10, y: (m[3] || 0) / 10 }));
+  /* A BUILDING: its OSM outline, eaves height and roof (shape, ridge, planes as triangles) and its colours (511). An old row is [h, ring, kind]. */
+  const hex = (s, or) => (/^[0-9a-f]{6}$/i.test(s || '') ? [0, 2, 4].map(k => parseInt(s.slice(k, k + 2), 16) / 255) : or);
   (map.bld || []).forEach((b, bi) => {
     const c = b[1] || [], ring = [];
     for (let i = 0; i + 1 < c.length; i += 2) ring.push([c[i] / 10, c[i + 1] / 10]);
@@ -165,7 +170,15 @@ function raceWorld_(map) {
     const xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
     const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const grounds = ring.map(p => W.ground(p[0], p[1]));
-    const o = { h: Math.max(2.5, (b[0] || 75) / 10), kind: RACE_COL.kinds[b[2]] ? b[2] : 'house', ring, box, base: Math.min(...grounds) - 1, top: Math.max(...grounds), i: bi };
+    const kind = RACE_COL.kinds[b[2]] ? b[2] : 'house', pal = RACE_COL.kinds[kind];
+    const ex = b[4] || [], extra = [];
+    for (let i = 0; i + 1 < ex.length; i += 2) extra.push([ex[i] / 10, ex[i + 1] / 10]);
+    const rf = Array.isArray(b[3]) ? b[3] : null;
+    const o = { h: Math.max(2.2, (b[0] || 75) / 10), kind, ring, box, base: Math.min(...grounds) - 1, top: Math.max(...grounds), i: bi,
+      roof: rf ? { shape: rf[0] | 0, h: (rf[1] || 0) / 10, ox: (rf[2] || 0) / 10, oy: (rf[3] || 0) / 10, ux: (rf[4] || 1000) / 1000, uy: (rf[5] || 0) / 1000,
+        hw: Math.max(0.1, (rf[6] || 1) / 10), hl: Math.max(0.1, (rf[7] || 1) / 10) } : null,
+      extra, tris: Array.isArray(b[5]) ? b[5] : null, wall: hex(b[6], pal[bi % pal.length]),
+      roofCol: hex(b[7], kind === 'house' ? RACE_COL.slate : RACE_COL.flatroof), minh: (b[8] || 0) / 10 };
     W.bld.push(o);
     for (let cx = Math.floor(box[0] / C); cx <= Math.floor(box[2] / C); cx++) {
       for (let cy = Math.floor(box[1] / C); cy <= Math.floor(box[3] / C); cy++) {
@@ -175,6 +188,8 @@ function raceWorld_(map) {
       }
     }
   });
+  /* THE FLAT LAYERS tools/race_map.py triangulated once: parks, water, pavement, kerb, ONE road surface, markings (511). */
+  W.surf = (Array.isArray(map.surf) ? map.surf : []).filter(L => Array.isArray(L) && RACE_COL.surf[L[0]] && Array.isArray(L[1]) && Array.isArray(L[2]));
   /* INSIDE A BUILDING: an even-odd ray cast against the few in the car's cell. */
   W.inBuilding = (x, y) => {
     const list = W.bhash.get(cellOf(x, y));
@@ -301,11 +316,22 @@ function raceGates_(W) {
   return out;
 }
 
-/* ---------- THE MESH, LIT ON THE CPU: x, h, -y and a colour per vertex ---------- */
+/* ---------- THE MESH, LIT ON THE CPU: x, h, -y and a colour per vertex, in 200 m tiles so what is past the fog is not drawn ---------- */
+const RACE_TILE = 200;            // metres a side of one drawing tile
+const RACE_LIFT = 0.12;           // the flat layers ride this far over the ground's own triangles
 function raceMesh_(W) {
-  /* ONE GROWING Float32Array, written in place: a real map is a quarter of a million vertices, and an array per vertex froze the phone. */
-  let v = new Float32Array(1 << 18), at = 0;
-  const room = k => { if (at + k > v.length) { const b = new Float32Array(v.length * 2); b.set(v); v = b; } };
+  /* ONE GROWING Float32Array PER LAYER AND TILE, written in place: an array per vertex froze the phone. */
+  const buckets = new Map();
+  let cur = null, layer = '', big = false;
+  let last = null;
+  const bucket = (x, y) => {
+    const tx = big ? 0 : Math.floor(x / RACE_TILE), ty = big ? 0 : Math.floor(-y / RACE_TILE);
+    if (last && last.layer === layer && last.big === big && last.tx === tx && last.ty === ty) return last;
+    const key = layer + '|' + (big ? 'all' : tx + ':' + ty);
+    let b = buckets.get(key);
+    if (!b) { b = { layer, big, tx, ty, v: new Float32Array(4096), at: 0 }; buckets.set(key, b); }
+    return (last = b);
+  };
   /* A point is given as [x east, y north, h]; GL wants [x, h, -y]. The light is worked out here, once, with the normal facing up. */
   const tri = (a, b, c, col, n) => {
     let nx, ny, nz;
@@ -318,26 +344,30 @@ function raceMesh_(W) {
     }
     const k = 0.55 + 0.45 * Math.max(0, nx * RACE_SUN[0] + ny * RACE_SUN[1] + nz * RACE_SUN[2]);
     const r = col[0] * k, g = col[1] * k, bl = col[2] * k;
-    room(18);
-    v[at++] = a[0]; v[at++] = a[2]; v[at++] = -a[1]; v[at++] = r; v[at++] = g; v[at++] = bl;
-    v[at++] = b[0]; v[at++] = b[2]; v[at++] = -b[1]; v[at++] = r; v[at++] = g; v[at++] = bl;
-    v[at++] = c[0]; v[at++] = c[2]; v[at++] = -c[1]; v[at++] = r; v[at++] = g; v[at++] = bl;
+    const B = cur || bucket((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
+    if (B.at + 18 > B.v.length) { const nv = new Float32Array(B.v.length * 2); nv.set(B.v); B.v = nv; }
+    const v = B.v;
+    v[B.at++] = a[0]; v[B.at++] = a[2]; v[B.at++] = -a[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
+    v[B.at++] = b[0]; v[B.at++] = b[2]; v[B.at++] = -b[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
+    v[B.at++] = c[0]; v[B.at++] = c[2]; v[B.at++] = -c[1]; v[B.at++] = r; v[B.at++] = g; v[B.at++] = bl;
   };
   const quad = (a, b, c, d, col, n) => { tri(a, b, c, col, n); tri(a, c, d, col, n); };
-  const ranges = {};
-  const mark = (name, fn) => { const s = at / 6; fn(); ranges[name] = [s, at / 6 - s]; };
+  const order = [];
+  const mark = (name, fn) => { layer = name; if (order.indexOf(name) < 0) order.push(name); fn(); cur = null; big = false; };
+  /* One thing in one tile: a building's walls and roof stay together however its corners fall. */
+  const whole = (x, y, fn) => { cur = bucket(x, y); fn(); cur = null; };
 
   mark('ground', () => {
     const G = W.G;
     for (let j = 0; j + 1 < G.ny; j++) for (let i = 0; i + 1 < G.nx; i++) {
-      const p = (a, b) => [G.x0 + a * G.cell, G.y0 + b * G.cell, G.h[b * G.nx + a] - 0.3];
+      const p = (a, b) => [G.x0 + a * G.cell, G.y0 + b * G.cell, G.h[b * G.nx + a]];
       const shade = 0.94 + 0.06 * ((i * 7 + j * 13) % 5) / 4;
       const col = RACE_COL.grass.map(c => c * shade);
       quad(p(i, j), p(i + 1, j), p(i + 1, j + 1), p(i, j + 1), col);
     }
   });
-  /* A STRIP along a polyline: half-width `hw`, height from `hOf`, mitred at each joint. */
-  const strip = (line, hw, hOf, col, skirt) => {
+  /* A STRIP along a polyline: half-width `hw`, height from `hOf`, mitred at each joint (a backend-built map has no surface). */
+  const strip = (line, hw, hOf, col) => {
     const n = line.length, L = [], R = [];
     for (let k = 0; k < n; k++) {
       const a = line[Math.max(0, k - 1)], b = line[Math.min(n - 1, k + 1)];
@@ -347,44 +377,63 @@ function raceMesh_(W) {
       L.push([line[k][0] - dy * hw, line[k][1] + dx * hw, h]);
       R.push([line[k][0] + dy * hw, line[k][1] - dx * hw, h]);
     }
-    for (let k = 0; k + 1 < n; k++) {
-      quad(L[k], R[k], R[k + 1], L[k + 1], col);
-      if (skirt) {
-        const down = p => [p[0], p[1], p[2] - skirt];
-        quad(L[k], L[k + 1], down(L[k + 1]), down(L[k]), RACE_COL.kerb, [0, 0.3, 0]);
-        quad(R[k], R[k + 1], down(R[k + 1]), down(R[k]), RACE_COL.kerb, [0, 0.3, 0]);
-      }
-    }
+    for (let k = 0; k + 1 < n; k++) quad(L[k], R[k], R[k + 1], L[k + 1], col, [0, 1, 0]);
   };
-  mark('area', () => W.areas.forEach(a => {
-    const ring = raceCcw_(a.ring), col = RACE_COL.areas[a.kind];
-    const P = ring.map(p => [p[0], p[1], W.ground(p[0], p[1]) - 0.1]);
-    raceEar_(ring).forEach(t => tri(P[t[0]], P[t[1]], P[t[2]], col, [0, 1, 0]));
-  }));
-  mark('water', () => W.water.forEach(wt => strip(wt.line, wt.w / 2, k => W.ground(wt.line[k][0], wt.line[k][1]) - 0.2, RACE_COL.water)));
-  mark('road', () => W.roads.forEach(r => strip(r.idx.map(i => [W.px[i], W.py[i]]), r.w / 2, k => W.ph[r.idx[k]] + 0.06, RACE_COL.road, 1.2)));
-  /* THE CENTRE LINE on a road with lanes or a class above residential: 3 m dashes every 9 m. */
-  mark('lines', () => W.roads.forEach(r => {
-    if (!(r.lanes >= 2 || /^(trunk|primary|secondary|tertiary|motorway)$/.test(r.kind))) return;
-    for (let k = 0; k + 1 < r.idx.length; k++) {
-      const a = r.idx[k], b = r.idx[k + 1], d = Math.hypot(W.px[b] - W.px[a], W.py[b] - W.py[a]);
-      for (let s = 0; s + 3 <= d; s += 9) {
-        const f0 = s / d, f1 = (s + 3) / d, at = f => [W.px[a] + (W.px[b] - W.px[a]) * f, W.py[a] + (W.py[b] - W.py[a]) * f];
-        const p0 = at(f0), p1 = at(f1);
-        strip([p0, p1], 0.08, k2 => (k2 ? W.ph[a] + (W.ph[b] - W.ph[a]) * f1 : W.ph[a] + (W.ph[b] - W.ph[a]) * f0) + 0.09, RACE_COL.line);
+  const up = [0, 1, 0];
+  if (W.surf.length) {
+    W.surf.forEach(L => mark(L[0], () => {
+      const v = L[1], t = L[2], col = RACE_COL.surf[L[0]], P = [];
+      for (let i = 0; i + 1 < v.length; i += 2) P.push([v[i] / 10, v[i + 1] / 10, W.ground(v[i] / 10, v[i + 1] / 10) + RACE_LIFT]);
+      for (let k = 0; k + 2 < t.length; k += 3) {
+        const a = P[t[k]], b = P[t[k + 1]], c = P[t[k + 2]];
+        if (!a || !b || !c) continue;
+        big = Math.max(Math.abs(a[0] - b[0]), Math.abs(a[0] - c[0]), Math.abs(a[1] - b[1]), Math.abs(a[1] - c[1])) > RACE_TILE / 2;
+        tri(a, b, c, col, up);
       }
+    }));
+  } else {
+    mark('area', () => W.areas.forEach(a => {
+      const ring = raceCcw_(a.ring), col = RACE_COL.areas[a.kind];
+      const P = ring.map(p => [p[0], p[1], W.ground(p[0], p[1]) + RACE_LIFT]);
+      big = true;
+      raceEar_(ring).forEach(t => tri(P[t[0]], P[t[1]], P[t[2]], col, up));
+    }));
+    mark('water', () => W.water.forEach(wt => strip(wt.line, wt.w / 2, k => W.ground(wt.line[k][0], wt.line[k][1]) + RACE_LIFT, RACE_COL.water)));
+    mark('road', () => W.roads.forEach(r => strip(r.idx.map(i => [W.px[i], W.py[i]]), r.w / 2, k => W.ph[r.idx[k]] + RACE_LIFT, RACE_COL.road)));
+  }
+  /* THE ROOF OVER A POINT: eaves plus the slope times the distance in from the nearest eave line, as the shape says. */
+  const roofZ = (o, top, x, y) => {
+    const R = o.roof;
+    if (!R || !R.shape) return top;
+    const dx = x - R.ox, dy = y - R.oy, u = dx * R.ux + dy * R.uy, v = -dx * R.uy + dy * R.ux, s = R.h / R.hw;
+    if (R.shape === 1) return top + s * Math.max(0, R.hw - Math.abs(v));
+    if (R.shape === 2) return top + s * Math.max(0, Math.min(R.hw - Math.abs(v), R.hl - Math.abs(u)));
+    return top + R.h * Math.min(1, Math.max(0, (R.hw - v) / (2 * R.hw)));
+  };
+  mark('bld', () => W.bld.forEach(o => whole((o.box[0] + o.box[2]) / 2, (o.box[1] + o.box[3]) / 2, () => {
+    const top = o.top + o.h, base = o.minh ? o.top + o.minh : o.base, col = o.wall;
+    if (o.tris) {
+      /* THE RING IS COUNTER-CLOCKWISE (the builder's), its roof's cut points already in it: each wall's top follows the roof. */
+      const all = o.ring.concat(o.extra), Z = all.map(p => roofZ(o, top, p[0], p[1]));
+      for (let i = 0; i < o.ring.length; i++) {
+        const j = (i + 1) % o.ring.length, a = o.ring[i], b = o.ring[j];
+        const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, n = [dy / l, 0, dx / l];
+        quad([a[0], a[1], base], [b[0], b[1], base], [b[0], b[1], Z[j]], [a[0], a[1], Z[i]], col, n);
+      }
+      for (let k = 0; k + 2 < o.tris.length; k += 3) {
+        const i0 = o.tris[k], i1 = o.tris[k + 1], i2 = o.tris[k + 2], A = all[i0], B = all[i1], Cc = all[i2];
+        if (A && B && Cc) tri([A[0], A[1], Z[i0]], [B[0], B[1], Z[i1]], [Cc[0], Cc[1], Z[i2]], o.roofCol);
+      }
+      return;
     }
-  }));
-  mark('bld', () => W.bld.forEach(o => {
-    const pal = RACE_COL.kinds[o.kind], col = pal[o.i % pal.length], top = o.top + o.h, ring = raceCcw_(o.ring);
-    const roof = o.kind === 'house' ? RACE_COL.slate : RACE_COL.flatroof;
+    const ring = raceCcw_(o.ring);
     for (let i = 0; i < ring.length; i++) {
       const a = ring[i], b = ring[(i + 1) % ring.length];
       const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
-      quad([a[0], a[1], o.base], [b[0], b[1], o.base], [b[0], b[1], top], [a[0], a[1], top], col, [dy / l, 0, dx / l]);
+      quad([a[0], a[1], base], [b[0], b[1], base], [b[0], b[1], top], [a[0], a[1], top], col, [dy / l, 0, dx / l]);
     }
-    raceEar_(ring).forEach(t => tri([ring[t[0]][0], ring[t[0]][1], top], [ring[t[1]][0], ring[t[1]][1], top], [ring[t[2]][0], ring[t[2]][1], top], roof, [0, 1, 0]));
-  }));
+    raceEar_(ring).forEach(t => tri([ring[t[0]][0], ring[t[0]][1], top], [ring[t[1]][0], ring[t[1]][1], top], [ring[t[2]][0], ring[t[2]][1], top], o.roofCol, up));
+  })));
   /* A POST AT EACH LANDMARK: the station's red roundel and blue bar; a white sign for the rest. */
   const cube = (x0, y0, z0, x1, y1, z1, col) => {
     const c = (x, y, z) => [x, y, z];
@@ -394,7 +443,7 @@ function raceMesh_(W) {
     quad(c(x0, y1, z0), c(x0, y0, z0), c(x0, y0, z1), c(x0, y1, z1), col, [-1, 0, 0]);
     quad(c(x1, y0, z0), c(x1, y1, z0), c(x1, y1, z1), c(x1, y0, z1), col, [1, 0, 0]);
   };
-  mark('marks', () => W.marks.forEach(m => {
+  mark('marks', () => W.marks.forEach(m => whole(m.x, m.y, () => {
     const g = W.ground(m.x, m.y), x = m.x, y = m.y;
     cube(x - 0.15, y - 0.15, g, x + 0.15, y + 0.15, g + 6, RACE_COL.kerb);
     if (m.kind === 'tube') {
@@ -403,8 +452,24 @@ function raceMesh_(W) {
     } else {
       cube(x - 2, y - 0.1, g + 6, x + 2, y + 0.1, g + 7.4, m.kind === 'park' ? RACE_COL.areas.park : RACE_COL.sign);
     }
-  }));
-  return { data: v.slice(0, at), ranges };
+  })));
+  /* ONE BUFFER: each layer's tiles end to end, the layers in drawing order. `ranges` is a layer's whole span; `tiles` its pieces. */
+  let n = 0;
+  buckets.forEach(b => { n += b.at; });
+  const data = new Float32Array(n), ranges = {}, tiles = {};
+  let at = 0;
+  order.forEach(name => {
+    const s = at / 6;
+    tiles[name] = [];
+    buckets.forEach(b => {
+      if (b.layer !== name || !b.at) return;
+      data.set(b.v.subarray(0, b.at), at);
+      tiles[name].push({ big: b.big, x: (b.tx + 0.5) * RACE_TILE, y: (b.ty + 0.5) * RACE_TILE, first: at / 6, count: b.at / 6 });
+      at += b.at;
+    });
+    ranges[name] = [s, at / 6 - s];
+  });
+  return { data, ranges, tiles, order };
 }
 
 /* Counter-clockwise, seen from above (x east, y north). */
@@ -442,7 +507,7 @@ function raceReset_() {
   const g = W && W.gates[0];
   c.x = g ? g.x : 0; c.y = g ? g.y : 0; c.th = g ? g.th : 0; c.v = 0; c.steer = 0;
   c.h = W ? W.heightAt(c.x, c.y) : 0; c.pitch = 0;
-  RACE.cam = null;
+  RACE.cam = null; RACE.prev = null;
   RACE.lap = { next: 1, start: 0, paused: 0, best: raceBest_(), last: 0, laps: 0 };
 }
 
@@ -481,6 +546,17 @@ function raceStep_(dt) {
   c.h = W.heightAt(c.x, c.y);
   c.pitch = Math.atan(grade);
   raceGateCheck_();
+}
+
+/* THE CAR AS SEEN: between the last two physics steps by how far into the next one the clock is, so a 50, 75 or 120 Hz screen
+   never shows the same place twice and then a jump (511). */
+function raceSeen_() {
+  const c = RACE.car, p = RACE.prev;
+  if (!p || !RACE.running) return c;
+  const f = Math.min(1, Math.max(0, RACE.acc / RACE_DT)), mix = (a, b) => a + (b - a) * f;
+  let d = c.th - p.th;
+  d -= Math.round(d / (2 * Math.PI)) * 2 * Math.PI;
+  return { x: mix(p.x, c.x), y: mix(p.y, c.y), h: mix(p.h, c.h), th: p.th + d * f, pitch: mix(p.pitch, c.pitch), v: c.v };
 }
 
 function raceGateCheck_() {
@@ -603,20 +679,25 @@ function raceDraw_() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    const ctx = G.ctx, c = RACE.car, W = RACE.world;
+    const ctx = G.ctx, W = RACE.world, c = raceSeen_();
+    /* THE CAMERA EASES AT THE SAME RATE AT ANY FRAME RATE (511): a fixed share per frame shook on a 120 Hz screen and lagged at 30. */
+    const now = raceNow_(), dt = Math.min(0.1, Math.max(0, (now - (RACE.drawAt || now)) / 1000));
+    RACE.drawAt = now;
     const fx = Math.sin(c.th), fy = Math.cos(c.th);
     const want = [c.x - fx * 9, c.y - fy * 9];
-    const eh = Math.max(W.heightAt(want[0], want[1]) + 1.8, c.h + 3.2);
-    const eye = [want[0], eh, -want[1]];
-    RACE.cam = RACE.cam ? RACE.cam.map((q, i) => q + (eye[i] - q) * 0.18) : eye;
+    const eye = [want[0], Math.max(W.ground(want[0], want[1]) + 1.8, c.h + 3.2), -want[1]];
+    const ease = 1 - Math.pow(0.82, dt * 60);
+    RACE.cam = RACE.cam && dt > 0 ? RACE.cam.map((q, i) => q + (eye[i] - q) * ease) : (RACE.cam && !dt ? RACE.cam : eye);
+    /* DRAWN ROUND THE CAMERA: the world is moved by the whole metres under it, so every number the GPU sees is small. */
+    const O = [Math.round(RACE.cam[0]), 0, Math.round(RACE.cam[2])], rel = p => [p[0] - O[0], p[1], p[2] - O[2]];
     const look = [c.x + fx * 4, c.h + 1.2, -(c.y + fy * 4)];
-    const vp = raceMul_(racePersp_(62 * Math.PI / 180, w / h, 0.5, 700), raceLook_(RACE.cam, look, [0, 1, 0]));
+    const vp = raceMul_(racePersp_(62 * Math.PI / 180, w / h, 0.8, 700), raceLook_(rel(RACE.cam), rel(look), [0, 1, 0]));
     ctx.viewport(0, 0, w, h);
     ctx.clearColor(RACE_COL.sky[0], RACE_COL.sky[1], RACE_COL.sky[2], 1);
     ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT);
     ctx.useProgram(G.prog);
     ctx.uniformMatrix4fv(G.uVP, false, vp);
-    ctx.uniform3fv(G.uEye, RACE.cam);
+    ctx.uniform3fv(G.uEye, rel(RACE.cam));
     ctx.uniform3fv(G.uFog, RACE_COL.sky);
     const draw = (b, m, first, count) => {
       ctx.bindBuffer(ctx.ARRAY_BUFFER, b.b);
@@ -625,20 +706,29 @@ function raceDraw_() {
       ctx.uniformMatrix4fv(G.uM, false, m);
       ctx.drawArrays(ctx.TRIANGLES, first || 0, count === undefined ? b.n : count);
     };
-    const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-    /* GROUND, THEN WHAT LIES ON IT pulled towards the eye, so a road never flickers through the grass under it. */
-    const R = W.mesh.ranges;
-    draw(G.world, I, R.ground[0], R.ground[1]);
+    const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -O[0], 0, -O[2], 1]);
+    const model = (x, y, hh, th, pitch, k) => { const m = raceModel_(x, y, hh, th, pitch, k); m[12] -= O[0]; m[14] -= O[2]; return m; };
+    /* ONLY THE TILES NEAR ENOUGH TO SEE: the fog is whole by 560 m, so a tile whose nearest corner is further is not drawn. */
+    const T = W.mesh.tiles || {}, far = 560 + RACE_TILE * 0.75;
+    let drawn = 0;
+    const layer = name => (T[name] || []).forEach(t => {
+      if (!t.big && Math.hypot(t.x - RACE.cam[0], t.y - RACE.cam[2]) > far) return;
+      draw(G.world, I, t.first, t.count); drawn += t.count;
+    });
+    /* THE GROUND WRITES DEPTH; WHAT LIES FLAT ON IT DOES NOT, painted bottom to top over it, so no two layers ever fight for a pixel (511). */
+    layer('ground');
     ctx.enable(ctx.POLYGON_OFFSET_FILL);
-    if (R.area) { ctx.polygonOffset(-0.5, -1); draw(G.world, I, R.area[0], R.area[1]); }
-    ctx.polygonOffset(-1, -2); draw(G.world, I, R.water[0], R.water[1]); draw(G.world, I, R.road[0], R.road[1]);
-    ctx.polygonOffset(-2, -4); draw(G.world, I, R.lines[0], R.lines[1]);
+    ctx.polygonOffset(-1, -4);
+    ctx.depthMask(false);
+    (W.mesh.order || []).forEach(name => { if (name !== 'ground' && name !== 'bld' && name !== 'marks') layer(name); });
+    ctx.depthMask(true);
     ctx.disable(ctx.POLYGON_OFFSET_FILL);
-    draw(G.world, I, R.bld[0], R.bld[1]);
-    if (R.marks && R.marks[1]) draw(G.world, I, R.marks[0], R.marks[1]);
+    layer('bld');
+    layer('marks');
+    RACE.drawn = drawn;
     const g = W.gates[RACE.lap.next % (W.gates.length || 1)];
-    if (g) draw(G.gate, raceModel_(g.x, g.y, W.heightAt(g.x, g.y), g.th, 0, Math.max(1, (g.w + 2) / 5)));
-    draw(G.car, raceModel_(c.x, c.y, c.h, c.th, c.pitch, 1));
+    if (g) draw(G.gate, model(g.x, g.y, W.heightAt(g.x, g.y) + RACE_LIFT, g.th, 0, Math.max(1, (g.w + 2) / 5)));
+    draw(G.car, model(c.x, c.y, c.h + RACE_LIFT, c.th, c.pitch, 1));
   }
   raceMini_(box);
 }
@@ -716,7 +806,7 @@ function raceFrame_(t) {
   const now = raceNow_();
   RACE.acc = Math.min(RACE.acc + (now - (RACE.last || now)) / 1000, RACE_DT * 15);
   RACE.last = now;
-  while (RACE.acc >= RACE_DT) { raceStep_(RACE_DT); RACE.acc -= RACE_DT; }
+  while (RACE.acc >= RACE_DT) { RACE.prev = Object.assign({}, RACE.car); raceStep_(RACE_DT); RACE.acc -= RACE_DT; }
   raceDraw_();
   raceHud_();
   RACE.raf = requestAnimationFrame(raceFrame_);

@@ -14,12 +14,10 @@ const bad = [];
 for (const file of files) {
   const src = fs.readFileSync(file, 'utf8');
   /* strip comments and strings so a word in prose is not read as code */
-  const code = src
-    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
-    .replace(/\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '))
-    .replace(/`(?:[^`\\]|\\.)*`/g, m => m.replace(/[^\n]/g, ' '))
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  /* ONE PASS, LEFT TO RIGHT (517): a `//` inside a string is not a comment, so comments and strings are read in the order they come. */
+  const blank = m => m.replace(/[^\n]/g, ' ');
+  const code = src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|`(?:[^`\\]|\\.)*`|'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g,
+    m => m[0] === '/' || m[0] === '`' ? blank(m) : m[0] + m[0]);
 
   const lines = code.split('\n');
   /* find each block-scoped declaration, then the line its block closes on */
@@ -62,6 +60,8 @@ for (const file of files) {
       if (new RegExp('[\\w$]\\s*\\.\\s*' + name + '\\b').test(lines[j])) break;
       /* A KEY IN AN OBJECT LITERAL IS NOT A USE EITHER. § */
       if (new RegExp('(?:^|[{,(])\\s*' + name + '\\s*:').test(lines[j])) break;
+      /* NOR A METHOD'S NAME IN ONE (517): `join(it, ink, F) {`. */
+      if (new RegExp('^\\s*(?:async\\s+)?' + name + '\\s*\\([^)]*\\)\\s*\\{').test(lines[j])) break;
       bad.push({ file, name, at: i + 1, used: j + 1,
                  line: src.split('\n')[j].trim().slice(0, 70) });
       break;

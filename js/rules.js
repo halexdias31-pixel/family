@@ -3,10 +3,10 @@
 
 /* ONE ROW A RULE: `say` the exception, `where` it applies, `uni` what Universal does instead, `lock` why it cannot be universal (never flips). */
 const RULES = [
-  { id: 'tap-44', say: 'Keypad keys and multiple-choice options stay 44px tall while every tile is 22px', where: 'A question\'s pages (487)',
-    uni: 'They shrink to the 22px tile size.' },
-  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 10px', where: 'Find and Find 2 (487)',
-    uni: 'The magnifier is 10px like every tile\'s mark.' },
+  { id: 'tap-44', say: 'Keypad keys, multiple-choice options and every Check/Send stay 44px while every other tile is 36px', where: 'A question\'s pages (487, 508)',
+    uni: 'They shrink to the 36px tile size.' },
+  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find and Find 2 (487)',
+    uni: 'The magnifier is 16px like every tile\'s mark.' },
   { id: 'whole-widgets', say: 'Console, Board games, Word & number games, Calculator, Whiteboard and Reels cannot be merged', where: 'Widget columns (480)',
     uni: 'They get Merge with the card above like every other widget.' },
   { id: 'library-one-card', say: 'Library cards holds one card, with no Add another', where: 'Settings (489)',
@@ -17,17 +17,18 @@ const RULES = [
     uni: 'Open to every age, like every other item.' },
   { id: 'gcse-sensitive-age', say: 'GCSE-level history, RS, philosophy, psychology and sociology (and drugs, crime, abortion anywhere), and the history database, are for 14 and over', where: 'Find and Find 2 (505)',
     uni: 'Open to every age, like every other item.' },
-  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490)',
-    uni: 'Anyone of age sees it, like the Talmud and the Quran.' },
+  /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
+  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490, 504)',
+    uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
   { id: 'finder-members', say: 'Signed out, Find and Find 2 are one "Members only" card', where: 'Find and Find 2 (400)',
     uni: 'Signed out sees the finders like every other column.' },
   { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
     uni: 'Delete on it like every other widget.', lock: 'It is the one place a shop order is paid; without it nobody could pay.' },
-  { id: 'admin-cols', say: 'Business and Site cards stay on those two columns, and no other card moves onto them', where: 'Business and Site (491)',
+  { id: 'admin-cols', say: 'Business and Site cards stay on those two columns and admin-only columns made past Site (508), and no other card moves onto them', where: 'Business and Site (491)',
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },
   { id: 'people-no-merge', say: 'A card drawn a page a person (Tutor directory, Every student, Every parent) cannot be merged', where: 'Profile columns (480)',
     uni: 'Merge on them too.', lock: 'A merged card is one page, and people cannot be stacked on one.' },
-  { id: 'items-no-move', say: 'The festive card, the Camera and Daive\'s card have Delete but no move tiles', where: 'Feed and Messages (487)',
+  { id: 'items-no-move', say: 'The Camera and Daive\'s card have Delete but no move tiles', where: 'Feed and Messages (487)',
     uni: 'Move tiles like every card.', lock: 'Their column\'s own code places them; there is nothing to move them with yet.' },
   { id: 'form-save-row', say: 'A settings form keeps its own Save row instead of joining the card\'s tile row', where: 'Settings (489)',
     uni: 'One joined row like every other card.', lock: 'Joining it moved Add a qualification and broke a section\'s own Save.' },
@@ -44,7 +45,7 @@ const RULES = [
     uni: 'A Magnifier on every card.' },
   { id: 'speed-long', say: 'Speed read is on long words (content, practicals, projects, a Bible verse), not on a question', where: 'Every card\'s tile row (403, 502)',
     uni: 'Speed read on a question\'s words too.' },
-  { id: 'hear-lang', say: 'Hear it is only on Spanish, French and German content cards', where: 'Content cards (427)',
+  { id: 'hear-lang', say: 'Hear it is only on Spanish, French, German and Russian content cards', where: 'Content cards (427)',
     uni: 'Hear it on every card.', lock: 'It reads the foreign-language half of each line; nothing else has one.' },
 ];
 const RULE_OF_ = id => RULES.find(r => r.id === id) || null;
@@ -88,8 +89,11 @@ function ruleOn_(id) {
   const r = RULE_OF_(id);
   if (!r || r.lock) return true;
   const s = rulesNow_();
-  return !(s && s.set && s.set[id] === 'universal');
+  const marked = !!(s && s.set && s.set[id] === 'universal');
+  return r.flip ? marked : !marked;
 }
+/* WHAT THE BACKEND STORES for a choice: a `flip` rule is stored the other way round, so the backend needs no change. */
+const ruleStored_ = (r, to) => r && r.flip ? (to === 'universal' ? 'exception' : 'universal') : to;
 /* THE RULES ONLY CSS CAN APPLY, said on the root as `data-uni` (style.css reads `:root[data-uni~="…"]`). */
 function rulesMark_() {
   try {
@@ -119,7 +123,7 @@ function rulesCard_() {
   };
   return `<div class="card biz rules-card"><h3>Rules</h3>
     ${RULES.map(row).join('')}
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + last.was + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + ruleStored_(lastR, last.was) + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
     <p class="faint rules-said" aria-live="polite"></p></div>`;
 }
 function rulesSend_(body, el) {
@@ -139,6 +143,6 @@ function rulesSend_(body, el) {
 on('rule-set', el => {
   const id = el.getAttribute('data-rule'), to = el.getAttribute('data-to'), r = RULE_OF_(id);
   if (!r || r.lock || (to === 'universal') === !ruleOn_(id)) return;
-  rulesSend_({ rule: id, to: to }, el);
+  rulesSend_({ rule: id, to: ruleStored_(r, to) }, el);
 });
 on('rules-undo', el => rulesSend_({ undo: true }, el));

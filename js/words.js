@@ -62,7 +62,7 @@ function wordsTiles_(scope, id) {
   return tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: scope } })
     + tile_({ icon: 'show', label: 'Who sees this', note: s ? SEEN_SAY[s] : 'Everyone', act: 'seen-open', tone: 'admin', on: !!s, data: { lc: id } });
 }
-const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set, .fest, .post');
+const wordsRoot_ = el => el.closest('.wk-editing') || el.closest('.card, .own-set, .post');
 const wordsText_ = s => String(s || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WORDS_PIECE_MAX);
 
 /* ---------- EDITING IN PLACE: each marked piece editable where it stands, Reset beside any the admin has changed, Save and Done under ---------- */

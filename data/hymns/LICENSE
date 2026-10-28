@@ -1,0 +1,17 @@
+data/hymns/ — the hymns shelf (docs/history/516), written by tools/hymns-text.py. Never edit these files by hand; change the script and re-run it.
+
+Every hymn's words are in the public domain: each was printed in a hymnal published before 1929, and the four books
+were transcribed by Project Gutenberg volunteers (public domain in the USA; https://www.gutenberg.org/policy/license.html).
+No audio is hosted here: a card links to a Spotify search for the hymn ("Listen on Spotify"), nothing more.
+
+  The Otterbein Hymnal, ed. Edmund S. Lorenz (Dayton, Ohio: United Brethren Publishing House, 1890).
+      https://www.gutenberg.org/ebooks/16455 — words, authors, years, tune names and meters as printed.
+  The St. Gregory Hymnal and Catholic Choir Book, ed. Nicola A. Montani (Philadelphia: St. Gregory Guild, 1920).
+      https://www.gutenberg.org/ebooks/23673 — words and credits as printed (the music is not copied).
+  John Brownlie, Hymns of the Greek Church (Edinburgh: Oliphant, Anderson & Ferrier, 1900). Brownlie died 1925.
+      https://www.gutenberg.org/ebooks/27848 — English renderings of troparia, kontakia and stichera.
+  John Brownlie, Hymns from the East (Paisley: Alexander Gardner, 1907).
+      https://www.gutenberg.org/ebooks/28479
+
+Tradition is the author's church (Orthodox for the Greek office books, Catholic for the St. Gregory Hymnal);
+season comes from the section each hymnal printed it in.
