@@ -46,6 +46,8 @@ const WHERE = {
   applications:   { file: 'ledger' },
   /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
   claude_notes:   { file: 'ledger' },
+  /* A PERSON'S FAVOURITE LINKS (509) — the Ledger, because the app writes it. doGet sends each viewer their own rows alone. */
+  fav_links:      { file: 'ledger' },
   /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
   push_tokens:    { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
@@ -124,7 +126,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zu-gcse";
+const BACKEND_VERSION = "2026-10-28-zx-links";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -160,6 +162,8 @@ const TAB = {
   applications: 'applications',
   /* A note for Claude on a widget or card — see SCHEMA.claude_notes. */
   claude_notes: 'claude_notes',
+  /* A person's favourite links — see SCHEMA.fav_links. */
+  fav_links: 'fav_links',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -501,6 +505,11 @@ const SCHEMA = {
     "note_id", "made_at", "made_by", "column", "item_id", "item_label", "note", "status", "done_at",
   ],
 
+  /* ---------- FAVOURITE LINKS (509): one row per link, in the person's order, ten at most ---------- */
+  fav_links: [
+    "person_id", "title", "url",
+  ],
+
   /* ---------- APPLICATIONS TO TEACH (400) ----------
      `status` is new, interview, approved or declined, set from the Business column; Approve makes the person Staff. */
   applications: [
@@ -605,6 +614,10 @@ const AI_QUOTA_TZ = 'America/Los_Angeles';
 const AI_SPENT_MAX_S = 21600;
 
 /* Every tunable, with a plain-English note and a starting value. § */
+/* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
+const FAV_LINKS_MAX = 10, FAV_TITLE_MAX = 80, FAV_URL_MAX = 2000;
+/* THE REWRITE COACH (509): its daily cap when the config cell is blank, and the longest text it reads. */
+const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 1500;
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
@@ -628,6 +641,7 @@ const CONFIG_DEFAULTS = [
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
   ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
+  ['rewrite_coach_per_day', REWRITE_PER_DAY, 'how many times one person may ask the Rewrite coach (Tools, admin only for now) in a day; reading a text and checking the writing count one each. Blank = ' + REWRITE_PER_DAY + '. 0 switches it off'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
   ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
@@ -1640,6 +1654,10 @@ const ACTION_ACCESS = {
   digestWordsSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
   claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
+  /* FAVOURITE LINKS (509): your own list, written whole. */
+  favLinksSave: 'self',
+  /* THE REWRITE COACH (509): admin only for now, and the handler asks the rank again. */
+  rewriteIdeas: 'admin', rewriteCheck: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
   /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
