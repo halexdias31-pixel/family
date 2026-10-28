@@ -45,7 +45,7 @@ const RULES = [
     uni: 'A Magnifier on every card.' },
   { id: 'speed-long', say: 'Speed read is on long words (content, practicals, projects, a Bible verse), not on a question', where: 'Every card\'s tile row (403, 502)',
     uni: 'Speed read on a question\'s words too.' },
-  { id: 'hear-lang', say: 'Hear it is only on Spanish, French and German content cards', where: 'Content cards (427)',
+  { id: 'hear-lang', say: 'Hear it is only on Spanish, French, German and Russian content cards', where: 'Content cards (427)',
     uni: 'Hear it on every card.', lock: 'It reads the foreign-language half of each line; nothing else has one.' },
 ];
 const RULE_OF_ = id => RULES.find(r => r.id === id) || null;

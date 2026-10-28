@@ -8580,7 +8580,7 @@ on('read-aloud', el => {
 
 /* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
 /* The worked lines' own-language halves (before " — "), in that language's voice; the English is on the card to read. */
-const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE' };
+const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE', Russian: 'ru-RU' };
 const hearItLang_ = x => (x && x.kind === 'content' && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
 const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
 function hearItTile_(x) {
