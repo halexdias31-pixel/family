@@ -20889,13 +20889,13 @@ check('Find 2 across a sign-in: signed out it is the members card, signed in it 
     t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
-    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Books shelf, so its going was NOT checked');
+    if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(60);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
     if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     t.go('res', false, true); await wait(60);
-    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2\'s chips still name the Books shelf');
+    if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2\'s chips still name the Writings shelf');
   }
   /* ---- A CHILD'S SESSION ENDS ON FIND 2: kept for them, not for the next child ---- */
   {
@@ -21034,9 +21034,9 @@ check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learn
 });
 
 /* ---------- AN AGE LIMIT (490): the Talmud and the Quran carry min_age 18 — a child, an adult with no date of birth and a signed-out visitor are never sent them ---------- */
-check('an age limit (490): a ten-year-old, a member with no date of birth and a signed-out visitor are never shown or sent the Talmud, the Quran or the Bible; an adult is shown the Talmud and the Quran; an item with min_age is hidden alike', async () => {
+check('an age limit (490, 504): a ten-year-old, a member with no date of birth and a signed-out visitor are never shown or sent the Talmud, the Quran or the Bible; an adult is shown all three; an item with min_age is hidden alike', async () => {
   const serve = url => {
-    const m = /(?:^|\/)data\/(talmud|quran)\/([a-z0-9-]+\/\d+\.json|[a-z0-9]+\.json)(?:\?|$)/.exec(url);
+    const m = /(?:^|\/)data\/(talmud|quran|bible)\/([a-z0-9-]+\/[a-z0-9-]+\.json|[a-z0-9-]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
     const p = path.join(dir, '..', 'data', m[1], m[2]);
     return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
@@ -21053,14 +21053,15 @@ check('an age limit (490): a ten-year-old, a member with no date of birth and a 
     if (!b.w.__t) { bad.push(what + ': the app did not boot — NOT checked'); continue; }
     const { w } = b, t = w.__t;
     t.go('stuff'); w.paintStuff();
-    for (let i = 0; i < 80 && ok && !(w.talmudItems_().length && w.quranItems_().length); i++) await wait(25);
+    for (let i = 0; i < 160 && ok && !(w.talmudItems_().length && w.quranItems_().length && w.bibleItems_().length); i++) await wait(25);
     if (!ok) await wait(150);
     const all = w.stuffItemsAll_();
     const kinds = k => all.filter(x => x.kind === k).length;
     const sent = b.gets.filter(g => /data\/(talmud|quran|bible)\//.test(g));
     if (ok) {
       if (!kinds('talmud') || !kinds('quran')) bad.push(what + ' is not shown the Talmud (' + kinds('talmud') + ') and the Quran (' + kinds('quran') + ')');
-      if (kinds('bible')) bad.push(what + ' is shown the Bible — it is for admins only');
+      /* PUBLIC NOW (504): "bible should also be in there as it's open source" — `kjv-admin` is Universal until the owner switches it. */
+      if (!kinds('bible')) bad.push(what + ' is not shown the Bible — it is open to anyone of age since 504');
     } else {
       if (kinds('talmud') || kinds('quran') || kinds('bible')) bad.push(what + ' is shown ' + ['talmud', 'quran', 'bible'].map(k => kinds(k) + ' ' + k).join(', '));
       if (sent.length) bad.push(what + ' was sent ' + sent.join(', '));
@@ -21086,24 +21087,70 @@ check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Lib
   const { w } = b, t = w.__t, d = w.document, bad = [];
   t.go('stuff'); w.paintStuff();
   for (let i = 0; i < 80 && !w.quranItems_().length; i++) await wait(25);
-  if (w.quranItems_().length !== 6236) return ['the Quran holds ' + w.quranItems_().length + ' verses, not 6236 — fetched: ' + b.gets.filter(u => /quran/.test(u)).join(', ')];
+  /* ONE CARD, ONE LANGUAGE (504): the Arabic and Pickthall's English are a card each. */
+  if (w.quranItems_().length !== 6236 * 2) return ['the Quran holds ' + w.quranItems_().length + ' cards, not 6236 verses in two languages — fetched: ' + b.gets.filter(u => /quran/.test(u)).join(', ')];
   if (b.gets.some(u => /quran\/\d{3}\.json/.test(u))) bad.push('a surah\'s text was fetched before any card of it was drawn');
   const x = w.stuffItemsAll_().find(y => y.key === 'qr:2:255');
   if (!x) return bad.concat(['Al-Baqara 2:255 is not on the list of everything']);
   if (x.quranJuz !== 'Juz 3' || x.quranPlace !== 'Medinan') bad.push('2:255 is tagged ' + x.quranJuz + ', ' + x.quranPlace + ' — not Juz 3, Medinan');
+  /* AN OLD STAR (504): `qr:2:255` was the two-language card; it is the Arabic one now. */
+  if (x.quranTranslation !== 'Arabic (Tanzil)') bad.push('the old key qr:2:255 is the ' + x.quranTranslation + ' card, not the Arabic');
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Writings' }, { field: 'libBook', value: 'Quran' },
-    { field: 'quranSurah', value: '2 · Al-Baqara' }, { field: 'quranAyah', value: '255' }];
+    { field: 'quranTranslation', value: 'Arabic (Tanzil)' }, { field: 'quranSurah', value: '2 · Al-Baqara' }, { field: 'quranAyah', value: '255' }];
   const got = w.stuffFiltered();
-  if (got.length !== 1 || got[0] !== x) bad.push('the five answers keep ' + got.length + ' thing(s), not 2:255 alone');
+  if (got.length !== 1 || got[0] !== x) bad.push('the six answers keep ' + got.length + ' thing(s), not 2:255 alone');
   const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); d.body.appendChild(el);
   const tags = [...el.querySelectorAll('.qtag')].map(q => q.getAttribute('data-f'));
-  ['quranSurah', 'quranAyah', 'quranJuz', 'quranPlace'].forEach(f => { if (tags.indexOf(f) < 0) bad.push('the card has no ' + f + ' tag: ' + tags.join(', ')); });
+  ['quranTranslation', 'quranSurah', 'quranAyah', 'quranJuz', 'quranPlace'].forEach(f => { if (tags.indexOf(f) < 0) bad.push('the card has no ' + f + ' tag: ' + tags.join(', ')); });
   for (let i = 0; i < 80 && !el.querySelector('.qr-ar'); i++) await wait(25);
   if (!el.querySelector('.qr-ar')) return bad.concat(['the card never drew its verse']);
   const want = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'quran', '002.json'), 'utf8')).ar[254];
   if (el.querySelector('.qr-ar').textContent.indexOf(want) !== 0) bad.push('the Arabic is not the Throne Verse: ' + el.querySelector('.qr-ar').textContent.slice(0, 40));
-  if (!/Allah! There is no deity save Him/.test((el.querySelector('.qr-en') || {}).textContent || '')) bad.push('the English is not Pickthall\'s 2:255');
+  if (el.querySelector('.qr-en')) bad.push('the Arabic card draws the English too — one card is one language');
   if (!/Tanzil/.test((el.querySelector('.qr-credit') || {}).textContent || '')) bad.push('the verse carries no attribution');
+  const en = w.stuffItemsAll_().find(y => y.key === 'qr:en:2:255');
+  if (!en || en.quranTranslation !== 'English (Pickthall)') return bad.concat(['there is no English (Pickthall) card qr:en:2:255']);
+  const e2 = d.createElement('div'); e2.innerHTML = w.stuffCard(en); d.body.appendChild(e2);
+  for (let i = 0; i < 80 && !e2.querySelector('.qr-en'); i++) await wait(25);
+  if (!/Allah! There is no deity save Him/.test((e2.querySelector('.qr-en') || {}).textContent || '')) bad.push('the English card is not Pickthall\'s 2:255');
+  if (e2.querySelector('.qr-ar')) bad.push('the English card draws the Arabic too — one card is one language');
+  return bad;
+});
+
+/* ---------- ONE VERSE, ONE TEXT (504): the Bible offered to an adult client; KJV and WEB a card each; the dots under Which writing end ---------- */
+check('one verse, one text (504): an adult client is offered the Bible under Which writing, the dots there end, and Genesis 1:1 is a KJV card and a WEB card, each one text with its Text tag', async () => {
+  const serve = url => {
+    const m = /(?:^|\/)data\/(talmud|quran|bible|hadith|works)\/([a-z0-9-]+\/[a-z0-9-]+\.json|[A-Za-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(dir, '..', 'data', m[1], m[2]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '2', dob_m: '3', dob_y: String(new Date().getFullYear() - 30) } });
+  const b = boot({ serve, before: signedInAs_(adult) });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  t.go('stuff'); w.paintStuff();
+  for (let i = 0; i < 200 && !(w.bibleItems_().length && w.quranItems_().length && w.talmudItems_().length && w.hadithItems_().length); i++) await wait(25);
+  if (!w.bibleItems_().length) return ['the Bible never came for an adult client — fetched: ' + b.gets.filter(u => /bible/.test(u)).join(', ')];
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'shelf', value: 'Writings' }];
+  const items = w.stuffFiltered(), facet = w.nextFacet(items);
+  if (!facet || facet.field !== 'libBook') return bad.concat(['under Writings the next question is ' + (facet && facet.field) + ', not Which writing']);
+  if (facet.label !== 'Which writing') bad.push('the question is labelled ' + facet.label);
+  const vals = w.facetValues(items, facet).map(v => String(v.value));
+  ['Bible', 'Quran', 'Talmud', 'Hadith'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
+  if (w.scriptureWait_(items) !== '') bad.push('with every index in, the dots under Which writing still stand: ' + w.scriptureWait_(items));
+  const k = w.stuffItemsAll_().find(y => y.key === 'bible:kjv:1:1:1'), e = w.stuffItemsAll_().find(y => y.key === 'bible:web:1:1:1');
+  if (!k || !e) return bad.concat(['Genesis 1:1 is not a KJV card and a WEB card']);
+  if (k.bb.translation !== 'KJV' || e.bb.translation !== 'WEB') bad.push('their Text tags are ' + k.bb.translation + ', ' + e.bb.translation);
+  for (const [x, want, not] of [[k, /In the beginning God created the heaven/, /created the heavens/], [e, /created the heavens/, /created the heaven and/]]) {
+    const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); d.body.appendChild(el);
+    for (let i = 0; i < 120 && !el.querySelector('.bb-v'); i++) await wait(25);
+    const txt = [...el.querySelectorAll('.bb-v')].map(v => v.textContent).join(' | ');
+    if (el.querySelectorAll('.bb-v').length !== 1) bad.push(x.key + ' draws ' + el.querySelectorAll('.bb-v').length + ' verses — one card is one text');
+    if (!want.test(txt) || not.test(txt)) bad.push(x.key + ' draws "' + txt.slice(0, 80) + '"');
+    if ([...el.querySelectorAll('.qtag')].map(q => q.getAttribute('data-f')).indexOf('bibleTranslation') < 0) bad.push(x.key + ' has no Text tag');
+  }
   return bad;
 });
 
@@ -21594,7 +21641,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
 });
 
 /* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT § */
-check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (499) → Religious Studies → Bible → testament → group → book → chapter → verse, asked by the one rule, KJV and WEB on each card; nobody else is shown it or fetches a byte of it', async () => {
+check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (499) → Religious Studies → Bible → testament → group → book → chapter → verse, asked by the one rule, one text a card (504); nobody under age is shown it or fetches a byte of it', async () => {
   const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
@@ -21608,7 +21655,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   const bibleDir = path.join(dir, '..', 'data', 'bible');
   const refuse = new Set();
   const serve = url => {
-    const m = /(?:^|\/)data\/bible\/((?:web\/)?[a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    const m = /(?:^|\/)data\/bible\/((?:[a-z]+\/)?[a-z0-9-]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
     if (refuse.has(m[1])) return null;
     const p = path.join(bibleDir, m[1]);
@@ -21683,13 +21730,15 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   if (!t || !t.BIBLE || !t.BIBLE() || !t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — NOT checked']);
   if (ofBible(a.gets).some(u => !/index\.json/.test(u))) bad.push('an admin\'s boot fetched a book of the Bible before any verse was drawn: ' + ofBible(a.gets).join(', '));
   const verses = w.stuffItemsAll_().filter(x => x.kind === 'bible');
-  if (verses.length !== index.totals.verses) bad.push('an admin\'s list holds ' + verses.length + ' Bible items — wanted ' + index.totals.verses + ', a card a verse');
+  /* A CARD A VERSE A TEXT (504): the KJV and the WEB on the KJV's numbering, each other text on its own books. */
+  const wantN = index.totals.verses + (index.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : index.totals.verses), 0);
+  if (verses.length !== wantN) bad.push('an admin\'s list holds ' + verses.length + ' Bible items — wanted ' + wantN + ', a card a verse a text');
   if (verses.some(x => !x.bb || Number(x.min_age) !== 18)) bad.push('a Bible item is not a verse or is not 18+');
   if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('Find 2 does not carry the verses for an admin');
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'libBook', value: 'Bible' }];
-  const route = [['bibleTestament', 'New Testament'], ['bibleGroup', 'Gospels'], ['bibleBook', 'John'], ['bibleChapter', '3'], ['bibleVerse', '16']];
+  const route = [['bibleTranslation', 'KJV'], ['bibleTestament', 'New Testament'], ['bibleGroup', 'Gospels'], ['bibleBook', 'John'], ['bibleChapter', '3'], ['bibleVerse', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }
@@ -21702,11 +21751,12 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     const x = john[0];
     const host = d.createElement('div'); d.body.appendChild(host);
     host.innerHTML = w.stuffCard(x);
-    for (let i = 0; i < 80 && !(t.BIBLE().books[43] && t.BIBLE().also[43]); i++) await wait(25);
+    for (let i = 0; i < 80 && !t.BIBLE().books[43]; i++) await wait(25);
     host.innerHTML = w.stuffCard(x);
     const txt = host.textContent.replace(/\s+/g, ' ');
     if (!/For God so loved the world/.test(txt)) bad.push('the John 3:16 card does not show the KJV: ' + txt.slice(0, 120));
-    if (!/one and only Son|only born Son/.test(txt)) bad.push('the John 3:16 card does not show the World English Bible: ' + txt.slice(0, 200));
+    /* ONE CARD, ONE TEXT (504): "the bible shouldn't show multiple translations per card". */
+    if (/one and only Son|only born Son/.test(txt)) bad.push('the KJV John 3:16 card shows the World English Bible too: ' + txt.slice(0, 200));
     if (host.querySelector('.card h3')) bad.push('a verse card carries a heading — its tags are its title (499)');
     if (host.querySelector('.card').getAttribute('aria-label') !== 'John 3:16') bad.push('a verse card is not named John 3:16 for a screen reader');
     host.remove();
@@ -21747,13 +21797,12 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
     const R = resView_(w);
     /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints — or the two would differ by its timing. */
     try { t.go('stuff'); w.paintStuff(); } catch (e) {}
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
-    const admin = u.role === 'admin';
     ['stuff', 'res'].forEach(fid => {
       const has = (fid === 'res' ? R : w).stuffItems().some(x => x.kind === 'bible');
-      if (admin && !has) bad.push('the admin\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds no Bible cover — both finders hold it for an admin');
-      if (!admin && has) bad.push(what + '\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds the Bible — it is for admins only');
+      /* OPEN TO ANYONE OF AGE (504): a parent of thirty holds it as an admin does. */
+      if (!has) bad.push(what + '\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds no Bible — it is open to anyone of age since 504');
     });
     const trace = {};
     STARTS.forEach(([say, steps, fid]) => {
@@ -21813,7 +21862,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
         if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
         continue;
       }
-      const avals = ps.field === 'libBook' ? as.vals.filter(v => v !== 'Bible') : as.vals;
+      const avals = as.vals;
       if (ps.field !== as.field || ps.vals.join('|') !== avals.join('|')) {
         const onlyAdmin = avals.filter(v => ps.vals.indexOf(v) < 0), onlyParent = ps.vals.filter(v => avals.indexOf(v) < 0);
         bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)
@@ -25606,7 +25655,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     w.paintFinder_('res');
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
     t.STUFF().q = 'fractions';
-    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Books shelf, so its going was NOT checked');
+    if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
     t.go('res', false, true);
@@ -25614,7 +25663,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     if (t.whoami()) bad.push('Sign out left somebody signed in');
     if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2’s chips still name the Books shelf');
+    if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2’s chips still name the Writings shelf');
     /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
@@ -30335,7 +30384,10 @@ check('Library → a subject offers only shelves that subject has — never Book
   if (w.stuffItems().length < 1000) return ['the library did not load, so NOT checked'];
   /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), every one 18+, and no cover. */
   const bv = w.stuffItems().filter(x => x.kind === 'bible');
-  if (bv.length !== 31102) bad.push('the admin\'s list holds ' + bv.length + ' Bible items — wanted 31,102, one a verse');
+  /* ONE A VERSE A TEXT (504): the KJV's 31,102, the WEB's on the same numbering, and each other text over its own books. */
+  const bix = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'bible', 'index.json'), 'utf8'));
+  const bWant = bix.totals.verses + (bix.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : bix.totals.verses), 0);
+  if (bv.length !== bWant) bad.push('the admin\'s list holds ' + bv.length + ' Bible items — wanted ' + bWant + ', one a verse a text');
   if (bv.some(x => !x.bb || Number(x.min_age) < 18)) bad.push('a Bible item is not a verse, or carries no 18+ limit');
   const S = t.STUFF();
   const base = [{ field: 'kindLabel', value: 'Library' }];
