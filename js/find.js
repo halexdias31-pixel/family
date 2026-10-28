@@ -26,7 +26,8 @@ const FINDERS = {
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
   res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   front: () => [],
+                   /* A RULE (496), locked: `find-front` — the front pages are Find's alone. */
+                   front: () => (typeof ruleOn_ !== 'function' || ruleOn_('find-front')) ? [] : [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;
@@ -1793,9 +1794,12 @@ const BIBLE_FIELDS = {};
 FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT § */
-const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
+/* A RULE (496): `kjv-admin` — an admin only; Universal, anyone of age too, like the Talmud and the Quran. check-bible reads this line. */
+const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
 /* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
 const SCRIPTURE_MIN_AGE = 18;
+/* A RULE (496): `scripture-age` — Universal, scripture has no age limit, like every other item. */
+const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('scripture-age')) ? SCRIPTURE_MIN_AGE : 0;
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
@@ -2020,7 +2024,7 @@ function bibleItems_() {
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. § */
   const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF, libBook: 'Bible', subject: SCRIPTURE_SUBJECT(),
-              text: BIBLE_WORDS, row: null, min_age: SCRIPTURE_MIN_AGE };
+              text: BIBLE_WORDS, row: null, min_age: scriptureMinAge_() };
   x.holds = words => bibleHolds_(x, words);
   BIBLE.item = x;
   return [x];
@@ -10992,7 +10996,7 @@ on('members-join', () => { if (typeof registerSheet_ === 'function') registerShe
 
 function finderScreen_() {
   const F = FINDER;
-  if (!USER) return finderMembersOnly_(F);
+  if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';

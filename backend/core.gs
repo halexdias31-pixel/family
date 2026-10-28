@@ -575,6 +575,23 @@ function configPublic_(cfg) {
   return out;
 }
 
+/* ---------- THE RULES (496): `{set: {id: 'universal'}, hist: [{id, was, to, at}]}`, known unlocked ids only; null when broken ---------- */
+function rulesClean_(v) {
+  let o = v;
+  if (typeof o === 'string') {
+    if (!o.trim() || o.length > LAYOUT_MAX) return null;
+    try { o = JSON.parse(o); } catch (e) { return null; }
+  }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const free = id => RULE_IDS.indexOf(String(id)) !== -1 && RULES_LOCKED.indexOf(String(id)) === -1;
+  const ok = x => x === 'exception' || x === 'universal';
+  const set = {}, s = o.set && typeof o.set === 'object' && !Array.isArray(o.set) ? o.set : {};
+  Object.keys(s).forEach(k => { if (free(k) && s[k] === 'universal') set[k] = 'universal'; });
+  const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && typeof h === 'object' && free(h.id) && ok(h.was) && ok(h.to))
+    .slice(-RULES_HIST_MAX).map(h => ({ id: String(h.id), was: h.was, to: h.to, at: String(h.at || '').slice(0, 40) }));
+  return { set: set, hist: hist };
+}
+
 /* ---------- THE SITE'S LAYOUT (462): one JSON value an admin arranges, checked whole § */
 /* Shapes only, never which ids exist: the site knows its columns and widgets and ignores the rest. null when broken. */
 function layoutClean_(v) {

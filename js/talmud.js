@@ -22,7 +22,7 @@ function talmudGet_(file) {
 
 /* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */
 /* ONLY FOR A VIEWER OF AGE (490): under it, or signed out, the index is never even fetched. */
-const talmudFor_ = () => viewerOfAge_(SCRIPTURE_MIN_AGE);
+const talmudFor_ = () => viewerOfAge_(scriptureMinAge_());
 function talmudIndex_() {
   if (TALMUD.index) return TALMUD.index;
   if (!talmudFor_()) return null;
@@ -76,7 +76,7 @@ function talmudItems_() {
       const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
       list.push({
         kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf, libBook: 'Talmud', subject: rs,
-        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: SCRIPTURE_MIN_AGE,
+        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: scriptureMinAge_(),
         talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d), talSide: 'Side ' + side,
         text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
         tal: { slug: t.slug, d: d, i: i },

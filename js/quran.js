@@ -11,7 +11,7 @@ const QURAN = { index: null, asking: null, failed: false, surahs: {}, loading: {
 const QURAN_ORDER = [];
 ANSWER_ORDERS.push(QURAN_ORDER);
 /* ONLY FOR A VIEWER OF AGE (490), like the Bible and the Talmud: under it, or signed out, nothing is fetched. */
-const quranFor_ = () => viewerOfAge_(SCRIPTURE_MIN_AGE);
+const quranFor_ = () => viewerOfAge_(scriptureMinAge_());
 
 function quranGet_(file) {
   const stamp = window.LOAD ? '?t=' + window.LOAD : '';
@@ -56,7 +56,7 @@ function quranItems_() {
     for (let a = 1; a <= s.ayahs; a++) {
       list.push({
         kind: 'quran', key: 'qr:' + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf, libBook: 'Quran', subject: rs,
-        sub: s.meaning, min_age: SCRIPTURE_MIN_AGE, text: words,
+        sub: s.meaning, min_age: scriptureMinAge_(), text: words,
         quranSurah: say, quranAyah: String(a), quranJuz: 'Juz ' + quranJuzOf_(s, a), quranPlace: s.place,
         quranSajda: sajda[s.n + ':' + a] ? 'Prostration' : '',
         qr: { s: s.n, a: a },

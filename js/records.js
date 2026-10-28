@@ -135,7 +135,7 @@ function bizPages_() {
 function siteBizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
-  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
+  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_(), typeof rulesCard_ === 'function' ? [rulesCard_()].filter(Boolean) : []);
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------

@@ -1997,7 +1997,7 @@ const cardWorld_ = (more) => {
     const g = real.get({});
     const p = Object.assign(payload(), { features: ['setNotify'], tutors: g.tutors, venues: g.venues,
       profileFields: g.profileFields, studentFields: g.studentFields, clientFields: g.clientFields,
-      validations: g.validations, profileReadonly: g.profileReadonly, phoneCodes: g.phoneCodes });
+      validations: g.validations, profileReadonly: g.profileReadonly, phoneCodes: g.phoneCodes, rules: g.rules });
     /* `more.vars`: config numbers laid over the fixture's — the seat's `c` and `B` (docs/history/345). */
     if (more && more.vars) p.constants = Object.assign({}, p.constants, { vars: Object.assign({}, (p.constants || {}).vars, more.vars) });
     return p;
@@ -30523,6 +30523,53 @@ check('library cards (489): the widget holds one card — no Add another, the on
   if (box.querySelectorAll('.lib-card').length !== 1) bad.push(box.querySelectorAll('.lib-card').length + ' card slots, not one');
   if (box.querySelector('[data-do="shelf-more"]')) bad.push('there is still an Add another');
   if (!box.querySelector('[name="lib2_name"], [data-me="lib2_name"], [data-f="lib2_name"]') && h.indexOf('Town library') === -1) bad.push('the filled card is not the one shown');
+  return bad;
+});
+
+/* ---------- THE RULES CARD (496): a rule flipped to Universal changes a client's site after a reload, Undo restores it, a locked rule cannot flip, a non-admin cannot save ---------- */
+check('the Rules card (496): the admin flips "Tell the admin" to Universal on Site and a client reloads to "Suggest a change"; Undo puts it back; a locked rule has no switch and the backend refuses it; a client cannot save', async () => {
+  const W = cardWorld_(), bad = [];
+  const reply = b => (b.action === 'rulesSave' ? W.real.post(b) : W.reply(b));
+  const says = c => String(c.w.suggestTile_('message', 'm-1', 'a message'));
+  const c0 = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c0.err) return [c0.err];
+  if (says(c0).indexOf('Tell the admin') === -1) bad.push('before any change a client\'s message does not say "Tell the admin"');
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return bad.concat([a.err]);
+  a.t.go('site', false, true); a.w.paint('site'); await wait(300);
+  const card = a.d.querySelector('#s-site .rules-card');
+  if (!card) return bad.concat(['the Site column has no Rules card for an admin']);
+  const nReg = (require('fs').readFileSync(require('path').join(__dirname, 'rules.js'), 'utf8').match(/^  \{ id: '/gm) || []).length;
+  if (!nReg || card.querySelectorAll('.rule-row').length !== nReg) bad.push('the card shows ' + card.querySelectorAll('.rule-row').length + ' rules, not ' + nReg);
+  const locked = card.querySelector('.rule-row[data-rule="keep-basket"]');
+  if (!locked || locked.querySelector('.rule-opt') || !/Locked: /.test(locked.textContent)) bad.push('the locked basket rule has a switch or no reason');
+  const uni = card.querySelector('.rule-row[data-rule="tell-admin"] .rule-opt[data-to="universal"]');
+  if (!uni) return bad.concat(['the tell-admin rule has no Universal switch']);
+  a.A('rule-set', uni); await wait(500);
+  const post = a.sent.filter(x => x.action === 'rulesSave').pop();
+  if (!post || post.rule !== 'tell-admin' || post.to !== 'universal') bad.push('Universal posted ' + JSON.stringify(post));
+  const c1 = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c1.err) return bad.concat([c1.err]);
+  if (says(c1).indexOf('Suggest a change') === -1) bad.push('after Universal and a reload a client\'s message still says "Tell the admin"');
+  /* UNDO: the last change, back for everybody. */
+  a.t.go('site', false, true); a.w.paint('site'); await wait(300);
+  const undo = a.d.querySelector('#s-site .rules-card [data-do="rules-undo"]:not([disabled])');
+  if (!undo) return bad.concat(['no live Undo tile after a change']);
+  a.A('rules-undo', undo); await wait(500);
+  const c2 = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c2.err) return bad.concat([c2.err]);
+  if (says(c2).indexOf('Tell the admin') === -1) bad.push('after Undo and a reload a client\'s message does not say "Tell the admin"');
+  const hist = (W.GET().rules || {}).hist || [];
+  if (hist.length !== 0) bad.push('after one change and its Undo the history holds ' + hist.length);
+  /* A LOCKED RULE: the backend refuses it even when asked directly. */
+  const L = W.real.post({ action: 'rulesSave', personId: a.u.personId, token: a.u.token, rule: 'keep-basket', to: 'universal' });
+  if (!L || L.success || !(W.GET().rules || { set: {} }).set) bad.push('the backend let a locked rule flip: ' + JSON.stringify(L));
+  if (((W.GET().rules || {}).set || {})['keep-basket']) bad.push('keep-basket was saved universal');
+  /* A CLIENT: no card, and the backend says no. */
+  c2.t.go('site', false, true); await wait(200);
+  if (c2.d.querySelector('.rules-card')) bad.push('a client is drawn the Rules card');
+  const n = W.real.post({ action: 'rulesSave', personId: c2.u.personId, token: c2.u.token, rule: 'tell-admin', to: 'universal' });
+  if (!n || n.success) bad.push('a client saved a rule: ' + JSON.stringify(n));
   return bad;
 });
 

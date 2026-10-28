@@ -15,6 +15,10 @@ const LAYOUT_SPLIT_ID = /^(set|biz):[A-Za-z0-9_:.-]{1,60}$/;
 const CUSTOM_ID = /^custom-\d{1,3}$/;
 const CUSTOM_MAX = 12;
 /* NEVER MERGED — each needs the whole page: it is sized, zoomed or scrolled to the pane, and a second thing under it would be cut off or squeezed. */
+/* A RULE (496): `whole-widgets` on the Rules card; Universal lets them merge like any widget. */
+const wholeBars_ = x => (x in WIDGET_WHOLE) && (typeof ruleOn_ !== 'function' || ruleOn_('whole-widgets'));
+/* A RULE (496), locked: `keep-basket`. */
+const basketKept_ = x => LAYOUT_KEEP.indexOf(x) !== -1 && (typeof ruleOn_ !== 'function' || ruleOn_('keep-basket'));
 const WIDGET_WHOLE = {
   console: 'a console screen sized to the whole page', boardgames: 'a board drawn to the whole page', wordgames: 'a game board drawn to the whole page',
   calculator: 'zoomed to fit the page and must keep its shape (472)', whiteboard: 'a drawing surface the size of the page', reels: 'a feed that scrolls the whole page',
@@ -80,7 +84,7 @@ function layoutSane_(v) {
 const MERGE_MAX = 12;
 function mergeSane_(v) {
   const used = {};
-  return (Array.isArray(v) ? v : []).filter(Array.isArray).map(g => g.map(String).filter(x => LAYOUT_ID.test(x) && !used[x] && !(x in WIDGET_WHOLE))
+  return (Array.isArray(v) ? v : []).filter(Array.isArray).map(g => g.map(String).filter(x => LAYOUT_ID.test(x) && !used[x] && !wholeBars_(x))
     .filter((x, i, all) => all.indexOf(x) === i).slice(0, MERGE_MAX)).filter(g => g.length > 1 && g.every(x => (used[x] = 1))).slice(0, 100);
 }
 
@@ -197,7 +201,7 @@ function layoutTiles_(w) {
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     startTile_(col, id, ((layoutNow_() || {}).start || {})[col] || '')}${
     frontTile_(col, id)}${
-    notePair_((grp || [id]).every(x => LAYOUT_KEEP.indexOf(x) === -1) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
+    notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
       '')}</span>`;
 }
 
@@ -229,7 +233,7 @@ on('lay-w-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-w');
   const all = mergeAll_(id, layoutNow_());
-  if (all.some(x => LAYOUT_KEEP.indexOf(x) !== -1)) return;
+  if (all.some(basketKept_)) return;
   if (el.getAttribute('data-armed') !== '1') {
     const say = all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
     el.setAttribute('data-armed', '1');
@@ -297,6 +301,8 @@ const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents'
 /* THE ADMIN'S TWO COLUMNS (491): Business and Site; a card moves between them, and no other card moves onto either. */
 const ADMIN_COLS_ = ['biz', 'site'];
 const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1;
+/* A RULE (496), locked: `admin-cols` — Business and Site cards stay put and nothing else moves onto them. */
+const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(typeof ruleOn_ !== 'function' || ruleOn_('admin-cols'));
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
@@ -334,6 +340,7 @@ const CARD_REG = [
   { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
   { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
+  { id: 'site:rules', col: 'site', label: 'Rules', re: /^<div class="card biz rules-card/, only: 'the site\'s rules', say: 'Where the site does something differently. Universal makes it behave like everywhere else, for everybody; Undo takes back the last change.' },
   { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
@@ -441,12 +448,12 @@ const CARD_BUILD = {
 function cardColsFor_(id) {
   let seq = [];
   try { seq = COLUMNS.map(t => t.id); } catch (e) { seq = []; }
-  return cardCols_().filter(c => seq.indexOf(c) !== -1 && (!adminCol_(c) || adminCol_(cardHome0_(id))))
+  return cardCols_().filter(c => seq.indexOf(c) !== -1 && adminKeep_(c, id))
     .sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 function cardHome_(id, L) {
   const c = (L && L.cards) || {};
-  for (const k of cardCols_(L)) if (c[k] && c[k].indexOf(id) !== -1 && (!adminCol_(k) || adminCol_(cardHome0_(id)))) return k;
+  for (const k of cardCols_(L)) if (c[k] && c[k].indexOf(id) !== -1 && adminKeep_(k, id)) return k;
   return cardHome0_(id);
 }
 function cardGroups_(raw) {
@@ -507,7 +514,7 @@ function cardsOf_(col) {
   if (admin && cardCustom_(col)) out.push(customHead_(col));
   groups.forEach((g, gi) => {
     /* MERGE WITH THE CARD ABOVE (480): only a card of one page, under a card of one page — a page a person cannot be stacked. */
-    const above = groups.slice(0, gi).reverse().find(x => x.id), one = x => x && (x.parts || x.pages.length === 1);
+    const above = groups.slice(0, gi).reverse().find(x => x.id), one = x => x && (x.parts || x.pages.length === 1 || !(typeof ruleOn_ !== 'function' || ruleOn_('people-no-merge')));
     const row = admin && g.id ? cardAdminRow_(g.id, col, one(g) && one(above)) : '';
     if (g.parts) {
       if (start && g.merged.indexOf(start) !== -1) CARD_START_AT[col] = out.length;
@@ -580,7 +587,9 @@ function itemMark_(id, col, html) {
   /* ITS ID ON ITS OWN BOX (489), so a Delete is read from the thing it sits on and the front door can find it. */
   const h = String(html).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
   if (!layoutIsAdmin_()) return h;
-  return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin" data-lay-for="${esc(id)}">${
+  /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
+  const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
+  return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin${still ? ' no-move' : ''}" data-lay-for="${esc(id)}">${
     frontTile_(col, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
 }
 
@@ -851,7 +860,7 @@ function mergedOf_(id, L) {
   return (M && M.find(g => g.indexOf(id) !== -1)) || null;
 }
 const mergeAll_ = (id, L) => (mergedOf_(id, L) || [id]).slice();
-const mergeOk_ = ids => ids.length <= MERGE_MAX && !ids.some(x => x in WIDGET_WHOLE);
+const mergeOk_ = ids => ids.length <= MERGE_MAX && !ids.some(wholeBars_);
 /* A COLUMN'S IDS AS ITS UNITS: a merged card's parts gathered at the first one drawn, in the merged order. */
 function mergeUnits_(ids, L) {
   const out = [], at = {};

@@ -3090,7 +3090,8 @@ function libraryShelf_(list, value) {
   const has = i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']);
   /* ONE CARD ONLY (489, the owner on Library cards: "change this to be only 1 card allowed") — the one already
      filled, else the first; no Add another, and a new card is written over it. */
-  const nums = all.length ? [all.find(has) || all[0]] : [];
+  /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
+  const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
   return `<div class="lib-shelf">${shelfSlots_(nums,
     has,
     (i, hide) => `
