@@ -8660,7 +8660,20 @@ const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
 /* ---------- AN AGE LIMIT ON ANY ITEM (490): `min_age` on the item or its row. Under it, of no known age or signed out, it is
    not listed and so cannot be opened; an admin sees all (`viewerAgeCap_`, games.js). */
 const viewerAgeCapKey_ = () => { try { return String(typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0); } catch (e) { return '0'; } };
-const itemMinAge_ = x => Number((x && (x.min_age || (x.row && x.row.min_age))) || 0) || 0;
+/* GCSE TOPICS FOR GCSE AGES (505): GCSE-and-above history, RS, philosophy, psychology, sociology and sensitive topics, and the history database, are 14+. */
+const GCSE_AGE = 14;
+const GCSE_AGE_SUBJECT = /histor|religio|philosoph|ethic|psycholog|sociolog/i;
+const GCSE_AGE_TOPIC = /\bdrugs?\b|\balcohol\b|abortion|euthanas|\bcrime\b|deviance|religion and life|health and disease/i;
+const GCSE_AGE_LEVEL = /^(gcse|igcse|as|a-?level|alevel|ks4|ks5)$/i;
+function gcseAgeOf_(x) {
+  if (!x || (typeof ruleOn_ === 'function' && !ruleOn_('gcse-sensitive-age'))) return 0;
+  const lv = levelOf_(x);
+  if (x.hdb && !lv) return GCSE_AGE;
+  if (!GCSE_AGE_LEVEL.test(lv)) return 0;
+  const said = [x.name, x.topics, x.row && x.row.topics, x.row && x.row.section].filter(Boolean).join(' ');
+  return GCSE_AGE_SUBJECT.test(String(x.subject || '')) || GCSE_AGE_TOPIC.test(said) ? GCSE_AGE : 0;
+}
+const itemMinAge_ = x => Math.max(gcseAgeOf_(x), Number((x && (x.min_age || (x.row && x.row.min_age))) || 0) || 0);
 function itemAgeOk_(x) {
   const m = itemMinAge_(x);
   if (!m) return true;
