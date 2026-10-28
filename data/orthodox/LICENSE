@@ -1,0 +1,26 @@
+data/orthodox/ — Orthodox texts and church history (docs/history/516), written by tools/orthodox-texts.py.
+Every text here is in the public domain in the UK and the US: published before 1929 and its author or translator dead
+more than seventy years. Nothing modern, nothing whose status was uncertain. Footnotes and editors' notes are left out.
+
+From the Christian Classics Ethereal Library (ccel.org), which marks these texts public domain:
+  Nicene and Post-Nicene Fathers, Second Series, ed. Schaff and Wace:
+    vol. 1  (1890) Eusebius, Church History — A. C. McGiffert (d. 1933)
+    vol. 2  (1890) Socrates, Ecclesiastical History — A. C. Zenos (d. 1942); Sozomen — C. D. Hartranft (d. 1914)
+    vol. 3  (1892) Theodoret, Ecclesiastical History — Blomfield Jackson (d. 1913)
+    vol. 4  (1892) Athanasius, Life of Antony — H. Ellershaw
+    vol. 8  (1895) Basil, On the Holy Spirit — Blomfield Jackson (d. 1913)
+    vol. 9  (1899) John of Damascus, An Exact Exposition of the Orthodox Faith — S. D. F. Salmond (d. 1905)
+    vol. 14 (1900) The Seven Ecumenical Councils — H. R. Percival (d. 1903): canons, definitions and anathemas only
+  Nicene and Post-Nicene Fathers, First Series, vol. 9 (1889): John Chrysostom, On the Priesthood, Instructions to
+    Catechumens, Homilies on the Statues — W. R. W. Stephens (d. 1902), T. P. Brandram
+  Ante-Nicene Fathers vol. 5 (1886): Cyprian, On the Unity of the Church — Ernest Wallis
+  John Calvin, Institutes of the Christian Religion — Henry Beveridge (1845; d. 1863)
+  Dionysius the Areopagite, The Mystical Theology — C. E. Rolt (1920; d. 1923). Two typing slips in CCEL's copy are
+    put back to the printed words ("What is the Divine Gloom", "Trinity"); see FIX in the tool.
+  Philip Schaff, History of the Christian Church, vols. 1–4 (1882–1910 edition; Schaff d. 1893)
+
+From the Internet Archive:
+  Isabel F. Hapgood, Service Book of the Holy Orthodox-Catholic Apostolic (Greco-Russian) Church (Boston, 1906;
+    Hapgood d. 1928). The machine-read (OCR) text of Cornell University Library's copy,
+    https://archive.org/details/cu31924029363128 — not proofread, and where the book prints the Liturgies of
+    St John Chrysostom and St Basil side by side the two columns come one after the other.
