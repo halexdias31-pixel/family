@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-zi-no-email";
+  --css-version: "2026-10-28-n4b-library-by-subject";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1427,7 +1427,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .price.free { color: var(--green); }
 .price.can  { color: var(--gold); }
 /* NOBODY HAS PRICED IT. § */
-.price.is-unpriced { font-style: italic; }
 
 /* Something an admin has switched off — a tutor, a resource, a post. § */
 .card.is-off, .post.is-off { opacity: .45; }
@@ -6833,6 +6832,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qr-no { font-size: .85em; color: var(--dim); }
 .qr-en { margin: 0 0 .4rem; font-size: .95rem; line-height: 1.5; }
 .qr-credit { margin: .3rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
+/* THE BIBLE IN TWO TRANSLATIONS, AND A WRITING'S OWN WORDS (499). */
+.bb-tr { margin: .5rem 0 .1rem; font: 600 .6rem/1.2 var(--mono); color: var(--faint); letter-spacing: .05em; }
+.bb-credit, .wt-credit { margin: .4rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
+.wt-text { margin: 0; font-size: .95rem; line-height: 1.55; }
+.wt-text[lang="grc"] { font-family: var(--serif, Georgia, serif); }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }

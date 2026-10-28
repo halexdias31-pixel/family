@@ -36,8 +36,12 @@ The owner (26 Oct): "it connects but then doesn't respond… the steps and instr
   espressif32 8.0.0, framework-arduinoespressif32 4.30312.261024 = arduino-esp32 3.3.12 on ESP-IDF 5.5.5 (3.0.7 is not
   in the PlatformIO registry), xtensa gcc 14.2.0, GxEPD2 1.6.9, Adafruit GFX 1.13.0, BusIO 1.17.4, esptool 5.6.0 (merge).
   Board esp32-s3-devkitc-1, flash 8MB QIO 80MHz, huge_app.csv, PSRAM unused, `ARDUINO_USB_MODE=0` (TinyUSB, so the
-  USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 703,440 bytes,
-  sha256 `b15054251659fd41566de1ec491c08a1cf28bfac99c86eda139496e0554ebf33` (491; MD5 `5425e39a485abe3cf81513b7b6773486`); its MD5 is `epaper-verse.md5`, which both installers read the flash back against. Not yet tried on a board.
+  USB name is "@family. screen") with `ARDUINO_USB_CDC_ON_BOOT=1`. Result: 766,240 bytes,
+  sha256 `0365c74cb9b0876a9bc642ca3e7e136b5d7acb10219b23f1b0b6a181d4e67b4f` (499; MD5 `718fd5b149e78cc97d9d67a198a9f8f4`); its MD5 is `epaper-verse.md5`, which both installers read the flash back against. Not yet tried on a board.
+- **Today's date** (499): `SHOW DATE` draws the weekday, the day's number at setTextSize(4), the month and the year from the board's
+  PCF85063 clock (I2C 0x51, SDA 47, SCL 48, from Waveshare's 02_I2C_PCF85063 demo); `TIME y mo d h mi s weekday` sets it, and the widget's
+  Sync sends it before every SHOW. In this mode the screen wakes 30 s after midnight by the clock; a clock that lost power says
+  "Plug in and Sync to set the date".
 - **Awake for USB** (482): deep sleep switches the S3's USB off, so the computer saw the screen and lost it. Now after a
   plug-in, RESET or ⏻ it draws, then listens 60 s, and for as long as a computer has it mounted (`tud_mounted()`);
   each `SHOW` redraws and restarts the minute; `HELLO` gets `READY epaper-verse 491`. The daily timer wake listens 3 s.

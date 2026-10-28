@@ -154,6 +154,8 @@ const KINDS = {
   talmud: { group: 'Learning', label: 'Library', card: x => talmudCard_(x) },
   /* THE QURAN (490): one card a verse. */
   quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
+  /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
+  worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -197,7 +199,7 @@ function thingCard_(x, credits) {
         ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
       : x.cost === undefined
-        ? `<span class="price is-unpriced">not priced yet</span>`
+        ? ''   /* "Not priced yet" is its Price tag now (499) */
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
           free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
@@ -220,11 +222,11 @@ function thingCard_(x, credits) {
                 ''}
           ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
                 ''}
-          <p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+          ${x.kind === 'shop' ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
-            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
+            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>`}
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: § */
                 ''}
@@ -232,14 +234,14 @@ function thingCard_(x, credits) {
                 ''}
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
-          <p class="sub">${x.company
+          ${x.kind === 'shop' ? '' : `<p class="sub">${x.company
             ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
                own is a word. */
-            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>
+            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>`}
           ${price}
         </div>
       </div>
@@ -396,7 +398,7 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (x.kind === 'fight' && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures, writings or events', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, figures, writings, events or texts', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
@@ -406,6 +408,16 @@ const FACETS = [
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
+  /* A WRITING'S OWN WORDS (499): which work, which chapter, which language. */
+  /* A SHOP ITEM'S TAGS (499): what it is, how you get it, its price band, the brand, who it is for. */
+  { field: 'shopKind',  label: 'Category',    of: x => x.shopKind || '' },
+  { field: 'shopHow',   label: 'How you get it', of: x => x.shopHow || '' },
+  { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
+  { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
+  { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
+  { field: 'wtWork',    label: 'Work',        of: x => x.wtWork || '' },
+  { field: 'wtChapter', label: 'Chapter',     of: x => x.wtChapter || '' },
+  { field: 'wtLanguage', label: 'Language',   of: x => x.wtLanguage || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -894,10 +906,35 @@ function facetWhy_(items, facet, over) {
   if (!over && vals > FACET_MAX_ANSWERS) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
+  const echo = facetEcho_(items, facet);
+  if (echo) return 'the same split as ' + echo + ', answered Any — its answers are that question\'s under other names';
   const split = facetSplit_(items, facet);
   if (split < FACET_MIN_MINORITY) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
+  }
+  return '';
+}
+
+/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499): each answer sits inside one answer of it, a different one each — Shelf after Any subject
+   is Subject again (Books, Boxing, History). Every facet, by its items; nothing per-facet. */
+function facetEcho_(items, facet) {
+  const skipped = (STUFF.filters || []).filter(f => f.any && f.field !== facet.field);
+  for (const g of skipped) {
+    const G = facetList().find(f => f.field === g.field);
+    if (!G) continue;
+    const to = {}, from = {};
+    let ok = true;
+    for (const x of items) {
+      const a = facetOwn_(facet, x);
+      if (!a.length) continue;
+      const b = facetOwn_(G, x);
+      if (b.length !== 1 || a.length !== 1) { ok = false; break; }
+      const ka = spellKey_(a[0]), kb = spellKey_(b[0]);
+      if ((to[ka] && to[ka] !== kb) || (from[kb] && from[kb] !== ka)) { ok = false; break; }
+      to[ka] = kb; from[kb] = ka;
+    }
+    if (ok && Object.keys(to).length > 1) return G.label || G.field;
   }
   return '';
 }
@@ -1710,8 +1747,9 @@ function histCard_(x) {
   const r = x.row || {};
   const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim());
-  const tiles = histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
-    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
+  const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
+    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } })))
     .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
@@ -1784,7 +1822,7 @@ const BIBLE_SHELF = 'Books';
 const BIBLE_WORDS = 'KJV King James Authorized Version scripture';
 
 /* EVERYTHING IT KNOWS, IN ONE PLACE. § */
-const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
+const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
                 item: null, verses: null, rank: null, hays: null };
 
 /* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
@@ -1825,7 +1863,7 @@ function bibleIndex_() {
       BIBLE.asking = null;
       if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); }
       else BIBLE.failed = true;
-      /* THE SEARCH LEARNS THE BOOKS, so typing `psalms` finds the Bible — through `bibleHolds_`, which reads `BIBLE.hays` and so changes its answer the moment they are § */
+      /* THE VERSES ARRIVE: every finder's list is built again with them (499). */
       bibleRedraw_();
       finderEach_(F => {
         if (ok) {
@@ -1850,24 +1888,6 @@ const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + c
 const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
 /* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: § */
 const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
-
-/* ---------- A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE § */
-function bibleHolds_(x, words) {
-  const ix = BIBLE.index, hays = BIBLE.hays;
-  if (!ix || !hays) return words.every(w => stuffHay_(x).includes(w));
-  return ix.books.some((b, i) => {
-    const rest = words.filter(w => !hays[i].includes(w));
-    if (!rest.length) return true;
-    if (!rest.every(w => /^[\d:]+$/.test(w))) return false;
-    return b.chapterVerses.some((count, ci) => {
-      for (let v = 1; v <= count; v++) {
-        const cv = (ci + 1) + ':' + v;
-        if (rest.every(w => cv.includes(w))) return true;
-      }
-      return false;
-    });
-  });
-}
 
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S § */
 function bibleRankOf_(ix) {
@@ -1895,9 +1915,21 @@ function bibleLoad_(n) {
     BIBLE.missed[n] = !ok;
     if (!ok) return null;
     BIBLE.books[n] = d;
-    return d;
+    return bibleAlsoLoad_(n, b).then(() => d);
   });
   return BIBLE.loading[n];
+}
+
+/* THE SECOND TRANSLATION'S BOOK (499, the World English Bible), held to the same counts; a miss leaves the KJV alone on the card. */
+function bibleAlsoLoad_(n, b) {
+  const t = BIBLE.index && (BIBLE.index.also || [])[0];
+  if (!t || !/^[a-z]+$/.test(String(t.dir || '')) || BIBLE.also[n]) return Promise.resolve(null);
+  return bibleGet_(t.dir + '/' + b.file).then(d => {
+    const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
+      && d.chapters.every((c, i) => Array.isArray(c) && c.length === b.chapterVerses[i]);
+    if (ok) BIBLE.also[n] = d;
+    return ok ? d : null;
+  });
 }
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
@@ -1942,7 +1974,8 @@ function bibleVerseList_(ix) {
       at.push(list.length);
       for (let v = 1; v <= count; v++) {
         list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
+                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
+                    min_age: SCRIPTURE_MIN_AGE });
       }
     });
   });
@@ -1975,27 +2008,6 @@ function bibleByKey_(k) {
   return x && x.key === k ? x : null;
 }
 
-/* ---------- IS THE BIBLE OPEN? § */
-function bibleInside_() {
-  return bibleFor_() && !!BIBLE.index
-    && (STUFF.filters || []).some(f => f && BIBLE_FIELDS[f.field]);
-}
-
-/* ---------- THE BIBLE'S RESULTS § */
-function bibleFind_(verses, words, credits) {
-  const all = stuffItems();
-  const x = BIBLE.item;
-  if (!x || all.indexOf(x) < 0) return [];
-  const own = [], rest = [];
-  const tr = spellKey_(BIBLE.index ? BIBLE.index.translation : '');
-  (STUFF.filters || []).forEach(f => {
-    if (!BIBLE_FIELDS[f.field]) rest.push(f);
-    else if (!(f.field === 'bibleTranslation' && !f.any && spellKey_(f.value) === tr)) own.push(f);
-  });
-  if (!stuffNarrow_([x], rest, [], credits).length) return [];
-  return stuffNarrow_(verses, own.slice().reverse(), words, credits);
-}
-
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
   if (!items.length || !items.every(x => x && x.kind === 'bible')) return '';
@@ -2012,49 +2024,33 @@ function bibleEnd_(items) {
       <b>Swipe up for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* THE COVER. One item, for an admin; none for anybody else — which is the whole of what a non-admin's Find knows about it: § */
+/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
+   a book's words only when one of its cards is drawn. */
 function bibleItems_() {
   if (!bibleFor_()) return [];
   bibleIndex_();
-  /* ---------- NOT BEFORE THE LIBRARY § */
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
-  /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. § */
-  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF, libBook: 'Bible', subject: SCRIPTURE_SUBJECT(),
-              text: BIBLE_WORDS, row: null, min_age: SCRIPTURE_MIN_AGE };
-  x.holds = words => bibleHolds_(x, words);
-  BIBLE.item = x;
-  return [x];
+  const list = bibleVerses_();
+  BIBLE.item = list[0] || null;
+  return list;
 }
 
-/* ---------- THE COVER, OR A VERSE § */
+/* ---------- A VERSE (the cover went in 499). */
 function bibleCard_(x) {
-  if (x && x.bb) return bibleVerseCard_(x);
-  const ix = BIBLE.index, t = ix && ix.totals;
-  const num = v => Number(v || 0).toLocaleString('en-GB');
-  /* THE HOW-TO NEEDS THE INDEX — the translation's name and the counts come from it — so until it is here the cover says what the book is and the one loader holds § */
-  const how = ix ? ` Choose ${esc(ix.translation)}, then the testament, the group, the book, the chapter
-      and the verse: every verse is a card of its own.` : '';
-  return `<div class="card fc prac bible" data-bb="card">
-    <div class="fc-head">
-      <h3>${esc(BIBLE_NAME)}</h3>
-    </div>
-    ${tagRow_(x)}
-    <p class="sub">The Authorized Version of 1611</p>
-    <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
-    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : !ix ? loading_() : ''}
-    <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
-      King James prints them.</p>
-    ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
-         never left wondering whether a student is reading this card too. */''}
-    <p class="fc-meta bb-who">Only admins are shown this book</p>
-  </div>`;
+  return x && x.bb ? bibleVerseCard_(x) : '';
 }
 
 /* ---------- ONE VERSE, A CARD OF ITS OWN § */
 function bibleVerseCard_(x) {
   const bb = x.bb, n = bb.n, d = BIBLE.books[n];
   let body;
-  if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
+  if (d) {
+    const t2 = BIBLE.index && (BIBLE.index.also || [])[0], w2 = BIBLE.also[n];
+    const second = w2 && w2.chapters[Number(x.ch) - 1][Number(x.v) - 1];
+    body = '<p class="bb-tr">' + esc(BIBLE.index.translation) + '</p>' + bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1])
+      + (second ? '<p class="bb-tr">' + esc(t2.translation) + '</p><p class="bb-v bb-v2">' + esc(second) + '</p>' : '')
+      + '<p class="bb-credit">KJV (1611) and ' + (t2 ? esc(t2.name) : 'WEB') + ': public domain</p>';
+  }
   else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
     /* WAITING FOR ITS BOOK: the one loader, where the verse will be. It was a faint "…" with
@@ -8615,6 +8611,7 @@ function itemAgeOk_(x) {
 }
 /* WHETHER THIS VIEWER MAY HAVE A WHOLE SHELF OF A GIVEN AGE, asked before its files are even fetched (the Talmud, the Quran). */
 const viewerOfAge_ = m => itemAgeOk_({ min_age: m });
+const FIGHT_VIDEO_AGE = 13;
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER § */
 function stuffItemsAll_() {
@@ -8794,6 +8791,8 @@ function stuffItemsRaw_() {
       wearable: isWearable(x),
       level: Number(x.level) || 0,
       artId: x.artId || '',
+      /* ITS TAGS (499): "these need to have all the tags instead ... way more helpful ... more automatable" — read off the row's own fields. */
+      ...shopTags_(x),
     })),
     /* A resource costs nothing, and the zero is written here rather than left undefined — so
        every sort, filter and label downstream sees a number and not a hole. */
@@ -8806,11 +8805,11 @@ function stuffItemsRaw_() {
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Boxers', shelf: 'Boxing',
-      subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
+      subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
       /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" § */
     })),
 
-    /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the
+    /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: PE as the subject (499), the weight as the
        division. Everything school-shaped stays blank, and blank is what keeps a fight out of a
        list of past papers. */
     ...(DATA.fights || []).map(f => ({
@@ -8819,7 +8818,8 @@ function stuffItemsRaw_() {
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
       boxKind: 'Fights', shelf: 'Boxing',
-      subject: 'Boxing', division: divisionOf_(f.division), row: f,
+      /* THE FIGHT FOOTAGE (499 audit): its Watch link is violent media, so under 13 (or of no known age) the row goes without it. */
+      subject: 'Physical Education', division: divisionOf_(f.division), row: f.video && !viewerOfAge_(FIGHT_VIDEO_AGE) ? Object.assign({}, f, { video: '' }) : f,
       year: (f.date || '').slice(0, 4),
     })),
 
@@ -8877,6 +8877,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
+    ...(typeof worksItems_ === 'function' ? worksItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -9230,8 +9231,7 @@ function stuffFiltered() {
   /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
   const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO § */
-  const open = bibleInside_();
-  const all = open ? bibleVerses_() : stuffItems();
+  const all = stuffItems();
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
@@ -9252,7 +9252,7 @@ function stuffFiltered() {
       items = stuffNarrow_(prev.items, added, words, credits);
     }
   }
-  if (!items) items = open ? bibleFind_(all, words, credits) : stuffFind(all, credits);
+  if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
                 words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
@@ -10055,13 +10055,49 @@ on('fav', el => {
   if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
 
+/* A SHOP ITEM'S TAGS (499), every one from a field the row already has: what it is, how you get it, a price band, the brand, who it is for. */
+const SHOP_HOW = { buy: 'Buy', ticks: 'Earn with ticks', level: 'Unlock by level', loan: 'Borrow', issued: 'Given out' };
+const SHOP_KIND_SAY = { bundle: 'Bundle', game: 'Game', kit: 'Kit', equipment: 'Equipment', stationery: 'Stationery', consumable: 'Consumable',
+                        service: 'Made to order', thing: 'Thing', trip: 'Trip' };
+function shopTags_(r) {
+  const k = String(r.kindRaw || 'thing').trim().toLowerCase();
+  const how = String(r.acquire || 'buy').trim().toLowerCase();
+  const p = priced_(r.price), pence = String(r.unit || '').trim() === 'p';
+  const band = how === 'level' ? 'Level ' + (Number(r.level) || 1)
+    : p === undefined ? 'Not priced yet' : p === 0 ? 'Free'
+    : !pence ? 'Credits'
+    : p < 500 ? 'Under £5' : p <= 2000 ? '£5 to £20' : 'Over £20';
+  const who = String(r.audience || 'all').trim().toLowerCase();
+  return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
+           shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
+           shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
+}
+
+/* THE TAGS ARE THE TITLE (499): "the tags are titles" — a card's name heading goes when every word of it is a tag on
+   the row; the name stays its accessible name. One rule for every kind. */
+const TITLE_WORDS_ = t => String(t).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').toLowerCase().split(/[^a-z0-9\u00c0-\uffff]+/).filter(Boolean);
+function tagsAreTitle_(x, html) {
+  if (!x || !x.name || typeof html !== 'string') return html;
+  const h = /<h3>([\s\S]*?)<\/h3>/.exec(html);
+  const named = out => (/^\s*<div class="[^"]*\bcard\b[^"]*"[^>]*\baria-label=/.test(out) ? out
+    : out.replace(/<div class="([^"]*\bcard\b[^"]*)"/, (m, c) => `<div class="${c}" role="group" aria-label="${esc(x.name)}"`));
+  /* A CARD THAT NEVER HAD A HEADING (a verse, a daf, a bout) is named the same way. */
+  if (!h) return /qtag/.test(html) ? named(html) : html;
+  if (TITLE_WORDS_(h[1]).join(' ') !== TITLE_WORDS_(esc(x.name)).join(' ')) return html;
+  const tags = new Set();
+  html.replace(/<span class="qtag"[^>]*>([\s\S]*?)<\/span>/g, (m, t) => { TITLE_WORDS_(t).forEach(w => tags.add(w)); return m; });
+  const words = TITLE_WORDS_(h[1]);
+  if (!words.length || !words.every(w => tags.has(w))) return html;
+  return named(html.replace(h[0], '').replace(/<div class="fc-head">\s*<\/div>/, ''));
+}
+
 function stuffCard(x, credits) {
   /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
-  const html = (kindOf_(x).card || thingCard_)(x, credits);
+  const html = tagsAreTitle_(x, (kindOf_(x).card || thingCard_)(x, credits));
   if (!x.key) return html;
   /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
@@ -10116,6 +10152,8 @@ const TAG_OF = {
   /* THE TALMUD'S (473), the same way. */
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
   quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
+  wtWork: 'topic', wtChapter: 'paper', wtLanguage: 'board',
+  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -10284,6 +10322,7 @@ function paintStuff(keepPage) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
   /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
+  if (typeof worksIndex_ === 'function') worksIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

@@ -1,9 +1,11 @@
 #include <Arduino.h>
 // verse.cpp - a Bible verse a day on the Waveshare ESP32-S3-ePaper-1.54. GPL-3.0, as GxEPD2.
-// No Wi-Fi, no clock, nothing to set up: wake -> draw the verse -> listen while USB is attached -> sleep 24 hours.
+// No Wi-Fi, nothing to set up: wake -> draw the verse, icon or today's date -> listen while USB is attached -> sleep.
+// Today's date (499) reads the board's PCF85063 clock, which the widget's Sync sets; that mode wakes just after midnight.
 // Pins from Waveshare's demo: github.com/waveshareteam/ESP32-S3-ePaper-1.54, 02_Example/Arduino/*/user_config.h.
 
 #include <Preferences.h>
+#include <Wire.h>
 #include <USB.h>
 #include "tusb.h"
 #include <GxEPD2_BW.h>
@@ -17,6 +19,9 @@
 
 #define EPD_PWR 6   // panel power, LOW = on; e-paper keeps its picture with the power off
 #define VBAT_PWR 17   // the battery latch (Waveshare demo, schematic): HIGH keeps a battery-only board on after ⏻ (485)
+#define RTC_SDA 47    // the PCF85063 real-time clock on I2C 0x51 (Waveshare demo 02_I2C_PCF85063, user_config.h)
+#define RTC_SCL 48
+#define RTC_ADDR 0x51
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
 
 // Short KJV verses (brackets removed), each fits 200x200. One a day, in order, then round again.
@@ -102,6 +107,8 @@ const char *const VERSES[][2] = {
   { "And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.", "Revelation 21:4" },
 };
 const int N = sizeof(VERSES) / sizeof(VERSES[0]);
+// How many things a mode steps through: 0 verses, 1 icons, 2 icons without a title, 3 today's date (499).
+int count(int mode) { return mode == 3 ? 1 : mode ? NPICS : N; }
 
 int textWidth(const String &s) {
   int16_t x, y; uint16_t w, h;
@@ -222,8 +229,59 @@ void drawPicture(int k, bool titled) {
   } while (display.nextPage());
 }
 
+// TODAY'S DATE (499): the clock's time registers 0x04-0x0A, BCD. False when it lost power (the OS flag) or did not answer.
+struct Day { int y, mo, d, wd, h, mi, s; };
+static int bcd(uint8_t v) { return (v >> 4) * 10 + (v & 15); }
+static uint8_t tobcd(int v) { return ((v / 10) << 4) | (v % 10); }
+bool rtcRead(Day &t) {
+  Wire.beginTransmission(RTC_ADDR); Wire.write(0x04);
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(RTC_ADDR, 7) != 7) return false;
+  uint8_t r[7]; for (int k = 0; k < 7; k++) r[k] = Wire.read();
+  if (r[0] & 0x80) return false;
+  t.s = bcd(r[0] & 0x7F); t.mi = bcd(r[1] & 0x7F); t.h = bcd(r[2] & 0x3F); t.d = bcd(r[3] & 0x3F);
+  t.wd = r[4] & 7; t.mo = bcd(r[5] & 0x1F); t.y = 2000 + bcd(r[6]);
+  return t.mo >= 1 && t.mo <= 12 && t.d >= 1;
+}
+bool rtcSet(const Day &t) {
+  Wire.beginTransmission(RTC_ADDR); Wire.write(0x04);
+  Wire.write(tobcd(t.s)); Wire.write(tobcd(t.mi)); Wire.write(tobcd(t.h)); Wire.write(tobcd(t.d));
+  Wire.write(t.wd & 7); Wire.write(tobcd(t.mo)); Wire.write(tobcd(t.y % 100));
+  return Wire.endTransmission() == 0;
+}
+const char *const WEEKDAYS[7] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+const char *const MONTHS[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+
+// The weekday, the day's number four times the size, the month, a rule, the year in italic; or how to set the clock.
+void drawDate() {
+  Day t; bool ok = rtcRead(t);
+  display.setFullWindow();
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextColor(GxEPD_BLACK);
+    display.setFont(&FreeSerif12pt7b);
+    display.setTextSize(1);
+    if (!ok) {
+      String a = "Plug in and Sync", b = "to set the date";
+      display.setCursor((200 - textWidth(a)) / 2, 92); display.print(a);
+      display.setCursor((200 - textWidth(b)) / 2, 120); display.print(b);
+      continue;
+    }
+    String wd = WEEKDAYS[t.wd % 7], mo = MONTHS[t.mo - 1], dd = String(t.d), yy = String(t.y);
+    display.setCursor((200 - textWidth(wd)) / 2, 36); display.print(wd);
+    display.setTextSize(4);
+    display.setCursor((200 - textWidth(dd)) / 2, 124); display.print(dd);
+    display.setTextSize(1);
+    display.setCursor((200 - textWidth(mo)) / 2, 158); display.print(mo);
+    display.drawFastHLine(70, 176, 60, GxEPD_BLACK);
+    display.setFont(&FreeSerifItalic9pt7b);
+    display.setCursor((200 - textWidth(yy)) / 2, 194); display.print(yy);
+  } while (display.nextPage());
+}
+
 // What the website's widget sends over USB (Web Serial, 115200) while the screen is awake: "SHOW VERSE <n>" or
-// "SHOW ICON <n>" (0-based). The screen answers "OK", keeps it and draws it; the daily alarm then moves on from there.
+// "SHOW ICON <n>" (0-based), or "SHOW DATE"; "TIME <y> <mo> <d> <h> <mi> <s> <weekday 0-6>" sets the clock first (499).
+// The screen answers "OK", keeps it and draws it; the daily alarm then moves on from there.
 String heard;
 bool hear(int &mode, int &i) {
   while (Serial.available()) {
@@ -234,10 +292,15 @@ bool hear(int &mode, int &i) {
     if (heard.startsWith("SHOW VERSE ")) { m = 0; k = heard.substring(11).toInt(); }
     else if (heard.startsWith("SHOW ICON ")) { m = 1; k = heard.substring(10).toInt(); }
     else if (heard.startsWith("SHOW BARE ")) { m = 2; k = heard.substring(10).toInt(); }   // an icon without its title (491)
-    else if (heard == "HELLO") Serial.println("READY epaper-verse 491");
+    else if (heard == "SHOW DATE") { m = 3; k = 0; }   // today's date (499)
+    else if (heard.startsWith("TIME ")) {
+      Day t; if (sscanf(heard.c_str() + 5, "%d %d %d %d %d %d %d", &t.y, &t.mo, &t.d, &t.h, &t.mi, &t.s, &t.wd) == 7 && rtcSet(t)) Serial.println("TIME OK");
+      else Serial.println("TIME NO");
+    }
+    else if (heard == "HELLO") Serial.println("READY epaper-verse 499");
     heard = "";
     if (m < 0) continue;
-    mode = m; i = max(0, k) % (mode ? NPICS : N);
+    mode = m; i = max(0, k) % count(mode);
     Serial.println("OK");
     Serial.flush();
     return true;
@@ -249,7 +312,8 @@ void draw(int mode, int i) {
   pinMode(EPD_PWR, OUTPUT); digitalWrite(EPD_PWR, LOW);
   display.init(0, true, 2, false);
   display.clearScreen();   // a full refresh to white first: nothing old (an earlier picture, a ghost) survives
-  if (mode) drawPicture(i, mode == 1);
+  if (mode == 3) drawDate();
+  else if (mode) drawPicture(i, mode == 1);
   else
 #ifdef VERSE_ICONS
   drawVerseIcon(VERSES[i][0], VERSES[i][1], VERSE_ICON[i]);
@@ -271,9 +335,11 @@ void setup() {
   Preferences keep;
   keep.begin("verse", false);
   int mode = keep.getInt("mode", 0), i = keep.getInt("i", 0);
-  i %= (mode ? NPICS : N);
+  if (mode < 0 || mode > 3) mode = 0;
+  i %= count(mode);
   bool daily = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER;
-  if (daily) { i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i); }
+  if (daily) { i = (i + 1) % count(mode); keep.putInt("i", i); }
+  Wire.begin(RTC_SDA, RTC_SCL);
   USB.manufacturerName("@family.");   // the name in Chrome's list, not the chip's (482); ☀ mode still shows Espressif's
   USB.productName("@family. screen");
   Serial.begin(115200);
@@ -281,7 +347,7 @@ void setup() {
   SPI.begin(12, -1, 13, 11);
   display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   draw(mode, i);
-  Serial.println("READY epaper-verse 491");
+  Serial.println("READY epaper-verse 499");
   unsigned long drawn = millis(), until = millis() + (daily ? 3000 : AWAKE);
   while ((long)(until - millis()) > 0 || tud_mounted()) {
     if (hear(mode, i)) {
@@ -290,13 +356,15 @@ void setup() {
       Serial.println("DRAWN");
     }
     if (millis() - drawn >= DAY) {   // awake on a computer all day: the next verse arrives anyway
-      i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i);
+      i = (i + 1) % count(mode); keep.putInt("i", i);
       draw(mode, i); drawn = millis();
     }
     delay(10);
   }
   keep.end();
   unsigned long left = DAY - min(DAY - 60000, millis() - drawn);   // the next day counts from the last drawing
+  Day t;   // TODAY'S DATE wakes 30 s after midnight by the clock, not 24 hours after the last drawing (499)
+  if (mode == 3 && rtcRead(t)) left = (unsigned long)(24UL * 3600 - (t.h * 3600UL + t.mi * 60UL + t.s) + 30) * 1000UL;
   gpio_deep_sleep_hold_en();
   esp_sleep_enable_timer_wakeup((uint64_t)left * 1000ULL);
   esp_deep_sleep_start();

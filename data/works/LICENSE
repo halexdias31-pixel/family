@@ -1,0 +1,10 @@
+data/works/ — a history-database writing's own words (docs/history/499), written by tools/works-text.py.
+
+WR-0001 First Clement
+  Greek:   Kirsopp Lake's Greek text, The Apostolic Fathers I (Loeb, 1912). The text is public domain (Lake died 1946).
+           Transcription: First1KGreek, Open Greek and Latin, tlg1271.tlg001.1st1K-grc1, licensed CC BY-SA 4.0
+           (https://creativecommons.org/licenses/by-sa/4.0/). Apparatus notes left out; otherwise as transcribed.
+           This file's Greek is shared under the same licence, with this credit.
+           https://github.com/OpenGreekAndLatin/First1KGreek
+  English: J. B. Lightfoot's translation, The Apostolic Fathers (1891). Public domain (Lightfoot died 1889).
+           Text as printed by the Christian Classics Ethereal Library, https://www.ccel.org/ccel/lightfoot/fathers.ii.i.html
