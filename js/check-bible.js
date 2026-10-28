@@ -228,7 +228,7 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {

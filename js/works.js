@@ -14,7 +14,7 @@ const worksGet_ = file => {
 
 function worksIndex_() {
   if (WORKS.index) return WORKS.index;
-  if (WORKS.asking || WORKS.failed || typeof fetch !== 'function' || !viewerOfAge_(SCRIPTURE_MIN_AGE)) return null;
+  if (WORKS.asking || WORKS.failed || typeof fetch !== 'function' || !viewerOfAge_(scriptureMinAge_())) return null;
   WORKS.asking = worksGet_('index.json').then(d => {
     const ok = !!d && Array.isArray(d.works) && d.works.every(w => w && /^WR-\d{4}$/.test(w.id) && /^WR-\d{4}\.json$/.test(w.file)
       && Array.isArray(w.chapters) && w.chapters.length > 0 && Array.isArray(w.languages) && w.languages.length > 0);

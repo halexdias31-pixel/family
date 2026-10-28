@@ -1999,7 +1999,7 @@ function bibleVerseList_(ix) {
       for (let v = 1; v <= count; v++) {
         list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
                     shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
-                    min_age: SCRIPTURE_MIN_AGE });
+                    min_age: scriptureMinAge_() });
       }
     });
   });
