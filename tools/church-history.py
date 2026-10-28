@@ -4,7 +4,7 @@ historians it names in data/figures.json. The owner, Eastern Orthodox: "to learn
 0 to 2026". In our own words (facts are not copyrighted); dates are the standard ones, each event citing its sources; where
 the churches tell it differently the summary says whose reading it is ("Orthodox view:").
 
-    python3 tools/church-history.py      # rewrites only the rows it owns (FIG-0010 on, the Church History era), in date order
+    python3 tools/church-history.py      # rewrites only the rows it owns (FIG-0011 on, the Church History era), in date order
 """
 import json, os
 from urllib.parse import quote

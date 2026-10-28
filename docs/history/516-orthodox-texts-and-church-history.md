@@ -27,7 +27,7 @@ risks on copyright** — public domain or openly licensed only, source and licen
 - **The Church History timeline**: 83 events in `data/timeline.json` (era `Church History`, EV-0027 on, interleaved in
   date order with World War 2's), from Pentecost to the 1700th anniversary of Nicaea (2025), in our own words with
   sources (Wikipedia and Britannica). Where the churches tell it differently the summary says so ("Orthodox view: …";
-  Chalcedon, Photius, 1054, 1204, Florence, Brest, the OCA, Ukraine). 35 figures (FIG-0010 on): the fathers and
+  Chalcedon, Photius, 1054, 1204, Florence, Brest, the OCA, Ukraine). 35 figures (FIG-0011 on): the fathers and
   saints, the historians, the reformers, Hapgood, Tikhon, Silouan, Sophrony, Athenagoras, Bartholomew; links both ways.
   `tools/church-history.py` writes both and owns only its own rows. Its drawing is `hchurch` (`tools/h_church.py`,
   prefix `hch`), "Church History, 30–2026" on GCSE Religious Studies chapter 4, sixteen events on an AD 0–2030 axis.
