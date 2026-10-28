@@ -408,6 +408,8 @@ const FACETS = [
   { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
+  /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */
+  { field: 'histSide',  label: 'Side',        of: x => x.msSide || '' },
   { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
   /* A WRITING'S OWN WORDS (499): which work, which chapter, which language. */
   /* A SHOP ITEM'S TAGS (499): what it is, how you get it, its price band, the brand, who it is for. */
@@ -1643,6 +1645,14 @@ function histItem_(kind, r) {
     row: r,
   };
 }
+/* A DRAWN MANUSCRIPT IS ONE CARD A SIDE (507), tagged Front (recto) or Back (verso); the first drawn keeps the bare key, so a saved key still opens. */
+const MS_SIDE_SAY = { front: 'Front (recto)', back: 'Back (verso)' };
+function histItems_(kind, r) {
+  const one = histItem_(kind, r), L = kind === 'manuscript' && MS_LOOK[r.id];
+  if (!L || !L.sides) return [one];
+  return L.sides.map((sd, i) => Object.assign({}, one, { key: i ? one.key + ':' + (sd.side || i) : one.key,
+    msSide: MS_SIDE_SAY[sd.side] || '', msSideIx: i, sub: [MS_SIDE_SAY[sd.side], one.sub].filter(Boolean).join(' · ') }));
+}
 
 /* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */
 const HIST_LINES = {
@@ -1672,11 +1682,11 @@ const MS_LOOK = {
       [205, 995], [200, 940], [205, 900], [140, 890], [130, 860], [120, 820], [115, 760], [110, 700], [115, 640], [105, 600], [110, 550],
       [100, 490], [110, 430], [105, 375], [85, 360], [65, 320], [50, 250], [45, 180], [42, 120]],
     sides: [
-      { name: 'Recto', what: 'John 18:31–33', lines: [[135, 640, 365, 'ΟΙΙΟΥΔΑΙ·····ΗΜΕ'], [135, 635, 462, 'ΟΥΔΕΝΑΙΝΑΟΛ'],
+      { name: 'Recto', side: 'front', what: 'John 18:31–33', lines: [[135, 640, 365, 'ΟΙΙΟΥΔΑΙ·····ΗΜΕ'], [135, 635, 462, 'ΟΥΔΕΝΑΙΝΑΟΛ'],
         [130, 600, 552, 'ΠΕΝΣΗΜΑΙΝΩ'], [150, 560, 648, 'ΘΝΗΣΚΕΙΝΙΣ'], [150, 415, 748, 'ΡΙΟΝΟΠ'], [135, 400, 838, 'ΚΑΙΕΙΠ'],
         [205, 320, 958, 'ΑΙΩ', 'trace']] },
       /* THE SAME LEAF TURNED OVER: its outline mirrored, the lines' surviving ends on the other side. */
-      { name: 'Verso', what: 'John 18:37–38', mirror: true, lines: [[93, 560, 378, 'ΤΟΓ··ΕΝΝΗΜΑΙΚΑ'], [57, 560, 465, 'ΣΜΟΝΙΝΑΜΑΡΤΥ'],
+      { name: 'Verso', side: 'back', what: 'John 18:37–38', mirror: true, lines: [[93, 560, 378, 'ΤΟΓ··ΕΝΝΗΜΑΙΚΑ'], [57, 560, 465, 'ΣΜΟΝΙΝΑΜΑΡΤΥ'],
         [180, 557, 568, 'ΤΗΣΑΛΗΘΕ'], [170, 547, 660, 'ΛΕΓΕΙΑΥΤΩ'], [280, 480, 760, 'ΙΤΟΥΤ'], [280, 453, 857, 'ΟΥΣΚ'],
         [365, 440, 948, 'ΑΙ', 'trace']] },
     ] },
@@ -1684,7 +1694,7 @@ const MS_LOOK = {
   'MS-0002': { stuff: 'parchment', box: [0, 0, 700, 902],
     ref: 'Commons: File:Codex Alexandrinus f41v - Luke.jpg (PD-old-100-1923), British Library Royal MS 1 D VIII, fol. 41v',
     edge: [[22, 14], [600, 10], [640, 30], [688, 70], [692, 880], [22, 884]],
-    sides: [{ name: 'Folio 41v', what: 'Luke 24:32–53, the end of the Gospel',
+    sides: [{ name: 'Folio 41v', side: 'back', what: 'Luke 24:32–53, the end of the Gospel',
       cols: [{ x0: 100, x1: 365, y0: 84, lh: 12.95, rows: 51, paras: [
         '+ΗΝΟΙΓΕΝΗΜΙΝΤΑΣΓΡΑΦΑΣ',
         'ΚΑΙΑΝΑΣΤΑΝΤΕΣΑΥΤΗΤΗΩΡΑΥΠΕΣΤΡΕΨΑΝΕΙΣΙΕΡΟΥΣΑΛΗΜΚΑΙΕΥΡΟΝΣΥΝΗΘΡΟΙΣΜΕΝΟΥΣΤΟΥΣΕΝΔΕΚΑΚΑΙΤΟΥΣΣΥΝΑΥΤΟΙΣΛΕΓΟΝΤΑΣΟΤΙΗΓΕΡΘΗΟΚΣΟΝΤΩΣΚΑΙΩΦΘΗΣΙΜΩΝΙΚΑΙΑΥΤΟΙΕΞΗΓΟΥΝΤΟΤΑΕΝΤΗΟΔΩΚΑΙΩΣΕΓΝΩΣΘΗΑΥΤΟΙΣΕΝΤΗΚΛΑΣΕΙΤΟΥΑΡΤΟΥ',
@@ -1714,10 +1724,11 @@ function msColLines_(c) {
   }
   return [];
 }
-/* THE DRAWING: one leaf per side, side by side; each line's surviving letters spread over the room they take in the photograph. */
-function msFragSvg_(r) {
+/* THE DRAWING: one side, the card's own (507); each line's surviving letters spread over the room they take in the photograph. */
+function msFragSvg_(r, ix) {
   const L = MS_LOOK[r.id];
   if (!L) return '';
+  const side = L.sides[ix | 0] || L.sides[0];
   const [bx, by, bw, bh] = L.box;
   const tag = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
   const leaf = (s, k) => {
@@ -1748,7 +1759,7 @@ function msFragSvg_(r) {
     </figure>`;
   };
   return `<figure class="hdb-ms hdb-ms-${L.stuff}">
-    <div class="hdb-ms-sides">${L.sides.map(leaf).join('')}</div>
+    <div class="hdb-ms-sides">${leaf(side, ix | 0)}</div>
     <figcaption>A drawing after the original, traced from a public-domain photograph (${esc(L.ref)}); the letters are the ones that survive.</figcaption>
   </figure>`;
 }
@@ -1774,7 +1785,7 @@ function histCard_(x) {
     .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
-  const look = x.kind === 'manuscript' ? msFragSvg_(r) : '';
+  const look = x.kind === 'manuscript' ? msFragSvg_(r, x.msSideIx) : '';
   if (look) {
     return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">
     ${tagRow_(x)}
@@ -8923,7 +8934,7 @@ function stuffItemsRaw_() {
     ...(DATA.inserts || []).map(insertItem_),
 
     /* ---------- THE HISTORY DATABASE (459) */
-    ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).map(r => histItem_(t.kind, r))),
+    ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).flatMap(r => histItems_(t.kind, r))),
     ...histTimelines_(),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
@@ -10204,7 +10215,7 @@ const TAG_OF = {
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
   forLabel: 'kind', kindLabel: 'kind', shelf: 'kind', libBook: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
-  histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histMaterial: 'tier',
+  histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
