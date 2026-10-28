@@ -6964,3 +6964,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-body table { max-width: 100%; }
 .ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
 .ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
+/* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
+.rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
+.rep-file.is-failed { color: var(--ink); font-weight: 600; }

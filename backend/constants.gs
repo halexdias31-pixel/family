@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zt-gmail-why";
+const BACKEND_VERSION = "2026-10-28-zu-sugg-files";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1612,7 +1612,7 @@ const ACTION_ACCESS = {
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
-  suggest: 'self', listSuggestions: 'admin', decideSuggestion: 'admin',
+  suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
   /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */
