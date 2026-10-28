@@ -397,6 +397,7 @@ const CARD_REG = [
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
   { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
   { id: 'site:rules', col: 'site', label: 'Rules', re: /^<div class="card biz rules-card/, only: 'the site\'s rules', say: 'Where the site does something differently. Universal makes it behave like everywhere else, for everybody; Undo takes back the last change.' },
+  { id: 'site:inbox', col: 'site', label: 'Email', re: /^<div class="card biz inbox-card/, say: 'The admin Gmail, read-only.' },
   { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */

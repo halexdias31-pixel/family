@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zm-n4a";
+  --css-version: "2026-10-28-zn-n4c";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6925,3 +6925,25 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .seen-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
 .seen-row select { min-height: 44px; max-width: 60%; }
 .seen-box .seen-say { margin: .25rem 0 .5rem; }
+/* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent, a message read in place. */
+.ib-chips { margin-top: .5rem; }
+.ib-list { display: flex; flex-direction: column; }
+.ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: .45rem; text-align: left;
+  min-height: 48px; padding: .55rem 0; background: none; border: 0; border-bottom: 1px solid var(--line);
+  color: var(--ink); font: inherit; width: 100%; cursor: pointer; }
+.ib-dot { grid-row: 1; align-self: center; width: 8px; height: 8px; border-radius: 50%; }
+.ib-row.is-unread .ib-dot { background: var(--gold); }
+.ib-from, .ib-subj, .ib-snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ib-from { grid-column: 2; }
+.ib-row.is-unread .ib-from, .ib-row.is-unread .ib-subj { font-weight: 700; }
+.ib-at { grid-column: 3; font-size: .8rem; color: var(--faint); }
+.ib-subj, .ib-snip { grid-column: 2 / 4; }
+.ib-snip { font-size: .85rem; color: var(--faint); }
+.ib-h { margin: .6rem 0 .2rem; overflow-wrap: anywhere; }
+.ib-meta { overflow-wrap: anywhere; }
+.ib-body { overflow-wrap: anywhere; overflow-x: auto; max-width: 100%; }
+.ib-body img { max-width: 100%; height: auto; }
+.ib-body img[data-blocked] { display: inline-block; min-width: 1rem; min-height: 1rem; border: 1px dashed var(--line); }
+.ib-body table { max-width: 100%; }
+.ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
+.ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }

@@ -1994,6 +1994,7 @@ function adminPages_() {
 function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
+    .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
 

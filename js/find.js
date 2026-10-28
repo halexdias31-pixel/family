@@ -2268,7 +2268,7 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
-    const carried = stemCarried_(x);
+    const carried = stemOnCard_(x);
     (x.stems || []).forEach((p, i) => {
       if (!p || had.indexOf(stemId_(p)) >= 0 || p === carried) return;
       /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemPlan_`. A stem with nothing
@@ -7833,7 +7833,7 @@ const chunkWeight_ = h => String(h).replace(/<[^>]*>/g, '').replace(/&[a-z0-9#]+
    the end of the text. Returns lists of blocks, in reading order, never an empty list. */
 function packBlocks_(blocks, page, last) {
   /* ---------- A FIGURE IS NEVER A PAGE BY ITSELF, AND A PEN'S FIGURE IS ALWAYS ON THE CARD (356) § */
-  const isFig = b => b.k === 'fig' || b.k === 'use' || b.k === 'nofig';
+  const isFig = b => b.k === 'fig' || b.k === 'sfig' || b.k === 'use' || b.k === 'nofig';
   const units = [];
   let open = null;
   blocks.forEach(b => {
@@ -7937,6 +7937,18 @@ function stemCarried_(x) {
   const first = sib.find(y => (y.stems || []).some(q => stemId_(q) === id));
   return first === x || (first && first.key === x.key) ? p : null;
 }
+/* THE QUESTION'S OWN OPENING ON EVERY PART'S CARD (500): a short stem with a figure is read with
+   each part, its figure too, so 16(a) and 16(b) both have the graph they ask about. Outer stems stay pages. */
+function stemOnCard_(x) {
+  const pen = stemCarried_(x);
+  if (pen) return pen;
+  const st = (x && x.kind === 'question' && x.stems) || [];
+  const p = st[st.length - 1];
+  if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
+  if (!(p.q !== undefined && p.q !== null && p.q !== '') && !(p.row && p.row.question)) return null;
+  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
+  return w <= CHUNK_PAGE ? p : null;
+}
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
   return c.length ? c : [[]];
@@ -7959,7 +7971,13 @@ function partPlan_(x) {
   else if (lead.length) seq = lead.concat([f], pb);
   else seq = [f].concat(pb);
   /* THE STEM IN FRONT, ITS FIGURE UNDER THIS PART'S PEN AT THE STEM'S OWN PLACE FOR IT (its marker, else after its words) -- the paper's order on one card */
-  const sc = f ? stemCarried_(x) : null;
+  const sc = f ? stemCarried_(x) : null, so = sc ? null : stemOnCard_(x);
+  if (so) {
+    const sb = figBlocks_(so.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
+    const at = sb.at >= 0 ? sb.at : sw.length;
+    const sf = so.diagram ? [{ k: 'sfig', h: '', w: figWeight_(so.diagram), from: so }] : [];
+    seq = sw.slice(0, at).concat(sf, sw.slice(at), seq);
+  }
   if (sc) {
     const sb = figBlocks_(sc.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
     const at = sb.at >= 0 ? sb.at : sw.length;
@@ -7967,7 +7985,9 @@ function partPlan_(x) {
   }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
-  const plan = { chunks: packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
+  /* A PART THAT FITS A PAGE IS ONE CARD (500): "Work out x" on one page and "to 3 s.f." with the box on the next read as two questions. */
+  const all = seq.reduce((n, b) => n + (b.w != null ? b.w : chunkWeight_(b.h)), 0);
+  const plan = { chunks: all <= CHUNK_PAGE ? [seq] : packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
   CHUNK_MEMO.set(x, plan);
   return plan;
 }
@@ -8037,6 +8057,7 @@ function chunkHtml_(chunk, circ, x) {
 function figHtml_(x, b) {
   if (!x || !b) return '';
   if (b.k === 'nofig') return '<p class="qfig-missing">Figure not drawn yet.</p>';
+  if (b.k === 'sfig') return b.from && b.from.diagram ? `<figure class="qstem-fig">${b.from.diagram}</figure>` : '';
   if (b.k === 'use') {
     const y = usesOf_(x);
     const p = y && padSource_(y);
@@ -8196,7 +8217,7 @@ function qToolkit_(x) {
     read: true,                    // Read aloud on every question, not only a primary one (394)
     help: true, report: true,      // `helpRow_` in the card, `suggestTile_` in the row
     pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
-    measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
+    measure: !!cardDiagram_(x) && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
   };
 }
 /* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: the Magnifier and the padlock. */
@@ -11311,8 +11332,10 @@ function padSend_(keepalive) {
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
 /* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
+/* THE FIGURE ON A PART'S CARD: its own, else its question's opening's carried onto it (500) -- so 16(a)'s graph has the ruler too. */
+const cardDiagram_ = x => (x && (x.diagram || (x.kind === 'question' && (stemOnCard_(x) || {}).diagram))) || '';
 function measTools_(x) {
-  if (!x || !x.diagram) return [];
+  if (!x || !cardDiagram_(x)) return [];
   /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
   const pen = padSource_(x);
   if (pen && pen.from === 'part') return [];
