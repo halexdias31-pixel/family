@@ -58,6 +58,9 @@ for (const r of rows) {
   const src = r.image_source || {};
   if (r.image !== 'data/icons/120/' + r.id + '.png') bad.push(say + ': image is ' + r.image + ', not data/icons/120/' + r.id + '.png');
   if (!/^File:/.test(src.file || '') || !/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/.test(src.url || '') || !/^(Public domain|PD|CC0)/i.test(src.licence || '')) bad.push(say + ': no public-domain Commons source recorded (image_source file, licence, url) — an icon without one is left out');
+  /* THE ORIGINAL PINNED (512): the full Commons file by sha1, so it can be fetched again and proved bit for bit (tools/epaper-verse/icon-originals.js). */
+  const o = r.original || {};
+  if (!/^[0-9a-f]{40}$/.test(o.sha1 || '') || !/^https:\/\/\S+$/.test(o.url || '') || !/^https:\/\/\S+$/.test(o.revision_url || '') || !(o.bytes > 0) || !(o.width > 0) || !o.timestamp) bad.push(say + ': no original pinned (url, revision_url, timestamp, 40-hex sha1, bytes, width) — run node tools/epaper-verse/icon-originals.js record');
   if ('svg' in r) bad.push(say + ': carries a drawing — icons are the real image only');
   /* THE MASTER (499): a greyscale JPEG from the same Commons file, 600px at most and 80 KB at most, that the 1-bit bitmap is made from. */
   const mp = path.join(ROOT, 'data', 'icons', 'master', r.id + '.jpg');
