@@ -28195,6 +28195,12 @@ async function libFindAt_(W, rowId) {
   await wait(250);
   return x;
 }
+/* WAIT FOR THE ASK, not a fixed sleep: the pump waits on the device's copy first, which a loaded machine makes slower than 250 ms. */
+async function libAskWent_(one, ok) {
+  const went = () => one.sent.some(b => b.action === 'libItems' && ok(b));
+  for (let i = 0; i < 80 && !went(); i++) await wait(50);
+  return went();
+}
 const libFront_ = W => {
   const host = W.document.getElementById('s-stuff');
   return host && host.querySelectorAll(':scope > .page')[W.__t.domIndex('stuff', pg_(W.__t).stuff || 0)];
@@ -28214,6 +28220,7 @@ check('a question whose words are in the Ledger: drawn waiting, asked for with i
   const front = libFront_(W);
   if (!front || !front.querySelector('.lib-wait .loading')) bad.push('the card in front is not drawn waiting with the one loader: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
   if (front && /George throws a ball/.test(front.textContent)) bad.push('the stem\'s words are on the page before they were sent');
+  await libAskWent_(one, () => true);
   const asks = one.sent.filter(b => b.action === 'libItems');
   if (!asks.length) bad.push('no libItems request went for the card in front');
   else {
@@ -28388,7 +28395,7 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
     const waiting = front && front.querySelector('.lib-wait');
     if (!waiting) bad.push(as + ': the pending card in front is not the waiting card before the answer: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
     else if (waiting.textContent.indexOf(target.title) === -1) bad.push(as + ': the waiting card does not carry its title, ' + target.title);
-    if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push(as + ': no libItems request went for ' + wire);
+    if (!(await libAskWent_(one, b => (b.ids || []).indexOf(wire) !== -1))) bad.push(as + ': no libItems request went for ' + wire);
     held.splice(0).forEach(f => f());
     await wait(500);
     front = libFront_(W);
