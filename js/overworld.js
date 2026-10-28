@@ -169,10 +169,10 @@ const PADLOCK = { game: '', q: '' };
 const padlocked_ = () => !!(PADLOCK.game || PADLOCK.q);
 const padHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
 
-/* ONE PADLOCK FOR EVERY GAME (461): `widgetOnColumn_` puts it on each game widget, so a new game has it with no code of its own. */
+/* ONE PADLOCK FOR EVERY WIDGET AND CARD (461, 498): `widgetOnColumn_` and `cardTiles_` put it on each, so text can be selected and copied with the column held. */
 const gameLocked_ = id => !!PADLOCK.game && PADLOCK.game.split('@')[0] === String(id);
 const gameLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock',
-  note: on ? 'tap to let the page move' : 'hold this game still', on, pressed: on });
+  note: on ? 'tap to let the page move' : 'hold it still to select text', on, pressed: on });
 function gameLockTile_(id) {
   return tile_(Object.assign(gameLockLook_(gameLocked_(id)), { act: 'game-lock', cls: 'game-lock', data: { w: id } }));
 }
@@ -181,7 +181,10 @@ function gameLockSet_(v) {
   document.querySelectorAll('.game-lock').forEach(el => {
     const on = gameLocked_(el.getAttribute('data-w'));
     tileSet_(el, gameLockLook_(on));
-    el.closest('.is-widget')?.classList.toggle('is-locked', on);
+    const w = el.closest('.is-widget'), row = el.closest('.tile-row');
+    if (w) w.classList.toggle('is-locked', on);
+    const card = w || el.closest('.card') || (row && row.previousElementSibling);
+    if (card) card.classList.toggle('is-held', on);
   });
   pageHold_(!!PADLOCK.game);
 }

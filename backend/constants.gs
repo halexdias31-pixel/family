@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zl-words";
+const BACKEND_VERSION = "2026-10-28-zm-n4a";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -713,6 +713,10 @@ const WORDS_PIECE_MAX = 300;
 const WORDS_MAX = 40000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
+/* THE IDS A SESSION HAS ADDRESSED (498), ids only, appended by Claude and read on an admin's open. */
+/* A SUGGESTION'S PICTURE (498): the phone shrinks it to about 300 KB; this refuses anything far past that. */
+const SUGGEST_PIC_MAX = 600 * 1024;
+const CLAUDE_NOTES_DONE_FILE = 'data/notes-done.json';
 const CLAUDE_NOTE_MAX = 4000;
 
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
@@ -1494,6 +1498,12 @@ const MIGRATIONS = [
     retry: true,
     what: 'every booking gets its booked hours in slot_codes, so busy hours read one column',
     run: () => backfillSlotCodes_() },
+
+  /* A DONE TICKED BY MISTAKE (498): every note marked done on 2026-10-28 that data/notes-done.json does not list is open again. */
+  { id: 'notes-reopen-2026-10-28',
+    retry: true,
+    what: 'the notes ticked done on 28 October that no session addressed are open again',
+    run: () => claudeNotesReopen_('2026-10-28') },
 ];
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */

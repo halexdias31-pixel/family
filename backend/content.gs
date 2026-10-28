@@ -644,7 +644,7 @@ function reportedItems_() {
 function suggestRow_(t, me, kind, item, label, note, status, at) {
   const row = { note_id: 'N-' + Date.now() + '-' + Math.floor(Math.random() * 100000), made_at: at || new Date(), made_by: S(me),
                 column: S(kind).slice(0, 40), item_id: (S(kind) + '|' + S(item)).slice(0, 120), item_label: S(label).slice(0, 200),
-                note: S(note).slice(0, CLAUDE_NOTE_MAX), status: status, done_at: '' };
+                note: S(note).slice(0, CLAUDE_NOTE_MAX + 600), status: status, done_at: '' };
   addRow(t, row);
   return row;
 }
@@ -1781,6 +1781,56 @@ function claudeNotesWrite_(notes) {
   const f = libDriveFind_(folder.getFilesByName(CLAUDE_NOTES_FILE));
   if (f) { f.setContent(text); return f.getId(); }
   return folder.createFile(CLAUDE_NOTES_FILE, text, MimeType.PLAIN_TEXT).getId();
+}
+/* THE ADDRESSED IDS (498): data/notes-done.json from the site, then GitHub; null when neither answers, so nothing is guessed. */
+function claudeNotesDoneIds_() {
+  const urls = [S(SITE_URL).replace(/\/*$/, '/') + CLAUDE_NOTES_DONE_FILE];
+  try { urls.push(RAW + CLAUDE_NOTES_DONE_FILE); } catch (err) { /* sync.gs is not in this scope */ }
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
+      if (res.getResponseCode() !== 200) continue;
+      const ids = JSON.parse(String(res.getContentText('UTF-8')));
+      if (Array.isArray(ids)) return ids.map(S).filter(Boolean);
+    } catch (err) { /* the next url */ }
+  }
+  return null;
+}
+/* MARKED DONE ON AN ADMIN'S OPEN (498): each listed id still open becomes done, and the Drive file is rewritten once. Twice does what once did. */
+function claudeNotesDoneSync_(ids) {
+  ids = ids || claudeNotesDoneIds_();
+  if (!ids || !ids.length) return 0;
+  const t = read(TAB.claude_notes);
+  if (!t.sheet) return 0;
+  const want = {};
+  ids.forEach(id => { want[id] = 1; });
+  let n = 0;
+  t.rows.forEach(r => {
+    if (!want[S(r.note_id)] || norm(r.status) === 'done' || norm(r.status) === 'dismissed') return;
+    setCells(t, r, { status: 'done', done_at: new Date() });
+    n++;
+  });
+  if (n) { clearCache(); try { claudeNotesWrite_(); } catch (err) { Logger.log('notes file: ' + err); } }
+  return n;
+}
+/* ONE DAY'S DONE UNDONE (498): the owner ticked an old note by mistake; any done that day and not addressed by a session is open again. */
+function claudeNotesReopen_(day) {
+  const ids = claudeNotesDoneIds_();
+  if (ids === null) throw new Error('data/notes-done.json could not be read; trying again later');
+  const t = read(TAB.claude_notes);
+  if (!t.sheet) return 'no claude_notes tab';
+  const addressed = {};
+  ids.forEach(id => { addressed[id] = 1; });
+  let n = 0;
+  t.rows.forEach(r => {
+    if (norm(r.status) !== 'done' || addressed[S(r.note_id)]) return;
+    const v = r.done_at, d = v instanceof Date ? Utilities.formatDate(v, 'Europe/London', 'yyyy-MM-dd') : S(v).slice(0, 10);
+    if (d !== day) return;
+    setCells(t, r, { status: 'open', done_at: '' });
+    n++;
+  });
+  if (n) { clearCache(); try { claudeNotesWrite_(); } catch (err) { Logger.log('notes file: ' + err); } }
+  return n + ' note' + (n === 1 ? '' : 's') + ' open again';
 }
 /* THE FILES WAITING: in the folder itself (not `imported`), named lib-import-<timestamp>.json, oldest name first. */
 function libDrivePending_(folder) {

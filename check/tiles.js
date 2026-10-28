@@ -81,7 +81,8 @@ function measure(id) {
     const prev = row.previousElementSibling;
     let d = prev;
     while (d && !d.classList.contains('tile-row') && lastKid(d) && !d.matches('.merged-part, .widget-slot, .me-form, form, [class*="qual"], ul, ol, table')) d = lastKid(d);
-    if (d && d.classList.contains('tile-row') && !row.classList.contains('wgt-foot') && !(prev && prev.matches('.merged-part, .widget-slot'))) {
+    /* A PERSON'S OWN ROW (498) is about them; the list's layout row under it is about the list, so the two stay apart. */
+    if (d && d.classList.contains('tile-row') && !d.classList.contains('person-tiles') && !row.classList.contains('wgt-foot') && !(prev && prev.matches('.merged-part, .widget-slot'))) {
       const c = row.closest('.card, .own-set, .fest'), h = c && c.querySelector('h2, h3, .wgt-title');
       out.push(`#s-${id}: "${((h && h.textContent) || '?').trim().slice(0, 40)}" has its tiles in two rows, one under the other`);
     }

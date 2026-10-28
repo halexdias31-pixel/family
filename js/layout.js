@@ -212,6 +212,55 @@ function layoutTiles_(w) {
       '')}</span>`;
 }
 
+/* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
+   Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
+const layCalm_ = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+function layThing_(kind, id, col) {
+  const host = col ? document.getElementById('s-' + col) : document;
+  if (!host || !id) return null;
+  const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+  const el = kind === 'w' ? host.querySelector('#wgt-' + css(id)) : host.querySelector('[data-lay-for="' + css(id) + '"]');
+  return el ? (el.closest('.card') || el.closest('.page')) : null;
+}
+function layLight_(el) {
+  if (!el) return;
+  el.classList.remove('lay-moved');
+  void el.offsetWidth;
+  el.classList.add('lay-moved');
+  setTimeout(() => el.classList.remove('lay-moved'), 1400);
+}
+/* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
+function layMoveShow_(kind, id, col, save, to) {
+  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect();
+  save();
+  const after = () => {
+    if (to && to !== col) {
+      try { go(to); } catch (e) {}
+      /* ITS PAGE BY THE PAGER, never scrollIntoView: the parked columns are off-canvas by design and a scroll would move the whole app. */
+      setTimeout(() => {
+        const el = layThing_(kind, id, to), pg = el && el.closest('.page'), host = document.getElementById('s-' + to);
+        const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
+        if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) {} }
+        layLight_(el);
+      }, layCalm_() ? 0 : 420);
+      return;
+    }
+    const el = layThing_(kind, id, col);
+    if (!el) return;
+    if (!r0 || layCalm_()) { layLight_(el); return; }
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) { layLight_(el); return; }
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    void el.offsetWidth;
+    el.style.transition = 'transform 320ms cubic-bezier(.2,.7,.2,1)';
+    el.style.transform = '';
+    setTimeout(() => { el.style.transition = ''; }, 360);
+    layLight_(el);
+  };
+  try { requestAnimationFrame(after); } catch (e) { after(); }
+}
+
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once ---------- */
 on('lay-w-move', el => {
   if (!layoutIsAdmin_()) return;
@@ -220,7 +269,7 @@ on('lay-w-move', el => {
   const units = mergeUnits_(layoutSeen_(col, D), D), ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
   if (!col || ui === -1 || !next) return;
   D.widgets[col] = unitPlace_(D.widgets[col], mergeAll_(id, D), next, d);
-  layoutSave_(D);
+  layMoveShow_('w', id, col, () => layoutSave_(D));
 });
 /* ACROSS: to the end of the neighbouring widget column. */
 on('lay-w-col', el => {
@@ -233,7 +282,7 @@ on('lay-w-col', el => {
   const all = mergeAll_(id, D);
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
   D.widgets[to] = D.widgets[to].concat(all);
-  layoutSave_(D);
+  layMoveShow_('w', id, col, () => layoutSave_(D), to);
 });
 /* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
@@ -577,6 +626,7 @@ function cardAdminRow_(id, col, mergeable) {
     frontTile_(col, id)}${wordsTiles_(id, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
+    typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${
     notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
       typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
 }
@@ -585,7 +635,7 @@ function cardReportRow_(id, page) {
   /* NOT ON A LOCKED CARD (467: nothing pressable) NOR AN EMPTY ONE (its title alone). */
   if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\b(is-empty|is-locked)\b/.test(page)) return '';
   const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
-  return t ? `<div class="tile-row card-rep">${t}</div>` : '';
+  return t ? `<div class="tile-row card-rep">${typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${t}</div>` : '';
 }
 
 /* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
@@ -658,20 +708,13 @@ function frontGo_() {
 
 /* ---------- NOTES FOR CLAUDE (484, 494): made by Suggest a change now (submit.js); here the open ones and Done ----------
    Kept in the Ledger's `claude_notes` and the Drive file "Notes for Claude", where a session reads them. */
-function noteOpen_(id) { return ((typeof DATA !== 'undefined' && DATA && DATA.claudeNotes) || []).filter(n => n && n.itemId === id); }
+/* NO NOTES ARE LISTED ON THE SITE (498): the owner, "I don't even need to be able to tick or see old tasks" -- Claude marks them done (data/notes-done.json). */
 /* DELETE THEN THE NOTE, in the one flow (487). */
 function notePair_(del, note) { return del + note; }
-function noteListHtml_(id) {
-  const all = noteOpen_(id);
-  if (!all.length) return '';
-  const day = ms => { try { return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
-  return `<ul class="ncl-list">${all.map(n => `<li class="ncl-item"><span class="ncl-say">${esc(day(n.at))} · ${esc(String(n.note || '').split('\n')[0])}</span>${
-    tile_({ icon: 'tick', label: 'Done', act: 'ncl-done', tone: 'admin', data: { nid: n.id, ci: id } })}</li>`).join('')}</ul>`;
-}
 /* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
 function boxInPlace_(el, html) {
   const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .fest, .post');
-  if (!thing) { const at = el.closest('.msg') || el.closest('.tile-row'); if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
+  if (!thing) return boxBeside_(el, html);
   thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
   const h = thing.getBoundingClientRect().height;
   thing.insertAdjacentHTML('beforeend', html);
@@ -679,32 +722,32 @@ function boxInPlace_(el, html) {
   if (h) thing.style.setProperty('--writing-h', Math.round(h) + 'px');
   return thing.lastElementChild;
 }
+/* A ROW OUTSIDE ITS THING (498): a Find card's row stands after its `.favwrap`; both are hidden and the box takes their place. A message keeps its box under it. */
+const BOX_HID = new WeakMap();
+function boxBeside_(el, html) {
+  const msg = el.closest('.msg'), row = el.closest('.tile-row');
+  if (msg || !row) { const at = msg || row; if (!at) return null; at.insertAdjacentHTML('afterend', html); return at.nextElementSibling; }
+  const prev = row.previousElementSibling, hid = [row].concat(prev && prev.matches('.favwrap, .card, .fc') ? [prev] : []);
+  if (row.nextElementSibling && row.nextElementSibling.classList.contains('rep-box')) row.nextElementSibling.remove();
+  const h = hid.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
+  row.insertAdjacentHTML('afterend', html);
+  const box = row.nextElementSibling;
+  hid.forEach(e => { e.hidden = true; });
+  box.classList.add('is-beside');
+  if (h) box.style.minHeight = Math.round(h) + 'px';
+  BOX_HID.set(box, hid);
+  return box;
+}
 function boxOut_(box) {
   if (!box) return;
   const thing = box.parentElement;
+  (BOX_HID.get(box) || []).forEach(e => { e.hidden = false; });
   box.remove();
   if (thing && thing.classList.contains('is-writing') && !thing.querySelector(':scope > .rep-box')) {
     thing.classList.remove('is-writing');
     thing.style.removeProperty('--writing-h');
   }
 }
-/* THE OPEN NOTES UNDER A SUGGEST BOX (494), redrawn when one is marked done. */
-function noteRedraw_(id) {
-  const b = [...document.querySelectorAll('.rep-box')].find(x => x.dataset.rk + '|' + x.dataset.ri === id);
-  if (!b) return;
-  b.querySelector('.ncl-list')?.remove();
-  b.insertAdjacentHTML('beforeend', noteListHtml_(id));
-}
-on('ncl-done', el => {
-  if (!layoutIsAdmin_()) return;
-  const nid = el.getAttribute('data-nid'), id = el.getAttribute('data-ci');
-  el.disabled = true;
-  send({ action: 'claudeNoteDone', personId: (USER && USER.personId) || '', id: nid })
-    .then(d => { try { DATA.claudeNotes = d && Array.isArray(d.notes) ? d.notes : (DATA.claudeNotes || []).filter(n => n.id !== nid); } catch (e) {}
-      noteRedraw_(id); })
-    .catch(err => { el.disabled = false; toast(String((err && err.message) || 'Not marked done')); });
-});
-/* A COLUMN'S LIST AS THE ADMIN SEES IT, with any card named there but not drawn for them kept at the end. */
 function cardListOf_(col, L) {
   if (!CARD_SEEN[col]) { try { cardArrange_(col, (CARD_BUILD[col]() || []).filter(Boolean)); } catch (e) {} }
   const seen = (CARD_SEEN[col] || []).slice(), had = (L && L.cards && L.cards[col]) || [];
@@ -723,7 +766,7 @@ on('lay-c-move', el => {
   const D = layoutDraftOf_(L);
   D.cards = D.cards || {};
   D.cards[col] = unitPlace_(list, mergeAll_(id, L), next, d);
-  layoutSave_(D);
+  layMoveShow_('c', id, col, () => layoutSave_(D));
 });
 /* ACROSS: to the end of the neighbouring card column — the same card, its one home moved with it. */
 on('lay-c-col', el => {
@@ -744,7 +787,7 @@ on('lay-c-col', el => {
   D.cards = D.cards || {};
   D.cards[col] = from;
   D.cards[to] = there.concat(all);
-  layoutSave_(D);
+  layMoveShow_('c', id, col, () => layoutSave_(D), to);
 });
 /* DELETE ASKS TWICE, IN PLACE; the second step says when it is the only place a setting is edited — still one tap, never a pop-up. */
 on('lay-c-del', el => {

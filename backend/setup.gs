@@ -1267,6 +1267,8 @@ function setupOnAdminLoad_() {
     props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
     try { digestKeepBooked_(); props.deleteProperty('FAILED_sunday-email-hour'); }
     catch (err) { props.setProperty('FAILED_sunday-email-hour', String((err && err.message) || err).slice(0, 300)); }
+    /* THE NOTES A SESSION ADDRESSED (498), marked done from data/notes-done.json. */
+    try { claudeNotesDoneSync_(); } catch (err) { Logger.log('notes done: ' + err); }
     try { libImportKeepBooked_(); props.deleteProperty('FAILED_library-import-hourly'); }
     catch (err) { props.setProperty('FAILED_library-import-hourly', String((err && err.message) || err).slice(0, 300)); }
   } catch (err) { Logger.log('setup: ' + err); }

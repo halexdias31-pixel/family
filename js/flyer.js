@@ -234,38 +234,36 @@ function flyControls() {
 
   return `
     <div class="fm-bar">
-      <label>Campaign<select id="fm-c">${flyRows()
+      <label><span class="fm-k">Campaign</span><select id="fm-c">${flyRows()
         .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
           esc(r[0])}</option>`).join('')}</select></label>
       ${flyMenu()}
-      ${/* ONE LINE PER THING (421, 472): label left, its control right; the three colours are one thing, so one line. */''}
-      <label>Style<select id="fm-s">${FLY_STYLES
-        .map(s => `<option>${s}</option>`).join('')}</select></label>
+      ${/* AS THE CHEAT SHEET MAKER (498): each control one line, its words saying what it is; the label kept for a screen reader. */''}
+      <label><span class="fm-k">Style</span><select id="fm-s">${FLY_STYLES
+        .map(s => `<option value="${s}">${s} style</option>`).join('')}</select></label>
       <div class="fm-row fm-inks" title="Ink is what it is set in · Accent marks the one thing to look at · Paper is the ground"><span>Colours</span>
         <input type="color" id="fm-k1" aria-label="Ink" title="Ink"><input type="color" id="fm-k2" aria-label="Accent" title="Accent"><input type="color" id="fm-k3" aria-label="Paper" title="Paper"></div>
     </div>
-    <div class="fm-bar">
-      <label>Advertising<select id="fm-ad">
-        <option value="wait">Waiting list classes</option>
-        <option value="inst">Instant classes</option>
-        <option value="both">Both</option>
-        <option value="none">Neither</option></select></label>
-      <label>Venue<select id="fm-v">${list
+    <div class="fm-bar fm-pairs">
+      <label><span class="fm-k">Advertising</span><select id="fm-ad">
+        <option value="wait">Advertising waiting list classes</option>
+        <option value="inst">Advertising instant classes</option>
+        <option value="both">Advertising both kinds</option>
+        <option value="none">Advertising no classes</option></select></label>
+      <label><span class="fm-k">Venue</span><select id="fm-v">${list
         .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
-      <label>Hours<select id="fm-h">
-        <option>1</option><option>1.5</option><option selected>2</option>
-        <option>2.5</option><option>3</option></select></label>
-      <label>To a class<select id="fm-n">
-        <option>2</option><option>3</option><option selected>4</option>
-        <option>5</option><option>6</option></select></label>
-      <label>Size<select id="fm-z">
-        <option value="a5">A5 · half a page</option>
-        <option value="a6">A6 · a quarter</option>
+      <label><span class="fm-k">Hours</span><select id="fm-h">
+        ${['1', '1.5', '2', '2.5', '3'].map(h => `<option value="${h}"${h === '2' ? ' selected' : ''}>${h} hour${h === '1' ? '' : 's'}</option>`).join('')}</select></label>
+      <label><span class="fm-k">To a class</span><select id="fm-n">
+        ${['2', '3', '4', '5', '6'].map(n => `<option value="${n}"${n === '4' ? ' selected' : ''}>${n} seats</option>`).join('')}</select></label>
+      <label><span class="fm-k">Size</span><select id="fm-z">
+        <option value="a5">A5 · half</option>
+        <option value="a6">A6 · quarter</option>
         <option value="sq">Sticker</option></select></label>
       ${/* HOW MANY OF IT. One flyer on a mixed sheet, or the sheet filled with the same one to be guillotined — which is what the old tool's "2 up / 4 up / 9 up" was § */
             ''}
-      <label>How many<select id="fm-rep">
-        <option value="1">One</option>
+      <label><span class="fm-k">How many</span><select id="fm-rep">
+        <option value="1">Just one</option>
         <option value="fill">Fill the sheet</option></select></label>
     </div>
     <div class="fm-adds">
@@ -336,7 +334,7 @@ function flyMenu() {
     const list = flyVariants(slot);
     if (list.length < 2) return '';
     const at = Math.min(FLY_PICK[(flyRows()[FLY_AT || 0] || [])[8] + ':' + slot] || 0, list.length - 1);
-    return `<label>${label}<select id="${id}">${list.map((w, i) =>
+    return `<label><span class="fm-k">${label}</span><select id="${id}">${list.map((w, i) =>
       `<option value="${i}"${i === at ? ' selected' : ''}>${
         esc(w.note || (w.text.split('|')[0].slice(0, 34)))}</option>`).join('')}</select></label>`;
   };

@@ -13,6 +13,7 @@ const REASONS = {
   reportQuestion: 'kept for a phone loaded before 486: it is routed into the one `suggest` action (check-suggest proves it).',
   report: 'kept for a phone loaded before 494: it is routed into the one `suggest` action (check-suggest proves it).',
   claudeNoteAdd: 'kept for a phone loaded before 494, whose admin tile was Note for Claude; Suggest a change replaced it (check-suggest).',
+  claudeNoteDone: 'kept for a phone loaded before 498, whose suggest box listed notes with Done; Done is now data/notes-done.json, read on an admin open (check-suggest).',
   flagMessage: 'kept for a phone loaded before 486: a message routed into the one `suggest` action (check-posts proves it).',
   linkChild: 'the one way an admin settles a HELD family link besides typing in the sheet (check-signin proves the '
     + 'address rule on it). Posted by hand for now; no admin card yet (433).',

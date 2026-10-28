@@ -28448,6 +28448,49 @@ check('Suggest a change is one tile on a question and a content card for a stude
   return bad;
 });
 
+/* ---------- ROUND THREE OF THE OWNER'S NOTES (498) ---------- */
+check('Suggest a change takes the place of its thing on every kind -- a widget, a Find card, a column card, a history card -- and gives it back on Cancel; the padlock is in each one row; a Find note carries its path; no notes or Done tile are listed', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  const wgt = (w.allWidgets ? w.allWidgets() : []).find(x => x && x.id === 'verse') || (w.allWidgets ? w.allWidgets() : []).find(x => x && x.kind === 'tool');
+  const ct = { kind: 'figure', hdb: true, key: 'hdb:FIG-N4', name: 'A figure', sub: '1874–1965', histKind: 'Historical figures', subject: 'History',
+    row: { id: 'FIG-N4', name: 'A figure', born_year: 1874, died_year: 1965, sources: 'https://a.example.org | https://b.example.org' } };
+  const kinds = [
+    ['a widget', wgt ? w.widgetOnColumn_(wgt, true) : ''],
+    ['a Find card', w.stuffCard(ct)],
+    ['a column card', '<div class="card"><h3>Every parent</h3><p>Ann</p></div>' + w.cardReportRow_('ppl:parents:all', '<div class="card"><h3>Every parent</h3></div>')],
+  ];
+  const stuff = d.getElementById('s-stuff');
+  for (const [say, html] of kinds) {
+    if (!html) { bad.push(say + ' could not be drawn, so it was NOT checked'); continue; }
+    const host = d.createElement('div');
+    host.className = 'pane';
+    host.innerHTML = html;
+    (say === 'a Find card' && stuff ? stuff : d.body).appendChild(host);
+    const tile = host.querySelector('[data-do="rep-box"]');
+    if (!tile) { bad.push(say + ' has no Suggest tile'); host.remove(); continue; }
+    if (!tile.closest('.tile-row').querySelector('.game-lock')) bad.push(say + ': the padlock is not in its one tile row');
+    if (say === 'a Find card' && (host.querySelectorAll('.tile-row').length !== 1 || host.querySelectorAll('[aria-label^="Source"]').length > 1)) bad.push('a history card’s tiles are not one row with one Source');
+    t.ACTIONS['rep-box'](tile);
+    await wait(10);
+    const box = host.querySelector('.rep-box');
+    if (!box) { bad.push(say + ': no box'); host.remove(); continue; }
+    const inPlace = (box.parentElement.classList.contains('is-writing')) || (box.classList.contains('is-beside') && tile.closest('.tile-row').hidden);
+    if (!inPlace) bad.push(say + ': the box went under the thing, not in its place');
+    if (box.querySelector('.ncl-list, [data-do="ncl-done"]')) bad.push(say + ': the box still lists notes or a Done tile');
+    if (!box.querySelector('[data-do="rep-pic"]') || !box.querySelector('input[type=file][accept="image/*"]')) bad.push(say + ': no Add a picture tile');
+    if (say === 'a Find card' && !/^Find/.test(box.dataset.path || '')) bad.push('a Find card’s box carries no funnel path: ' + JSON.stringify(box.dataset.path));
+    t.ACTIONS['rep-cancel'](box.querySelector('[data-do="rep-cancel"]'));
+    await wait(10);
+    if (host.querySelector('.rep-box') || host.querySelector('[hidden].tile-row') || host.querySelector('.is-writing')) bad.push(say + ': Cancel did not give the thing back');
+    host.remove();
+  }
+  if (typeof w.noteListHtml_ === 'function') bad.push('noteListHtml_ is still drawn: no notes listed on the site (498)');
+  return bad;
+});
+
 /* ---------- THE LIBRARY'S WORDS COME FROM THE LEDGER (397) ----------------------------------------------- */
 /* A PAPER AS THE REPOSITORY HOLDS IT NOW: each row's private fields taken off and named in `lib_has` (tools/lib-private.js's split). */
 const LIB_PID = 'RS1786302107764-503';
@@ -30313,7 +30356,7 @@ check('phone notifications (492): Student settings has a Notifications card; Tur
 
 /* ---------- NOTES FOR CLAUDE BY SUGGEST A CHANGE (484, 494): one Suggest tile on every widget and card; a box in place; Send, Done ---------- */
 const cnRow_ = (w, id) => (w.document.querySelector(`#wgt-${id}`)?.closest('.card')?.querySelector('.wgt-foot')) || null;
-check('notes for Claude by Suggest a change (494): an admin has one Suggest tile on a widget and on a card and no Note for Claude tile; it opens a box in place, a draft survives Cancel, Send posts the item id and title, the note is listed, Done hides it', async () => {
+check('notes for Claude by Suggest a change (494): an admin has one Suggest tile on a widget and on a card and no Note for Claude tile; it opens a box in place, a draft survives Cancel, Send posts the item id and title; no note is listed and there is no Done (498)', async () => {
   const notes = [];
   const { w, sent } = layBoot_({ reply: b => {
     if (b.action === 'suggest') { notes.unshift({ id: 'N-1', at: Date.now(), column: b.kind, itemId: b.kind + '|' + b.itemId, itemLabel: b.label, note: b.note }); return { success: true, serious: true, id: 'N-1', notes: notes.slice() }; }
@@ -30322,7 +30365,8 @@ check('notes for Claude by Suggest a change (494): an admin has one Suggest tile
   } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['rep-box'] || !A['rep-send'] || !A['ncl-done']) return ['no rep-box / rep-send / ncl-done — NOT checked'];
+  if (!A['rep-box'] || !A['rep-send']) return ['no rep-box / rep-send — NOT checked'];
+  if (A['ncl-done']) bad.push('Done is still wired — Claude marks notes done by data/notes-done.json (498)');
   if (A['ncl-open'] || A['ncl-send']) bad.push('the old Note for Claude box is still wired');
   t.go('tools', false, true); await wait(300);
   const a = layIds_(t, 'tool')[0];
@@ -30360,11 +30404,7 @@ check('notes for Claude by Suggest a change (494): an admin has one Suggest tile
   A['rep-box'](tile2); await wait(50);
   const ta3 = boxOf()?.querySelector('textarea');
   if (ta3 && ta3.value) bad.push('the box opened again with the sent words in it: ' + ta3.value);
-  const item = boxOf()?.querySelector('.ncl-item');
-  if (!item || item.textContent.indexOf('Make the title bigger') === -1) bad.push('the sent note is not listed in the box');
-  if (item) { A['ncl-done'](item.querySelector('[data-do="ncl-done"]')); await wait(200); }
-  if (sent.filter(x => x.action === 'claudeNoteDone').length !== 1) bad.push('Done sent no claudeNoteDone');
-  if (boxOf()?.querySelector('.ncl-item')) bad.push('Done did not hide the note');
+  if (boxOf()?.querySelector('.ncl-item, [data-do="ncl-done"]')) bad.push('the box lists notes or a Done tile — the owner: "I don\'t even need to be able to tick or see old tasks"');
   const c = boot({ before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(300);
   c.w.__t.go('tools', false, true); await wait(200); await layPaintAll_(c.w);
