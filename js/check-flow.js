@@ -21121,8 +21121,21 @@ check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing o
   if (card && card.querySelector('h3')) bad.push('the card still has a title');
   const svg = card && card.querySelector('.hdb-ms svg');
   if (!svg || !svg.querySelector('clipPath path') || !svg.querySelectorAll('text').length) bad.push('the card has no drawing of the fragment');
-  /* TRACED, BOTH SIDES (495): recto and verso, and only letters that survive -- a whole line of 30 would be the old guess. */
-  if (card && card.querySelectorAll('.hdb-ms-side svg').length !== 2) bad.push('the drawing does not show both recto and verso');
+  /* ONE SIDE A CARD (507): the front card draws the recto alone; only letters that survive -- a whole line of 30 would be the old guess. */
+  if (card && card.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the card draws ' + card.querySelectorAll('.hdb-ms-side svg').length + ' sides, not one');
+  if (!/Recto/.test((card && card.querySelector('.hdb-ms-side figcaption') || {}).textContent || '')) bad.push('the front card does not draw the recto');
+  /* THE OTHER SIDE IS ITS OWN ITEM (507): Front and Back tags, the bare key the Front's (a saved key still opens), the facts line on both. */
+  const its = w.histItems_('manuscript', r);
+  if (its.length !== 2 || its[0].msSide !== 'Front (recto)' || its[1].msSide !== 'Back (verso)' || its[0].key !== 'hdb:MS-0001' || its[1].key !== 'hdb:MS-0001:back')
+    bad.push('Papyrus 52 is not two items, Front at hdb:MS-0001 and Back at hdb:MS-0001:back: ' + JSON.stringify(its.map(i => [i.key, i.msSide])));
+  else {
+    const e2 = d.createElement('div'); e2.innerHTML = w.histCard_(its[1]);
+    if (!/Verso/.test((e2.querySelector('.hdb-ms-side figcaption') || {}).textContent || '') || e2.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the back card does not draw the verso alone');
+    if (!/Held: John Rylands/.test((e2.querySelector('.hdb-facts') || {}).textContent || '')) bad.push('the back card has no facts line');
+    if (!e2.querySelector('.qtag[data-f="histSide"]')) bad.push('the back card carries no Side tag');
+  }
+  const ca = rows.find(q => q.id === 'MS-0002');
+  if (ca && JSON.stringify(w.histItems_('manuscript', ca).map(i => i.msSide)) !== '["Back (verso)"]') bad.push('Codex Alexandrinus fol. 41v is not one Back (verso) card');
   if (svg && svg.querySelectorAll('text').length > 80) bad.push('the recto draws ' + svg.querySelectorAll('text').length + ' letters; about 60 survive');
   const facts = (card && card.querySelector('.hdb-facts') || {}).textContent || '';
   if (!/Found: .*1920/.test(facts) || !/Dated: /.test(facts) || !/Held: John Rylands Library/.test(facts)) bad.push('the facts line says "' + facts + '"');
