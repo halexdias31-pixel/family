@@ -570,7 +570,8 @@ function markPlay_(v, late) {
   const asked = Date.now();
   const go = () => {
     try {
-      if (ac.state !== 'running' || Date.now() - asked > MARK_LATE_MS) return;
+      /* TOO LATE TO PLAY: nothing will, so the context woken for it is put to rest as after a sound. */
+      if (ac.state !== 'running' || Date.now() - asked > MARK_LATE_MS) { if (ac.state === 'running') markRest_(MARK_REST_MS); return; }
       markHush_();
       const out = ac.createGain();
       out.gain.setValueAtTime(1, ac.currentTime);

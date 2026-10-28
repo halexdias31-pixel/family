@@ -19171,6 +19171,8 @@ check('mark sound: the context rests when nothing is playing — a second after 
   await press('16');
   await wait(900);
   rec.slow = 0;
+  /* PAST SUB_TWICE_MS (508): the same answer again inside a second is a double tap, recorded once and heard once. */
+  await wait(200);
   const slowHeard = earHeard_(rec).slice(2);
   if (slowHeard.length) bad.push('a context that took 800ms to wake still played [' + slowHeard.join(', ') + '] — over half a second after the press');
   await press('16');

@@ -125,7 +125,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zz3-integrate";
+const BACKEND_VERSION = "2026-10-28-zz4-merge3";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
