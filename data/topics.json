@@ -333,5 +333,9 @@
 {"topic_id": "drv-motorway", "label": "Motorway Rules", "parent_id": "driving", "aliases": "", "active": "True"},
 {"topic_id": "drv-phone", "label": "Mobile Phones", "parent_id": "driving", "aliases": "", "active": "True"},
 {"topic_id": "drv-crossing", "label": "Pedestrian Crossings", "parent_id": "driving", "aliases": "pelican crossing, zebra crossing", "active": "True"},
-{"topic_id": "drv-markings", "label": "Road Markings", "parent_id": "driving", "aliases": "double white lines", "active": "True"}
+{"topic_id": "drv-markings", "label": "Road Markings", "parent_id": "driving", "aliases": "double white lines", "active": "True"},
+{"topic_id": "rs-christianity", "label": "Christianity", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
+{"topic_id": "rs-judaism", "label": "Judaism", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
+{"topic_id": "rs-islam", "label": "Islam", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
+{"topic_id": "rs-mesopotamian", "label": "Mesopotamian religion", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"}
 ]

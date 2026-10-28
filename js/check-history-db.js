@@ -29,7 +29,8 @@ Object.keys(SCHEMA).forEach(f => {
   const p = path.join(ROOT, 'data', f + '.json');
   try { T[f] = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { bad.push('data/' + f + '.json does not parse — NOT checked: ' + e.message); T[f] = null; }
   if (T[f] && !Array.isArray(T[f])) { bad.push('data/' + f + '.json is not an array of rows'); T[f] = null; }
-  if (T[f] && !T[f].length) bad.push('data/' + f + '.json has no rows — nothing was checked');
+  /* A WRITING IS ITS PAGES (520): the writings table is empty by rule, its works in data/works/index.json, so it alone may be. */
+  if (T[f] && !T[f].length && f !== 'writings') bad.push('data/' + f + '.json has no rows — nothing was checked');
 });
 if (Object.values(T).some(t => !t)) { bad.forEach(b => console.log('FAIL ' + b)); process.exit(1); }
 
@@ -58,6 +59,13 @@ Object.keys(SCHEMA).forEach(f => {
     src.forEach(u => { if (!/^https:\/\/[^\s|]+\.[^\s|]+$/.test(u)) bad.push(at + ' source "' + u + '" is not an https URL'); });
   });
 });
+
+/* A WR- LINK RESOLVES TO A WORK WITH PAGES (520): data/works/index.json, its facts (author_id, manuscripts, events) on the entry. */
+let works = [];
+try { works = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'works', 'index.json'), 'utf8')).works || []; }
+catch (e) { bad.push('data/works/index.json does not parse — WR- links were NOT checked: ' + e.message); }
+works.forEach(w => { if (byId.has(w.id)) bad.push(w.id + ' is both a writings row and a work with pages — a writing is databased once, as its pages'); else byId.set(w.id, { f: 'works', r: w }); });
+if (!works.length) bad.push('data/works/index.json lists no works — WR- links were NOT checked');
 
 /* EVERY ID-LOOKING TEXT RESOLVES; a link cell's entries are an id or plain words. */
 const linkCols = { manuscripts: ['writings'], figures: ['writings', 'relations', 'events'], writings: ['author_id', 'manuscripts', 'events'], timeline: ['figures', 'writings'] };

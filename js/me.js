@@ -1988,7 +1988,7 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return typeof bizPages_ === 'function' ? bizPages_() : [];
+  return (typeof bizPages_ === 'function' ? bizPages_() : []).concat(typeof deletedCard_ === 'function' ? [deletedCard_()] : []);
 }
 /* THE SITE COLUMN (491): what runs the site rather than the business — setup, moderation, imports, the weekly email, the build. */
 function sitePages_() {

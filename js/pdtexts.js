@@ -19,31 +19,33 @@ function pdtextsIndex_() {
     PDTEXTS.asking = null;
     if (!ok) { PDTEXTS.failed = true; return null; }
     PDTEXTS.index = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('pdtexts');
     return d;
   });
   return null;
 }
 
-/* ONE ITEM A CARD A TEXT: History's on the History shelf under Texts, literature on its own subject's shelf. */
+/* ONE ITEM A CARD A TEXT (520): a `writingUnit_` on the Writings shelf of its own subject (English Literature, History); an
+   anthology is its Collection. */
 function pdtextsItems_() {
   const ix = PDTEXTS.index;
   if (!ix) return [];
   if (PDTEXTS.items && PDTEXTS.from === ix) return PDTEXTS.items;
-  const list = [];
+  const list = [], reg = writingWork_('pdtexts');
   ix.texts.forEach(w => {
-    const hist = w.subject === 'History';
-    w.texts.forEach((label, t) => w.cards.forEach((at, i) => {
-      const place = (at || []).filter(Boolean);
-      list.push({
-        kind: 'pdtext', key: 'tx:' + w.id + ':' + t + ':' + i, name: [w.title].concat(place).join(' '), image: '', row: null,
-        shelf: BIBLE_SHELF, subject: w.subject, histKind: hist ? 'Texts' : '', sub: label,
-        text: [w.title, w.author].concat(place, [label, w.id]).join(' '),
-        txWriting: w.title, txBook: at[0] || '', txChapter: at[1] || '', txSection: at[2] || '', txText: label, txAnthology: w.anthology || '',
-        tx: { id: w.id, file: w.file, i: i, t: t },
+    w.texts.forEach((label, t) => {
+      const text = writingText_(writingTextOf_(label, '', w.year));
+      w.cards.forEach((at, i) => {
+        const place = (at || []).filter(Boolean);
+        list.push(writingUnit_('pdtexts', reg, {
+          kind: 'pdtext', key: 'tx:' + w.id + ':' + t + ':' + i, name: [w.title].concat(place).join(' '), sub: text,
+          subject: w.subject, text: [w.title, w.author].concat(place, [label, w.id]).join(' '),
+          w: { work: w.title, book: at[0] || '', chapter: at[1] || '', unit: at[2] || '', text: text,
+               collection: w.anthology || '', author: w.author || '', form: w.form || '' },
+          tx: { id: w.id, file: w.file, i: i, t: t },
+        }));
       });
-    }));
+    });
   });
   PDTEXTS.items = list; PDTEXTS.from = ix;
   return list;

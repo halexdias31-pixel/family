@@ -8,7 +8,7 @@ const HADITH_ORDER = [];
 ANSWER_ORDERS.push(HADITH_ORDER);
 const HADITH_WORDS = 'Hadith hadeeth sunnah Kutub al-Sittah six books Arabic';
 /* FOR A VIEWER OF AGE (490), like all scripture. */
-const hadithFor_ = () => viewerOfAge_(scriptureMinAge_());
+const hadithFor_ = () => writingFor_(writingWork_('hadith'));
 
 function hadithGet_(file) {
   return scriptureFetch_(o => fetch('data/hadith/' + file + scriptureStamp_(), o));
@@ -26,7 +26,7 @@ function hadithIndex_() {
     else {
       HADITH.index = d;
       d.collections.forEach(c => { HADITH_ORDER.push(c.name); c.books.forEach(b => HADITH_ORDER.push(hadithBookSay_(b))); });
-      if (typeof stuffForget_ === 'function') stuffForget_();
+      writingCame_('hadith');
     }
     if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
     return ok ? d : null;
@@ -47,16 +47,16 @@ function hadithItems_() {
   const ix = HADITH.index;
   if (!ix || !hadithFor_()) return [];
   if (HADITH.items && HADITH.from === ix) return HADITH.items;
-  const list = [], shelf = BIBLE_SHELF, rs = SCRIPTURE_SUBJECT();
+  const list = [], reg = writingWork_('hadith'), text = writingText_(writingTextOf_('Arabic'));
   ix.collections.forEach(c => c.books.forEach(b => {
     const say = hadithBookSay_(b), words = [HADITH_WORDS, c.name, c.ar, b.name].join(' ');
     hadithNums_(b).forEach((n, i) => {
-      list.push({
-        kind: 'hadith', key: 'hd:' + c.id + ':' + n, name: c.name + ' ' + n, image: '', row: null, shelf: shelf, libBook: 'Hadith', unit: WRITING_UNIT.hadith, subject: rs,
-        sub: b.name, min_age: scriptureMinAge_(), text: words,
-        hadithCollection: c.name, hadithBook: say, hadithNumber: n, hadithTranslation: 'Arabic',
+      /* ONE SHAPE (520): which of the six is the Collection, its book the Book, the number the Unit. */
+      list.push(writingUnit_('hadith', reg, {
+        kind: 'hadith', key: 'hd:' + c.id + ':' + n, name: c.name + ' ' + n, sub: b.name, text: words,
+        w: { collection: c.name, book: say, unit: n, text: text },
         hd: { c: c.id, b: b.n, file: b.file, i: i },
-      });
+      }));
     });
   }));
   HADITH.items = list; HADITH.from = ix;

@@ -55,26 +55,20 @@ if (ix) {
 
 /* THE ITEMS, built by js/texts.js itself: one per unit, keys unique, the age rule on scripture-like texts. */
 if (ix) {
-  const ctx = { window: {}, BIBLE_SHELF: 'Books', SCRIPTURE_SUBJECT: () => 'Religious Studies', scriptureMinAge_: () => 18, Array, String, Number, Promise };
+  const ctx = { window: {}, WRITINGS_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', scriptureMinAge_: () => 18, spellKey_: s => String(s).toLowerCase(), Array, String, Number, Object, Map, Promise };
   let adult = true;
   ctx.viewerOfAge_ = () => adult;
   vm.createContext(ctx);
   try {
-    vm.runInContext(src('js/texts.js') + '\n;this.T = TEXTS; this.items = textsItems_;', ctx);
+    vm.runInContext(src('js/writings.js') + '\n' + src('js/texts.js') + '\n;this.T = TEXTS; this.items = textsItems_;', ctx);
     ctx.T.index = ix;
     const all = ctx.items();
     if (all.length !== total) bad.push('textsItems_ makes ' + all.length + ' items for ' + total + ' units');
     const keys = new Set(all.map(x => x.key));
     if (keys.size !== all.length) bad.push((all.length - keys.size) + ' items share a key');
-    all.forEach(x => {
-      const t = ix.texts.find(v => v.id === x.tx.t);
-      if (t.scripture && x.min_age !== 18) bad.push(x.key + ' is scripture-like and not held to scriptureMinAge_');
-    });
-    if (all.some(x => !x.libBook || !x.wtLanguage || x.kind !== 'writ')) bad.push('an item has no Which writing or no Text tag');
-    adult = false;
-    const young = ctx.items();
-    const want = ix.texts.filter(t => !t.scripture).reduce((n, t) => n + t.works.reduce((m, w) => m + w.parts.reduce((k, p) => k + units(p), 0), 0), 0);
-    if (young.length !== want) bad.push('a viewer under age is offered ' + young.length + ' items, not the ' + want + ' of the texts that are not scripture-like');
+    /* ONE AGE (520): a religious work, every text here, is scriptureMinAge_ through writingAge_; Find drops it for a viewer under it. */
+    all.forEach(x => { if (x.min_age !== 18) bad.push(x.key + ' is a religious work and not held to scriptureMinAge_'); });
+    if (all.some(x => !x.w || !x.w.work || !x.w.text || x.kind !== 'writ')) bad.push('an item has no Work or no Text tag');
   } catch (e) { bad.push('js/texts.js does not build its items: ' + e.message); }
 }
 

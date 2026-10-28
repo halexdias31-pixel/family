@@ -750,9 +750,9 @@ for (const who of VISITORS) {
         go('res', false, true);
         inFinder_(finderOf_('res'), () => {
           STUFF.q = '';
-          STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
-                           { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                           { field: 'bibleBook', value: 'Psalms' }];
+          STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+                           { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
+                           { field: 'wBook', value: 'Psalms' }];
           paintStuff();
           goPage('res', stuffQuestionPage_(), true);
         });
@@ -760,7 +760,7 @@ for (const who of VISITORS) {
            a moment later, as on a phone. */
         await new Promise(r => setTimeout(r, 700));
         const pane = $('res-controls').closest('.pane');
-        const cell = document.querySelector('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"][data-value="119"]');
+        const cell = document.querySelector('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wChapter"][data-value="119"]');
         if (!pane || !cell) return { why: 'no Psalms chapter grid with a 119 in it' };
         const pr = pane.getBoundingClientRect();
         pane.scrollTop += cell.getBoundingClientRect().top - pr.top - pr.height / 2;
@@ -787,13 +787,13 @@ for (const who of VISITORS) {
           return { chose: f.field + ' ' + f.value, top: Math.round(pane.scrollTop),
                    chips: chips.bottom > pr.top && chips.bottom <= pr.bottom + 1,
                    /* `facet-pick`S, because "Doesn't matter" carries the field too (note 292). */
-                   verses: document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length };
+                   verses: document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wUnit"]').length };
         });
         swipes.push({ from: where, dir: 'tap',
-                      ok: after.chose === 'bibleChapter 119' && after.verses === 176 && after.top === 0 && after.chips,
+                      ok: after.chose === 'wChapter 119' && after.verses === 176 && after.top === 0 && after.chips,
                       got: after.chose + ', ' + after.verses + ' verse cells, the pane ' + after.top + 'px down'
                            + (after.chips ? '' : ', the chips out of sight'),
-                      want: 'bibleChapter 119, 176 verse cells, the pane at its top with the chips in sight' });
+                      want: 'wChapter 119, 176 verse cells, the pane at its top with the chips in sight' });
       }
       await page.evaluate(() => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0, true); }));
       await page.waitForTimeout(300);
