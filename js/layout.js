@@ -331,7 +331,9 @@ function deletedCard_() {
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  return `<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`;
+  const html = `<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`;
+  /* EVERY TOP-LEVEL CARD HAS THE ONE REPORT TILE (486), this one too. */
+  return typeof suggestRowIn_ === 'function' ? suggestRowIn_(html, 'card', 'deleted-card', 'Deleted') : html;
 }
 on('lay-putback', el => {
   if (!layoutIsAdmin_()) return;
