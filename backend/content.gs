@@ -1782,6 +1782,82 @@ function claudeNotesWrite_(notes) {
   if (f) { f.setContent(text); return f.getId(); }
   return folder.createFile(CLAUDE_NOTES_FILE, text, MimeType.PLAIN_TEXT).getId();
 }
+/* ---------- FILES FOR CLAUDE (515): an admin's files and folders, private, in Drive "Claude inbox" beside Notes for Claude; incorporated only when the owner asks ---------- */
+const CLAUDE_INBOX = 'Claude inbox';
+/* ONE REQUEST'S PART, as base64 characters (8 MiB of file), and the largest file; Drive's resumable upload joins the parts, so no blob is ever whole here. */
+const INBOX_PART_MAX = 11300000;
+const INBOX_FILE_MAX = 500 * 1048576;
+const inboxName_ = v => S(v).replace(/[\u0000-\u001f\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+function inboxRoot_() {
+  const lib = libDriveFolder_();
+  return libDriveFind_(lib.getFoldersByName(CLAUDE_INBOX)) || lib.createFolder(CLAUDE_INBOX);
+}
+/* A FOLDER BY ITS PATH under the inbox, each step made if missing; `.` and `..` are dropped so a path cannot climb out. */
+function inboxFolderAt_(parts, make) {
+  let f = inboxRoot_();
+  for (let i = 0; i < parts.length; i++) {
+    const n = inboxName_(parts[i]);
+    if (!n || n === '.' || n === '..') continue;
+    const it = f.getFoldersByName(n);
+    if (it.hasNext()) f = it.next();
+    else if (make) f = f.createFolder(n);
+    else return null;
+  }
+  return f;
+}
+/* ONE PART OF ONE FILE. `start` 0 opens a Drive resumable session (kept six hours in the cache); the last part closes it and the file exists. */
+function inboxPart_(b) {
+  const batch = inboxName_(b.batch);
+  const rel = S(b.rel).split('/').map(inboxName_).filter(x => x && x !== '.' && x !== '..');
+  if (!batch || !rel.length) throw new Error('Which file? Nothing was sent.');
+  const name = rel.pop();
+  const size = Math.floor(Number(b.size)), start = Math.floor(Number(b.start)) || 0;
+  if (!(size > 0) || size > INBOX_FILE_MAX) throw new Error(name + ' is larger than ' + Math.round(INBOX_FILE_MAX / 1048576) + ' MB.');
+  const data = S(b.data);
+  if (!data || data.length > INBOX_PART_MAX) throw new Error('That part was too large.');
+  const bytes = Utilities.base64Decode(data);
+  if (start < 0 || start + bytes.length > size) throw new Error('That part does not fit the file.');
+  const mime = /^[\w.+-]+\/[\w.+-]+$/.test(S(b.mime)) ? S(b.mime) : 'application/octet-stream';
+  const cache = CacheService.getScriptCache();
+  const key = 'inbox:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, batch + '|' + S(b.rel) + '|' + S(b.upload))).slice(0, 40);
+  const auth = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  let url = start ? cache.get(key) : '';
+  if (!start) {
+    const folder = inboxFolderAt_([batch].concat(rel), true);
+    const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id', {
+      method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
+      headers: Object.assign({ 'X-Upload-Content-Type': mime, 'X-Upload-Content-Length': String(size) }, auth),
+      payload: JSON.stringify({ name: name, parents: [folder.getId()], mimeType: mime }) });
+    const h = res.getHeaders();
+    url = h.Location || h.location || '';
+    if (res.getResponseCode() !== 200 || !url) throw new Error('Drive would not start the upload (' + res.getResponseCode() + ').');
+    cache.put(key, url, 21600);
+  }
+  if (!url) throw new Error('The upload was lost — send that file again.');
+  const end = start + bytes.length - 1;
+  const put = UrlFetchApp.fetch(url, { method: 'put', contentType: mime, muteHttpExceptions: true, payload: bytes,
+    headers: Object.assign({ 'Content-Range': 'bytes ' + start + '-' + end + '/' + size }, auth) });
+  const code = put.getResponseCode();
+  if (code === 308) return { success: true, next: end + 1 };
+  if (code === 200 || code === 201) { cache.remove(key); return { success: true, done: true, id: S((JSON.parse(put.getContentText()) || {}).id) }; }
+  throw new Error('Drive refused that part (' + code + ').');
+}
+/* THE NOTE'S LINE: "Files: Claude inbox/Edexcel 2023 (42 PDFs) — <link>", then the first names. The folder stays private. */
+function inboxLine_(files) {
+  if (!files || typeof files !== 'object') return '';
+  const batch = inboxName_(files.batch);
+  if (!batch) return '';
+  const names = (Array.isArray(files.names) ? files.names : []).map(x => S(x).slice(0, 160)).filter(Boolean);
+  const count = Math.max(names.length, Math.floor(Number(files.count)) || 0);
+  if (!count) return '';
+  let link = '';
+  try { const f = inboxFolderAt_([batch], false); if (f) link = f.getUrl(); } catch (err) { link = ''; }
+  const pdf = names.length && names.every(n => /\.pdf$/i.test(n));
+  const what = count + ' ' + (pdf ? 'PDF' : 'file') + (count === 1 ? '' : 's');
+  const shown = names.slice(0, 20);
+  return 'Files: ' + CLAUDE_INBOX + '/' + batch + ' (' + what + ')' + (link ? ' — ' + link : '')
+    + (shown.length ? '\n  ' + shown.join('\n  ') + (count > shown.length ? '\n  … and ' + (count - shown.length) + ' more' : '') : '');
+}
 /* THE ADDRESSED IDS (498): data/notes-done.json from the site, then GitHub; null when neither answers, so nothing is guessed. */
 function claudeNotesDoneIds_() {
   const urls = [S(SITE_URL).replace(/\/*$/, '/') + CLAUDE_NOTES_DONE_FILE];

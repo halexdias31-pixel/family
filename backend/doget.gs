@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-zy-merge";
+const DOGET_VERSION = "2026-10-28-zz-merge";
 
 
 function doGet(e) {
@@ -248,7 +248,7 @@ function doGet(e) {
                  /* Favourite links and the Rewrite coach (509). */
                  'favLinksSave', 'rewriteIdeas', 'rewriteCheck',
                  /* Suggest a change (494), and an old phone's report. */
-                 'suggest', 'report',
+                 'suggest', 'report', 'suggestUpload',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */

@@ -688,16 +688,22 @@ function reportDevice_() {
 /* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
 function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = typeof rankAtLeast_ === 'function' && rankAtLeast_('admin');
-  const dk = kind + '|' + id, people = suggestPeople_(kind);
+  const dk = kind + '|' + id, people = suggestPeople_(kind), files = admin && !people;
   return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
     ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}
     ${path ? `<p class="faint rep-path">Path: ${esc(path)}</p>` : ''}
     <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
       placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
     <input type="file" accept="image/*" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
-    <img class="rep-pic-show" alt="The picture going with it" hidden>
+    <img class="rep-pic-show" alt="The picture going with it" hidden>${files ? `
+    <input type="file" multiple accept="${REP_FILE_ACCEPT}" class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
+    <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
+    <ol class="faint rep-file-list" hidden></ol><p class="faint rep-file-total" aria-live="polite" hidden></p>
+    ${repNoDir_() ? '<p class="faint rep-no-dir">On iPhone, Safari cannot choose a folder: use Add files and pick several at once.</p>' : ''}` : ''}
     <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
       people ? '' : tile_({ icon: 'photo', label: 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
+      files ? tile_({ icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' }) : ''}${
+      files && !repNoDir_() ? tile_({ icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' }) : ''}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
     <p class="faint me-said rep-said" aria-live="polite">${admin
       ? 'Yours goes straight to Notes for Claude.'
@@ -755,6 +761,91 @@ document.addEventListener('change', e => {
     if (t) tileSet_(t, { icon: 'photo', label: 'Change the picture', on: true });
   }).catch(err => { if (said) said.textContent = String((err && err.message) || 'That picture could not be read.'); });
 });
+/* ---------- FILES AND FOLDERS FOR CLAUDE (515), the admin's alone: each file sent in parts to Drive "Claude inbox", one at a time, then the note names them. */
+const REP_FILE_ACCEPT = '.pdf,application/pdf,image/*,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.zip,application/zip';
+/* 8 MiB a part, a multiple of Drive's 256 KiB, about 11 MB once base64 — well under Apps Script's 50 MB a request. */
+const REP_PART = 8 * 1048576, REP_FILE_MAX = 500 * 1048576, REP_TRIES = 3;
+/* IPHONE AND IPAD SAFARI CANNOT PICK A FOLDER (the input opens as plain files), so the tile is not drawn and the box says so. */
+const repNoDir_ = () => { try { return /iP(hone|ad|od)/.test(navigator.userAgent || '') || !('webkitdirectory' in window.HTMLInputElement.prototype); } catch (e) { return true; } };
+/* THE CHOSEN FILES, by box: [{ file, rel, state: 'wait'|'sending'|'done'|'failed', sent }]. */
+const REP_FILES = new WeakMap();
+const repMb_ = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB';
+function repFilesDraw_(form) {
+  const list = REP_FILES.get(form) || [], ol = form.querySelector('.rep-file-list'), tot = form.querySelector('.rep-file-total');
+  if (!ol || !tot) return;
+  ol.hidden = tot.hidden = !list.length;
+  ol.innerHTML = list.slice(0, 50).map(x => `<li class="rep-file is-${x.state}">${esc(x.rel)} · ${
+    x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}</li>`).join('')
+    + (list.length > 50 ? `<li>… and ${list.length - 50} more</li>` : '');
+  const all = list.reduce((a, x) => a + x.file.size, 0), sent = list.reduce((a, x) => a + (x.state === 'done' ? x.file.size : x.sent || 0), 0);
+  const done = list.filter(x => x.state === 'done').length;
+  tot.textContent = `${done} of ${list.length} file${list.length === 1 ? '' : 's'} sent · ${repMb_(sent)} of ${repMb_(all)}`;
+}
+/* THE BATCH'S FOLDER NAME: the chosen folder's own name, else "Files" and the minute, so loose files never mix with an earlier batch. */
+function repBatch_(list) {
+  const top = list.map(x => x.rel.split('/')[0]);
+  if (list.length && list.every(x => x.rel.indexOf('/') > 0) && top.every(t => t === top[0])) return { batch: top[0], strip: true };
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return { batch: `Files ${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}${p(d.getMinutes())}`, strip: false };
+}
+const repB64_ = blob => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result || '').replace(/^data:[^,]*,/, ''));
+  r.onerror = () => no(new Error('That file could not be read.'));
+  r.readAsDataURL(blob);
+});
+/* ONE FILE, PART BY PART; a failed part starts the file again (a fresh Drive session), up to REP_TRIES times. */
+async function repSendFile_(form, x, b) {
+  const rel = b.strip ? x.rel.split('/').slice(1).join('/') : x.rel.split('/').pop();
+  for (let tries = 0; tries < REP_TRIES; tries++) {
+    const upload = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    x.state = 'sending'; x.sent = 0; repFilesDraw_(form);
+    try {
+      let start = 0;
+      do {
+        const part = x.file.slice(start, start + REP_PART);
+        const d = await api({ action: 'suggestUpload', personId: USER.personId || '', batch: b.batch, rel, upload,
+          size: x.file.size, start, mime: x.file.type || '', data: await repB64_(part) });
+        if (!d || d.error) throw new Error((d && d.error) || 'That part did not go.');
+        start += part.size; x.sent = start; repFilesDraw_(form);
+      } while (start < x.file.size);
+      x.state = 'done'; repFilesDraw_(form);
+      return true;
+    } catch (e) { x.error = String((e && e.message) || e); }
+  }
+  x.state = 'failed'; repFilesDraw_(form);
+  return false;
+}
+function repFilesAdd_(form, files, dir) {
+  const said = form.querySelector('.rep-said'), list = REP_FILES.get(form) || [], big = [];
+  [...(files || [])].forEach(f => {
+    const rel = String((dir && f.webkitRelativePath) || f.name).replace(/^\/+/, '');
+    if (f.size > REP_FILE_MAX) { big.push(f.name); return; }
+    if (!f.size || list.some(x => x.rel === rel && x.file.size === f.size)) return;
+    list.push({ file: f, rel, state: 'wait', sent: 0 });
+  });
+  REP_FILES.set(form, list);
+  repFilesDraw_(form);
+  if (said && big.length) said.textContent = `Too large (over ${repMb_(REP_FILE_MAX)}), left out: ${big.slice(0, 3).join(', ')}${big.length > 3 ? '…' : ''}`;
+}
+on('rep-files', el => { const i = el.closest('.rep-box') && el.closest('.rep-box').querySelector('.rep-files-in'); if (i) i.click(); });
+on('rep-dir', el => { const i = el.closest('.rep-box') && el.closest('.rep-box').querySelector('.rep-dir-in'); if (i) i.click(); });
+document.addEventListener('change', e => {
+  const i = e.target;
+  if (!i || !i.classList || !(i.classList.contains('rep-files-in') || i.classList.contains('rep-dir-in'))) return;
+  const form = i.closest('.rep-box');
+  if (form) repFilesAdd_(form, i.files, i.classList.contains('rep-dir-in'));
+  try { i.value = ''; } catch (err) {}
+});
+/* EVERY FILE NOT YET SENT, in order; resolves to the note's `files`, or null when one failed (Send again retries only those). */
+async function repFilesSend_(form) {
+  const list = REP_FILES.get(form) || [];
+  if (!list.length) return undefined;
+  const b = form.dataset.batch ? JSON.parse(form.dataset.batch) : repBatch_(list);
+  form.dataset.batch = JSON.stringify(b);
+  for (const x of list) if (x.state !== 'done' && !(await repSendFile_(form, x, b))) return null;
+  return { batch: b.batch, count: list.length, names: list.map(x => b.strip ? x.rel.split('/').slice(1).join('/') : x.rel) };
+}
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 
 on('rep-box', el => {
@@ -783,9 +874,14 @@ on('rep-send', el => {
   const kind = form.dataset.rk, id = form.dataset.ri;
   const box = form.querySelector('.rep-note-in');
   const note = String((box && box.value) || '').trim().slice(0, SUGGEST_NOTE_MAX);
-  if (!note && !suggestPeople_(kind)) { if (said) said.textContent = 'Write what should change first.'; return; }
-  send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note,
-          finder: form.dataset.finder || '', path: form.dataset.path || '', image: REP_PIC.get(form) || '', device: reportDevice_() },
+  const hasFiles = (REP_FILES.get(form) || []).length > 0;
+  if (!note && !hasFiles && !suggestPeople_(kind)) { if (said) said.textContent = 'Write what should change first.'; return; }
+  form.classList.add('is-sending');
+  (hasFiles ? repFilesSend_(form) : Promise.resolve(undefined)).catch(() => null).then(files => {
+  form.classList.remove('is-sending');
+  if (files === null) { const bad = (REP_FILES.get(form) || []).find(x => x.state === 'failed'); if (said) said.textContent = 'A file did not go' + (bad && bad.error ? ': ' + bad.error : '') + '. Press Send to try the rest again.'; return; }
+  return send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note,
+          finder: form.dataset.finder || '', path: form.dataset.path || '', image: REP_PIC.get(form) || '', device: reportDevice_(), ...(files ? { files } : {}) },
         { button: el, where: said })
     .then(d => {
       /* SENT, SO THE DRAFT GOES — a reload must not bring back words already in the sheet. */
@@ -799,4 +895,5 @@ on('rep-send', el => {
       toast(d && d.already ? 'Thanks — you already sent that one today' : d && d.serious ? 'Sent to Notes for Claude' : 'Thanks — sent to the admin');
     })
     .catch(() => {});
+  });
 });

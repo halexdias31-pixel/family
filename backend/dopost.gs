@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-zy-merge";
+const DOPOST_VERSION = "2026-10-28-zz-merge";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2922,7 +2922,7 @@ function doPost(e) {
       const note = [why, words].filter(Boolean).join(' — ');
       const people = kind === 'message' || kind === 'post';
       /* A MESSAGE MAY BE SENT WITHOUT WORDS (413): a child need not explain why one frightened them. */
-      if (!note && !people) return jsonOut({ error: 'Write what should change first.' });
+      if (!note && !people && !(body.files && rankAtLeast_(me, 'admin'))) return jsonOut({ error: 'Write what should change first.' });
       const admin = rankAtLeast_(me, 'admin');
       let msg = null;
       if (kind === 'message') {
@@ -2941,7 +2941,9 @@ function doPost(e) {
       }
       /* AND THE FUNNEL PATH ON FIND (498): which answers and words led to the card, so the note says which menu it meant. */
       const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
-      const noteAll = [note || (people ? 'A message they were sent' : ''), path ? 'Path: ' + path : '', pic ? 'Picture: ' + pic : ''].filter(Boolean).join('\n');
+      /* FILES (515), an admin's alone: already in Drive by `suggestUpload`; the note names the folder and the files. */
+      const filesLine = admin ? inboxLine_(body.files) : '';
+      const noteAll = [note || (people ? 'A message they were sent' : ''), path ? 'Path: ' + path : '', pic ? 'Picture: ' + pic : '', filesLine].filter(Boolean).join('\n');
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
       let out = {}, made = null;
@@ -2972,6 +2974,11 @@ function doPost(e) {
           + '\n\nMessage id: ' + item + '\n\nIt is still in the messages tab; it waits on Business → Suggestions.', 'reported');
       }
       return jsonOut(out);
+    }
+
+    /* ---------- FILES FOR CLAUDE (515): one part of one file into Drive "Claude inbox". Admin only, at the gate; nothing goes in the sheet. */
+    if (action === 'suggestUpload') {
+      try { return jsonOut(inboxPart_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
     }
 
     /* ---------- THE SUGGESTIONS WAITING, FOR THE BUSINESS COLUMN (494). Admin only, at the gate. ---------- */

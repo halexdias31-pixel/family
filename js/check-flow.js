@@ -28124,6 +28124,70 @@ check('Suggest a change takes the place of its thing on every kind -- a widget, 
   return bad;
 });
 
+/* ---------- FILES FOR CLAUDE (515): "allow me to add folders and PDFs to Suggest a change" ---------- */
+check('Suggest a change takes files and a folder from an admin and not a student; the files go one at a time in parts with progress, a failed part is retried, a folder keeps its paths, and the note names them', async () => {
+  const ups = [];
+  let failOnce = true;
+  const reply = b => {
+    if (b.action === 'suggestUpload') {
+      ups.push(b);
+      if (failOnce && /b\.pdf$/.test(b.rel)) { failOnce = false; return { error: 'Drive refused that part (500).' }; }
+      const end = b.start + Math.floor(b.data.length * 3 / 4) - (b.data.match(/=*$/)[0].length);
+      return end >= b.size ? { success: true, done: true, id: 'F' + ups.length } : { success: true, next: end };
+    }
+    return b.action === 'suggest' ? { success: true, serious: true, notes: [] } : { success: true, messages: [] };
+  };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const open = () => {
+    const host = d.createElement('div');
+    host.className = 'pane';
+    host.innerHTML = '<div class="card"><h3>Past papers</h3></div>' + w.cardReportRow_('ppl:parents:all', '<div class="card"><h3>Past papers</h3></div>');
+    d.body.appendChild(host);
+    const tile = host.querySelector('[data-do="rep-box"]');
+    if (tile) t.ACTIONS['rep-box'](tile);
+    return { host, box: host.querySelector('.rep-box') };
+  };
+  t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' });
+  let o = open();
+  if (!o.box) bad.push('a student has no box, so the student side was NOT checked');
+  else if (o.box.querySelector('[data-do="rep-files"], [data-do="rep-dir"], .rep-files-in')) bad.push('a student is offered Add files or Add a folder');
+  else if (!o.box.querySelector('[data-do="rep-pic"]')) bad.push('a student lost Add a picture');
+  o.host.remove();
+  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  /* JSDOM, LIKE IPHONE SAFARI, CANNOT PICK A FOLDER: the box says so and offers files; then the property is given, as Chrome has it. */
+  o = open();
+  if (!o.box || o.box.querySelector('[data-do="rep-dir"]') || !/iPhone/.test((o.box.querySelector('.rep-no-dir') || {}).textContent || '') || !o.box.querySelector('[data-do="rep-files"]')) bad.push('where a folder cannot be picked, the box does not say so and offer files');
+  o.host.remove();
+  Object.defineProperty(w.HTMLInputElement.prototype, 'webkitdirectory', { value: false, writable: true, configurable: true });
+  o = open();
+  const box = o.box;
+  if (!box) return bad.concat('an admin has no box');
+  const inF = box.querySelector('input.rep-files-in[type=file][multiple]'), inD = box.querySelector('input.rep-dir-in[type=file]');
+  if (!box.querySelector('[data-do="rep-files"]') || !inF || !/pdf/.test(inF.accept) || !/docx/.test(inF.accept) || !/zip/.test(inF.accept)) bad.push('an admin has no Add files for PDFs, docx and zip');
+  if (!box.querySelector('[data-do="rep-dir"]') || !inD || !inD.hasAttribute('webkitdirectory')) bad.push('an admin has no Add a folder');
+  const BIG = 9 * 1048576;
+  const mk = (name, size, rel) => { const f = new w.File([new Uint8Array(size)], name, { type: 'application/pdf' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
+  const files = [mk('a.pdf', 1000, 'Edexcel 2023/June/a.pdf'), mk('b.pdf', 2000, 'Edexcel 2023/June/b.pdf'), mk('big.pdf', BIG, 'Edexcel 2023/Nov/big.pdf')];
+  Object.defineProperty(inD, 'files', { value: files, configurable: true });
+  inD.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if (box.querySelectorAll('.rep-file').length !== 3) bad.push('the chosen folder lists ' + box.querySelectorAll('.rep-file').length + ' files, wanted 3');
+  if (!/0 of 3 files sent/.test((box.querySelector('.rep-file-total') || {}).textContent || '')) bad.push('no total before sending: ' + JSON.stringify((box.querySelector('.rep-file-total') || {}).textContent));
+  t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
+  for (let i = 0; i < 100 && !sent.some(b => b.action === 'suggest'); i++) await wait(100);
+  const order = ups.map(u => u.rel + '@' + u.start);
+  const want = ['June/a.pdf@0', 'June/b.pdf@0', 'June/b.pdf@0', 'Nov/big.pdf@0', 'Nov/big.pdf@' + 8 * 1048576];
+  if (order.join() !== want.join()) bad.push('the parts went ' + JSON.stringify(order) + ', wanted ' + JSON.stringify(want));
+  if (ups.some(u => u.batch !== 'Edexcel 2023' || u.action !== 'suggestUpload')) bad.push('a part was not in the batch named after the folder');
+  if (ups.some(u => u.data.length > 11300000)) bad.push('a part is larger than the backend takes');
+  const note = sent.find(b => b.action === 'suggest');
+  if (!note) bad.push('no note was sent after the files');
+  else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.pdf,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
+  o.host.remove();
+  return bad;
+});
+
 /* ---------- THE LIBRARY'S WORDS COME FROM THE LEDGER (397) ----------------------------------------------- */
 /* A PAPER AS THE REPOSITORY HOLDS IT NOW: each row's private fields taken off and named in `lib_has` (tools/lib-private.js's split). */
 const LIB_PID = 'RS1786302107764-503';

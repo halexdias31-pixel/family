@@ -6972,3 +6972,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-pct.is-high { color: var(--warn); }
 .rw-marked { white-space: pre-wrap; font-size: .85rem; }
 .rw-copied { background: var(--gold); color: var(--bg); }
+/* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
+.rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
+.rep-file.is-failed { color: var(--ink); font-weight: 600; }
