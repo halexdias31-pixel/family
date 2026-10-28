@@ -17204,8 +17204,10 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const admin = u && u.role === 'admin';
     if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
     if (!admin && !got.every(notBible)) bad.push(what + ' is offered the Bible — it is for admins only');
-    const rest = got.filter(notBible).join('|');
-    if (rest !== out0.filter(notBible).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
+    /* GCSE TOPICS ARE 14+ (505): an admin is also offered those; the rest must match. */
+    const aged = new Set(w.stuffItemsRaw_().filter(x => w.gcseAgeOf_(x)).map(x => x.key)), same = k => notBible(k) && !aged.has(k);
+    const rest = got.filter(same).join('|');
+    if (rest !== out0.filter(same).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
   });
   /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
      it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
@@ -20347,7 +20349,8 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
   const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
   const cards = w.stuffItems().filter(i => i.kind === 'content');
-  if (cards.length !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
+  const aged = w.stuffItemsRaw_().filter(i => i.kind === 'content' && !w.itemAgeOk_(i)).length;   // 14+ for this viewer (505)
+  if (cards.length + aged !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
   if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
   /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
   if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');
@@ -21071,6 +21074,48 @@ check('an age limit (490): a ten-year-old, a member with no date of birth and a 
   return bad;
 });
 
+/* ---------- GCSE TOPICS FOR GCSE AGES (505): GCSE history, RS, psychology, sociology and the history database are 14+ by one derived rule ---------- */
+check('GCSE topics for GCSE ages (505): a 12-year-old, a member with no date of birth and a visitor see no GCSE History question or card and no WW2 timeline; a 15-year-old and the admin do; a KS3 history item stays open to the 12-year-old', async () => {
+  const y = new Date().getFullYear();
+  const at = n => Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - n) } });
+  const ADMIN = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk' };
+  const who = [['a 12-year-old', at(12), false], ['a member with no date of birth', MEMBER_, false], ['a signed-out visitor', null, false],
+               ['a 15-year-old', at(15), true], ['the admin', ADMIN, true]];
+  const p0 = await resPayload_();
+  if (!p0) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
+  const bad = [];
+  for (const [what, u, ok] of who) {
+    const payload = Object.assign(JSON.parse(JSON.stringify(p0)), { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] });
+    const b = boot({ payload, before: u ? signedInAs_(u) : (() => {}) });
+    for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+    await wait(250);
+    if (!b.w.__t) { bad.push(what + ': the app did not boot — NOT checked'); continue; }
+    const { w } = b;
+    w.__t.go('stuff'); w.paintStuff();
+    const raw = w.stuffItemsRaw_(), all = w.stuffItemsAll_();
+    const gated = raw.filter(x => w.gcseAgeOf_(x) === 14);
+    const hist = gated.filter(x => /histor/i.test(x.subject || '') && !x.hdb);
+    const tl = raw.filter(x => x.kind === 'timeline' && x.era === 'World War 2');
+    if (!hist.length || !tl.length) { bad.push(what + ': no GCSE History item (' + hist.length + ') or WW2 timeline (' + tl.length + ') to ask about (of ' + raw.length + ') — NOT checked'); continue; }
+    const keys = new Set(all.map(x => x.key)), shown = x => keys.has(x.key);
+    if (hist.some(shown) !== ok || hist.every(shown) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' GCSE History (' + hist.filter(shown).length + ' of ' + hist.length + ')');
+    if (shown(tl[0]) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' the WW2 timeline');
+    const ks3 = { kind: 'content', subject: 'History', level: 'KS3', name: 'The Norman Conquest', row: {} };
+    if (w.gcseAgeOf_(ks3) || !w.itemAgeOk_(ks3)) bad.push(what + ': a KS3 History item is age-limited');
+    const gq = { kind: 'question', subject: 'History', level: 'GCSE', name: 'Paper 1', row: {} };
+    if (w.itemAgeOk_(gq) !== ok) bad.push(what + ': a GCSE History question is ' + (ok ? 'hidden' : 'shown'));
+    if (what === 'the admin' && process.env.GCSE_AGE_COUNTS) {
+      const c = {}; gated.forEach(x => { const k = (x.hdb ? 'History database' : x.subject || '?') + ' / ' + x.kind; c[k] = (c[k] || 0) + 1; });
+      console.log('GCSE_AGE_COUNTS ' + JSON.stringify(c));
+    }
+  }
+  return bad;
+});
+
 /* ---------- THE QURAN (490): a verse a card, its tags ordinary facets, its text fetched when its card is drawn ---------- */
 check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Library, Quran, Surah, Ayah — tagged Juz 3 and Medinan — and its card draws the Arabic and Pickthall\'s English from the real files', async () => {
   const serve = url => {
@@ -21209,7 +21254,7 @@ check('the history timeline: events are found under Learning, Content, History, 
   for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
-  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), member: true });
+  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });   // an adult: the history database is 14+ (505)
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(250);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];

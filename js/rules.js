@@ -15,6 +15,8 @@ const RULES = [
     uni: 'They say "Suggest a change" like everything else; the admin is still emailed at once.' },
   { id: 'scripture-age', say: 'The Bible, Talmud and Quran are for 18 and over only', where: 'Find and Find 2 (490)',
     uni: 'Open to every age, like every other item.' },
+  { id: 'gcse-sensitive-age', say: 'GCSE-level history, RS, philosophy, psychology and sociology (and drugs, crime, abortion anywhere), and the history database, are for 14 and over', where: 'Find and Find 2 (505)',
+    uni: 'Open to every age, like every other item.' },
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.' },
   { id: 'finder-members', say: 'Signed out, Find and Find 2 are one "Members only" card', where: 'Find and Find 2 (400)',
