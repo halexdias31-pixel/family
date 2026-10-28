@@ -2318,7 +2318,7 @@ const QUAL_SUBJECTS = [
   'Food Preparation and Nutrition', 'French', 'Further Maths', 'Geography', 'Geology', 'German',
   'Greek', 'History', 'Italian', 'Latin', 'Law', 'Maths', 'Media Studies', 'Medicine', 'Music',
   'Philosophy', 'Physical Education', 'Physics', 'Politics', 'Portuguese', 'Psychology',
-  'Religious Studies', 'Sociology', 'Spanish', 'Statistics', 'Theology',
+  'Religious Studies', 'Russian', 'Sociology', 'Spanish', 'Statistics', 'Theology',
   'PGCE', 'QTS', 'DBS', 'First Aid', 'DofE Gold',
 ];
 /* ---------- AND THE LEVELS, WHICH STOPPED AT A-LEVEL § */
