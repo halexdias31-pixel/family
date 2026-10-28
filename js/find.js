@@ -159,6 +159,8 @@ const KINDS = {
   worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
   /* THE HADITH (504): one card a hadith, js/hadith.js. */
   hadith: { group: 'Learning', label: 'Library', card: x => hadithCard_(x) },
+  /* THE HYMNS SHELF (516): one card a hymn, js/hymns.js. */
+  hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -426,6 +428,13 @@ const FACETS = [
   { field: 'wtSection', label: 'Section',     of: x => x.wtSection || '' },
   /* `Text` (504), as the Bible's: which text of the writing, its language and whose translation. */
   { field: 'wtLanguage', label: 'Text',       of: x => x.wtLanguage || '' },
+  /* THE HYMNS' (516): whose words, which church, which season, the tune it is sung to. */
+  { field: 'hymnTradition', label: 'Tradition', of: x => x.hymnTradition || '' },
+  { field: 'hymnSeason', label: 'Feast or season', of: x => x.hymnSeason || '' },
+  { field: 'hymnTheme', label: 'Hymnal section', of: x => x.hymnTheme || '' },
+  { field: 'hymnAuthor', label: 'Words by',   of: x => x.hymnAuthor || '' },
+  { field: 'hymnTune',  label: 'Tune',        of: x => x.hymnTune || '' },
+  { field: 'hymnLanguage', label: 'Language', of: x => x.hymnLanguage || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -9058,6 +9067,7 @@ function stuffItemsRaw_() {
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
     ...(typeof hadithItems_ === 'function' ? hadithItems_() : []),
     ...(typeof worksItems_ === 'function' ? worksItems_() : []),
+    ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10341,6 +10351,7 @@ const TAG_OF = {
   hadithCollection: 'level', hadithBook: 'topic', hadithNumber: 'paper', hadithTranslation: 'board',
   quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
   wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board',
+  hymnTradition: 'board', hymnSeason: 'level', hymnTheme: 'topic', hymnAuthor: 'type', hymnTune: 'paper', hymnLanguage: 'board',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10512,6 +10523,7 @@ function paintStuff(keepPage) {
   if (typeof quranIndex_ === 'function') quranIndex_();
   if (typeof hadithIndex_ === 'function') hadithIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
+  if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

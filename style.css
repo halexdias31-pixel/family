@@ -6987,3 +6987,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
 .rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
 .rep-file.is-failed { color: var(--ink); font-weight: 600; }
+/* THE HYMNS SHELF (516): its facts line and a gap between verses. */
+.hy-facts { margin: 0 0 .4rem; font: 400 .65rem/1.4 var(--mono); color: var(--faint); }
+.hy-verse + .hy-verse { margin-top: .6rem; }
