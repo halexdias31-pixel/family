@@ -115,8 +115,8 @@ def src(text, n=None, url=None, licence='Public domain'):
 
 
 # ---------------------------------------------------------------- NOVELS: one card a chapter
-def novel(n, title, author, year, rx, *, subtitle=False, book_rx=None, end=None, minlen=400, name=None, label=None):
-    t = etext(n)
+def novel(n, title, author, year, rx, *, subtitle=False, book_rx=None, end=None, minlen=400, name=None, label=None, book_name=None, t=None, source=None):
+    t = t if t is not None else etext(n)
     if end:
         t = cut_after(t, end)
     cards, book = [], ''
@@ -124,14 +124,14 @@ def novel(n, title, author, year, rx, *, subtitle=False, book_rx=None, end=None,
     for m, body in parts:
         head = m.group(0).strip()
         if book_rx and re.fullmatch(book_rx, m.group(0), re.M):
-            book = 'Volume %d' % roman(re.search(r'\b([IVX]+)\.?\s*$', head).group(1))
+            book = book_name(head) if book_name else 'Volume %d' % roman(re.search(r'\b([IVX]+)\.?\s*$', head).group(1))
             continue
         if len(body.strip()) < minlen:
             continue
         say = name(head) if name else head
         cards.append(card(book, say, '', clean_end(prose(body))))
     add(title=title, author=author, subject='English Literature', form='Novel', year=year, texts=[label or 'First edition text'],
-        sources=[src('%s, %s (%s)' % (title, author, year), n)], cards=cards)
+        sources=[source or src('%s, %s (%s)' % (title, author, year), n)], cards=cards)
 
 
 def chap_name(h):
@@ -621,7 +621,7 @@ def anthology():
                                  ('Maud, and Other Poems', 'The Charge of the Light Brigade', 'Alfred Tennyson'),
                                  ('Poems of Wilfred Owen', 'Exposure', 'Wilfred Owen')):
         words, w = poem(title, chapter)
-        cards.append(card('', chapter, poet, words))
+        cards.append(card('', chapter, poet, poem_text(words)))
         sources += [x for x in w['sources'] if x not in sources]
     t = etext(12383)
     a = t.index('    One summer evening (led by her) I found')
@@ -638,6 +638,247 @@ def anthology():
     add(title='Power and Conflict (AQA)', author='AQA GCSE English Literature anthology', subject='English Literature', form='Anthology',
         year='', texts=['Anthology'], anthology='Power and Conflict (AQA)', sources=sources, cards=cards)
 
+# ---------------------------------------------------------------- GCSE ENGLISH LITERATURE: the boards' other set texts
+_RAW = {}
+
+
+def raw(n):
+    if n not in _RAW:
+        _RAW[n] = etext(n)
+    return _RAW[n]
+
+
+def poem_text(s, wrapped=False):
+    """A poem's stanzas; note marks, page heads, glosses, stanza and line numbers cut; a first word the printer set in capitals set
+    in the poem's case. wrapped: a deeper-set line starting in lower case is the etext's wrap of a long line, joined back."""
+    s = re.sub(r' ?\[(?:\d+|[a-z]{1,3})\]', '', s)
+    s = re.sub(r'\n\s*\n\s*\d+ [A-Z][A-Z .’\']+\.\s*\n(?:\s*\n)?', '\n', s)
+    s = re.sub(r'(?m)^\s*\d+\.\s*$|^\s*[a-z][^\]\n]{0,40}\] .*$', '', s)
+    if wrapped:
+        s = re.sub(r'\n( {5,})(?=[a-z])', lambda m: ' ', s)
+    out = '\n\n'.join(stanzas(s)).strip('\n')
+
+    def low(m):
+        ws = m.group(2).split(' ')
+        if not any(len(w) > 1 for w in ws):
+            return m.group(0)
+        ws = [w if w == 'I' else (w[0] + w[1:].lower() if i == 0 else w.lower()) for i, w in enumerate(ws)]
+        return m.group(1) + ' '.join(ws)
+    return re.sub(r'^(\s*[“"‘\']?)([A-ZÁÉÍÓÚ]+(?: [A-ZÁÉÍÓÚ]+)*)(?=[\s,.\-—])', low, out)
+
+
+def cut(n, first, last, wrapped=False):
+    """A poem from its first line to its last: the shortest span holding both, so a contents line is passed over."""
+    t, best = raw(n), None
+    for m in re.finditer(re.escape(first), t):
+        a = t.rfind('\n', 0, m.start()) + 1
+        b = t.find(last, m.end())
+        if b < 0:
+            continue
+        e = t.find('\n', b + len(last))
+        e = len(t) if e < 0 else e
+        if best is None or e - a < best[1] - best[0]:
+            best = (a, e)
+    assert best, (n, first)
+    return poem_text(t[best[0]:best[1]], wrapped)
+
+
+def obev(num):
+    """One poem of the Oxford Book of English Verse (1900), by its number: (title, words)."""
+    t = raw(66619)
+    m = re.search(r'(?m)^_%d\._\s*(?:_(.+?)_)?\s*$' % num, t)
+    assert m, num
+    nxt = re.compile(r'(?m)^(?:_\d+\._|[A-Z][A-Z .,’\'-]{3,}$|\d{4}-\d{4}\.?$)').search(t, m.end())
+    return (m.group(1) or '').strip(), poem_text(t[m.end(): nxt.start() if nxt else len(t)])
+
+
+def from_tx(title, chapter, book=None):
+    w = next(x for x in TEXTS if x['title'] == title)
+    st = [c['t'][0] for c in w['cards'] if c['c'] == chapter and (book is None or c['b'] == book)]
+    assert st, (title, chapter)
+    return '\n\n'.join(st), w['sources']
+
+
+OBEV = 'The Oxford Book of English Verse, 1250–1900, ed. Arthur Quiller-Couch (1900), no. %d'
+BLAKE, OWEN, HARDY1, HARDY2 = ('Songs of Innocence and of Experience', 'Poems of Wilfred Owen', 'Wessex Poems and Other Verses',
+                              'Poems of the Past and the Present')
+KNIGHT = ('The Poetical Works of William Wordsworth, ed. William Knight, volume 3 (1896): The Prelude (1850 text), Book First, '
+          'lines %s; Knight’s notes left out')
+
+
+def boat_stealing():
+    t = raw(12383)
+    a = t.index('    One summer evening (led by her) I found')
+    b = t.index('By day, and were a trouble to my dreams.', a)
+    return verse(re.sub(r' ?\[[a-z]\]', '', t[a:b + len('By day, and were a trouble to my dreams.')]))
+
+
+def cluster(name, board, items):
+    """An anthology a card a poem: a public-domain poem in full, any other named only."""
+    cards, sources = [], []
+    for it in items:
+        if len(it) < 4:
+            why = it[2] if len(it) == 3 else ('Not available (copyright). %s, by %s, is in the %s anthology; its words are still in '
+                                              'copyright, so only its name is kept here.' % (it[0], it[1], name))
+            cards.append(card('', it[0], it[1], why))
+            continue
+        cards.append(card('', it[0], it[1], it[2]))
+        sources += [x for x in it[3] if x not in sources]
+    add(title=name, author=board, subject='English Literature', form='Anthology', year='', texts=['Anthology'], anthology=name,
+        sources=sources, cards=cards)
+
+
+def gcse_more():
+    """The 19th-century novels the boards set that were missing, every board's poetry anthology, the modern texts named (Animal Farm
+    among them: public domain in the UK, not in the USA where the site is served), and thirty poems for unseen practice."""
+    novel(550, 'Silas Marner', 'George Eliot', 1861, r'^CHAPTER [IVXL]+\.$', name=chap_name, book_rx=r'^PART (?:ONE|TWO|I|II)\.$',
+          book_name=lambda h: 'Part %d' % (1 if re.search(r'ONE|\bI\.', h) else 2))
+    novel(36, 'The War of the Worlds', 'H. G. Wells', 1898, r'^[IVX]+\.$', name=lambda h: 'Chapter %d' % roman(h),
+          book_rx=r'^BOOK (?:ONE|TWO)$', book_name=lambda h: 'Book %d' % (1 if 'ONE' in h else 2))
+
+    def P(title, poet, n, a, b, note, wrapped=False):
+        return title, poet, cut(n, a, b, wrapped), [src(note, n)]
+
+    def T(title, poet, wtitle, chapter, book=None):
+        words, sources = from_tx(wtitle, chapter, book)
+        return title, poet, poem_text(words), sources
+
+    def O(num, poet, title=None):
+        h, words = obev(num)
+        return title or h, poet, words, [src(OBEV % num, 66619)]
+
+    prelude = ('Extract from The Prelude', 'William Wordsworth', boat_stealing(), [src(KNIGHT % '357–400', 12383)])
+    skating = ('Excerpt from The Prelude', 'William Wordsworth', cut(12383, 'And in the frosty season, when the sun', 'tranquil as a dreamless sleep.'),
+               [src(KNIGHT % '425–463', 12383)])
+    sonnet43 = P('Sonnet 43', 'Elizabeth Barrett Browning', 2002, 'How do I love thee?', 'better after death.', 'Sonnets from the Portuguese, XLIII (1850)')
+    byron = 'The Works of Lord Byron, ed. E. H. Coleridge, volume 3 (1900)%s; the editor’s notes left out'
+    walks = P('She Walks in Beauty', 'Lord Byron', 21811, 'She walks in Beauty, like the night', 'A heart whose love is innocent!', byron % ': Hebrew Melodies (1815)')
+    senn = P('The Destruction of Sennacherib', 'Lord Byron', 21811, 'The Assyrian came down', 'glance of the Lord!', byron % ': Hebrew Melodies (1815)')
+    neutral = T('Neutral Tones', 'Thomas Hardy', HARDY1, 'Neutral Tones')
+    hop = 'Poems of Gerard Manley Hopkins, ed. Robert Bridges (1918); the editor’s notes left out'
+    bells = 'Poems by Currer, Ellis, and Acton Bell, with the selections added in 1850'
+
+    cluster('Love and Relationships (AQA)', 'AQA GCSE English Literature anthology', [
+        P('When We Two Parted', 'Lord Byron', 21811, 'When we two parted', 'With silence and tears.', byron % ''),
+        T('Love’s Philosophy', 'Percy Bysshe Shelley', 'Shelley’s Shorter Poems, 1816–1822', "Love's Philosophy"),
+        P('Porphyria’s Lover', 'Robert Browning', 50954, 'The rain set early in to-night', 'And yet God has not said a word!',
+          'The Complete Poetic and Dramatic Works of Robert Browning, Cambridge Edition (1895); the editor’s notes left out'),
+        P('Sonnet 29 – ‘I think of thee!’', 'Elizabeth Barrett Browning', 2002, 'I think of thee!', 'I am too near thee.',
+          'Sonnets from the Portuguese, XXIX (1850)'),
+        neutral,
+        ('Letters from Yorkshire', 'Maura Dooley'),
+        P('The Farmer’s Bride', 'Charlotte Mew', 71305, 'Three Summers since I chose a maid', 'her eyes, her hair, her hair!',
+          'The Farmer’s Bride, Charlotte Mew (1916; Mew died in 1928)'),
+        ('Walking Away', 'Cecil Day-Lewis'), ('Eden Rock', 'Charles Causley'), ('Follower', 'Seamus Heaney'),
+        ('Mother, any distance', 'Simon Armitage'), ('Before You Were Mine', 'Carol Ann Duffy'), ('Winter Swans', 'Owen Sheers'),
+        ('Singh Song!', 'Daljit Nagra'), ('Climbing My Grandfather', 'Andrew Waterhouse')])
+    cluster('Relationships (Edexcel)', 'Pearson Edexcel GCSE English Literature anthology', [
+        O(633, 'John Keats', 'La Belle Dame sans Merci'),
+        P('A Child to his Sick Grandfather', 'Joanna Baillie', 14617, 'Grand-dad, they say', 'You do not hear me, dad.',
+          'Poems; Wherein It Is Attempted to Describe Certain Views of Nature and of Rustic Manners, Joanna Baillie (1790)'),
+        walks, P('A Complaint', 'William Wordsworth', 8824, 'There is a change--and I am poor', 'hath made me poor.', 'Poems in Two Volumes, William Wordsworth, volume 2 (1807)'), neutral, sonnet43,
+        T('My Last Duchess', 'Robert Browning', 'Browning’s Shorter Poems', 'My Last Duchess'),
+        ('1st Date – She and 1st Date – He', 'Wendy Cope'), ('Valentine', 'Carol Ann Duffy'), ('One Flesh', 'Elizabeth Jennings'),
+        ('i wanna be yours', 'John Cooper Clarke'), ('Love’s Dog', 'Jen Hadfield'), ('Nettles', 'Vernon Scannell'),
+        ('The Manhunt', 'Simon Armitage'), ('My Father Would Not Show Us', 'Ingrid de Kok')])
+    cluster('Conflict (Edexcel)', 'Pearson Edexcel GCSE English Literature anthology', [
+        T('A Poison Tree', 'William Blake', BLAKE, 'A Poison Tree'), senn, prelude,
+        P('The Man He Killed', 'Thomas Hardy', 2997, 'he and I but met', 'Or help to half-a-crown.',
+          'Time’s Laughingstocks, and Other Verses, Thomas Hardy (1909)'),
+        P('Cousin Kate', 'Christina Rossetti', 16950, 'I was a cottage maiden', 'To wear his coronet.',
+          'Goblin Market, The Prince’s Progress, and Other Poems, Christina Rossetti'),
+        ('Half-caste', 'John Agard'), T('Exposure', 'Wilfred Owen', OWEN, 'Exposure'),
+        T('The Charge of the Light Brigade', 'Alfred Tennyson', 'Maud, and Other Poems', 'The Charge of the Light Brigade'),
+        ('Catrin', 'Gillian Clarke'), ('War Photographer', 'Carole Satyamurti'), ('Belfast Confetti', 'Ciaran Carson'),
+        ('The Class Game', 'Mary Casey'), ('Poppies', 'Jane Weir'), ('No Problem', 'Benjamin Zephaniah'),
+        ('What Were They Like?', 'Denise Levertov')])
+    cluster('Love and Relationships (OCR)', 'OCR GCSE English Literature anthology, Towards a World Unknown', [
+        P('A Song', 'Helen Maria Williams', 11054, 'No riches from his scanty store', 'The storm is in my soul.',
+          'Poems, Helen Maria Williams, volume 1 (1786)'),
+        O(637, 'John Keats', 'Bright Star'),
+        P('Now', 'Robert Browning', 50954, 'Out of your whole life give but a moment!', 'lips meet!',
+          'The Complete Poetic and Dramatic Works of Robert Browning, Cambridge Edition (1895): Asolando (1889)'),
+        P('Love and Friendship', 'Emily Brontë', 1019, 'Love is like the wild rose-briar', 'leave thy garland green.', bells),
+        ('Love After Love', 'Derek Walcott'), ('Morning Song', 'Sylvia Plath'),
+        ('I Wouldn’t Thank You for a Valentine', 'Liz Lochhead'), ('In Paris With You', 'James Fenton'),
+        ('Warming Her Pearls', 'Carol Ann Duffy'), ('Dusting the Phone', 'Jackie Kay'), ('Flirtation', 'Rita Dove'),
+        ('Poem for My Love', 'June Jordan'), ('Lullaby', 'Fatimah Asghar'), ('The Perseverance', 'Raymond Antrobus'),
+        ('Looking at Your Hands', 'Martin Carter')])
+    cluster('Conflict (OCR)', 'OCR GCSE English Literature anthology, Towards a World Unknown', [
+        P('Envy', 'Mary Lamb', 10130, 'This rose-tree is not made to bear', 'Some talent that is rare.',
+          'The Works of Charles and Mary Lamb, volume 3: Poetry for Children (1809)'),
+        ('Boat Stealing', 'William Wordsworth', prelude[2],
+         [src((KNIGHT % '357–400') + '. The anthology prints the 1799 version of this passage, whose wording differs', 12383)]),
+        senn,
+        P('There’s a Certain Slant of Light', 'Emily Dickinson', 12242, "There's a certain slant of light", 'On the look of death.',
+          'Poems by Emily Dickinson, ed. Mabel Loomis Todd and T. W. Higginson (1890): the 1890 text, not the later Johnson text'),
+        ('Vergissmeinnicht', 'Keith Douglas', 'No public-domain copy found. Vergissmeinnicht, by Keith Douglas, is in the Conflict (OCR) '
+         'anthology; no public-domain printing of its words was found to copy, so only its name is kept here.'),
+('What Were They Like?', 'Denise Levertov'), ('Lament', 'Gillian Clarke'),
+        ('Flag', 'John Agard'), ('Honour Killing', 'Imtiaz Dharker'), ('Partition', 'Sujata Bhatt'), ('Papa-T', 'Fred D’Aguiar'),
+        P('Songs for the People', 'Frances E. W. Harper', 679, 'Let me make the songs for the people', 'Girdle the world with peace.',
+          'Poems, Frances E. W. Harper (1895)'),
+        ('We Lived Happily during the War', 'Ilya Kaminsky'), ('Colonization in Reverse', 'Louise Bennett'),
+        ('Thirteen', 'Caleb Femi')])
+    cluster('Youth and Age (OCR)', 'OCR GCSE English Literature anthology, Towards a World Unknown', [
+        T('Holy Thursday', 'William Blake', BLAKE, 'Holy Thursday', 'Songs of Innocence'),
+        P('The Bluebell', 'Anne Brontë', 1019, 'The Bluebell is the sweetest flower', 'To mourn the fields of home!', bells),
+        P('Midnight on the Great Western', 'Thomas Hardy', 3255, 'In the third-class seat sat the journeying boy', 'But are not of?',
+          'Moments of Vision and Miscellaneous Verses, Thomas Hardy (1917)'),
+        ('Out, Out–', 'Robert Frost'), ('Baby Song', 'Thom Gunn'), ('You’re', 'Sylvia Plath'), ('Cold Knap Lake', 'Gillian Clarke'),
+        ('My First Weeks', 'Sharon Olds'), ('Venus’s-flytraps', 'Yusef Komunyakaa'), ('Love', 'Kate Clanchy'),
+        ('Equilibrium', 'Theresa Lola'), ('Prayer', 'Zaffar Kunial'), ('Happy Birthday Moon', 'Raymond Antrobus'),
+        ('Tea With Our Grandmothers', 'Warsan Shire'), ('Theme for English B', 'Langston Hughes')])
+    cluster('Poetry Anthology (Eduqas)', 'WJEC Eduqas GCSE English Literature anthology', [
+        P('As Imperceptibly as Grief', 'Emily Dickinson', 12242, 'As imperceptibly as grief', 'Into the beautiful.',
+          'Poems by Emily Dickinson, Second Series, ed. T. W. Higginson and Mabel Loomis Todd (1891)'),
+        ('Cozy Apologia', 'Rita Dove'),
+        T('A Wife in London', 'Thomas Hardy', HARDY2, 'A Wife in London'), ('Afternoons', 'Philip Larkin'),
+        T('Dulce et Decorum Est', 'Wilfred Owen', OWEN, 'Dulce et Decorum est'), ('Living Space', 'Imtiaz Dharker'),
+        P('The Soldier', 'Rupert Brooke', 262, 'If I should die, think only this of me', 'under an English heaven.',
+          'The Collected Poems of Rupert Brooke (1915): 1914, V'),
+        sonnet43, T('London', 'William Blake', BLAKE, 'London'), walks, ('Valentine', 'Carol Ann Duffy'),
+        ('Death of a Naturalist', 'Seamus Heaney'), ('Hawk Roosting', 'Ted Hughes'),
+        T('To Autumn', 'John Keats', 'Lamia, Isabella, The Eve of St. Agnes, and Other Poems', 'To Autumn'), skating,
+        ('Mametz Wood', 'Owen Sheers'), T('Ozymandias', 'Percy Bysshe Shelley', 'Shelley’s Shorter Poems, 1816–1822', 'Ozymandias'),
+        ('The Manhunt', 'Simon Armitage')])
+
+    # Modern texts: all in copyright (Animal Farm in the USA, where the site is served), so a name each
+    modern = [('An Inspector Calls', 'J. B. Priestley'), ('Blood Brothers', 'Willy Russell'), ('The History Boys', 'Alan Bennett'),
+              ('DNA', 'Dennis Kelly'), ('The Curious Incident of the Dog in the Night-Time (play)', 'Simon Stephens'),
+              ('A Taste of Honey', 'Shelagh Delaney'), ('Leave Taking', 'Winsome Pinnock'), ('Princess & the Hustler', 'Chinonyerem Odimba'),
+              ('Hobson’s Choice', 'Harold Brighouse'), ('Journey’s End', 'R. C. Sherriff'), ('Lord of the Flies', 'William Golding'),
+              ('Never Let Me Go', 'Kazuo Ishiguro'), ('Anita and Me', 'Meera Syal'), ('Pigeon English', 'Stephen Kelman'),
+              ('My Name is Leon', 'Kit de Waal'), ('The Woman in Black', 'Susan Hill'), ('Animal Farm', 'George Orwell')]
+    add(title='Modern Texts (GCSE)', author='GCSE English Literature set texts', subject='English Literature', form='Set texts', year='',
+        texts=['Set text'], sources=[src('Names only, from the GCSE English Literature specifications of AQA, Pearson Edexcel, OCR and WJEC Eduqas',
+                                         url='https://www.ocr.org.uk/Images/168995-specification-accredited-gcse-english-literature-j352.pdf',
+                                         licence='Titles and authors only, which are facts in the public domain; none of the copyright text is reproduced')],
+        cards=[card('', n, a, 'Not available (copyright). %s, by %s, is a modern text set for GCSE English Literature; its words are still in '
+                              'copyright, so only its name is kept here.' % (n, a)) for n, a in modern])
+
+    # Unseen poetry: thirty public-domain poems to practise on
+    cluster('Unseen poetry', 'Various poets', [
+        O(530, 'William Wordsworth'), O(520, 'William Wordsworth'), O(516, 'William Wordsworth', 'She dwelt among the untrodden ways'), O(489, 'William Blake'),
+        O(634, 'John Keats'), O(618, 'Percy Bysshe Shelley'), O(787, 'Christina Rossetti'), O(781, 'Christina Rossetti'),
+        O(783, 'Christina Rossetti'), O(738, 'Emily Brontë', 'No coward soul is mine'), O(503, 'Robert Burns'), O(599, 'Lord Byron'),
+        O(550, 'Samuel Taylor Coleridge'), O(248, 'Robert Herrick'), O(357, 'Andrew Marvell'), O(202, 'John Donne', 'Death, be not proud'),
+        O(318, 'John Milton'), O(185, 'Ben Jonson'), O(741, 'Arthur Hugh Clough'),
+        T('The Darkling Thrush', 'Thomas Hardy', HARDY2, 'The Darkling Thrush'), T('Futility', 'Wilfred Owen', OWEN, 'Futility'),
+        T('Anthem for Doomed Youth', 'Wilfred Owen', OWEN, 'Anthem for Doomed Youth'),
+        P('Because I could not stop for Death', 'Emily Dickinson', 12242, 'Because I could not stop for Death', 'toward eternity.',
+          'Poems by Emily Dickinson, ed. Mabel Loomis Todd and T. W. Higginson (1890)'),
+        P('Hope is the thing with feathers', 'Emily Dickinson', 12242, 'Hope is the thing with feathers', 'asked a crumb of me.',
+          'Poems by Emily Dickinson, Second Series (1891)'),
+        P('Spring and Fall: to a Young Child', 'Gerard Manley Hopkins', 22403, 'RGARÉT, áre you gríeving', 'It is Margaret you mourn for.', hop, True),
+        P('Pied Beauty', 'Gerard Manley Hopkins', 22403, 'be to God for dappled things', 'Praise him.', hop, True),
+        P('God’s Grandeur', 'Gerard Manley Hopkins', 22403, 'world is charged with the grandeur of God', 'bright wings.', hop, True),
+        P('Loveliest of trees, the cherry now', 'A. E. Housman', 5720, 'Loveliest of trees, the cherry now', 'hung with snow.',
+          'A Shropshire Lad, II, A. E. Housman (1896)'),
+        P('Adlestrop', 'Edward Thomas', 22423, 'remember Adlestrop', 'Oxfordshire and Gloucestershire.', 'Poems, Edward Thomas (1917)'),
+        P('Dover Beach', 'Matthew Arnold', 54985, 'The sea is calm to-night.', 'clash by night.', 'Poems, Matthew Arnold')])
+    TEXTS[-1]['title'] = 'Unseen Poetry Practice'
+
 
 def main():
     novels()
@@ -649,6 +890,7 @@ def main():
     speeches()
     poetry()
     anthology()
+    gcse_more()
     write()
     report()
 
