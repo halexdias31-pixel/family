@@ -22,36 +22,35 @@ function textsIndex_() {
     TEXTS.asking = null;
     if (!ok) { TEXTS.failed = true; return null; }
     TEXTS.index = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('texts');
     return d;
   });
   return null;
 }
 
-/* ---------- ONE ITEM A UNIT A TEXT, on the scripture shelf. A scripture-like text is for a viewer of age (scriptureMinAge_). */
+/* ---------- ONE ITEM A UNIT A TEXT (520): a `writingUnit_` like every writing; the KJV Apocrypha are books of the Bible in its
+   Deuterocanon collection, the Mishnah's tractates the Talmud's Books. */
 function textsItems_() {
   const ix = TEXTS.index;
   if (!ix) return [];
-  const adult = viewerOfAge_(scriptureMinAge_());
-  if (TEXTS.items && TEXTS.from === ix && TEXTS.adult === adult) return TEXTS.items;
-  const list = [], shelf = BIBLE_SHELF, rs = SCRIPTURE_SUBJECT();
+  if (TEXTS.items && TEXTS.from === ix) return TEXTS.items;
+  const list = [];
   ix.texts.forEach(t => {
-    if (t.scripture && !adult) return;
-    const age = t.scripture ? scriptureMinAge_() : 0;
+    const reg = writingWork_('texts', t.id), bible = reg.work === 'Bible';
+    const text = writingText_(writingTextOf_(t.text, t.lang));
     t.works.forEach((w, wi) => w.parts.forEach((p, pi) => textsUnits_(p).forEach((u, ui) => {
       const cite = p[1] ? p[1] + (u ? (/\./.test(p[1]) ? '.' : ':') + u : '') : u;
-      const title = w.title || w.name;
-      list.push({
-        kind: 'writ', key: 'tx:' + t.id + ':' + w.file + ':' + pi + ':' + ui, name: (title + ' ' + cite).trim(), image: '', row: null,
-        shelf: shelf, libBook: t.writing, subject: rs, min_age: age, sub: t.text,
+      const title = w.title || w.name, many = title !== t.writing;
+      list.push(writingUnit_('texts', reg, {
+        kind: 'writ', key: 'tx:' + t.id + ':' + w.file + ':' + pi + ':' + ui, name: (title + ' ' + cite).trim(), sub: text,
         text: [t.writing, title, p[0], t.text].join(' '),
-        wtWork: title === t.writing ? '' : title, wtChapter: p[0] || '', wtVerse: u ? (t.unit || 'Verse') + ' ' + u : '', wtLanguage: t.text,
+        w: { work: bible ? 'Bible' : t.writing, book: bible || many ? title : '', chapter: p[0] || '', unit: u,
+             text: text, collection: bible ? WRITING_DEUTERO : '' },
         tx: { t: t.id, file: w.file, p: pi, u: ui, lang: t.lang },
-      });
+      }));
     })));
   });
-  TEXTS.items = list; TEXTS.from = ix; TEXTS.adult = adult;
+  TEXTS.items = list; TEXTS.from = ix;
   return list;
 }
 

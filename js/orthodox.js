@@ -3,8 +3,6 @@
    the works.js pattern with its own folder, on the Writings shelf under Religious Studies. */
 
 const ORTHO = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
-/* THE BIBLE'S SHELF, whatever it is called: Books today, Writings once 504 is merged; a shelf of its own would echo the subject. */
-const ORTHO_SHELF = () => (typeof BIBLE_SHELF !== 'undefined' ? BIBLE_SHELF : 'Writings');
 const orthoGet_ = file => {
   const stamp = window.LOAD ? '?t=' + window.LOAD : '';
   return Promise.resolve()
@@ -15,15 +13,14 @@ const orthoGet_ = file => {
 
 function orthoIndex_() {
   if (ORTHO.index) return ORTHO.index;
-  if (ORTHO.asking || ORTHO.failed || typeof fetch !== 'function' || !viewerOfAge_(scriptureMinAge_())) return null;
+  if (ORTHO.asking || ORTHO.failed || typeof fetch !== 'function' || !writingFor_(WRITING_WORKS.orthodox)) return null;
   ORTHO.asking = orthoGet_('index.json').then(d => {
     const ok = !!d && Array.isArray(d.works) && d.works.every(w => w && /^OR-\d{4}$/.test(w.id) && /^OR-\d{4}\.json$/.test(w.file)
       && Array.isArray(w.chapters) && w.chapters.length > 0 && Array.isArray(w.languages) && w.languages.length > 0);
     ORTHO.asking = null;
     if (!ok) { ORTHO.failed = true; return null; }
     ORTHO.index = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('orthodox');
     return d;
   });
   return null;
@@ -36,16 +33,16 @@ function orthoItems_() {
   const ix = ORTHO.index;
   if (!ix) return [];
   if (ORTHO.items && ORTHO.from === ix) return ORTHO.items;
-  const list = [], rs = SCRIPTURE_SUBJECT();
+  const list = [], reg = writingWork_('orthodox');
   ix.works.forEach(w => {
-    const tags = { orTradition: orthoList_(w.tradition), orEra: w.era || '', orGenre: w.genre || '', orCollection: orthoList_(w.collection) };
     w.languages.forEach(lang => w.chapters.forEach((say, i) => {
-      list.push(Object.assign({
-        kind: 'orthotext', key: 'or:' + w.id + ':' + lang + ':' + i, name: w.title + ', ' + say, image: '', row: null,
-        shelf: ORTHO_SHELF(), subject: rs, libBook: w.title, histKind: 'Texts', min_age: scriptureMinAge_(), sub: w.about || lang,
+      list.push(writingUnit_('orthodox', reg, {
+        kind: 'orthotext', key: 'or:' + w.id + ':' + lang + ':' + i, name: w.title + ', ' + say, sub: w.about || lang,
         text: [w.title, say, lang, w.author, w.collection, w.genre, w.era].join(' '),
-        wtWork: w.title, wtChapter: say, wtLanguage: lang, ot: { id: w.id, file: w.file, i: i, lang: lang },
-      }, tags));
+        w: { work: w.title, chapter: say, text: writingText_(writingTextOf_(lang)), tradition: orthoList_(w.tradition),
+             collection: orthoList_(w.collection), author: w.author || '', form: w.genre || '' },
+        ot: { id: w.id, file: w.file, i: i, lang: lang },
+      }));
     }));
   });
   ORTHO.items = list; ORTHO.from = ix;
@@ -61,11 +58,11 @@ function orthoBibleTags_(x) {
   const bb = x && x.kind === 'bible' ? x.bb : null;
   if (!bb) return [];
   const greek = bb.dir === 'lxx' || bb.dir === 'brenton';
-  if (ORTHO_ANAG.indexOf(bb.book) >= 0) return ['Anagignoskomena'];
+  if (ORTHO_ANAG.indexOf(bb.book) >= 0) return [WRITING_DEUTERO];
   if (!greek) return [];
   const c = Number(x.ch);
   if (bb.book === 'Psalms') {
-    if (c === 151) return ['Anagignoskomena'];
+    if (c === 151) return [WRITING_DEUTERO];
     const k = ORTHO_KATHISMA.findIndex(last => c <= last);
     return k >= 0 ? ['Psalter', 'Kathisma ' + (k + 1)] : [];
   }

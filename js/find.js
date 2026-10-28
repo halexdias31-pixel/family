@@ -386,17 +386,18 @@ const FACETS = [
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
-  /* WHICH BOOK ON THE BOOKS SHELF (494): the Bible, the Quran or the Talmud, before each one's own questions. */
-  { field: 'libBook',   label: 'Which writing', of: x => x.libBook || '' },
-  /* THE BIBLE'S SIX: admin-only data (`bibleFor_`), and ordinary questions about it. */
-  /* `Text`, not Translation (504): the Masoretic and the Greek are the originals. */
-  { field: 'bibleTranslation', label: 'Text',
-    of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
-  { field: 'bibleTestament', label: 'Testament', of: x => (x.bb ? x.bb.testament : '') },
-  { field: 'bibleGroup',     label: 'Group',     of: x => (x.bb ? x.bb.group : '') },
-  { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
-  { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
-  { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
+  /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
+     answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
+  { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
+  { field: 'wText',      label: 'Text',       of: x => writingAt_(x, 'text') },
+  { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
+  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
+  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
+  { field: 'wBook',      label: 'Book',       of: x => writingAt_(x, 'book') },
+  { field: 'wChapter',   label: 'Chapter',    of: x => writingAt_(x, 'chapter') },
+  { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
+  { field: 'wAuthor',    label: 'Author',     of: x => writingAt_(x, 'author') },
+  { field: 'wForm',      label: 'Kind of writing', of: x => writingAt_(x, 'form') },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
@@ -410,7 +411,7 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (x.kind === 'fight' && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures, writings, events or texts', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, figures, works or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
@@ -429,52 +430,6 @@ const FACETS = [
   { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
   { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
   { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
-  { field: 'wtWork',    label: 'Work',        of: x => x.wtWork || '' },
-  { field: 'wtChapter', label: 'Chapter',     of: x => x.wtChapter || '' },
-  { field: 'wtSection', label: 'Section',     of: x => x.wtSection || '' },
-  /* `Text` (504), as the Bible's: which text of the writing, its language and whose translation. */
-  { field: 'wtLanguage', label: 'Text',       of: x => x.wtLanguage || '' },
-  /* THE VERSE, SECTION OR MISHNAH OF MORE WRITINGS (513): a card each. */
-  { field: 'wtVerse',   label: 'Passage',     of: x => x.wtVerse || '' },
-  /* A PUBLIC-DOMAIN TEXT'S PLACE (514): which writing, book, chapter and section, and whose text or translation. */
-  { field: 'txWriting', label: 'Writing',     of: x => x.txWriting || '' },
-  { field: 'txBook',    label: 'Book',        of: x => x.txBook || '' },
-  { field: 'txChapter', label: 'Chapter',     of: x => x.txChapter || '' },
-  { field: 'txSection', label: 'Section',     of: x => x.txSection || '' },
-  { field: 'txText',    label: 'Text',        of: x => x.txText || '' },
-  { field: 'txAnthology', label: 'Anthology', of: x => x.txAnthology || '' },
-  /* THE OWNER'S CATEGORIES (516): tradition, church era, kind of writing, and the collection (Anagignoskomena, Kathisma 5 on a Bible verse). */
-  { field: 'orTradition', label: 'Tradition', of: x => x.orTradition || '' },
-  { field: 'orEra',     label: 'Church era',  of: x => x.orEra || '' },
-  { field: 'orGenre',   label: 'Kind of writing', of: x => x.orGenre || '' },
-  { field: 'orCollection', label: 'Collection', of: x => x.orCollection || (typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x) : '') },
-  /* THE HYMNS' (517): whose words, which church, which season, the tune it is sung to. */
-  { field: 'hymnTradition', label: 'Tradition', of: x => x.hymnTradition || '' },
-  { field: 'hymnSeason', label: 'Feast or season', of: x => x.hymnSeason || '' },
-  { field: 'hymnTheme', label: 'Hymnal section', of: x => x.hymnTheme || '' },
-  { field: 'hymnAuthor', label: 'Words by',   of: x => x.hymnAuthor || '' },
-  { field: 'hymnTune',  label: 'Tune',        of: x => x.hymnTune || '' },
-  { field: 'hymnLanguage', label: 'Language', of: x => x.hymnLanguage || '' },
-  /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
-  { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
-  { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
-  { field: 'talChapter', label: 'Chapter',    of: x => x.talChapter || '' },
-  { field: 'talDaf',    label: 'Daf',         of: x => x.talDaf || '' },
-  /* EACH SIDE A CARD (490), so the side is asked like any other tag. */
-  { field: 'talSide',   label: 'Side',        of: x => x.talSide || '' },
-  /* THE QURAN'S (490): ordinary tags on every verse. */
-  /* ONE LANGUAGE A CARD (504): Arabic or Pickthall's English, asked first. */
-  { field: 'quranTranslation', label: 'Translation', of: x => x.quranTranslation || '' },
-  { field: 'quranSurah', label: 'Surah',      of: x => x.quranSurah || '' },
-  { field: 'quranAyah', label: 'Ayah',        of: x => x.quranAyah || '' },
-  { field: 'quranJuz',  label: 'Juz',         of: x => x.quranJuz || '' },
-  { field: 'quranPlace', label: 'Revealed',   of: x => x.quranPlace || '' },
-  { field: 'quranSajda', label: 'Prostration', of: x => x.quranSajda || '' },
-  /* THE HADITH'S (504): which of the six, which book, which number, and its language. */
-  { field: 'hadithTranslation', label: 'Translation', of: x => x.hadithTranslation || '' },
-  { field: 'hadithCollection', label: 'Collection', of: x => x.hadithCollection || '' },
-  { field: 'hadithBook', label: 'Book',       of: x => x.hadithBook || '' },
-  { field: 'hadithNumber', label: 'Hadith',   of: x => x.hadithNumber || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -544,6 +499,49 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  libBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleTestament: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleGroup: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  bibleVerse: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  wtWork: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  wtChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  wtSection: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  wtLanguage: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  wtVerse: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txWriting: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txSection: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txText: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  txAnthology: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  orTradition: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  orGenre: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  orCollection: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnTradition: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnTheme: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnAuthor: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnLanguage: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  talSeder: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  talTractate: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  talChapter: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranSurah: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranAyah: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranJuz: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hadithTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hadithCollection: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hadithBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hadithNumber: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  orEra: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnSeason: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  hymnTune: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  talDaf: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  talSide: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranPlace: 'a writing\'s private facet; one facet set asks every writing now (520).',
+  quranSajda: 'a writing\'s private facet; one facet set asks every writing now (520).',
   iconGroup: 'what an icon mark was for; the icons left Find at the owner\'s word (445).',
   borough: 'venues only, and venues left Find; nothing else answers it (396 took the dead facet out).',
   slot: 'where a wearable goes; nothing in Find carries one since the shop left it (396 took the dead facet out).',
@@ -1658,6 +1656,8 @@ function histEras_(from, to) {
   }).map(e => e.name);
 }
 function histErasOf_(x) {
+  /* A WRITING'S UNIT CARRIES ITS WORK'S DATE (520), so Era asks a page of First Clement as it asked the row it replaced. */
+  if (x && x.wDate) return histEras_(x.wDate[0], x.wDate[1]);
   const r = x && x.hdb ? x.row : null;
   if (!r) return [];
   return x.kind === 'figure' ? histEras_(r.born_year, r.died_year) : histEras_(r.date_from, r.date_to);
@@ -1669,7 +1669,8 @@ const histCol_ = (x, col) => (x && x.hdb && x.row ? histList_(x.row[col]) : []);
 function histLinks_(r) {
   const out = [], seen = new Set();
   const add = (id, label) => {
-    const to = histRow_(id);
+    /* A WRITING IS ITS PAGES (520): a WR- link lands on the work's first unit card, never a profile row. */
+    const to = histRow_(id) || (typeof worksRowOf_ === 'function' ? worksRowOf_(id) : null);
     if (!to || seen.has(id) || id === r.id) return;
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
@@ -1700,7 +1701,7 @@ function histItem_(kind, r) {
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Writings',
+    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Works',
     shelf: 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
     row: r,
@@ -1859,7 +1860,7 @@ function histCard_(x) {
   const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
   /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
   const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
-    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } })))
+    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })))
     .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
@@ -1928,7 +1929,7 @@ function histTimelineCard_(x) {
 const BIBLE_NAME = 'The Bible';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. § */
 /* `Writings` (504), not `Books`: the owner, "remove the word Books and replace with Writings as it encompasses more". */
-const BIBLE_SHELF = 'Writings';
+const WRITINGS_SHELF = 'Writings', BIBLE_SHELF = WRITINGS_SHELF;
 /* THE WORDS A SEARCH FINDS IT BY, on the cover and on every verse: what somebody types for the
    Bible that its name does not already say. */
 const BIBLE_WORDS = 'scripture';
@@ -1941,10 +1942,6 @@ const BIBLE_TR_WORDS = { KJV: 'KJV King James Authorized Version', WEB: 'WEB Wor
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
                 item: null, verses: null, rank: null, hays: null };
 
-/* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
-   a Bible chip without this file keeping a list in step with that one. */
-const BIBLE_FIELDS = {};
-FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default now, anyone of age like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
@@ -1956,9 +1953,6 @@ const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('script
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
-/* ONE RULE FOR A WRITING'S CARDS (504): "each verse or chapter is a widget" — a verse (or numbered section) where it has them, else a chapter;
-   the Talmud a daf side. */
-const WRITING_UNIT = { bible: 'verse', quran: 'verse', hadith: 'verse', worktext: 'chapter', talmud: 'page' };
 
 /* THE DOTS UNDER A SCRIPTURE QUESTION (504) wait for its indexes, never the payload, which adds no answer there; a failed index is said.
    null: not scripture's question. */
@@ -2010,7 +2004,7 @@ function bibleIndex_() {
                                    && b.chapterVerses.every(c => Number.isInteger(c) && c > 0)
                                    && b.chapterVerses.reduce((s, c) => s + c, 0) === b.verses);
       BIBLE.asking = null;
-      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); }
+      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); WRITING_CAME.bible = true; }
       else BIBLE.failed = true;
       /* THE VERSES ARRIVE: every finder's list is built again with them (499). */
       bibleRedraw_();
@@ -2094,15 +2088,15 @@ function bibleLoad_(n, dir) {
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
 function bibleChosen_() {
   const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
-  const f = (st.filters || []).find(x => x.field === 'bibleBook' && x.value != null);
+  const f = (st.filters || []).find(x => x.field === 'wBook' && x.value != null);
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
 /* THE CHOSEN TRANSLATION'S FOLDER: '' for the KJV, or when none is chosen yet. */
 function bibleChosenDir_() {
   const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
-  const f = (st.filters || []).find(x => x.field === 'bibleTranslation' && x.value != null);
-  const t = f && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => t.say === f.value) : null;
+  const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null);
+  const t = f && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => writingText_(writingTextOf_(t.tr)) === f.value) : null;
   return t ? t.dir : '';
 }
 function bibleAhead_() {
@@ -2129,11 +2123,12 @@ const bibleV_ = t => '<p class="bb-v">'
 /* ---------- EVERY VERSE, AS AN ITEM § */
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
-  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT();
+  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT(), reg = writingWork_('bible'), age = writingAge_(reg);
   bibleTrs_(ix).forEach(t => {
+    const text = writingText_(writingTextOf_(t.tr));
     const head = 'bible:' + t.tr.toLowerCase() + ':', st = starts[t.tr.toLowerCase()] = [];
     t.books.forEach(b => {
-      const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: t.say,
+      const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: t.say, text: text,
                    dir: t.dir, lang: t.lang, slot: bibleSlot_(b.n, t.dir), words: bibleBookWords_(b) + ' ' + (BIBLE_TR_WORDS[t.tr] || t.say) };
       const at = st[b.n - 1] = [];
       b.chapterVerses.forEach((count, ci) => {
@@ -2141,8 +2136,8 @@ function bibleVerseList_(ix) {
         at.push(list.length);
         for (let v = 1; v <= count; v++) {
           list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                      shelf: BIBLE_SHELF, libBook: 'Bible', unit: WRITING_UNIT.bible, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
-                      min_age: scriptureMinAge_() });
+                      shelf: WRITINGS_SHELF, wSrc: 'bible', topic: reg.topic, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
+                      min_age: age });
         }
       });
     });
@@ -2259,9 +2254,9 @@ function bibleHere_(x) {
   if (String(STUFF.q || '').trim()) return false;
   const leaf = f => f && !f.any;
   const fs = STUFF.filters || [];
-  if (fs.some(f => leaf(f) && f.field === 'bibleVerse')) return false;
-  return fs.some(f => leaf(f) && f.field === 'bibleBook' && spellKey_(f.value) === spellKey_(x.bb.book))
-      && fs.some(f => leaf(f) && f.field === 'bibleChapter' && String(f.value) === String(x.ch));
+  if (fs.some(f => leaf(f) && f.field === 'wUnit')) return false;
+  return fs.some(f => leaf(f) && f.field === 'wBook' && spellKey_(f.value) === spellKey_(x.bb.book))
+      && fs.some(f => leaf(f) && f.field === 'wChapter' && String(f.value) === String(x.ch));
 }
 
 /* ---------- KEPT ON SAVED § */
@@ -2309,11 +2304,9 @@ on('bible-go', el => {
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
   const F = finderAt_(el);
-  const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: x ? x.bb.translation : BIBLE.index.translation }];
-  if (x) {
-    f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
-           { field: 'bibleBook', value: x.bb.book }, { field: 'bibleChapter', value: x.ch });
-  }
+  const f = [{ field: 'shelf', value: WRITINGS_SHELF }, { field: 'wWork', value: 'Bible' },
+    { field: 'wText', value: x ? x.bb.text : writingText_(writingTextOf_(BIBLE.index.translation)) }];
+  if (x) f.push({ field: 'wBook', value: x.bb.book }, { field: 'wChapter', value: x.ch });
   inFinder_(F, () => {
     STUFF.q = '';
     const box = $(F.id + '-q');
@@ -8916,8 +8909,9 @@ const placeChipMoved_ = f => (f && MOVED_ANSWERS[f.field] && MOVED_ANSWERS[f.fie
   ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f);
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
-  if (BIBLE_FIELDS[f.field]) return !bibleFor_();
   if (f.field === 'shelf' && f.value === BIBLE_SHELF) return !viewerOfAge_(scriptureMinAge_());
+  /* A WRITING'S CHIP (520) kept by a viewer under the writings' age: most of what answers it is not theirs, so it is dropped. */
+  if (/^w[A-Z]/.test(f.field) && typeof writingFor_ === 'function') return !writingFor_(writingWork_('bible'));
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -8930,11 +8924,16 @@ function placeChipDead_(f) {
 let FUNNEL_MEMO = { key: null, from: null, items: null };
 function stuffItems() {
   const key = itemMemoKey_();
-  if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
   if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
     FUNNEL_MEMO = { key: key, from: DATA, items: stuffItemsBuild_() };
   }
-  ITEM_MEMO = { key: key, from: DATA, items: FUNNEL_MEMO.items };
+  /* THE WRITINGS THIS FUNNEL STARTED WITH (520): an index that comes after an answer joins at the next fresh start. */
+  const admit = writingAdmit_();
+  if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key + '|' + admit) return ITEM_MEMO.items;
+  /* ONE LIST STILL, while a finder has everything that came; a narrower set is made once and shared by every finder on it. */
+  const cut = FUNNEL_MEMO.cut || (FUNNEL_MEMO.cut = {});
+  const items = admit === writingNow_() ? FUNNEL_MEMO.items : cut[admit] || (cut[admit] = FUNNEL_MEMO.items.filter(x => writingAdmitted_(x, admit)));
+  ITEM_MEMO = { key: key + '|' + admit, from: DATA, items: items };
   return ITEM_MEMO.items;
 }
 
@@ -10378,7 +10377,7 @@ const TAG_OF = {
   topic: 'topic',
   needs: 'needs',
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
-  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind', libBook: 'kind',
+  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
   histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
@@ -10386,18 +10385,9 @@ const TAG_OF = {
   accuracy: 'check', function: 'check', required: 'check',
   /* YOUR OWN RESULT (463), its own colour. */
   myResult: 'mine',
-  /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
-  bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
-  bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
-  /* THE TALMUD'S (473), the same way. */
-  talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
-  hadithCollection: 'level', hadithBook: 'topic', hadithNumber: 'paper', hadithTranslation: 'board',
-  quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
-  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board', wtVerse: 'paper',
-  txWriting: 'topic', txBook: 'level', txChapter: 'paper', txSection: 'paper', txText: 'board', txAnthology: 'topic',
-  orTradition: 'board', orEra: 'sitting', orGenre: 'type', orCollection: 'topic',
-  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board',
-  hymnTradition: 'board', hymnSeason: 'level', hymnTheme: 'topic', hymnAuthor: 'type', hymnTune: 'paper', hymnLanguage: 'board',
+  /* EVERY WRITING'S (520), in kinds that already have colours. */
+  wWork: 'topic', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
+  wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10451,6 +10441,7 @@ function filterClear_() {
 /* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
+  writingFreeze_();
   STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
   paintStuff();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
@@ -10459,6 +10450,7 @@ on('facet-pick', el => inFinder_(finderAt_(el), () => {
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
    does not do. */
 on('facet-skip', el => inFinder_(finderAt_(el), () => {
+  writingFreeze_();
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuff();
 }));

@@ -2,7 +2,6 @@
 /* The owner: "each verse can be a widget ... all tags like everything else". Ordinary facets; the index when a finder paints, a surah's text
    only when one of its cards is drawn. */
 
-const QURAN_SHELF = () => brand('quran_shelf', BIBLE_SHELF);
 const QURAN_NAME = () => brand('quran_name', 'The Quran');
 /* WHAT A SEARCH FINDS IT BY that a verse's own name does not say. */
 const QURAN_WORDS = 'Quran Koran Qur\'an surah sura ayah aya verse Pickthall Tanzil';
@@ -11,7 +10,7 @@ const QURAN = { index: null, asking: null, failed: false, surahs: {}, loading: {
 const QURAN_ORDER = [];
 ANSWER_ORDERS.push(QURAN_ORDER);
 /* ONLY FOR A VIEWER OF AGE (490), like the Bible and the Talmud: under it, or signed out, nothing is fetched. */
-const quranFor_ = () => viewerOfAge_(scriptureMinAge_());
+const quranFor_ = () => writingFor_(writingWork_('quran'));
 
 function quranGet_(file) {
   return scriptureFetch_(o => fetch('data/quran/' + file + scriptureStamp_(), o));
@@ -28,8 +27,7 @@ function quranIndex_() {
     if (!ok) { QURAN.failed = true; if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); }); return null; }
     QURAN.index = d;
     QURAN_ORDER.push(...d.surahs.map(quranSurahSay_));
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('quran');
     return d;
   });
   return null;
@@ -50,18 +48,17 @@ function quranItems_() {
   const ix = QURAN.index;
   if (!ix || !quranFor_()) return [];
   if (QURAN.items && QURAN.from === ix) return QURAN.items;
-  const list = [], shelf = QURAN_SHELF(), rs = SCRIPTURE_SUBJECT(), sajda = {};
-  (ix.sajda || []).forEach(p => { sajda[p[0] + ':' + p[1]] = 1; });
+  const list = [], reg = writingWork_('quran');
   QURAN_TRS.forEach(t => ix.surahs.forEach(s => {
+    const text = writingText_(writingTextOf_(t.say));
     const say = quranSurahSay_(s), words = [QURAN_NAME(), QURAN_WORDS, s.name, s.meaning, s.ar, s.place, t.say].join(' ');
     for (let a = 1; a <= s.ayahs; a++) {
-      list.push({
-        kind: 'quran', key: 'qr:' + (t.id ? t.id + ':' : '') + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, image: '', row: null, shelf: shelf, libBook: 'Quran', unit: WRITING_UNIT.quran, subject: rs,
-        sub: s.meaning, min_age: scriptureMinAge_(), text: words,
-        quranTranslation: t.say, quranSurah: say, quranAyah: String(a), quranJuz: 'Juz ' + quranJuzOf_(s, a), quranPlace: s.place,
-        quranSajda: sajda[s.n + ':' + a] ? 'Prostration' : '',
+      /* ONE SHAPE (520): the surah is the Chapter, its juz the Section, the ayah the Unit. */
+      list.push(writingUnit_('quran', reg, {
+        kind: 'quran', key: 'qr:' + (t.id ? t.id + ':' : '') + s.n + ':' + a, name: s.name + ' ' + s.n + ':' + a, sub: s.meaning, text: words,
+        w: { chapter: say, section: 'Juz ' + quranJuzOf_(s, a), unit: String(a), text: text },
         qr: { s: s.n, a: a, lang: t.lang },
-      });
+      }));
     }
   }));
   QURAN.items = list; QURAN.from = ix;

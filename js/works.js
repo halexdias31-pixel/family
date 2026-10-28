@@ -14,38 +14,39 @@ const worksGet_ = file => {
 
 function worksIndex_() {
   if (WORKS.index) return WORKS.index;
-  if (WORKS.asking || WORKS.failed || typeof fetch !== 'function' || !viewerOfAge_(scriptureMinAge_())) return null;
+  if (WORKS.asking || WORKS.failed || typeof fetch !== 'function' || !writingFor_(writingWork_('works'))) return null;
   WORKS.asking = worksGet_('index.json').then(d => {
     const ok = !!d && Array.isArray(d.works) && d.works.every(w => w && /^WR-\d{4}$/.test(w.id) && /^WR-\d{4}\.json$/.test(w.file)
       && Array.isArray(w.chapters) && w.chapters.length > 0 && Array.isArray(w.languages) && w.languages.length > 0);
     WORKS.asking = null;
     if (!ok) { WORKS.failed = true; return null; }
     WORKS.index = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('works');
     return d;
   });
   return null;
 }
 
-/* ---------- ONE ITEM A CHAPTER A LANGUAGE, on the History shelf beside the writing's own row. */
+/* ---------- ONE ITEM A CHAPTER (or numbered section) A LANGUAGE (520): a `writingUnit_`; the history database's row of the same
+   work links here (`worksFirstKey_`), so the work is held once. */
 function worksItems_() {
   const ix = WORKS.index;
   if (!ix) return [];
   if (WORKS.items && WORKS.from === ix) return WORKS.items;
   const list = [];
   ix.works.forEach(w => {
-    const age = Number(w.min_age) || SCRIPTURE_MIN_AGE;
+    const reg = writingWork_('works', w.id);
     w.languages.forEach(lang => w.chapters.forEach((say, i) => {
-      list.push({
-        kind: 'worktext', key: 'wt:' + w.id + ':' + lang + ':' + i, name: w.title + ' ' + say, image: '', row: null,
-        /* ON THE ONE WRITINGS SHELF (504) beside the Bible, the Quran, the Talmud and the Hadith, still a Text of the history database. */
-        shelf: BIBLE_SHELF, subject: SCRIPTURE_SUBJECT(), libBook: w.title, histKind: 'Texts', unit: w.unit === 'section' ? 'verse' : WRITING_UNIT.worktext, min_age: age, sub: lang,
+      const text = writingText_(writingTextOf_((w.says && w.says[lang]) || lang));
+      list.push(writingUnit_('works', reg, {
+        kind: 'worktext', key: 'wt:' + w.id + ':' + lang + ':' + i, name: w.title + ' ' + say, sub: text,
         text: [w.title, say, lang, w.id].join(' '),
-        /* A WRITING NUMBERED IN SECTIONS (504, the Letter of Aristeas) is asked Section, not Chapter; its Text says whose words. */
-        wtWork: w.title, wtChapter: w.unit === 'section' ? '' : say, wtSection: w.unit === 'section' ? say : '',
-        wtLanguage: (w.says && w.says[lang]) || lang, wt: { id: w.id, file: w.file, i: i, lang: lang },
-      });
+        /* THE WORK'S FACTS ON EVERY PAGE (520): no profile card; its author, kind and date are each unit's tags. */
+        w: { work: w.title, chapter: w.unit === 'section' ? '' : say, unit: w.unit === 'section' ? say : '', text: text,
+             author: w.author || '', form: w.genre || '' },
+        wDate: [w.date_from, w.date_to],
+        wt: { id: w.id, file: w.file, i: i, lang: lang },
+      }));
     }));
   });
   WORKS.items = list; WORKS.from = ix;
@@ -97,7 +98,12 @@ function worksRedraw_(id) {
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });
 }
-/* THE WRITING'S OWN CARD SAYS ITS WORDS ARE HERE: a tile to the first page, in Find (histCard_). */
+/* A HISTORY ROW'S LINK TO A WORK (520): the work as a row-like name and the key of its first page, for `histLinks_`. */
+function worksRowOf_(id) {
+  const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
+  return w ? { id: w.id, title_english: w.title, key: worksFirstKey_(id) } : null;
+}
+/* THE FIRST PAGE OF A WORK: a link to it from a history row lands here (histCard_). */
 function worksFirstKey_(id) {
   const w = WORKS.index && WORKS.index.works.find(v => v.id === id);
   return w ? 'wt:' + w.id + ':' + (w.languages.indexOf('English') >= 0 ? 'English' : w.languages[0]) + ':0' : '';

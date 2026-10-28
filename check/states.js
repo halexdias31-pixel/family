@@ -1991,7 +1991,7 @@ const STATES = {
       }),
       expect: () => {
         const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
-        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+        return a.length === 1 && a[0].dataset.field === 'wText' && a[0].dataset.value === 'English, King James Version (1611)'
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
       wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
@@ -1999,34 +1999,34 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+                         { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
+                         { field: 'wBook', value: 'Psalms' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
       }),
-      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wChapter"]').length === 150,
       wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
     { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+                         { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Poetry & Wisdom' },
+                         { field: 'wBook', value: 'Psalms' }, { field: 'wChapter', value: '119' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
       }),
-      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="wUnit"]').length === 176,
       wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
     { name: 'the Bible, Genesis 1:3',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
-                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
-                         { field: 'bibleVerse', value: '3' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+                         { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' },
+                         { field: 'wBook', value: 'Genesis' }, { field: 'wChapter', value: '1' },
+                         { field: 'wUnit', value: '3' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),
@@ -2041,10 +2041,10 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
-                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
-                         { field: 'bibleVerse', value: '9' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+                         { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'History' },
+                         { field: 'wBook', value: 'Esther' }, { field: 'wChapter', value: '8' },
+                         { field: 'wUnit', value: '9' }];
         paintStuff();
         goPage('res', stuffFirstResult_(), true);
       }),

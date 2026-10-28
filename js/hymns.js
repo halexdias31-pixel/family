@@ -3,7 +3,6 @@
    data/hymns/: index when a finder paints, words in chunks when a card is drawn; never boot payload, no audio. */
 
 const HYMNS = { index: null, asking: null, failed: false, chunks: {}, loading: {}, missed: {}, items: null, from: null };
-const HYMN_SHELF = BIBLE_SHELF;
 const hymnsGet_ = file => {
   const stamp = window.LOAD ? '?t=' + window.LOAD : '';
   return Promise.resolve()
@@ -15,30 +14,31 @@ const hymnsGet_ = file => {
 /* A RELIGIOUS WORK IS FOR A VIEWER OF AGE (490), as the other writings are. */
 function hymnsIndex_() {
   if (HYMNS.index) return HYMNS.index;
-  if (HYMNS.asking || HYMNS.failed || typeof fetch !== 'function' || !viewerOfAge_(scriptureMinAge_())) return null;
+  if (HYMNS.asking || HYMNS.failed || typeof fetch !== 'function' || !writingFor_(WRITING_WORKS.hymns)) return null;
   HYMNS.asking = hymnsGet_('index.json').then(d => {
     const ok = !!d && Array.isArray(d.hymns) && d.hymns.every(h => h && /^HY-\d{4}$/.test(h.id) && /^w-\d{2}\.json$/.test(h.file) && h.title);
     HYMNS.asking = null;
     if (!ok) { HYMNS.failed = true; return null; }
     HYMNS.index = d;
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('hymns');
     return d;
   });
   return null;
 }
 
-/* ---------- ONE ITEM A HYMN, on the Hymns shelf of Religious Studies, topic Christianity; its facts are ordinary tags. */
+/* ---------- ONE ITEM A HYMN (520): a `writingUnit_` on the Writings shelf, its hymnal the Work, its section the Section. */
+const hymnalOf_ = h => String(h.source || '').split(',')[0].trim();
 function hymnsItems_() {
   const ix = HYMNS.index;
   if (!ix) return [];
   if (HYMNS.items && HYMNS.from === ix) return HYMNS.items;
-  HYMNS.items = ix.hymns.map(h => ({
-    kind: 'hymn', key: 'hy:' + h.id, name: h.title, image: '', row: null,
-    shelf: HYMN_SHELF, subject: SCRIPTURE_SUBJECT(), libBook: 'Hymns', topic: 'Christianity', min_age: scriptureMinAge_(), sub: h.author,
+  const reg = writingWork_('hymns');
+  HYMNS.items = ix.hymns.map(h => writingUnit_('hymns', reg, {
+    kind: 'hymn', key: 'hy:' + h.id, name: h.title, sub: h.author,
     text: [h.title, h.first, h.author, h.tune, h.tradition, h.season, h.theme, h.id].join(' '),
-    hymnAuthor: h.author || '', hymnTradition: h.tradition || '', hymnSeason: h.season || '', hymnTune: h.tune || '',
-    hymnTheme: h.theme || '', hymnLanguage: h.language || '', hy: h,
+    w: { work: hymnalOf_(h), section: h.theme || '', unit: h.title, text: writingText_(writingTextOf_(h.language || 'English')),
+         tradition: h.tradition || '', author: h.author || '', form: 'Hymn' },
+    hy: h,
   }));
   HYMNS.from = ix;
   return HYMNS.items;

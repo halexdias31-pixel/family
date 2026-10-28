@@ -2,7 +2,6 @@
 /* One card a side of a daf (490), asked by ordinary facets; the card IS the page as the Romm printers set it — Gemara in the middle, Rashi
    inner, Tosafot outer — scaled to the card. */
 
-const TALMUD_SHELF = () => brand('talmud_shelf', BIBLE_SHELF);
 const TALMUD_NAME = () => brand('talmud_name', 'Babylonian Talmud');
 /* WHAT A SEARCH FINDS IT BY that a daf's own name does not say. */
 const TALMUD_WORDS = 'Talmud Bavli Babylonian Gemara Mishnah Rashi Tosafot Vilna Romm Shas daf';
@@ -18,7 +17,7 @@ function talmudGet_(file) {
 
 /* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */
 /* ONLY FOR A VIEWER OF AGE (490): under it, or signed out, the index is never even fetched. */
-const talmudFor_ = () => viewerOfAge_(scriptureMinAge_());
+const talmudFor_ = () => writingFor_(writingWork_('talmud'));
 function talmudIndex_() {
   if (TALMUD.index) return TALMUD.index;
   if (!talmudFor_()) return null;
@@ -33,8 +32,7 @@ function talmudIndex_() {
     TALMUD.index = d;
     TALMUD_ORDER_SEDARIM.push(...d.sedarim);
     TALMUD_ORDER_TRACTATES.push(...d.tractates.map(t => t.en));
-    if (typeof stuffForget_ === 'function') stuffForget_();
-    if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+    writingCame_('talmud');
     return d;
   });
   return null;
@@ -67,17 +65,18 @@ function talmudItems_() {
   const ix = TALMUD.index;
   if (!ix || !talmudFor_()) return [];
   if (TALMUD.items && TALMUD.from === ix) return TALMUD.items;
-  const list = [], shelf = TALMUD_SHELF(), rs = SCRIPTURE_SUBJECT();
+  const list = [], reg = writingWork_('talmud'), text = writingText_({ language: 'Hebrew and Aramaic' });
   ix.tractates.forEach(t => {
     for (let i = t.first; i <= t.last; i++) {
       const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
-      list.push({
-        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf, libBook: 'Talmud', unit: WRITING_UNIT.talmud, subject: rs,
-        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: scriptureMinAge_(),
-        talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d), talSide: 'Side ' + side,
+      /* ONE SHAPE (520): the order is the Section, the tractate the Book (as the Mishnah's), the daf side the Unit. */
+      list.push(writingUnit_('talmud', reg, {
+        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side,
+        sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he,
         text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
+        w: { section: t.seder, book: t.en, chapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, unit: d + side, text: text },
         tal: { slug: t.slug, d: d, i: i },
-      });
+      }));
     }
   });
   TALMUD.items = list; TALMUD.from = ix;

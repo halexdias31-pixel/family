@@ -90,6 +90,7 @@ const SUITE = [
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
+  { file: 'check-writings.js', what: 'one model for every written work (520): one shape, one shelf, one facet set, tradition topics, one age, nothing twice, facets.json = FACETS' },
   { file: 'check-texts.js', what: 'more writings (513): every text loads, a unit a card, each with its source and licence; scripture-like texts held to the age rule' },
   { file: 'check-hymns.js', what: 'the hymns shelf (517): every hymn in the index has words, a pre-1929 public-domain source and a licence; audio only a Spotify link' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },

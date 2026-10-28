@@ -230,14 +230,14 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_TR_WORDS', 'bibleTrs_', 'bibleSlot_', 'BIBLE_SHELF', 'WRITING_UNIT', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_TR_WORDS', 'bibleTrs_', 'bibleSlot_', 'WRITINGS_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
   fail.push('`' + LIST_NAMES.filter((n, i) => !listSrc[i]).join('`, `') + '` not found in js/find.js — the verse list was NOT checked, which is not a pass');
 } else if (index && books.length) {
   let made = null;
-  try { made = new Function('const brand = (k, or) => or;\n' + listSrc.join('\n') + '\nreturn bibleVerseList_;')()(index); }
+  try { made = new Function('const brand = (k, or) => or;\n' + listSrc.join('\n') + '\n' + fs.readFileSync(path.join(root, 'js', 'writings.js'), 'utf8') + '\nreturn bibleVerseList_;')()(index); }
   catch (e) { fail.push('bibleVerseList_ threw on the real index: ' + e.message); }
   const list = made && Array.isArray(made.list) ? made.list : [];
   listed = list.length;
@@ -349,9 +349,10 @@ const handler = act => {
 });
 
 /* ---------- THE SIX QUESTIONS, AS DECLARED § */
-const SIX = ['bibleTranslation', 'bibleTestament', 'bibleGroup', 'bibleBook', 'bibleChapter', 'bibleVerse'];
+/* THE ONE WRITING SET (520) the Bible answers, in the order it is asked: no question is the Bible's alone. */
+const SIX = ['wWork', 'wText', 'wCollection', 'wSection', 'wBook', 'wChapter', 'wUnit'];
 const facetsSrc = (() => { const i = findSrc.indexOf('const FACETS = ['); const j = findSrc.indexOf('\n];', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
-const declared = [...facetsSrc.matchAll(/\{ field: '(bible\w+)',([^\n]*)/g)].map(m => ({ field: m[1], line: m[2] }));
+const declared = [...facetsSrc.matchAll(/\{ field: '(w[A-Z]\w*)',([^\n]*)/g)].map(m => ({ field: m[1], line: m[2] })).filter(d => SIX.indexOf(d.field) >= 0);
 if (declared.map(d => d.field).join(',') !== SIX.join(',')) {
   fail.push('FACETS declares ' + (declared.map(d => d.field).join(', ') || 'no Bible questions') + ' — not the six, in the owner\'s order: ' + SIX.join(', '));
 }
@@ -377,7 +378,7 @@ SIX.forEach(f => {
   else if (r.active === false) fail.push('data/settings/facets.json switches `' + f + '` off — every Bible question below it would never be asked');
 });
 const ats = SIX.map(at);
-if (sheet.length && !(ats.every((v, i) => isFinite(v) && (i === 0 || v > ats[i - 1])) && ats[0] > at('shelf') && ats[5] < at('book'))) {
+if (sheet.length && !(ats.every((v, i) => isFinite(v) && (i === 0 || v > ats[i - 1])) && ats[0] > at('shelf') && ats[ats.length - 1] < at('book'))) {
   fail.push('the Bible\'s rows in data/settings/facets.json are not in order between `shelf` (' + at('shelf') + ') and `book` (' + at('book') + '): ' + SIX.map((f, i) => f + ' ' + ats[i]).join(', '));
 }
 
