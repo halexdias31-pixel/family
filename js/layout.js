@@ -320,6 +320,27 @@ function layoutSave_(next) {
     .catch(err => { set(was); toast(String((err && err.message) || 'The layout did not save')); return false; });
 }
 
+/* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
+function layoutDeletedName_(id) {
+  const w = layoutWidgetOf_(id);
+  return w ? String(w.name || id) : cardLabel_(id);
+}
+/* NOT IN THE REGISTRY on purpose: no Delete tile under it, or the way back could itself be deleted. */
+function deletedCard_() {
+  if (!layoutIsAdmin_()) return '';
+  const del = ((layoutNow_() || {}).deleted || []);
+  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
+<div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
+  return `<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`;
+}
+on('lay-putback', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-del'), D = layoutDraftOf_(layoutNow_());
+  if (D.deleted.indexOf(id) === -1) return;
+  D.deleted = D.deleted.filter(x => x !== id);
+  layoutSave_(D);
+});
+
 /* ---------- SPLIT AND JOIN (464): an admin draws a card of several fields as a card a field, in the same place, for everybody § */
 const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-')
   .replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');

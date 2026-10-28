@@ -29374,7 +29374,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   return bad;
 });
 
-check('layout tiles (463): Delete asks twice in place and is final (477), the deleted widget is not drawn or paged, nothing on Business brings it back; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
+check('layout tiles (463): Delete asks twice in place and is final (477), the deleted widget is not drawn or paged, no Add back or Reset (Deleted on Business is the one way back); the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -29397,7 +29397,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (layTile_(d, 'cart', 'lay-w-del')) bad.push('the basket has a Delete tile');
   /* SAVED DRAWS NO ADMIN ROW (only a widget's own column does). */
   if (w.widgetOnColumn_(w.allWidgets().find(x => x.kind === 'tool'), 0).indexOf('wgt-admin') !== -1) bad.push('the Saved drawing carries the admin row');
-  /* NO WAY BACK (477): no Add back, no Reset, no deleted-picker anywhere. */
+  /* NO OLD WAY BACK (477): no Add back, no Reset, no deleted-picker; the Deleted card's Put back is the one. */
   t.go('biz', false, true); await wait(300);
   if (A['lay-w-undel'] || A['layout-reset']) bad.push('an Add back or Reset handler still exists');
   if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
@@ -29407,6 +29407,46 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
   if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
+  return bad;
+});
+
+check('Deleted on Business: the whiteboard deleted is listed by name with Put back, which saves it out of deleted and draws it again; an empty list says Nothing deleted; a refusal puts it back', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-putback']) return ['no lay-putback handler — NOT checked'];
+  t.go('biz', false, true); await wait(300);
+  const card = () => d.querySelector('#s-biz .deleted-card');
+  if (!card()) return ['Business has no Deleted card — NOT checked'];
+  if (!/Nothing deleted/.test(card().textContent)) bad.push('an empty Deleted card does not say Nothing deleted');
+  t.go('tools', false, true); await wait(300);
+  const x = layTile_(d, 'whiteboard', 'lay-w-del');
+  if (!x) return bad.concat(['the whiteboard has no Delete tile — NOT checked']);
+  A['lay-w-del'](x); A['lay-w-del'](x); await wait(300);
+  if (layIds_(t, 'tool').indexOf('whiteboard') !== -1) return bad.concat(['the whiteboard was not deleted — NOT checked']);
+  t.go('biz', false, true); await wait(300);
+  const row = card() && card().querySelector('[data-deleted="whiteboard"]');
+  if (!row) return bad.concat(['the deleted whiteboard is not on the Deleted card']);
+  if (!/Whiteboard/.test(row.textContent)) bad.push('the Deleted card does not name it Whiteboard');
+  const put = row.querySelector('.tile[data-do="lay-putback"], [data-do="lay-putback"]');
+  if (!put) return bad.concat(['no Put back tile']);
+  A['lay-putback'](put); await wait(300);
+  const L = (sent.filter(p => p.action === 'layoutSave').pop() || {}).layout;
+  if (!L || (L.deleted || []).indexOf('whiteboard') !== -1) bad.push('the save still carries the whiteboard in deleted');
+  t.go('tools', false, true); await wait(300);
+  if (layIds_(t, 'tool').indexOf('whiteboard') === -1 || !d.querySelector('#wgt-whiteboard')) bad.push('the whiteboard was not drawn again');
+  t.go('biz', false, true); await wait(300);
+  if (card() && card().querySelector('[data-deleted="whiteboard"]')) bad.push('the whiteboard is still listed as deleted');
+  /* A REFUSAL: drawn at once, then put back. */
+  const no = layBoot_({ reply: b => b.action === 'layoutSave' && (b.layout.deleted || []).indexOf('whiteboard') === -1 ? { success: false, error: 'No.' } : undefined }); await wait(300);
+  no.w.__t.go('tools', false, true); await wait(300);
+  const y = layTile_(no.w.document, 'whiteboard', 'lay-w-del');
+  no.w.__t.ACTIONS['lay-w-del'](y); no.w.__t.ACTIONS['lay-w-del'](y); await wait(300);
+  no.w.__t.go('biz', false, true); await wait(300);
+  const p2 = no.w.document.querySelector('#s-biz [data-deleted="whiteboard"] [data-do="lay-putback"]');
+  if (!p2) bad.push('refusal: no Put back tile');
+  else { no.w.__t.ACTIONS['lay-putback'](p2); await wait(300);
+    if (layIds_(no.w.__t, 'tool').indexOf('whiteboard') !== -1) bad.push('a refused Put back was not undone'); }
   return bad;
 });
 
