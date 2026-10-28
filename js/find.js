@@ -157,6 +157,8 @@ const KINDS = {
   quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
   /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
   worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
+  /* PUBLIC-DOMAIN TEXTS (514): history's documents and English literature, a card a place, js/texts.js. */
+  pdtext: { group: 'Learning', label: 'Library', card: x => textsCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -419,6 +421,13 @@ const FACETS = [
   { field: 'wtWork',    label: 'Work',        of: x => x.wtWork || '' },
   { field: 'wtChapter', label: 'Chapter',     of: x => x.wtChapter || '' },
   { field: 'wtLanguage', label: 'Language',   of: x => x.wtLanguage || '' },
+  /* A PUBLIC-DOMAIN TEXT'S PLACE (514): which writing, book, chapter and section, and whose text or translation. */
+  { field: 'txWriting', label: 'Writing',     of: x => x.txWriting || '' },
+  { field: 'txBook',    label: 'Book',        of: x => x.txBook || '' },
+  { field: 'txChapter', label: 'Chapter',     of: x => x.txChapter || '' },
+  { field: 'txSection', label: 'Section',     of: x => x.txSection || '' },
+  { field: 'txText',    label: 'Text',        of: x => x.txText || '' },
+  { field: 'txAnthology', label: 'Anthology', of: x => x.txAnthology || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -8935,6 +8944,7 @@ function stuffItemsRaw_() {
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
     ...(typeof worksItems_ === 'function' ? worksItems_() : []),
+    ...(typeof textsItems_ === 'function' ? textsItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10217,6 +10227,7 @@ const TAG_OF = {
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
   quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
   wtWork: 'topic', wtChapter: 'paper', wtLanguage: 'board',
+  txWriting: 'topic', txBook: 'level', txChapter: 'paper', txSection: 'paper', txText: 'board', txAnthology: 'topic',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10387,6 +10398,7 @@ function paintStuff(keepPage) {
   /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
+  if (typeof textsIndex_ === 'function') textsIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

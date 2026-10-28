@@ -63,6 +63,8 @@ const SUITE = [
   /* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN § */
   { file: 'check-dropdowns.js', what: 'every dropdown the platform\'s own, nothing in front of one' },
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ § */
+  /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
+  { file: 'check-texts.js', what: 'the public-domain texts: loaded, counted, sourced' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },

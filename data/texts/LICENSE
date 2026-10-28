@@ -1,0 +1,236 @@
+data/texts/ — public-domain history and literature texts for the Library (docs/history/514),
+written by tools/pd-texts.py. Every text below is in the public domain; each file names its source again.
+Etexts from gutenberg.org are reproduced as public-domain text with that site's licence and name removed,
+as its terms allow; no editorial matter still in copyright (introductions, notes) is included.
+
+TX-0001  A Christmas Carol — Charles Dickens (First edition text)
+    A Christmas Carol, Charles Dickens (1843)
+    https://www.gutenberg.org/ebooks/46 · Public domain
+TX-0002  Strange Case of Dr Jekyll and Mr Hyde — Robert Louis Stevenson (First edition text)
+    Strange Case of Dr Jekyll and Mr Hyde, Robert Louis Stevenson (1886)
+    https://www.gutenberg.org/ebooks/43 · Public domain
+TX-0003  Frankenstein — Mary Shelley (1818 text)
+    Frankenstein, Mary Shelley (1818)
+    https://www.gutenberg.org/ebooks/41445 · Public domain
+TX-0004  Pride and Prejudice — Jane Austen (First edition text)
+    Pride and Prejudice, Jane Austen (1813)
+    https://www.gutenberg.org/ebooks/42671 · Public domain
+TX-0005  Jane Eyre — Charlotte Brontë (First edition text)
+    Jane Eyre, Charlotte Brontë (1847)
+    https://www.gutenberg.org/ebooks/1260 · Public domain
+TX-0006  Great Expectations — Charles Dickens (First edition text)
+    Great Expectations, Charles Dickens (1861)
+    https://www.gutenberg.org/ebooks/1400 · Public domain
+TX-0007  The Sign of Four — Arthur Conan Doyle (First edition text)
+    The Sign of Four, Arthur Conan Doyle (1890)
+    https://www.gutenberg.org/ebooks/2097 · Public domain
+TX-0008  Romeo and Juliet — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0009  Macbeth — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0010  The Tempest — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0011  Much Ado About Nothing — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0012  Julius Caesar — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0013  The Merchant of Venice — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0014  Twelfth Night — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0015  Othello — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0016  Hamlet — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0017  King Lear — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0018  A Midsummer Night’s Dream — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0019  All’s Well That Ends Well — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0020  Antony and Cleopatra — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0021  As You Like It — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0022  The Comedy of Errors — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0023  Coriolanus — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0024  Cymbeline — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0025  Henry IV, Part 1 — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0026  Henry IV, Part 2 — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0027  Henry V — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0028  Henry VI, Part 1 — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0029  Henry VI, Part 2 — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0030  Henry VI, Part 3 — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0031  Henry VIII — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0032  King John — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0033  Love’s Labour’s Lost — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0034  Measure for Measure — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0035  The Merry Wives of Windsor — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0036  Pericles — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0037  Richard II — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0038  Richard III — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0039  The Taming of the Shrew — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0040  Timon of Athens — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0041  Titus Andronicus — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0042  Troilus and Cressida — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0043  The Two Gentlemen of Verona — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0044  The Two Noble Kinsmen — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0045  The Winter’s Tale — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0046  Shakespeare’s Sonnets — William Shakespeare (Complete Works text)
+    The Complete Works of William Shakespeare (public-domain etext, 1994)
+    https://www.gutenberg.org/ebooks/100 · Public domain
+TX-0047  The Histories — Herodotus (Macaulay (1890))
+    The History of Herodotus, tr. G. C. Macaulay (1890), volume 1
+    https://www.gutenberg.org/ebooks/2707 · Public domain
+    The History of Herodotus, tr. G. C. Macaulay (1890), volume 2
+    https://www.gutenberg.org/ebooks/2456 · Public domain
+TX-0048  History of the Peloponnesian War — Thucydides (Crawley (1874))
+    The History of the Peloponnesian War, tr. Richard Crawley (1874)
+    https://www.gutenberg.org/ebooks/7142 · Public domain
+TX-0049  The Lives of the Twelve Caesars — Suetonius (Thomson, rev. Forester (1889))
+    The Lives of the Twelve Caesars, tr. Alexander Thomson, revised by T. Forester (1889)
+    https://www.gutenberg.org/ebooks/6400 · Public domain
+TX-0050  The Gallic War — Julius Caesar (Book 8, Aulus Hirtius) (McDevitte and Bohn (1869))
+    Caesar’s Commentaries, tr. W. A. McDevitte and W. S. Bohn (1869), Everyman edition (1915)
+    https://www.gutenberg.org/ebooks/10657 · Public domain
+TX-0051  The Anglo-Saxon Chronicle — Anonymous (Ingram (1823), ed. Giles)
+    The Anglo-Saxon Chronicle, tr. James Ingram (1823), with J. A. Giles’s additions (1847)
+    https://www.gutenberg.org/ebooks/657 · Public domain
+TX-0052  Germania and Agricola — Tacitus (Oxford translation, revised)
+    The Germany and the Agricola of Tacitus, the Oxford translation revised (1868 ed.); notes and introduction left out
+    https://www.gutenberg.org/ebooks/7524 · Public domain
+TX-0053  The Genuine Works of Hippocrates — Hippocrates (Adams (1849))
+    The Genuine Works of Hippocrates, tr. Francis Adams (1849), volume 1; Adams’s discourse and notes left out
+    https://www.gutenberg.org/ebooks/72583 · Public domain
+TX-0054  Magna Carta — King John and the barons (Latin, McKechnie (1914))
+    Magna Carta: A Commentary on the Great Charter of King John, W. S. McKechnie, 2nd edition (1914): the Latin text (from the British Museum’s text of the Cottonian copy) and McKechnie’s translation; his commentary is left out
+    https://www.gutenberg.org/ebooks/65363 · Public domain
+TX-0055  Declaration of Independence — The Second Continental Congress (National Archives transcription)
+    Declaration of Independence: a transcription, US National Archives
+    https://www.archives.gov/founding-docs/declaration-transcript · US federal government work, public domain
+TX-0056  Constitution of the United States — The Constitutional Convention and Congress (National Archives transcription)
+    The Constitution of the United States: a transcription; the Bill of Rights; Amendments 11–27, US National Archives
+    https://www.archives.gov/founding-docs/constitution-transcript · US federal government work, public domain
+TX-0057  Bill of Rights 1689 — Parliament of England (Statute text)
+    An Act Declaring the Rights and Liberties of the Subject and Settling the Succession of the Crown (1689), as transcribed by the Avalon Project, Yale Law School
+    https://avalon.law.yale.edu/17th_century/england.asp · Public domain (an Act of 1689)
+TX-0058  Presidential Inaugural Addresses — Presidents of the United States (Speech text)
+    Inaugural Addresses of the Presidents of the United States, Washington to G. W. Bush
+    https://www.gutenberg.org/ebooks/925 · US federal government works, public domain
+TX-0059  Fireside Chats — Franklin D. Roosevelt (Speech text)
+    The Fireside Chats of Franklin Delano Roosevelt
+    https://www.gutenberg.org/ebooks/5767 · US federal government works, public domain
+TX-0060  Gettysburg Address — Abraham Lincoln (Speech text)
+    Lincoln’s Gettysburg Address (an early public-domain etext; its ". . ." pauses printed as dashes)
+    https://www.gutenberg.org/ebooks/4 · Public domain
+TX-0061  Songs of Innocence and of Experience — William Blake (Blake’s text)
+    Songs of Innocence and of Experience, William Blake (1794)
+    https://www.gutenberg.org/ebooks/1934 · Public domain
+TX-0062  Poems of Wilfred Owen — Wilfred Owen (1920 text)
+    Poems of Wilfred Owen, Wilfred Owen (1920); Sassoon’s introduction and the etext’s notes are left out
+    https://www.gutenberg.org/ebooks/1034 · Public domain
+TX-0063  Wessex Poems and Other Verses — Thomas Hardy (1898 text)
+    Wessex Poems and Other Verses, Thomas Hardy (1898)
+    https://www.gutenberg.org/ebooks/3167 · Public domain
+TX-0064  Poems of the Past and the Present — Thomas Hardy (1901 text)
+    Poems of the Past and the Present, Thomas Hardy (1901)
+    https://www.gutenberg.org/ebooks/3168 · Public domain
+TX-0065  Lyrical Ballads — William Wordsworth and Samuel Taylor Coleridge (1798 text)
+    Lyrical Ballads, William Wordsworth and Samuel Taylor Coleridge (1798)
+    https://www.gutenberg.org/ebooks/9622 · Public domain
+TX-0066  Poems in Two Volumes, Volume 1 — William Wordsworth (1807 text)
+    Poems in Two Volumes, Volume 1, William Wordsworth (1807)
+    https://www.gutenberg.org/ebooks/8774 · Public domain
+TX-0067  Poems in Two Volumes, Volume 2 — William Wordsworth (1807 text)
+    Poems in Two Volumes, Volume 2, William Wordsworth (1807)
+    https://www.gutenberg.org/ebooks/8824 · Public domain
+TX-0068  Lamia, Isabella, The Eve of St. Agnes, and Other Poems — John Keats (1820 text)
+    Lamia, Isabella, The Eve of St. Agnes, and Other Poems, John Keats (1820); M. Robertson’s introduction and notes are left out
+    https://www.gutenberg.org/ebooks/23684 · Public domain
+TX-0069  Keats’s Poems (1817) — John Keats (1817 text)
+    Keats’s Poems (1817), John Keats (1817)
+    https://www.gutenberg.org/ebooks/8209 · Public domain
+TX-0070  Maud, and Other Poems — Alfred Tennyson (1855 text)
+    Maud, and Other Poems, Alfred Tennyson (1855)
+    https://www.gutenberg.org/ebooks/56913 · Public domain
+TX-0071  Browning’s Shorter Poems — Robert Browning (Baker’s selection (1899))
+    Browning’s Shorter Poems, Robert Browning (1833–1889); Baker’s notes and introduction are left out
+    https://www.gutenberg.org/ebooks/16376 · Public domain
+TX-0072  Shelley’s Shorter Poems, 1816–1822 — Percy Bysshe Shelley (Hutchinson’s text (1904))
+    Shelley’s Shorter Poems, 1816–1822, Percy Bysshe Shelley (1904)
+    https://www.gutenberg.org/ebooks/4798 · Public domain
+TX-0073  Power and Conflict (AQA) — AQA GCSE English Literature anthology (Anthology)
+    Shelley’s Shorter Poems, 1816–1822, Percy Bysshe Shelley (1904)
+    https://www.gutenberg.org/ebooks/4798 · Public domain
+    Songs of Innocence and of Experience, William Blake (1794)
+    https://www.gutenberg.org/ebooks/1934 · Public domain
+    Browning’s Shorter Poems, Robert Browning (1833–1889); Baker’s notes and introduction are left out
+    https://www.gutenberg.org/ebooks/16376 · Public domain
+    Maud, and Other Poems, Alfred Tennyson (1855)
+    https://www.gutenberg.org/ebooks/56913 · Public domain
+    Poems of Wilfred Owen, Wilfred Owen (1920); Sassoon’s introduction and the etext’s notes are left out
+    https://www.gutenberg.org/ebooks/1034 · Public domain
+    The Poetical Works of William Wordsworth, ed. William Knight, volume 3 (1896): The Prelude (1850 text), Book First, lines 357–400; Knight’s notes left out
+    https://www.gutenberg.org/ebooks/12383 · Public domain
