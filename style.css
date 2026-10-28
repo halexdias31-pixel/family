@@ -6971,7 +6971,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .sp-title { margin: 0; font-weight: 600; }
 .sp-now .faint { margin: 0; }
 .sp-line { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-top: 1px solid var(--line); }
-.sp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spot-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
 .sp-q { flex: 1; min-width: 0; min-height: 44px; border-radius: 999px; padding: 0 1rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
 /* ---------- FAVOURITE LINKS (509): one line per link, its tiles on the same line ---------- */

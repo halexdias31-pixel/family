@@ -135,7 +135,7 @@ const spOpen_ = x => (x && x.external_urls && x.external_urls.spotify) || '';
 function spLine_(x, star) {
   const who = x.type === 'track' ? (x.artists || []).map(a => a.name).join(', ') : x.type === 'playlist' ? 'Playlist' : '';
   const href = spOpen_(x);
-  return `<div class="sp-line"><span class="sp-name">${esc(x.name || '')}${who ? ` <span class="faint">· ${esc(who)}</span>` : ''}</span>${
+  return `<div class="sp-line"><span class="spot-name">${esc(x.name || '')}${who ? ` <span class="faint">· ${esc(who)}</span>` : ''}</span>${
     star ? tile_({ icon: 'star', label: 'Study focus', act: 'sp-focus', data: { id: x.id }, pressed: spFocus_().indexOf(x.id) !== -1, on: spFocus_().indexOf(x.id) !== -1 }) : ''}${
     href ? tile_({ icon: 'open', label: 'Open in Spotify', href }) : ''}</div>`;
 }
