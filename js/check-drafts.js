@@ -84,6 +84,11 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="title"', why: 'a favourite link\'s title (509) — a few words typed and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="src"', why: 'the Rewrite coach\'s pasted text (509) — kept in memory only on purpose: the owner\'s rule is that nothing pasted or written outlives the session' },
+  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="mine"', why: 'the Rewrite coach\'s own-words boxes (509) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
+  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="free"', why: 'the Rewrite coach\'s own-version box (509) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
   { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },

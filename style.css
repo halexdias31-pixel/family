@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zr-qtools";
+  --css-version: "2026-10-28-n5b-links-coach";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6964,3 +6964,31 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-body table { max-width: 100%; }
 .ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
 .ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
+/* ---------- FAVOURITE LINKS (509): one line per link, its tiles on the same line ---------- */
+.fav-row { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--line); }
+.fav-a { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav-host { margin-left: .4rem; color: var(--faint); font-size: .72rem; }
+.fav-row .tile-row { flex: 0 0 auto; margin: 0; }
+.fav-new { margin-top: .6rem; }
+.fav-line, .rw-line { display: flex; flex-direction: column; gap: .2rem; margin: .35rem 0; }
+.fav-line > span, .rw-line > span { font-size: .8rem; color: var(--dim); }
+.fav-line input { width: 100%; }
+
+/* ---------- THE REWRITE COACH (509) ---------- */
+.rw-line textarea { width: 100%; min-height: 4rem; }
+.rw-src summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
+.rw-src-text { white-space: pre-wrap; font-size: .85rem; }
+.rw-h { margin: .7rem 0 .3rem; font-size: .9rem; }
+.rw-vocab { margin: 0; }
+.rw-v { display: flex; gap: .5rem; padding: .15rem 0; }
+.rw-v dt { font-weight: 600; flex: 0 0 auto; }
+.rw-v dd { margin: 0; color: var(--dim); }
+.rw-fb { margin: .2rem 0 .5rem; }
+.rw-kept { margin: 0; font-weight: 600; font-size: .82rem; }
+.rw-kept.is-no { color: var(--warn); }
+.rw-qs { margin: .2rem 0 0 1.1rem; padding: 0; font-size: .85rem; }
+.rw-pct { font-weight: 700; margin: .5rem 0 .2rem; }
+.rw-pct.is-high { color: var(--warn); }
+.rw-marked { white-space: pre-wrap; font-size: .85rem; }
+.rw-copied { background: var(--gold); color: var(--bg); }

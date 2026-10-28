@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-zt-gmail-why";
+const DOGET_VERSION = "2026-10-28-n5b-links-coach";
 
 
 function doGet(e) {
@@ -245,6 +245,8 @@ function doGet(e) {
                  'digestWordsSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
                  'claudeNoteAdd', 'claudeNoteDone',
+                 /* Favourite links and the Rewrite coach (509). */
+                 'favLinksSave', 'rewriteIdeas', 'rewriteCheck',
                  /* Suggest a change (494), and an old phone's report. */
                  'suggest', 'report',
                  'listRecords', 'saveRecordsPage',
@@ -896,6 +898,9 @@ function doGet(e) {
       payload.submissions = submissionsFor_(meAsked, viewerIsAdmin);
     } catch (err) { payload.submissions = { for: '', mine: {} }; }
 
+    /* ---------- THE VIEWER'S OWN FAVOURITE LINKS (509), and nobody else's: fresh every load, never kept in the cached body. */
+    try { payload.favLinks = favLinksOf_(meAsked); } catch (err) { payload.favLinks = []; }
+
     /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE § */
     if (viewerIsAdmin) {
       try { payload.filmsSync = filmsSyncSays_(); } catch (err) { payload.filmsSync = { at: '', more: false }; }
@@ -1191,7 +1196,7 @@ function doGet(e) {
       /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
       try { kidPricesOff_(payload); } catch (err) {}
       const fresh = {};
-      ['submissions', 'films', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+      ['submissions', 'films', 'favLinks', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
       return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -1251,6 +1256,8 @@ function freshFor_(viewer) {
   const out = { submissions: submissionsNow_(viewer), films: [] };
   /* EVERY VIEWER'S OWN FILMS, fresh each load: who may see one is Drive's sharing, not the kept body (450). */
   try { out.films = filmsFor_(viewer); } catch (err) { out.films = []; }
+  /* AND THE VIEWER'S OWN FAVOURITE LINKS (509), fresh each load and never in the kept body, which is shared by a role. */
+  try { out.favLinks = favLinksOf_(viewer); } catch (err) { out.favLinks = []; }
   if (admin) {
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
     try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
@@ -1265,6 +1272,7 @@ function payloadWithFresh_(body, fresh, cached) {
   return String(body).slice(0, -1)
     + ',"submissions":' + JSON.stringify(f.submissions || { for: '', mine: {} })
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
+    + ',"favLinks":' + JSON.stringify(Array.isArray(f.favLinks) ? f.favLinks : [])
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
     + (f.claudeNotes ? ',"claudeNotes":' + JSON.stringify(f.claudeNotes) : '')
