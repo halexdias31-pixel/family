@@ -596,41 +596,6 @@ on('job-paid-go', el => {
 /* ASKING TO JOIN. The same `move` a tutor uses to apply — one machine, one set of rules, and the
    capacity and the family's consent are both checked on the backend rather than trusted from here. */
 /* TAKING A SEAT ON A CLASS SOMEBODY ELSE STARTED. § */
-/* COMING ALONG. The event is created by the first family to join it — there is no "open the event" step, because an event nobody has joined is a row saying § */
-on('fest-join', el => {
-  const f = (DATA.festive || []).find(x => String(x.id) === String(el.dataset.id));
-  if (!f) { toast('That has finished.'); return; }
-  /* ASKED IN A SHEET, NOT IN A prompt(). § */
-  openSheet(f.name || 'Join in', `
-    <p class="sub">Who is coming? Names, or just how many children.</p>
-    <input id="fest-kids" class="search" placeholder="e.g. Amira and Yusuf" autocomplete="off">
-    <div class="btn-row">
-      <button class="btn primary" data-do="fest-join-go" data-id="${esc(f.id)}">Put us down</button>
-    </div>
-    <p class="faint" id="fest-said"></p>
-  `);
-});
-
-on('fest-join-go', el => {
-  const f = (DATA.festive || []).find(x => String(x.id) === String(el.dataset.id));
-  if (!f) { toast('That has finished.'); return; }
-  const kids = (($('fest-kids') || {}).value || '').trim();
-  if (!kids) { const s = $('fest-said'); if (s) s.textContent = 'Who is coming?'; return; }
-  el.disabled = true;
-  el.textContent = 'Sending…';
-  api({ action: 'joinFestive', holidayId: f.id,
-        name: USER.name, personId: (USER && USER.personId) || '',
-        kids: kids,
-        requestId: 'fest-' + f.id + '-' + Date.now() })
-    .then(d => {
-      el.disabled = false;
-      if (d && d.error) { toast(d.error); return; }
-      toast(d && d.seats ? 'Coming along — ' + d.joined + ' of ' + d.seats : 'Coming along');
-      load();
-    })
-    .catch(err => { el.disabled = false; toast(why_(err)); });
-});
-
 /* ---------- TAKING A SEAT GOES TO THE FORM § */
 on('job-take-seat', el => {
   const j = (DATA.liveJobs || DATA.jobs || []).find(x =>

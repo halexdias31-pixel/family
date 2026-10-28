@@ -79,9 +79,6 @@ function payload() {
     birthdays: [], laws: [], brand: {},
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
-    festive: [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party',
-                blurb: 'An afternoon at the hall.', venue: 'Colliers Wood Library',
-                date: '19/12/2026', hours: 2, price: 8, seats: 12, taken: 4, left: 8, jobId: '' }],
     jobs, liveJobs: jobs, clientClasses: jobs,
     dropdowns: { levels: ['GCSE', 'A-Level'], subjects: ['Maths', 'English Language'],
                  days: ['Mon', 'Wed', 'Fri'], times: ['16:00', '17:00', '18:00'],
@@ -10860,40 +10857,21 @@ check('a session a family booked offers Ask to join as a tile, and says its seat
   return bad;
 });
 
-check('a festive event shows itself and can be joined', async () => {
-  const { w, sent } = boot();
+check('festive cards are gone (506): an old payload still sending `festive` draws no festive card and no join', async () => {
+  const p = payload();
+  p.festive = [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party', venue: 'Hall', date: '25 Dec', price: 10, left: 5, seats: 10 }];
+  const { w } = boot({ payload: p });
   await wait(300);
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
-  /* ON POSTS, NOT BOOK. A festive card is the business announcing something with a date on it, which is the same voice as a post with a caption — it was only ever § */
-  /* ---------- THE SCREEN IS CALLED `feed`, AND THIS ASKED FOR `posts` § */
   w.__t.go('feed', false, true);
   await wait(200);
   const el = w.document.getElementById('s-feed');
   if (!el) return ['there is no #s-feed — the feed screen did not draw at all'];
-  const cards = el.querySelectorAll('.fest');
-  if (!cards.length) return ['the festive event on the payload never appeared on the feed'];
-  /* ---------- JOINING IS TWO STEPS, AND THIS ONLY DID THE FIRST § */
-  try { w.__t.ACTIONS['fest-join']({ disabled: false, dataset: { id: 'H1' } }); }
-  catch (e) { return ['opening the join sheet threw: ' + e.message]; }
-  await wait(200);
-
-  const box = w.document.getElementById('fest-kids');
-  if (!box) return ['the join sheet does not ask who is coming — no #fest-kids'];
-  box.value = 'Amira and Yusuf';
-
-  try { w.__t.ACTIONS['fest-join-go']({ disabled: false, dataset: { id: 'H1' } }); }
-  catch (e) { return ['sending the headcount threw: ' + e.message]; }
-  await wait(250);
-
-  const got = sent.map(x => x.action);
-  if (!got.includes('joinFestive')) {
-    return ['joining sent [' + (got.join(', ') || 'nothing') + '], expected joinFestive'];
-  }
-  /* AND THE HEADCOUNT ACTUALLY TRAVELLED. Sending `joinFestive` with no `kids` would satisfy the
-     line above and lose the one fact the extra step exists to collect. */
-  const call = sent.find(x => x.action === 'joinFestive');
-  return (call && String(call.kids || '').trim()) ? []
-    : ['joinFestive was sent without the names — the headcount question achieved nothing'];
+  const bad = [];
+  if (el.querySelector('.fest, [data-item="item:feed:festive"]') || /Christmas party/.test(el.textContent)) bad.push('a festive card is still drawn on the feed');
+  if (w.__t.ACTIONS['fest-join'] || w.__t.ACTIONS['fest-join-go']) bad.push('the festive join handlers still exist');
+  if (typeof w.festiveCard === 'function') bad.push('festiveCard is still defined');
+  return bad;
 });
 
 check('the docket keeps the text you typed, whatever it starts with', async () => {
@@ -11861,7 +11839,6 @@ const camBoot_ = o => {
   /* HOW MANY OPEN STREAMS HAVE THEIR TRACK SWITCHED ON — a parked one is open and dark (427). */
   gum.live = () => gum.tracks.filter(t => t.on && t.enabled !== false).length;
   const p = payload();
-  if (!o.festive) p.festive = [];
   /* TWO POSTS UNDER THE CAMERA, because the front door is "the newest post" and `payload()` has
      none — with no post below it the camera is the last page, and the column cannot open past it. */
   if (!o.noPosts) {
@@ -11969,28 +11946,6 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.gum.asks) bad.push('signed out, the camera page asked for a camera it draws no viewfinder for');
   }
 
-  /* ---------- A FESTIVE CARD ABOVE THE CAMERA ---------------------------------------------------- */
-  {
-    const b = camBoot_({ user: pat, festive: true });
-    await wait(400);
-    /* THE CAMERA IS FIRST (489), the festive card under it. */
-    if (b.cam() !== 0) bad.push(`with one festive card the camera is page ${b.cam()}, not 0 — the camera stays first`);
-    if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
-    if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
-    if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
-  }
-
-  /* ---------- A FESTIVE CARD AND NO POST AT ALL § */
-  {
-    const b = camBoot_({ user: pat, festive: true, noPosts: true });
-    await wait(400);
-    if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
-    if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
-    if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
-  }
-
   /* ---------- REFUSED, THEN A REPAINT § */
   {
     const b = camBoot_({ user: pat, refuse: true });
@@ -12067,7 +12022,6 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
 check('Post under a post is a tile, and a comment keeps its mark through the wait', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
-  p.festive = [];
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
     image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
     at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
@@ -12128,7 +12082,6 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
   const seed = () => {
     const p = payload();
-    p.festive = [];
     /* A PICTURE AND A CLIP, the two things a rebuilt post loses — see the last point above. */
     p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
       media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
@@ -12322,7 +12275,6 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
 check('a poll vote redraws only the poll, as a reaction redraws only its faces: the post, its picture and its clip stay', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
-  p.festive = [];
   p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
     media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
     caption: 'Which day suits the club?', body: '', location: '', when: '01/09/2026',
@@ -12389,7 +12341,6 @@ check('a poll vote redraws only the poll, as a reaction redraws only its faces: 
 check('a post with no date: its first face and its last taken back keep the post and its time line', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
-  p.festive = [];
   p.posts = [{ id: 'PO2', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
     media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
     caption: 'Typed into the sheet by hand', body: '', location: '', when: '', at: 0,
@@ -12444,7 +12395,6 @@ check('a post with no date: its first face and its last taken back keep the post
 check('two quick taps on a post: one save at a time, a refusal puts back what the server holds, and the page and the server agree', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
-  p.festive = [];
   p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
     caption: 'Which paper next week?', body: '', location: '', when: '01/09/2026',
     at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
@@ -14155,7 +14105,11 @@ check('a backend that never answers does not hang the app for ever', async () =>
 });
 
 /* ---------- A PAYLOAD THAT DID NOT ARRIVE IS ASKED FOR AGAIN, QUIETLY § */
-const RC_PAYLOAD_ = () => Object.assign(payload(), { features: ['editPost', 'deletePost'] });
+/* ONE POST, the witness that the payload was drawn (the festive card was, until 506). */
+const RC_PAYLOAD_ = () => Object.assign(payload(), { features: ['editPost', 'deletePost'],
+  posts: [{ id: 'PO-RC', author: '@family.', handle: '@family.', avatar: '', image: '', media: [], caption: 'Drawn from the payload', body: '', location: '',
+    when: '01/09/2026', at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+    reactions: { emoji: [], counts: [], total: 0, yours: '', by: [] }, comments: { total: 0, list: [] } }] });
 const RC_PAGE_ = '<!DOCTYPE html><html><head><title>Error</title></head><body><div>Authorization is '
   + 'required to perform that action.</div></body></html>';
 const RC_KID_ = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo' };
@@ -14203,15 +14157,15 @@ check('a payload that timed out is asked for again at once, under a quiet line, 
   if (b.line() !== 'Reconnecting…') bad.push('while it asks again the quiet line says "' + b.line() + '", not "Reconnecting…"');
   if (b.bannerUp()) bad.push('a signed-out visitor was shown the banner: ' + b.bannerText().slice(0, 120));
   if (b.arrived()) bad.push('the payload is in DATA before the retry was let through, so this journey proves nothing');
-  const before = b.w.document.body.innerHTML.indexOf('Colliers Wood Library') !== -1;
+  const before = b.w.document.body.innerHTML.indexOf('Drawn from the payload') !== -1;
   open();
   await wait(500);
   if (!b.arrived()) bad.push('the retry answered and the payload is not in DATA');
   if (b.line()) bad.push('the retry succeeded and the quiet line still says "' + b.line() + '"');
   if (b.bannerUp()) bad.push('the retry succeeded and a banner is up: ' + b.bannerText().slice(0, 120));
-  /* DRAWN, not only held: a venue only the payload knows is on a column after the retry. */
-  const after = b.w.document.body.innerHTML.indexOf('Colliers Wood Library') !== -1;
-  if (before) bad.push('a venue only the payload sends was on the page before it arrived — pick another witness');
+  /* DRAWN, not only held: a post only the payload knows is on a column after the retry. */
+  const after = b.w.document.body.innerHTML.indexOf('Drawn from the payload') !== -1;
+  if (before) bad.push('a post only the payload sends was on the page before it arrived — pick another witness');
   else if (!after) bad.push('the payload arrived and nothing it carries was drawn — the success path did not repaint');
   if (b.asked.length !== 2) bad.push('a success did not stop the asking: ' + b.asked.length + ' requests');
   return bad;
@@ -22912,7 +22866,6 @@ check('466: the calendar is a plain month — the days and today, with no term, 
   D.intervals = [{ term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
     { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) }];
   D.closures = [{ date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
-  D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
   D.exams = [{ personId: 'P1', who: 'Pat Parent', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
   const host = await toolBox_(w, 'calendar', '#cal-body');
@@ -28517,7 +28470,7 @@ check('a child sees a tutor card, the booking form and her session without any �
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
-  if (!w.findCard || !t.bookerCard || !t.jobPage || !t.jobTiles || !w.festiveCard) return ['findCard, bookerCard, jobPage, jobTiles or festiveCard is not exported — cannot check'];
+  if (!w.findCard || !t.bookerCard || !t.jobPage || !t.jobTiles) return ['findCard, bookerCard, jobPage or jobTiles is not exported — cannot check'];
   const KID = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo' };
   const PARENT = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const tutor = Object.assign({}, t.DATA().tutors[0], { rate: 22, extraSeat: 3, personId: 'P-GP' });
@@ -28535,7 +28488,6 @@ check('a child sees a tutor card, the booking form and her session without any �
       paper: String(t.bookerCard() || ''),
       job: String(t.jobPage(job) || ''),
       tiles: String(t.jobTiles({ row: job }) || '') + String(t.jobTiles({ row: other }) || ''),
-      fest: String(w.festiveCard(t.DATA().festive[0]) || ''),
     };
   };
   const bad = [];
@@ -28556,7 +28508,6 @@ check('a child sees a tutor card, the booking form and her session without any �
   if (/data-do="book-send"/.test(k.paper)) bad.push('the child\'s form still offers "Ask for it" — she has no price to send, so a parent books');
   if (!/ask yours to book/i.test(k.paper)) bad.push('the child\'s form does not say a parent books it');
   if (/job-pay|job-join|job-take-seat/.test(k.tiles)) bad.push('the child is offered Pay or Join on a session: ' + (k.tiles.match(/job-(pay|join|take-seat)/g) || []).join(', '));
-  if (/fest-join/.test(k.fest) || !/Ask a parent/.test(k.fest)) bad.push('the child\'s festive card offers Come along rather than asking a parent');
   /* AND THE SCREEN ITSELF: the booking column, drawn whole, has no £. */
   try { t.repaint(true); t.go('booking', false, true); } catch (e) { return bad.concat(['go("booking") threw: ' + e.message]); }
   await wait(150);
@@ -28584,7 +28535,7 @@ const postOpen_ = async (W, who, more) => {
   const u = who ? W.user(who) : null;
   if (who && !u) return { err: who + ' could not sign in to the real backend' };
   /* THE POSTS AS `doGet` SENDS THEM TO THIS VIEWER, laid over the card world's payload, on every load. */
-  const G = () => { W.real.ev('clearCache()'); const g = W.real.get(u ? { token: u.token } : {}); return Object.assign(W.GET(), { posts: g.posts, festive: [] }); };
+  const G = () => { W.real.ev('clearCache()'); const g = W.real.get(u ? { token: u.token } : {}); return Object.assign(W.GET(), { posts: g.posts }); };
   const b = boot({ payload: G(), before: w => { if (u) signedInAs_(u)(w); if (more.before) more.before(w); },
     serve: url => (/script\.google\.com/.test(url) ? G() : undefined),
     reply: bd => (POST_ACTIONS_.indexOf(bd.action) !== -1 ? W.real.post(bd) : { success: true, messages: [] }) });
@@ -30075,32 +30026,20 @@ check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with 
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* ---------- THE OWNER'S NOTES, ROUND TWO (489) ---------- */
-check('the festive card deletes alone (489): an admin deletes item:feed:festive, the camera stays and stays first, the newest post comes after it; a v1 layout with the camera deleted gets it back and the festive card deleted', async () => {
+check('the camera is first on the feed (489, 506): the newest post right under it; a layout with item:feed:festive in deleted is harmless; a v1 layout with the camera deleted gets it back', async () => {
   const p = payload();
-  p.festive = [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party', venue: 'Hall', date: '25 Dec', price: 10, left: 5, seats: 10 }];
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '', image: '', media: [], caption: 'Post ' + i, body: '', location: '',
     when: '0' + i + '/09/2026', at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false, reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
-  const { w, sent } = layBoot_({ payload: p });
+  p.layout = { v: 2, widgets: {}, deleted: ['item:feed:festive'] };
+  const { w } = layBoot_({ payload: p });
   await wait(300);
-  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  const t = w.__t, d = w.document, bad = [];
   t.go('feed', false, true); await wait(300);
   const pagesOf = () => [...d.querySelectorAll('#s-feed > .page')];
-  const fest = d.querySelector('#s-feed [data-item="item:feed:festive"]');
-  if (!fest) return ['no festive card on the feed — NOT checked'];
-  if (!pagesOf()[0] || !pagesOf()[0].querySelector('[data-item="item:feed:camera"]')) bad.push('the camera is not the feed\'s first page');
-  const del = fest.querySelector('.card-admin[data-lay-for="item:feed:festive"] [data-do="lay-c-del"]');
-  if (!del) return bad.concat(['the festive card has no Delete inside it']);
-  A['lay-c-del'](del); A['lay-c-del'](del); await wait(300);
-  const L = layLast_(sent);
-  if (!L) return bad.concat(['the festive delete saved no layout']);
-  if (L.deleted.indexOf('item:feed:festive') === -1) bad.push('the festive card is not in deleted: ' + L.deleted.join());
-  if (L.deleted.indexOf('item:feed:camera') !== -1) bad.push('deleting the festive card deleted the camera');
-  if (L.v !== 2) bad.push('the saved layout is v' + L.v + ', not 2 — the one-off repair would run again');
-  t.go('feed', false, true); await wait(300);
-  if (d.querySelector('#s-feed [data-item="item:feed:festive"]')) bad.push('the festive card is still drawn');
+  if (d.querySelector('#s-feed [data-item="item:feed:festive"]')) bad.push('a festive card is drawn');
   const first = pagesOf()[0], second = pagesOf()[1];
-  if (!first || !first.querySelector('[data-item="item:feed:camera"]')) bad.push('after the delete the camera is not first: ' + (first ? first.textContent.trim().slice(0, 60) : 'no page'));
-  if (!second || !second.querySelector('[data-post]')) bad.push('after the delete the newest post is not right under the camera');
+  if (!first || !first.querySelector('[data-item="item:feed:camera"]')) bad.push('the camera is not first: ' + (first ? first.textContent.trim().slice(0, 60) : 'no page'));
+  if (!second || !second.querySelector('[data-post]')) bad.push('the newest post is not right under the camera');
   if (w.feedCamAt_() !== 0 || w.feedPostsAt_() !== 1) bad.push(`the feed counts camera ${w.feedCamAt_()} and posts from ${w.feedPostsAt_()}, not 0 and 1`);
   /* THE ONE-OFF REPAIR: a v1 layout with the camera deleted and the festive card not. */
   const fixed = w.layoutSane_({ v: 1, widgets: {}, deleted: ['item:feed:camera', 'x1'] });

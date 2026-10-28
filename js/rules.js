@@ -25,7 +25,7 @@ const RULES = [
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },
   { id: 'people-no-merge', say: 'A card drawn a page a person (Tutor directory, Every student, Every parent) cannot be merged', where: 'Profile columns (480)',
     uni: 'Merge on them too.', lock: 'A merged card is one page, and people cannot be stacked on one.' },
-  { id: 'items-no-move', say: 'The festive card, the Camera and Daive\'s card have Delete but no move tiles', where: 'Feed and Messages (487)',
+  { id: 'items-no-move', say: 'The Camera and Daive\'s card have Delete but no move tiles', where: 'Feed and Messages (487)',
     uni: 'Move tiles like every card.', lock: 'Their column\'s own code places them; there is nothing to move them with yet.' },
   { id: 'form-save-row', say: 'A settings form keeps its own Save row instead of joining the card\'s tile row', where: 'Settings (489)',
     uni: 'One joined row like every other card.', lock: 'Joining it moved Add a qualification and broke a section\'s own Save.' },

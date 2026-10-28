@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-28-zs-no-tutor-working";
+const BOOKING_VERSION = "2026-10-28-zt-no-festive";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -821,62 +821,6 @@ function openWaitlistAt(venueName) {
   }) || null;
 }
 
-/* ---------- WHAT IS ON OFFER TODAY, DECIDED BY THE CALENDAR § */
-function festiveOffers() {
-  const t = read(TAB.holidays);
-  if (!t.sheet) return [];
-
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const day = 864e5;
-
-  return t.rows.filter(r => {
-    if (!festiveReady_(r)) return false;
-    const when = sheetDate(r.date);
-
-    const opens = N(r.opens_days) || 21;
-    /* A DEFAULT OF ZERO WOULD BE A TRAP: a row where nobody filled the trailing days in would
-       vanish at midnight on the day itself, during the week the family is actually free. Three days
-       is the shortest honest answer. */
-    const trails = N(r.trail_days) || 3;
-
-    const from = new Date(when.getTime() - opens * day);
-    const until = new Date(when.getTime() + trails * day);
-    return today >= from && today <= until;
-  }).map(r => {
-    const when = sheetDate(r.date);
-    const seats = N(r.max_children) || 12;
-    /* HOW MANY HAVE JOINED, folded from the job if one exists yet. The first family to join creates
-       it — the same rule as a waitlist — so until then there is nothing to count and the answer is
-       none. */
-    const jobs = read(TAB.jobs).rows.filter(j => norm(j.kind) === 'festive'
-      && key(j.term_name) === key(S(r.holiday_id)));
-    const taken = jobs.length ? clientsIn(S(jobs[0].job_id) || String(jobs[0]._row)).length : 0;
-    return {
-      id: S(r.holiday_id),
-      holiday: S(r.name),
-      name: S(r.event_name) || S(r.name),
-      blurb: S(r.blurb),
-      venue: S(r.venue),
-      date: fmtDate(when),
-      hours: N(r.hours) || 2,
-      price: N(r.price_per_child),
-      seats: seats,
-      taken: taken,
-      left: Math.max(0, seats - taken),
-      jobId: jobs.length ? S(jobs[0].job_id) : '',
-    };
-  });
-}
-
-/* READY, or not offered — and, since the calendar learned to close on one, not a closure either. § */
-function festiveReady_(r) {
-  if (!ON_(r.active)) return false;
-  if (!sheetDate(r.date)) return false;
-  if (!S(r.venue)) return false;
-  if (!(N(r.price_per_child) > 0)) return false;
-  return true;
-}
-
 /* THE DAYS NOBODY IS TAUGHT, INSIDE A TERM. § */
 function bankHolidays(y) {
   const out = [];
@@ -921,7 +865,6 @@ function closures() {
       if (!when) return;
       const k = norm(r.kind);
       if (k === 'inset' || k === 'closed' || k === 'bank') put(when, r.name || k, k === 'bank' ? 'bank' : 'inset');
-      else if (festiveReady_(r)) put(when, S(r.event_name) || S(r.name), 'festive');
     });
   } catch (err) { /* no tab yet: the computed bank holidays are still right */ }
   return Object.keys(byDate).map(k => byDate[k]);

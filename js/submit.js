@@ -761,7 +761,7 @@ on('rep-box', el => {
   try { finder = (finderAt_(el) || {}).id || ''; } catch (e) {}
   /* IN PLACE OF THE THING (489, `boxInPlace_`); a message's box still goes under the whole message. */
   /* A TILE DRAWN WITHOUT A NAME (a widget with no title field) takes its thing's heading, so the note names what a person sees. */
-  const home = el.closest('.card, .own-set, .fest, .post');
+  const home = el.closest('.card, .own-set, .post');
   const h = home && home.querySelector('h2, h3, .wgt-title');
   const label = el.getAttribute('data-rl') || ((h && h.textContent) || '').trim().slice(0, 120);
   const box = boxInPlace_(el, reportBoxHtml_(kind, id, label, finder, reportPath_(el)));

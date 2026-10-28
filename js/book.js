@@ -2281,28 +2281,6 @@ function jobReceipt(j, foot) {
    `jobTiles_` in tiles.js — which is where every other kind in this app keeps its actions, and the
    reasoning is written there. */
 
-function festiveCard(f) {
-  const full = f.left <= 0;
-  return `<div class="fest">
-    <p class="fest-when">${esc(f.holiday)} · ${esc(f.date)}</p>
-    <h3 class="fest-name">${esc(f.name)}</h3>
-    ${f.blurb ? `<p class="fest-say">${mark(f.blurb)}</p>` : ''}
-    <div class="fest-rows">
-      ${row('Where', f.venue)}
-      ${childView_() ? '' : row('Per child', money(f.price))}
-      ${row('Places', full ? 'Full' : f.left + ' left of ' + f.seats)}
-    </div>
-    ${USER
-      ? (full
-          ? '<p class="faint">This one is full.</p>'
-          /* A PLACE IS PAID FOR, so a child asks a parent (398). */
-          : childView_() ? '<p class="faint">Ask a parent to sign you up.</p>'
-          : `<button class="btn" data-do="fest-join" data-id="${esc(f.id)}">Come along</button>`)
-      : '<p class="faint">Sign in to come along.</p>'}
-  </div>`;
-}
-
-
 /* ---------- WHEN THE FAMILIES ON A LIST CAN COME § */
 function whenCouldHtml(j) {
   const w = j && j.whenCould;

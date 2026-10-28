@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-zs-no-tutor-working";
+const DOPOST_VERSION = "2026-10-28-zt-no-festive";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3426,91 +3426,6 @@ function doPost(e) {
         joined: now.length, seats: price.seats,
         full: now.length >= price.seats,
         perSeat: price.perSeatSession,
-        receiptId: receipt.receiptId || '', receiptError: receipt.error || '' });
-    }
-
-    /* JOINING A FESTIVE EVENT ---------------------------------------------------------------- THE SAME SHAPE AS A WAITLIST, and for the same reason: § */
-    if (action === 'joinFestive') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-
-      /* THE OFFER AS THE CALENDAR SEES IT TODAY, not as the phone described it. § */
-      const offer = festiveOffers().find(o => key(o.id) === key(S(body.holidayId)));
-      if (!offer) {
-        return jsonOut({ error: 'That is not on at the moment — it may have finished, or the '
-          + 'details are not set yet.' });
-      }
-
-      const t = read(TAB.jobs);
-      let j = t.rows.find(x => norm(x.kind) === 'festive'
-        && key(x.term_name) === key(offer.id));
-
-      if (j) {
-        const jobId = S(j.job_id) || String(j._row);
-        const on = clientsIn(jobId);
-        if (on.some(c => key(c.name) === key(personDisplayName(me)))) {
-          return jsonOut({ error: 'You are already coming to that.' });
-        }
-        if (on.length >= offer.seats) {
-          return jsonOut({ error: 'That is full.' });
-        }
-      } else {
-        const jobId = 'F-' + Date.now();
-        addRow(t, {
-          job_id: jobId,
-          status: 'unconfirmed',
-          kind: 'festive',
-          subject: offer.name,
-          level: '',
-          service: 'Event',
-          venue: offer.venue,
-          weekday: '', start_time: '',
-          hours_per_session: offer.hours,
-          /* PER CHILD, like a waitlist seat — every family is buying the same thing, and
-             `createCheckout` falls back to this per person, which is exactly right. */
-          price_total: offer.price,
-          max_students: offer.seats,
-          session_dates: offer.date,
-          term_name: offer.id,
-          open_to_others: 'TRUE',
-          stealable: 'TRUE',
-          created_at: new Date(),
-        });
-        j = t.rows[t.rows.length - 1];
-      }
-
-      const jobId = S(j.job_id) || String(j._row);
-      /* HOW MANY CHILDREN THEY ARE BRINGING, on their own joining event — the same place a waitlist keeps availability, and for the same reason: § */
-      const kids = S(body.kids);
-      /* EACH NAME BY ITS FIRST WORD ON THE EVENT (342, the review) — every family on it reads the event, and a name typed here is very often a child who is no row the § */
-      logEvent({ jobId, actor: personDisplayName(me), role: 'client', action: ACT.REQUEST,
-                 message: 'coming to ' + offer.name + (kids ? ' — bringing: ' + typedFirstWords_(kids) : ''),
-                 requestId: S(body.requestId) });
-      clearCache();
-
-      const receipt = writeReceipt_({
-        kind: 'festive', jobId: jobId,
-        personId: S(me.person_id), personName: personDisplayName(me),
-        total: offer.price, currency: 'GBP',
-        lines: [
-          { k: 'Event', v: offer.name },
-          { k: 'Where', v: offer.venue },
-          { k: 'When', v: offer.date },
-          { k: 'Per child', v: offer.price },
-        ],
-        note: 'Festive event — ' + offer.holiday,
-      });
-
-      const now = clientsIn(jobId);
-      /* `bookings` — the admin's to turn off: the sign-up is on the event's roster either way. */
-      notify(adminName_(), 'Somebody is coming to ' + offer.name,
-        personDisplayName(me) + ' has joined ' + offer.name + ' on ' + offer.date
-        + (kids ? '\nBringing: ' + kids : '')
-        + '\n\n' + now.length + ' of ' + offer.seats + ' places taken.', 'bookings');
-
-      return jsonOut({ success: true, jobId: jobId,
-        joined: now.length, seats: offer.seats,
-        full: now.length >= offer.seats,
         receiptId: receipt.receiptId || '', receiptError: receipt.error || '' });
     }
 

@@ -65,7 +65,7 @@ That is the question that actually splits the list, and it is not the same as qu
 | **`config` 25 · `pricing` 41 · `venues` 13** | **the money.** `quotePerHour` reads all three server-side, and this repository's own sentence is *a total posted by a browser is a total the client chose*. These should move to the **Ledger** spreadsheet — one line each in `WHERE` — not into code. The Settings file still dies; the price stays somewhere a browser cannot edit |
 | `brand` 16 | two keys are read at WRITE time — `brandName()` when an e-mail goes out, `reactionSet()` when a post is written. Both already fall back to code (`'@family.'`, `HOUSE_REACTIONS`), so the fallback is the answer and the tab can go |
 | `options` 145 | `allOptions()` and `optionFocus()` shape it into `DATA.dropdowns`. Pure reshaping, no decision — but `check-payload.js` reports `options` itself as **sent and never read**, so some of this is already weight |
-| `holidays` 36 | `festiveOffers()` applies date arithmetic — `opens_days`, `trail_days` — against today. Moving it means porting that to JS, which is real work rather than a copy |
+| `holidays` 36 | `closures()` reads its INSET/closed rows against the computed bank holidays (festive offers went in 506) |
 | `shop` 62 | `avatarCatalogue()` reads shop rows for the wardrobe. `avatar` (27 rows) is read by **nothing at all** — it is the wardrobe's colours, and `AVATAR_ITEMS` in code is the live copy |
 
 ---
