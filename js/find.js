@@ -165,6 +165,8 @@ const KINDS = {
   pdtext: { group: 'Learning', label: 'Library', card: x => pdtextsCard_(x) },
   /* ORTHODOX TEXTS AND CHURCH HISTORY (516): one card a canon, section or chapter, js/orthodox.js. */
   orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
+  /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
+  hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -446,6 +448,13 @@ const FACETS = [
   { field: 'orEra',     label: 'Church era',  of: x => x.orEra || '' },
   { field: 'orGenre',   label: 'Kind of writing', of: x => x.orGenre || '' },
   { field: 'orCollection', label: 'Collection', of: x => x.orCollection || (typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x) : '') },
+  /* THE HYMNS' (517): whose words, which church, which season, the tune it is sung to. */
+  { field: 'hymnTradition', label: 'Tradition', of: x => x.hymnTradition || '' },
+  { field: 'hymnSeason', label: 'Feast or season', of: x => x.hymnSeason || '' },
+  { field: 'hymnTheme', label: 'Hymnal section', of: x => x.hymnTheme || '' },
+  { field: 'hymnAuthor', label: 'Words by',   of: x => x.hymnAuthor || '' },
+  { field: 'hymnTune',  label: 'Tune',        of: x => x.hymnTune || '' },
+  { field: 'hymnLanguage', label: 'Language', of: x => x.hymnLanguage || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -9101,6 +9110,7 @@ function stuffItemsRaw_() {
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
     ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
+    ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10386,6 +10396,8 @@ const TAG_OF = {
   wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board', wtVerse: 'paper',
   txWriting: 'topic', txBook: 'level', txChapter: 'paper', txSection: 'paper', txText: 'board', txAnthology: 'topic',
   orTradition: 'board', orEra: 'sitting', orGenre: 'type', orCollection: 'topic',
+  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board',
+  hymnTradition: 'board', hymnSeason: 'level', hymnTheme: 'topic', hymnAuthor: 'type', hymnTune: 'paper', hymnLanguage: 'board',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10560,6 +10572,7 @@ function paintStuff(keepPage) {
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
   if (typeof orthoIndex_ === 'function') orthoIndex_();
+  if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
