@@ -21809,7 +21809,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart â
     const R = resView_(w);
     /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints â€” or the two would differ by its timing. */
     try { t.go('stuff'); w.paintStuff(); } catch (e) {}
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && w.textsItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
     ['stuff', 'res'].forEach(fid => {
       const has = (fid === 'res' ? R : w).stuffItems().some(x => x.kind === 'bible');

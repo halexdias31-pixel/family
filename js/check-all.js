@@ -88,6 +88,7 @@ const SUITE = [
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
+  { file: 'check-texts.js', what: 'more writings (513): every text loads, a unit a card, each with its source and licence; scripture-like texts held to the age rule' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
   { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },

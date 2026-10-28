@@ -159,6 +159,8 @@ const KINDS = {
   worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
   /* THE HADITH (504): one card a hadith, js/hadith.js. */
   hadith: { group: 'Learning', label: 'Library', card: x => hadithCard_(x) },
+  /* MORE WRITINGS (513): a verse, section or chapter a card, one text each — js/texts.js. */
+  writ: { group: 'Learning', label: 'Library', card: x => textsCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -426,6 +428,8 @@ const FACETS = [
   { field: 'wtSection', label: 'Section',     of: x => x.wtSection || '' },
   /* `Text` (504), as the Bible's: which text of the writing, its language and whose translation. */
   { field: 'wtLanguage', label: 'Text',       of: x => x.wtLanguage || '' },
+  /* THE VERSE, SECTION OR MISHNAH OF MORE WRITINGS (513): a card each. */
+  { field: 'wtVerse',   label: 'Passage',     of: x => x.wtVerse || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -824,6 +828,17 @@ function tellApart_(items, facet, values) {
 /* `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE. § */
 const FACET_TALLY = new WeakMap();
 
+/* Each item's weight in a split: 1, or 1/n for the n cards of one writing. Memoised per list. */
+const WRITING_WEIGHTS = new WeakMap();
+function writingWeights_(items) {
+  let w = WRITING_WEIGHTS.get(items);
+  if (w) return w;
+  const n = {};
+  items.forEach(x => { if (x && x.libBook) n[x.libBook] = (n[x.libBook] || 0) + 1; });
+  w = items.map(x => x && x.libBook ? 1 / n[x.libBook] : 1);
+  WRITING_WEIGHTS.set(items, w);
+  return w;
+}
 function facetTally_(items, facet) {
   let perList = FACET_TALLY.get(items);
   if (!perList) { perList = {}; FACET_TALLY.set(items, perList); }
@@ -861,15 +876,24 @@ function facetTally_(items, facet) {
   shortLabels_(values);
   tellApart_(items, facet, values);
 
-  let top = 0;
-  values.forEach(v => { if (v.n > top) top = v.n; });
+  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
+     Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
+  const wt = writingWeights_(items);
+  let top = 0, whole = 0;
+  const wBy = {};
+  items.forEach((x, i) => {
+    whole += wt[i];
+    const vals = facetOwn_(facet, x);
+    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
+  });
+  Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
     facet: facet,
     values: values,
     coverage: items.length ? answered / items.length : 0,
     /* ---------- HOW MUCH OF THE LIST THE COMMONEST ANSWER DOES *NOT* KEEP § */
-    split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
+    split: values.length < 2 || !whole ? 0 : (whole - top) / whole,
   };
   perList[facet.field] = out;
   return out;
@@ -9058,6 +9082,7 @@ function stuffItemsRaw_() {
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
     ...(typeof hadithItems_ === 'function' ? hadithItems_() : []),
     ...(typeof worksItems_ === 'function' ? worksItems_() : []),
+    ...(typeof textsItems_ === 'function' ? textsItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10340,7 +10365,7 @@ const TAG_OF = {
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
   hadithCollection: 'level', hadithBook: 'topic', hadithNumber: 'paper', hadithTranslation: 'board',
   quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
-  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board',
+  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board', wtVerse: 'paper',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10512,6 +10537,7 @@ function paintStuff(keepPage) {
   if (typeof quranIndex_ === 'function') quranIndex_();
   if (typeof hadithIndex_ === 'function') hadithIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
+  if (typeof textsIndex_ === 'function') textsIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
