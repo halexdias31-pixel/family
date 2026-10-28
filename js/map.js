@@ -308,7 +308,7 @@ const WIDGETS = [
     <h3>Favourite links</h3>
     <div id="fav-box"></div>
   </div>` },
-  /* ---------- THE REWRITE COACH (509): admin only for now; ideas and questions, never a rewrite — rewrite.js ---------- */
+  /* ---------- THE REWRITE COACH (509, 517): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
   { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
     start: () => initRewrite_?.(),
     into: 'rw-box', what: 'The rewrite coach',
