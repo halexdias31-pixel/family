@@ -4,7 +4,7 @@
 Usage:  python3 -I tools/pd-texts.py <download dir> <repo root>
 
 <download dir> holds the downloaded etexts, untouched: pg/<n>.txt (gutenberg.org cache files),
-av/bor.html (Avalon Project, English Bill of Rights 1689), pga/0100011.txt (gutenberg.net.au, Animal Farm). Writes data/pdtexts/index.json, one
+av/bor.html (Avalon Project, English Bill of Rights 1689). Writes data/pdtexts/index.json, one
 TX-NNNN.json per text, and data/pdtexts/LICENSE. The etext's own licence header and footer are
 cut and its name is not carried into the data: the words are public domain, reproduced as text.
 """
@@ -621,7 +621,7 @@ def anthology():
                                  ('Maud, and Other Poems', 'The Charge of the Light Brigade', 'Alfred Tennyson'),
                                  ('Poems of Wilfred Owen', 'Exposure', 'Wilfred Owen')):
         words, w = poem(title, chapter)
-        cards.append(card('', chapter, poet, words))
+        cards.append(card('', chapter, poet, poem_text(words)))
         sources += [x for x in w['sources'] if x not in sources]
     t = etext(12383)
     a = t.index('    One summer evening (led by her) I found')
@@ -717,9 +717,10 @@ def cluster(name, board, items):
     """An anthology a card a poem: a public-domain poem in full, any other named only."""
     cards, sources = [], []
     for it in items:
-        if len(it) == 2:
-            cards.append(card('', it[0], it[1], 'Not available (copyright). %s, by %s, is in the %s anthology; its words are still in '
-                                                'copyright, so only its name is kept here.' % (it[0], it[1], name)))
+        if len(it) < 4:
+            why = it[2] if len(it) == 3 else ('Not available (copyright). %s, by %s, is in the %s anthology; its words are still in '
+                                              'copyright, so only its name is kept here.' % (it[0], it[1], name))
+            cards.append(card('', it[0], it[1], why))
             continue
         cards.append(card('', it[0], it[1], it[2]))
         sources += [x for x in it[3] if x not in sources]
@@ -728,19 +729,12 @@ def cluster(name, board, items):
 
 
 def gcse_more():
-    """The 19th-century novels the boards set that were missing, Animal Farm (public domain in the UK since 2021), every board's
-    poetry anthology, the modern texts named, and thirty poems for unseen practice."""
+    """The 19th-century novels the boards set that were missing, every board's poetry anthology, the modern texts named (Animal Farm
+    among them: public domain in the UK, not in the USA where the site is served), and thirty poems for unseen practice."""
     novel(550, 'Silas Marner', 'George Eliot', 1861, r'^CHAPTER [IVXL]+\.$', name=chap_name, book_rx=r'^PART (?:ONE|TWO|I|II)\.$',
           book_name=lambda h: 'Part %d' % (1 if re.search(r'ONE|\bI\.', h) else 2))
     novel(36, 'The War of the Worlds', 'H. G. Wells', 1898, r'^[IVX]+\.$', name=lambda h: 'Chapter %d' % roman(h),
           book_rx=r'^BOOK (?:ONE|TWO)$', book_name=lambda h: 'Book %d' % (1 if 'ONE' in h else 2))
-    t = open(os.path.join(DL, 'pga', '0100011.txt'), encoding='latin-1').read().replace('\r', '')
-    t = t[t.index('\nChapter I\n'): t.rindex('\nTHE END')]
-    novel(None, 'Animal Farm', 'George Orwell', 1945, r'^Chapter [IVX]+$', name=chap_name, t=t,
-          source=src('Animal Farm, George Orwell (1945): the etext of Project Gutenberg Australia (ebook 0100011), its licence header cut',
-                     url='https://gutenberg.net.au/ebooks01/0100011.html',
-                     licence='Public domain in the UK and Australia (Orwell died in 1950, so the copyright ended on 1 January 2021); '
-                             'still in copyright in the USA until 2041'))
 
     def P(title, poet, n, a, b, note, wrapped=False):
         return title, poet, cut(n, a, b, wrapped), [src(note, n)]
@@ -818,7 +812,9 @@ def gcse_more():
         senn,
         P('There’s a Certain Slant of Light', 'Emily Dickinson', 12242, "There's a certain slant of light", 'On the look of death.',
           'Poems by Emily Dickinson, ed. Mabel Loomis Todd and T. W. Higginson (1890): the 1890 text, not the later Johnson text'),
-        ('Vergissmeinnicht', 'Keith Douglas'), ('What Were They Like?', 'Denise Levertov'), ('Lament', 'Gillian Clarke'),
+        ('Vergissmeinnicht', 'Keith Douglas', 'No public-domain copy found. Vergissmeinnicht, by Keith Douglas, is in the Conflict (OCR) '
+         'anthology; no public-domain printing of its words was found to copy, so only its name is kept here.'),
+('What Were They Like?', 'Denise Levertov'), ('Lament', 'Gillian Clarke'),
         ('Flag', 'John Agard'), ('Honour Killing', 'Imtiaz Dharker'), ('Partition', 'Sujata Bhatt'), ('Papa-T', 'Fred D’Aguiar'),
         P('Songs for the People', 'Frances E. W. Harper', 679, 'Let me make the songs for the people', 'Girdle the world with peace.',
           'Poems, Frances E. W. Harper (1895)'),
@@ -847,13 +843,13 @@ def gcse_more():
         ('Mametz Wood', 'Owen Sheers'), T('Ozymandias', 'Percy Bysshe Shelley', 'Shelley’s Shorter Poems, 1816–1822', 'Ozymandias'),
         ('The Manhunt', 'Simon Armitage')])
 
-    # Modern texts: every one the boards set is in copyright but Animal Farm (above), so a name each
+    # Modern texts: all in copyright (Animal Farm in the USA, where the site is served), so a name each
     modern = [('An Inspector Calls', 'J. B. Priestley'), ('Blood Brothers', 'Willy Russell'), ('The History Boys', 'Alan Bennett'),
               ('DNA', 'Dennis Kelly'), ('The Curious Incident of the Dog in the Night-Time (play)', 'Simon Stephens'),
               ('A Taste of Honey', 'Shelagh Delaney'), ('Leave Taking', 'Winsome Pinnock'), ('Princess & the Hustler', 'Chinonyerem Odimba'),
               ('Hobson’s Choice', 'Harold Brighouse'), ('Journey’s End', 'R. C. Sherriff'), ('Lord of the Flies', 'William Golding'),
               ('Never Let Me Go', 'Kazuo Ishiguro'), ('Anita and Me', 'Meera Syal'), ('Pigeon English', 'Stephen Kelman'),
-              ('My Name is Leon', 'Kit de Waal'), ('The Woman in Black', 'Susan Hill')]
+              ('My Name is Leon', 'Kit de Waal'), ('The Woman in Black', 'Susan Hill'), ('Animal Farm', 'George Orwell')]
     add(title='Modern Texts (GCSE)', author='GCSE English Literature set texts', subject='English Literature', form='Set texts', year='',
         texts=['Set text'], sources=[src('Names only, from the GCSE English Literature specifications of AQA, Pearson Edexcel, OCR and WJEC Eduqas',
                                          url='https://www.ocr.org.uk/Images/168995-specification-accredited-gcse-english-literature-j352.pdf',
