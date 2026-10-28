@@ -163,6 +163,8 @@ const KINDS = {
   writ: { group: 'Learning', label: 'Library', card: x => textsCard_(x) },
   /* PUBLIC-DOMAIN TEXTS (514): history's documents and English literature, a card a place, js/pdtexts.js. */
   pdtext: { group: 'Learning', label: 'Library', card: x => pdtextsCard_(x) },
+  /* ORTHODOX TEXTS AND CHURCH HISTORY (516): one card a canon, section or chapter, js/orthodox.js. */
+  orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -439,6 +441,11 @@ const FACETS = [
   { field: 'txSection', label: 'Section',     of: x => x.txSection || '' },
   { field: 'txText',    label: 'Text',        of: x => x.txText || '' },
   { field: 'txAnthology', label: 'Anthology', of: x => x.txAnthology || '' },
+  /* THE OWNER'S CATEGORIES (516): tradition, church era, kind of writing, and the collection (Anagignoskomena, Kathisma 5 on a Bible verse). */
+  { field: 'orTradition', label: 'Tradition', of: x => x.orTradition || '' },
+  { field: 'orEra',     label: 'Church era',  of: x => x.orEra || '' },
+  { field: 'orGenre',   label: 'Kind of writing', of: x => x.orGenre || '' },
+  { field: 'orCollection', label: 'Collection', of: x => x.orCollection || (typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x) : '') },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -9093,6 +9100,7 @@ function stuffItemsRaw_() {
     ...(typeof worksItems_ === 'function' ? worksItems_() : []),
     ...(typeof textsItems_ === 'function' ? textsItems_() : []),
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
+    ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10377,6 +10385,7 @@ const TAG_OF = {
   quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
   wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board', wtVerse: 'paper',
   txWriting: 'topic', txBook: 'level', txChapter: 'paper', txSection: 'paper', txText: 'board', txAnthology: 'topic',
+  orTradition: 'board', orEra: 'sitting', orGenre: 'type', orCollection: 'topic',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10550,6 +10559,7 @@ function paintStuff(keepPage) {
   if (typeof worksIndex_ === 'function') worksIndex_();
   if (typeof textsIndex_ === 'function') textsIndex_();
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
+  if (typeof orthoIndex_ === 'function') orthoIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
