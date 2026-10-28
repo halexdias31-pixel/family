@@ -17204,8 +17204,10 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const admin = u && u.role === 'admin';
     if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
     if (!admin && !got.every(notBible)) bad.push(what + ' is offered the Bible — it is for admins only');
-    const rest = got.filter(notBible).join('|');
-    if (rest !== out0.filter(notBible).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
+    /* GCSE TOPICS ARE 14+ (505): an admin is also offered those; the rest must match. */
+    const aged = new Set(w.stuffItemsRaw_().filter(x => w.gcseAgeOf_(x)).map(x => x.key)), same = k => notBible(k) && !aged.has(k);
+    const rest = got.filter(same).join('|');
+    if (rest !== out0.filter(same).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
   });
   /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
      it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
@@ -20347,7 +20349,8 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
   const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
   const cards = w.stuffItems().filter(i => i.kind === 'content');
-  if (cards.length !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
+  const aged = w.stuffItemsRaw_().filter(i => i.kind === 'content' && !w.itemAgeOk_(i)).length;   // 14+ for this viewer (505)
+  if (cards.length + aged !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
   if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
   /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
   if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');
@@ -21071,6 +21074,48 @@ check('an age limit (490): a ten-year-old, a member with no date of birth and a 
   return bad;
 });
 
+/* ---------- GCSE TOPICS FOR GCSE AGES (505): GCSE history, RS, psychology, sociology and the history database are 14+ by one derived rule ---------- */
+check('GCSE topics for GCSE ages (505): a 12-year-old, a member with no date of birth and a visitor see no GCSE History question or card and no WW2 timeline; a 15-year-old and the admin do; a KS3 history item stays open to the 12-year-old', async () => {
+  const y = new Date().getFullYear();
+  const at = n => Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - n) } });
+  const ADMIN = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk' };
+  const who = [['a 12-year-old', at(12), false], ['a member with no date of birth', MEMBER_, false], ['a signed-out visitor', null, false],
+               ['a 15-year-old', at(15), true], ['the admin', ADMIN, true]];
+  const p0 = await resPayload_();
+  if (!p0) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
+  const bad = [];
+  for (const [what, u, ok] of who) {
+    const payload = Object.assign(JSON.parse(JSON.stringify(p0)), { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] });
+    const b = boot({ payload, before: u ? signedInAs_(u) : (() => {}) });
+    for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+    await wait(250);
+    if (!b.w.__t) { bad.push(what + ': the app did not boot — NOT checked'); continue; }
+    const { w } = b;
+    w.__t.go('stuff'); w.paintStuff();
+    const raw = w.stuffItemsRaw_(), all = w.stuffItemsAll_();
+    const gated = raw.filter(x => w.gcseAgeOf_(x) === 14);
+    const hist = gated.filter(x => /histor/i.test(x.subject || '') && !x.hdb);
+    const tl = raw.filter(x => x.kind === 'timeline' && x.era === 'World War 2');
+    if (!hist.length || !tl.length) { bad.push(what + ': no GCSE History item (' + hist.length + ') or WW2 timeline (' + tl.length + ') to ask about (of ' + raw.length + ') — NOT checked'); continue; }
+    const keys = new Set(all.map(x => x.key)), shown = x => keys.has(x.key);
+    if (hist.some(shown) !== ok || hist.every(shown) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' GCSE History (' + hist.filter(shown).length + ' of ' + hist.length + ')');
+    if (shown(tl[0]) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' the WW2 timeline');
+    const ks3 = { kind: 'content', subject: 'History', level: 'KS3', name: 'The Norman Conquest', row: {} };
+    if (w.gcseAgeOf_(ks3) || !w.itemAgeOk_(ks3)) bad.push(what + ': a KS3 History item is age-limited');
+    const gq = { kind: 'question', subject: 'History', level: 'GCSE', name: 'Paper 1', row: {} };
+    if (w.itemAgeOk_(gq) !== ok) bad.push(what + ': a GCSE History question is ' + (ok ? 'hidden' : 'shown'));
+    if (what === 'the admin' && process.env.GCSE_AGE_COUNTS) {
+      const c = {}; gated.forEach(x => { const k = (x.hdb ? 'History database' : x.subject || '?') + ' / ' + x.kind; c[k] = (c[k] || 0) + 1; });
+      console.log('GCSE_AGE_COUNTS ' + JSON.stringify(c));
+    }
+  }
+  return bad;
+});
+
 /* ---------- THE QURAN (490): a verse a card, its tags ordinary facets, its text fetched when its card is drawn ---------- */
 check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Library, Quran, Surah, Ayah — tagged Juz 3 and Medinan — and its card draws the Arabic and Pickthall\'s English from the real files', async () => {
   const serve = url => {
@@ -21209,7 +21254,7 @@ check('the history timeline: events are found under Learning, Content, History, 
   for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
-  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), member: true });
+  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });   // an adult: the history database is 14+ (505)
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(250);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
@@ -29882,6 +29927,94 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
   let left = '';
   try { left = m.w.sessionStorage.getItem('gtasksTok') || ''; } catch (e) {}
   if (left) bad.push('the token outlived Disconnect in sessionStorage');
+  return bad;
+});
+
+/* ---------- SPOTIFY (510): no client id says so; Connect builds a PKCE address; the way back swaps the code and shows now playing; Premium said; Disconnect forgets ---------- */
+const SP_U_ = { name: 'Sid Spot', personId: 'P-SP', role: 'student', roles: ['student'], rank: 'student', token: 't-sp', handle: 'sidspot' };
+function spWorld_(o) {
+  o = o || {};
+  const T = { gone: [], token: [], api: [] };
+  const p = payload();
+  p.brand = Object.assign({}, p.brand || {});
+  if (o.cid) p.brand.spotify_client_id = 'sp-cid-test'; else delete p.brand.spotify_client_id;
+  const before = w => {
+    signedInAs_(SP_U_)(w);
+    const wc = require('crypto').webcrypto;
+    try { if (!w.crypto || !w.crypto.subtle) Object.defineProperty(w, 'crypto', { value: wc, configurable: true }); } catch (e) {}
+    if (!w.TextEncoder) w.TextEncoder = TextEncoder;
+    if (o.pkce) try { w.sessionStorage.setItem('spPkce', JSON.stringify(o.pkce)); } catch (e) {}
+    const orig = w.fetch;
+    w.fetch = (url, opt) => {
+      const u = String(url), m = (opt && opt.method) || 'GET';
+      const ans = (status, body) => Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) });
+      if (u === 'https://accounts.spotify.com/api/token') { T.token.push(String(opt.body)); return ans(200, { access_token: 'tok-sp', refresh_token: 'ref-sp', expires_in: 3600 }); }
+      if (u.indexOf('https://api.spotify.com/v1') !== 0) return orig(url, opt);
+      const path = u.slice('https://api.spotify.com/v1'.length);
+      T.api.push(m + ' ' + path + ' ' + ((opt && opt.headers && opt.headers.Authorization) || ''));
+      if (/^\/me\/player\/currently-playing/.test(path)) return ans(200, { is_playing: true, item: { name: 'Clair de Lune', type: 'track', artists: [{ name: 'Debussy' }], album: { images: [{ url: 'https://i.scdn.co/x.jpg' }] }, external_urls: { spotify: 'https://open.spotify.com/track/1' } } });
+      if (/^\/me\/playlists/.test(path)) return ans(200, { items: [{ id: 'PL1', name: 'Revision calm', type: 'playlist', external_urls: { spotify: 'https://open.spotify.com/playlist/PL1' } }] });
+      if (/^\/me\/player\//.test(path)) return ans(403, { error: { status: 403, message: 'Player command failed: Premium required', reason: 'PREMIUM_REQUIRED' } });
+      return ans(404, {});
+    };
+  };
+  return { T, p, before };
+}
+check('Spotify (510): no client id says not switched on; Connect builds a PKCE address with the four scopes; the way back swaps the code and shows now playing and playlists; a free account is told Premium; Disconnect forgets', async () => {
+  const bad = [];
+  const card = d => d.querySelector('#sp-box .sp-card');
+  {
+    const { p, before } = spWorld_({});
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    const c = card(m.w.document);
+    if (!c) bad.push('no Spotify widget on Tools');
+    else {
+      if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
+      if (c.querySelector('[data-do="sp-connect"]')) bad.push('a Connect tile with no client id');
+      if (/spotify_client_id/.test(c.textContent)) bad.push('a student was shown the admin\'s how-to');
+    }
+  }
+  {
+    const { p, before } = spWorld_({ cid: true });
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    let went = '';
+    m.w.spGo_ = u => { went = u; };
+    const t = m.w.document.querySelector('#sp-box [data-do="sp-connect"]');
+    if (!t) bad.push('no Connect tile with a client id'); else { t.click(); await wait(200); }
+    const q = went ? new URL(went).searchParams : null;
+    if (!q || !/^https:\/\/accounts\.spotify\.com\/authorize\?/.test(went)) bad.push('Connect did not go to Spotify: ' + went);
+    else {
+      if (q.get('client_id') !== 'sp-cid-test' || q.get('response_type') !== 'code' || q.get('code_challenge_method') !== 'S256') bad.push('wrong PKCE address: ' + went);
+      if (q.get('scope') !== 'user-read-currently-playing user-read-playback-state user-modify-playback-state playlist-read-private') bad.push('wrong scopes: ' + q.get('scope'));
+      if (q.get('redirect_uri') !== 'https://example.org/?spotify=cb') bad.push('wrong redirect: ' + q.get('redirect_uri'));
+      let pk = null; try { pk = JSON.parse(m.w.sessionStorage.getItem('spPkce')); } catch (e) {}
+      const want = pk && require('crypto').createHash('sha256').update(pk.v).digest('base64url');
+      if (!pk || q.get('code_challenge') !== want) bad.push('the challenge is not the SHA-256 of the kept verifier');
+      if (!pk || q.get('state') !== pk.state) bad.push('the state was not kept');
+    }
+  }
+  const pkce = { v: 'verifier-test', state: 'st-1', cid: 'sp-cid-test', back: 'https://example.org/?spotify=cb' };
+  const { T, p, before } = spWorld_({ cid: true, pkce });
+  const m = boot({ payload: p, before, url: 'https://example.org/?spotify=cb&code=CODE1&state=st-1' }); await wait(400);
+  m.w.paint('tools'); await wait(300); m.w.spPaint_();
+  const d = m.w.document;
+  if (/spotify=cb|code=/.test(m.w.location.href)) bad.push('the address still carries the code: ' + m.w.location.href);
+  const tb = T.token[0] ? new URLSearchParams(T.token[0]) : null;
+  if (!tb || tb.get('grant_type') !== 'authorization_code' || tb.get('code') !== 'CODE1' || tb.get('code_verifier') !== 'verifier-test' || tb.get('client_secret')) bad.push('the code swap was wrong: ' + T.token[0]);
+  const c = card(d);
+  if (!c || !/Clair de Lune/.test(c.textContent) || !/Debussy/.test(c.textContent)) bad.push('now playing not shown: ' + (c && c.textContent));
+  if (!c || !/Revision calm/.test(c.textContent) || !c.querySelector('a[href="https://open.spotify.com/playlist/PL1"]')) bad.push('the playlist line with Open in Spotify is missing');
+  if (T.api.some(x => !/Bearer tok-sp$/.test(x))) bad.push('a call went without the token');
+  if (m.sent.some(x => JSON.stringify(x).indexOf('tok-sp') !== -1 || JSON.stringify(x).indexOf('ref-sp') !== -1)) bad.push('a Spotify token was sent to our backend');
+  const pause = d.querySelector('#sp-box [data-do="sp-ctl"][data-c="pause"]');
+  if (!pause) bad.push('no Pause tile while playing'); else { pause.click(); await wait(200); }
+  if (!/Premium/.test((card(d) || {}).textContent || '')) bad.push('a 403 PREMIUM_REQUIRED was not said');
+  const off = d.querySelector('#sp-box [data-do="sp-off"]');
+  if (!off) bad.push('no Disconnect tile'); else { off.click(); await wait(100); }
+  if (!d.querySelector('#sp-box [data-do="sp-connect"]')) bad.push('after Disconnect the card does not offer Connect');
+  let left = '';
+  try { left = (m.w.sessionStorage.getItem('spTok') || '') + (m.w.localStorage.getItem('spRefresh') || ''); } catch (e) {}
+  if (left) bad.push('a token outlived Disconnect');
   return bad;
 });
 

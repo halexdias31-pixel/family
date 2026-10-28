@@ -227,6 +227,15 @@ const WIDGETS = [
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
+  /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
+  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => initSpotify?.(),
+    into: 'sp-box', what: 'Spotify',
+    get html() {
+      return `<div class="card">
+    <h3>Spotify</h3>
+    <div id="sp-box">${typeof spCard_ === 'function' ? spCard_() : ''}</div>
+  </div>`;
+    } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
@@ -291,6 +300,22 @@ const WIDGETS = [
     <div id="cd-box" class="cd-box"></div>` },
 
   /* ---------- THE E-INK SCREEN (470): the widget is the screen; syncing a real one is a bonus. The owner: "Keep it in the widget." */
+  /* ---------- FAVOURITE LINKS (509): ten a person keeps on their account; for everybody, so signing in moves no page (339) — favlinks.js ---------- */
+  { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
+    start: () => initFavLinks_?.(),
+    into: 'fav-box', what: 'Your favourite links',
+    html: `<div class="card">
+    <h3>Favourite links</h3>
+    <div id="fav-box"></div>
+  </div>` },
+  /* ---------- THE REWRITE COACH (509): admin only for now; ideas and questions, never a rewrite — rewrite.js ---------- */
+  { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
+    start: () => initRewrite_?.(),
+    into: 'rw-box', what: 'The rewrite coach',
+    html: `<div class="card">
+    <h3>Rewrite coach</h3>
+    <div id="rw-box"></div>
+  </div>` },
   { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
     pure: true,
     draw: () => paintEink_?.(),

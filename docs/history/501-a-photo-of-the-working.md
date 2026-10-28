@@ -22,7 +22,7 @@ working in the field." And, while it was being built: "A human never marks. EVER
 - **Kept with the mark:** after a mark, the photos go to a `Working` folder beside `Messages` in the posts folder,
   NOT shared by link (`workingKeep_`), and their links go in the new `photos` column of `submissions` on a row
   whose verdict is `ai:a/m`.
-- **Who sees them:** `workingOf` (POST, never doGet) — the student, a parent they accepted, staff and admin
+- **Who sees them:** `workingOf` (POST, never doGet) — the student, a parent they accepted, and the admin — not tutors (owner, 28 Oct)
   (`workingMaySee_`). The pictures come back as data, so no Drive link leaves the script. A "Working photos" tile
   on a child's card (parents) and on the admin's student list shows them with the AI's mark — to see, never to mark.
 

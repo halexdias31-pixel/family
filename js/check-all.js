@@ -136,6 +136,8 @@ const SUITE = [
   /* A FILM IS SEEN BY WHOM ITS DRIVE FILE IS SHARED WITH (450), over a fake Drive. */
   { file: 'check-film-shares.js', what: 'a film reaches only the people its Drive file is shared with, a revoked share goes within ten minutes, the admin sees who' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
+  { file: 'check-favlinks.js', what: 'Favourite links (509): signed in only, ten at most, http(s) only, own links alone in the payload' },
+  { file: 'check-rewrite.js', what: 'the Rewrite coach (509): admin only, its own cap, the text fenced as data, ideas and questions never a rewrite, copied phrases marked' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
@@ -177,6 +179,7 @@ const SUITE = [
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
+  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },

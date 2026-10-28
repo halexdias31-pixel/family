@@ -2860,8 +2860,13 @@ async function loadOnce_(again, n) {
       res = { ok: true, status: 200, statusText: 'OK', json: () => got };
     }
     /* ---------- READ AS TEXT, THEN PARSE, so a web page says what it is § */
-    const d = await bootJson_(res);
+    /* THE BODY UNDER A DEADLINE TOO (503): the 60 seconds above covered the headers only. */
+    let bodyBell;
+    const d = await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
+      .finally(() => clearTimeout(bodyBell));
     reached = true;
+    /* WHAT THE SLOW BOX ASKS (index.html): the backend has answered, so whatever is left is ours and bounded. */
+    window.PAYLOAD_IN = true;
     /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been signed in over since it went, or older than a payload already § */
     if (loadStale_(n, who)) return;
     if (d && !d.error) {
@@ -3051,6 +3056,8 @@ let earlyTimer = null;
 function bootLoaded_(on) {
   clearTimeout(earlyTimer);
   try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) {}
+  /* THE SLOW BOX GOES WHEN THE WAIT ENDS (503): `banner('')` hid #banner, never this, so a 31-second backend left it up for good. */
+  if (on) try { const b = $('boot-slow'); if (b) { b.className = 'hidden'; b.textContent = ''; } } catch (e) {}
 }
 /* THE OLD SPLASH'S KEPT DRAWINGS (up to 1.5 MB) OUT OF THE STORE: nothing reads them since 466. True when anything went. */
 function splashForget_() {

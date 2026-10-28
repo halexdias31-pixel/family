@@ -20,6 +20,11 @@ const HAND = /tutor to mark|mark(ed|ing)? by hand|hand[- ]?mark|for (a|your) tut
 if (/verdict:\s*'sent'/.test(blk)) bad.push('markWorking writes a `sent` verdict — a row waiting for a person to mark it');
 if (/action === '(markByHand|tutorMark|handMark|gradeWorking|markSubmission)'/.test(post)) bad.push('dopost.gs has an action for a person to mark work');
 
+/* NOT TUTORS (owner, 28 Oct): the working photos are the student's, their parents' and the admin's only. */
+{ const may = (/function workingMaySee_[\s\S]*?\n\}/.exec(post) || [''])[0];
+  if (!may) bad.push('workingMaySee_ is not in dopost.gs, so who sees the photos was NOT checked');
+  else if (/rankAtLeast_\(me, '(staff|client|student)'\)/.test(may)) bad.push('workingMaySee_ lets a rank below admin (a tutor) see the working photos'); }
+
 /* ---------- THROUGH THE BACKEND ---------- */
 const files = {};
 let n = 0;

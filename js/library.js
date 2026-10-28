@@ -43,18 +43,32 @@ function kitParse_(cell) {
 
 /* `libPrintPrice_` AND `libCanPrint_` WERE HERE — what a printed copy costs, computed while the checklists were built so a document arrived with its price on it. § */
 
+/* A LIBRARY FILE GETS 20 SECONDS TO ANSWER AND 90 TO ARRIVE (503): one that hung kept `load()` from ever finishing. */
+const LIB_ANSWER = 20000, LIB_BODY = 90000;
+function libWithin_(p, what, ms) {
+  let t;
+  const late = new Promise((u, no) => { t = setTimeout(() => no(new Error(what + ' did not arrive in ' + Math.round(ms / 1000) + ' seconds')), ms); });
+  return Promise.race([Promise.resolve(p), late]).finally(() => clearTimeout(t));
+}
+/* ONE ASK IN THE AIR, SHARED by `load()` and `filesOnly_` — two callers used to start two fetches of the same 6 MB. */
+let LIBRARY_ASK = null, LIBRARY_EXTRA_ASK = null;
+
 /* ---------- ONE FETCH, STARTED EARLY § */
-async function libraryRows_() {
-  if (LIBRARY_ROWS) return LIBRARY_ROWS;
+function libraryRows_() {
+  if (LIBRARY_ROWS) return Promise.resolve(LIBRARY_ROWS);
+  if (!LIBRARY_ASK) LIBRARY_ASK = libraryRowsAsk_().finally(() => { LIBRARY_ASK = null; });
+  return LIBRARY_ASK;
+}
+async function libraryRowsAsk_() {
   let rows = null;
   /* ---------- A FILE THAT DID NOT ARRIVE IS NOT AN EMPTY LIBRARY § */
   try {
     const early = window.BOOT_LIB || null;
     window.BOOT_LIB = null;
-    const res = early ? await early : await fetch('data/questions.json', { cache: 'default' });
+    const res = await libWithin_(early || fetch('data/questions.json', { cache: 'default' }), 'the question file', LIB_ANSWER);
     if (!res) LIBRARY_FAILED = 'the question file did not come back';
     else if (!res.ok) LIBRARY_FAILED = 'the question file answered ' + res.status;
-    else rows = await res.json();          /* a truncated body throws here, and that is the point */
+    else rows = await libWithin_(res.json(), 'the question file', LIB_BODY);          /* a truncated body throws here, and that is the point */
   } catch (e) {
     LIBRARY_FAILED = String((e && e.message) || 'the question file did not arrive');
   }
@@ -84,8 +98,12 @@ const HIST_DB = [
 ];
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. § */
-async function libraryExtraRows_() {
-  if (LIBRARY_EXTRA) return LIBRARY_EXTRA;
+function libraryExtraRows_() {
+  if (LIBRARY_EXTRA) return Promise.resolve(LIBRARY_EXTRA);
+  if (!LIBRARY_EXTRA_ASK) LIBRARY_EXTRA_ASK = libraryExtraAsk_().finally(() => { LIBRARY_EXTRA_ASK = null; });
+  return LIBRARY_EXTRA_ASK;
+}
+async function libraryExtraAsk_() {
   const out = {};
   /* ---------- AND THE SETTINGS TABS, THROUGH THE SAME MACHINE § */
   const names = LIB_EXTRA.concat(typeof SETTINGS_TABS === 'undefined' ? [] : SETTINGS_TABS);
@@ -96,8 +114,8 @@ async function libraryExtraRows_() {
       if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
       /* ---------- WITH THE DEPLOY'S STAMP, AS THE BOXERS ALREADY WERE § */
       const stamp = window.LOAD ? '?t=' + window.LOAD : '';
-      const res = early ? await early : await fetch('data/' + name + '.json' + stamp, { cache: 'default' });
-      if (res && res.ok) rows = await res.json();
+      const res = await libWithin_(early || fetch('data/' + name + '.json' + stamp, { cache: 'default' }), name, LIB_ANSWER);
+      if (res && res.ok) rows = await libWithin_(res.json(), name, LIB_BODY);
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
   }));
