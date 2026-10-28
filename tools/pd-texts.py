@@ -4,8 +4,8 @@
 Usage:  python3 -I tools/pd-texts.py <download dir> <repo root>
 
 <download dir> holds the downloaded etexts, untouched: pg/<n>.txt (gutenberg.org cache files),
-av/bor.html (Avalon Project, English Bill of Rights 1689). Writes data/texts/index.json, one
-TX-NNNN.json per text, and data/texts/LICENSE. The etext's own licence header and footer are
+av/bor.html (Avalon Project, English Bill of Rights 1689). Writes data/pdtexts/index.json, one
+TX-NNNN.json per text, and data/pdtexts/LICENSE. The etext's own licence header and footer are
 cut and its name is not carried into the data: the words are public domain, reproduced as text.
 """
 import html
@@ -15,7 +15,7 @@ import re
 import sys
 
 DL, ROOT = sys.argv[1], sys.argv[2]
-OUT = os.path.join(ROOT, 'data', 'texts')
+OUT = os.path.join(ROOT, 'data', 'pdtexts')
 ROMAN = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100}
 
 
@@ -676,7 +676,7 @@ def write():
                       'cards': [[c['b'], c['c'], c['s']] for c in w['cards']]})
     raw = json.dumps({'texts': index}, ensure_ascii=False, separators=(',', ':'))
     open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8').write(raw + '\n')
-    lic = ['data/texts/ — public-domain history and literature texts for the Library (docs/history/514),',
+    lic = ['data/pdtexts/ — public-domain history and literature texts for the Library (docs/history/514),',
            'written by tools/pd-texts.py. Every text below is in the public domain; each file names its source again.',
            'Etexts from gutenberg.org are reproduced as public-domain text with that site\'s licence and name removed,',
            'as its terms allow; no editorial matter still in copyright (introductions, notes) is included.', '']

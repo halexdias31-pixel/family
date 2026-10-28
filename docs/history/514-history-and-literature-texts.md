@@ -6,17 +6,17 @@ otherwise, Shakespeare a scene; History texts under History, literature under En
 Section and Text. Later: "all the poems from the Power and Conflict anthology" — only the public-domain ones, the rest named.
 
 ## What it is
-- `data/texts/`: `index.json` (each text and its cards' places, no words, ~340 KB, fetched when a finder paints) and one
+- `data/pdtexts/`: `index.json` (each text and its cards' places, no words, ~340 KB, fetched when a finder paints) and one
   `TX-NNNN.json` per text (the words, fetched only when one of its cards is drawn). Every file under 2 MB; 16.5 MB in all.
-  `data/texts/LICENSE` lists every text's source and licence; each file names them again and every card prints them.
-- `js/texts.js` (kind `pdtext`, beside `js/works.js`, nothing changed there), facets `txWriting` Writing, `txBook` Book,
+  `data/pdtexts/LICENSE` lists every text's source and licence; each file names them again and every card prints them.
+- `js/pdtexts.js` (kind `pdtext`, beside `js/works.js`, nothing changed there), facets `txWriting` Writing, `txBook` Book,
   `txChapter` Chapter, `txSection` Section, `txText` Text, `txAnthology` Anthology (facets.json 37.99x). History texts sit on
   the History shelf under Manuscripts, figures, writings, events or texts → Texts; literature on the English Literature shelf.
 - No `min_age` is set by hand: nothing here is scripture, so the age rule does not apply.
 - Built by `tools/pd-texts.py <download dir> <repo>` (run with `python3 -I`, downloads in their own folder). The etexts'
   licence header/footer and their name are cut, as their terms allow for public-domain text; editorial matter that may still
   be in copyright (Sassoon's Owen introduction, M. Robertson's Keats notes, the 1997 Owen transcriber's notes) is left out.
-- `js/check-texts.js` (in check-all): the index loads, every file loads and matches its index, every text has a source with a
+- `js/check-pdtexts.js` (in check-all): the index loads, every file loads and matches its index, every text has a source with a
   public-domain licence and a LICENSE line, no file reaches 2 MB, no etext licence left in the words, no two cards share a place.
 
 ## Texts, cards and bytes
