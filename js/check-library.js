@@ -13,7 +13,11 @@ const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
   subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
-                  'Physics', 'Religious Studies', 'Driving Theory', 'Statistics'],
+                  'Physics', 'Religious Studies', 'Driving Theory', 'Statistics',
+                  /* the boards' own past papers (fix-pastpapers), spelled as data/textbooks.json spells them */
+                  'Business', 'Citizenship', 'Computer Science', 'Design and Technology', 'Drama', 'Economics',
+                  'English Literature', 'Food Preparation and Nutrition', 'Further Maths', 'Geography', 'History',
+                  'Media Studies', 'Physical Education', 'Politics', 'Psychology', 'Sociology'],
   /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the reason it is a value rather than a naming convention: § */
   document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
@@ -23,7 +27,7 @@ const VOCAB = {
   /* `Foundation Plus` AND `Higher Plus` ARE CORBETTMATHS' OWN LEVELS, printed on the front of every 5-a-day, and they are not exam tiers — Edexcel and AQA have two. § */
   tier:          ['A-Level', 'AS', 'Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'],
   level:         ['AS', 'Alevel', 'GCSE', 'Theory test'],
-  exam_board:    ['AQA', 'Edexcel', 'STA', 'DVSA'],
+  exam_board:    ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas'],
   exam_wave:     ['First wave', 'Second wave',
                   '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
@@ -34,7 +38,8 @@ const VOCAB = {
   surface:       ['blank', 'coord', 'grid', 'text'],
   month:         ['5', '6', '11'],
   /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. § */
-  paper:         ['1', '2', '3', '4', '5', '6'],
+  /* 7 IS OCR RELIGIOUS STUDIES' SEVENTH COMPONENT (H573/07), one per religion studied. */
+  paper:         ['1', '2', '3', '4', '5', '6', '7'],
   /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. § */
   /* `Periodic table` IS THE SCIENCES' VERSION OF THE SAME FACT and arrived with the first AQA chemistry paper: § */
   /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: § */
