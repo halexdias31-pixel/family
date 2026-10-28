@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 22px plate with a 10px mark, flowing left like words, one row per thing, no overlap or spill. Flags: --width=390. Port: TILES_PORT. */
+/* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 36px plate with a 16px mark (Check/Send 44px, 508), flowing left like words, one row per thing, no spill. Flags: --width=390. Port: TILES_PORT. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -57,10 +57,14 @@ function measure(id) {
     ts.forEach(t => {
       tiles++;
       const b = t.getBoundingClientRect(), name = t.getAttribute('aria-label') || '?';
-      if (!t.classList.contains('is-sure') && (t.offsetWidth !== 22 || t.offsetHeight !== 22)) out.push(`${where}: "${name}" is ${t.offsetWidth}x${t.offsetHeight}, not 22x22`);
+      const want = t.classList.contains('is-submit') ? 44 : 36;
+      /* ROUND (508): every plate a circle, a pill for the wide "are you sure" one. */
+      const rs = getComputedStyle(t).borderTopLeftRadius, rad = /%$/.test(rs) ? parseFloat(rs) * t.offsetWidth / 100 : parseFloat(rs) || 0;
+      if (rad < Math.min(t.offsetWidth, t.offsetHeight) / 2 - 0.5) out.push(`${where}: "${name}" is not round (radius ${rad}px)`);
+      if (!t.classList.contains('is-sure') && (t.offsetWidth !== want || t.offsetHeight !== want)) out.push(`${where}: "${name}" is ${t.offsetWidth}x${t.offsetHeight}, not ${want}x${want}`);
       const i = t.querySelector('.tile-i');
-      const iw = i ? parseFloat(getComputedStyle(i).width) : 10;
-      if (Math.round(iw) !== 10) out.push(`${where}: "${name}" has a ${Math.round(iw)}px mark, not 10px`);
+      const iw = i ? parseFloat(getComputedStyle(i).width) : 16;
+      if (Math.round(iw) !== 16) out.push(`${where}: "${name}" has a ${Math.round(iw)}px mark, not 16px`);
       if (b.right > rr.right + 1) out.push(`${where}: "${name}" spills ${Math.round(b.right - rr.right)}px past its row`);
     });
     for (let a = 0; a < ts.length; a++) for (let c = a + 1; c < ts.length; c++) {

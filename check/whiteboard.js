@@ -309,7 +309,7 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       const n0 = (await items(env)).length, watch = frames(env, 900);
       if (how === 'tile') {
         const t = await env.page.evaluate(() => { const r = document.querySelector('#s-tools .nb-line').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
-        want(t[2] >= 22 && t[3] >= 22, 'the New line tile is the tile size (22px, 487)', JSON.stringify(t));
+        want(t[2] >= 36 && t[3] >= 36, 'the New line tile is the tile size (36px, 508)', JSON.stringify(t));
         await tapN(env, [t]);
       } else if (how === 'swipe') {
         const y = g.pad.t + g.py0 - g.xh * 0.5;

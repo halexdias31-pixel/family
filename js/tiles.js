@@ -155,7 +155,10 @@ function tileIcon_(name) {
 /* ---------- ONE CONTROL § */
 /* ONE CHECK ON EVERY QUESTION (368): the same mark, word and place whatever marks it; an ordinary tile like its neighbours, last in the row (374, the owner: uniformity) */
 function checkTile_(o) {
-  return tile_(Object.assign({ icon: 'send', label: 'Check' }, o));
+  /* AN ANSWER'S SEND IS 44px (508): `is-submit` is the one name every Check/Send carries, so the size is stated once. */
+  o = Object.assign({ icon: 'send', label: 'Check' }, o);
+  o.cls = ((o.cls || '') + ' is-submit').trim();
+  return tile_(o);
 }
 function tile_(o) {
   /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's

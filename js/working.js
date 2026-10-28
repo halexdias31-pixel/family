@@ -39,7 +39,7 @@ function workStripInner_(k) {
   const thumbs = pics.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p.url)}" alt="Page ${i + 1} of your working">
     <button type="button" class="qp-work-x" data-do="qp-work-x" data-k="${esc(k)}" data-i="${i}" aria-label="Remove page ${i + 1}">×</button></span>`).join('');
   const go = pics.length ? tile_({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
-    act: 'qp-work-send', cls: 'qp-work-send', data: { k } }) : '';
+    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : '';
   return `<div class="qp-work-pics">${thumbs}</div><div class="tile-row qp-work-row">${go}</div>
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
 }

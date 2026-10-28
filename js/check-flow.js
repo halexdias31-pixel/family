@@ -29734,6 +29734,39 @@ check('layout engine (466): a split card\'s pieces are cards of their own — ea
   return bad;
 });
 
+check('layout engine (508): ▶ on a Site card makes an admin-only column after Site with the card on it; a settings card cannot move onto it; a client never sees it', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  await layPaintAll_(w);
+  const sid = laySeen_(w, 'site').find(x => /^(site|biz):/.test(x));
+  const right = sid && layCardTile_(d, sid, 'lay-c-col', '1');
+  if (!right || right.disabled) return ['no live ▶ on a Site card (' + sid + ') — NOT checked'];
+  if (right.getAttribute('aria-label') !== 'Move to a new admin-only column') bad.push('▶ on Site says ' + right.getAttribute('aria-label'));
+  A['lay-c-col'](right); await wait(300);
+  const L = layLast_(sent) || {};
+  const cu = (L.custom || [])[0] || {};
+  if (!/^custom-\d+$/.test(cu.id || '') || cu.admin !== true || ((L.cards || {})[cu.id] || []).indexOf(sid) === -1) bad.push('▶ past Site posted ' + JSON.stringify(L));
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf(cu.id) !== ids.indexOf('site') + 1) bad.push('the admin-only column is not just after Site: ' + ids.join());
+  try { w.paint(cu.id); } catch (e) { bad.push('painting it threw ' + e.message); }
+  await wait(150); await layPaintAll_(w);
+  if (laySeen_(w, cu.id).indexOf(sid) === -1) bad.push(sid + ' is not on the new column: ' + laySeen_(w, cu.id).join());
+  /* A SETTINGS CARD'S ▶ never reaches it: the last right-hand public column still offers a public new column. */
+  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
+  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Parent profiles now says ' + (pr && pr.getAttribute('aria-label')));
+  /* A CLIENT reloading has no such column and no section for it. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const p = payload(); p.layout = layLast_(sent);
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
+  if (c.w.__t.TABS.some(x => x.id === cu.id) || c.w.document.getElementById('s-' + cu.id)) bad.push('a client sees the admin-only column');
+  if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
+  /* ◀ BACK to Site empties it and it goes. */
+  A['lay-c-col'](layCardTile_(d, sid, 'lay-c-col', '-1')); await wait(300);
+  if ((layLast_(sent) || {}).custom) bad.push('the emptied admin column was not removed');
+  return bad;
+});
+
 check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
