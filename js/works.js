@@ -39,7 +39,8 @@ function worksItems_() {
     w.languages.forEach(lang => w.chapters.forEach((say, i) => {
       list.push({
         kind: 'worktext', key: 'wt:' + w.id + ':' + lang + ':' + i, name: w.title + ' ' + say, image: '', row: null,
-        shelf: 'History', subject: 'History', histKind: 'Texts', min_age: age, sub: lang,
+        /* ON THE ONE WRITINGS SHELF (504) beside the Bible, the Quran, the Talmud and the Hadith, still a Text of the history database. */
+        shelf: BIBLE_SHELF, subject: SCRIPTURE_SUBJECT(), libBook: w.title, histKind: 'Texts', unit: WRITING_UNIT.worktext, min_age: age, sub: lang,
         text: [w.title, say, lang, w.id].join(' '),
         wtWork: w.title, wtChapter: say, wtLanguage: lang, wt: { id: w.id, file: w.file, i: i, lang: lang },
       });

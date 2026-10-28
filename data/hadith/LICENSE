@@ -1,0 +1,9 @@
+data/hadith/ — the six books of hadith (Kutub al-Sittah) in the original Arabic (docs/history/504), written by tools/hadith-split.py.
+
+Text: the classical Arabic texts compiled by al-Bukhari (d. 870), Muslim (d. 875), Abu Dawud (d. 889), at-Tirmidhi (d. 892),
+      an-Nasa'i (d. 915) and Ibn Majah (d. 887). Public domain by age.
+Digital edition: fawazahmed0/hadith-api, editions ara-bukhari, ara-muslim, ara-abudawud, ara-tirmidhi, ara-nasai, ara-ibnmajah
+      (https://github.com/fawazahmed0/hadith-api, fetched from https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/).
+      Released under The Unlicense (public domain dedication), https://unlicense.org/.
+Book names (in English) are the edition's own section names. Empty entries in the edition are left out.
+No English translation is included: the common modern English translations are under copyright.

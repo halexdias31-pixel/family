@@ -35,13 +35,15 @@ named.filter(f => onDisk.indexOf(f) < 0).forEach(f => fail.push('index.json name
   if (!t.dir || !fs.existsSync(sub)) { fail.push('index.json names the ' + t.translation + ' in data/bible/' + t.dir + ', which is not there'); return; }
   if (!/^https:/.test(String(t.source || '')) || !t.licence) fail.push('the ' + t.translation + ' has no https source or no licence in index.json');
   let empty = 0;
-  books.forEach(b => {
+  /* A TEXT WITH ITS OWN NUMBERING (504: Masoretic, Septuagint, Brenton, Greek NT) is held to its own `books`; the WEB to the KJV's. */
+  (Array.isArray(t.books) ? t.books : books).forEach(b => {
     let d = null;
     try { d = JSON.parse(fs.readFileSync(path.join(sub, b.file), 'utf8')); } catch (e) { fail.push('data/bible/' + t.dir + '/' + b.file + ' is missing or does not parse'); return; }
-    if (!Array.isArray(d.chapters) || d.chapters.length !== b.chapters || d.chapters.some((c, i) => !Array.isArray(c) || c.length !== b.chapterVerses[i])) fail.push('data/bible/' + t.dir + '/' + b.file + ' does not hold the KJV\'s verse counts');
+    if (!Array.isArray(d.chapters) || d.chapters.length !== b.chapters || d.chapters.some((c, i) => !Array.isArray(c) || c.length !== b.chapterVerses[i])) fail.push('data/bible/' + t.dir + '/' + b.file + ' does not hold ' + (t.books ? 'its own index entry\'s' : 'the KJV\'s') + ' verse counts');
     else d.chapters.forEach(c => c.forEach(v => { if (!v) empty++; }));
   });
-  if (empty > 20) fail.push(empty + ' verses of the ' + t.translation + ' are empty — the split went wrong');
+  /* A NUMBER A TEXT SKIPS is '' (its card says so); the Septuagint skips some hundreds, a split gone wrong thousands. */
+  if (empty > (t.books ? 400 : 20)) fail.push(empty + ' verses of the ' + t.translation + ' are empty — the split went wrong');
 });
 
 /* ---------- THE SPLIT, VERSE BY VERSE ------------------------------------------------------------ */
@@ -228,7 +230,7 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_TR_WORDS', 'bibleTrs_', 'bibleSlot_', 'BIBLE_SHELF', 'WRITING_UNIT', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
@@ -239,7 +241,20 @@ if (listSrc.some(s => !s)) {
   catch (e) { fail.push('bibleVerseList_ threw on the real index: ' + e.message); }
   const list = made && Array.isArray(made.list) ? made.list : [];
   listed = list.length;
-  if (made && list.length !== rows.length) fail.push('the verse list holds ' + list.length + ' items and the archive ' + rows.length + ' verses — every verse is a card, once');
+  /* ONE CARD, ONE TEXT (504): every verse once per text the index names — the KJV first, then each of `also`, each over its own books. */
+  const trs = [{ code: String(index.translation), say: String(index.translation), books: books }].concat((index.also || [])
+    .map(t => ({ code: String(t.translation), say: String(t.say || t.translation), books: Array.isArray(t.books) ? t.books : books })));
+  const sizes = trs.map(t => t.books.reduce((n, b) => n + b.verses, 0));
+  const total = sizes.reduce((a, n) => a + n, 0);
+  if (made && list.length !== total) fail.push('the verse list holds ' + list.length + ' items and the ' + trs.length + ' texts ' + total + ' verses — every verse is a card, once a text');
+  let from = 0;
+  trs.forEach((t, ti) => {
+    const part = list.slice(from, from + sizes[ti]);
+    from += sizes[ti];
+    const odd = part.filter(x => !x || !x.bb || x.bb.translation !== t.say || x.key.indexOf('bible:' + t.code.toLowerCase() + ':') !== 0).length;
+    if (made && odd) fail.push(odd + ' ' + t.say + ' cards carry another text or key — one card is one text, its Text tag');
+  });
+  if (made && sizes[0] !== rows.length) fail.push('the KJV counts ' + sizes[0] + ' verses and the archive ' + rows.length);
   const keys = new Set(list.map(x => x && x.key));
   if (made && keys.size !== list.length) fail.push((list.length - keys.size) + ' verse keys are not unique — two cards would share one star');
   /* THE CITATION, WRITTEN HERE RATHER THAN BY `bibleCite_`: a psalm is `Psalm 23`, every other book is
@@ -258,6 +273,7 @@ if (listSrc.some(s => !s)) {
       : x.kind !== 'bible' || !x.bb || x.bb.n !== n || x.ch !== String(c) || x.v !== String(v) ? 'its book, chapter or verse fields are wrong'
       : x.sub !== r.book ? 'its sub is "' + x.sub + '"'
       : ['testament', 'group', 'book'].some(k => String(x.bb[k] || '') === '') ? 'its book record is missing a field'
+      : x.bb.translation !== index.translation ? 'its Translation tag is ' + x.bb.translation
       : ['bible', 'kjv', b.book, b.group, x.bb.testament].some(w => String(x.text || '').toLowerCase().indexOf(String(w).toLowerCase()) < 0)
         ? 'a search for its book, group or testament would not find it'
       : '';
@@ -267,7 +283,7 @@ if (listSrc.some(s => !s)) {
   /* `starts` IS HOW A STAR FINDS ITS VERSE WITHOUT A SEARCH: each chapter's first verse, by position. */
   let lost = 0;
   books.forEach(b => (b.chapterVerses || []).forEach((_, ci) => {
-    const at = made && made.starts && made.starts[b.n - 1] ? made.starts[b.n - 1][ci] : undefined;
+    const at = made && made.starts && made.starts[tr] && made.starts[tr][b.n - 1] ? made.starts[tr][b.n - 1][ci] : undefined;
     const x = at == null ? null : list[at];
     if (!x || x.key !== 'bible:' + tr + ':' + b.n + ':' + (ci + 1) + ':1') lost++;
   }));
@@ -284,8 +300,10 @@ const gateM = /const bibleFor_ = \(\) => ([^;]+);/.exec(findSrc);
 if (!gateM) fail.push('`bibleFor_` is not in js/find.js — there is no one place deciding who sees the Bible');
 /* OR THE RULES CARD'S `kjv-admin` made universal (496): the owner's own switch, of age still required. */
 else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()))") {
-  fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — the owner said "only admin can see the bible", which is isAdmin() and nothing else');
+  fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — an admin, or anyone of age while `kjv-admin` is Universal (504)');
 }
+/* PUBLIC BY DEFAULT (504): "it's open source so I don't care about it being public" — `kjv-admin` is a `flip` rule, Universal until switched. */
+if (!/\{\s*id: 'kjv-admin',[^}]*flip: true\s*\}/.test(fs.readFileSync(path.join(root, 'js', 'rules.js'), 'utf8'))) fail.push('`kjv-admin` in js/rules.js is not `flip: true` — the Bible would be admin-only until the owner switched it, and he said he does not mind it public');
 const itemsSrc = cutFrom(findSrc, 'bibleItems_') || '';
 if (!/^function bibleItems_\(\) \{\s*if \(!bibleFor_\(\)\) return \[\];/.test(itemsSrc)) {
   fail.push('`bibleItems_` does not open by returning nothing unless `bibleFor_()` — the item would be built for everybody');

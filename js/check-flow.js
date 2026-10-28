@@ -20838,7 +20838,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const early = { field: 'paperId', value: 'P-NOT-HERE-YET' };
   Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
-    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Books' },
+    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Writings' },
            { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' },
            { field: 'examWave', value: 'Summer 2018' }, { field: 'shelf', value: '@family. textbooks' },
            { field: 'book', value: 'GCSE Statistics' }, early];
@@ -20886,7 +20886,7 @@ check('Find 2 across a sign-in: signed out it is the members card, signed in it 
     if (!b) return bad.concat(['the admin boot did not load — NOT checked']);
     const { w } = b, t = w.__t, d = w.document;
     t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
     if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Books shelf, so its going was NOT checked');
@@ -21002,8 +21002,8 @@ check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learn
   const order = w.facetList().map(f => f.field), at = f => order.indexOf(f);
   if (!(at('kindLabel') < at('subject') && at('subject') < at('shelf') && at('shelf') < at('libBook') && at('libBook') < at('talSeder') && at('libBook') < at('bibleTranslation')))
     bad.push('the funnel does not ask What kind, Subject, Shelf, Which book, then each book’s own: ' + ['kindLabel', 'subject', 'shelf', 'libBook', 'talSeder', 'bibleTranslation'].map(f => f + '@' + at(f)).join(' '));
-  if (x.subject !== 'Religious Studies' || x.shelf !== 'Books' || x.libBook !== 'Talmud') bad.push('Berakhot 2a is ' + [x.subject, x.shelf, x.libBook].join(', ') + ' — wanted Religious Studies, on Books, the Talmud (494)');
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' }, { field: 'libBook', value: 'Talmud' },
+  if (x.subject !== 'Religious Studies' || x.shelf !== 'Writings' || x.libBook !== 'Talmud') bad.push('Berakhot 2a is ' + [x.subject, x.shelf, x.libBook].join(', ') + ' — wanted Religious Studies, on Writings, the Talmud (494)');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Writings' }, { field: 'libBook', value: 'Talmud' },
     { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter },
     { field: 'talDaf', value: '2' }, { field: 'talSide', value: 'Side a' }];
   const got = w.stuffFiltered();
@@ -21091,7 +21091,7 @@ check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Lib
   const x = w.stuffItemsAll_().find(y => y.key === 'qr:2:255');
   if (!x) return bad.concat(['Al-Baqara 2:255 is not on the list of everything']);
   if (x.quranJuz !== 'Juz 3' || x.quranPlace !== 'Medinan') bad.push('2:255 is tagged ' + x.quranJuz + ', ' + x.quranPlace + ' — not Juz 3, Medinan');
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' }, { field: 'libBook', value: 'Quran' },
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Writings' }, { field: 'libBook', value: 'Quran' },
     { field: 'quranSurah', value: '2 · Al-Baqara' }, { field: 'quranAyah', value: '255' }];
   const got = w.stuffFiltered();
   if (got.length !== 1 || got[0] !== x) bad.push('the five answers keep ' + got.length + ' thing(s), not 2:255 alone');
@@ -21332,7 +21332,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
   if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
   T.go('stuff'); await wait(80);
-  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Books' },
+  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Writings' },
     { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
   T.STUFF().filters = chips.map(f => Object.assign({}, f));
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
@@ -21356,7 +21356,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   for (let i = 0; i < 80 && /Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || ''); i++) await wait(25);
   if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('an admin\'s Find says "Nothing matches" after the reload');
   /* NEITHER FINDER DROPS AN ADMIN'S BIBLE CHIP. */
-  const g = { field: 'bibleBook', value: 'Genesis' }, books = { field: 'shelf', value: 'Books' };
+  const g = { field: 'bibleBook', value: 'Genesis' }, books = { field: 'shelf', value: 'Writings' };
   if (w.placeChipDead_(g) || w.placeChipDead_(books)) bad.push('Find would drop an admin\'s own Bible chip from a kept place');
   if (inRes_(w, () => w.placeChipDead_(g) || w.placeChipDead_(books))) bad.push('Find 2 would drop an admin\'s own Bible chip from a kept place');
   /* ---- THE SAME PLACE, KEPT BY SOMEBODY THE BIBLE IS NOT FOR: its chips go, the rest stay ---- */
@@ -25601,7 +25601,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     /* THE BOOKS SHELF IS ON THE RESOURCES COLUMN NOW (docs/history/329); Find holds a question of the
        admin's own beside it, and both go. */
     t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
@@ -25745,7 +25745,7 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     const t = w.__t;
     /* ON THE RESOURCES COLUMN, where the Books shelf is now (docs/history/329). */
     t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
     await w.api({ action: 'sessionProbe', personId: 'P001' });
@@ -27302,7 +27302,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
   if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
   t.RES().q = '';
-  t.RES().filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+  t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
     { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }, { field: 'bibleBook', value: 'Leviticus' }];
   t.PAGE().res = 0;
   /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a

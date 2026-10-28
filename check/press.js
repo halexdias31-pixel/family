@@ -750,7 +750,7 @@ for (const who of VISITORS) {
         go('res', false, true);
         inFinder_(finderOf_('res'), () => {
           STUFF.q = '';
-          STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+          STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                            { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
                            { field: 'bibleBook', value: 'Psalms' }];
           paintStuff();

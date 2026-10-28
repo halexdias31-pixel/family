@@ -157,6 +157,8 @@ const KINDS = {
   quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
   /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
   worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
+  /* THE HADITH (504): one card a hadith, js/hadith.js. */
+  hadith: { group: 'Learning', label: 'Library', card: x => hadithCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -377,9 +379,10 @@ const FACETS = [
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
   /* WHICH BOOK ON THE BOOKS SHELF (494): the Bible, the Quran or the Talmud, before each one's own questions. */
-  { field: 'libBook',   label: 'Which book',  of: x => x.libBook || '' },
+  { field: 'libBook',   label: 'Which writing', of: x => x.libBook || '' },
   /* THE BIBLE'S SIX: admin-only data (`bibleFor_`), and ordinary questions about it. */
-  { field: 'bibleTranslation', label: 'Translation',
+  /* `Text`, not Translation (504): the Masoretic and the Greek are the originals. */
+  { field: 'bibleTranslation', label: 'Text',
     of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
   { field: 'bibleTestament', label: 'Testament', of: x => (x.bb ? x.bb.testament : '') },
   { field: 'bibleGroup',     label: 'Group',     of: x => (x.bb ? x.bb.group : '') },
@@ -427,11 +430,18 @@ const FACETS = [
   /* EACH SIDE A CARD (490), so the side is asked like any other tag. */
   { field: 'talSide',   label: 'Side',        of: x => x.talSide || '' },
   /* THE QURAN'S (490): ordinary tags on every verse. */
+  /* ONE LANGUAGE A CARD (504): Arabic or Pickthall's English, asked first. */
+  { field: 'quranTranslation', label: 'Translation', of: x => x.quranTranslation || '' },
   { field: 'quranSurah', label: 'Surah',      of: x => x.quranSurah || '' },
   { field: 'quranAyah', label: 'Ayah',        of: x => x.quranAyah || '' },
   { field: 'quranJuz',  label: 'Juz',         of: x => x.quranJuz || '' },
   { field: 'quranPlace', label: 'Revealed',   of: x => x.quranPlace || '' },
   { field: 'quranSajda', label: 'Prostration', of: x => x.quranSajda || '' },
+  /* THE HADITH'S (504): which of the six, which book, which number, and its language. */
+  { field: 'hadithTranslation', label: 'Translation', of: x => x.hadithTranslation || '' },
+  { field: 'hadithCollection', label: 'Collection', of: x => x.hadithCollection || '' },
+  { field: 'hadithBook', label: 'Book',       of: x => x.hadithBook || '' },
+  { field: 'hadithNumber', label: 'Hadith',   of: x => x.hadithNumber || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -1835,12 +1845,17 @@ function histTimelineCard_(x) {
 }
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
-const BIBLE_NAME = 'The Bible (King James Version)';
+const BIBLE_NAME = 'The Bible';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. § */
-const BIBLE_SHELF = 'Books';
+/* `Writings` (504), not `Books`: the owner, "remove the word Books and replace with Writings as it encompasses more". */
+const BIBLE_SHELF = 'Writings';
 /* THE WORDS A SEARCH FINDS IT BY, on the cover and on every verse: what somebody types for the
    Bible that its name does not already say. */
-const BIBLE_WORDS = 'KJV King James Authorized Version scripture';
+const BIBLE_WORDS = 'scripture';
+/* EACH TRANSLATION'S OWN WORDS (504), on its cards only, so "KJV" finds no WEB verse. */
+const BIBLE_TR_WORDS = { KJV: 'KJV King James Authorized Version', WEB: 'WEB World English Bible',
+  HBO: 'Masoretic Hebrew Tanakh original', LXX: 'Septuagint LXX Greek original', BRENTON: 'Brenton English Septuagint',
+  GNT: 'Greek New Testament original Byzantine Robinson Pierpont' };
 
 /* EVERYTHING IT KNOWS, IN ONE PLACE. § */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
@@ -1852,7 +1867,7 @@ const BIBLE_FIELDS = {};
 FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT § */
-/* A RULE (496): `kjv-admin` — an admin only; Universal, anyone of age too, like the Talmud and the Quran. check-bible reads this line. */
+/* A RULE (496, 504): `kjv-admin` — Universal by default now, anyone of age like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
 const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
 /* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
 const SCRIPTURE_MIN_AGE = 18;
@@ -1861,14 +1876,44 @@ const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('script
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
+/* ONE RULE FOR A WRITING'S CARDS (504): "each verse or chapter is a widget" — a verse (or numbered section) where it has them, else a chapter;
+   the Talmud a daf side. */
+const WRITING_UNIT = { bible: 'verse', quran: 'verse', hadith: 'verse', worktext: 'chapter', talmud: 'page' };
+
+/* THE DOTS UNDER A SCRIPTURE QUESTION (504) wait for its indexes, never the payload, which adds no answer there; a failed index is said.
+   null: not scripture's question. */
+const SCRIPTURE_KINDS = { bible: 1, quran: 1, talmud: 1, hadith: 1, worktext: 1 };
+function scriptureWait_(items) {
+  if (!items || !items.length || !items.every(x => x && SCRIPTURE_KINDS[x.kind])) return null;
+  const books = [['the Bible', BIBLE, bibleFor_()],
+    ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
+    ['the Talmud', typeof TALMUD !== 'undefined' ? TALMUD : null, typeof talmudFor_ === 'function' && talmudFor_()],
+    ['the Hadith', typeof HADITH !== 'undefined' ? HADITH : null, typeof hadithFor_ === 'function' && hadithFor_()],
+    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, viewerOfAge_(scriptureMinAge_())]]
+    .filter(b => b[1] && b[2]);
+  if (books.some(b => b[1].asking)) return loading_();
+  const gone = books.filter(b => b[1].failed).map(b => b[0]);
+  return gone.length ? '<p class="find-end">The list of ' + esc(gone.join(' and ')) + ' did not arrive. <b>Pull down to try again.</b></p>' : '';
+}
+
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
   if (!bibleFor_()) return Promise.resolve(null);
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
-  return Promise.resolve()
-    .then(() => fetch('data/bible/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
+  return scriptureFetch_(o => fetch('data/bible/' + file + scriptureStamp_(), o));
+}
+/* SCRIPTURE'S FETCHES END (504): a request that hangs is given up after this long and said as a miss, so no wait lasts for ever. */
+const SCRIPTURE_WAIT_MS = 20000;
+const scriptureStamp_ = () => (window.LOAD ? '?t=' + window.LOAD : '');
+function scriptureFetch_(ask) {
+  return new Promise(done => {
+    let over = false, ab = null;
+    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) {}
+    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) {} done(null); }, SCRIPTURE_WAIT_MS);
+    Promise.resolve().then(() => ask(ab ? { cache: 'default', signal: ab.signal } : { cache: 'default' }))
+      .then(res => (res && res.ok) ? res.json() : null)
+      .catch(() => null)
+      .then(d => { clearTimeout(t); if (!over) done(d); });
+  });
 }
 
 /* THE LIST OF BOOKS — asked for once, the first time an admin's Find is built, which is long before a finger reaches the shelf. § */
@@ -1903,6 +1948,27 @@ function bibleIndex_() {
   }
   return null;
 }
+/* ONE CARD, ONE TRANSLATION (504): the owner, "1 widget is one verse ... the translation is a tag". The KJV keeps its own slot `n`, a second
+   translation `dir:n`, so a KJV star's key and every KJV caller stay as they were. */
+/* EACH TEXT (504): its code, the Text tag it answers (`say`), its language, and its own books when its numbering is its own. */
+function bibleTrs_(ix) {
+  return [{ tr: String(ix.translation), dir: '', say: String(ix.translation), lang: 'en', books: ix.books }].concat((ix.also || [])
+    .filter(t => t && /^[a-z]+$/.test(String(t.dir || '')) && /^[A-Za-z0-9]+$/.test(String(t.translation || '')))
+    .map(t => ({ tr: String(t.translation), dir: String(t.dir), say: String(t.say || t.translation), lang: String(t.lang || 'en'),
+                 books: Array.isArray(t.books) ? t.books : ix.books })));
+}
+/* ONE BOOK OF ONE TEXT, by its number: its own record (chapters, verse counts, file). */
+function bibleBookIn_(n, dir) {
+  const t = BIBLE.index && bibleTrs_(BIBLE.index).find(t => t.dir === (dir || ''));
+  return (t && t.books.find(b => b.n === Number(n))) || null;
+}
+const bibleSlot_ = (n, dir) => dir ? dir + ':' + n : n;
+/* THE WORDS OF ONE VERSE in its card's own translation, or '' until its book has come. */
+function bibleText_(x) {
+  const d = x && x.bb && BIBLE.books[x.bb.slot];
+  const c = d && d.chapters[Number(x.ch) - 1];
+  return c && c[Number(x.v) - 1] != null ? c[Number(x.v) - 1] : '';
+}
 const bibleBook_ = n => (BIBLE.index && BIBLE.index.books[n - 1]) || null;
 const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 /* `Psalm 23`, NOT `Psalms 23` — the book is the Psalms and a chapter of it is a psalm. The one book
@@ -1916,7 +1982,7 @@ const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: b
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S § */
 function bibleRankOf_(ix) {
   const r = { t: { oldtestament: 0, newtestament: 1 }, g: {}, b: {} };
-  ix.books.forEach(b => {
+  [].concat(...bibleTrs_(ix).map(t => t.books)).forEach(b => {
     const g = spellKey_(b.group);
     if (!(g in r.g)) r.g[g] = b.n;
     r.b[spellKey_(b.book)] = b.n;
@@ -1924,36 +1990,25 @@ function bibleRankOf_(ix) {
   return r;
 }
 
-/* ONE BOOK, ONCE A VISIT. Held to the index's own count of every chapter's verses, so a file that came
+/* ONE BOOK OF ONE TRANSLATION, ONCE A VISIT. Held to the index's own count of every chapter's verses, so a file that came
    back half-written is a failure said on the card rather than a verse drawn from the wrong place. */
-function bibleLoad_(n) {
-  if (BIBLE.books[n]) return Promise.resolve(BIBLE.books[n]);
-  if (BIBLE.loading[n]) return BIBLE.loading[n];
-  const b = bibleBook_(n);
+function bibleLoad_(n, dir) {
+  const k = bibleSlot_(n, dir || '');
+  if (BIBLE.books[k]) return Promise.resolve(BIBLE.books[k]);
+  if (BIBLE.loading[k]) return BIBLE.loading[k];
+  const b = bibleBookIn_(n, dir);
   if (!b || !bibleFor_()) return Promise.resolve(null);
-  BIBLE.loading[n] = bibleGet_(b.file).then(d => {
-    delete BIBLE.loading[n];
+  BIBLE.loading[k] = bibleGet_((dir ? dir + '/' : '') + b.file).then(d => {
+    delete BIBLE.loading[k];
     const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
       && d.chapters.every((c, i) => Array.isArray(c) && c.length === b.chapterVerses[i]
                                     && c.every(v => typeof v === 'string'));
-    BIBLE.missed[n] = !ok;
+    BIBLE.missed[k] = !ok;
     if (!ok) return null;
-    BIBLE.books[n] = d;
-    return bibleAlsoLoad_(n, b).then(() => d);
+    BIBLE.books[k] = d;
+    return d;
   });
-  return BIBLE.loading[n];
-}
-
-/* THE SECOND TRANSLATION'S BOOK (499, the World English Bible), held to the same counts; a miss leaves the KJV alone on the card. */
-function bibleAlsoLoad_(n, b) {
-  const t = BIBLE.index && (BIBLE.index.also || [])[0];
-  if (!t || !/^[a-z]+$/.test(String(t.dir || '')) || BIBLE.also[n]) return Promise.resolve(null);
-  return bibleGet_(t.dir + '/' + b.file).then(d => {
-    const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
-      && d.chapters.every((c, i) => Array.isArray(c) && c.length === b.chapterVerses[i]);
-    if (ok) BIBLE.also[n] = d;
-    return ok ? d : null;
-  });
+  return BIBLE.loading[k];
 }
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
@@ -1963,14 +2018,21 @@ function bibleChosen_() {
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
+/* THE CHOSEN TRANSLATION'S FOLDER: '' for the KJV, or when none is chosen yet. */
+function bibleChosenDir_() {
+  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const f = (st.filters || []).find(x => x.field === 'bibleTranslation' && x.value != null);
+  const t = f && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => t.say === f.value) : null;
+  return t ? t.dir : '';
+}
 function bibleAhead_() {
-  const n = bibleChosen_();
-  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return;
-  bibleLoad_(n).then(() => bibleRedraw_(n));
+  const n = bibleChosen_(), dir = bibleChosenDir_(), k = bibleSlot_(n, dir);
+  if (!n || !bibleFor_() || BIBLE.books[k] || BIBLE.loading[k] || BIBLE.missed[k]) return;
+  bibleLoad_(n, dir).then(() => bibleRedraw_(k));
 }
 function bibleJobs_() {
-  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0;
-  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return [];
+  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
+  if (!n || !bibleFor_() || BIBLE.books[k] || BIBLE.loading[k] || BIBLE.missed[k]) return [];
   return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('res', null), run: bibleAhead_ }];
 }
 AHEAD_KINDS.push(bibleJobs_);
@@ -1987,20 +2049,22 @@ const bibleV_ = t => '<p class="bb-v">'
 /* ---------- EVERY VERSE, AS AN ITEM § */
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
-  const list = [], starts = [];
-  const tr = String(ix.translation), head = 'bible:' + tr.toLowerCase() + ':', rs = SCRIPTURE_SUBJECT();
-  ix.books.forEach(b => {
-    const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: tr,
-                 words: bibleBookWords_(b) };
-    const at = starts[b.n - 1] = [];
-    b.chapterVerses.forEach((count, ci) => {
-      const c = ci + 1, cite = bibleCite_(b, c) + ':';
-      at.push(list.length);
-      for (let v = 1; v <= count; v++) {
-        list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
-                    min_age: scriptureMinAge_() });
-      }
+  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT();
+  bibleTrs_(ix).forEach(t => {
+    const head = 'bible:' + t.tr.toLowerCase() + ':', st = starts[t.tr.toLowerCase()] = [];
+    t.books.forEach(b => {
+      const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: t.say,
+                   dir: t.dir, lang: t.lang, slot: bibleSlot_(b.n, t.dir), words: bibleBookWords_(b) + ' ' + (BIBLE_TR_WORDS[t.tr] || t.say) };
+      const at = st[b.n - 1] = [];
+      b.chapterVerses.forEach((count, ci) => {
+        const c = ci + 1, cite = bibleCite_(b, c) + ':';
+        at.push(list.length);
+        for (let v = 1; v <= count; v++) {
+          list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
+                      shelf: BIBLE_SHELF, libBook: 'Bible', unit: WRITING_UNIT.bible, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
+                      min_age: scriptureMinAge_() });
+        }
+      });
     });
   });
   return { list: list, starts: starts };
@@ -2023,9 +2087,10 @@ function bibleVerses_() {
 function bibleByKey_(k) {
   const m = /^bible:([a-z0-9]+):(\d+):(\d+):(\d+)$/.exec(String(k || ''));
   const ix = BIBLE.index;
-  if (!m || !ix || m[1] !== String(ix.translation).toLowerCase()) return null;
+  if (!m || !ix) return null;
   const list = bibleVerses_();
-  const at = BIBLE.verses && BIBLE.verses.starts[Number(m[2]) - 1];
+  const st = BIBLE.verses && BIBLE.verses.starts[m[1]];
+  const at = st && st[Number(m[2]) - 1];
   const i = at ? at[Number(m[3]) - 1] : undefined;
   if (i == null) return null;
   const x = list[i + Number(m[4]) - 1];
@@ -2066,28 +2131,29 @@ function bibleCard_(x) {
 
 /* ---------- ONE VERSE, A CARD OF ITS OWN § */
 function bibleVerseCard_(x) {
-  const bb = x.bb, n = bb.n, d = BIBLE.books[n];
+  const bb = x.bb, n = bb.n, k = bb.slot, d = BIBLE.books[k];
+  const also = bb.dir && BIBLE.index ? (BIBLE.index.also || []).find(a => a.dir === bb.dir) : null;
   let body;
   if (d) {
-    const t2 = BIBLE.index && (BIBLE.index.also || [])[0], w2 = BIBLE.also[n];
-    const second = w2 && w2.chapters[Number(x.ch) - 1][Number(x.v) - 1];
-    body = '<p class="bb-tr">' + esc(BIBLE.index.translation) + '</p>' + bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1])
-      + (second ? '<p class="bb-tr">' + esc(t2.translation) + '</p><p class="bb-v bb-v2">' + esc(second) + '</p>' : '')
-      + '<p class="bb-credit">KJV (1611) and ' + (t2 ? esc(t2.name) : 'WEB') + ': public domain</p>';
+    const w = bibleText_(x), he = bb.lang === 'he';
+    body = '<p class="bb-tr">' + esc(bb.translation) + '</p>'
+      + (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
+        : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
+        : bibleV_(w))
+      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : 'King James Version (1611)') + ': public domain</p>';
   }
-  else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
+  else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
-    /* WAITING FOR ITS BOOK: the one loader, where the verse will be. It was a faint "…" with
-       `aria-busy` — the Bible's own wait, one of the twenty-four the owner was looking at on 9 Oct. */
+    /* WAITING FOR ITS BOOK: the one loader, where the verse will be. */
     body = loading_();
-    if (!BIBLE.loading[n]) {
-      bibleLoad_(n).then(got => {
+    if (!BIBLE.loading[k]) {
+      bibleLoad_(n, bb.dir).then(got => {
         if (!got) toast(bb.book + ' did not arrive — Try again is under the verse.');
-        bibleRedraw_(n);
+        bibleRedraw_(k);
       });
     }
   }
-  return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${n}" data-key="${esc(x.key)}">
+  return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${esc(String(k))}" data-key="${esc(x.key)}">
     ${tagRow_(x)}
     ${body}
   </div>`;
@@ -2101,8 +2167,8 @@ function bibleTiles_(x) {
     return BIBLE.failed ? tile_({ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }) : '';
   }
   const bb = x.bb;
-  const again = BIBLE.missed[bb.n] && !BIBLE.loading[bb.n]
-    ? tile_({ icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.n } }) : '';
+  const again = BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
+    ? tile_({ icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } }) : '';
   return again + (bibleHere_(x) ? ''
     : tile_({ icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }));
 }
@@ -2134,7 +2200,7 @@ function bibleKept_(has) {
 /* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS § */
 function bibleRedraw_(n) {
   if (typeof document === 'undefined') return;
-  const sel = n ? '.card.bb-verse[data-bn="' + Number(n) + '"]' : '.card.bible[data-bb="card"]';
+  const sel = n ? '.card.bb-verse[data-bn="' + String(n).replace(/[^a-z0-9:]/g, '') + '"]' : '.card.bible[data-bb="card"]';
   document.querySelectorAll(sel).forEach(el => {
     const x = n ? bibleByKey_(el.getAttribute('data-key')) : BIBLE.item;
     if (!x) return;
@@ -2162,7 +2228,7 @@ on('bible-go', el => {
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
   const F = finderAt_(el);
-  const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
+  const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: x ? x.bb.translation : BIBLE.index.translation }];
   if (x) {
     f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
            { field: 'bibleBook', value: x.bb.book }, { field: 'bibleChapter', value: x.ch });
@@ -2180,7 +2246,7 @@ on('bible-go', el => {
 /* AGAIN, AFTER A FAILURE: a book (`data-n`), which redrawing its cards fetches; or the list of books. */
 on('bible-retry', el => {
   if (!bibleFor_()) return;
-  const n = Number(el && el.getAttribute('data-n')) || 0;
+  const a = String((el && el.getAttribute('data-n')) || ''), n = /^\d+$/.test(a) ? Number(a) : a;
   if (n) { delete BIBLE.missed[n]; bibleRedraw_(n); return; }
   BIBLE.failed = false;
   bibleIndex_();
@@ -8242,7 +8308,7 @@ function magPaint_() {
 }
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
 /* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qToolTiles_`) */
-const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, paper: 1, document: 1 };
+const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardTile_(x) {
   if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return '';
   if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return '';
@@ -8724,6 +8790,7 @@ function findPlaceBack_(F) {
       if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
       STUFF.filters = (Array.isArray(p.f) ? p.f : [])
         .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
+        .map(placeChipMoved_)
         .filter(f => !placeChipDead_(f));
       STUFF.q = typeof p.q === 'string' ? p.q : '';
       const box = $(F.id + '-q');
@@ -8744,9 +8811,14 @@ function findPlaceBack_(F) {
 const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 /* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
 const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons', 'Inserts', 'Content'], documentType: ['Insert'] };
+/* AN ANSWER THAT WAS RENAMED (504): the `Books` shelf is `Writings`, so a kept place on it stands on Writings. */
+const MOVED_ANSWERS = { shelf: { Books: BIBLE_SHELF } };
+const placeChipMoved_ = f => (f && MOVED_ANSWERS[f.field] && MOVED_ANSWERS[f.field][f.value]
+  ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f);
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
-  if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
+  if (BIBLE_FIELDS[f.field]) return !bibleFor_();
+  if (f.field === 'shelf' && f.value === BIBLE_SHELF) return !viewerOfAge_(scriptureMinAge_());
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -8934,6 +9006,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
+    ...(typeof hadithItems_ === 'function' ? hadithItems_() : []),
     ...(typeof worksItems_ === 'function' ? worksItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
@@ -10215,7 +10288,8 @@ const TAG_OF = {
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
   /* THE TALMUD'S (473), the same way. */
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
-  quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
+  hadithCollection: 'level', hadithBook: 'topic', hadithNumber: 'paper', hadithTranslation: 'board',
+  quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
   wtWork: 'topic', wtChapter: 'paper', wtLanguage: 'board',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
@@ -10386,6 +10460,7 @@ function paintStuff(keepPage) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
   /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
+  if (typeof hadithIndex_ === 'function') hadithIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
@@ -11054,7 +11129,8 @@ function stuffQuestion() {
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
-  const more = typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
+  const sw = scriptureWait_(items);
+  const more = sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>

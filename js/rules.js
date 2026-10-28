@@ -15,8 +15,9 @@ const RULES = [
     uni: 'They say "Suggest a change" like everything else; the admin is still emailed at once.' },
   { id: 'scripture-age', say: 'The Bible, Talmud and Quran are for 18 and over only', where: 'Find and Find 2 (490)',
     uni: 'Open to every age, like every other item.' },
-  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490)',
-    uni: 'Anyone of age sees it, like the Talmud and the Quran.' },
+  /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
+  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490, 504)',
+    uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
   { id: 'finder-members', say: 'Signed out, Find and Find 2 are one "Members only" card', where: 'Find and Find 2 (400)',
     uni: 'Signed out sees the finders like every other column.' },
   { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
@@ -86,8 +87,11 @@ function ruleOn_(id) {
   const r = RULE_OF_(id);
   if (!r || r.lock) return true;
   const s = rulesNow_();
-  return !(s && s.set && s.set[id] === 'universal');
+  const marked = !!(s && s.set && s.set[id] === 'universal');
+  return r.flip ? marked : !marked;
 }
+/* WHAT THE BACKEND STORES for a choice: a `flip` rule is stored the other way round, so the backend needs no change. */
+const ruleStored_ = (r, to) => r && r.flip ? (to === 'universal' ? 'exception' : 'universal') : to;
 /* THE RULES ONLY CSS CAN APPLY, said on the root as `data-uni` (style.css reads `:root[data-uni~="…"]`). */
 function rulesMark_() {
   try {
@@ -117,7 +121,7 @@ function rulesCard_() {
   };
   return `<div class="card biz rules-card"><h3>Rules</h3>
     ${RULES.map(row).join('')}
-    <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + last.was + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Undo', note: lastR ? 'back to ' + ruleStored_(lastR, last.was) + ': ' + lastR.say.slice(0, 60) : 'nothing to undo', act: 'rules-undo', tone: 'admin', off: !last })}</div>
     <p class="faint rules-said" aria-live="polite"></p></div>`;
 }
 function rulesSend_(body, el) {
@@ -137,6 +141,6 @@ function rulesSend_(body, el) {
 on('rule-set', el => {
   const id = el.getAttribute('data-rule'), to = el.getAttribute('data-to'), r = RULE_OF_(id);
   if (!r || r.lock || (to === 'universal') === !ruleOn_(id)) return;
-  rulesSend_({ rule: id, to: to }, el);
+  rulesSend_({ rule: id, to: ruleStored_(r, to) }, el);
 });
 on('rules-undo', el => rulesSend_({ undo: true }, el));
