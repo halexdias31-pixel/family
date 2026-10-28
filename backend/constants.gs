@@ -46,6 +46,8 @@ const WHERE = {
   applications:   { file: 'ledger' },
   /* AN ADMIN'S NOTE FOR CLAUDE ON A WIDGET OR CARD (484) — the Ledger, because the app writes it. Admin-only to read. */
   claude_notes:   { file: 'ledger' },
+  /* A SCREEN THAT THREW ON SOMEBODY'S PHONE — the Ledger, because the app writes it. Admin-only to read; no learner data in a row. */
+  client_errors:  { file: 'ledger' },
   /* A PERSON'S FAVOURITE LINKS (509) — the Ledger, because the app writes it. doGet sends each viewer their own rows alone. */
   fav_links:      { file: 'ledger' },
   /* A PHONE'S NOTIFICATION ADDRESS (492) — the Ledger, because the app writes it. Never sent by doGet. */
@@ -125,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zz5-merge4";
+const BACKEND_VERSION = "2026-10-28-r2-safety";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -161,6 +163,8 @@ const TAB = {
   applications: 'applications',
   /* A note for Claude on a widget or card — see SCHEMA.claude_notes. */
   claude_notes: 'claude_notes',
+  /* What broke on a phone — see SCHEMA.client_errors. */
+  client_errors: 'client_errors',
   /* A person's favourite links — see SCHEMA.fav_links. */
   fav_links: 'fav_links',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
@@ -502,6 +506,11 @@ const SCHEMA = {
      `status`: open (or blank), done, pending (a non-admin's, 494) or dismissed; open ones are in the Drive file. */
   claude_notes: [
     "note_id", "made_at", "made_by", "column", "item_id", "item_label", "note", "status", "done_at",
+  ],
+
+  /* ---------- ERRORS FROM PHONES (O5): one row per distinct message+where+version, counted; never a name, answer or id ---------- */
+  client_errors: [
+    "error_id", "first_at", "last_at", "count", "devices", "message", "where", "version", "screen",
   ],
 
   /* ---------- FAVOURITE LINKS (509): one row per link, in the person's order, ten at most ---------- */
@@ -1622,6 +1631,8 @@ const ACTION_ACCESS = {
   submitAnswer: 'self',
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
+  /* AN ERROR FROM A PHONE: `anyone`, because a screen can break before sign-in; throttled per device and day in the handler. */
+  clientError: 'anyone', listClientErrors: 'admin',
   suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',

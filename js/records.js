@@ -129,7 +129,7 @@ function bizPages_() {
   /* PROFIT FIRST, as the column opens; then applications, staff and the records. The site's own cards are the Site column's (491). */
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(appsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
+  return profitCards_().concat(appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
 }
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
@@ -221,6 +221,45 @@ on('app-decide', el => {
     })
     .catch(() => {});
 });
+
+/* ---------- THE ERROR LOG (O5): what broke on phones, one row per distinct error, from `listClientErrors` (admin at the gate) ---------- */
+const ERRS = { list: null, asking: false, error: '' };
+const ERRS_DRAWN = 15;
+function errsCard_() {
+  const wait = !ERRS.list && !ERRS.error && typeof loading_ === 'function';
+  return `<div class="card biz errs" data-errs>${errsInner_(wait)}</div>`;
+}
+function errsInner_(wait) {
+  const list = ERRS.list || [];
+  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>${esc(r.message)}</b></p>
+      <p class="faint">${esc([r.where, r.screen ? 'on ' + r.screen : '', r.version].filter(Boolean).join(' · '))}</p>
+      <p class="faint">${esc(r.count + '× · ' + r.devices + (r.devices === 1 ? ' device' : ' devices') + ' · last ' + when(r.last))}</p>
+    </div>`;
+  return `<h3>Error log</h3>
+    <div class="biz-body err-body"${wait ? ' aria-busy="true"' : ''}>
+      ${ERRS.list ? `<p class="err-count">${list.length ? list.length + ' distinct' : 'Nothing has broken'}</p>` : ''}
+      ${list.slice(0, ERRS_DRAWN).map(item).join('')}
+      ${list.length > ERRS_DRAWN ? `<p class="faint">And ${list.length - ERRS_DRAWN} more in the client_errors tab.</p>` : ''}
+    ${wait ? loading_() : ''}</div>
+    <div class="tile-row">${tile_({ icon: 'sync', label: 'Refresh', act: 'errs-refresh' })}</div>
+    <p class="faint me-said errs-said">${esc(ERRS.error)}</p>`;
+}
+const errsDraw_ = () => { document.querySelectorAll('[data-errs]').forEach(c => { c.innerHTML = errsInner_(false); }); };
+function errsStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || ERRS.asking) return;
+  ERRS.asking = true;
+  api({ action: 'listClientErrors' })
+    .then(d => {
+      ERRS.asking = false;
+      if (!d || d.error) { ERRS.error = String((d && d.error) || 'The error log did not come.'); return; }
+      ERRS.error = ''; ERRS.list = Array.isArray(d.errors) ? d.errors.filter(r => r && typeof r === 'object') : [];
+    })
+    .catch(() => { ERRS.asking = false; ERRS.error = 'The error log could not be fetched — check the connection.'; })
+    .then(errsDraw_);
+}
+on('errs-refresh', () => { ERRS.list = null; ERRS.error = ''; errsDraw_(); document.querySelectorAll('[data-errs] .err-body').forEach(b => { b.setAttribute('aria-busy', 'true'); b.insertAdjacentHTML('beforeend', loading_()); }); errsStart_(); });
 
 /* ---------- SUGGESTIONS (494): a non-admin's, waiting — Confirm sends it to Notes for Claude, Dismiss drops it ----------
    `listSuggestions`, admin at the gate; `null` is "not asked yet". Messages flagged before 486 too. */
@@ -946,7 +985,7 @@ on('profit-reset', el => {
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {}
-    try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
+    try { if (!APPS.list) appsStart_(); } catch (e) {} oopsTry_('errsStart', () => { if (!ERRS.list) errsStart_(); }); try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
     try { bizNeedsPaint_(); } catch (e) {} }, 0);
   return pages('biz', typeof cardsOf_ === 'function' ? cardsOf_('biz') : adminPages_());
 });
