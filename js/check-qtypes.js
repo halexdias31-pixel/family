@@ -51,7 +51,8 @@ const FIX = [
   ['numline', { answer_type: 'drawing', html: '<p>On the number line, show x &gt; 3</p>' }],
   ['shade', { answer_type: 'drawing', html: '<p>Shade 3/4 of the shape.</p>' }],
   ['measure', { answer_type: 'calculation', html: '<p>Measure the size of this angle.</p>', accept: '65 to 69' }],
-  ['print', { answer_type: 'calculation', html: '<p>Find g(x).</p>', needs_print: 'True' }],
+  /* NO "PRINT ONLY" (round 3): a part once sent to paper is typed like any other, and drawn on screen */
+  ['value', { answer_type: 'calculation', html: '<p>Find g(x).</p>', needs_print: 'True' }],
   /* a drawing answered in its box (a bearing typed) is the box's type, and a card item is read through its row */
   ['unit', { answer_type: 'annotate', html: '<p>Find the bearing.</p>', accept: '303 | 303°' }],
   ['choose1', { row: { answer_type: 'short', choices: 'A | B', choice_right: '1' } }],

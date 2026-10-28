@@ -89,9 +89,6 @@ const QTYPE_PROTOCOL = {
   measure:  { label: 'Measure from a figure', surface: QT_TYPED + ' beside the figure; a protractor or ruler laid on the figure (385)', tiles: ['Figure', 'Protractor / Ruler (as asked)', 'Check'],
               marked: 'accept as a band (`a to b`); an angle survives the screen, a length needs a stated scale', tolerance: 'the scheme\'s ± (often 2 mm / 2°)',
               wrong: 'Not yet', right: 'Correct + marks', phone: 'One finger drags the tool, two turn it, or its round handle; it snaps onto a corner and along an arm', pc: 'Drag; the handle or the wheel turns it; typed', need: ['accept', 'band'] },
-  print:    { label: 'Practical or printed sheet only', surface: 'None on screen: the printed sheet', tiles: ['Printed sheet'],
-              marked: 'not by machine', tolerance: '—', wrong: '—', right: '—',
-              phone: 'Says print it', pc: 'Says print it', need: ['convert'] },
 };
 const QTYPE_ORDER = Object.keys(QTYPE_PROTOCOL);
 
@@ -207,7 +204,6 @@ function qType_(x) {
   if (!qtWays_(r).length) {
     if (qtS_(r.mark_words)) return short ? 'words' : 'reason';
     if (QT_REASON_WORDS.test(words)) return 'reason';
-    if (qtTrue_(r.needs_print) || qtTrue_(r.print_required)) return 'print';
     /* nothing to mark it by yet: the scheme's own answer says whether it is words or a value */
     const a = qtS_(r.answer).replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ');
     return !/\d/.test(a) && /[a-z]{3,}/i.test(a) ? 'words' : 'value';
@@ -261,9 +257,18 @@ function qtIncomplete_(x) {
   const p = QTYPE_PROTOCOL[qType_(r)];
   return p ? p.need.filter(n => !qtNeedMet_(r, n)) : ['type'];
 }
-/* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
-function qtMachine_(x) {
+/* THE MARKER (round 3): what marks this part, the one thing that varies between pages -- the page's Check and the
+   Function verified tag both read it. Never a person: what no rule can mark, the AI marks. */
+function qtMarker_(x) {
   const r = (x && x.row) || x || {};
-  if (qtS_(r.choices) && qtS_(r.choice_right)) return true;
-  return !!(qtS_(r.accept) || qtS_(r.mark_words) || qtS_(r.cells) || qtS_(r.draw_answer));
+  if (qtS_(r.choices) && qtS_(r.choice_right)) return qtS_(r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
+  if (qtS_(r.cells)) return 'cells';
+  if (qtS_(r.draw_answer)) return 'draw';
+  if (qtS_(r.accept)) return 'accept';
+  if (qtS_(r.mark_words)) return 'words';
+  return 'ai';
 }
+/* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
+const qtMachine_ = x => qtMarker_(x) !== 'ai';
+/* THE TYPES WHOSE BOX OPENS ON THE MATHS LAYER of the one pad; every other opens on the letters (keypad.js) */
+const QT_MATHS = { value: 1, unit: 1, multi: 1, fraction: 1, coords: 1, expr: 1, measure: 1 };
