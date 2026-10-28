@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-zp-w501";
+const DOPOST_VERSION = "2026-10-28-zs-no-tutor-working";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4372,7 +4372,7 @@ function workingKeep_(folder, raw, name) {
 function workingMaySee_(me, of) {
   if (!me || !of) return false;
   if (key(me.person_id) === key(of)) return true;
-  if (rankAtLeast_(me, 'staff')) return true;
+  if (rankAtLeast_(me, 'admin')) return true;   /* NOT TUTORS (owner, 28 Oct: "tutors dont need to be able to see working out"): the student, their parents, the admin. */
   try { return acceptedParents(of).some(p => key(p.person_id) === key(me.person_id)); } catch (err) { return false; }
 }
 /* THE ROWS WITH PHOTOS, NEWEST FIRST, the pictures inlined as data so no Drive link ever leaves the script. */
