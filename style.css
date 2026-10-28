@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-zi-no-email";
+  --css-version: "2026-10-28-zj-ms-traced";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6836,12 +6836,23 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }
+.hdb-ms-sides { display: flex; gap: .6rem; align-items: flex-start; }
+.hdb-ms-side { flex: 1 1 0; min-width: 0; margin: 0; }
 .hdb-ms svg { display: block; width: 100%; height: auto; }
 .hdb-ms .mfr-leaf { fill: var(--paper); }
-.hdb-ms-papyrus .mfr-leaf { fill: var(--paper-strip); }
-.hdb-ms .mfr-fibre line { stroke: var(--paper-rule); stroke-width: .6; opacity: .7; }
-.hdb-ms .mfr-ink text { fill: var(--paper-ink); font: 400 15px/1 'Noto Serif', 'GFS Didot', 'Times New Roman', serif; }
-.hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 1.2; }
+.hdb-ms-papyrus { --papyrus: #a9765a; --papyrus-fibre: #8a5c44; --papyrus-ink: #2a1a14; }
+.hdb-ms-papyrus .mfr-leaf { fill: var(--papyrus); }
+.hdb-ms-papyrus .mfr-fibre line { stroke: var(--papyrus-fibre); stroke-width: 1.4; opacity: .55; }
+.hdb-ms-papyrus .mfr-fibre .mfr-up { opacity: .25; }
+.hdb-ms .mfr-ink text { fill: var(--paper-ink); text-anchor: middle; font: 400 11px/1 'Noto Sans', 'DejaVu Sans', sans-serif; }
+.hdb-ms-papyrus .mfr-ink text { fill: var(--papyrus-ink); font-size: 46px; }
+.hdb-ms .mfr-ink .mfr-big { font-size: 17px; }
+.hdb-ms .mfr-ink .mfr-title { fill: var(--ms-red); font-size: 9px; }
+.hdb-ms .mfr-ink .mfr-trace { opacity: .3; }
+.hdb-ms-parchment { --ms-red: #b5532f; }
+.hdb-ms .mfr-band { fill: none; stroke: var(--ms-red); stroke-width: 5; stroke-dasharray: 2 4; }
+.hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
+.hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
 .hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: var(--faint); }
 .hdb-facts { margin: .2rem 0 .5rem; }
 

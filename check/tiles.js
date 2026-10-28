@@ -130,6 +130,25 @@ function measure(id) {
         measured += r.tiles;
         r.out.forEach(x => bad.push(`${w}px ${x}`));
       }
+      /* A FIND CARD (495): a front page is never a result, so open a library card and measure the page it lands on -- its tiles, star row and Back to top are one row. */
+      const opened = await page.evaluate(async () => {
+        for (let i = 0; i < 60; i++) {
+          const x = (typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : []).find(y => y && y.key === 'hdb:MS-0001');
+          if (x) { go('stuff'); finderOpen_(x); return true; }
+          await new Promise(ok => setTimeout(ok, 100));
+        }
+        return false;
+      });
+      if (!opened) bad.push(`${w}px Find: Papyrus 52 never reached the list -- the Find card was NOT checked`);
+      else {
+        await page.waitForTimeout(900);
+        const r = await page.evaluate(measure, 'stuff');
+        const rows = await page.evaluate(() => { const c = document.querySelector('#s-stuff .hdb-msc'); const p = c && c.closest('.pane'); return p ? [...p.querySelectorAll('.tile-row')].filter(e => e.getBoundingClientRect().width).length : -1; });
+        if (rows < 0) bad.push(`${w}px Find: Papyrus 52's card was not drawn -- NOT checked`);
+        else if (rows !== 1) bad.push(`${w}px Find: Papyrus 52's page has ${rows} tile rows, not one`);
+        measured += r.tiles;
+        r.out.forEach(x => bad.push(`${w}px ${x}`));
+      }
       await page.close();
     }
   } finally { await browser.close(); server.close(); }

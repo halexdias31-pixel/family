@@ -1623,77 +1623,96 @@ const HIST_LINES = {
     ['Public-domain translations', 'pd_translation']],
   event: [['Date', 'date_text'], ['Places', 'places'], ['Theatre', 'theatre'], ['Part of', 'era'], ['What happened', 'summary']],
 };
-/* ---------- A MANUSCRIPT AS IT LOOKS (490): an original drawing, not a photograph — the real text in its script, clipped to the
-   surviving shape. `keep` is each line's surviving letters [from, to); none, a whole leaf. */
+/* ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and
+   the letters that survive, where they stand. Coordinates are the photograph's pixels; `·` is a lost letter's room. */
 const MS_LOOK = {
-  'MS-0001': { stuff: 'papyrus', cols: 1, keep: [[0, 10], [11, 25], [10, 23], [9, 24], [11, 25], [12, 18]],
-    lines: ['ΟΙΙΟΥΔΑΙΟΙΗΜΕΙΝΟΥΚΕΞΕΣΤΙΝΑΠΟΚΤΕΙΝΑΙ', 'ΟΥΔΕΝΑΙΝΑΟΛΟΓΟΣΤΟΥΙΗΣΟΥΠΛΗΡΩΘΗΟΝΕΙ', 'ΠΕΝΣΗΜΑΙΝΩΝΠΟΙΩΘΑΝΑΤΩΗΜΕΛΛΕΝΑΠΟ',
-      'ΘΝΗΣΚΕΙΝΙΣΗΛΘΕΝΟΥΝΠΑΛΙΝΕΙΣΤΟΠΡΑΙΤΩ', 'ΡΙΟΝΟΠΙΛΑΤΟΣΚΑΙΕΦΩΝΗΣΕΝΤΟΝΙΗΣΟΥΝ', 'ΚΑΙΕΙΠΕΝΑΥΤΩΣΥΕΙΟΒΑΣΙΛΕΥΣΤΩΝΙΟΥ'],
-    what: 'John 18:31–33 in Greek uncials, as the recto keeps it' },
-  'MS-0002': { stuff: 'parchment', cols: 2, keep: null,
-    lines: ['ΕΝΑΡΧΗΗΝΟΛΟΓΟΣ', 'ΚΑΙΟΛΟΓΟΣΗΝΠΡΟΣ', 'ΤΟΝΘΝΚΑΙΘΣΗΝΟ', 'ΛΟΓΟΣΟΥΤΟΣΗΝΕΝ', 'ΑΡΧΗΠΡΟΣΤΟΝΘΝ', 'ΠΑΝΤΑΔΙΑΥΤΟΥ', 'ΕΓΕΝΕΤΟΚΑΙΧΩ',
-      'ΡΙΣΑΥΤΟΥΕΓΕΝΕ', 'ΤΟΟΥΔΕΕΝΟΓΕ', 'ΓΟΝΕΝΕΝΑΥΤΩ', 'ΖΩΗΗΝΚΑΙΗΖΩΗ', 'ΗΝΤΟΦΩΣΤΩΝΑΝ', 'ΘΡΩΠΩΝΚΑΙΤΟ', 'ΦΩΣΕΝΤΗΣΚΟΤΙΑ',
-      'ΦΑΙΝΕΙΚΑΙΗΣΚΟ', 'ΤΙΑΑΥΤΟΟΥΚΑΤΕ'],
-    what: 'John 1:1–5 in two columns of Greek uncials, as a page of the codex sets them' },
+  'MS-0001': { stuff: 'papyrus', box: [30, 80, 630, 940],
+    ref: 'Commons: File:P52 recto.jpg (PD-Art, PD-old-100) and File:P52 verso.jpg (PD-scan, PD-old-70)',
+    edge: [[48, 92], [90, 88], [150, 95], [210, 92], [260, 100], [310, 98], [360, 108], [400, 112], [430, 125], [435, 150], [410, 175],
+      [415, 240], [420, 300], [440, 330], [455, 340], [462, 300], [465, 230], [475, 215], [520, 210], [580, 215], [640, 222], [645, 300],
+      [638, 350], [645, 400], [635, 460], [620, 500], [605, 545], [595, 560], [590, 620], [590, 690], [560, 695], [530, 680], [500, 700],
+      [470, 690], [420, 700], [420, 760], [410, 830], [415, 880], [400, 890], [360, 900], [330, 920], [320, 975], [300, 1000], [250, 1005],
+      [205, 995], [200, 940], [205, 900], [140, 890], [130, 860], [120, 820], [115, 760], [110, 700], [115, 640], [105, 600], [110, 550],
+      [100, 490], [110, 430], [105, 375], [85, 360], [65, 320], [50, 250], [45, 180], [42, 120]],
+    sides: [
+      { name: 'Recto', what: 'John 18:31–33', lines: [[135, 640, 365, 'ΟΙΙΟΥΔΑΙ·····ΗΜΕ'], [135, 635, 462, 'ΟΥΔΕΝΑΙΝΑΟΛ'],
+        [130, 600, 552, 'ΠΕΝΣΗΜΑΙΝΩ'], [150, 560, 648, 'ΘΝΗΣΚΕΙΝΙΣ'], [150, 415, 748, 'ΡΙΟΝΟΠ'], [135, 400, 838, 'ΚΑΙΕΙΠ'],
+        [205, 320, 958, 'ΑΙΩ', 'trace']] },
+      /* THE SAME LEAF TURNED OVER: its outline mirrored, the lines' surviving ends on the other side. */
+      { name: 'Verso', what: 'John 18:37–38', mirror: true, lines: [[93, 560, 378, 'ΤΟΓ··ΕΝΝΗΜΑΙΚΑ'], [57, 560, 465, 'ΣΜΟΝΙΝΑΜΑΡΤΥ'],
+        [180, 557, 568, 'ΤΗΣΑΛΗΘΕ'], [170, 547, 660, 'ΛΕΓΕΙΑΥΤΩ'], [280, 480, 760, 'ΙΤΟΥΤ'], [280, 453, 857, 'ΟΥΣΚ'],
+        [365, 440, 948, 'ΑΙ', 'trace']] },
+    ] },
+  /* ONE WHOLE PAGE (fol. 41v): Luke 24:32-53 in two columns, paragraphs hanging into the margin, then the tailpiece and the title. */
+  'MS-0002': { stuff: 'parchment', box: [0, 0, 700, 902],
+    ref: 'Commons: File:Codex Alexandrinus f41v - Luke.jpg (PD-old-100-1923), British Library Royal MS 1 D VIII, fol. 41v',
+    edge: [[22, 14], [600, 10], [640, 30], [688, 70], [692, 880], [22, 884]],
+    sides: [{ name: 'Folio 41v', what: 'Luke 24:32–53, the end of the Gospel',
+      cols: [{ x0: 100, x1: 365, y0: 84, lh: 12.95, rows: 51, paras: [
+        '+ΗΝΟΙΓΕΝΗΜΙΝΤΑΣΓΡΑΦΑΣ',
+        'ΚΑΙΑΝΑΣΤΑΝΤΕΣΑΥΤΗΤΗΩΡΑΥΠΕΣΤΡΕΨΑΝΕΙΣΙΕΡΟΥΣΑΛΗΜΚΑΙΕΥΡΟΝΣΥΝΗΘΡΟΙΣΜΕΝΟΥΣΤΟΥΣΕΝΔΕΚΑΚΑΙΤΟΥΣΣΥΝΑΥΤΟΙΣΛΕΓΟΝΤΑΣΟΤΙΗΓΕΡΘΗΟΚΣΟΝΤΩΣΚΑΙΩΦΘΗΣΙΜΩΝΙΚΑΙΑΥΤΟΙΕΞΗΓΟΥΝΤΟΤΑΕΝΤΗΟΔΩΚΑΙΩΣΕΓΝΩΣΘΗΑΥΤΟΙΣΕΝΤΗΚΛΑΣΕΙΤΟΥΑΡΤΟΥ',
+        'ΤΑΥΤΑΔΕΑΥΤΩΝΛΑΛΟΥΝΤΩΝΑΥΤΟΣΟΙΣΕΣΤΗΕΝΜΕΣΩΑΥΤΩΝΚΑΙΛΕΓΕΙΑΥΤΟΙΣΕΙΡΗΝΗΥΜΙΝΠΤΟΗΘΕΝΤΕΣΔΕΚΑΙΕΜΦΟΒΟΙΓΕΝΟΜΕΝΟΙΕΔΟΚΟΥΝΠΝΑΘΕΩΡΕΙΝΚΑΙΕΙΠΕΝΑΥΤΟΙΣΤΙΤΕΤΑΡΑΓΜΕΝΟΙΕΣΤΕΚΑΙΔΙΑΤΙΔΙΑΛΟΓΙΣΜΟΙΑΝΑΒΑΙΝΟΥΣΙΝΕΝΤΑΙΣΚΑΡΔΙΑΙΣΥΜΩΝΙΔΕΤΕΤΑΣΧΕΙΡΑΣΜΟΥΚΑΙΤΟΥΣΠΟΔΑΣΜΟΥΟΤΙΑΥΤΟΣΕΓΩΕΙΜΙΨΗΛΑΦΗΣΑΤΕΜΕΚΑΙΙΔΕΤΕΟΤΙΠΝΑΣΑΡΚΑΚΑΙΟΣΤΕΑΟΥΚΕΧΕΙΚΑΘΩΣΕΜΕΘΕΩΡΕΙΤΕΕΧΟΝΤΑΚΑΙΤΟΥΤΟΕΙΠΩΝΕΔΕΙΞΕΝΑΥΤΟΙΣΤΑΣΧΕΙΡΑΣΚΑΙΤΟΥΣΠΟΔΑΣ',
+        'ΕΤΙΔΕΑΠΙΣΤΟΥΝΤΩΝΑΥΤΩΝΑΠΟΤΗΣΧΑΡΑΣΚΑΙΘΑΥΜΑΖΟΝΤΩΝΕΙΠΕΝΑΥΤΟΙΣΕΧΕΤΕΤΙΒΡΩΣΙΜΟΝΕΝΘΑΔΕΟΙΔΕΕΠΕΔΩΚΑΝΑΥΤΩΙΧΘΥΟΣΟΠΤΟΥΜΕΡΟΣΚΑΙΑΠΟΜΕΛΙΣΣΙΟΥΚΗΡΙΟΥΚΑΙΛΑΒΩΝΕΝΩΠΙΟΝΑΥΤΩΝΕΦΑΓΕΝ',
+        'ΕΙΠΕΝΔΕΑΥΤΟΙΣΟΥΤΟΙΟΙΛΟΓΟΙΟΥΣΕΛΑΛΗΣΑΠΡΟΣΥΜΑΣΕΤΙΩΝΣΥΝΥΜΙΝΟΤΙΔΕΙΠΛΗΡΩΘΗΝΑΙΠΑΝΤΑΤΑΓΕΓΡΑΜΜΕΝΑΕΝΤΩΝΟΜΩΜΩΣΕΩΣΚΑΙΠΡΟΦΗΤΑΙΣΚΑΙΨΑΛΜΟΙΣΠΕΡΙΕΜΟΥ',
+        'ΤΟΤΕΔΙΗΝΟΙΞΕΝΑΥΤΩΝΤΟΝΝΟΥΝΤΟΥΣΥΝΙΕΝΑΙΤΑΣΓΡΑΦΑΣΚΑΙΕΙΠΕΝΑΥΤΟΙΣΟΤΙΟΥΤΩΣΓΕΓΡΑΠΤΑΙΚΑΙΟΥΤΩΣΕΔΕΙΠΑΘΕΙΝΤΟΝΧΝΚΑΙΑΝΑΣΤΗΝΑΙΕΚΝΕΚΡΩΝΤΗΤΡΙΤΗΗΜΕΡΑΚΑΙΚΗΡΥΧΘΗΝΑΙΕΠΙΤΩΟΝΟΜΑΤΙΑΥΤΟΥΜΕΤΑΝΟΙΑΝΚΑΙΑΦΕΣΙΝΑΜΑΡΤΙΩΝΕΙΣΠΑΝΤΑ'] },
+      { x0: 410, x1: 665, y0: 84, lh: 12.95, rows: 20, paras: [
+        '+ΤΑΕΘΝΗΑΡΞΑΜΕΝΟΝΑΠΟΙΕΡΟΥΣΑΛΗΜΥΜΕΙΣΔΕΕΣΤΕΜΑΡΤΥΡΕΣΤΟΥΤΩΝΚΑΙΙΔΟΥΕΓΩΑΠΟΣΤΕΛΛΩΤΗΝΕΠΑΓΓΕΛΙΑΝΤΟΥΠΡΣΜΟΥΕΦΥΜΑΣΥΜΕΙΣΔΕΚΑΘΙΣΑΤΕΕΝΤΗΠΟΛΕΙΙΕΡΟΥΣΑΛΗΜΕΩΣΟΥΕΝΔΥΣΗΣΘΕΔΥΝΑΜΙΝΕΞΥΨΟΥΣΕΞΗΓΑΓΕΝΔΕΑΥΤΟΥΣΕΞΩΕΩΣΕΙΣΒΗΘΑΝΙΑΝΚΑΙΕΠΑΡΑΣΤΑΣΧΕΙΡΑΣΑΥΤΟΥΕΥΛΟΓΗΣΕΝΑΥΤΟΥΣ',
+        'ΚΑΙΕΓΕΝΕΤΟΕΝΤΩΕΥΛΟΓΕΙΝΑΥΤΟΝΑΥΤΟΥΣΔΙΕΣΤΗΑΠΑΥΤΩΝΚΑΙΑΝΕΦΕΡΕΤΟΕΙΣΤΟΝΟΥΡΑΝΟΝΚΑΙΑΥΤΟΙΠΡΟΣΚΥΝΗΣΑΝΤΕΣΑΥΤΟΝΥΠΕΣΤΡΕΨΑΝΕΙΣΙΕΡΟΥΣΑΛΗΜΜΕΤΑΧΑΡΑΣΜΕΓΑΛΗΣΚΑΙΗΣΑΝΔΙΑΠΑΝΤΟΣΕΝΤΩΙΕΡΩΑΙΝΟΥΝΤΕΣΚΑΙΕΥΛΟΓΟΥΝΤΕΣΤΟΝΘΝΑΜΗΝ'] }],
+      /* THE TAILPIECE as the page draws it: three bands across, one down, three sprays, then the book's title. */
+      orn: '<path class="mfr-band" d="M425 340H665M425 366H665M425 388H665M440 400V635"/>'
+        + '<path class="mfr-spray" d="M510 490c-2-14 4-24 12-30M510 490c-8-8-14-12-14-20M565 505c0-26 0-40-2-55M565 505c-8-14-20-22-26-34M565 505c8-14 18-22 26-34M635 490c0-12 4-22 10-28M635 490c-6-6-12-10-12-18"/>',
+      lines: [[495, 655, 552, 'ΕΥΑΓΓΕΛΙΟΝΚΑΤΑΛΟΥΚΑΝ', 'title']] }] },
 };
-/* THE DRAWING. A seeded wobble, so the torn edge is the same on every phone and every visit. */
+/* THE HAND'S OWN LETTER SHAPES: a round epsilon, a lunate sigma, a rounded omega and alpha, as the uncial scribes wrote them. */
+const msHand_ = s => String(s).replace(/Ε/g, 'ϵ').replace(/Σ/g, 'Ϲ').replace(/Ω/g, 'ω').replace(/Α/g, 'α');
+/* A COLUMN'S PARAGRAPHS, broken into its real number of lines: the narrowest measure that fits; a paragraph's first letter hangs in the margin; `+` carries one on from the page before. */
+function msColLines_(c) {
+  for (let w = 10; w < 40; w++) {
+    const out = [];
+    c.paras.forEach(q => { const p = q.replace(/^\+/, ''); for (let i = 0; i < p.length; i += w) out.push([p.slice(i, i + w), i === 0 && p === q]); });
+    if (out.length <= c.rows) {
+      const step = (c.x1 - c.x0) / w;
+      return out.map(([t, first], i) => [c.x0, c.x0 + t.length * step, c.y0 + i * c.lh, t, first ? 'big' : '']);
+    }
+  }
+  return [];
+}
+/* THE DRAWING: one leaf per side, side by side; each line's surviving letters spread over the room they take in the photograph. */
 function msFragSvg_(r) {
   const L = MS_LOOK[r.id];
   if (!L) return '';
-  let seed = 7;
-  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  const W = 300, lh = 21, top = 26, pad = 18, cols = L.cols || 1, per = Math.ceil(L.lines.length / cols);
-  const colW = (W - pad * 2 - (cols - 1) * 16) / cols, H = top + per * lh + 18;
-  const chars = Math.max(...L.lines.map(l => l.length));
-  const cx = (c, col) => pad + col * (colW + 16) + c / chars * colW;
-  let edge;
-  if (L.keep) {
-    const left = [], right = [];
-    L.keep.forEach((k, i) => {
-      const y0 = top + i * lh - 16, y1 = y0 + lh;
-      right.push([cx(k[1], 0) + 4 + rnd() * 6, y0 + rnd() * 4], [cx(k[1], 0) + rnd() * 8, y1 - rnd() * 4]);
-      left.unshift([cx(k[0], 0) - 4 - rnd() * 6, y1 - rnd() * 4], [cx(k[0], 0) - rnd() * 8, y0 + rnd() * 4]);
-    });
-    /* A TEAR, NOT A STAIRCASE: each side eased between lines and broken into short jagged steps. */
-    const tear = pts => {
-      const soft = pts.map((p, i) => [(pts[Math.max(0, i - 1)][0] + p[0] * 2 + pts[Math.min(pts.length - 1, i + 1)][0]) / 4, p[1]]);
-      const out = [];
-      soft.forEach((p, i) => {
-        out.push(p);
-        const q = soft[i + 1];
-        if (q) for (let k = 1; k < 4; k++) out.push([p[0] + (q[0] - p[0]) * k / 4 + (rnd() - .5) * 5, p[1] + (q[1] - p[1]) * k / 4]);
-      });
-      return out;
-    };
-    const topY = top - 18, botY = top + (L.keep.length - 1) * lh + 8;
-    const r2 = tear(right), l2 = tear(left);
-    const across = (a, b, y) => Array.from({ length: 6 }, (_, k) => [a + (b - a) * (k + 1) / 7, y + (rnd() - .5) * 4]);
-    edge = [[l2[l2.length - 1][0], topY]].concat(across(l2[l2.length - 1][0], r2[0][0], topY), [[r2[0][0], topY]], r2,
-      [[r2[r2.length - 1][0], botY]], across(r2[r2.length - 1][0], l2[0][0], botY), [[l2[0][0], botY]], l2);
-  } else {
-    const w = W - 4, h = H - 4, pts = [];
-    for (let i = 0; i <= 10; i++) pts.push([2 + w * i / 10, 2 + rnd() * 3]);
-    for (let i = 1; i <= 10; i++) pts.push([w - rnd() * 3, 2 + h * i / 10]);
-    for (let i = 9; i >= 0; i--) pts.push([2 + w * i / 10 + (i > 7 ? -rnd() * 10 : 0), h - rnd() * 3 - (i > 7 ? 12 : 0)]);
-    for (let i = 9; i >= 1; i--) pts.push([2 + rnd() * 3, 2 + h * i / 10]);
-    edge = pts;
-  }
-  const d = 'M' + edge.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
-  const id = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
-  const fibres = L.stuff === 'papyrus'
-    ? Array.from({ length: Math.ceil(H / 5) }, (_, i) => `<line x1="0" x2="${W}" y1="${i * 5 + rnd() * 2}" y2="${i * 5 + rnd() * 2}"/>`).join('')
-    : '';
-  const text = L.lines.map((l, i) => {
-    const col = Math.floor(i / per), row = i % per;
-    return `<text x="${cx(0, col).toFixed(1)}" y="${top + row * lh}" textLength="${(l.length / chars * colW).toFixed(1)}" lengthAdjust="spacingAndGlyphs">${esc(l)}</text>`;
-  }).join('');
+  const [bx, by, bw, bh] = L.box;
+  const tag = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
+  const leaf = (s, k) => {
+    const flip = p => s.mirror ? [2 * bx + bw - p[0], p[1]] : p;
+    const d = 'M' + L.edge.map(flip).map(p => p[0] + ' ' + p[1]).join('L') + 'Z';
+    const lines = (s.cols || []).flatMap(msColLines_).concat(s.lines || []);
+    const text = lines.map(([x0, x1, y, t, cls]) => {
+      const step = (x1 - x0) / t.length;
+      /* A PARAGRAPH'S BIG LETTER is its first only, standing out in the margin (ekthesis). */
+      return t.split('').map((ch, i) => {
+        if (ch === '·') return '';
+        const big = cls === 'big', c = big ? (i ? '' : 'big') : cls, x = x0 + step * (i + .5) - (big && !i ? step * 1.4 : 0);
+        return `<text${c ? ` class="mfr-${c}"` : ''} x="${x.toFixed(1)}" y="${y}">${esc(msHand_(ch))}</text>`;
+      }).join('');
+    }).join('');
+    const fibres = L.stuff === 'papyrus'
+      ? Array.from({ length: Math.ceil(bh / 9) }, (_, i) => `<line x1="${bx}" x2="${bx + bw}" y1="${by + i * 9}" y2="${by + i * 9 + (i % 3) - 1}"/>`).join('')
+        + Array.from({ length: Math.ceil(bw / 14) }, (_, i) => `<line class="mfr-up" x1="${bx + i * 14}" x2="${bx + i * 14 + (i % 2)}" y1="${by}" y2="${by + bh}"/>`).join('')
+      : '';
+    const id = tag + '-' + k;
+    return `<figure class="hdb-ms-side">
+      <svg viewBox="${bx} ${by} ${bw} ${bh}" role="img" aria-label="${esc('A drawing of ' + (r.name || 'the manuscript') + ', ' + s.name.toLowerCase() + ': ' + s.what)}">
+        <defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
+        <g clip-path="url(#${id})"><rect class="mfr-leaf" x="${bx}" y="${by}" width="${bw}" height="${bh}"/><g class="mfr-fibre">${fibres}</g>${s.orn || ''}<g class="mfr-ink">${text}</g></g>
+        <path class="mfr-edge" d="${d}"/>
+      </svg>
+      <figcaption>${esc(s.name + ' · ' + s.what)}</figcaption>
+    </figure>`;
+  };
   return `<figure class="hdb-ms hdb-ms-${L.stuff}">
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('A drawing of ' + (r.name || 'the manuscript') + ': ' + L.what)}">
-      <defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
-      <g clip-path="url(#${id})"><rect class="mfr-leaf" width="${W}" height="${H}"/><g class="mfr-fibre">${fibres}</g><g class="mfr-ink">${text}</g></g>
-      <path class="mfr-edge" d="${d}"/>
-    </svg>
-    <figcaption>${esc(L.what)} — a drawing after the original, not a photograph</figcaption>
+    <div class="hdb-ms-sides">${L.sides.map(leaf).join('')}</div>
+    <figcaption>A drawing after the original, traced from a public-domain photograph (${esc(L.ref)}); the letters are the ones that survive.</figcaption>
   </figure>`;
 }
 /* THE LINES THE FACTS LINE ALREADY SAYS, left out of the list under it. */
@@ -9963,8 +9982,9 @@ function stuffPageHtml(n) {
   const pg = stuffPages_()[n];
   if (!pg) return '';
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
-  if (pg.slim) return libWaitHtml_(pg.x) + findTopRow_();
-  return (pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_();
+  /* ONE TILE ROW PER THING (489, 495): a Find page is a card, its star row and Back to top -- joined like every other screen's pages (`rowsOne_`). */
+  if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
+  return rowsOne_((pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_());
 }
 /* BACK TO TOP (463): the owner, "a button to scroll back to the top of the finder when they're at the bottom" -- under every result, so it is at the bottom of a long one. */
 const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
