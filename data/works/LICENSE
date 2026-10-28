@@ -8,3 +8,10 @@ WR-0001 First Clement
            https://github.com/OpenGreekAndLatin/First1KGreek
   English: J. B. Lightfoot's translation, The Apostolic Fathers (1891). Public domain (Lightfoot died 1889).
            Text as printed by the Christian Classics Ethereal Library, https://www.ccel.org/ccel/lightfoot/fathers.ii.i.html
+
+WR-0002 Letter of Aristeas (docs/history/504), one card a numbered section (1-322), written by tools/aristeas-text.py.
+  English: H. T. Andrews' translation, in R. H. Charles (ed.), The Apocrypha and Pseudepigrapha of the Old Testament in English,
+           2 vols (Oxford: Clarendon Press, 1913), II. Public domain (Andrews died 1928). Text as CCEL prints it,
+           http://www.ccel.org/c/charles/otpseudepig/aristeas.htm
+  Left out: Thackeray's English (1904) and any Greek text — the only reachable copies are unproofed OCR scans whose section
+           numbers are lost or garbled, and the owner said "no taking risks".

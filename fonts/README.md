@@ -28,3 +28,8 @@ noto-serif-hebrew.woff2, noto-rashi-hebrew.woff2
     the Talmud's Gemara and the "Rashi script" of its commentaries (docs/history/473). The Hebrew
     subset Google Fonts serves, unmodified, variable weight. SIL Open Font License 1.1, whose
     text is OFL-noto-hebrew.txt beside them. Used only by the Talmud page.
+
+noto-serif-greek.woff2, noto-serif-greek-ext.woff2
+    Noto Serif, Greek and Greek Extended (polytonic) subsets, by the Noto Project Authors, as @fontsource/noto-serif 5.1.0
+    serves them, unmodified (docs/history/504). SIL Open Font License 1.1 (OFL.txt). Used by the Septuagint, the Greek
+    New Testament and First Clement's Greek.

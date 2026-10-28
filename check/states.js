@@ -1982,7 +1982,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }];
         paintStuff();
         goPage('res', stuffQuestionPage_(), true);
         bibleLoad_(1);
@@ -1994,12 +1994,12 @@ const STATES = {
         return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
-      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
                          { field: 'bibleBook', value: 'Psalms' }];
         paintStuff();
@@ -2011,7 +2011,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
                          { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
         paintStuff();
@@ -2023,7 +2023,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
                          { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
                          { field: 'bibleVerse', value: '3' }];
@@ -2041,7 +2041,7 @@ const STATES = {
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+        STUFF.filters = [{ field: 'shelf', value: 'Writings' }, { field: 'bibleTranslation', value: 'KJV' },
                          { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
                          { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
                          { field: 'bibleVerse', value: '9' }];

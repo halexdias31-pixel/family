@@ -13,11 +13,7 @@ const TALMUD_ORDER_SEDARIM = [], TALMUD_ORDER_TRACTATES = [];
 ANSWER_ORDERS.push(TALMUD_ORDER_SEDARIM, TALMUD_ORDER_TRACTATES);
 
 function talmudGet_(file) {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
-  return Promise.resolve()
-    .then(() => fetch('data/talmud/' + file + stamp, { cache: 'default' }))
-    .then(res => (res && res.ok) ? res.json() : null)
-    .catch(() => null);
+  return scriptureFetch_(o => fetch('data/talmud/' + file + scriptureStamp_(), o));
 }
 
 /* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */
@@ -32,7 +28,8 @@ function talmudIndex_() {
       && d.tractates.every(t => t && /^[a-z-]+$/.test(t.slug) && t.en && t.he && Number.isInteger(t.first)
         && t.last >= t.first && Array.isArray(t.chapters) && t.chapters.length > 0);
     TALMUD.asking = null;
-    if (!ok) { TALMUD.failed = true; return null; }
+    /* A MISS IS REDRAWN TOO (504), so the dots under its question end in words. */
+    if (!ok) { TALMUD.failed = true; if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); }); return null; }
     TALMUD.index = d;
     TALMUD_ORDER_SEDARIM.push(...d.sedarim);
     TALMUD_ORDER_TRACTATES.push(...d.tractates.map(t => t.en));
@@ -75,7 +72,7 @@ function talmudItems_() {
     for (let i = t.first; i <= t.last; i++) {
       const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);
       list.push({
-        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf, libBook: 'Talmud', subject: rs,
+        kind: 'talmud', key: 'tal:' + t.slug + ':' + d + side, name: t.en + ' ' + d + side, image: '', row: null, shelf: shelf, libBook: 'Talmud', unit: WRITING_UNIT.talmud, subject: rs,
         sub: t.he + ' ' + talHeb_(d) + (i % 2 ? ' :' : ' .') + ' · ' + 'פרק ' + ch.he, min_age: scriptureMinAge_(),
         talSeder: t.seder, talTractate: t.en, talChapter: 'Chapter ' + (c + 1) + ' · ' + ch.he, talDaf: String(d), talSide: 'Side ' + side,
         text: [TALMUD_NAME(), TALMUD_WORDS, 'Seder ' + t.seder, t.en, t.he, ch.he].join(' '),
