@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-rules";
+const DOPOST_VERSION = "2026-10-28-zl-words";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3087,6 +3087,24 @@ function doPost(e) {
       else addRow(t, { key: RULES_KEY, value: value, what_it_does: 'The Rules card (496): exceptions made universal, and the last twenty changes for Undo. Empty: every exception as the code has it.' });
       clearCache();
       return jsonOut({ success: true, rules: now });
+    }
+    /* ---------- EDIT WORDS IN PLACE (497): `set: {key: text}` and `reset: [key]` merged into config's one `words` row ---------- */
+    if (action === 'wordsSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the words on.' });
+      const row = t.rows.find(r => norm(r.key) === WORDS_KEY);
+      const now = wordsClean_(row ? row.value : '');
+      const set = wordsClean_(body.set && typeof body.set === 'object' ? body.set : {});
+      Object.keys(set).forEach(k => { now[k] = set[k]; });
+      (Array.isArray(body.reset) ? body.reset : []).forEach(k => { delete now[S(k)]; });
+      const value = JSON.stringify(now);
+      if (value.length > WORDS_MAX) return jsonOut({ error: 'Too many words to keep. Reset some first.' });
+      if (row) setCell(t, row, 'value', value);
+      else addRow(t, { key: WORDS_KEY, value: value, what_it_does: 'The site\'s words an admin typed in place over the code\'s (497), {card|slot: text}. Empty: the code\'s own words.' });
+      clearCache();
+      return jsonOut({ success: true, words: now });
     }
 
     /* ---------- THE WEEKLY EMAIL'S WORDS (491): the four `digest_*` config rows, blank meaning the default ---------- */

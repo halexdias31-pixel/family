@@ -500,6 +500,8 @@ function widgetFor_(w) {
   if (w.admin && !(typeof isAdmin === 'function' && isAdmin())) return false;
   if (w.tutor && !(typeof isTutorRole === 'function' && isTutorRole())) return false;
   if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
+  /* WHO SEES THIS (497, words.js): an admin's narrowing, asked after the code's own gates, which always win. */
+  if (typeof seenOk_ === 'function' && !seenOk_(String(w.id))) return false;
   return true;
 }
 
@@ -541,7 +543,7 @@ function widgetOnColumn_(w, own) {
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
-        w.html}${waits ? loading_() : ''}</div>
+        typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
     </div>`;
 }
@@ -554,7 +556,7 @@ function widgetMergedOn_(m, own) {
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${w.html}${waits ? loading_() : ''}</div></div>`;
+    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
   }).join('');
   return `<div class="card is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}

@@ -33,6 +33,8 @@ function ownIdNow_(x) {
 }
 /* THE LAYOUT'S SHAPE NUMBER: 2 since 489's one-off repair below; `layoutClean_` (backend/core.gs) keeps the same rule. */
 const LAYOUT_V = 2;
+/* WHO SEES WHAT (497): the levels an admin may narrow a widget or card to, lowest first; `seenOk_` (words.js) asks them. */
+const SEEN_ORDER = ['out', 'in', 'student', 'client', 'staff', 'admin'];
 /* ONE-OFF (489): a layout older than v2 gets the camera back and the festive card deleted, as the owner meant; saved as v2, it never runs again. */
 function layoutMigrate2_(o, deleted) {
   if ((Number(o.v) || 1) >= 2) return;
@@ -79,6 +81,10 @@ function layoutSane_(v) {
   /* FRONT DOOR (489): `front: {col, id}`, the one place everybody lands on opening the app. */
   const fr = o.front && typeof o.front === 'object' && !Array.isArray(o.front) ? o.front : null;
   if (fr && LAYOUT_ID.test(String(fr.col || '')) && LAYOUT_ID.test(String(fr.id || ''))) out.front = { col: String(fr.col), id: String(fr.id) };
+  /* WHO SEES WHAT (497): `seen: {id: level}`, narrowing only; `layoutClean_` keeps the same rule. */
+  const sn = o.seen && typeof o.seen === 'object' && !Array.isArray(o.seen) ? o.seen : {}, seen = {};
+  Object.keys(sn).filter(k => LAYOUT_ID.test(k) && SEEN_ORDER.indexOf(sn[k]) !== -1).slice(0, 300).forEach(k => { seen[k] = sn[k]; });
+  if (Object.keys(seen).length) out.seen = seen;
   return out;
 }
 const MERGE_MAX = 12;
@@ -176,6 +182,7 @@ function layoutDraftOf_(L) {
   if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
   if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => ({ id: x.id, title: x.title }));
   if (L && L.merged && L.merged.length) out.merged = L.merged.map(g => g.slice());
+  if (L && L.seen) out.seen = Object.assign({}, L.seen);
   return out;
 }
 /* WHAT THE ADMIN SEES ON A COLUMN — a move steps over a widget they cannot see, or it would look like nothing happened. */
@@ -200,7 +207,7 @@ function layoutTiles_(w) {
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     startTile_(col, id, ((layoutNow_() || {}).start || {})[col] || '')}${
-    frontTile_(col, id)}${
+    frontTile_(col, id)}${wordsTiles_('w:' + id, id)}${
     notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
       '')}</span>`;
 }
@@ -371,7 +378,8 @@ function cardSayOf_(id) {
   return CARD_SAY_DYN[String(id).split(':').pop()] || '';
 }
 /* THE LINE PUT IN: after the card's first title, else first inside it; a button card (+ Add) gets it as a span. */
-function cardSayIn_(h, id) {
+function cardSayIn_(h, id) { return wordsIn_(id, cardSayIn0_(h, id)); }
+function cardSayIn0_(h, id) {
   const say = cardSayOf_(id);
   /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
   if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
@@ -474,11 +482,11 @@ function cardArrange_(col, raw) {
   const built = { [col]: raw };
   const groupsIn = c => { if (!built[c]) { try { built[c] = (CARD_BUILD[c] ? CARD_BUILD[c]() || [] : []).filter(Boolean); } catch (e) { built[c] = []; } } return cardGroups_(built[c]); };
   const mine = groupsIn(col).map((g, i) => Object.assign(g, { i: i }))
-    .filter(g => !g.id || (cardHome_(g.id, L) === col && del.indexOf(g.id) === -1));
+    .filter(g => !g.id || (cardHome_(g.id, L) === col && del.indexOf(g.id) === -1 && seenOk_(g.id)));
   const n = mine.length;
   list.forEach((id, k) => {
     const from = cardHome0_(id);
-    if (from === col || !CARD_BUILD[from] || cardHome_(id, L) !== col || del.indexOf(id) !== -1 || mine.some(g => g.id === id)) return;
+    if (from === col || !CARD_BUILD[from] || cardHome_(id, L) !== col || del.indexOf(id) !== -1 || !seenOk_(id) || mine.some(g => g.id === id)) return;
     const g = groupsIn(from).find(x => x.id === id);
     if (g) mine.push(Object.assign(g, { i: n + k }));
   });
@@ -499,7 +507,7 @@ function cardsOf_(col) {
   const L = layoutNow_(), admin = layoutIsAdmin_();
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
-  if (!admin && !(L && (L.cards || L.start || L.merged || (L.deleted || []).some(cardIs_))))
+  if (!admin && !(L && (L.cards || L.start || L.merged || L.seen || (L.deleted || []).some(cardIs_))))
     return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => {
       const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
@@ -566,7 +574,7 @@ function cardAdminRow_(id, col, mergeable) {
     tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 && !adminCol_(col) ? 'Move to a new column' : 'Move to next column', act: 'lay-c-col', tone: 'admin',
       data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (adminCol_(col) || !customRoom_())) })}${
     startTile_(col, id, start)}${
-    frontTile_(col, id)}${
+    frontTile_(col, id)}${wordsTiles_(id, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
@@ -581,16 +589,16 @@ function cardReportRow_(id, page) {
 }
 
 /* A THING OFF THE CARD COLUMNS (487), `item:<col>:<name>`: Delete and Note for an admin, gone for everyone once deleted (477). No move: its column's code draws it. */
-const itemGone_ = id => { try { return ((layoutNow_() || {}).deleted || []).indexOf(id) !== -1; } catch (e) { return false; } };
+const itemGone_ = id => { try { return ((layoutNow_() || {}).deleted || []).indexOf(id) !== -1 || !seenOk_(id); } catch (e) { return false; } };
 function itemMark_(id, col, html) {
   if (!html || itemGone_(id)) return '';
   /* ITS ID ON ITS OWN BOX (489), so a Delete is read from the thing it sits on and the front door can find it. */
-  const h = String(html).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
+  const h = wordsIn_(id, String(html)).replace(/^(\s*<div)\b/, `$1 data-item="${esc(id)}"`);
   if (!layoutIsAdmin_()) return h;
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
   return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin${still ? ' no-move' : ''}" data-lay-for="${esc(id)}">${
-    frontTile_(col, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
+    frontTile_(col, id)}${wordsTiles_(id, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
 }
 
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */
@@ -640,7 +648,7 @@ const FRONT_KEPT = (() => { try { return AT !== TAB_HOME; } catch (e) { return t
 let FRONT_GONE = false;
 function frontGo_() {
   const f = frontNow_();
-  if (FRONT_GONE || FRONT_KEPT || !f) return;
+  if (FRONT_GONE || FRONT_KEPT || !f || !seenOk_(f.id)) return;
   if (!TABS.some(t => t.id === f.col)) return;
   FRONT_GONE = true;
   if (AT !== TAB_HOME && AT !== f.col) return;

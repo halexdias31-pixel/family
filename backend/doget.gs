@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-rules";
+const DOGET_VERSION = "2026-10-28-zl-words";
 
 
 function doGet(e) {
@@ -239,6 +239,8 @@ function doGet(e) {
                  'layoutSave',
                  /* The Rules card (496). */
                  'rulesSave',
+                 /* Edit words in place (497). */
+                 'wordsSave',
                  /* The weekly email's words (491), edited on the Site column. */
                  'digestWordsSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
@@ -347,6 +349,8 @@ function doGet(e) {
       layout: layoutClean_(cfg[LAYOUT_KEY]),
       /* THE RULES (496): which exceptions the admin made universal, and the last twenty changes for Undo. */
       rules: rulesClean_(cfg[RULES_KEY]),
+      /* THE SITE'S OWN WORDS (497): an admin's text over the code's, `{key: text}`; {} for the code's own. */
+      words: wordsClean_(cfg[WORDS_KEY]),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
       /* WHAT THE CALENDAR IS OFFERING TODAY. § */
       festive: [],
