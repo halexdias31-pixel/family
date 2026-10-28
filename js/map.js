@@ -227,6 +227,15 @@ const WIDGETS = [
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
+  /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
+  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => initSpotify?.(),
+    into: 'sp-box', what: 'Spotify',
+    get html() {
+      return `<div class="card">
+    <h3>Spotify</h3>
+    <div id="sp-box">${typeof spCard_ === 'function' ? spCard_() : ''}</div>
+  </div>`;
+    } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',

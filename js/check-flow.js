@@ -29930,6 +29930,94 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
   return bad;
 });
 
+/* ---------- SPOTIFY (510): no client id says so; Connect builds a PKCE address; the way back swaps the code and shows now playing; Premium said; Disconnect forgets ---------- */
+const SP_U_ = { name: 'Sid Spot', personId: 'P-SP', role: 'student', roles: ['student'], rank: 'student', token: 't-sp', handle: 'sidspot' };
+function spWorld_(o) {
+  o = o || {};
+  const T = { gone: [], token: [], api: [] };
+  const p = payload();
+  p.brand = Object.assign({}, p.brand || {});
+  if (o.cid) p.brand.spotify_client_id = 'sp-cid-test'; else delete p.brand.spotify_client_id;
+  const before = w => {
+    signedInAs_(SP_U_)(w);
+    const wc = require('crypto').webcrypto;
+    try { if (!w.crypto || !w.crypto.subtle) Object.defineProperty(w, 'crypto', { value: wc, configurable: true }); } catch (e) {}
+    if (!w.TextEncoder) w.TextEncoder = TextEncoder;
+    if (o.pkce) try { w.sessionStorage.setItem('spPkce', JSON.stringify(o.pkce)); } catch (e) {}
+    const orig = w.fetch;
+    w.fetch = (url, opt) => {
+      const u = String(url), m = (opt && opt.method) || 'GET';
+      const ans = (status, body) => Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) });
+      if (u === 'https://accounts.spotify.com/api/token') { T.token.push(String(opt.body)); return ans(200, { access_token: 'tok-sp', refresh_token: 'ref-sp', expires_in: 3600 }); }
+      if (u.indexOf('https://api.spotify.com/v1') !== 0) return orig(url, opt);
+      const path = u.slice('https://api.spotify.com/v1'.length);
+      T.api.push(m + ' ' + path + ' ' + ((opt && opt.headers && opt.headers.Authorization) || ''));
+      if (/^\/me\/player\/currently-playing/.test(path)) return ans(200, { is_playing: true, item: { name: 'Clair de Lune', type: 'track', artists: [{ name: 'Debussy' }], album: { images: [{ url: 'https://i.scdn.co/x.jpg' }] }, external_urls: { spotify: 'https://open.spotify.com/track/1' } } });
+      if (/^\/me\/playlists/.test(path)) return ans(200, { items: [{ id: 'PL1', name: 'Revision calm', type: 'playlist', external_urls: { spotify: 'https://open.spotify.com/playlist/PL1' } }] });
+      if (/^\/me\/player\//.test(path)) return ans(403, { error: { status: 403, message: 'Player command failed: Premium required', reason: 'PREMIUM_REQUIRED' } });
+      return ans(404, {});
+    };
+  };
+  return { T, p, before };
+}
+check('Spotify (510): no client id says not switched on; Connect builds a PKCE address with the four scopes; the way back swaps the code and shows now playing and playlists; a free account is told Premium; Disconnect forgets', async () => {
+  const bad = [];
+  const card = d => d.querySelector('#sp-box .sp-card');
+  {
+    const { p, before } = spWorld_({});
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    const c = card(m.w.document);
+    if (!c) bad.push('no Spotify widget on Tools');
+    else {
+      if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
+      if (c.querySelector('[data-do="sp-connect"]')) bad.push('a Connect tile with no client id');
+      if (/spotify_client_id/.test(c.textContent)) bad.push('a student was shown the admin\'s how-to');
+    }
+  }
+  {
+    const { p, before } = spWorld_({ cid: true });
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    let went = '';
+    m.w.spGo_ = u => { went = u; };
+    const t = m.w.document.querySelector('#sp-box [data-do="sp-connect"]');
+    if (!t) bad.push('no Connect tile with a client id'); else { t.click(); await wait(200); }
+    const q = went ? new URL(went).searchParams : null;
+    if (!q || !/^https:\/\/accounts\.spotify\.com\/authorize\?/.test(went)) bad.push('Connect did not go to Spotify: ' + went);
+    else {
+      if (q.get('client_id') !== 'sp-cid-test' || q.get('response_type') !== 'code' || q.get('code_challenge_method') !== 'S256') bad.push('wrong PKCE address: ' + went);
+      if (q.get('scope') !== 'user-read-currently-playing user-read-playback-state user-modify-playback-state playlist-read-private') bad.push('wrong scopes: ' + q.get('scope'));
+      if (q.get('redirect_uri') !== 'https://example.org/?spotify=cb') bad.push('wrong redirect: ' + q.get('redirect_uri'));
+      let pk = null; try { pk = JSON.parse(m.w.sessionStorage.getItem('spPkce')); } catch (e) {}
+      const want = pk && require('crypto').createHash('sha256').update(pk.v).digest('base64url');
+      if (!pk || q.get('code_challenge') !== want) bad.push('the challenge is not the SHA-256 of the kept verifier');
+      if (!pk || q.get('state') !== pk.state) bad.push('the state was not kept');
+    }
+  }
+  const pkce = { v: 'verifier-test', state: 'st-1', cid: 'sp-cid-test', back: 'https://example.org/?spotify=cb' };
+  const { T, p, before } = spWorld_({ cid: true, pkce });
+  const m = boot({ payload: p, before, url: 'https://example.org/?spotify=cb&code=CODE1&state=st-1' }); await wait(400);
+  m.w.paint('tools'); await wait(300); m.w.spPaint_();
+  const d = m.w.document;
+  if (/spotify=cb|code=/.test(m.w.location.href)) bad.push('the address still carries the code: ' + m.w.location.href);
+  const tb = T.token[0] ? new URLSearchParams(T.token[0]) : null;
+  if (!tb || tb.get('grant_type') !== 'authorization_code' || tb.get('code') !== 'CODE1' || tb.get('code_verifier') !== 'verifier-test' || tb.get('client_secret')) bad.push('the code swap was wrong: ' + T.token[0]);
+  const c = card(d);
+  if (!c || !/Clair de Lune/.test(c.textContent) || !/Debussy/.test(c.textContent)) bad.push('now playing not shown: ' + (c && c.textContent));
+  if (!c || !/Revision calm/.test(c.textContent) || !c.querySelector('a[href="https://open.spotify.com/playlist/PL1"]')) bad.push('the playlist line with Open in Spotify is missing');
+  if (T.api.some(x => !/Bearer tok-sp$/.test(x))) bad.push('a call went without the token');
+  if (m.sent.some(x => JSON.stringify(x).indexOf('tok-sp') !== -1 || JSON.stringify(x).indexOf('ref-sp') !== -1)) bad.push('a Spotify token was sent to our backend');
+  const pause = d.querySelector('#sp-box [data-do="sp-ctl"][data-c="pause"]');
+  if (!pause) bad.push('no Pause tile while playing'); else { pause.click(); await wait(200); }
+  if (!/Premium/.test((card(d) || {}).textContent || '')) bad.push('a 403 PREMIUM_REQUIRED was not said');
+  const off = d.querySelector('#sp-box [data-do="sp-off"]');
+  if (!off) bad.push('no Disconnect tile'); else { off.click(); await wait(100); }
+  if (!d.querySelector('#sp-box [data-do="sp-connect"]')) bad.push('after Disconnect the card does not offer Connect');
+  let left = '';
+  try { left = (m.w.sessionStorage.getItem('spTok') || '') + (m.w.localStorage.getItem('spRefresh') || ''); } catch (e) {}
+  if (left) bad.push('a token outlived Disconnect');
+  return bad;
+});
+
 /* ---------- PHONE NOTIFICATIONS (492): Turn on asks, subscribes and stores the token; Turn off deletes it; an iPhone outside the home screen is told how ---------- */
 const PU_U_ = { name: 'Pia Push', personId: 'P-PU', role: 'student', roles: ['student'], rank: 'student', token: 't-pu', handle: 'piapush' };
 const PU_CFG_ = { apiKey: 'AIza-test', projectId: 'fam-test', messagingSenderId: '123', appId: '1:123:web:abc', vapidKey: 'BPub-test' };

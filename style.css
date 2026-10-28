@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zs-bootslow";
+  --css-version: "2026-10-28-zw-spotify";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6964,3 +6964,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-body table { max-width: 100%; }
 .ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
 .ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
+/* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
+.sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }
+.sp-art { width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--line); }
+.sp-title { margin: 0; font-weight: 600; }
+.sp-now .faint { margin: 0; }
+.sp-line { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-top: 1px solid var(--line); }
+.sp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
+.sp-q { flex: 1; min-width: 0; min-height: 44px; border-radius: 999px; padding: 0 1rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
