@@ -38,7 +38,7 @@ function pdtextsItems_() {
       const place = (at || []).filter(Boolean);
       list.push({
         kind: 'pdtext', key: 'tx:' + w.id + ':' + t + ':' + i, name: [w.title].concat(place).join(' '), image: '', row: null,
-        shelf: w.subject, subject: w.subject, histKind: hist ? 'Texts' : '', sub: label,
+        shelf: BIBLE_SHELF, subject: w.subject, histKind: hist ? 'Texts' : '', sub: label,
         text: [w.title, w.author].concat(place, [label, w.id]).join(' '),
         txWriting: w.title, txBook: at[0] || '', txChapter: at[1] || '', txSection: at[2] || '', txText: label, txAnthology: w.anthology || '',
         tx: { id: w.id, file: w.file, i: i, t: t },

@@ -3,7 +3,7 @@
    data/hymns/: index when a finder paints, words in chunks when a card is drawn; never boot payload, no audio. */
 
 const HYMNS = { index: null, asking: null, failed: false, chunks: {}, loading: {}, missed: {}, items: null, from: null };
-const HYMN_SHELF = 'Hymns';
+const HYMN_SHELF = BIBLE_SHELF;
 const hymnsGet_ = file => {
   const stamp = window.LOAD ? '?t=' + window.LOAD : '';
   return Promise.resolve()
