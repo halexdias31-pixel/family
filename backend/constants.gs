@@ -125,7 +125,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-zz4-merge3";
+const BACKEND_VERSION = "2026-10-28-zz5-merge4";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -616,7 +616,7 @@ const AI_SPENT_MAX_S = 21600;
 /* FAVOURITE LINKS (509): how many one person keeps, and how long a title and an address may be. */
 const FAV_LINKS_MAX = 10, FAV_TITLE_MAX = 80, FAV_URL_MAX = 2000;
 /* THE REWRITE COACH (509): its daily cap when the config cell is blank, and the longest text it reads. */
-const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 1500;
+const REWRITE_PER_DAY = 10, REWRITE_TEXT_MAX = 6000, REWRITE_MINE_MAX = 6000, REWRITE_FACTS_MAX = 12;
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have

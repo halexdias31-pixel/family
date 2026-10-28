@@ -30180,6 +30180,69 @@ function puWorld_(o) {
   };
   return { T, p, before, reply };
 }
+check('the Rewrite coach (519): an admin lists the facts with the AI off; recall hides the text and Peek is counted; the scanner follows typing; Check gives a score line; with the AI a verdict without its real quote falls to missing; Try again asks only the facts still out', async () => {
+  const bad = [];
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
+  const TEXT = 'Photosynthesis is the process by which green plants use sunlight to make glucose from carbon dioxide and water. '
+    + 'It happens in the chloroplasts, which contain a green pigment called chlorophyll that absorbs light energy. Oxygen is released as a by-product.';
+  const open = async (ai, reply) => {
+    const p = payload(); p.aiMarking = ai;
+    const m = boot({ payload: p, reply: reply, before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+    await wait(300); m.w.paint('tools'); await wait(200); m.w.initRewrite_(); await wait(50);
+    return m;
+  };
+  const box = m => m.w.document.querySelector('#rw-box');
+  const tap = async (m, act) => { const el = box(m) && box(m).querySelector('[data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile: ' + (box(m) || {}).textContent); return false; } el.click(); await wait(80); return true; };
+  const type = async (m, sel, v) => { const el = box(m).querySelector(sel); if (!el) { bad.push('no box ' + sel); return; } el.value = v; el.dispatchEvent(new m.w.Event('input', { bubbles: true })); await wait(30); };
+  {
+    const m = await open(false);
+    if (!box(m)) return ['an admin\'s Tools has no Rewrite coach, so nothing was asked'];
+    await type(m, '[data-rw="src"]', TEXT);
+    await tap(m, 'rw-ideas');
+    const items = box(m).querySelectorAll('.rw-facts li');
+    if (items.length < 3) bad.push('with the AI off the facts were not listed: ' + box(m).textContent.slice(0, 200));
+    if (!box(m).querySelector('.rw-term')) bad.push('no protected term was shown with the AI off');
+    await tap(m, 'rw-recall');
+    if (box(m).querySelector('.rw-src-text') || box(m).querySelector('.rw-facts')) bad.push('writing from memory still shows the text or the checklist');
+    const cues = [...box(m).querySelectorAll('[data-rw="mine"]')].map(t => t.closest('label').textContent);
+    if (!cues.length || !/What did the text say about/.test(cues[0])) bad.push('no cue per fact: ' + JSON.stringify(cues));
+    await tap(m, 'rw-peek');
+    if (!box(m).querySelector('.rw-src-text')) bad.push('Peek did not show the text');
+    await tap(m, 'rw-hide');
+    if (!/1 so far/.test(box(m).innerHTML) || box(m).querySelector('.rw-src-text')) bad.push('Hide again did not hide, or the peek was not counted');
+    const before = box(m).querySelector('[data-rw-scan="0"]').textContent;
+    await type(m, '[data-rw="mine"][data-i="0"]', 'Using sunlight, plants build glucose out of water and carbon dioxide; that is photosynthesis.');
+    const after = box(m).querySelector('[data-rw-scan="0"]').textContent;
+    if (before === after || !/Substance [89]\d%|Substance 100%/.test(after)) bad.push('the scanner did not follow the typing: ' + before + ' → ' + after);
+    await tap(m, 'rw-check');
+    const score = (box(m).querySelector('.rw-score:not([data-rw-scan] *)') || box(m).querySelectorAll('.rw-score')[1] || {}).textContent || '';
+    if (!/Facts kept 1\/\d+/.test(box(m).textContent) || !/Own wording 100%/.test(box(m).textContent)) bad.push('no score line after Check: ' + score);
+    if (!box(m).querySelector('[data-do="rw-retry"]')) bad.push('no Try again with facts still out');
+  }
+  {
+    let asked = null;
+    const m = await open(true, body => {
+      if (body.action !== 'rewriteCheck') return undefined;
+      asked = body;
+      return { success: true, facts: body.items.map((it, k) => (k === 0 ? { verdict: 'yes', quote: 'plants build glucose' } : { verdict: 'yes', quote: 'words they never wrote' })), note: 'Link the steps.' };
+    });
+    await type(m, '[data-rw="src"]', TEXT);
+    await tap(m, 'rw-ideas'); await tap(m, 'rw-recall');
+    const n = box(m).querySelectorAll('[data-rw="mine"]').length;
+    await type(m, '[data-rw="mine"][data-i="0"]', 'Using sunlight, plants build glucose out of water and carbon dioxide.');
+    await type(m, '[data-rw="mine"][data-i="1"]', 'Somewhere in the leaf.');
+    await tap(m, 'rw-check'); await wait(150);
+    if (!asked || asked.items.length !== n || asked.items[1].mine !== 'Somewhere in the leaf.') bad.push('the check did not send one answer per fact: ' + JSON.stringify(asked).slice(0, 200));
+    if (!new RegExp('Facts kept 1/' + n).test(box(m).textContent)) bad.push('a verdict without its real quote was kept: ' + box(m).textContent.slice(-300));
+    await tap(m, 'rw-retry');
+    const left = box(m).querySelectorAll('[data-rw="mine"]').length;
+    if (left !== n - 1) bad.push('Try again showed ' + left + ' boxes, wanted the ' + (n - 1) + ' facts still out');
+    await type(m, '[data-rw="mine"][data-i="1"]', 'Chlorophyll in the chloroplasts soaks up the light.');
+    asked = null; await tap(m, 'rw-check'); await wait(150);
+    if (!asked || asked.items.length !== n - 1 || asked.items.some(it => /plants build glucose/.test(it.mine))) bad.push('Try again re-asked a kept fact: ' + JSON.stringify(asked).slice(0, 200));
+  }
+  return bad;
+});
 check('phone notifications (492): Student settings has a Notifications card; Turn on asks permission, lazy-loads Firebase, subscribes with the VAPID key on our own worker and stores the token; a kind can be turned off; Turn off deletes it; an iPhone in Safari is told to Add to Home Screen; no config says not switched on', async () => {
   const bad = [];
   const open = async o => { const W = puWorld_(o); const m = boot({ payload: W.p, before: W.before, reply: W.reply }); await wait(300); m.w.paint('account'); await wait(200); m.w.paint('account'); await wait(100); return Object.assign(W, { m }); };

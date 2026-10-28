@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zz4-merge3";
+  --css-version: "2026-10-28-zz5-merge4";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6970,7 +6970,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- THE REWRITE COACH (509) ---------- */
 .rw-line textarea { width: 100%; min-height: 4rem; }
-.rw-src summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
 .rw-src-text { white-space: pre-wrap; font-size: .85rem; }
 .rw-h { margin: .7rem 0 .3rem; font-size: .9rem; }
 .rw-vocab { margin: 0; }
@@ -6979,12 +6978,22 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-v dd { margin: 0; color: var(--dim); }
 .rw-fb { margin: .2rem 0 .5rem; }
 .rw-kept { margin: 0; font-weight: 600; font-size: .82rem; }
-.rw-kept.is-no { color: var(--warn); }
 .rw-qs { margin: .2rem 0 0 1.1rem; padding: 0; font-size: .85rem; }
-.rw-pct { font-weight: 700; margin: .5rem 0 .2rem; }
-.rw-pct.is-high { color: var(--warn); }
 .rw-marked { white-space: pre-wrap; font-size: .85rem; }
 .rw-copied { background: var(--gold); color: var(--bg); }
+.rw-facts, .rw-verdicts, .rw-tips { margin: .2rem 0 .4rem 1.1rem; padding: 0; font-size: .85rem; }
+.rw-terms { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
+.rw-term { font-weight: 600; border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; font-size: .78rem; }
+.rw-hidden { font-style: italic; }
+.rw-cov { margin: 0; font-size: .8rem; color: var(--dim); }
+.rw-chips { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
+.rw-chip { font-weight: 400; border: 1px dashed var(--line); border-radius: .3rem; padding: 0 .3rem; }
+.rw-chip.is-rare { font-weight: 600; border-style: solid; }
+.rw-score { font-weight: 600; margin: .5rem 0 .2rem; }
+.rw-score .is-high { color: var(--warn); }
+.rw-kept.is-changed, .rw-kept.is-missing { color: var(--warn); }
+.rw-quote { margin: .1rem 0; font-size: .85rem; color: var(--dim); }
+.rw-q { margin: .1rem 0; font-size: .85rem; }
 /* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
 .rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
 .rep-file.is-failed { color: var(--ink); font-weight: 600; }
