@@ -268,7 +268,8 @@ else if (kindM[1] !== 'Learning' || kindM[2] !== 'Library') fail.push('the bible
    the Bible shown to somebody the owner did not name. */
 const gateM = /const bibleFor_ = \(\) => ([^;]+);/.exec(findSrc);
 if (!gateM) fail.push('`bibleFor_` is not in js/find.js — there is no one place deciding who sees the Bible');
-else if (gateM[1].replace(/\s+/g, ' ').trim() !== "typeof isAdmin === 'function' && isAdmin()") {
+/* OR THE RULES CARD'S `kjv-admin` made universal (496): the owner's own switch, of age still required. */
+else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()))") {
   fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — the owner said "only admin can see the bible", which is isAdmin() and nothing else');
 }
 const itemsSrc = cutFrom(findSrc, 'bibleItems_') || '';

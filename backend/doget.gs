@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-27-zi-no-email";
+const DOGET_VERSION = "2026-10-28-rules";
 
 
 function doGet(e) {
@@ -237,6 +237,8 @@ function doGet(e) {
                  'saveTimetable',
                  /* The admin's layout (462, 463): the order of widgets and which are deleted. */
                  'layoutSave',
+                 /* The Rules card (496). */
+                 'rulesSave',
                  /* The weekly email's words (491), edited on the Site column. */
                  'digestWordsSave',
                  /* Notes for Claude (484): an admin's note on a widget or card. */
@@ -343,6 +345,8 @@ function doGet(e) {
       constants: { vars: configPublic_(cfg) },
       /* THE SITE'S LAYOUT (462): the admin's order of widgets over the code's, or null for the code's own. */
       layout: layoutClean_(cfg[LAYOUT_KEY]),
+      /* THE RULES (496): which exceptions the admin made universal, and the last twenty changes for Undo. */
+      rules: rulesClean_(cfg[RULES_KEY]),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
       /* WHAT THE CALENDAR IS OFFERING TODAY. § */
       festive: [],

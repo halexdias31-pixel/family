@@ -648,13 +648,15 @@ function subForget_() {
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
 const SUGGEST_NOTE_MAX = 1000;
 const suggestPeople_ = kind => kind === 'message' || kind === 'post';
+/* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
+const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 
 /* THE ONE TILE, on every thing: Student rank and up; signed out it is not drawn. `check-suggest` holds every such tile to it. */
 function suggestTile_(kind, id, label, cls) {
   if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
-  return tile_({ icon: 'suggest', label: suggestPeople_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
+  return tile_({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
@@ -685,7 +687,7 @@ function reportBoxHtml_(kind, id, label, finder) {
   return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}">
     ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}
     <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
-      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${people ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
+      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
     <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send' })}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
     <p class="faint me-said rep-said" aria-live="polite">${admin

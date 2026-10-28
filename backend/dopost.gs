@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-zi-no-email";
+const DOPOST_VERSION = "2026-10-28-rules";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3056,6 +3056,37 @@ function doPost(e) {
       else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
+    }
+
+    /* ---------- THE RULES CARD (496): one rule set Exception or Universal, or the last change undone; locked rules refused ---------- */
+    if (action === 'rulesSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the rules on.' });
+      const row = t.rows.find(r => norm(r.key) === RULES_KEY);
+      const now = rulesClean_(row ? row.value : '') || { set: {}, hist: [] };
+      const is = id => now.set[id] === 'universal' ? 'universal' : 'exception';
+      if (body.undo) {
+        const last = now.hist.pop();
+        if (!last) return jsonOut({ error: 'There is no rule change to undo.' });
+        if (last.was === 'universal') now.set[last.id] = 'universal'; else delete now.set[last.id];
+      } else {
+        const id = S(body.rule), to = S(body.to);
+        if (RULE_IDS.indexOf(id) === -1) return jsonOut({ error: 'There is no rule by that name.' });
+        if (RULES_LOCKED.indexOf(id) !== -1) return jsonOut({ error: 'That rule is locked.' });
+        if (to !== 'exception' && to !== 'universal') return jsonOut({ error: 'A rule is Exception or Universal.' });
+        const was = is(id);
+        if (was === to) return jsonOut({ success: true, rules: now });
+        if (to === 'universal') now.set[id] = 'universal'; else delete now.set[id];
+        now.hist.push({ id: id, was: was, to: to, at: new Date().toISOString() });
+        now.hist = now.hist.slice(-RULES_HIST_MAX);
+      }
+      const value = JSON.stringify(now);
+      if (row) setCell(t, row, 'value', value);
+      else addRow(t, { key: RULES_KEY, value: value, what_it_does: 'The Rules card (496): exceptions made universal, and the last twenty changes for Undo. Empty: every exception as the code has it.' });
+      clearCache();
+      return jsonOut({ success: true, rules: now });
     }
 
     /* ---------- THE WEEKLY EMAIL'S WORDS (491): the four `digest_*` config rows, blank meaning the default ---------- */
