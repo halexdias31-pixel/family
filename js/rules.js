@@ -31,6 +31,19 @@ const RULES = [
     uni: 'One joined row like every other card.', lock: 'Joining it moved Add a qualification and broke a section\'s own Save.' },
   { id: 'find-front', say: 'The booking, feed and bundle pages stand in front of Find\'s results, not Find 2\'s', where: 'Find (347)',
     uni: 'Find 2 opens on them too.', lock: 'Those pages are drawn once with fixed ids; a second copy would answer for both.' },
+  /* THE TOOLS ON FIND'S ITEMS (502): what is left of where a tool appears, now that the instruments are on every figure. */
+  { id: 'meas-wordy', say: 'A figure in English, a language, RS or philosophy has no Ruler or Protractor', where: 'Questions with a figure (502)',
+    uni: 'Ruler and Protractor on every figure, whatever the subject.' },
+  { id: 'meas-under-pen', say: 'A figure the pen draws on has its Ruler and Protractor in the pen\'s bar, not laid on the figure', where: 'Questions answered by drawing (458, 502)',
+    uni: 'Both, on the figure and in the bar.', lock: 'Two of one instrument on one figure would fight over the same finger.' },
+  { id: 'pen-chosen', say: 'A multiple-choice or table question has no pen', where: 'Questions answered by an option or a cell (356)',
+    uni: 'A pen on those too.', lock: 'The option or the cell is what is marked; a drawing on it could not be.' },
+  { id: 'mag-items', say: 'The Magnifier is on Find\'s items (questions, library cards, scripture), not on people, shop or feed cards', where: 'Every card\'s tile row (463, 502)',
+    uni: 'A Magnifier on every card.' },
+  { id: 'speed-long', say: 'Speed read is on long words (content, practicals, projects, a Bible verse), not on a question', where: 'Every card\'s tile row (403, 502)',
+    uni: 'Speed read on a question\'s words too.' },
+  { id: 'hear-lang', say: 'Hear it is only on Spanish, French and German content cards', where: 'Content cards (427)',
+    uni: 'Hear it on every card.', lock: 'It reads the foreign-language half of each line; nothing else has one.' },
 ];
 const RULE_OF_ = id => RULES.find(r => r.id === id) || null;
 /* THE DEVICE'S COPY of the last rules the payload sent, so the first paint is already the admin's choice. */

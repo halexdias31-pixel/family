@@ -4909,7 +4909,7 @@ const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toL
 function padSource_(x) {
   if (!x) return null;
   /* A ROW WITH OPTIONS IS ANSWERED BY CHOOSING ONE, and is given nothing to draw on (18 Oct, 356): § */
-  if (Array.isArray(x.choices) && x.choices.length) return null;
+  if (Array.isArray(x.choices) && x.choices.length && (typeof ruleOn_ !== 'function' || ruleOn_('pen-chosen'))) return null;
   /* AND A ROW WITH CELLS IS ANSWERED IN ITS TABLE (`cellsTable_`), so nothing to draw on either. */
   if (String(x.cells || '').trim()) return null;
   const surf = padSurface_(x);
@@ -7574,7 +7574,9 @@ function ansArea_(x) {
   if (!p) return ansBox_(x);
   const box = answerKinds_(x).value ? ansBox_(x) : '';
   /* A FIGURE AMONG THE WORDS IS THE PEN (`figHtml_`); ITS CHECK IS HERE, at the foot, as a typed part's is (381) */
-  if (p.from !== 'surface') return box + padSendRow_(x, padRead_(padKey_(x)));
+  /* THE RULER AND PROTRACTOR ON EVERY FIGURE (502): a drawn answer with no typed box gets them in a row of their own */
+  const meas = box ? '' : measTiles_(x);
+  if (p.from !== 'surface') return box + (meas ? `<div class="tile-row qp-meas-row">${meas}</div>` : '') + padSendRow_(x, padRead_(padKey_(x)));
   return `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, true)}</div>${box}`;
 }
 
@@ -8204,10 +8206,10 @@ function questionTiles_(x) {
 
 /* ---------- THE ONE TOOLKIT (457) ---------------------------------------------------------------- */
 /* What a question page has is decided HERE, from what the page is, never from a flag a row can lack (docs/history/457). */
-const QT_MEASURE_SUBJECT = /math|statistic|physic|chemi|biolog|science|geograph|design|engineer/i;
+/* SUBJECTS OF WORDS, whose figures are pictures to look at rather than drawings to measure (502, rule `meas-wordy`) */
+const QT_WORDY_SUBJECT = /english|literature|spanish|french|german|language|religio|philosoph|scripture|bible|quran|talmud/i;
 function qToolkit_(x) {
   if (!x || x.kind !== 'question') return null;
-  const subj = String(x.subject || (x.row && x.row.subject) || '');
   const pen = padSource_(x);
   return {
     magnify: true,                 // the Magnifier (463): words, figures, pictures and the pen, under the glass
@@ -8215,7 +8217,7 @@ function qToolkit_(x) {
     read: true,                    // Read aloud on every question, not only a primary one (394)
     help: true, report: true,      // `helpRow_` in the card, `suggestTile_` in the row
     pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
-    measure: !!cardDiagram_(x) && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
+    measure: measTools_(x).length > 0,
   };
 }
 /* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: the Magnifier and the padlock. */
@@ -8239,6 +8241,13 @@ function magPaint_() {
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
 }
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
+/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qToolTiles_`) */
+const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, paper: 1, document: 1 };
+function magCardTile_(x) {
+  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return '';
+  if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return '';
+  return magTile_();
+}
 /* PUT AWAY WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS TAKEN OUT ON, as the padlock is (`qLockStray_`) */
 function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
 const magBusy_ = () => !!MAG.live;
@@ -8380,12 +8389,12 @@ function figsBefore_(x) {
 /* PRIMARY IS THE SATs LEVEL (`levelOf_`, `ksFallback_` behind it) or a school year 1 to 6, whatever the level cell says;
    the owner's words are in docs/history/394. */
 function readAloudFor_(x) {
-  if (!x || (x.kind !== 'question' && x.kind !== 'content')) return false;
+  if (!x) return false;
   /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
   if (x.kind === 'question') return !!(qToolkit_(x) || {}).read;
-  const yr = x.bandType === 'year' ? Number(x.bandValue) : NaN;
-  if (yr >= 1 && yr <= 6) return true;
-  return levelOf_(x) === 'SATs';
+  /* EVERY CONTENT CARD AT EVERY LEVEL, and every other thing with words to read (502); the SATs-and-years-1-to-6 limit is gone */
+  if (x.kind === 'content') return true;
+  return typeof speedText_ === 'function' && (x.kind === 'practical' || x.kind === 'project' || x.kind === 'bible') && !!speedText_(x);
 }
 /* WHAT IS BEING READ, AND WHERE IT WAS PRESSED: a slide to another column or page stops it (`readAloudStray_`, from `placeCells`). */
 let READ_NOW = null;
@@ -8429,7 +8438,7 @@ on('read-aloud', el => {
 /* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
 /* The worked lines' own-language halves (before " — "), in that language's voice; the English is on the card to read. */
 const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE' };
-const hearItLang_ = x => (x && x.kind === 'content' && HEAR_LANG[x.subject]) || '';
+const hearItLang_ = x => (x && x.kind === 'content' && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
 const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
 function hearItTile_(x) {
   if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return '';
@@ -8453,6 +8462,7 @@ function readAloudLines_(x) {
   if (!x) return [];
   const out = [];
   const add = h => speakLines_(h).forEach(l => out.push(l));
+  if (x.kind !== 'question' && x.kind !== 'content') return typeof speedText_ === 'function' ? speakLines_(speedText_(x).replace(/\n\s*\n/g, '. ')) : [];
   if (x.kind === 'content') {
     const c = x.row || {};
     add(x.name || c.title);
@@ -11379,22 +11389,14 @@ function padSend_(keepalive) {
 /* THE FIGURE ON A PART'S CARD: its own, else its question's opening's carried onto it (500) -- so 16(a)'s graph has the ruler too. */
 const cardDiagram_ = x => (x && (x.diagram || (x.kind === 'question' && (stemOnCard_(x) || {}).diagram))) || '';
 function measTools_(x) {
-  if (!x || !cardDiagram_(x)) return [];
+  if (!x || x.kind !== 'question' || !cardDiagram_(x)) return [];
   /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
   const pen = padSource_(x);
-  if (pen && pen.from === 'part') return [];
-  /* EVERY FIGURE IN A SUBJECT THAT MEASURES HAS BOTH (457): the word "measure" was a flag a row could lack */
-  const kit = qToolkit_(x);
-  if (kit && kit.measure) return ['protractor', 'ruler'];
-  const r = x.row || x;
-  if (r.subject && !/math/i.test(r.subject)) return [];
-  const words = String((x.html || r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]*>/g, ' ');
-  if (!/\bmeasure\b/i.test(words)) return [];
-  const all = words + ' ' + String(x.accept || r.accept || '');
-  const out = [];
-  if (/\bangle|bearing|°|degrees?\b/i.test(all)) out.push('protractor');
-  if (/\blength|\bline\b|\bside\b|distance|\b(cm|mm)\b|centimet|millimet/i.test(all) && !/°/.test(String(x.accept || r.accept || ''))) out.push('ruler');
-  return out;
+  if (pen && pen.from === 'part' && (typeof ruleOn_ !== 'function' || ruleOn_('meas-under-pen'))) return [];
+  /* EVERY FIGURE HAS BOTH (502): the subject list and the word "measure" were flags a row could lack; only a subject of words is left out, and the admin can flip that */
+  const subj = String(x.subject || (x.row && x.row.subject) || '');
+  if (subj && QT_WORDY_SUBJECT.test(subj) && (typeof ruleOn_ !== 'function' || ruleOn_('meas-wordy'))) return [];
+  return ['protractor', 'ruler'];
 }
 const MEAS_FACE = { protractor: { icon: 'protractor', label: 'Protractor', note: 'on the figure' },
                     ruler: { icon: 'ruler', label: 'Ruler', note: 'on the figure' } };
@@ -11564,56 +11566,111 @@ function measSnap_(svg) {
   }));
   if (best) g.rot = ((best.a % 360) + 360) % 360;
 }
-/* THE GESTURES: one finger drags it, a second turns it, the round handle turns it; a mouse drags, turns by the handle or the wheel */
-const MEAS_PT = new Map();
-let MEAS_GO = null;
+/* THE GESTURES (502): the tool is a rigid thing under the fingers -- each finger keeps the spot of the tool it first touched, by pointerId, so two fingers move and turn it exactly and may cross. */
+/* One finger on the body drags; one on a ruler's end turns it about the other end; one on the round handle turns it about its centre; the wheel turns it 1° (Shift 0.2°). */
+const MEAS_PT = new Map();   // pointerId -> { p: where it is now, l: the tool's own spot under it } in figure units
+let MEAS_GO = null;          // { o: the overlay, mode: 'drag' | 'turn' | 'end' | 'two', piv: the tool's own spot that stays put }
+const MEAS_GRID_DEG = 15, MEAS_GRID_NEAR = 2;   // within 2° of a multiple of 15° it settles there (0, 15, 30, 45, 90 ...)
 const measAt_ = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return [0, 0]; const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; };
+const measRad_ = () => MEAS.rot * Math.PI / 180;
+/* A FIGURE POINT TO THE TOOL'S OWN, AND BACK */
+const measLocal_ = p => { const t = measRad_(), dx = p[0] - MEAS.c[0], dy = p[1] - MEAS.c[1]; return [dx * Math.cos(t) + dy * Math.sin(t), -dx * Math.sin(t) + dy * Math.cos(t)]; };
+const measWorld_ = l => { const t = measRad_(); return [MEAS.c[0] + l[0] * Math.cos(t) - l[1] * Math.sin(t), MEAS.c[1] + l[0] * Math.sin(t) + l[1] * Math.cos(t)]; };
+const measGridSnap_ = a => { const n = Math.round(a / MEAS_GRID_DEG) * MEAS_GRID_DEG; return Math.abs(a - n) <= MEAS_GRID_NEAR ? n : a; };
+/* TURNED TO `rot` WITH THE TOOL'S OWN SPOT `l` LYING ON THE FIGURE POINT `p` */
+function measPin_(rot, l, p) { MEAS.rot = rot; const w = measWorld_(l); MEAS.c = [MEAS.c[0] + p[0] - w[0], MEAS.c[1] + p[1] - w[1]]; }
+/* ONLY THE POSE CHANGES WHILE A FINGER IS DOWN: the overlay is never rebuilt under it (that dropped the captured finger and moved the handle, 502) */
+function measPose_(o) {
+  const g = o && o.querySelector(':scope > g');
+  if (!g || !MEAS) return;
+  g.setAttribute('transform', 'translate(' + MEAS.c[0].toFixed(2) + ' ' + MEAS.c[1].toFixed(2) + ') rotate(' + MEAS.rot.toFixed(2) + ')');
+  o.setAttribute('data-c', MEAS.c.map(v => v.toFixed(2)).join(','));
+  o.setAttribute('data-rot', MEAS.rot.toFixed(2));
+}
+/* EVERY FINGER STILL DOWN TAKES THE SPOT IT IS ON NOW, so a finger added or lifted never makes the tool jump */
+function measAnchor_() { MEAS_PT.forEach(v => { v.l = measLocal_(v.p); }); }
+function measMode_(o, target) {
+  const n = MEAS_PT.size;
+  if (n >= 2) return { o, mode: 'two' };
+  if (target && target.closest('.meas-turn, .meas-turn-i')) return { o, mode: 'turn', piv: [0, 0] };
+  const f = [...MEAS_PT.values()][0];
+  if (MEAS.tool === 'ruler' && f) {
+    /* AN END is its last eighth, or a fingertip, whichever is shorter: turned about the other end */
+    const r = o.getBoundingClientRect(), u = r.width ? MEAS.vb[2] / r.width : 1, E = Math.min(MEAS.L * 0.125, 40 * u);
+    if (f.l[0] <= E) return { o, mode: 'end', piv: [MEAS.L, 0] };
+    if (f.l[0] >= MEAS.L - E) return { o, mode: 'end', piv: [0, 0] };
+  }
+  return { o, mode: 'drag' };
+}
 document.addEventListener('pointerdown', e => {
   const o = e.target && e.target.closest && e.target.closest('svg.meas');
-  if (!o || !MEAS) return;
-  const onTool = e.target.closest('.meas-body, .meas-tick, .meas-num, .meas-turn, .meas-turn-i');
+  const host = !o && MEAS_PT.size && e.target && e.target.closest && e.target.closest('.meas-host');
+  if ((!o && !host) || !MEAS) return;
+  const onTool = o && e.target.closest('.meas-body, .meas-tick, .meas-num, .meas-turn, .meas-turn-i');
+  /* A SECOND FINGER MAY LAND ANYWHERE ON THE FIGURE, beside the tool, and turns it */
   if (!onTool && !MEAS_PT.size) return;
+  const ov = o || host.querySelector('svg.meas');
+  if (!ov) return;
   e.preventDefault();
-  try { o.setPointerCapture(e.pointerId); } catch (err) {}
-  MEAS_PT.set(e.pointerId, measAt_(o, e));
-  const turn = !!e.target.closest('.meas-turn, .meas-turn-i');
-  MEAS.hold = turn && MEAS_PT.size === 1;
-  MEAS_GO = { o, turn: turn && MEAS_PT.size === 1, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: measAt_(o, e), pts0: new Map(MEAS_PT) };
+  e.stopPropagation();
+  try { ov.setPointerCapture(e.pointerId); } catch (err) {}
+  const p = measAt_(ov, e);
+  MEAS_PT.set(e.pointerId, { p, l: measLocal_(p) });
+  measAnchor_();
+  MEAS.hold = true;
+  MEAS_GO = measMode_(ov, e.target);
 }, true);
 document.addEventListener('pointermove', e => {
   const G = MEAS_GO;
   if (!G || !MEAS || !MEAS_PT.has(e.pointerId)) return;
   if (e.cancelable) e.preventDefault();
-  const p = measAt_(G.o, e);
-  MEAS_PT.set(e.pointerId, p);
-  if (G.turn) MEAS.rot = (Math.atan2(p[1] - MEAS.c[1], p[0] - MEAS.c[0]) - Math.atan2(MEAS.h[1], MEAS.h[0])) * 180 / Math.PI;
-  else if (MEAS_PT.size >= 2) {
-    const [a, b] = [...MEAS_PT.values()], [a0, b0] = [...G.pts0.values()];
-    if (a0 && b0) MEAS.rot = G.rot0 + (Math.atan2(b[1] - a[1], b[0] - a[0]) - Math.atan2(b0[1] - a0[1], b0[0] - a0[0])) * 180 / Math.PI;
-  } else MEAS.c = [G.c0[0] + p[0] - G.p0[0], G.c0[1] + p[1] - G.p0[1]];
-  const fig = G.o.parentNode;
-  measDraw_(fig);
-  MEAS_GO.o = fig.querySelector('svg.meas');
+  const me = MEAS_PT.get(e.pointerId);
+  me.p = measAt_(G.o, e);
+  if (G.mode === 'two') {
+    const [a, b] = [...MEAS_PT.values()];
+    const want = Math.atan2(b.p[1] - a.p[1], b.p[0] - a.p[0]) - Math.atan2(b.l[1] - a.l[1], b.l[0] - a.l[0]);
+    /* THE MIDPOINT OF THE TWO FINGERS STAYS UNDER THEM, whatever the snap took off the turn */
+    const mid = [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2], lmid = [(a.l[0] + b.l[0]) / 2, (a.l[1] + b.l[1]) / 2];
+    measPin_(measGridSnap_(want * 180 / Math.PI), lmid, mid);
+  } else if (G.mode === 'drag') {
+    measPin_(MEAS.rot, me.l, me.p);
+  } else {
+    const pw = measWorld_(G.piv);
+    const want = Math.atan2(me.p[1] - pw[1], me.p[0] - pw[0]) - Math.atan2(me.l[1] - G.piv[1], me.l[0] - G.piv[0]);
+    measPin_(measGridSnap_(want * 180 / Math.PI), G.piv, pw);
+  }
+  measPose_(G.o);
 }, { capture: true, passive: false });
 const measUp_ = e => {
   if (!MEAS_PT.has(e.pointerId)) return;
   MEAS_PT.delete(e.pointerId);
   const G = MEAS_GO;
-  if (MEAS) MEAS.hold = false;
-  if (!G || !MEAS) { MEAS_GO = null; return; }
-  const fig = G.o.parentNode, svg = fig && fig.querySelector('svg:not(.meas)');
+  if (!G || !MEAS) { MEAS_GO = null; MEAS_PT.clear(); return; }
+  if (MEAS_PT.size) {
+    /* THE FINGER LEFT ON IT CARRIES ON from where it is now, dragging */
+    measAnchor_();
+    MEAS_GO = { o: G.o, mode: MEAS_PT.size >= 2 ? 'two' : 'drag' };
+    return;
+  }
+  MEAS.hold = false;
+  MEAS_GO = null;
+  const fig = G.o.parentNode, svg = fig && [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
   if (svg) measSnap_(svg);
   if (fig) measDraw_(fig);
-  /* THE FINGER LEFT ON IT CARRIES ON from where it is now */
-  MEAS_GO = MEAS_PT.size && fig ? { o: fig.querySelector('svg.meas'), turn: false, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: [...MEAS_PT.values()][0], pts0: new Map(MEAS_PT) } : null;
 };
 ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, measUp_, true));
+/* NO PINCH-ZOOM, SCROLL OR COLUMN SLIDE while a finger holds the tool */
+['touchstart', 'touchmove'].forEach(ev => document.addEventListener(ev, e => {
+  if (!MEAS) return;
+  const t = e.target, on = t && t.closest && (t.closest('svg.meas .meas-body, svg.meas .meas-tick, svg.meas .meas-num, svg.meas .meas-turn, svg.meas .meas-turn-i') || (MEAS_PT.size && t.closest('.meas-host')));
+  if ((on || MEAS_PT.size) && e.cancelable) e.preventDefault();
+}, { capture: true, passive: false }));
 document.addEventListener('wheel', e => {
   const o = e.target && e.target.closest && e.target.closest('svg.meas');
   if (!o || !MEAS) return;
   e.preventDefault();
-  MEAS.rot += e.deltaY > 0 ? 1 : -1;
-  const fig = o.parentNode, svg = fig.querySelector('svg:not(.meas)');
+  MEAS.rot += (e.deltaY > 0 ? 1 : -1) * (e.shiftKey ? 0.2 : 1);
+  const fig = o.parentNode, svg = [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
   if (svg) measSnap_(svg);
   measDraw_(fig);
 }, { passive: false });
