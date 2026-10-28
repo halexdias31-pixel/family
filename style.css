@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zz5-merge4";
+  --css-version: "2026-10-28-r3-tools";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6098,6 +6098,40 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
    8 Oct: *"there doesnt need to be a scroll down tile on questions."* */
 /* THE MAGNIFIER (463): a circle over a question page, its copy of the page 2.5 times bigger (`magShow_`); the page holds it while it is up. */
 .qtool-tiles { margin-top: .9rem; }
+/* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order; on a phone the tools fold behind one Tools tile, Check stays out. */
+.qt-row { margin-top: .6rem; }
+.qt-tools { display: contents; }
+.qt-row > .qt-fold { display: none; }
+@media (max-width: 40rem) {
+  .qt-row > .qt-fold { display: inline-flex; }
+  .qt-row:not(.is-open) > .qt-tools { display: none; }
+}
+.qt-panel { margin-top: .6rem; }
+.qt-panel[hidden] { display: none; }
+/* THE CALCULATOR'S KEYS are a form's buttons, so px for a fingertip */
+.qcalc-out { display: block; min-height: 3.2rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: .5rem; text-align: right; overflow-x: auto; }
+.qcalc-in { min-height: 1.4rem; white-space: nowrap; }
+.qcalc-res { font-size: 1.3rem; font-weight: 600; }
+.qcalc-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: .5rem; }
+.qcalc-k { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 1rem; }
+.qcalc-k.is-op { color: var(--gold); }
+.qcalc-k.is-eq { background: var(--gold); color: var(--bg); }
+/* THE TABLE: cells to work in, any size; a fingertip tall */
+.qt-table table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.qt-table td { border: 1px solid var(--line); padding: 0; }
+.qt-cell { width: 100%; min-height: 44px; border: 0; background: transparent; color: var(--ink); text-align: center; font-size: 1rem; }
+.qt-formula { display: grid; gap: .3rem; margin: 0; }
+.qt-formula div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); padding: .2rem 0; }
+.qt-formula dt { opacity: .75; }
+.qt-formula dd { margin: 0; text-align: right; }
+/* THE GRID OVER A FIGURE: light squares, then axes through the middle; it never takes a touch */
+.qpad-art[class*="qt-over-"]::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background-image: linear-gradient(to right, var(--line) 1px, transparent 1px), linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 5% 5%; opacity: .8; }
+.qpad-art.qt-over-coord::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(to right, transparent calc(50% - 1px), var(--ink) calc(50% - 1px), var(--ink) calc(50% + 1px), transparent calc(50% + 1px)),
+              linear-gradient(to bottom, transparent calc(50% - 1px), var(--ink) calc(50% - 1px), var(--ink) calc(50% + 1px), transparent calc(50% + 1px)); }
+.qp-order-tiles { margin-top: .4rem; }
 .page.mag-host { position: relative; }
 /* BACK TO TOP (463): under every result of a finder, its last row. */
 .find-top { margin-top: .9rem; }

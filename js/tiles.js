@@ -101,6 +101,11 @@ const TILE_ICONS = {
   /* ---------- AND THREE THAT ARE NOT ON A TILE: THE VIDEOS CARD'S, AFTER YOUTUBE § */
   search: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5"/>',
   /* A MAGNIFIER WITH A PLUS: ZOOM ON EVERY QUESTION (457) */
+  /* THE QUESTION'S TOOL ROW (qtools.js): a grid, a calculator, a table, and the folded row's own mark. */
+  grid:  '<path d="M2.5 2.5h13v12h-13z"/><path d="M2.5 6.5h13M2.5 10.5h13M6.8 2.5v12M11.2 2.5v12"/>',
+  calc:  '<path d="M4 1.5h10v14h-10z"/><path d="M6 4h6v2.5h-6z"/><path d="M6.3 9h.1M9 9h.1M11.7 9h.1M6.3 12h.1M9 12h.1M11.7 12h.1"/>',
+  table: '<path d="M2 3h14v11h-14z"/><path d="M2 6.7h14M2 10.3h14M7 3v11"/>',
+  tools: '<path d="M3 14.5 9.5 8"/><path d="M11.5 2.5a3 3 0 0 0 3.6 3.9l-2.3 2.3-2.6-.8-.8-2.6z"/><path d="M10 11l4.5 4.5M12.5 9l2 2"/>',
   zoom: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5M5.3 7.4h4.6M7.6 5.1v4.6"/>',
   film:  '<rect x="2.5" y="2.5" width="13" height="12" rx="1.5"/>'
        + '<path d="M5.5 2.5v12M12.5 2.5v12M2.5 6.5h3M2.5 10.5h3M12.5 6.5h3M12.5 10.5h3"/>',
@@ -409,7 +414,8 @@ function cardTiles_(x) {
   /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
   /* A TUTOR'S ROW LEADS WITH WHAT A VISITOR CAME FOR (414): Message, Share, then the star. */
   const lead = x.kind === 'tutor' ? cardActions_(x) + favTile_(x) : favTile_(x) + cardActions_(x);
-  const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+  /* a question part's Read aloud is in its one tool row (qtools.js), not here as well */
+  const mine = lead + (typeof readAloudTile_ === 'function' && x.kind !== 'question' ? readAloudTile_(x) : '')
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + (typeof magCardTile_ === 'function' ? magCardTile_(x) : '')

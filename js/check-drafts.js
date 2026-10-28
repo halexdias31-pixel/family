@@ -80,6 +80,9 @@ const KEPT = [
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
+  { file: 'qtools.js', fn: 'tableHtml_', has: 'qt-cell',
+    why: 'a cell of a question part\'s Table tool (round 3) — kept in the part\'s one record (`partRecPut_`) on every keystroke',
+    proof: [['qtools.js', /partRecPut_\(x, 'table', t\)/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
