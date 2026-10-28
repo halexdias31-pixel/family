@@ -130,6 +130,8 @@ const SUITE = [
   { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
   { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
+  /* THE SHIPPED COLLIERS WOOD'S GEOMETRY (511): one road surface, nothing overlapping, no gaps, OSM's buildings. */
+  { file: 'check/race-geometry.js', what: 'the racer map\'s geometry: one road surface, no overlaps or gaps, junctions covered, OSM\'s buildings with roofs' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; no date of birth or signed out = underage, 450) is not sent; the admin gets all' },
