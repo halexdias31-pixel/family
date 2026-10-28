@@ -4757,6 +4757,8 @@ function ansBox_(x) {
     : rule ? checkTile_({ act: 'qp-rule', cls: 'qp-check' }) + ai
     : ai || subSendTile_();
   const val = ansRead_(k);
+  /* A PHOTO OF THE WORKING (501, working.js): its tile in this row, its photos in a strip under the box. */
+  const wk = typeof workTile_ === 'function' ? workTile_(x) : '', ws = wk && typeof workStrip_ === 'function' ? workStrip_(x) : '';
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
   /* THE REVIEW OF 9 OCT ADDED TWO THINGS TO THIS ROW. § */
   /* AND SINCE 9 OCT (note 308) THE SHEET IS SENT LIKE EVERY OTHER BOX: § */
@@ -4767,26 +4769,26 @@ function ansBox_(x) {
     const said = subBoxSay_(k, v);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${fig}${send}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const foot = `<div class="tile-row qp-sheet-foot">${fig}${send}${wk}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
     return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
-    ${sheet}${foot}
+    ${sheet}${foot}${ws}
     ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>` : ''}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
   const many = can ? multiOf_(x) : null;
-  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}</div>`
+  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}${wk}</div>`
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${send}</div>`;
-  if (!send) return `<div class="qp-compose">${bar}
+  </label>${fig}${send}${wk}</div>`;
+  if (!send) return `<div class="qp-compose">${bar}${ws}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}${rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
-    ${bar}
+    ${bar}${ws}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
@@ -9588,7 +9590,9 @@ function accountPages_(col) {
       avatar: f.image ? f.avatar : (asTutor || {}).avatar,
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
-    const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
+    /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
+    const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId) : '')
+      + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
     return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
@@ -9611,6 +9615,7 @@ function accountPages_(col) {
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
+          + (col === 'students' && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
           + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */

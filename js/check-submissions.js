@@ -46,7 +46,7 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
 {
   const { b } = world();
   asked++;
-  const want = ['person_id', 'key', 'label', 'words', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at'];
+  const want = ['person_id', 'key', 'label', 'words', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at', 'photos'];
   const head = (b.tabs.submissions || [[]])[0];
   if (!b.tabs.submissions) bad.push('there is no `submissions` tab in TAB/SCHEMA, so nothing below can be asked');
   else if (JSON.stringify(head) !== JSON.stringify(want)) bad.push('SCHEMA.submissions is ' + JSON.stringify(head) + ' — wanted ' + JSON.stringify(want));
@@ -462,7 +462,7 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   /* AND THE SUBMISSIONS TAB GAINED ITS COLUMN AT THE END, THE PRESS ON IT UNTOUCHED. */
   asked++;
   const sh = b.tabs.submissions;
-  if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at']))) bad.push('ensureSchema_ left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at added at the end');
+  if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at', 'photos']))) bad.push('ensureSchema_ left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at and photos (501) added at the end');
   if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema_ moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
 }
 
