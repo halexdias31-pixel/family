@@ -87,7 +87,6 @@ const ASK = /ask yours to book/i;
 [['createJob', { subject: 'Maths', level: 'GCSE', location: 'Kidtest Library', price: '30', hours: 1, dates: '01/12/2026' }],
  ['createCheckout', { jobId: 'KJ1' }],
  ['joinWaitlist', { venue: 'Kidtest Library', level: 'GCSE' }],
- ['joinFestive', { offerId: 'x' }],
  ['move', { jobId: 'KJ1', move: 'Request', role: 'client' }],
  ['move', { jobId: 'KJ1', move: 'Pay', role: 'client' }]].forEach(([action, body]) => {
   const d = as('K-KID', Object.assign({ action: action, requestId: 'kp-' + action + Math.random() }, body));

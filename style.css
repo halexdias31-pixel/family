@@ -3525,38 +3525,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* The styling for a card opened in place was here, and has gone with the mechanism — see the note in shell.js. § */
 /* FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED. § */
 
-/* A FESTIVE EVENT IS AN INVITATION. § */
-.fest {
-  background: linear-gradient(160deg, #1a1a1a, #101010);
-  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
-  border-radius: 12px;
-  padding: 1.1rem 1rem 1rem;
-  margin: .2rem 0 .4rem;
-  position: relative;
-  overflow: hidden;
-}
-/* A rule of light across the top, the way a card with a foil edge catches it. One gradient, no
-   image, and it costs nothing. */
-.fest::before {
-  content: '';
-  position: absolute; left: 0; right: 0; top: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 90%, transparent), transparent);
-}
-.fest-when {
-  font: 700 .62rem/1 var(--mono);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin: 0 0 .45rem;
-}
-.fest-name { margin: 0 0 .3rem; color: #fff2dc; font-size: 1.15rem; }
-.fest-say { margin: 0 0 .7rem; color: #c9b997; font-size: .86rem; line-height: 1.45; }
-.fest-rows { margin-bottom: .8rem; }
-/* The rows are the shared `row()` markup, so they inherit their layout and only the ink changes. */
-.fest .k { color: #a08a5e; }
-.fest .v { color: #f0e2c8; }
-.fest .btn { width: 100%; background: var(--gold); color: #17130b; font-weight: 700; }
-
 /* `#install-bar` AND `.ib-*` WERE HERE — the "Keep @family. on your phone" bar. Removed at the owner's
    word (6 Oct); see me.js. */
 

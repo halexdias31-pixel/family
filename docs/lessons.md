@@ -7,8 +7,8 @@ planning note, not a spec: nothing here is built unless marked **today**.
 What the site has today, for reference: booking asks **Format** (`BOOK_FORMATS` in core.js: `Tutoring`,
 `Practical`, `Trip`; history 353), then who it is for, subject, level, tutor, extra seats (a group), venue and
 whether the family hosts, the hours, the term (`interval`) and a cost split. A session is a job with seats
-(`seatsOf_`), so joining something already going is a group lesson. Holiday clubs are the festive cards
-(`festiveCard`, book.js). Children see no prices and a parent books (398).
+(`seatsOf_`), so joining something already going is a group lesson. Holiday clubs had the festive cards,
+removed in 506. Children see no prices and a parent books (398).
 
 ## The list
 
@@ -20,7 +20,7 @@ whether the family hosts, the hours, the term (`interval`) and a cost split. A s
 | **Homework help / drop-in** | 30–60 min, after school | 1:3 to 1:8 | The school's own homework | Tutoring, as a short slot | No drop-in (turn up without booking a seat); no place to attach the homework (see below) |
 | **Practical / lab** | 90–120 min | 1:4 to 1:8, with a second adult for heat or chemicals | The practical's kit list and method (`data/practicals.json`), a risk note | **Format: Practical** — asks which practical; venue/hosting | Kit list is not turned into what the family must bring; no risk-assessment tick for the tutor |
 | **Trip** | Half or whole day | 1:6 to 1:10 by age, more adults under 8 | Tickets, a consent form, a meeting point | **Format: Trip** — asks which trip; place and cost are the trip's | No consent/medical form; no adult-helper sign-up |
-| **Holiday club** | Mornings or full days across a holiday week | 1:8 | A theme, games, snacks | **Festive cards** (`joinFestive`); a parent joins | Not a Format; days chosen as one block only |
+| **Holiday club** | Mornings or full days across a holiday week | 1:8 | A theme, games, snacks | None since 506 (festive cards removed) | Not a Format; days chosen as one block only |
 | **Online lesson** | 45–60 min | 1:1 or small group | A video call link, the shared whiteboard, screen-shared questions | Not distinct: a Tutoring booking with no venue | No call link on the session; whiteboard is per person, not shared live |
 | **Assessment / mock exam** | 1–2.5 h, timed | 1:many, invigilated | A full paper, a timer, marking afterwards | Papers in Find; marking per question | No timed-paper mode with a single score; no "assessment" booking |
 | **Parent consultation** | 15–30 min | tutor : parent(s) | The learner's progress (the Progress screen) | Messages (`dm`) only | No bookable consultation slot; no shared progress summary to talk over |

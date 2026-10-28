@@ -773,7 +773,8 @@ let closed = 0;
   while (ny.getDay() === 0 || ny.getDay() === 6) ny.setDate(ny.getDate() + 1);
   want('0' + ny.getDate() + '/01/' + (y + 1), 'bank', "next New Year's Day, on the weekday it is kept");
   want('05/01/' + (y + 1), 'inset', 'the INSET day typed on the holidays tab');
-  want('31/10/' + y, 'festive', 'the Halloween event the business is running');
+  /* 506: festive events are gone, so a priced observance row closes no day. */
+  if (got['31/10/' + y]) bad.push('closures: the Halloween row, a festive event, still closes a day (506 removed them)');
   if (got['14/02/' + (y + 1)]) bad.push("closures: Valentine's Day, an observance nobody switched on, closes teaching");
 }
 

@@ -96,8 +96,7 @@ const NOTIFY_KINDS = {
   messages:  { col: 'messages_email', roles: NOTIFY_ALL_ROLES,
                label: 'Messages', note: 'When somebody messages you here' },
   bookings:  { col: 'bookings_email', roles: ['client', 'tutor', 'admin'],
-               label: 'Booking updates', note: 'Notes, new terms and payments on a session',
-               noteFor: { admin: 'Sign-ups to a festive event' } },
+               label: 'Booking updates', note: 'Notes, new terms and payments on a session' },
   posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
                label: 'Your posts', note: 'When one goes up, or is not put up' },
   /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. § */
@@ -1609,9 +1608,6 @@ const ACTION_ACCESS = {
      from the signed-in name and never trusts a person_id off the body, so one person cannot star
      something as another. */
   favourite: 'self',
-  /* JOINING A FESTIVE EVENT. `self` — anybody signed in may take a place, and the handler checks it
-     is their own name going down. */
-  joinFestive: 'self',
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',

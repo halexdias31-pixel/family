@@ -608,7 +608,7 @@ function startTile_(col, id, start, note) {
 function cardRowIn_(h, row) {
   const t = h.replace(/\s+$/, '');
   /* ONLY WHEN THE LAST `</div>` CLOSES THE CARD: a page that is a card then a tile row took the row inside that row (467). */
-  if (/^\s*<div\b[^>]*\sclass="(card|own-set|fest)/.test(t) && /<\/div>$/.test(t)) {
+  if (/^\s*<div\b[^>]*\sclass="(card|own-set)/.test(t) && /<\/div>$/.test(t)) {
     let depth = 0, end = -1;
     const re = /<(\/?)div\b[^>]*>/g;
     for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
@@ -685,7 +685,6 @@ function frontPageOf_(col) {
   }
   if (col === 'feed' && typeof feedCamAt_ === 'function') {
     if (f.id === 'item:feed:camera') return feedCamAt_();
-    if (f.id === 'item:feed:festive' && FEED_FEST_N) return feedCamAt_() + 1;
   }
   const n = CARD_START_AT[col];
   return typeof n === 'number' && n >= 0 ? n : -1;
@@ -718,7 +717,7 @@ function frontGo_() {
 function notePair_(del, note) { return del + note; }
 /* IN PLACE OF THE THING (489): the box takes its footprint, its content hidden while writing; Cancel or Send gives it back. A message keeps its box under it. */
 function boxInPlace_(el, html) {
-  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .fest, .post');
+  const thing = el.closest('.msg') ? null : el.closest('.card, .own-set, .post');
   if (!thing) return boxBeside_(el, html);
   thing.querySelectorAll(':scope > .rep-box').forEach(b => b.remove());
   const h = thing.getBoundingClientRect().height;

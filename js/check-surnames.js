@@ -502,33 +502,6 @@ if (pipJob) {
 let revAsked = 0;
 const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
 
-/* ---- A FESTIVE JOIN: the typed surname cut on the way in, and the log only to the people on the job ---- */
-{
-  b.seed('holidays', [{ holiday_id: 'H1', name: 'Half term', date: dmy(day(7)), active: 'TRUE', venue: 'Library',
-                        price_per_child: 10, event_name: 'Craft morning' }]);
-  b.ev('clearCache(); clearPayloadCache()');
-  const mf = MAIL.length;
-  const join = as('P-PAR', { action: 'joinFestive', holidayId: 'H1', kids: 'Wren ' + SUR + ' and Bo Kettleworth', requestId: 'fest-1' });
-  revRule(join && join.success, 'Pip could not join the festive event, so a typed list of children was NOT asked — ' + JSON.stringify(join));
-  const fj = d => [].concat(d.liveJobs || []).find(j => /^F-/.test(S(j.id || j.jobId)) || /Craft/.test(S(j.subject))) || null;
-  const strangerJob = fj(get(null)), nedJob = fj(get('P-STU')), pipJob = fj(get('P-PAR'));
-  revRule(strangerJob && nedJob && pipJob, 'the festive event is not in every payload, so who it names was NOT asked — '
-    + JSON.stringify([!!strangerJob, !!nedJob, !!pipJob]));
-  if (strangerJob && nedJob && pipJob) {
-    revRule(!(strangerJob.events || []).length && !(nedJob.events || []).length,
-      'an open job\'s events — every family\'s name and what they typed — go to somebody not on it: '
-      + JSON.stringify((strangerJob.events || []).concat(nedJob.events || [])).slice(0, 200));
-    const msg = JSON.stringify(pipJob.events || []);
-    revRule(/bringing: Wren and Bo\b/.test(msg) && !/Kettleworth/.test(msg),
-      'the festive join keeps the typed surname of a child who is no row ("Bo Kettleworth") where the other families read it: ' + msg.slice(0, 200));
-    const stranger = JSON.stringify(get(null));
-    revRule(!/Kettleworth/.test(stranger), 'a typed child\'s surname reached a signed-out visitor');
-  }
-  /* THE ADMIN'S EMAIL KEEPS WHAT WAS TYPED — an admin sees everybody's whole name. */
-  const adm = MAIL.slice(mf).find(m => m.to === 'admin@example.org');
-  revRule(adm && /Kettleworth/.test(S(adm.body)), 'the admin was not told the names as Pip typed them — ' + JSON.stringify(adm && adm.body));
-}
-
 /* ---- THE MAIL'S VIEWER IS PUT BACK: two parents in one open class taught by an admin, each move's reply theirs ---- */
 {
   const jid = tessB && (tessB.jobId || tessB.id);
@@ -590,7 +563,7 @@ const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
   revRule(!Object.keys(b.props).some(k => /CLASH/i.test(k)), 'something still counts name clashes in the script properties — a count every caller shares is one any caller can fill: '
     + JSON.stringify(Object.keys(b.props).filter(k => /CLASH/i.test(k))));
 }
-rule(revAsked >= 15, 'only ' + revAsked + ' after-review rules were asked');
+rule(revAsked >= 11, 'only ' + revAsked + ' after-review rules were asked');
 
 /* 9. AFTER REVIEW, ROUND 2 — A CHILD DECIDING WHETHER A GROWN-UP IS HER PARENT SEES WHO IT IS § */
 let kinAsked = 0;
