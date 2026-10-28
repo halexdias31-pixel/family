@@ -1,0 +1,50 @@
+THE TEXT IN THIS FOLDER — not the site's code (docs/history/513). Written by tools/writings-more.py.
+Every text here is public domain, or openly licensed and credited on every card. Nothing of uncertain status is included.
+
+apocrypha/     Apocrypha, King James Version (1611; the standard text of 1769), from eBible.org's eng-kjv_vpl
+               (https://ebible.org/Scriptures/eng-kjv_vpl.zip): "Public Domain". In the UK the KJV's printing is under the
+               Crown's letters patent, as is the KJV the site already shows (data/bible); that patent governs printing, and
+               the text is otherwise public domain. Tobit, Judith, Additions to Esther, Wisdom, Sirach, Baruch, the Letter of
+               Jeremiah (the KJV's Baruch 6), Prayer of Azariah, Susanna, Bel and the Dragon, 1–2 Maccabees, 1–2 Esdras,
+               Prayer of Manasseh.
+enoch/         R. H. Charles, The Book of Enoch (SPCK, 1917). Public domain (Charles died 1931). Transcription: Project
+               Gutenberg #77935 (https://www.gutenberg.org/ebooks/77935); headings, the editors' notes and the
+               transcribers' marks left out, Charles's brackets kept. Where Charles prints the Greek beside the Ethiopic,
+               the Greek follows on the same card after "Greek:".
+jubilees/      R. H. Charles, The Book of Jubilees (SPCK, 1917). Public domain. As exported by Sefaria
+               (https://github.com/Sefaria/Sefaria-Export), version marked "Public Domain".
+josephus/      William Whiston's translation of Josephus (1737). Public domain (Whiston died 1752). Antiquities, The
+               Jewish War and Against Apion as exported by Sefaria: The Jewish War marked "Public Domain"; Antiquities and
+               Against Apion are Wikisource's transcriptions, marked CC BY-SA (https://creativecommons.org/licenses/by-sa/3.0/),
+               shared here under the same licence with this credit. Whiston's footnotes left out. The Life: Project
+               Gutenberg #2846 (https://www.gutenberg.org/ebooks/2846), public domain.
+mishnah/       The Mishnah, ed. Romm, Vilna 1913 (National Library of Israel), digitised by Sefaria and marked "Public
+               Domain" in every one of its 63 tractates' files. Markup removed.
+mishnah-en/    D. A. de Sola and M. J. Raphall, Eighteen Treatises from the Mishna (1843), via Sefaria, marked "Public
+               Domain". Only chapters whose mishnayot are numbered as the Vilna text's are included; the note numbers are
+               removed. Not included: Charles Taylor's Pirqe Aboth (1897), which Sefaria marks "unknown"; every other English.
+fathers-grc/   Kirsopp Lake's Greek text, The Apostolic Fathers (Loeb, 1912–13): public domain (Lake died 1946).
+               Transcription: First1KGreek, Open Greek and Latin (https://github.com/OpenGreekAndLatin/First1KGreek),
+               CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); this folder's Greek is shared under the same
+               licence with this credit. Apparatus notes left out. Where Lake prints only the Latin (Polycarp 10–12, the
+               end of Hermas) the transcription spells it in Greek letters; those passages are left out.
+fathers-en/    J. B. Lightfoot and J. R. Harmer, The Apostolic Fathers (1891), as the Christian Classics Ethereal Library
+               prints it (https://www.ccel.org/ccel/lightfoot/fathers.xml). Public domain (Lightfoot died 1889, Harmer 1944).
+justin-en/     Ante-Nicene Fathers I, ed. A. Roberts, J. Donaldson, A. C. Coxe (1885): Justin's First and Second Apology
+               and Dialogue with Trypho (tr. M. Dods, G. Reith, B. P. Pratten). Public domain. Via CCEL
+               (https://www.ccel.org/ccel/schaff/anf01.xml); the editors' notes left out.
+justin-grc/    Gerhard Rauschen's Greek text of the First Apology (Bonn, 1911): public domain (Rauschen died 1917).
+               Transcription: First1KGreek, CC BY-SA 4.0, as above.
+confessions/   E. B. Pusey's translation of Augustine's Confessions (1838). Public domain (Pusey died 1882). Via CCEL
+               (https://www.ccel.org/ccel/augustine/confess.xml).
+gilgamesh/     M. Jastrow and A. T. Clay, An Old Babylonian Version of the Gilgamesh Epic (Yale, 1920): the Pennsylvania
+               and Yale tablets, a card a column. Public domain (Jastrow died 1921, Clay 1925). Project Gutenberg #11000
+               (https://www.gutenberg.org/ebooks/11000); note numbers removed, line breaks shown as " / ".
+zohar/         Zohar Chadash ("Zohar Chadash", Torat Emet) and Tikkunei Zohar ("Tikkunei Zohar - Vocalized", Torat Emet),
+               the Aramaic as exported by Sefaria, each marked "Public Domain". A card a paragraph, under its parasha or
+               its daf (Sefaria's numbering). Not included: the Zohar itself — every Aramaic version in the export
+               (Sulam Edition 1945, Vocalized Zohar 2013, the Hebrew translation) is marked licence "unknown"; Tikkunei
+               Zohar "Constantinople, 1740" is CC BY-NC; every English (Soncino 1931-34 and Pritzker are in copyright).
+
+The Project Gutenberg files are used as public-domain text with Project Gutenberg's own header, licence and
+trademark removed, as its licence allows.
