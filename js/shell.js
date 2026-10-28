@@ -12,18 +12,19 @@ function oopsDevice_() {
   } catch (e) { return 'nostore'; }
 }
 function oopsHtml_() {
-  return '<div class="card oops"><h3>This part did not load</h3><p class="sub">The rest of the app is fine — it has been reported.</p></div>';
+  return '<div class="card oops"><h3>This part did not load</h3><p class="sub">The rest of the app is fine.</p></div>';
 }
 function oops_(err, where, host, o) {
   o = o || {};
   if (err && typeof err === 'object') { if (err.__oops) return; try { err.__oops = true; } catch (e) { /* a frozen error is still reported */ } }
-  const msg = String((err && err.message) || err || 'unknown').replace(/\s+/g, ' ').slice(0, 300);
+  /* QUOTED TEXT CUT before it leaves: a parse error quotes the answer it choked on. */
+  const msg = String((err && err.message) || err || 'unknown').replace(/\x22[^\x22]*\x22|\x60[^\x60]*\x60|(^|[^\w])\x27[^\x27]*\x27(?=[^\w]|$)/g, (m0, pre) => (pre || '') + '[quoted]').replace(/\s+/g, ' ').slice(0, 300);
   where = String(where || 'unknown').slice(0, 120);
   try { console.error('[' + where + ']', err); } catch (e) { /* no console, nothing to lose */ }
   if (host && host.nodeType === 1) { try { host.innerHTML = oopsHtml_(); host.removeAttribute('aria-busy'); } catch (e) { /* the report still goes */ } }
   else if (o.toast && Date.now() - OOPS.told > 5000 && typeof toast === 'function') {
     OOPS.told = Date.now();
-    try { toast('Something went wrong there — it has been reported.'); } catch (e) { /* the report still goes */ }
+    try { toast('Something went wrong there.'); } catch (e) { /* the report still goes */ }
   }
   const key = msg + '|' + where;
   if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;
@@ -436,7 +437,6 @@ function paint(id, fresh, o) {
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
-        <p class="sub">${esc(String((err && err.message) || err))}</p>
         <p class="faint">The rest of the app is fine — swipe across. If a file did not load, the
           banner at the top says which.</p>
       </div></div>`;
@@ -2554,7 +2554,7 @@ document.addEventListener('click', e => {
       ACTIONS[doer.dataset.do](doer, e);
     } catch (err) {
       oops_(err, 'act:' + doer.dataset.do);
-      toast('That did not work — it has been reported. Everything else still works.');
+      toast('That did not work. Everything else still works.');
     }
   }
 });

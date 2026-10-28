@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-r2-safety";
+const DOPOST_VERSION = "2026-10-28-r2-safety2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4497,9 +4497,15 @@ function rewriteCheckAsk_(key, models, text, items) {
 /* ---------- THE ERROR LOG (O5) ---------- */
 const CLIENT_ERROR_MAX = 300;          /* characters kept of a message or a where */
 const CLIENT_ERROR_DEVICE_DAY = 20;    /* reports one device may send in a day; a loop is not a flood */
+const CLIENT_ERROR_ALL_DAY = 300;      /* reports the whole site keeps in a day: the device id is the caller's word, so it cannot be the only cap */
+const CLIENT_ERROR_NEW_DAY = 30;       /* new rows (and claude_notes lines) a day; past it only known errors are counted */
+/* QUOTED TEXT IS WHERE USER CONTENT HIDES (a JSON.parse excerpt, a name): cut on the client and again here. */
+function clientErrorUnquote_(v) {
+  return S(v).replace(/\x22[^\x22]*\x22|\x60[^\x60]*\x60|(^|[^\w])\x27[^\x27]*\x27(?=[^\w]|$)/g, (m0, pre) => (pre || '') + '[quoted]');
+}
 /* ONLY THE FOUR FIELDS, cut and stripped of anything shaped like an address or a long number: a report must never carry learner data. */
 function clientErrorClean_(v, n) {
-  return S(v).replace(/[^\s@]+@[^\s@]+/g, '[email]').replace(/\d{6,}/g, '[n]').replace(/\s+/g, ' ').trim().slice(0, n || CLIENT_ERROR_MAX);
+  return clientErrorUnquote_(v).replace(/[^\s@]+@[^\s@]+/g, '[email]').replace(/\d{6,}/g, '[n]').replace(/\s+/g, ' ').trim().slice(0, n || CLIENT_ERROR_MAX);
 }
 function clientError_(body) {
   const message = clientErrorClean_(body.message), where = clientErrorClean_(body.where, 120);
@@ -4509,11 +4515,12 @@ function clientError_(body) {
   const day = Utilities.formatDate(new Date(), 'Etc/UTC', 'yyyy-MM-dd');
   let cache = null;
   try { cache = CacheService.getScriptCache(); } catch (err) { cache = null; }
-  const ck = 'cerr:' + device + ':' + day;
-  const sent = cache ? Number(cache.get(ck) || 0) : 0;
-  if (sent >= CLIENT_ERROR_DEVICE_DAY) return { success: true, throttled: true };
-  if (cache) { try { cache.put(ck, String(sent + 1), 86400); } catch (err) { /* a full cache only loosens the throttle */ } }
-  const key = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, message + '|' + where + '|' + version)).slice(0, 16);
+  const ck = 'cerr:' + device + ':' + day, ak = 'cerr:all:' + day, nk = 'cerr:new:' + day;
+  const sent = cache ? Number(cache.get(ck) || 0) : 0, all = cache ? Number(cache.get(ak) || 0) : 0;
+  if (sent >= CLIENT_ERROR_DEVICE_DAY || all >= CLIENT_ERROR_ALL_DAY) return { success: true, throttled: true };
+  if (cache) { try { cache.put(ck, String(sent + 1), 86400); cache.put(ak, String(all + 1), 86400); } catch (err) { /* a full cache only loosens the throttle */ } }
+  /* KEYED ON message+where ONLY: a new deploy updates the row's version, it does not file the same error again. */
+  const key = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, message + '|' + where)).slice(0, 16);
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return { error: 'Busy', why: 'busy' };
   let fresh = false;
@@ -4527,8 +4534,11 @@ function clientError_(body) {
       const dk = 'cerrd:' + key + ':' + device + ':' + day;
       const newDevice = cache ? !cache.get(dk) : false;
       if (cache && newDevice) { try { cache.put(dk, '1', 86400); } catch (err) { /* only the device count suffers */ } }
-      setCells(t, had, { last_at: new Date(), count: (Number(had.count) || 0) + 1, devices: (Number(had.devices) || 0) + (newDevice ? 1 : 0) });
+      setCells(t, had, { last_at: new Date(), version: version, count: (Number(had.count) || 0) + 1, devices: (Number(had.devices) || 0) + (newDevice ? 1 : 0) });
     } else {
+      const made = cache ? Number(cache.get(nk) || 0) : 0;
+      if (made >= CLIENT_ERROR_NEW_DAY) return { success: true, throttled: true };
+      if (cache) { try { cache.put(nk, String(made + 1), 86400); } catch (err) { /* only the new-row cap loosens */ } }
       addRow(t, { error_id: key, first_at: new Date(), last_at: new Date(), count: 1, devices: 1, message: message, where: where, version: version, screen: screen });
       fresh = true;
     }

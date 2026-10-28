@@ -35,9 +35,24 @@ if (rows.length !== 2) bad.push('a second where made ' + rows.length + ' rows in
 const notes = tab('claude_notes').filter(n => /^\[error\]/.test(n.note || ''));
 if (notes.length !== 2) bad.push(notes.length + ' claude_notes lines for 2 distinct errors, want 2');
 
+b.post(m({ version: 'v2', message: 'Unexpected token in "Ada Pupil said hi"' }));
+b.post(m({ version: 'v2' }));
+rows = tab('client_errors');
+if (rows.length !== 3) bad.push('a new version of a known error made a new row: ' + rows.length + ' rows, want 3');
+if (rows.some(r => /Ada Pupil/.test(r.message))) bad.push('quoted text was kept in a message');
+
 let thr = 0;
 for (let i = 0; i < 30; i++) if (b.post(m({ device: 'D9', message: 'flood ' + i })).throttled) thr++;
 if (!thr) bad.push('thirty reports from one device in a day were all kept');
+/* THE DEVICE ID IS THE CALLER'S WORD: a script rotating it must still hit the site-wide caps. */
+for (let i = 0; i < 400; i++) b.post(m({ device: 'R' + i, message: 'rot ' + i }));
+rows = tab('client_errors');
+if (rows.length > 30) bad.push('rotating device ids made ' + rows.length + ' rows in a day, want at most 30');
+const notesAll = tab('claude_notes').filter(n => /^\[error\]/.test(n.note || '')).length;
+if (notesAll > 30) bad.push('rotating device ids made ' + notesAll + ' claude_notes lines, want at most 30');
+for (let i = 0; i < 400; i++) b.post(m({ device: 'Q' + i }));
+const cnt = Number((tab('client_errors').find(r => /^x is null/.test(r.message) && r.where === 'draw:feed') || {}).count) || 0;
+if (cnt > 300) bad.push('rotating device ids kept ' + cnt + ' counts of one error, past the daily cap of 300');
 
 if (!b.post({ action: 'listClientErrors', token: ADA }).error) bad.push('a student was shown the error log');
 if (!b.post({ action: 'listClientErrors' }).error) bad.push('nobody signed in was shown the error log');
@@ -45,4 +60,4 @@ const l = b.post({ action: 'listClientErrors', token: HAL });
 if (!l.success || !Array.isArray(l.errors) || !l.errors.length) bad.push('the admin was not shown the error log: ' + JSON.stringify(l).slice(0, 200));
 
 if (bad.length) { console.error('check-errlog: ' + bad.length + ' failure(s)\n  ' + bad.join('\n  ')); process.exit(1); }
-console.log('check-errlog: one row per distinct error, counted; one note each; scrubbed; throttled (' + thr + ' of 30); admin-only list');
+console.log('check-errlog: one row per distinct error, counted; one note each; scrubbed; throttled (' + thr + ' of 30; site-wide caps hold under rotated ids); admin-only list');
