@@ -38,7 +38,8 @@ const VOCAB = {
   surface:       ['blank', 'coord', 'grid', 'text'],
   month:         ['5', '6', '11'],
   /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. § */
-  paper:         ['1', '2', '3', '4', '5', '6'],
+  /* 7 IS OCR RELIGIOUS STUDIES' SEVENTH COMPONENT (H573/07), one per religion studied. */
+  paper:         ['1', '2', '3', '4', '5', '6', '7'],
   /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. § */
   /* `Periodic table` IS THE SCIENCES' VERSION OF THE SAME FACT and arrived with the first AQA chemistry paper: § */
   /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: § */
