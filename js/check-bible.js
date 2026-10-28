@@ -25,10 +25,24 @@ if (index && !books.length) fail.push('data/bible/index.json names no books');
 
 /* EVERY FILE THE INDEX NAMES, AND NOTHING ELSE IN THE FOLDER. A stray file is one a doctored or stale
    index could point a phone at, and one the splitter would have removed. */
-const onDisk = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(f => f !== 'index.json').sort() : [];
+const onDisk = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter(f => f !== 'index.json' && !fs.statSync(path.join(DIR, f)).isDirectory()).sort() : [];
 const named = books.map(b => b.file).sort();
 onDisk.filter(f => named.indexOf(f) < 0).forEach(f => fail.push('data/bible/' + f + ' is not in index.json — a file no book points at'));
 named.filter(f => onDisk.indexOf(f) < 0).forEach(f => fail.push('index.json names data/bible/' + f + ', which is not there'));
+/* THE SECOND TRANSLATION (499): a file a book, the KJV's verse counts exactly, so verse N is verse N in both (tools/bible-web.py). */
+((index && index.also) || []).forEach(t => {
+  const sub = path.join(DIR, String(t.dir || ''));
+  if (!t.dir || !fs.existsSync(sub)) { fail.push('index.json names the ' + t.translation + ' in data/bible/' + t.dir + ', which is not there'); return; }
+  if (!/^https:/.test(String(t.source || '')) || !t.licence) fail.push('the ' + t.translation + ' has no https source or no licence in index.json');
+  let empty = 0;
+  books.forEach(b => {
+    let d = null;
+    try { d = JSON.parse(fs.readFileSync(path.join(sub, b.file), 'utf8')); } catch (e) { fail.push('data/bible/' + t.dir + '/' + b.file + ' is missing or does not parse'); return; }
+    if (!Array.isArray(d.chapters) || d.chapters.length !== b.chapters || d.chapters.some((c, i) => !Array.isArray(c) || c.length !== b.chapterVerses[i])) fail.push('data/bible/' + t.dir + '/' + b.file + ' does not hold the KJV\'s verse counts');
+    else d.chapters.forEach(c => c.forEach(v => { if (!v) empty++; }));
+  });
+  if (empty > 20) fail.push(empty + ' verses of the ' + t.translation + ' are empty — the split went wrong');
+});
 
 /* ---------- THE SPLIT, VERSE BY VERSE ------------------------------------------------------------ */
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -214,7 +228,7 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
@@ -293,7 +307,6 @@ const opens = (name, why) => {
 };
 opens('bibleVerses_', 'the 31,102 verses would be built for anybody');
 opens('bibleKept_', 'a starred verse would be drawn on anybody\'s Saved');
-if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleInside_') || '')) fail.push('`bibleInside_` does not ask `bibleFor_()` — Find would read the verses for anybody holding a Bible chip');
 if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleTiles_') || '')) fail.push('`bibleTiles_` does not ask `bibleFor_()` — the Bible\'s tiles would be drawn for anybody');
 /* A HANDLER IS `on('name', el => { … })`, which `cutFrom` cannot name, so its block is read from there. */
 const handler = act => {

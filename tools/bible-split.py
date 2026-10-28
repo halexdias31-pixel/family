@@ -180,7 +180,10 @@ def main():
     totals = {'books': len(index), 'chapters': sum(i['chapters'] for i in index),
               'verses': sum(i['verses'] for i in index)}
     head = {'translation': 'KJV', 'name': 'The Bible (King James Version)',
-            'source': 'data/archive/bible.json', 'totals': totals}
+            'source': 'data/archive/bible.json', 'totals': totals,
+            # THE SECOND TRANSLATION (499), written by tools/bible-web.py into data/bible/web/ on the same verse numbers.
+            'also': [{'translation': 'WEB', 'name': 'World English Bible', 'dir': 'web',
+                      'source': 'https://ebible.org/Scriptures/engwebp_vpl.zip', 'licence': 'Public domain'}]}
     body = json.dumps(head, ensure_ascii=False)[:-1] + ', "books": [\n' \
         + ',\n'.join(json.dumps(i, ensure_ascii=False) for i in index) + '\n]}\n'
     path = os.path.join(OUT, 'index.json')
@@ -193,7 +196,7 @@ def main():
     # A FILE HERE THAT THIS RUN DID NOT WRITE IS A BOOK THAT IS NOT IN THE ARCHIVE -- a renamed slug
     # leaving its old file behind, most likely. Removed rather than left for a phone to fetch.
     for name in sorted(os.listdir(OUT)):
-        if name not in wrote:
+        if name not in wrote and not os.path.isdir(os.path.join(OUT, name)):
             os.remove(os.path.join(OUT, name))
             print('removed', name)
 
