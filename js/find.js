@@ -3939,7 +3939,14 @@ function markNorm_(s) {
     .replace(/[\u2018\u2019\u02bc]/g, "'").replace(/[\u201c\u201d]/g, '"')
     .replace(/[\uff10-\uff19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xff10 + 48))
     .toLowerCase()
+    /* A LINE BREAK OR A SEMICOLON BETWEEN VALUES IS THE LIST'S COMMA (R2): 3⏎4 and 3; 4 are "3, 4". */
+    .replace(/\s*[\r\n;]+\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, '')
     .replace(/[−–—]/g, '-')          /* minus, en dash, em dash */
+    /* A DECIMAL WITH NO LEADING 0 IS THE SAME NUMBER: the keypad has a '.' key, so .5 is 0.5 (R2). */
+    .replace(/(^|[^\d.)a-z])\.(?=\d)/g, '$10.')
+    /* ONE SPELLING PER UNIT (R2): MARK_SYNONYMS below; superscript powers are ^2 ^3, as the keypad writes them. */
+    .replace(/(\d)\s*(degrees?|deg|per\s?cent|percent)(?![a-z])/g, (m, d, u) => d + MARK_SYNONYMS[u.replace(/\s/g, '')])
+    .replace(/²/g, '^2').replace(/³/g, '^3')
     .replace(/[£$€]/g, '')
     /* A THOUSANDS SEPARATOR IS A COMMA, A SPACE, OR A THIN SPACE, and which one you get depends on who printed the paper. § */
     .replace(/(\d)[,\u2009\u00a0 ](?=\d\d\d\b)/g, '$1')
@@ -3970,6 +3977,8 @@ function markNorm_(s) {
     .trim();
 }
 
+/* The words a unit is spelt in, each to the one symbol markNorm_ keeps. */
+const MARK_SYNONYMS = { degree: '°', degrees: '°', deg: '°', percent: '%' };
 /* A LIST IS A SET. "1, 2, 5, 10" and "10, 5, 2, 1" are the same answer to "list the factors", and a child who works outwards from the middle writes the second. § */
 function markParts_(s) {
   return markNorm_(s).split(/\s*,\s*/).map(p => markNum_(p.trim())).filter(Boolean).sort();
@@ -4323,6 +4332,31 @@ function markRule_(typed, rule) {
   });
 }
 
+/* ALGEBRA IN ANY ORDER (R3, O4): the sides' terms as a sorted list, so 4x^2-7x+x^3 is x^3+4x^2-7x; x+x is not 2x, which keeps "simplify". */
+function markTerms_(s) {
+  const t = markNorm_(s).replace(/×/g, '*').replace(/\s+/g, '');
+  if (!/[a-z]/.test(t) || /[^a-z0-9.+\-*\/^()=√π]/.test(t) || !markExprRead_(t)) return null;
+  return t.split('=').map(side => {
+    const out = [];
+    let depth = 0, cur = '';
+    for (let i = 0; i < side.length; i++) {
+      const c = side[i];
+      if (c === '(') depth++;
+      if (c === ')') depth--;
+      if (!depth && (c === '+' || c === '-') && cur && !/[\^*\/]$/.test(cur)) { out.push(cur); cur = ''; }
+      cur += c;
+    }
+    out.push(cur);
+    /* a monomial's letters in either order: 2yx is 2xy */
+    return out.map(x => {
+      const m = /^([+-]?)(\d*(?:\.\d+)?)((?:[a-z](?:\^\d+)?)+)$/.exec(x);
+      const sign = x[0] === '-' ? '-' : '+';
+      if (!m) return sign + x.replace(/^[+-]/, '');
+      return sign + m[2] + m[3].match(/[a-z](?:\^\d+)?/g).sort().join('');
+    }).sort().join('');
+  }).join('=');
+}
+
 function markAnswer_(typed, accept, again) {
   /* ONE BOX PER VALUE hands the values as a list (362): read as the comma list the scheme writes. */
   if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
@@ -4362,9 +4396,19 @@ function markAnswer_(typed, accept, again) {
   const tight = s => s.replace(/([\dπ])\s+(?=[a-z\u00b0%])/g, '$1');
   const tt = tight(t);
   const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
+  /* only where the row names no form rule (O2, O4): a `rule:` way can ask for a form the value does not give */
+  const free = !rules.length;
+  const pct = v => { const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v), f = m && markFrac_(m[1]); return f && { n: f.n, d: f.d * 100 }; };
+  const tTerms = free ? markTerms_(t) : null;
   for (let i = 0; i < ways.length; i++) {
     const w = ways[i];
     if (tt === tight(markNorm_(w))) return true;
+    if (free) {
+      /* 25% is 0.25, and 0.25 is 25% (O2) */
+      const wn = markNorm_(w), a = pct(t) || markFrac_(t), b = pct(wn) || markFrac_(wn);
+      if ((pct(t) || pct(wn)) && !(pct(t) && pct(wn)) && a && b && a.n * b.d === b.n * a.d) return true;
+      if (tTerms && tTerms === markTerms_(w)) return true;
+    }
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
     const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
