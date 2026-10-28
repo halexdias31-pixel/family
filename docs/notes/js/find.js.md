@@ -16255,3 +16255,12 @@ top level, before `padTimer`
      data.js; 317), so a reload inside the 1.4 s does not leave the account a sentence behind. */
 ```
 
+### ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and
+
+top level, before `MS_LOOK`
+
+```
+/* ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and
+   the letters that survive, where they stand. Coordinates are the photograph's pixels; `·` is a lost letter's room. */
+```
+

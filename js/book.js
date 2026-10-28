@@ -1230,7 +1230,27 @@ function stepInput_(st) {
 }
 
 /* ---------- PICKING SEVERAL ANSWERS WAS FOUR TAPS FOR TWO SUBJECTS § */
+/* THE DEVICE'S OWN LIST ON A PHONE (498): the owner, "it should be device list" -- a `<select multiple>` is iOS's and Android's ticked picker. */
+const bkNativeMany_ = st => { try { return !st.grid && matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
+function stepNativeMany_(st) {
+  let opts = [];
+  try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
+  const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
+  const fb = st.fallback ? String(st.fallback() || '') : '';
+  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${esc(chosen.join(', ') || fb || '\u2014')}</span><select multiple class="bk-sel bk-sel-many" id="${bkCtl_(st.id)}"
+    data-do="book-many-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">${
+    opts.map(o => `<option value="${esc(o)}"${on(o) ? ' selected' : ''}>${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}</select></span>`;
+}
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-many-set"]');
+  const st = el && bookStep_(el.dataset.step);
+  if (!st || !st.multi || stepLocked_(st)) return;
+  const want = [...el.selectedOptions].map(o => o.value), had = BOOKING[st.id] || [];
+  had.filter(x => want.every(w => norm(w) !== norm(x))).concat(want.filter(w => had.every(x => norm(x) !== norm(w)))).forEach(v => bookToggle_(st, v));
+  drawBooker();
+});
 function stepMulti_(st) {
+  if (bkNativeMany_(st)) return stepNativeMany_(st);
   const chosen = BOOKING[st.id] || [];
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const said = chosen.join(', ') || fb;
@@ -1251,7 +1271,7 @@ function manyOpen_(st) {
 
 /* ---------- THE LIST, UNDER ITS ROW § */
 function stepManyList_(st) {
-  if (!manyOpen_(st)) return '';
+  if (!manyOpen_(st) || bkNativeMany_(st)) return '';
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
   const chosen = BOOKING[st.id] || [];

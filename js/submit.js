@@ -648,13 +648,15 @@ function subForget_() {
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
 const SUGGEST_NOTE_MAX = 1000;
 const suggestPeople_ = kind => kind === 'message' || kind === 'post';
+/* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
+const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
 /* WHAT HAS AN OPEN NOTE FOR CLAUDE, by `kind|id` — sent to everybody as `reportedItems`, no names in it. */
 const reportedNow_ = (kind, id) => ((typeof DATA !== 'undefined' && DATA && DATA.reportedItems) || []).indexOf(kind + '|' + id) !== -1;
 
 /* THE ONE TILE, on every thing: Student rank and up; signed out it is not drawn. `check-suggest` holds every such tile to it. */
 function suggestTile_(kind, id, label, cls) {
   if (!kind || !id || typeof rankAtLeast_ !== 'function' || !rankAtLeast_('student')) return '';
-  return tile_({ icon: 'suggest', label: suggestPeople_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
+  return tile_({ icon: 'suggest', label: suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change', note: reportedNow_(kind, id) ? 'to change' : '',
                  act: 'rep-box', cls: 'rep-tile' + (cls ? ' ' + cls : ''), data: { rk: kind, ri: id, rl: String(label || '').slice(0, 120) } });
 }
 /* A CARD WITH NO TILE ROW OF ITS OWN takes the tile in one of its own, put inside the card by `cardRowIn_`. */
@@ -678,22 +680,76 @@ function reportDevice_() {
   } catch (e) { return ''; }
 }
 
-/* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, Send and Cancel; an admin sees this thing's open notes under it. */
-function reportBoxHtml_(kind, id, label, finder) {
+/* IN PLACE OF THE THING (489, `boxInPlace_`): one text area, a picture, Send and Cancel. No notes listed (498): Done is Claude's, by data/notes-done.json. */
+function reportBoxHtml_(kind, id, label, finder, path) {
   const admin = typeof rankAtLeast_ === 'function' && rankAtLeast_('admin');
   const dk = kind + '|' + id, people = suggestPeople_(kind);
-  return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}">
+  return `<div class="me-form rep-form rep-box" data-rk="${esc(kind)}" data-ri="${esc(id)}" data-rl="${esc(label)}" data-finder="${esc(finder || '')}" data-path="${esc(path || '')}">
     ${label ? `<p class="faint rep-what">${esc(label)}</p>` : ''}
+    ${path ? `<p class="faint rep-path">Path: ${esc(path)}</p>` : ''}
     <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
-      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${people ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
+      placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
+    <input type="file" accept="image/*" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
+    <img class="rep-pic-show" alt="The picture going with it" hidden>
     <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send' })}${
+      people ? '' : tile_({ icon: 'photo', label: 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
     <p class="faint me-said rep-said" aria-live="polite">${admin
       ? 'Yours goes straight to Notes for Claude.'
       : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
-    ${admin && typeof noteListHtml_ === 'function' ? noteListHtml_(dk) : ''}
   </div>`;
 }
+/* THE FUNNEL PATH (498): a suggestion made on Find or Find 2 says which answers and words led there, e.g. "Learning › Library › History". */
+function reportPath_(el) {
+  try {
+    const sc = el && el.closest ? el.closest('.screen') : null;
+    const F = sc && typeof finderOf_ === 'function' ? finderOf_(String(sc.id).replace(/^s-/, '')) : null;
+    if (!F) return '';
+    return inFinder_(F, () => {
+      const steps = (STUFF.filters || []).map(f => f.any ? 'any ' + f.field : String(f.value || '')).filter(Boolean);
+      if (STUFF.q) steps.push('words "' + String(STUFF.q).trim().slice(0, 60) + '"');
+      return (F.id === 'res' ? 'Find 2' : 'Find') + (steps.length ? ' › ' + steps.join(' › ') : '');
+    });
+  } catch (e) { return ''; }
+}
+/* A PICTURE, SHRUNK ON THE PHONE (498): the long side down to 1280px, then the JPEG quality down until it is under about 300 KB. */
+const REP_PIC_MAX = 300 * 1024, REP_PIC_SIDE = 1280;
+/* THE SHRUNK PICTURE, by its box: a data URL is too long for an attribute. */
+const REP_PIC = new WeakMap();
+function reportPicShrink_(file) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error('That is not a picture this phone can read.')); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let side = REP_PIC_SIDE, out = '';
+      for (let tries = 0; tries < 6; tries++) {
+        const k = Math.min(1, side / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        for (const q of [0.8, 0.65, 0.5]) { out = c.toDataURL('image/jpeg', q); if (out.length * 0.75 <= REP_PIC_MAX) return ok(out); }
+        side = Math.round(side * 0.7);
+      }
+      ok(out);
+    };
+    img.src = url;
+  });
+}
+on('rep-pic', el => { const f = el.closest('.rep-box'); const i = f && f.querySelector('.rep-pic-in'); if (i) i.click(); });
+document.addEventListener('change', e => {
+  const i = e.target;
+  if (!i || !i.classList || !i.classList.contains('rep-pic-in')) return;
+  const form = i.closest('.rep-box'), file = i.files && i.files[0];
+  if (!form || !file) return;
+  const said = form.querySelector('.rep-said'), show = form.querySelector('.rep-pic-show');
+  reportPicShrink_(file).then(data => {
+    REP_PIC.set(form, data);
+    if (show) { show.src = data; show.hidden = false; }
+    const t = form.querySelector('.rep-pic');
+    if (t) tileSet_(t, { icon: 'photo', label: 'Change the picture', on: true });
+  }).catch(err => { if (said) said.textContent = String((err && err.message) || 'That picture could not be read.'); });
+});
 const reportBoxOf_ = (kind, id) => [...document.querySelectorAll('.rep-box')].find(b => b.dataset.rk === kind && b.dataset.ri === id) || null;
 
 on('rep-box', el => {
@@ -708,7 +764,7 @@ on('rep-box', el => {
   const home = el.closest('.card, .own-set, .fest, .post');
   const h = home && home.querySelector('h2, h3, .wgt-title');
   const label = el.getAttribute('data-rl') || ((h && h.textContent) || '').trim().slice(0, 120);
-  const box = boxInPlace_(el, reportBoxHtml_(kind, id, label, finder));
+  const box = boxInPlace_(el, reportBoxHtml_(kind, id, label, finder, reportPath_(el)));
   const s = box && box.querySelector('textarea');
   if (s) try { s.focus({ preventScroll: true }); } catch (e) {}
 });
@@ -724,7 +780,7 @@ on('rep-send', el => {
   const note = String((box && box.value) || '').trim().slice(0, SUGGEST_NOTE_MAX);
   if (!note && !suggestPeople_(kind)) { if (said) said.textContent = 'Write what should change first.'; return; }
   send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note,
-          finder: form.dataset.finder || '', device: reportDevice_() },
+          finder: form.dataset.finder || '', path: form.dataset.path || '', image: REP_PIC.get(form) || '', device: reportDevice_() },
         { button: el, where: said })
     .then(d => {
       /* SENT, SO THE DRAFT GOES — a reload must not bring back words already in the sheet. */

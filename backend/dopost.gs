@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-zh-suggest";
+const DOPOST_VERSION = "2026-10-28-zn-n4c";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2787,7 +2787,8 @@ function doPost(e) {
       const kind = norm(body.kind);
       if (!REPORT_KIND_RE.test(kind)) return jsonOut({ error: 'Which thing? Nothing was sent.' });
       const item = S(body.itemId).trim();
-      if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9_.:|#\/-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
+      /* A SHOP ITEM'S ID IS ITS NAME (498), spaces and brackets and all: "Gooey Louie (board game)" was refused, so Suggest on the shop did nothing. */
+      if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
         return jsonOut({ error: 'Which one? Nothing was sent.' });
       /* AN OLD PHONE'S REASON IS KEPT AS WORDS in front of the note. */
       const why = Object.prototype.hasOwnProperty.call(REPORT_REASONS, S(body.reason)) && S(body.reason) !== 'suggest' ? REPORT_REASONS[S(body.reason)] : '';
@@ -2803,6 +2804,18 @@ function doPost(e) {
         if (!msg) return jsonOut({ error: 'Not found.' });
         if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to send on.' });
       }
+      /* A PICTURE WITH IT (498): one image, shrunk on the phone, kept in the posts folder and named on the note as a link. */
+      let pic = '';
+      const img = S(body.image).trim();
+      if (img) {
+        if (!/^data:image\/(jpeg|png|webp);base64,/i.test(img) || img.length > SUGGEST_PIC_MAX) return jsonOut({ error: 'That picture could not be sent — try a smaller one.' });
+        const folder = getPostFolder();
+        if (!folder) return jsonOut({ error: 'No posts folder for the picture. Add `posts_folder` to the config tab.' });
+        try { pic = driveKeep_(folder, img, 'suggest-' + Date.now()); } catch (err) { return jsonOut({ error: 'The picture could not be kept in Drive.' }); }
+      }
+      /* AND THE FUNNEL PATH ON FIND (498): which answers and words led to the card, so the note says which menu it meant. */
+      const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
+      const noteAll = [note || (people ? 'A message they were sent' : ''), path ? 'Path: ' + path : '', pic ? 'Picture: ' + pic : ''].filter(Boolean).join('\n');
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
       let out = {}, made = null;
@@ -2817,7 +2830,7 @@ function doPost(e) {
           const had = !admin && t.rows.find(r => S(r.made_by) === pid && S(r.item_id) === key && norm(r.status) === 'pending' && reportDay_(r.made_at) === today);
           if (had) out = { success: true, already: true };
           else {
-            made = suggestRow_(t, pid, kind, item, reportCut_(body.label, REPORT_FIELD_MAX), note || 'A message they were sent', admin ? 'open' : 'pending');
+            made = suggestRow_(t, pid, kind, item, reportCut_(body.label, REPORT_FIELD_MAX), noteAll, admin ? 'open' : 'pending');
             out = { success: true, serious: admin, id: made.note_id };
           }
         }
@@ -3063,6 +3076,55 @@ function doPost(e) {
       else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
+    }
+
+    /* ---------- THE RULES CARD (496): one rule set Exception or Universal, or the last change undone; locked rules refused ---------- */
+    if (action === 'rulesSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the rules on.' });
+      const row = t.rows.find(r => norm(r.key) === RULES_KEY);
+      const now = rulesClean_(row ? row.value : '') || { set: {}, hist: [] };
+      const is = id => now.set[id] === 'universal' ? 'universal' : 'exception';
+      if (body.undo) {
+        const last = now.hist.pop();
+        if (!last) return jsonOut({ error: 'There is no rule change to undo.' });
+        if (last.was === 'universal') now.set[last.id] = 'universal'; else delete now.set[last.id];
+      } else {
+        const id = S(body.rule), to = S(body.to);
+        if (RULE_IDS.indexOf(id) === -1) return jsonOut({ error: 'There is no rule by that name.' });
+        if (RULES_LOCKED.indexOf(id) !== -1) return jsonOut({ error: 'That rule is locked.' });
+        if (to !== 'exception' && to !== 'universal') return jsonOut({ error: 'A rule is Exception or Universal.' });
+        const was = is(id);
+        if (was === to) return jsonOut({ success: true, rules: now });
+        if (to === 'universal') now.set[id] = 'universal'; else delete now.set[id];
+        now.hist.push({ id: id, was: was, to: to, at: new Date().toISOString() });
+        now.hist = now.hist.slice(-RULES_HIST_MAX);
+      }
+      const value = JSON.stringify(now);
+      if (row) setCell(t, row, 'value', value);
+      else addRow(t, { key: RULES_KEY, value: value, what_it_does: 'The Rules card (496): exceptions made universal, and the last twenty changes for Undo. Empty: every exception as the code has it.' });
+      clearCache();
+      return jsonOut({ success: true, rules: now });
+    }
+    /* ---------- EDIT WORDS IN PLACE (497): `set: {key: text}` and `reset: [key]` merged into config's one `words` row ---------- */
+    if (action === 'wordsSave') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const t = read(TAB.config);
+      if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the words on.' });
+      const row = t.rows.find(r => norm(r.key) === WORDS_KEY);
+      const now = wordsClean_(row ? row.value : '');
+      const set = wordsClean_(body.set && typeof body.set === 'object' ? body.set : {});
+      Object.keys(set).forEach(k => { now[k] = set[k]; });
+      (Array.isArray(body.reset) ? body.reset : []).forEach(k => { delete now[S(k)]; });
+      const value = JSON.stringify(now);
+      if (value.length > WORDS_MAX) return jsonOut({ error: 'Too many words to keep. Reset some first.' });
+      if (row) setCell(t, row, 'value', value);
+      else addRow(t, { key: WORDS_KEY, value: value, what_it_does: 'The site\'s words an admin typed in place over the code\'s (497), {card|slot: text}. Empty: the code\'s own words.' });
+      clearCache();
+      return jsonOut({ success: true, words: now });
     }
 
     /* ---------- THE WEEKLY EMAIL'S WORDS (491): the four `digest_*` config rows, blank meaning the default ---------- */

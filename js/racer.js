@@ -12,6 +12,15 @@ const RACE_COL = {
   sky: [0.62, 0.78, 0.9], grass: [0.36, 0.55, 0.3], road: [0.27, 0.27, 0.29], kerb: [0.6, 0.6, 0.58],
   line: [0.92, 0.92, 0.88], water: [0.25, 0.45, 0.62], roof: [0.38, 0.33, 0.31],
   walls: [[0.62, 0.36, 0.27], [0.72, 0.56, 0.42], [0.84, 0.8, 0.72], [0.55, 0.53, 0.52], [0.66, 0.44, 0.33]],
+  /* COLLIERS WOOD'S OWN (500): London stock and red brick terraces, white render, pale-brick flats, grey retail sheds,
+     the station's Portland stone, the church's ragstone; slate roofs on houses, flat grey ones on the rest. */
+  kinds: { house: [[0.72, 0.6, 0.42], [0.6, 0.33, 0.25], [0.86, 0.84, 0.8], [0.66, 0.52, 0.38], [0.55, 0.3, 0.24]],
+    flat: [[0.78, 0.72, 0.6], [0.7, 0.7, 0.7], [0.62, 0.42, 0.32]], shop: [[0.62, 0.64, 0.66], [0.78, 0.78, 0.76], [0.5, 0.52, 0.56]],
+    ind: [[0.56, 0.58, 0.6], [0.66, 0.62, 0.55]], station: [[0.86, 0.83, 0.73]], church: [[0.56, 0.54, 0.5]] },
+  slate: [0.3, 0.32, 0.36], flatroof: [0.48, 0.48, 0.47],
+  areas: { res: [0.45, 0.52, 0.38], ind: [0.5, 0.49, 0.47], retail: [0.56, 0.55, 0.53], lot: [0.4, 0.4, 0.41],
+    park: [0.33, 0.58, 0.27], wood: [0.2, 0.4, 0.2], pitch: [0.4, 0.66, 0.32], water: [0.25, 0.45, 0.62] },
+  roundel: [0.86, 0.1, 0.12], bar: [0.0, 0.1, 0.53], sign: [0.95, 0.95, 0.92],
   car: [0.85, 0.66, 0.16], glass: [0.12, 0.14, 0.18], tyre: [0.08, 0.08, 0.08], gate: [0.95, 0.74, 0.2],
 };
 const RACE_SUN = (() => { const v = [0.45, 0.8, 0.35], l = Math.hypot(v[0], v[1], v[2]); return v.map(x => x / l); })();
@@ -35,7 +44,9 @@ function raceFetch_() {
     .then(r => r.json())
     .then(d => {
       RACE.built = !!(d && d.built && d.race);
-      if (RACE.built) { raceAdopt_(d.race); return; }
+      /* A BACKEND MAP WITHOUT PARKS AND LANDMARKS loses to the shipped Colliers Wood that has them (500). */
+      if (RACE.built && Array.isArray(d.race.areas)) { raceAdopt_(d.race); return; }
+      if (RACE.built) return raceShipped_().then(() => { if (!RACE.map || RACE.map.practice || !RACE.map.areas) raceAdopt_(d.race); }, () => raceAdopt_(d.race));
       if (d && d.error) RACE.err = String(d.error);
       return raceShipped_();
     }, err => { RACE.err = 'The map could not be loaded — ' + why_(err); return raceShipped_(); })
@@ -54,7 +65,7 @@ const RACE_SHIPPED = 'data/race-map.json';
 
 /* AN ADMIN'S FIRST VISIT BUILDS THE REAL MAP by itself, once a day per device, while the shipped one plays. */
 function raceAutoBuild_() {
-  if (RACE.built || RACE.building || RACE.autoAsked || !(typeof isAdmin === 'function' && isAdmin())) return;
+  if (RACE.built || RACE.building || RACE.autoAsked || (RACE.map && RACE.map.shipped && RACE.map.areas) || !(typeof isAdmin === 'function' && isAdmin())) return;
   RACE.autoAsked = true;
   let last = 0;
   try { last = Number(localStorage.getItem('race-autobuild')) || 0; } catch (e) {}
@@ -81,7 +92,7 @@ function raceWorld_(map) {
     lanes: r[3] || 0, one: !!r[4], idx: (r[5] || []).filter(i => i >= 0 && i < P) })).filter(r => r.idx.length > 1);
   const g = map.grid || { x0: 0, y0: 0, cell: 40, nx: 1, ny: 1, h: [0] };
   const G = { x0: g.x0 / 10, y0: g.y0 / 10, cell: g.cell || 40, nx: g.nx || 1, ny: g.ny || 1, h: (g.h || [0]).map(v => v / 10) };
-  const W = { px, py, ph, P, roads, G, segs: [], hash: new Map(), bhash: new Map(), bld: [], water: [] };
+  const W = { px, py, ph, P, roads, G, segs: [], hash: new Map(), bhash: new Map(), bld: [], water: [], areas: [], marks: [] };
 
   /* THE GROUND between the grid's points, bilinear; outside the grid it holds the edge. */
   W.ground = (x, y) => {
@@ -139,6 +150,14 @@ function raceWorld_(map) {
     for (let i = 0; i + 1 < c.length; i += 2) line.push([c[i] / 10, c[i + 1] / 10]);
     if (line.length > 1) W.water.push({ name: String(wt[0] || ''), w: (wt[1] || 80) / 10, line });
   });
+  /* PARKS, WOODS, PONDS, CAR PARKS, RETAIL AND HOMES as flat fills on the ground, bottom to top as the file orders them (500). */
+  (map.areas || []).forEach(a => {
+    const c = a[1] || [], ring = [];
+    for (let i = 0; i + 1 < c.length; i += 2) ring.push([c[i] / 10, c[i + 1] / 10]);
+    if (ring.length >= 3 && RACE_COL.areas[a[0]]) W.areas.push({ kind: String(a[0]), ring });
+  });
+  /* THE LANDMARKS a local would name: a post where each stands, its name on the HUD when near (500). */
+  (map.marks || []).forEach(m => W.marks.push({ name: String(m[0] || ''), kind: String(m[1] || ''), x: (m[2] || 0) / 10, y: (m[3] || 0) / 10 }));
   (map.bld || []).forEach((b, bi) => {
     const c = b[1] || [], ring = [];
     for (let i = 0; i + 1 < c.length; i += 2) ring.push([c[i] / 10, c[i + 1] / 10]);
@@ -146,7 +165,7 @@ function raceWorld_(map) {
     const xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
     const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const grounds = ring.map(p => W.ground(p[0], p[1]));
-    const o = { h: Math.max(2.5, (b[0] || 75) / 10), ring, box, base: Math.min(...grounds) - 1, top: Math.max(...grounds), i: bi };
+    const o = { h: Math.max(2.5, (b[0] || 75) / 10), kind: RACE_COL.kinds[b[2]] ? b[2] : 'house', ring, box, base: Math.min(...grounds) - 1, top: Math.max(...grounds), i: bi };
     W.bld.push(o);
     for (let cx = Math.floor(box[0] / C); cx <= Math.floor(box[2] / C); cx++) {
       for (let cy = Math.floor(box[1] / C); cy <= Math.floor(box[3] / C); cy++) {
@@ -337,6 +356,11 @@ function raceMesh_(W) {
       }
     }
   };
+  mark('area', () => W.areas.forEach(a => {
+    const ring = raceCcw_(a.ring), col = RACE_COL.areas[a.kind];
+    const P = ring.map(p => [p[0], p[1], W.ground(p[0], p[1]) - 0.1]);
+    raceEar_(ring).forEach(t => tri(P[t[0]], P[t[1]], P[t[2]], col, [0, 1, 0]));
+  }));
   mark('water', () => W.water.forEach(wt => strip(wt.line, wt.w / 2, k => W.ground(wt.line[k][0], wt.line[k][1]) - 0.2, RACE_COL.water)));
   mark('road', () => W.roads.forEach(r => strip(r.idx.map(i => [W.px[i], W.py[i]]), r.w / 2, k => W.ph[r.idx[k]] + 0.06, RACE_COL.road, 1.2)));
   /* THE CENTRE LINE on a road with lanes or a class above residential: 3 m dashes every 9 m. */
@@ -352,13 +376,33 @@ function raceMesh_(W) {
     }
   }));
   mark('bld', () => W.bld.forEach(o => {
-    const col = RACE_COL.walls[o.i % RACE_COL.walls.length], top = o.top + o.h, ring = raceCcw_(o.ring);
+    const pal = RACE_COL.kinds[o.kind], col = pal[o.i % pal.length], top = o.top + o.h, ring = raceCcw_(o.ring);
+    const roof = o.kind === 'house' ? RACE_COL.slate : RACE_COL.flatroof;
     for (let i = 0; i < ring.length; i++) {
       const a = ring[i], b = ring[(i + 1) % ring.length];
       const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
       quad([a[0], a[1], o.base], [b[0], b[1], o.base], [b[0], b[1], top], [a[0], a[1], top], col, [dy / l, 0, dx / l]);
     }
-    raceEar_(ring).forEach(t => tri([ring[t[0]][0], ring[t[0]][1], top], [ring[t[1]][0], ring[t[1]][1], top], [ring[t[2]][0], ring[t[2]][1], top], RACE_COL.roof, [0, 1, 0]));
+    raceEar_(ring).forEach(t => tri([ring[t[0]][0], ring[t[0]][1], top], [ring[t[1]][0], ring[t[1]][1], top], [ring[t[2]][0], ring[t[2]][1], top], roof, [0, 1, 0]));
+  }));
+  /* A POST AT EACH LANDMARK: the station's red roundel and blue bar; a white sign for the rest. */
+  const cube = (x0, y0, z0, x1, y1, z1, col) => {
+    const c = (x, y, z) => [x, y, z];
+    quad(c(x0, y0, z1), c(x1, y0, z1), c(x1, y1, z1), c(x0, y1, z1), col, [0, 1, 0]);
+    quad(c(x0, y0, z0), c(x1, y0, z0), c(x1, y0, z1), c(x0, y0, z1), col, [0, 0, 1]);
+    quad(c(x1, y1, z0), c(x0, y1, z0), c(x0, y1, z1), c(x1, y1, z1), col, [0, 0, -1]);
+    quad(c(x0, y1, z0), c(x0, y0, z0), c(x0, y0, z1), c(x0, y1, z1), col, [-1, 0, 0]);
+    quad(c(x1, y0, z0), c(x1, y1, z0), c(x1, y1, z1), c(x1, y0, z1), col, [1, 0, 0]);
+  };
+  mark('marks', () => W.marks.forEach(m => {
+    const g = W.ground(m.x, m.y), x = m.x, y = m.y;
+    cube(x - 0.15, y - 0.15, g, x + 0.15, y + 0.15, g + 6, RACE_COL.kerb);
+    if (m.kind === 'tube') {
+      cube(x - 1.4, y - 0.12, g + 6, x + 1.4, y + 0.12, g + 8.8, RACE_COL.roundel);
+      cube(x - 1.9, y - 0.2, g + 7.05, x + 1.9, y + 0.2, g + 7.75, RACE_COL.bar);
+    } else {
+      cube(x - 2, y - 0.1, g + 6, x + 2, y + 0.1, g + 7.4, m.kind === 'park' ? RACE_COL.areas.park : RACE_COL.sign);
+    }
   }));
   return { data: v.slice(0, at), ranges };
 }
@@ -586,10 +630,12 @@ function raceDraw_() {
     const R = W.mesh.ranges;
     draw(G.world, I, R.ground[0], R.ground[1]);
     ctx.enable(ctx.POLYGON_OFFSET_FILL);
+    if (R.area) { ctx.polygonOffset(-0.5, -1); draw(G.world, I, R.area[0], R.area[1]); }
     ctx.polygonOffset(-1, -2); draw(G.world, I, R.water[0], R.water[1]); draw(G.world, I, R.road[0], R.road[1]);
     ctx.polygonOffset(-2, -4); draw(G.world, I, R.lines[0], R.lines[1]);
     ctx.disable(ctx.POLYGON_OFFSET_FILL);
     draw(G.world, I, R.bld[0], R.bld[1]);
+    if (R.marks && R.marks[1]) draw(G.world, I, R.marks[0], R.marks[1]);
     const g = W.gates[RACE.lap.next % (W.gates.length || 1)];
     if (g) draw(G.gate, raceModel_(g.x, g.y, W.heightAt(g.x, g.y), g.th, 0, Math.max(1, (g.w + 2) / 5)));
     draw(G.car, raceModel_(c.x, c.y, c.h, c.th, c.pitch, 1));
@@ -614,6 +660,11 @@ function raceMini_(box) {
     o.lineCap = 'round'; o.lineJoin = 'round';
     const X = x => (x - W.mid[0] + W.half[0]) * S, Y = y => (W.mid[1] + W.half[1] - y) * S;
     const line = (pts, wd, col) => { o.strokeStyle = col; o.lineWidth = wd; o.beginPath(); pts.forEach((p, k) => (k ? o.lineTo : o.moveTo).call(o, X(p[0]), Y(p[1]))); o.stroke(); };
+    W.areas.forEach(a => {
+      const c = RACE_COL.areas[a.kind];
+      o.fillStyle = 'rgb(' + c.map(v => Math.round(v * 255)).join(',') + ')';
+      o.beginPath(); a.ring.forEach((p, k) => (k ? o.lineTo : o.moveTo).call(o, X(p[0]), Y(p[1]))); o.closePath(); o.fill();
+    });
     W.water.forEach(wt => line(wt.line, Math.max(1.5, wt.w * S), 'rgb(64,115,158)'));
     W.roads.forEach(r => line(r.idx.map(i => [W.px[i], W.py[i]]), Math.max(1.2, r.w * S), 'rgb(200,200,200)'));
     line(W.route.map(i => [W.px[i], W.py[i]]), 2, 'rgb(242,189,51)');
@@ -647,6 +698,9 @@ function raceHud_(force) {
   const clock = ms => { const s = Math.max(0, ms) / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
   set('mph', Math.round(Math.abs(c.v) * 2.23694) + ' mph');
   set('road', r && r.d <= r.road.w / 2 + 3 ? (r.road.name || 'Unnamed road') : 'Off the road');
+  let near = '', nd = 220;
+  W.marks.forEach(m => { const d = Math.hypot(m.x - c.x, m.y - c.y); if (d < nd) { nd = d; near = m.name; } });
+  set('near', near ? 'Near ' + near : '');
   set('alt', c.h.toFixed(1) + ' m · ' + (grade >= 0 ? '+' : '') + grade.toFixed(1) + '%');
   set('gate', 'Gate ' + (L.next % (W.gates.length || 1) || W.gates.length) + '/' + W.gates.length);
   set('time', clock(L.start ? (L.paused || now) - L.start : 0) + (L.best ? ' · best ' + clock(L.best) : ''));
@@ -714,7 +768,7 @@ function racePaint_(still) {
     box.innerHTML = `<div class="race-stage" data-noswipe>
         <canvas class="race-gl" data-do="race-go" aria-label="The road ahead"></canvas>
         <canvas class="race-mini" aria-hidden="true"></canvas>
-        <div class="race-hud" aria-live="off"><b data-hud="mph">0 mph</b><span data-hud="road"></span><span data-hud="alt"></span></div>
+        <div class="race-hud" aria-live="off"><b data-hud="mph">0 mph</b><span data-hud="road"></span><span data-hud="near"></span><span data-hud="alt"></span></div>
         <div class="race-lap"><span data-hud="gate"></span><span data-hud="time"></span></div>
       </div>
       <div class="race-pads" data-noswipe>

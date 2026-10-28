@@ -570,9 +570,26 @@ function configPublic_(cfg) {
   const out = {};
   Object.keys(cfg || {}).forEach(k => {
     /* `layout` is sent once, parsed, as `layout` (462) — not a second time as a string here. */
-    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1 && norm(k) !== LAYOUT_KEY) out[k] = cfg[k];
+    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1 && norm(k) !== LAYOUT_KEY && norm(k) !== WORDS_KEY) out[k] = cfg[k];
   });
   return out;
+}
+
+/* ---------- THE RULES (496): `{set: {id: 'universal'}, hist: [{id, was, to, at}]}`, known unlocked ids only; null when broken ---------- */
+function rulesClean_(v) {
+  let o = v;
+  if (typeof o === 'string') {
+    if (!o.trim() || o.length > LAYOUT_MAX) return null;
+    try { o = JSON.parse(o); } catch (e) { return null; }
+  }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+  const free = id => RULE_IDS.indexOf(String(id)) !== -1 && RULES_LOCKED.indexOf(String(id)) === -1;
+  const ok = x => x === 'exception' || x === 'universal';
+  const set = {}, s = o.set && typeof o.set === 'object' && !Array.isArray(o.set) ? o.set : {};
+  Object.keys(s).forEach(k => { if (free(k) && s[k] === 'universal') set[k] = 'universal'; });
+  const hist = (Array.isArray(o.hist) ? o.hist : []).filter(h => h && typeof h === 'object' && free(h.id) && ok(h.was) && ok(h.to))
+    .slice(-RULES_HIST_MAX).map(h => ({ id: String(h.id), was: h.was, to: h.to, at: String(h.at || '').slice(0, 40) }));
+  return { set: set, hist: hist };
 }
 
 /* ---------- THE SITE'S LAYOUT (462): one JSON value an admin arranges, checked whole § */
@@ -624,7 +641,28 @@ function layoutClean_(v) {
   /* FRONT DOOR (489): `front: {col, id}`, where everybody lands on opening the app; one at a time. */
   const fr = o.front && typeof o.front === 'object' && !Array.isArray(o.front) ? o.front : null;
   if (fr && ID.test(String(fr.col || '')) && ID.test(String(fr.id || ''))) out.front = { col: String(fr.col), id: String(fr.id) };
+  /* WHO SEES WHAT (497): `seen: {id: level}`, a narrowing over the code's own gate; the site asks it, the code's gate still wins. */
+  const sn = o.seen && typeof o.seen === 'object' && !Array.isArray(o.seen) ? o.seen : {}, seen = {};
+  Object.keys(sn).filter(k => ID.test(k) && ['out', 'in', 'student', 'client', 'staff', 'admin'].indexOf(sn[k]) !== -1).slice(0, 300).forEach(k => { seen[k] = sn[k]; });
+  if (Object.keys(seen).length) out.seen = seen;
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;
+  return out;
+}
+
+/* ---------- THE SITE'S OWN WORDS (497): `{key: text}`, plain text only — the site escapes it when drawn ---------- */
+/* A key is a card or widget id, `|`, a slot; a value one line, at most WORDS_PIECE_MAX; {} when broken. */
+function wordsClean_(v) {
+  let o = v;
+  if (typeof o === 'string') {
+    if (!o.trim() || o.length > WORDS_MAX) return {};
+    try { o = JSON.parse(o); } catch (e) { return {}; }
+  }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return {};
+  const out = {};
+  Object.keys(o).filter(k => /^[A-Za-z0-9_:.#-]{1,64}\|[a-z]{1,2}:[a-z0-9]{1,10}$/.test(k)).slice(0, 600).forEach(k => {
+    const t = String(o[k] == null ? '' : o[k]).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WORDS_PIECE_MAX);
+    if (t) out[k] = t;
+  });
   return out;
 }
 

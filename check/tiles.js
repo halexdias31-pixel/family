@@ -81,7 +81,8 @@ function measure(id) {
     const prev = row.previousElementSibling;
     let d = prev;
     while (d && !d.classList.contains('tile-row') && lastKid(d) && !d.matches('.merged-part, .widget-slot, .me-form, form, [class*="qual"], ul, ol, table')) d = lastKid(d);
-    if (d && d.classList.contains('tile-row') && !row.classList.contains('wgt-foot') && !(prev && prev.matches('.merged-part, .widget-slot'))) {
+    /* A PERSON'S OWN ROW (498) is about them; the list's layout row under it is about the list, so the two stay apart. */
+    if (d && d.classList.contains('tile-row') && !d.classList.contains('person-tiles') && !row.classList.contains('wgt-foot') && !(prev && prev.matches('.merged-part, .widget-slot'))) {
       const c = row.closest('.card, .own-set, .fest'), h = c && c.querySelector('h2, h3, .wgt-title');
       out.push(`#s-${id}: "${((h && h.textContent) || '?').trim().slice(0, 40)}" has its tiles in two rows, one under the other`);
     }
@@ -127,6 +128,25 @@ function measure(id) {
         await page.evaluate(i => { try { go(i); } catch (e) {} }, id);
         await page.waitForTimeout(250);
         const r = await page.evaluate(measure, id);
+        measured += r.tiles;
+        r.out.forEach(x => bad.push(`${w}px ${x}`));
+      }
+      /* A FIND CARD (495): a front page is never a result, so open a library card and measure the page it lands on -- its tiles, star row and Back to top are one row. */
+      const opened = await page.evaluate(async () => {
+        for (let i = 0; i < 60; i++) {
+          const x = (typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : []).find(y => y && y.key === 'hdb:MS-0001');
+          if (x) { go('stuff'); finderOpen_(x); return true; }
+          await new Promise(ok => setTimeout(ok, 100));
+        }
+        return false;
+      });
+      if (!opened) bad.push(`${w}px Find: Papyrus 52 never reached the list -- the Find card was NOT checked`);
+      else {
+        await page.waitForTimeout(900);
+        const r = await page.evaluate(measure, 'stuff');
+        const rows = await page.evaluate(() => { const c = document.querySelector('#s-stuff .hdb-msc'); const p = c && c.closest('.pane'); return p ? [...p.querySelectorAll('.tile-row')].filter(e => e.getBoundingClientRect().width).length : -1; });
+        if (rows < 0) bad.push(`${w}px Find: Papyrus 52's card was not drawn -- NOT checked`);
+        else if (rows !== 1) bad.push(`${w}px Find: Papyrus 52's page has ${rows} tile rows, not one`);
         measured += r.tiles;
         r.out.forEach(x => bad.push(`${w}px ${x}`));
       }

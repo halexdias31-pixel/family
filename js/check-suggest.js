@@ -157,6 +157,21 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
   if (!/icon: 'suggest'/.test(fs.readFileSync(path.join(dir, 'submit.js'), 'utf8'))) bad.push('suggestTile_ does not use the suggest icon');
 }
 
+/* ---------- 5. ROUND THREE (498): a shop item's id with spaces is taken; Find's path is a line of the note; data/notes-done.json marks done; one day's mistaken Done reopened ---------- */
+{
+  const { b, ask, notes } = world();
+  const d = ask(HAL, sg({ personId: 'P-A1', kind: 'shop', itemId: 'Gooey Louie (board game)', label: 'Gooey Louie', note: 'the price is wrong', path: 'Find › Shop › Games' }));
+  if (!d.success) bad.push('a shop item named with spaces and brackets was refused: ' + JSON.stringify(d));
+  const row = notes().find(r => r.item_id === 'shop|Gooey Louie (board game)');
+  if (!row || !/\nPath: Find › Shop › Games$/.test(row.note)) bad.push('the funnel path is not a line of the note: ' + JSON.stringify(row && row.note));
+  asked++;
+  const n = b.ev('claudeNotesDoneSync_([' + JSON.stringify(row ? row.note_id : 'x') + '])');
+  if (n !== 1 || notes().find(r => r.item_id === 'shop|Gooey Louie (board game)').status !== 'done') bad.push('claudeNotesDoneSync_ did not mark the listed note done (' + n + ')');
+  if (b.ev('claudeNotesDoneSync_([' + JSON.stringify(row ? row.note_id : 'x') + '])') !== 0) bad.push('claudeNotesDoneSync_ is not idempotent');
+  const ids = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'notes-done.json'), 'utf8'));
+  if (!Array.isArray(ids) || !ids.length || ids.some(x => !/^N-\d+-\d+$/.test(x))) bad.push('data/notes-done.json is not an array of note ids only');
+}
+
 console.log(`requests asked of the backend: ${asked}`);
 if (bad.length) {
   console.log('\nFAILED — ' + bad.length + ':\n  ' + bad.join('\n  '));

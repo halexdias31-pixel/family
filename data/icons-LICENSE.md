@@ -6,6 +6,11 @@ on Commons (the painted works are centuries old; faithful reproductions of 2D pu
 themselves public domain — PD-Art). The reduction is `tools/epaper-verse` work (docs/history/479).
 The same record is on each row of `data/icons.json` as `image_source`.
 
+**Masters (docs/history/499).** `data/icons/master/<id>.jpg` is the same Commons file, fetched through
+`commons.wikimedia.org/w/thumb.php` at 600px on its longest side, made greyscale and saved as a JPEG of 80 KB at
+most. Public domain as its source is. `make-icons.js` makes each 1-bit bitmap from its master, so a better
+reduction (a larger panel, another dither) can be made again without fetching anything.
+
 | id | icon | Commons file | licence |
 |---|---|---|---|
 | christ_pantokrator | Christ Pantokrator | [Spas vsederzhitel sinay.jpg](https://commons.wikimedia.org/wiki/File:Spas_vsederzhitel_sinay.jpg) | Public domain |

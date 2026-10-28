@@ -94,10 +94,13 @@ function png1_(rows) {
   const SMALL = path.join(ROOT, 'data', 'icons', '120'); fs.mkdirSync(SMALL, { recursive: true });
   for (const [k, row] of PICS.entries()) {
     /* The real icon (479): its 1-bit PNG fitted to 120x160, grey again by the scaling, dithered back to 1 bit; every icon has one (483). */
+    /* THE MASTER FIRST (499): data/icons/master/<id>.jpg, greyscale at 600px from Commons, kept so a better reduction can always be made again. */
+    const master = path.join(ROOT, 'data', 'icons', 'master', row.id + '.jpg');
     const big = path.join(ROOT, 'data', 'icons', row.id + '.png'), file = path.join(SMALL, row.id + '.png');
     if (!row.image) throw new Error(row.id + ' has no real image — an icon without one is left out of data/icons.json (483)');
-    const src = 'data:image/png;base64,' + fs.readFileSync(fs.existsSync(big) ? big : file).toString('base64');
-    const rows = await page.evaluate(async ([src, photo]) => {
+    const from = fs.existsSync(master) ? master : fs.existsSync(big) ? big : file;
+    const src = 'data:image/' + (from === master ? 'jpeg' : 'png') + ';base64,' + fs.readFileSync(from).toString('base64');
+    const rows = await page.evaluate(async ([src, photo, stretch]) => {
       const img = new Image(); img.src = src; await img.decode();
       const c = document.getElementById('c'); c.width = 120; c.height = 160;
       const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 120, 160);
@@ -105,12 +108,22 @@ function png1_(rows) {
       g.imageSmoothingQuality = 'high'; g.drawImage(img, (120 - w) >> 1, (160 - h) >> 1, w, h);
       const d = g.getImageData(0, 0, 120, 160).data, v = new Float32Array(120 * 160), out = [];
       for (let i = 0; i < v.length; i++) v[i] = d[i * 4];
+      /* A GREY MASTER IS STRETCHED to its own 2nd-98th percentile first (499), inside the picture only, or a dim scan dithers to grey mush. */
+      if (stretch) {
+        const x0 = (120 - w) >> 1, y0 = (160 - h) >> 1, inside = [];
+        for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) inside.push(v[y * 120 + x]);
+        inside.sort((a, b) => a - b);
+        const lo = inside[Math.floor(inside.length * 0.02)] || 0, hi = inside[Math.floor(inside.length * 0.98)] || 255;
+        if (hi - lo > 16) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
+          const i = y * 120 + x; v[i] = Math.max(0, Math.min(255, (v[i] - lo) * 255 / (hi - lo)));
+        }
+      }
       for (let y = 0; y < 160; y++) { const r = []; for (let x = 0; x < 120; x++) {
         const i = y * 120 + x, on = v[i] < 128 ? 1 : 0, e = photo ? v[i] - (on ? 0 : 255) : 0; r.push(on);
         if (e) { if (x < 119) v[i + 1] += e * 7 / 16; if (y < 159) { if (x) v[i + 119] += e * 3 / 16; v[i + 120] += e * 5 / 16; if (x < 119) v[i + 121] += e / 16; } }
       } out.push(r); }
       return out;
-    }, [src, true]);
+    }, [src, true, from === master]);
     fs.writeFileSync(file, png1_(rows));   // the widget draws this very bitmap, so widget == screen (483)
     const bytes = [];
     for (const r of rows) for (let x = 0; x < 120; x += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | (r[x + j] || 0); bytes.push('0x' + b.toString(16).padStart(2, '0')); }

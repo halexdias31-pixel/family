@@ -270,8 +270,13 @@ Follow it. It is unusual and it is deliberate.
 
 When the owner says "read my notes", open the Drive file "Notes for Claude" (plain text, in the `family-library-imports`
 folder; or the Ledger tab `claude_notes`) and work through the open ones. Each block is
-`[note_id] column › item_label (item_id) — date` then the note; `item_id` is the widget's or card's layout id. The owner
-marks one done from its Done tile on the site. See docs/history/484.
+`[note_id] column › item_label (item_id) — date` then the note; `item_id` is the widget's or card's layout id. A note made
+on Find or Find 2 carries its funnel `Path:`; one with a picture carries a `Picture:` Drive link. See docs/history/484.
+
+**Marking one done is Claude's job (498).** A session that addresses a note appends its `note_id` to `data/notes-done.json`
+(a JSON array of ids only — never the note's words: the repo is public) and commits it with the fix. On the admin's next
+open (`setupOnAdminLoad_` → `claudeNotesDoneSync_`, at most every ten minutes) the backend marks those ids done in
+`claude_notes` and rewrites the Drive file. Idempotent. The site has no Done tile and lists no notes any more.
 
 ## History
 

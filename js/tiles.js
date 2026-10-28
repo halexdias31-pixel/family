@@ -410,6 +410,8 @@ function cardTiles_(x) {
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '')
+    /* AND THE PADLOCK (498): the owner, "add the padlock to every widget, so that I can highlight and copy and paste". */
+    + (x.key && x.kind !== 'me' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '')
     /* AND `Suggest a change` ON EVERY CARD, Student rank and up (486, 494) — `suggestTileFor_` in submit.js. */
     + (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : '');
   const admin = adminTiles_(x, x.topic || null);
@@ -602,18 +604,20 @@ function tileRowsJoin_(html) {
     joined++;
   };
   /* A ROW UNDER A BOX THAT ENDS IN A ROW (a form's Save, a list's last item): it joins that row, inside the box, so the box's own handlers still hold. */
+  /* A RULE (496), locked: `form-save-row` — a settings form keeps its own Save row. */
+  const formOwn = typeof ruleOn_ !== 'function' || ruleOn_('form-save-row');
   t.content.querySelectorAll('.tile-row').forEach(row => {
     const prev = row.previousElementSibling;
-    if (!prev || prev.hidden || prev.classList.contains('tile-row') || prev.matches('.merged-part, .widget-slot') || row.classList.contains('wgt-foot') || (row.parentElement && row.parentElement.closest('.me-form'))) return;
+    if (!prev || prev.hidden || prev.classList.contains('tile-row') || prev.matches('.merged-part, .widget-slot') || row.classList.contains('wgt-foot') || (formOwn && row.parentElement && row.parentElement.closest('.me-form'))) return;
     /* AN EMPTY STATUS LINE AFTER THE ROW (a form's "Saved" before anything is saved) does not count as something between. */
     const last = e => { let k = e.lastElementChild; while (k && k.tagName === 'P' && !k.textContent.trim()) k = k.previousElementSibling; return k; };
     let d = prev;
-    while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .rep-box, .me-form, form, [class*="qual"], ul, ol, table')) d = last(d);
-    if (d !== prev && d.classList.contains('tile-row')) group(row, d, false);
+    while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .rep-box, ' + (formOwn ? '.me-form, form, ' : '') + '[class*="qual"], ul, ol, table')) d = last(d);
+    if (d !== prev && d.classList.contains('tile-row') && !d.classList.contains('person-tiles')) group(row, d, false);
   });
   t.content.querySelectorAll('.tile-row').forEach(row => {
     const prev = row.previousElementSibling;
-    if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || prev.closest('.me-form')) return;
+    if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
     group(prev, row, true);
   });
   return joined ? t.innerHTML : h;

@@ -59,7 +59,7 @@
 {"field": "accuracy", "label": "Accuracy", "sort_order": 152, "note": "Accuracy verified when the answer was checked against the official scheme (388)", "active": true},
 {"field": "function", "label": "Function", "sort_order": 154, "note": "Function verified when the question type is complete and machine-marked (388)", "active": true},
 {"field": "myResult", "label": "Your result", "sort_order": 156, "note": "the signed-in person's own latest answer to a question: Unattempted, Attempted, and Correct, Incorrect or Part marks once marked (463)", "active": true},
-{"field": "histKind", "label": "Manuscripts, figures, writings or events", "sort_order": 37.1, "note": "history database only (459, 461): which of the four tables (a timeline is Events)", "active": true},
+{"field": "histKind", "label": "Manuscripts, figures, writings, events or texts", "sort_order": 37.1, "note": "history database only (459, 461): which of the four tables (a timeline is Events)", "active": true},
 {"field": "histEra", "label": "Era", "sort_order": 37.2, "note": "history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)", "active": true},
 {"field": "histLanguage", "label": "Language", "sort_order": 37.3, "note": "history database only: a manuscript's or writing's language", "active": true},
 {"field": "histMaterial", "label": "Material", "sort_order": 37.4, "note": "manuscripts only: papyrus, parchment, paper", "active": true},
@@ -68,5 +68,13 @@
 {"field": "histRole", "label": "Role", "sort_order": 37.7, "note": "historical figures only: a list cell, one tag each", "active": true},
 {"field": "histTheme", "label": "Theme", "sort_order": 37.8, "note": "writings only: a list cell, one tag each", "active": true},
 {"field": "histRepository", "label": "Held at", "sort_order": 37.9, "note": "manuscripts only: the library or museum that holds it", "active": true},
-{"field": "histTheatre", "label": "Theatre", "sort_order": 37.95, "note": "events and timelines only (461): Europe, Pacific, Africa, Atlantic, Home front, Diplomacy", "active": true}
+{"field": "histTheatre", "label": "Theatre", "sort_order": 37.95, "note": "events and timelines only (461): Europe, Pacific, Africa, Atlantic, Home front, Diplomacy", "active": true},
+{"field": "wtWork", "label": "Work", "sort_order": 37.96, "note": "a writing's own words only (499): which work", "active": true},
+{"field": "wtChapter", "label": "Chapter", "sort_order": 37.97, "note": "a writing's own words only (499): which chapter, a card each", "active": true},
+{"field": "wtLanguage", "label": "Language", "sort_order": 37.98, "note": "a writing's own words only (499): Greek, English", "active": true},
+{"field": "shopKind", "label": "Category", "sort_order": 38.1, "note": "shop items only (499): what it is, from its kind", "active": true},
+{"field": "shopHow", "label": "How you get it", "sort_order": 38.2, "note": "shop items only (499): buy, earn with ticks, unlock by level, borrow", "active": true},
+{"field": "shopPrice", "label": "Price", "sort_order": 38.3, "note": "shop items only (499): a band from its price", "active": true},
+{"field": "shopBrand", "label": "Brand", "sort_order": 38.4, "note": "shop items only (499): its maker", "active": true},
+{"field": "shopFor", "label": "For", "sort_order": 38.5, "note": "shop items only (499): who it is for when not everybody", "active": true}
 ]

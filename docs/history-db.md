@@ -49,6 +49,15 @@ History chapter 6). The file is `timeline.json`, not `events.json`, because `eve
 - **timeline**: id, name, date_from, date_to (whole years), date_iso, date_iso_to (`YYYY-MM-DD`, `date_iso_to` blank for
   one day), date_text, date_basis, places, theatre, era, summary (short, our own words), figures, writings, sources.
   Keep the file in date order; the check holds it to that, and each ISO day to its year.
+- **min_age** (any file, optional, 499): a whole number of years. The row is not listed for anybody younger, of no
+  known age or signed out (`itemMinAge_`, find.js; an admin sees all). Religious rows carry 18 — Papyrus 52, Codex
+  Alexandrinus, Clement of Rome, First Clement — as scripture does (490).
+
+## A writing's own words (499)
+
+A writing whose text is public domain can carry its words as cards, one a chapter a language, on the History shelf
+under *Texts*: `data/works/<WR-id>.json` and `data/works/index.json`, written by `tools/works-text.py` (sources and
+licences in `data/works/LICENSE`). The writing's card gets a **Read it** tile to the first page. First Clement is done.
 
 ## Adding a column
 

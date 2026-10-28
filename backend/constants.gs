@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zh-suggest";
+const BACKEND_VERSION = "2026-10-28-zn-n4c";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -692,6 +692,12 @@ const OWNER_EMAIL_KEY = 'owner_email';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* THE SITE'S LAYOUT (462, 463): the config row a widget's admin tiles write, and the most it may hold. */
 const LAYOUT_KEY = 'layout';
+/* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
+const RULES_KEY = 'rules';
+const RULE_IDS = ['tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'kjv-admin', 'finder-members',
+  'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
+const RULES_LOCKED = ['keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
+const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
 const DIGEST_WORDS = {
   digest_subject: '{child}’s week: {count}',
@@ -701,8 +707,16 @@ const DIGEST_WORDS = {
 };
 const DIGEST_WORD_MAX = 300;
 const LAYOUT_MAX = 8000;
+/* THE SITE'S OWN WORDS (497): one config row of {key: text} an admin types in place over the code's; a piece's longest, and the whole row's. */
+const WORDS_KEY = 'words';
+const WORDS_PIECE_MAX = 300;
+const WORDS_MAX = 40000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
+/* THE IDS A SESSION HAS ADDRESSED (498), ids only, appended by Claude and read on an admin's open. */
+/* A SUGGESTION'S PICTURE (498): the phone shrinks it to about 300 KB; this refuses anything far past that. */
+const SUGGEST_PIC_MAX = 600 * 1024;
+const CLAUDE_NOTES_DONE_FILE = 'data/notes-done.json';
 const CLAUDE_NOTE_MAX = 4000;
 
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
@@ -1484,6 +1498,12 @@ const MIGRATIONS = [
     retry: true,
     what: 'every booking gets its booked hours in slot_codes, so busy hours read one column',
     run: () => backfillSlotCodes_() },
+
+  /* A DONE TICKED BY MISTAKE (498): every note marked done on 2026-10-28 that data/notes-done.json does not list is open again. */
+  { id: 'notes-reopen-2026-10-28',
+    retry: true,
+    what: 'the notes ticked done on 28 October that no session addressed are open again',
+    run: () => claudeNotesReopen_('2026-10-28') },
 ];
 
 /* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */
@@ -1603,6 +1623,10 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
+  /* THE RULES CARD (496): one rule Exception or Universal for everybody, or Undo of the last change. */
+  rulesSave: 'admin',
+  /* EDIT WORDS IN PLACE (497): the site's words over the code's, one config row. */
+  wordsSave: 'admin',
   /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
   digestWordsSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */

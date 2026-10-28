@@ -32,3 +32,6 @@ pages, searches and reads a sanitised message; a client and a tutor are refused 
 nothing reaches doGet or a sheet; the manifest lists `gmail.readonly` and nothing wider. On the screen the
 admin's widget draws, blocks images, offers Show images and Open in Gmail, and search and chips reach `q`;
 a client has no widget and sends nothing. Backend 2026-10-27-zf-inbox, css 2026-10-27-zf-inbox.
+
+**Moved (500):** the owner, on the Site column: "I would actually like to add the gmail widget to this". It was reverted
+with b56391c and came back as a card on Site (`inboxCard_`, `site:inbox` in layout.js), admin only, no longer a Tools widget.

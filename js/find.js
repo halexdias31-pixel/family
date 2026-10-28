@@ -26,7 +26,8 @@ const FINDERS = {
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
   res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   front: () => [],
+                   /* A RULE (496), locked: `find-front` — the front pages are Find's alone. */
+                   front: () => (typeof ruleOn_ !== 'function' || ruleOn_('find-front')) ? [] : [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;
@@ -154,6 +155,8 @@ const KINDS = {
   talmud: { group: 'Learning', label: 'Library', card: x => talmudCard_(x) },
   /* THE QURAN (490): one card a verse. */
   quran: { group: 'Learning', label: 'Library', card: x => quranCard_(x) },
+  /* A WRITING'S OWN WORDS (499): one card a chapter a language, js/works.js. */
+  worktext: { group: 'Learning', label: 'Library', card: x => worksCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -197,7 +200,7 @@ function thingCard_(x, credits) {
         ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
       : x.cost === undefined
-        ? `<span class="price is-unpriced">not priced yet</span>`
+        ? ''   /* "Not priced yet" is its Price tag now (499) */
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
           free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
@@ -220,11 +223,11 @@ function thingCard_(x, credits) {
                 ''}
           ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
                 ''}
-          <p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+          ${x.kind === 'shop' ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
-            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
+            .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>`}
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: § */
                 ''}
@@ -232,14 +235,14 @@ function thingCard_(x, credits) {
                 ''}
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
-          <p class="sub">${x.company
+          ${x.kind === 'shop' ? '' : `<p class="sub">${x.company
             ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
             /* WHERE IT GOES. Until there are drawings, the slot is the only thing on the card that
                says what the object actually is — "Cape · shoulders" is a garment and "Cape" on its
                own is a word. */
-            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>
+            ? ` <span class="faint">· ${esc(x.slot)}</span>` : ''}</p>`}
           ${price}
         </div>
       </div>
@@ -396,7 +399,7 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (x.kind === 'fight' && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures, writings or events', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, figures, writings, events or texts', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
@@ -406,6 +409,16 @@ const FACETS = [
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
+  /* A WRITING'S OWN WORDS (499): which work, which chapter, which language. */
+  /* A SHOP ITEM'S TAGS (499): what it is, how you get it, its price band, the brand, who it is for. */
+  { field: 'shopKind',  label: 'Category',    of: x => x.shopKind || '' },
+  { field: 'shopHow',   label: 'How you get it', of: x => x.shopHow || '' },
+  { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
+  { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
+  { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
+  { field: 'wtWork',    label: 'Work',        of: x => x.wtWork || '' },
+  { field: 'wtChapter', label: 'Chapter',     of: x => x.wtChapter || '' },
+  { field: 'wtLanguage', label: 'Language',   of: x => x.wtLanguage || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -894,10 +907,35 @@ function facetWhy_(items, facet, over) {
   if (!over && vals > FACET_MAX_ANSWERS) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
+  const echo = facetEcho_(items, facet);
+  if (echo) return 'the same split as ' + echo + ', answered Any — its answers are that question\'s under other names';
   const split = facetSplit_(items, facet);
   if (split < FACET_MIN_MINORITY) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
+  }
+  return '';
+}
+
+/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499): each answer sits inside one answer of it, a different one each — Shelf after Any subject
+   is Subject again (Books, Boxing, History). Every facet, by its items; nothing per-facet. */
+function facetEcho_(items, facet) {
+  const skipped = (STUFF.filters || []).filter(f => f.any && f.field !== facet.field);
+  for (const g of skipped) {
+    const G = facetList().find(f => f.field === g.field);
+    if (!G) continue;
+    const to = {}, from = {};
+    let ok = true;
+    for (const x of items) {
+      const a = facetOwn_(facet, x);
+      if (!a.length) continue;
+      const b = facetOwn_(G, x);
+      if (b.length !== 1 || a.length !== 1) { ok = false; break; }
+      const ka = spellKey_(a[0]), kb = spellKey_(b[0]);
+      if ((to[ka] && to[ka] !== kb) || (from[kb] && from[kb] !== ka)) { ok = false; break; }
+      to[ka] = kb; from[kb] = ka;
+    }
+    if (ok && Object.keys(to).length > 1) return G.label || G.field;
   }
   return '';
 }
@@ -1623,77 +1661,95 @@ const HIST_LINES = {
     ['Public-domain translations', 'pd_translation']],
   event: [['Date', 'date_text'], ['Places', 'places'], ['Theatre', 'theatre'], ['Part of', 'era'], ['What happened', 'summary']],
 };
-/* ---------- A MANUSCRIPT AS IT LOOKS (490): an original drawing, not a photograph — the real text in its script, clipped to the
-   surviving shape. `keep` is each line's surviving letters [from, to); none, a whole leaf. */
+/* ---------- A MANUSCRIPT AS IT LOOKS (490, 495): a drawing traced over a public-domain photograph (`ref`) -- its true outline, line count and § */
 const MS_LOOK = {
-  'MS-0001': { stuff: 'papyrus', cols: 1, keep: [[0, 10], [11, 25], [10, 23], [9, 24], [11, 25], [12, 18]],
-    lines: ['ΟΙΙΟΥΔΑΙΟΙΗΜΕΙΝΟΥΚΕΞΕΣΤΙΝΑΠΟΚΤΕΙΝΑΙ', 'ΟΥΔΕΝΑΙΝΑΟΛΟΓΟΣΤΟΥΙΗΣΟΥΠΛΗΡΩΘΗΟΝΕΙ', 'ΠΕΝΣΗΜΑΙΝΩΝΠΟΙΩΘΑΝΑΤΩΗΜΕΛΛΕΝΑΠΟ',
-      'ΘΝΗΣΚΕΙΝΙΣΗΛΘΕΝΟΥΝΠΑΛΙΝΕΙΣΤΟΠΡΑΙΤΩ', 'ΡΙΟΝΟΠΙΛΑΤΟΣΚΑΙΕΦΩΝΗΣΕΝΤΟΝΙΗΣΟΥΝ', 'ΚΑΙΕΙΠΕΝΑΥΤΩΣΥΕΙΟΒΑΣΙΛΕΥΣΤΩΝΙΟΥ'],
-    what: 'John 18:31–33 in Greek uncials, as the recto keeps it' },
-  'MS-0002': { stuff: 'parchment', cols: 2, keep: null,
-    lines: ['ΕΝΑΡΧΗΗΝΟΛΟΓΟΣ', 'ΚΑΙΟΛΟΓΟΣΗΝΠΡΟΣ', 'ΤΟΝΘΝΚΑΙΘΣΗΝΟ', 'ΛΟΓΟΣΟΥΤΟΣΗΝΕΝ', 'ΑΡΧΗΠΡΟΣΤΟΝΘΝ', 'ΠΑΝΤΑΔΙΑΥΤΟΥ', 'ΕΓΕΝΕΤΟΚΑΙΧΩ',
-      'ΡΙΣΑΥΤΟΥΕΓΕΝΕ', 'ΤΟΟΥΔΕΕΝΟΓΕ', 'ΓΟΝΕΝΕΝΑΥΤΩ', 'ΖΩΗΗΝΚΑΙΗΖΩΗ', 'ΗΝΤΟΦΩΣΤΩΝΑΝ', 'ΘΡΩΠΩΝΚΑΙΤΟ', 'ΦΩΣΕΝΤΗΣΚΟΤΙΑ',
-      'ΦΑΙΝΕΙΚΑΙΗΣΚΟ', 'ΤΙΑΑΥΤΟΟΥΚΑΤΕ'],
-    what: 'John 1:1–5 in two columns of Greek uncials, as a page of the codex sets them' },
+  'MS-0001': { stuff: 'papyrus', box: [30, 80, 630, 940],
+    ref: 'Commons: File:P52 recto.jpg (PD-Art, PD-old-100) and File:P52 verso.jpg (PD-scan, PD-old-70)',
+    edge: [[48, 92], [90, 88], [150, 95], [210, 92], [260, 100], [310, 98], [360, 108], [400, 112], [430, 125], [435, 150], [410, 175],
+      [415, 240], [420, 300], [440, 330], [455, 340], [462, 300], [465, 230], [475, 215], [520, 210], [580, 215], [640, 222], [645, 300],
+      [638, 350], [645, 400], [635, 460], [620, 500], [605, 545], [595, 560], [590, 620], [590, 690], [560, 695], [530, 680], [500, 700],
+      [470, 690], [420, 700], [420, 760], [410, 830], [415, 880], [400, 890], [360, 900], [330, 920], [320, 975], [300, 1000], [250, 1005],
+      [205, 995], [200, 940], [205, 900], [140, 890], [130, 860], [120, 820], [115, 760], [110, 700], [115, 640], [105, 600], [110, 550],
+      [100, 490], [110, 430], [105, 375], [85, 360], [65, 320], [50, 250], [45, 180], [42, 120]],
+    sides: [
+      { name: 'Recto', what: 'John 18:31–33', lines: [[135, 640, 365, 'ΟΙΙΟΥΔΑΙ·····ΗΜΕ'], [135, 635, 462, 'ΟΥΔΕΝΑΙΝΑΟΛ'],
+        [130, 600, 552, 'ΠΕΝΣΗΜΑΙΝΩ'], [150, 560, 648, 'ΘΝΗΣΚΕΙΝΙΣ'], [150, 415, 748, 'ΡΙΟΝΟΠ'], [135, 400, 838, 'ΚΑΙΕΙΠ'],
+        [205, 320, 958, 'ΑΙΩ', 'trace']] },
+      /* THE SAME LEAF TURNED OVER: its outline mirrored, the lines' surviving ends on the other side. */
+      { name: 'Verso', what: 'John 18:37–38', mirror: true, lines: [[93, 560, 378, 'ΤΟΓ··ΕΝΝΗΜΑΙΚΑ'], [57, 560, 465, 'ΣΜΟΝΙΝΑΜΑΡΤΥ'],
+        [180, 557, 568, 'ΤΗΣΑΛΗΘΕ'], [170, 547, 660, 'ΛΕΓΕΙΑΥΤΩ'], [280, 480, 760, 'ΙΤΟΥΤ'], [280, 453, 857, 'ΟΥΣΚ'],
+        [365, 440, 948, 'ΑΙ', 'trace']] },
+    ] },
+  /* ONE WHOLE PAGE (fol. 41v): Luke 24:32-53 in two columns, paragraphs hanging into the margin, then the tailpiece and the title. */
+  'MS-0002': { stuff: 'parchment', box: [0, 0, 700, 902],
+    ref: 'Commons: File:Codex Alexandrinus f41v - Luke.jpg (PD-old-100-1923), British Library Royal MS 1 D VIII, fol. 41v',
+    edge: [[22, 14], [600, 10], [640, 30], [688, 70], [692, 880], [22, 884]],
+    sides: [{ name: 'Folio 41v', what: 'Luke 24:32–53, the end of the Gospel',
+      cols: [{ x0: 100, x1: 365, y0: 84, lh: 12.95, rows: 51, paras: [
+        '+ΗΝΟΙΓΕΝΗΜΙΝΤΑΣΓΡΑΦΑΣ',
+        'ΚΑΙΑΝΑΣΤΑΝΤΕΣΑΥΤΗΤΗΩΡΑΥΠΕΣΤΡΕΨΑΝΕΙΣΙΕΡΟΥΣΑΛΗΜΚΑΙΕΥΡΟΝΣΥΝΗΘΡΟΙΣΜΕΝΟΥΣΤΟΥΣΕΝΔΕΚΑΚΑΙΤΟΥΣΣΥΝΑΥΤΟΙΣΛΕΓΟΝΤΑΣΟΤΙΗΓΕΡΘΗΟΚΣΟΝΤΩΣΚΑΙΩΦΘΗΣΙΜΩΝΙΚΑΙΑΥΤΟΙΕΞΗΓΟΥΝΤΟΤΑΕΝΤΗΟΔΩΚΑΙΩΣΕΓΝΩΣΘΗΑΥΤΟΙΣΕΝΤΗΚΛΑΣΕΙΤΟΥΑΡΤΟΥ',
+        'ΤΑΥΤΑΔΕΑΥΤΩΝΛΑΛΟΥΝΤΩΝΑΥΤΟΣΟΙΣΕΣΤΗΕΝΜΕΣΩΑΥΤΩΝΚΑΙΛΕΓΕΙΑΥΤΟΙΣΕΙΡΗΝΗΥΜΙΝΠΤΟΗΘΕΝΤΕΣΔΕΚΑΙΕΜΦΟΒΟΙΓΕΝΟΜΕΝΟΙΕΔΟΚΟΥΝΠΝΑΘΕΩΡΕΙΝΚΑΙΕΙΠΕΝΑΥΤΟΙΣΤΙΤΕΤΑΡΑΓΜΕΝΟΙΕΣΤΕΚΑΙΔΙΑΤΙΔΙΑΛΟΓΙΣΜΟΙΑΝΑΒΑΙΝΟΥΣΙΝΕΝΤΑΙΣΚΑΡΔΙΑΙΣΥΜΩΝΙΔΕΤΕΤΑΣΧΕΙΡΑΣΜΟΥΚΑΙΤΟΥΣΠΟΔΑΣΜΟΥΟΤΙΑΥΤΟΣΕΓΩΕΙΜΙΨΗΛΑΦΗΣΑΤΕΜΕΚΑΙΙΔΕΤΕΟΤΙΠΝΑΣΑΡΚΑΚΑΙΟΣΤΕΑΟΥΚΕΧΕΙΚΑΘΩΣΕΜΕΘΕΩΡΕΙΤΕΕΧΟΝΤΑΚΑΙΤΟΥΤΟΕΙΠΩΝΕΔΕΙΞΕΝΑΥΤΟΙΣΤΑΣΧΕΙΡΑΣΚΑΙΤΟΥΣΠΟΔΑΣ',
+        'ΕΤΙΔΕΑΠΙΣΤΟΥΝΤΩΝΑΥΤΩΝΑΠΟΤΗΣΧΑΡΑΣΚΑΙΘΑΥΜΑΖΟΝΤΩΝΕΙΠΕΝΑΥΤΟΙΣΕΧΕΤΕΤΙΒΡΩΣΙΜΟΝΕΝΘΑΔΕΟΙΔΕΕΠΕΔΩΚΑΝΑΥΤΩΙΧΘΥΟΣΟΠΤΟΥΜΕΡΟΣΚΑΙΑΠΟΜΕΛΙΣΣΙΟΥΚΗΡΙΟΥΚΑΙΛΑΒΩΝΕΝΩΠΙΟΝΑΥΤΩΝΕΦΑΓΕΝ',
+        'ΕΙΠΕΝΔΕΑΥΤΟΙΣΟΥΤΟΙΟΙΛΟΓΟΙΟΥΣΕΛΑΛΗΣΑΠΡΟΣΥΜΑΣΕΤΙΩΝΣΥΝΥΜΙΝΟΤΙΔΕΙΠΛΗΡΩΘΗΝΑΙΠΑΝΤΑΤΑΓΕΓΡΑΜΜΕΝΑΕΝΤΩΝΟΜΩΜΩΣΕΩΣΚΑΙΠΡΟΦΗΤΑΙΣΚΑΙΨΑΛΜΟΙΣΠΕΡΙΕΜΟΥ',
+        'ΤΟΤΕΔΙΗΝΟΙΞΕΝΑΥΤΩΝΤΟΝΝΟΥΝΤΟΥΣΥΝΙΕΝΑΙΤΑΣΓΡΑΦΑΣΚΑΙΕΙΠΕΝΑΥΤΟΙΣΟΤΙΟΥΤΩΣΓΕΓΡΑΠΤΑΙΚΑΙΟΥΤΩΣΕΔΕΙΠΑΘΕΙΝΤΟΝΧΝΚΑΙΑΝΑΣΤΗΝΑΙΕΚΝΕΚΡΩΝΤΗΤΡΙΤΗΗΜΕΡΑΚΑΙΚΗΡΥΧΘΗΝΑΙΕΠΙΤΩΟΝΟΜΑΤΙΑΥΤΟΥΜΕΤΑΝΟΙΑΝΚΑΙΑΦΕΣΙΝΑΜΑΡΤΙΩΝΕΙΣΠΑΝΤΑ'] },
+      { x0: 410, x1: 665, y0: 84, lh: 12.95, rows: 20, paras: [
+        '+ΤΑΕΘΝΗΑΡΞΑΜΕΝΟΝΑΠΟΙΕΡΟΥΣΑΛΗΜΥΜΕΙΣΔΕΕΣΤΕΜΑΡΤΥΡΕΣΤΟΥΤΩΝΚΑΙΙΔΟΥΕΓΩΑΠΟΣΤΕΛΛΩΤΗΝΕΠΑΓΓΕΛΙΑΝΤΟΥΠΡΣΜΟΥΕΦΥΜΑΣΥΜΕΙΣΔΕΚΑΘΙΣΑΤΕΕΝΤΗΠΟΛΕΙΙΕΡΟΥΣΑΛΗΜΕΩΣΟΥΕΝΔΥΣΗΣΘΕΔΥΝΑΜΙΝΕΞΥΨΟΥΣΕΞΗΓΑΓΕΝΔΕΑΥΤΟΥΣΕΞΩΕΩΣΕΙΣΒΗΘΑΝΙΑΝΚΑΙΕΠΑΡΑΣΤΑΣΧΕΙΡΑΣΑΥΤΟΥΕΥΛΟΓΗΣΕΝΑΥΤΟΥΣ',
+        'ΚΑΙΕΓΕΝΕΤΟΕΝΤΩΕΥΛΟΓΕΙΝΑΥΤΟΝΑΥΤΟΥΣΔΙΕΣΤΗΑΠΑΥΤΩΝΚΑΙΑΝΕΦΕΡΕΤΟΕΙΣΤΟΝΟΥΡΑΝΟΝΚΑΙΑΥΤΟΙΠΡΟΣΚΥΝΗΣΑΝΤΕΣΑΥΤΟΝΥΠΕΣΤΡΕΨΑΝΕΙΣΙΕΡΟΥΣΑΛΗΜΜΕΤΑΧΑΡΑΣΜΕΓΑΛΗΣΚΑΙΗΣΑΝΔΙΑΠΑΝΤΟΣΕΝΤΩΙΕΡΩΑΙΝΟΥΝΤΕΣΚΑΙΕΥΛΟΓΟΥΝΤΕΣΤΟΝΘΝΑΜΗΝ'] }],
+      /* THE TAILPIECE as the page draws it: three bands across, one down, three sprays, then the book's title. */
+      orn: '<path class="mfr-band" d="M425 340H665M425 366H665M425 388H665M440 400V635"/>'
+        + '<path class="mfr-spray" d="M510 490c-2-14 4-24 12-30M510 490c-8-8-14-12-14-20M565 505c0-26 0-40-2-55M565 505c-8-14-20-22-26-34M565 505c8-14 18-22 26-34M635 490c0-12 4-22 10-28M635 490c-6-6-12-10-12-18"/>',
+      lines: [[495, 655, 552, 'ΕΥΑΓΓΕΛΙΟΝΚΑΤΑΛΟΥΚΑΝ', 'title']] }] },
 };
-/* THE DRAWING. A seeded wobble, so the torn edge is the same on every phone and every visit. */
+/* THE HAND'S OWN LETTER SHAPES: a round epsilon, a lunate sigma, a rounded omega and alpha, as the uncial scribes wrote them. */
+const msHand_ = s => String(s).replace(/Ε/g, 'ϵ').replace(/Σ/g, 'Ϲ').replace(/Ω/g, 'ω').replace(/Α/g, 'α');
+/* A COLUMN'S PARAGRAPHS, broken into its real number of lines: the narrowest measure that fits; a paragraph's first letter hangs in the margin; `+` carries one on from the page before. */
+function msColLines_(c) {
+  for (let w = 10; w < 40; w++) {
+    const out = [];
+    c.paras.forEach(q => { const p = q.replace(/^\+/, ''); for (let i = 0; i < p.length; i += w) out.push([p.slice(i, i + w), i === 0 && p === q]); });
+    if (out.length <= c.rows) {
+      const step = (c.x1 - c.x0) / w;
+      return out.map(([t, first], i) => [c.x0, c.x0 + t.length * step, c.y0 + i * c.lh, t, first ? 'big' : '']);
+    }
+  }
+  return [];
+}
+/* THE DRAWING: one leaf per side, side by side; each line's surviving letters spread over the room they take in the photograph. */
 function msFragSvg_(r) {
   const L = MS_LOOK[r.id];
   if (!L) return '';
-  let seed = 7;
-  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  const W = 300, lh = 21, top = 26, pad = 18, cols = L.cols || 1, per = Math.ceil(L.lines.length / cols);
-  const colW = (W - pad * 2 - (cols - 1) * 16) / cols, H = top + per * lh + 18;
-  const chars = Math.max(...L.lines.map(l => l.length));
-  const cx = (c, col) => pad + col * (colW + 16) + c / chars * colW;
-  let edge;
-  if (L.keep) {
-    const left = [], right = [];
-    L.keep.forEach((k, i) => {
-      const y0 = top + i * lh - 16, y1 = y0 + lh;
-      right.push([cx(k[1], 0) + 4 + rnd() * 6, y0 + rnd() * 4], [cx(k[1], 0) + rnd() * 8, y1 - rnd() * 4]);
-      left.unshift([cx(k[0], 0) - 4 - rnd() * 6, y1 - rnd() * 4], [cx(k[0], 0) - rnd() * 8, y0 + rnd() * 4]);
-    });
-    /* A TEAR, NOT A STAIRCASE: each side eased between lines and broken into short jagged steps. */
-    const tear = pts => {
-      const soft = pts.map((p, i) => [(pts[Math.max(0, i - 1)][0] + p[0] * 2 + pts[Math.min(pts.length - 1, i + 1)][0]) / 4, p[1]]);
-      const out = [];
-      soft.forEach((p, i) => {
-        out.push(p);
-        const q = soft[i + 1];
-        if (q) for (let k = 1; k < 4; k++) out.push([p[0] + (q[0] - p[0]) * k / 4 + (rnd() - .5) * 5, p[1] + (q[1] - p[1]) * k / 4]);
-      });
-      return out;
-    };
-    const topY = top - 18, botY = top + (L.keep.length - 1) * lh + 8;
-    const r2 = tear(right), l2 = tear(left);
-    const across = (a, b, y) => Array.from({ length: 6 }, (_, k) => [a + (b - a) * (k + 1) / 7, y + (rnd() - .5) * 4]);
-    edge = [[l2[l2.length - 1][0], topY]].concat(across(l2[l2.length - 1][0], r2[0][0], topY), [[r2[0][0], topY]], r2,
-      [[r2[r2.length - 1][0], botY]], across(r2[r2.length - 1][0], l2[0][0], botY), [[l2[0][0], botY]], l2);
-  } else {
-    const w = W - 4, h = H - 4, pts = [];
-    for (let i = 0; i <= 10; i++) pts.push([2 + w * i / 10, 2 + rnd() * 3]);
-    for (let i = 1; i <= 10; i++) pts.push([w - rnd() * 3, 2 + h * i / 10]);
-    for (let i = 9; i >= 0; i--) pts.push([2 + w * i / 10 + (i > 7 ? -rnd() * 10 : 0), h - rnd() * 3 - (i > 7 ? 12 : 0)]);
-    for (let i = 9; i >= 1; i--) pts.push([2 + rnd() * 3, 2 + h * i / 10]);
-    edge = pts;
-  }
-  const d = 'M' + edge.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
-  const id = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
-  const fibres = L.stuff === 'papyrus'
-    ? Array.from({ length: Math.ceil(H / 5) }, (_, i) => `<line x1="0" x2="${W}" y1="${i * 5 + rnd() * 2}" y2="${i * 5 + rnd() * 2}"/>`).join('')
-    : '';
-  const text = L.lines.map((l, i) => {
-    const col = Math.floor(i / per), row = i % per;
-    return `<text x="${cx(0, col).toFixed(1)}" y="${top + row * lh}" textLength="${(l.length / chars * colW).toFixed(1)}" lengthAdjust="spacingAndGlyphs">${esc(l)}</text>`;
-  }).join('');
+  const [bx, by, bw, bh] = L.box;
+  const tag = 'mfrclip-' + String(r.id).replace(/[^A-Za-z0-9]/g, '');
+  const leaf = (s, k) => {
+    const flip = p => s.mirror ? [2 * bx + bw - p[0], p[1]] : p;
+    const d = 'M' + L.edge.map(flip).map(p => p[0] + ' ' + p[1]).join('L') + 'Z';
+    const lines = (s.cols || []).flatMap(msColLines_).concat(s.lines || []);
+    const text = lines.map(([x0, x1, y, t, cls]) => {
+      const step = (x1 - x0) / t.length;
+      /* A PARAGRAPH'S BIG LETTER is its first only, standing out in the margin (ekthesis). */
+      return t.split('').map((ch, i) => {
+        if (ch === '·') return '';
+        const big = cls === 'big', c = big ? (i ? '' : 'big') : cls, x = x0 + step * (i + .5) - (big && !i ? step * 1.4 : 0);
+        return `<text${c ? ` class="mfr-${c}"` : ''} x="${x.toFixed(1)}" y="${y}">${esc(msHand_(ch))}</text>`;
+      }).join('');
+    }).join('');
+    const fibres = L.stuff === 'papyrus'
+      ? Array.from({ length: Math.ceil(bh / 9) }, (_, i) => `<line x1="${bx}" x2="${bx + bw}" y1="${by + i * 9}" y2="${by + i * 9 + (i % 3) - 1}"/>`).join('')
+        + Array.from({ length: Math.ceil(bw / 14) }, (_, i) => `<line class="mfr-up" x1="${bx + i * 14}" x2="${bx + i * 14 + (i % 2)}" y1="${by}" y2="${by + bh}"/>`).join('')
+      : '';
+    const id = tag + '-' + k;
+    return `<figure class="hdb-ms-side">
+      <svg viewBox="${bx} ${by} ${bw} ${bh}" role="img" aria-label="${esc('A drawing of ' + (r.name || 'the manuscript') + ', ' + s.name.toLowerCase() + ': ' + s.what)}">
+        <defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
+        <g clip-path="url(#${id})"><rect class="mfr-leaf" x="${bx}" y="${by}" width="${bw}" height="${bh}"/><g class="mfr-fibre">${fibres}</g>${s.orn || ''}<g class="mfr-ink">${text}</g></g>
+        <path class="mfr-edge" d="${d}"/>
+      </svg>
+      <figcaption>${esc(s.name + ' · ' + s.what)}</figcaption>
+    </figure>`;
+  };
   return `<figure class="hdb-ms hdb-ms-${L.stuff}">
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('A drawing of ' + (r.name || 'the manuscript') + ': ' + L.what)}">
-      <defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>
-      <g clip-path="url(#${id})"><rect class="mfr-leaf" width="${W}" height="${H}"/><g class="mfr-fibre">${fibres}</g><g class="mfr-ink">${text}</g></g>
-      <path class="mfr-edge" d="${d}"/>
-    </svg>
-    <figcaption>${esc(L.what)} — a drawing after the original, not a photograph</figcaption>
+    <div class="hdb-ms-sides">${L.sides.map(leaf).join('')}</div>
+    <figcaption>A drawing after the original, traced from a public-domain photograph (${esc(L.ref)}); the letters are the ones that survive.</figcaption>
   </figure>`;
 }
 /* THE LINES THE FACTS LINE ALREADY SAYS, left out of the list under it. */
@@ -1706,13 +1762,16 @@ function msFacts_(r) {
     .filter(Boolean).map(esc).join(' · ');
 }
 
+const HIST_TILE_LINKS = 3;
 function histCard_(x) {
   const r = x.row || {};
   const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim());
-  const tiles = histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
-    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
-    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
+  const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
+  const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
+    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } })))
+    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
   const look = x.kind === 'manuscript' ? msFragSvg_(r) : '';
@@ -1784,7 +1843,7 @@ const BIBLE_SHELF = 'Books';
 const BIBLE_WORDS = 'KJV King James Authorized Version scripture';
 
 /* EVERYTHING IT KNOWS, IN ONE PLACE. § */
-const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
+const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
                 item: null, verses: null, rank: null, hays: null };
 
 /* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
@@ -1793,9 +1852,12 @@ const BIBLE_FIELDS = {};
 FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT § */
-const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
+/* A RULE (496): `kjv-admin` — an admin only; Universal, anyone of age too, like the Talmud and the Quran. check-bible reads this line. */
+const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
 /* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
 const SCRIPTURE_MIN_AGE = 18;
+/* A RULE (496): `scripture-age` — Universal, scripture has no age limit, like every other item. */
+const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('scripture-age')) ? SCRIPTURE_MIN_AGE : 0;
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
@@ -1825,7 +1887,7 @@ function bibleIndex_() {
       BIBLE.asking = null;
       if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); }
       else BIBLE.failed = true;
-      /* THE SEARCH LEARNS THE BOOKS, so typing `psalms` finds the Bible — through `bibleHolds_`, which reads `BIBLE.hays` and so changes its answer the moment they are § */
+      /* THE VERSES ARRIVE: every finder's list is built again with them (499). */
       bibleRedraw_();
       finderEach_(F => {
         if (ok) {
@@ -1850,24 +1912,6 @@ const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + c
 const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
 /* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: § */
 const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
-
-/* ---------- A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE § */
-function bibleHolds_(x, words) {
-  const ix = BIBLE.index, hays = BIBLE.hays;
-  if (!ix || !hays) return words.every(w => stuffHay_(x).includes(w));
-  return ix.books.some((b, i) => {
-    const rest = words.filter(w => !hays[i].includes(w));
-    if (!rest.length) return true;
-    if (!rest.every(w => /^[\d:]+$/.test(w))) return false;
-    return b.chapterVerses.some((count, ci) => {
-      for (let v = 1; v <= count; v++) {
-        const cv = (ci + 1) + ':' + v;
-        if (rest.every(w => cv.includes(w))) return true;
-      }
-      return false;
-    });
-  });
-}
 
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S § */
 function bibleRankOf_(ix) {
@@ -1895,9 +1939,21 @@ function bibleLoad_(n) {
     BIBLE.missed[n] = !ok;
     if (!ok) return null;
     BIBLE.books[n] = d;
-    return d;
+    return bibleAlsoLoad_(n, b).then(() => d);
   });
   return BIBLE.loading[n];
+}
+
+/* THE SECOND TRANSLATION'S BOOK (499, the World English Bible), held to the same counts; a miss leaves the KJV alone on the card. */
+function bibleAlsoLoad_(n, b) {
+  const t = BIBLE.index && (BIBLE.index.also || [])[0];
+  if (!t || !/^[a-z]+$/.test(String(t.dir || '')) || BIBLE.also[n]) return Promise.resolve(null);
+  return bibleGet_(t.dir + '/' + b.file).then(d => {
+    const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
+      && d.chapters.every((c, i) => Array.isArray(c) && c.length === b.chapterVerses[i]);
+    if (ok) BIBLE.also[n] = d;
+    return ok ? d : null;
+  });
 }
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
@@ -1942,7 +1998,8 @@ function bibleVerseList_(ix) {
       at.push(list.length);
       for (let v = 1; v <= count; v++) {
         list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
+                    shelf: BIBLE_SHELF, libBook: 'Bible', subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
+                    min_age: scriptureMinAge_() });
       }
     });
   });
@@ -1975,27 +2032,6 @@ function bibleByKey_(k) {
   return x && x.key === k ? x : null;
 }
 
-/* ---------- IS THE BIBLE OPEN? § */
-function bibleInside_() {
-  return bibleFor_() && !!BIBLE.index
-    && (STUFF.filters || []).some(f => f && BIBLE_FIELDS[f.field]);
-}
-
-/* ---------- THE BIBLE'S RESULTS § */
-function bibleFind_(verses, words, credits) {
-  const all = stuffItems();
-  const x = BIBLE.item;
-  if (!x || all.indexOf(x) < 0) return [];
-  const own = [], rest = [];
-  const tr = spellKey_(BIBLE.index ? BIBLE.index.translation : '');
-  (STUFF.filters || []).forEach(f => {
-    if (!BIBLE_FIELDS[f.field]) rest.push(f);
-    else if (!(f.field === 'bibleTranslation' && !f.any && spellKey_(f.value) === tr)) own.push(f);
-  });
-  if (!stuffNarrow_([x], rest, [], credits).length) return [];
-  return stuffNarrow_(verses, own.slice().reverse(), words, credits);
-}
-
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
   if (!items.length || !items.every(x => x && x.kind === 'bible')) return '';
@@ -2012,49 +2048,33 @@ function bibleEnd_(items) {
       <b>Swipe up for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* THE COVER. One item, for an admin; none for anybody else — which is the whole of what a non-admin's Find knows about it: § */
+/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
+   a book's words only when one of its cards is drawn. */
 function bibleItems_() {
   if (!bibleFor_()) return [];
   bibleIndex_();
-  /* ---------- NOT BEFORE THE LIBRARY § */
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
-  /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. § */
-  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF, libBook: 'Bible', subject: SCRIPTURE_SUBJECT(),
-              text: BIBLE_WORDS, row: null, min_age: SCRIPTURE_MIN_AGE };
-  x.holds = words => bibleHolds_(x, words);
-  BIBLE.item = x;
-  return [x];
+  const list = bibleVerses_();
+  BIBLE.item = list[0] || null;
+  return list;
 }
 
-/* ---------- THE COVER, OR A VERSE § */
+/* ---------- A VERSE (the cover went in 499). */
 function bibleCard_(x) {
-  if (x && x.bb) return bibleVerseCard_(x);
-  const ix = BIBLE.index, t = ix && ix.totals;
-  const num = v => Number(v || 0).toLocaleString('en-GB');
-  /* THE HOW-TO NEEDS THE INDEX — the translation's name and the counts come from it — so until it is here the cover says what the book is and the one loader holds § */
-  const how = ix ? ` Choose ${esc(ix.translation)}, then the testament, the group, the book, the chapter
-      and the verse: every verse is a card of its own.` : '';
-  return `<div class="card fc prac bible" data-bb="card">
-    <div class="fc-head">
-      <h3>${esc(BIBLE_NAME)}</h3>
-    </div>
-    ${tagRow_(x)}
-    <p class="sub">The Authorized Version of 1611</p>
-    <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
-    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : !ix ? loading_() : ''}
-    <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
-      King James prints them.</p>
-    ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
-         never left wondering whether a student is reading this card too. */''}
-    <p class="fc-meta bb-who">Only admins are shown this book</p>
-  </div>`;
+  return x && x.bb ? bibleVerseCard_(x) : '';
 }
 
 /* ---------- ONE VERSE, A CARD OF ITS OWN § */
 function bibleVerseCard_(x) {
   const bb = x.bb, n = bb.n, d = BIBLE.books[n];
   let body;
-  if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
+  if (d) {
+    const t2 = BIBLE.index && (BIBLE.index.also || [])[0], w2 = BIBLE.also[n];
+    const second = w2 && w2.chapters[Number(x.ch) - 1][Number(x.v) - 1];
+    body = '<p class="bb-tr">' + esc(BIBLE.index.translation) + '</p>' + bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1])
+      + (second ? '<p class="bb-tr">' + esc(t2.translation) + '</p><p class="bb-v bb-v2">' + esc(second) + '</p>' : '')
+      + '<p class="bb-credit">KJV (1611) and ' + (t2 ? esc(t2.name) : 'WEB') + ': public domain</p>';
+  }
   else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
     /* WAITING FOR ITS BOOK: the one loader, where the verse will be. It was a faint "…" with
@@ -2244,7 +2264,7 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
-    const carried = stemCarried_(x);
+    const carried = stemOnCard_(x);
     (x.stems || []).forEach((p, i) => {
       if (!p || had.indexOf(stemId_(p)) >= 0 || p === carried) return;
       /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemPlan_`. A stem with nothing
@@ -7809,7 +7829,7 @@ const chunkWeight_ = h => String(h).replace(/<[^>]*>/g, '').replace(/&[a-z0-9#]+
    the end of the text. Returns lists of blocks, in reading order, never an empty list. */
 function packBlocks_(blocks, page, last) {
   /* ---------- A FIGURE IS NEVER A PAGE BY ITSELF, AND A PEN'S FIGURE IS ALWAYS ON THE CARD (356) § */
-  const isFig = b => b.k === 'fig' || b.k === 'use' || b.k === 'nofig';
+  const isFig = b => b.k === 'fig' || b.k === 'sfig' || b.k === 'use' || b.k === 'nofig';
   const units = [];
   let open = null;
   blocks.forEach(b => {
@@ -7913,6 +7933,18 @@ function stemCarried_(x) {
   const first = sib.find(y => (y.stems || []).some(q => stemId_(q) === id));
   return first === x || (first && first.key === x.key) ? p : null;
 }
+/* THE QUESTION'S OWN OPENING ON EVERY PART'S CARD (500): a short stem with a figure is read with
+   each part, its figure too, so 16(a) and 16(b) both have the graph they ask about. Outer stems stay pages. */
+function stemOnCard_(x) {
+  const pen = stemCarried_(x);
+  if (pen) return pen;
+  const st = (x && x.kind === 'question' && x.stems) || [];
+  const p = st[st.length - 1];
+  if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
+  if (!(p.q !== undefined && p.q !== null && p.q !== '') && !(p.row && p.row.question)) return null;
+  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
+  return w <= CHUNK_PAGE ? p : null;
+}
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
   return c.length ? c : [[]];
@@ -7935,7 +7967,13 @@ function partPlan_(x) {
   else if (lead.length) seq = lead.concat([f], pb);
   else seq = [f].concat(pb);
   /* THE STEM IN FRONT, ITS FIGURE UNDER THIS PART'S PEN AT THE STEM'S OWN PLACE FOR IT (its marker, else after its words) -- the paper's order on one card */
-  const sc = f ? stemCarried_(x) : null;
+  const sc = f ? stemCarried_(x) : null, so = sc ? null : stemOnCard_(x);
+  if (so) {
+    const sb = figBlocks_(so.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
+    const at = sb.at >= 0 ? sb.at : sw.length;
+    const sf = so.diagram ? [{ k: 'sfig', h: '', w: figWeight_(so.diagram), from: so }] : [];
+    seq = sw.slice(0, at).concat(sf, sw.slice(at), seq);
+  }
   if (sc) {
     const sb = figBlocks_(sc.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
     const at = sb.at >= 0 ? sb.at : sw.length;
@@ -7943,7 +7981,9 @@ function partPlan_(x) {
   }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
-  const plan = { chunks: packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
+  /* A PART THAT FITS A PAGE IS ONE CARD (500): "Work out x" on one page and "to 3 s.f." with the box on the next read as two questions. */
+  const all = seq.reduce((n, b) => n + (b.w != null ? b.w : chunkWeight_(b.h)), 0);
+  const plan = { chunks: all <= CHUNK_PAGE ? [seq] : packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
   CHUNK_MEMO.set(x, plan);
   return plan;
 }
@@ -8013,6 +8053,7 @@ function chunkHtml_(chunk, circ, x) {
 function figHtml_(x, b) {
   if (!x || !b) return '';
   if (b.k === 'nofig') return '<p class="qfig-missing">Figure not drawn yet.</p>';
+  if (b.k === 'sfig') return b.from && b.from.diagram ? `<figure class="qstem-fig">${b.from.diagram}</figure>` : '';
   if (b.k === 'use') {
     const y = usesOf_(x);
     const p = y && padSource_(y);
@@ -8172,7 +8213,7 @@ function qToolkit_(x) {
     read: true,                    // Read aloud on every question, not only a primary one (394)
     help: true, report: true,      // `helpRow_` in the card, `suggestTile_` in the row
     pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
-    measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
+    measure: !!cardDiagram_(x) && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
   };
 }
 /* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: the Magnifier and the padlock. */
@@ -8615,6 +8656,7 @@ function itemAgeOk_(x) {
 }
 /* WHETHER THIS VIEWER MAY HAVE A WHOLE SHELF OF A GIVEN AGE, asked before its files are even fetched (the Talmud, the Quran). */
 const viewerOfAge_ = m => itemAgeOk_({ min_age: m });
+const FIGHT_VIDEO_AGE = 13;
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER § */
 function stuffItemsAll_() {
@@ -8794,6 +8836,8 @@ function stuffItemsRaw_() {
       wearable: isWearable(x),
       level: Number(x.level) || 0,
       artId: x.artId || '',
+      /* ITS TAGS (499): "these need to have all the tags instead ... way more helpful ... more automatable" — read off the row's own fields. */
+      ...shopTags_(x),
     })),
     /* A resource costs nothing, and the zero is written here rather than left undefined — so
        every sort, filter and label downstream sees a number and not a hole. */
@@ -8806,11 +8850,11 @@ function stuffItemsRaw_() {
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Boxers', shelf: 'Boxing',
-      subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
+      subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
       /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" § */
     })),
 
-    /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: Boxing as the subject, the weight as the
+    /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: PE as the subject (499), the weight as the
        division. Everything school-shaped stays blank, and blank is what keeps a fight out of a
        list of past papers. */
     ...(DATA.fights || []).map(f => ({
@@ -8819,7 +8863,8 @@ function stuffItemsRaw_() {
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
       boxKind: 'Fights', shelf: 'Boxing',
-      subject: 'Boxing', division: divisionOf_(f.division), row: f,
+      /* THE FIGHT FOOTAGE (499 audit): its Watch link is violent media, so under 13 (or of no known age) the row goes without it. */
+      subject: 'Physical Education', division: divisionOf_(f.division), row: f.video && !viewerOfAge_(FIGHT_VIDEO_AGE) ? Object.assign({}, f, { video: '' }) : f,
       year: (f.date || '').slice(0, 4),
     })),
 
@@ -8877,6 +8922,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE QURAN (490), one item a verse, once its index has come */
     ...(typeof quranItems_ === 'function' ? quranItems_() : []),
+    ...(typeof worksItems_ === 'function' ? worksItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -9230,8 +9276,7 @@ function stuffFiltered() {
   /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
   const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO § */
-  const open = bibleInside_();
-  const all = open ? bibleVerses_() : stuffItems();
+  const all = stuffItems();
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
@@ -9252,7 +9297,7 @@ function stuffFiltered() {
       items = stuffNarrow_(prev.items, added, words, credits);
     }
   }
-  if (!items) items = open ? bibleFind_(all, words, credits) : stuffFind(all, credits);
+  if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
                 words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
@@ -9544,7 +9589,7 @@ function accountPages_(col) {
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
-    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more) : ''));
+    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
   const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
@@ -9559,13 +9604,14 @@ function accountPages_(col) {
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
     /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
+    /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
     .map(p => personMark_(p.personId, personForm_(p) || card_(p)
       + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : '')) : '')));
+          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
@@ -9963,8 +10009,9 @@ function stuffPageHtml(n) {
   const pg = stuffPages_()[n];
   if (!pg) return '';
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
-  if (pg.slim) return libWaitHtml_(pg.x) + findTopRow_();
-  return (pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_();
+  /* ONE TILE ROW PER THING (489, 495): a Find page is a card, its star row and Back to top -- joined like every other screen's pages (`rowsOne_`). */
+  if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
+  return rowsOne_((pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_());
 }
 /* BACK TO TOP (463): the owner, "a button to scroll back to the top of the finder when they're at the bottom" -- under every result, so it is at the bottom of a long one. */
 const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
@@ -10055,16 +10102,54 @@ on('fav', el => {
   if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
 
+/* A SHOP ITEM'S TAGS (499), every one from a field the row already has: what it is, how you get it, a price band, the brand, who it is for. */
+const SHOP_HOW = { buy: 'Buy', ticks: 'Earn with ticks', level: 'Unlock by level', loan: 'Borrow', issued: 'Given out' };
+const SHOP_KIND_SAY = { bundle: 'Bundle', game: 'Game', kit: 'Kit', equipment: 'Equipment', stationery: 'Stationery', consumable: 'Consumable',
+                        service: 'Made to order', thing: 'Thing', trip: 'Trip' };
+function shopTags_(r) {
+  const k = String(r.kindRaw || 'thing').trim().toLowerCase();
+  const how = String(r.acquire || 'buy').trim().toLowerCase();
+  const p = priced_(r.price), pence = String(r.unit || '').trim() === 'p';
+  const band = how === 'level' ? 'Level ' + (Number(r.level) || 1)
+    : p === undefined ? 'Not priced yet' : p === 0 ? 'Free'
+    : !pence ? 'Credits'
+    : p < 500 ? 'Under £5' : p <= 2000 ? '£5 to £20' : 'Over £20';
+  const who = String(r.audience || 'all').trim().toLowerCase();
+  return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
+           shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
+           shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
+}
+
+/* THE TAGS ARE THE TITLE (499): "the tags are titles" — a card's name heading goes when every word of it is a tag on
+   the row; the name stays its accessible name. One rule for every kind. */
+const TITLE_WORDS_ = t => String(t).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').toLowerCase().split(/[^a-z0-9\u00c0-\uffff]+/).filter(Boolean);
+function tagsAreTitle_(x, html) {
+  if (!x || !x.name || typeof html !== 'string') return html;
+  const h = /<h3>([\s\S]*?)<\/h3>/.exec(html);
+  const named = out => (/^\s*<div class="[^"]*\bcard\b[^"]*"[^>]*\baria-label=/.test(out) ? out
+    : out.replace(/<div class="([^"]*\bcard\b[^"]*)"/, (m, c) => `<div class="${c}" role="group" aria-label="${esc(x.name)}"`));
+  /* A CARD THAT NEVER HAD A HEADING (a verse, a daf, a bout) is named the same way. */
+  if (!h) return /qtag/.test(html) ? named(html) : html;
+  if (TITLE_WORDS_(h[1]).join(' ') !== TITLE_WORDS_(esc(x.name)).join(' ')) return html;
+  const tags = new Set();
+  html.replace(/<span class="qtag"[^>]*>([\s\S]*?)<\/span>/g, (m, t) => { TITLE_WORDS_(t).forEach(w => tags.add(w)); return m; });
+  const words = TITLE_WORDS_(h[1]);
+  if (!words.length || !words.every(w => tags.has(w))) return html;
+  return named(html.replace(h[0], '').replace(/<div class="fc-head">\s*<\/div>/, ''));
+}
+
 function stuffCard(x, credits) {
   /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
-  const html = (kindOf_(x).card || thingCard_)(x, credits);
+  const html = tagsAreTitle_(x, (kindOf_(x).card || thingCard_)(x, credits));
   if (!x.key) return html;
   /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  const out = `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  /* A HISTORY CARD'S LINKS AND ITS STAR ON ONE LINE (498): "they don't even appear on the same line". */
+  return x.hdb && typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(out) : out;
 }
 
 /* WHAT A CHIP READS: the words its button said (`facetShort_`), memoised per finder. */
@@ -10116,6 +10201,8 @@ const TAG_OF = {
   /* THE TALMUD'S (473), the same way. */
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
   quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
+  wtWork: 'topic', wtChapter: 'paper', wtLanguage: 'board',
+  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -10284,6 +10371,7 @@ function paintStuff(keepPage) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
   /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
+  if (typeof worksIndex_ === 'function') worksIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
@@ -10992,7 +11080,7 @@ on('members-join', () => { if (typeof registerSheet_ === 'function') registerShe
 
 function finderScreen_() {
   const F = FINDER;
-  if (!USER) return finderMembersOnly_(F);
+  if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
@@ -11283,8 +11371,10 @@ function padSend_(keepalive) {
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
 /* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
+/* THE FIGURE ON A PART'S CARD: its own, else its question's opening's carried onto it (500) -- so 16(a)'s graph has the ruler too. */
+const cardDiagram_ = x => (x && (x.diagram || (x.kind === 'question' && (stemOnCard_(x) || {}).diagram))) || '';
 function measTools_(x) {
-  if (!x || !x.diagram) return [];
+  if (!x || !cardDiagram_(x)) return [];
   /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
   const pen = padSource_(x);
   if (pen && pen.from === 'part') return [];

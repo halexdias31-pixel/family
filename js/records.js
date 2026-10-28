@@ -135,7 +135,7 @@ function bizPages_() {
 function siteBizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
-  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_());
+  return setup.concat(postsWaitCard_(), reportsCard_(), libImpCard_(), digestWordsCard_(), typeof rulesCard_ === 'function' ? [rulesCard_()].filter(Boolean) : []);
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
@@ -380,7 +380,7 @@ const EINK_KEY = 'eink:pick';
 const EINK = (() => {
   let o = {};
   try { o = JSON.parse(localStorage.getItem(EINK_KEY) || '{}') || {}; } catch (e) { o = {}; }
-  return { mode: o.mode === 'icon' ? 'icon' : 'verse', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0), bare: !!o.bare,
+  return { mode: ['date', 'verse', 'icon'].indexOf(o.mode) >= 0 ? o.mode : 'date', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0), bare: !!o.bare,
            verses: null, icons: null, fonts: null, bits: {}, steps: '', asked: false, failed: false, say: '', busy: false, install: false };
 })();
 const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon, bare: EINK.bare })); } catch (e) {} };
@@ -394,7 +394,18 @@ function einkLoad_() {
     .catch(() => { EINK.failed = true; })
     .then(() => paintEink_());
 }
-const einkList_ = () => (EINK.mode === 'icon' ? EINK.icons : EINK.verses) || [];
+/* THREE THINGS TO SHOW (499): today's date for everybody; verses and icons, being religious, an admin's alone (the owner). */
+const EINK_MODES = [['date', 'Today’s date', false], ['verse', 'Bible verses', true], ['icon', 'Icons', true]];
+const einkMode_ = () => (EINK.mode !== 'date' && !(typeof isAdmin === 'function' && isAdmin()) ? 'date' : EINK.mode);
+const einkList_ = () => (einkMode_() === 'icon' ? EINK.icons : einkMode_() === 'verse' ? EINK.verses : [einkToday_()]) || [];
+/* TODAY, as the screen's clock will say it once Sync has set it. */
+function einkToday_(at) {
+  const d = at || new Date();
+  return { date: true, wd: d.getDay(), d: d.getDate(), mo: d.getMonth(), y: d.getFullYear(),
+           text: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) };
+}
+const EINK_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const EINK_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /* THE SCREEN'S OWN PIXELS (482): verse.cpp's layout, line for line, with its three Adafruit GFX fonts (data/eink-fonts.json),
    into a 200x200 1-bit page — what the widget shows is what the screen draws. */
 const EINK_PX = 200;
@@ -403,12 +414,13 @@ function einkFont_(name) {
   if (!f.bits) { const b = atob(f.bitmap); f.bits = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) f.bits[i] = b.charCodeAt(i); }
   return f;
 }
-function einkWidth_(f, s) {   // Adafruit_GFX::getTextBounds' width, from x = 0
+function einkWidth_(f, s, z) {   // Adafruit_GFX::getTextBounds' width, from x = 0, at setTextSize(z)
   let x = 0, lo = 0x7FFF, hi = -1;
+  z = z || 1;
   for (const ch of String(s)) {
     const c = ch.charCodeAt(0); if (c < f.first || c > f.last) continue;
     const [, w, , xa, xo] = f.glyphs[c - f.first];
-    lo = Math.min(lo, x + xo); hi = Math.max(hi, x + xo + w - 1); x += xa;
+    lo = Math.min(lo, x + xo * z); hi = Math.max(hi, x + xo * z + w * z - 1); x += xa * z;
   }
   return hi >= lo ? hi - lo + 1 : 0;
 }
@@ -421,12 +433,16 @@ function einkWrap_(f, text, maxW) {   // verse.cpp's wrap()
   if (line) lines.push(line);
   return lines;
 }
-function einkText_(px, f, s, x, y) {   // Adafruit_GFX::drawChar, glyph by glyph from the baseline
+function einkText_(px, f, s, x, y, z) {   // Adafruit_GFX::drawChar, glyph by glyph from the baseline; at size z a dot is a z-by-z square
+  z = z || 1;
   for (const ch of String(s)) {
     const c = ch.charCodeAt(0); if (c < f.first || c > f.last) continue;
     const [o, w, h, xa, xo, yo] = f.glyphs[c - f.first];
-    for (let k = 0; k < w * h; k++) if (f.bits[o + (k >> 3)] & (0x80 >> (k & 7))) einkDot_(px, x + xo + k % w, y + yo + Math.floor(k / w));
-    x += xa;
+    for (let k = 0; k < w * h; k++) if (f.bits[o + (k >> 3)] & (0x80 >> (k & 7))) {
+      const gx = x + (xo + k % w) * z, gy = y + (yo + Math.floor(k / w)) * z;
+      for (let a = 0; a < z; a++) for (let b = 0; b < z; b++) einkDot_(px, gx + a, gy + b);
+    }
+    x += xa * z;
   }
 }
 const einkDot_ = (px, x, y) => { if (x >= 0 && y >= 0 && x < EINK_PX && y < EINK_PX) px[y * EINK_PX + x] = 1; };
@@ -434,6 +450,15 @@ function einkPage_(mode, item, iconBits) {   // -> Uint8Array(200*200), 1 = blac
   const big = einkFont_('FreeSerif12pt7b'), small = einkFont_('FreeSerif9pt7b'), ital = einkFont_('FreeSerifItalic9pt7b');
   if (!big || !small || !ital || !item) return null;
   const px = new Uint8Array(EINK_PX * EINK_PX), M = 8, W = 200 - 2 * M, REF_TOP = 176;
+  if (mode === 'date') {   // drawDate() (499): weekday, the day four times the size, month, rule, year in italic
+    const mid = (f, s, y, z) => einkText_(px, f, s, Math.trunc((200 - einkWidth_(f, s, z)) / 2), y, z);
+    mid(big, EINK_WEEKDAYS[item.wd % 7], 36, 1);
+    mid(big, String(item.d), 124, 4);
+    mid(big, EINK_MONTHS[item.mo], 158, 1);
+    for (let x = 70; x < 130; x++) px[REF_TOP * EINK_PX + x] = 1;
+    mid(ital, String(item.y), 194, 1);
+    return px;
+  }
   if (mode === 'icon') {   // drawPicture(k, titled) (491): 120x160 at 5/4 filling the height, the title vertical in the right margin
     const PX0 = item.bare ? 25 : 22;
     if (iconBits) for (let y = 0; y < 200; y++) for (let x = 0; x < 150; x++) if (iconBits[Math.trunc(y * 4 / 5) * 120 + Math.trunc(x * 4 / 5)]) einkDot_(px, PX0 + x, y);
@@ -475,10 +500,10 @@ function einkIconBits_(ic, then) {
   img.src = 'data/icons/120/' + ic.id + '.png';
 }
 function einkDraw_(cv) {
-  const list = einkList_(), icon = EINK.mode === 'icon', item = list[(icon ? EINK.icon : EINK.verse) % (list.length || 1)];
+  const list = einkList_(), mode = einkMode_(), icon = mode === 'icon', item = list[(icon ? EINK.icon : mode === 'verse' ? EINK.verse : 0) % (list.length || 1)];
   const put = bits => {
     let g = null; try { g = cv.getContext('2d'); } catch (e) {}
-    const px = einkPage_(EINK.mode, icon ? Object.assign({}, item, { bare: EINK.bare }) : item, bits); if (!g || !px) return;
+    const px = einkPage_(mode, icon ? Object.assign({}, item, { bare: EINK.bare }) : item, bits); if (!g || !px) return;
     const im = g.createImageData(EINK_PX, EINK_PX);
     for (let i = 0; i < px.length; i++) { const v = px[i] ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
     g.putImageData(im, 0, 0);
@@ -488,8 +513,8 @@ function einkDraw_(cv) {
 function einkFace_() {
   const list = einkList_();
   if (!list.length) return '<p class="eink-none">The verses and icons did not load.</p>';
-  const it = list[(EINK.mode === 'icon' ? EINK.icon : EINK.verse) % list.length];
-  const words = EINK.mode === 'icon' ? `<p class="eink-icon">${esc(it.title || '')}</p>` : `<p class="eink-verse">${esc(it.text || '')} — <span class="eink-ref">${esc(it.ref || '')}</span></p>`;
+  const mode = einkMode_(), it = list[(mode === 'icon' ? EINK.icon : mode === 'verse' ? EINK.verse : 0) % list.length];
+  const words = mode === 'date' ? `<p class="eink-icon">${esc(it.text)}</p>` : mode === 'icon' ? `<p class="eink-icon">${esc(it.title || '')}</p>` : `<p class="eink-verse">${esc(it.text || '')} — <span class="eink-ref">${esc(it.ref || '')}</span></p>`;
   return `<canvas class="eink-px" width="${EINK_PX}" height="${EINK_PX}" aria-hidden="true"></canvas><div class="eink-words">${words}</div>`;
 }
 /* THE STEPS, with the symbols printed on the screen's two buttons (482): ☀ is BOOT, ⏻ is PWR. One line each, only when it applies. */
@@ -498,21 +523,24 @@ const EINK_STEPS = {
   install: ['Unplug the screen.', 'Hold ☀ (BOOT).', 'Plug it in while holding ☀, then let go.', 'Tap Install and choose the screen — in this mode it may be called “USB JTAG/serial debug unit”.', 'When it says Installed, unplug the screen and plug it back in without touching ☀ — ⏻ does not restart it (485). Then tap Sync.'],
 };
 function paintEink_() {
-  const list = einkList_(), ready = list.length > 0, icon = EINK.mode === 'icon';
-  const which = ready ? (icon ? EINK.icon : EINK.verse) % list.length + 1 + ' of ' + list.length : '';
+  const mode = einkMode_(), list = einkList_(), icon = mode === 'icon', date = mode === 'date';
+  const ready = list.length > 0 && (!date || !!EINK.fonts);
+  const which = ready && !date ? (icon ? EINK.icon : EINK.verse) % list.length + 1 + ' of ' + list.length : '';
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  /* THE PICKER (499): a native select, one line; verses and icons are offered to an admin only. */
+  const pick = `<select class="eink-pick" aria-label="What the screen shows">${EINK_MODES.filter(m => admin || !m[2])
+    .map(m => `<option value="${m[0]}"${m[0] === mode ? ' selected' : ''}>${esc(m[1])}</option>`).join('')}</select>`;
   document.querySelectorAll('.eink-box').forEach(box => {
     if (!ready && !EINK.failed) { box.setAttribute('aria-busy', 'true'); box.innerHTML = loading_(); return; }
     box.removeAttribute('aria-busy');
     box.innerHTML = `<div class="eink" aria-label="The 1.54-inch e-ink screen, 200 by 200, black and white">
         <div class="eink-panel">${einkFace_()}</div></div>
-      <div class="row"><span class="k">Shows</span><span class="v">${icon ? 'An icon' : 'A verse'}${which ? ' · ' + which : ''}</span></div>
+      <div class="row"><span class="k">Shows</span><span class="v">${pick}${which ? ' <span class="faint">' + which + '</span>' : ''}</span></div>
       <div class="tile-row">${[
-        tile_({ icon: 'book', label: 'Verse', note: 'show verses', act: 'eink-mode', data: { mode: 'verse' }, on: !icon, pressed: !icon }),
-        tile_({ icon: 'figure', label: 'Icon', note: 'show icons', act: 'eink-mode', data: { mode: 'icon' }, on: icon, pressed: icon }),
         icon ? tile_({ icon: 'show', label: 'Title', note: EINK.bare ? 'off' : 'small, at the side', act: 'eink-title', on: !EINK.bare, pressed: !EINK.bare }) : '',
-        tile_({ icon: 'left', label: 'Back', act: 'eink-step', data: { d: -1 }, off: !ready }),
-        tile_({ icon: 'right', label: 'Next', act: 'eink-step', data: { d: 1 }, off: !ready }),
-        tile_({ icon: 'again', label: 'Shuffle', act: 'eink-shuffle', off: !ready }),
+        date ? '' : tile_({ icon: 'left', label: 'Back', act: 'eink-step', data: { d: -1 }, off: !ready }),
+        date ? '' : tile_({ icon: 'right', label: 'Next', act: 'eink-step', data: { d: 1 }, off: !ready }),
+        date ? '' : tile_({ icon: 'again', label: 'Shuffle', act: 'eink-shuffle', off: !ready }),
         tile_({ icon: 'sync', label: 'Sync to my screen', note: 'optional, by USB', act: 'eink-sync', off: !ready || EINK.busy }),
         EINK.install ? tile_({ icon: 'in', label: 'Install', note: 'the screen’s program, by USB', act: 'eink-install', off: EINK.busy }) : '',
       ].join('')}</div>
@@ -523,16 +551,22 @@ function paintEink_() {
   });
 }
 const einkSay_ = t => { EINK.say = t; paintEink_(); };
-on('eink-mode', el => { EINK.mode = el.dataset.mode === 'icon' ? 'icon' : 'verse'; EINK.say = ''; einkKeep_(); paintEink_(); });
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('.eink-pick');
+  if (!el) return;
+  const v = el.value, m = EINK_MODES.find(x => x[0] === v);
+  if (!m || (m[2] && !(typeof isAdmin === 'function' && isAdmin()))) return;
+  EINK.mode = m[0]; EINK.say = ''; einkKeep_(); paintEink_();
+});
 on('eink-title', () => { EINK.bare = !EINK.bare; einkKeep_(); paintEink_(); });
 on('eink-step', el => {
-  const n = einkList_().length; if (!n) return;
-  const k = EINK.mode === 'icon' ? 'icon' : 'verse';
+  const n = einkList_().length; if (!n || einkMode_() === 'date') return;
+  const k = einkMode_() === 'icon' ? 'icon' : 'verse';
   EINK[k] = ((EINK[k] + (+el.dataset.d || 1)) % n + n) % n; einkKeep_(); paintEink_();
 });
 on('eink-shuffle', () => {
-  const n = einkList_().length; if (n < 2) return;
-  const k = EINK.mode === 'icon' ? 'icon' : 'verse';
+  const n = einkList_().length; if (n < 2 || einkMode_() === 'date') return;
+  const k = einkMode_() === 'icon' ? 'icon' : 'verse';
   let j = EINK[k]; while (j === EINK[k]) j = Math.floor(Math.random() * n);
   EINK[k] = j; einkKeep_(); paintEink_();
 });
@@ -561,7 +595,10 @@ on('eink-sync', async () => {
     try { await port.setSignals({ dataTerminalReady: true, requestToSend: false }); } catch (e) {}
     einkSay_('Connected — asking the screen…');
     const enc = s => new TextEncoder().encode(s + '\n');
-    const hello = enc('HELLO'), show = enc(EINK.mode === 'icon' ? (EINK.bare ? 'SHOW BARE ' : 'SHOW ICON ') + EINK.icon : 'SHOW VERSE ' + EINK.verse);
+    const mode = einkMode_(), hello = enc('HELLO');
+    /* THE CLOCK FIRST (499): the board's PCF85063 is set to this computer's local time on every Sync, then what to show. */
+    const now = new Date(), time = enc('TIME ' + [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds(), now.getDay()].join(' '));
+    const show = enc(mode === 'date' ? 'SHOW DATE' : mode === 'icon' ? (EINK.bare ? 'SHOW BARE ' : 'SHOW ICON ') + EINK.icon : 'SHOW VERSE ' + EINK.verse);
     const w = port.writable.getWriter(), r = port.readable.getReader(), dec = new TextDecoder();
     const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += dec.decode(x.value, { stream: true });
       if (/READY/.test(got)) ready = true; if (/(^|\n)OK\b/.test(got)) ok = true; } } catch (e) {} })();
@@ -569,7 +606,7 @@ on('eink-sync', async () => {
     let last = 0;
     while (!ok && Date.now() < until) {
       if (!ready) { try { await w.write(hello); } catch (e) {} }
-      else if (Date.now() - last > 1500) { if (last) einkSay_('The screen answered — sending…'); try { await w.write(show); } catch (e) {} last = Date.now(); }
+      else if (Date.now() - last > 1500) { if (last) einkSay_('The screen answered — sending…'); try { await w.write(time); await w.write(show); } catch (e) {} last = Date.now(); }
       await new Promise(res => setTimeout(res, ready ? 100 : 400));
     }
     try { await r.cancel(); } catch (e) {}
@@ -915,7 +952,8 @@ screen('biz', () => {
 });
 screen('site', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { if (!REPS.list) reportsStart_(); } catch (e) {}
-    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {} }, 0);
+    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {}
+    try { if (typeof initInbox === 'function') initInbox(); } catch (e) {} }, 0);
   return pages('site', typeof cardsOf_ === 'function' ? cardsOf_('site') : sitePages_());
 });
 

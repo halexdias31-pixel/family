@@ -79,6 +79,15 @@ function inboxHtml_() {
     ${INBOX_.next && !INBOX_.busy ? `<div class="tile-row">${tile_({ icon: 'down', label: 'More', note: 'the next 20', act: 'inbox-more' })}</div>` : ''}`;
 }
 
+/* THE CARD ON SITE (500): the owner asked for it there, beside the weekly email, not in Tools. Drawn with what is already known; initInbox asks. */
+function inboxCard_() {
+  return `<div class="card biz inbox-card">
+    <h3>Email</h3>
+    <p class="faint ib-order">A new backend needs, in order: sync, run authoriseGmail, Allow, READY, and only then Deploy → New version.</p>
+    <div class="ib-box" id="ib-box">${inboxHtml_()}</div>
+  </div>`;
+}
+
 function inboxPaint_() {
   document.querySelectorAll('.ib-box').forEach(b => { b.innerHTML = inboxHtml_(); });
 }

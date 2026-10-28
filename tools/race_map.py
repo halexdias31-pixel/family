@@ -9,6 +9,11 @@ GLO-90 (free, no key), or flat with --flat or when it will not answer. Map data 
     python3 tools/race_map.py --flat             # no heights asked
     python3 tools/race_map.py --overpass f.json  # an Overpass answer saved earlier, no network for it
     python3 tools/race_map.py --out /tmp/m.json
+    python3 tools/race_map.py --osm-api          # the OSM editing API's map call, when no Overpass mirror answers (500)
+    python3 tools/race_map.py --osm-api f.osm    # that call's XML saved earlier
+
+Besides roads, water and buildings it writes `areas` (parks, woods, water, retail, car parks, gardens) and `marks`
+(the station, Sainsbury's, the Tandem Centre, Priory Retail Park, the parks: a name and a point each) (500).
 
 Never hand-edit the output: change this script and run it again. Overpass asks for one query at a time from one
 address; Open-Meteo for no more than 10 000 calls a day — one run is about seventy.
@@ -44,12 +49,41 @@ def fetch(url, data=None, timeout=180):
         return json.loads(r.read().decode('utf-8'))
 
 
+def osm_api(box, saved=None):
+    """OSM API 0.6 `map` for the box, turned into the shape of an Overpass answer (nodes; ways with nodes and geometry)."""
+    import xml.etree.ElementTree as ET
+    if saved:
+        root = ET.parse(saved).getroot()
+    else:
+        s, w, n, e = box
+        url = 'https://api.openstreetmap.org/api/0.6/map?bbox=%s,%s,%s,%s' % (w, s, e, n)
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=300) as r:
+            root = ET.fromstring(r.read())
+    nodes, els = {}, []
+    for nd in root.iter('node'):
+        ll = (float(nd.get('lat')), float(nd.get('lon')))
+        nodes[int(nd.get('id'))] = ll
+        el = {'type': 'node', 'id': int(nd.get('id')), 'lat': ll[0], 'lon': ll[1]}
+        t = {x.get('k'): x.get('v') for x in nd.iter('tag')}
+        if t:
+            el['tags'] = t
+        els.append(el)
+    for w in root.iter('way'):
+        ids = [int(x.get('ref')) for x in w.iter('nd')]
+        t = {x.get('k'): x.get('v') for x in w.iter('tag')}
+        els.append({'type': 'way', 'id': int(w.get('id')), 'nodes': ids, 'tags': t,
+                    'geometry': [{'lat': nodes[i][0], 'lon': nodes[i][1]} for i in ids if i in nodes]})
+    return {'elements': els}
+
+
 def overpass(box):
     bb = ','.join(str(v) for v in box)
     q = ('[out:json][timeout:150];'
          '(way["highway"~"^(' + HIGHWAYS + ')$"]["area"!="yes"](' + bb + '););out body;>;out skel qt;'
          '(way["waterway"~"^(river|stream|canal)$"](' + bb + '););out geom qt;'
-         '(way["building"](' + bb + '););out geom qt;')
+         '(way["building"](' + bb + '););out geom qt;'
+         '(way["leisure"](' + bb + ');way["landuse"](' + bb + ');way["natural"](' + bb + ');way["amenity"="parking"](' + bb + '););out geom qt;'
+         '(node["railway"="station"](' + bb + ');node["shop"="supermarket"](' + bb + '););out qt;')
     for url in OVERPASS:
         try:
             return fetch(url, urllib.parse.urlencode({'data': q}).encode())
@@ -73,6 +107,54 @@ def simplify(pts, tol):
     if worst <= tol:
         return [a, b]
     return simplify(pts[:at + 1], tol)[:-1] + simplify(pts[at:], tol)
+
+
+AREA = [('water', lambda t: t.get('natural') == 'water' or t.get('water')),
+        ('wood', lambda t: t.get('natural') in ('wood', 'scrub') or t.get('landuse') == 'forest'),
+        ('pitch', lambda t: t.get('leisure') in ('pitch', 'playground')),
+        ('park', lambda t: t.get('leisure') in ('park', 'garden', 'nature_reserve', 'common')
+         or t.get('landuse') in ('grass', 'recreation_ground', 'meadow', 'village_green', 'cemetery', 'allotments')),
+        ('lot', lambda t: t.get('amenity') == 'parking'),
+        ('retail', lambda t: t.get('landuse') in ('retail', 'commercial')),
+        ('ind', lambda t: t.get('landuse') in ('industrial', 'railway', 'construction')),
+        ('res', lambda t: t.get('landuse') == 'residential')]
+AREA_ORDER = ['res', 'ind', 'retail', 'lot', 'park', 'wood', 'pitch', 'water']   # drawn bottom to top
+# THE LANDMARKS a local would name, matched on OSM's own names; a name OSM lacks is skipped, never invented.
+MARKS = [('Colliers Wood station', 'tube', lambda t: t.get('building') == 'train_station' or (t.get('railway') == 'station' and 'Colliers' in t.get('name', ''))),
+         ("Sainsbury's", 'shop', lambda t: t.get('shop') == 'supermarket' and t.get('name') == "Sainsbury's"),
+         ('Tandem Centre', 'shop', lambda t: t.get('name') == 'Tandem Centre'),
+         ('Priory Retail Park', 'shop', lambda t: t.get('name') == 'Priory Retail Park' and t.get('landuse')),
+         ('Wandle Park', 'park', lambda t: t.get('name') == 'Wandle Park'),
+         ('Colliers Wood Recreation Ground', 'park', lambda t: t.get('name') == 'Colliers Wood Recreation Ground'),
+         ('Wandle Meadow Nature Park', 'park', lambda t: t.get('name') == 'Wandle Meadow Nature Park'),
+         ('Merton Priory Chapter House', 'old', lambda t: t.get('name', '').startswith('Merton Priory Chapter House')),
+         ('Christ Church', 'church', lambda t: t.get('name') == 'Christ Church Colliers Wood'),
+         ('Colliers Wood Library', 'civic', lambda t: t.get('name') == 'Colliers Wood Library')]
+
+
+def bld_kind(t):
+    use = str(t.get('building', ''))
+    if use in ('train_station', 'transportation'):
+        return 'station'
+    if use in ('church', 'chapel') or t.get('amenity') == 'place_of_worship':
+        return 'church'
+    if t.get('shop') or use in ('retail', 'supermarket', 'commercial', 'office'):
+        return 'shop'
+    if use in ('industrial', 'warehouse', 'garage', 'garages', 'shed'):
+        return 'ind'
+    if use in ('apartments', 'flats') or num(t.get('building:levels')) >= 4:
+        return 'flat'
+    return 'house'
+
+
+def clamp_ring(ring, half):
+    """An area that runs off the map is cut at its edge: every corner pulled inside the box (good enough for a fill)."""
+    out = []
+    for p in ring:
+        q = [min(max(p[0], -half[0]), half[0]), min(max(p[1], -half[1]), half[1])]
+        if not out or abs(out[-1][0] - q[0]) + abs(out[-1][1] - q[1]) > 0.5:
+            out.append(q)
+    return out
 
 
 def building_h(t):
@@ -99,18 +181,18 @@ def heights(ll):
         part = ll[i:i + 80]
         url = (METEO + '?latitude=' + ','.join('%.5f' % p[0] for p in part)
                + '&longitude=' + ','.join('%.5f' % p[1] for p in part))
-        for tries in range(3):
+        for tries in range(5):
             try:
                 got = fetch(url, timeout=60).get('elevation') or []
                 break
             except Exception as e:
                 print('  Open-Meteo: ' + str(e), file=sys.stderr)
                 got = []
-                time.sleep(5)
+                time.sleep(20)
         if len(got) != len(part) or any(not isinstance(v, (int, float)) for v in got):
             return None
         out.extend(got)
-        time.sleep(0.25)
+        time.sleep(1.2)
     return out
 
 
@@ -151,12 +233,31 @@ def build(data, box, flat):
             by_node[nid] = len(XY) - 1
         return len(XY) - 1
 
-    roads, water, bld = [], [], []
+    roads, water, bld, areas, marks, seen = [], [], [], [], [], set()
     dm = lambda v: int(round(v * 10))
+
+    def mark_of(t, p):
+        for name, kind, ok in MARKS:
+            if name not in seen and ok(t) and abs(p[0]) <= half[0] and abs(p[1]) <= half[1]:
+                seen.add(name)
+                marks.append([name, kind, dm(p[0]), dm(p[1])])
+    for el in els:
+        if el.get('type') == 'node' and el.get('tags'):
+            mark_of(el['tags'], to_xy(el['lat'], el['lon']))
     for el in els:
         if el.get('type') != 'way':
             continue
         t = el.get('tags') or {}
+        geo = el.get('geometry') or []
+        if len(geo) > 2:
+            ring = [to_xy(g['lat'], g['lon']) for g in geo]
+            cx, cy = sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring)
+            mark_of(t, [cx, cy])
+            kind = next((k for k, ok in AREA if ok(t)), None)
+            if kind and not t.get('building') and geo[0] == geo[-1] and any(inside(p) for p in ring):
+                ring = simplify(clamp_ring(ring[:-1], half), 1.5)
+                if len(ring) >= 3:
+                    areas.append([kind, [dm(c) for p in ring for c in p]])
         if t.get('highway') and el.get('nodes'):
             kind = re.sub(r'_link$', '', t['highway'])
             lanes = int(round(num(t.get('lanes')))) or 0
@@ -203,7 +304,7 @@ def build(data, box, flat):
             area = sum(ring[i][0] * ring[(i + 1) % len(ring)][1] - ring[(i + 1) % len(ring)][0] * ring[i][1] for i in range(len(ring)))
             if abs(area / 2) < 12:
                 continue
-            bld.append([dm(building_h(t)), [dm(c) for p in ring for c in p]])
+            bld.append([dm(building_h(t)), [dm(c) for p in ring for c in p], bld_kind(t)])
     if not roads:
         sys.exit('Overpass answered but sent no roads.')
     nx, ny = math.ceil(half[0] * 2 / GRID_M) + 1, math.ceil(half[1] * 2 / GRID_M) + 1
@@ -217,7 +318,8 @@ def build(data, box, flat):
         pts += [dm(p[0]), dm(p[1]), dm(sm[i])]
     return {'v': 1, 'place': 'Colliers Wood', 'built': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             'box': box, 'origin': [lat0, lon0], 'step': STEP_M, 'osm': OSM, 'dem': dem,
-            'pts': pts, 'roads': roads, 'water': water, 'bld': bld,
+            'pts': pts, 'roads': roads, 'water': water, 'bld': bld, 'marks': marks,
+            'areas': sorted(areas, key=lambda a: AREA_ORDER.index(a[0])),
             'grid': {'x0': dm(-half[0]), 'y0': dm(-half[1]), 'cell': GRID_M, 'nx': nx, 'ny': ny,
                      'h': [dm(v) for v in sm[len(XY):]]},
             'shipped': 'tools/race_map.py'}
@@ -228,12 +330,17 @@ def main():
     ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'race-map.json'))
     ap.add_argument('--overpass', help='an Overpass JSON answer saved earlier')
     ap.add_argument('--flat', action='store_true')
+    ap.add_argument('--osm-api', nargs='?', const='', default=None, help='use the OSM API (optionally a saved .osm file)')
     a = ap.parse_args()
-    data = json.load(open(a.overpass)) if a.overpass else overpass(RACE_BOX)
+    if a.osm_api is not None:
+        data = osm_api(RACE_BOX, a.osm_api or None)
+    else:
+        data = json.load(open(a.overpass)) if a.overpass else overpass(RACE_BOX)
     m = build(data, RACE_BOX, a.flat)
     with open(a.out, 'w') as f:
         json.dump(m, f, separators=(',', ':'), ensure_ascii=False)
-    print('%s: %d roads, %d points, %d buildings, heights %s' % (a.out, len(m['roads']), len(m['pts']) // 3, len(m['bld']), m['dem']))
+    print('%s: %d roads, %d points, %d buildings, %d areas, marks %s, heights %s' % (a.out, len(m['roads']), len(m['pts']) // 3,
+          len(m['bld']), len(m['areas']), ', '.join(k[0] for k in m['marks']), m['dem']))
 
 
 if __name__ == '__main__':

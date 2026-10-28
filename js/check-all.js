@@ -35,6 +35,8 @@ const SUITE = [
   /* ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS § */
   { file: 'check-tabs.js',    what: 'every tab routed to a file that can hold it' },
   { file: 'check-columns.js', what: 'every column the backend touches' },
+  /* THE RULES (496): a special case without a rule on the Rules card fails the build. */
+  { file: 'check-rules.js', what: 'every exception is a registered rule, and every rule is asked' },
   /* ---------- THE SAME QUESTION, ASKED OF ONE TAB AT A TIME § */
   { file: 'check-rows.js',    what: 'each column read, against the tab the row came from' },
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE § */
