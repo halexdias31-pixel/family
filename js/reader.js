@@ -9,6 +9,8 @@ try { const w = Number(localStorage.getItem('speedWpm')); if (w >= SPEED_MIN && 
 function speedFor_(x) {
   if (!x || !x.key) return false;
   if (x.kind === 'content' || x.kind === 'practical' || x.kind === 'project') return true;
+  /* A QUESTION'S WORDS ARE SHORT (502, rule `speed-long`): Universal gives it Speed read too */
+  if (x.kind === 'question') return (typeof ruleOn_ === 'function' && !ruleOn_('speed-long')) && !!speedText_(x);
   return x.kind === 'bible' && !!x.bb;
 }
 function speedTile_(x) {
@@ -27,6 +29,7 @@ function speedText_(x) {
   }); return out; };
   if (x.kind === 'content') return add(add(add([x.name], r.words), r.formulas), r.points).join('\n\n');
   if (x.kind === 'practical') return add(add(add([x.name], r.aim), r.steps), r.outcome).join('\n\n');
+  if (x.kind === 'question') return add([], [x.lead, x.html].concat((x.stems || []).map(p => p && p.html)).filter(Boolean)).join('\n\n');
   if (x.kind === 'project') return add(add(add([x.name], r.summary), r.makes), r.steps).join('\n\n');
   if (x.kind === 'bible' && x.bb) {
     const d = typeof BIBLE !== 'undefined' && BIBLE.books[x.bb.n];

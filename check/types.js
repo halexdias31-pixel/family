@@ -428,7 +428,9 @@ async function driveMeasure(env, ctx) {
     if (fig) fail(env.E, ctx.t, ctx.row, 'a "measure" part with a figure has no Protractor or Ruler tile');
     return driveTyped(env, ctx);
   }
-  const tool = has[0];
+  /* EVERY FIGURE HAS BOTH (502): the scheme's unit says which one this part is read with */
+  const unit = await env.page.evaluate(() => String((stuffItemsAll_().find(it => ansKey_(it) === window.__tk.k) || {}).accept || ''));
+  const tool = /\b(cm|mm)\b/i.test(unit) && has.indexOf('ruler') !== -1 ? 'ruler' : has.indexOf('protractor') !== -1 ? 'protractor' : has[0];
   /* THE FIGURE READ BY THIS CHECK ITSELF: its corners, where arms meet, in figure units and on the screen */
   const geo = () => env.page.evaluate(sel => {
     const o0 = document.querySelector('#s-stuff svg.meas'), svg = o0 ? [...o0.parentNode.children].find(c => c.tagName.toLowerCase() === 'svg' && c !== o0) : document.querySelector(sel + ' figure svg');
@@ -456,13 +458,13 @@ async function driveMeasure(env, ctx) {
   if (tool === 'protractor') {
     const pick = g.corners.map(c => { let best = null; for (let i = 0; i < c.arms.length; i++) for (let j = i + 1; j < c.arms.length; j++) { const v = diff(c.arms[i].a, c.arms[j].a); if (v >= band[0] - 0.5 && v <= band[1] + 0.5) best = { c, i, j, v }; } return best; }).filter(Boolean)[0];
     if (!pick) { fail(env.E, ctx.t, ctx.row, `no corner of the figure makes an angle inside the scheme's ${band.join(' to ')}`); return ''; }
-    target = pick.c.s; armA = pick.c.arms[pick.i]; armB = pick.c.arms[pick.j];
+    target = Object.assign(pick.c.s.slice(), { p: pick.c.p }); armA = pick.c.arms[pick.i]; armB = pick.c.arms[pick.j];
   } else {
     if (!g.ends) return 'no line to measure';
     target = g.ends[0];
   }
   /* DRAG IT: from a point on its body near its centre (or zero) to a few pixels off the corner -- the snap does the rest */
-  const grab = await env.page.evaluate(([sel, tool]) => { const b = document.querySelector('#s-stuff svg.meas .meas-body').getBoundingClientRect(); return tool === 'protractor' ? [b.left + b.width / 2, b.bottom - Math.min(14, b.height * 0.2)] : [b.left + 12, b.top + b.height / 2]; }, [C, tool]);
+  const grab = await env.page.evaluate(([sel, tool]) => { const b = document.querySelector('#s-stuff svg.meas .meas-body').getBoundingClientRect(); return tool === 'protractor' ? [b.left + b.width / 2, b.bottom - Math.min(14, b.height * 0.2)] : [b.left + b.width * 0.4, b.top + b.height / 2]; }, [C, tool]);
   const off = [grab[0] - g.cs[0], grab[1] - g.cs[1]];
   const drag = async (from, to) => {
     const n = 14;
@@ -479,7 +481,11 @@ async function driveMeasure(env, ctx) {
   g = await geo();
   steps++;
   if (process.env.TYPES_DEBUG) console.log('DEBUG meas', JSON.stringify({ grab, target, off, cs: g.cs, c: g.c, corners: g.corners.map(c => c.p) }));
-  if (!g.cs || Math.hypot(g.cs[0] - target[0], g.cs[1] - target[1]) > 0.75) fail(env.E, ctx.t, ctx.row, `the ${tool} dropped 8px from the corner sits at ${g.cs && g.cs.map(Math.round)}, not snapped onto ${target.map(Math.round)}`);
+  /* THE CORNER WHERE IT IS NOW: the page may settle a pixel while the finger is down (502) */
+  const tp = target.p;
+  if (tp) { const cn = g.corners.find(c => Math.hypot(c.p[0] - tp[0], c.p[1] - tp[1]) < 0.01); if (cn) target = Object.assign(cn.s.slice(), { p: tp }); }
+  else if (g.ends) target = g.ends[0];
+  if (!g.cs || Math.hypot(g.cs[0] - target[0], g.cs[1] - target[1]) > 0.75) fail(env.E, ctx.t, ctx.row, `the ${tool} dropped 8px from the corner sits at ${g.cs && g.cs.map(v => v.toFixed(1))} (c ${g.c}), not snapped onto ${target.map(v => v.toFixed(1))}`);
   const s1 = await env.page.evaluate(() => ({ at: AT, page: PAGE.stuff }));
   if (s1.at !== s0.at || s1.page !== s0.page) fail(env.E, ctx.t, ctx.row, 'dragging the tool moved the screen');
   /* TURN IT: by the round handle, to about 5° off the arm -- the snap lays it along */

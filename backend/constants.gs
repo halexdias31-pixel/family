@@ -694,9 +694,9 @@ const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 const LAYOUT_KEY = 'layout';
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
-const RULE_IDS = ['tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'kjv-admin', 'finder-members',
+const RULE_IDS = ['meas-wordy', 'meas-under-pen', 'pen-chosen', 'mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'kjv-admin', 'finder-members',
   'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
-const RULES_LOCKED = ['keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
+const RULES_LOCKED = ['meas-under-pen', 'pen-chosen', 'hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
 const RULES_HIST_MAX = 20;
 /* THE WEEKLY PARENT EMAIL'S WORDS (491): config rows an admin edits on the Site column's preview; blank is this default. {child} {parent} {count} {span} are filled in. */
 const DIGEST_WORDS = {

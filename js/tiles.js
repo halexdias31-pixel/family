@@ -409,6 +409,7 @@ function cardTiles_(x) {
   const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
     + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
+    + (typeof magCardTile_ === 'function' ? magCardTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '')
     /* AND THE PADLOCK (498): the owner, "add the padlock to every widget, so that I can highlight and copy and paste". */
     + (x.key && x.kind !== 'me' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '')

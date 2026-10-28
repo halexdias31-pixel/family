@@ -27769,7 +27769,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 });
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
-check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card does not; it says the question in words, stops on a second tap and on leaving', async () => {
+check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card too (502); it says the question in words, stops on a second tap and on leaving', async () => {
   const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
@@ -27804,7 +27804,7 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   if (!ctKs2 || !ctGcse) bad.push('no KS2 and GCSE content cards to hold the tile against');
   else {
     if (!tileOf(ctKs2)) bad.push('the KS2 content card "' + ctKs2.name + '" has no Read aloud tile');
-    if (tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" carries the Read aloud tile');
+    if (!tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" has no Read aloud tile (502: every content card)');
     /* HEAR IT (427): a French card says its worked lines' French halves, each in fr-FR; a maths card has no Hear it. */
     const ctFr = ct.find(x => x.subject === 'French' && x.row && (x.row.points || []).length);
     const ctMaths = ct.find(x => x.subject === 'Maths');
