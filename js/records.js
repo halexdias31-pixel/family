@@ -915,7 +915,8 @@ screen('biz', () => {
 });
 screen('site', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { if (!REPS.list) reportsStart_(); } catch (e) {}
-    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {} }, 0);
+    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {}
+    try { if (typeof initInbox === 'function') initInbox(); } catch (e) {} }, 0);
   return pages('site', typeof cardsOf_ === 'function' ? cardsOf_('site') : sitePages_());
 });
 

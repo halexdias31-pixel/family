@@ -7663,10 +7663,12 @@ const raceOpen_ = async (w, want) => {
 
 /* THE SHIPPED MAP (464): data/race-map.json as the site serves it. */
 const RACE_SHIPPED_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'race-map.json'), 'utf8'));
+/* THE PRACTICE STREETS (500): the invented town the shipped file was before tools/race_map.py wrote the real Colliers Wood. */
+const RACE_PRACTICE_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'race-practice.json'), 'utf8'));
 const raceServeFix_ = (race1, shipped) => u => (u.indexOf('race=1') !== -1 ? race1
   : /data\/race-map\.json/.test(u) ? shipped : undefined);
 
-check('racer (464): before the backend has built a map the shipped map plays for everyone, says it is practice streets, and an admin\'s first visit builds the real one by itself', async () => {
+check('racer (464, 500): before the backend has built a map the shipped Colliers Wood plays for everyone with the OSM line, parks and landmarks, and an admin\'s visit does not build over it', async () => {
   const bad = [];
   for (const who of ['visitor', 'admin']) {
     const { w, sent, gets } = boot({ before: who === 'admin' ? signedInAs_(RACE_ADMIN_) : undefined,
@@ -7684,20 +7686,15 @@ check('racer (464): before the backend has built a map the shipped map plays for
     if (!card.querySelector('canvas.race-gl')) bad.push(who + ': no map built, and the card has no road to drive: ' + card.innerHTML.slice(0, 120));
     if (!card.querySelector('[data-do="race-go"].tile')) bad.push(who + ': no Drive tile on the shipped map');
     const attr = (card.querySelector('.race-attr') || {}).textContent || '';
-    if (!/Practice streets, invented/.test(attr) || /OpenStreetMap/.test(attr)) bad.push(who + ': the practice streets do not say so (or claim OSM): ' + attr);
+    if (/Practice streets/.test(attr) || !/OpenStreetMap contributors/.test(attr)) bad.push(who + ': the shipped Colliers Wood does not credit OSM: ' + attr);
+    const W = w.racer_().world;
+    if (!W || !W.areas.length || !W.marks.some(m => m.kind === 'tube')) bad.push(who + ': the shipped map has no parks or no station: ' + (W ? W.areas.length + ' areas, ' + W.marks.length + ' marks' : 'no world'));
     const tile = card.querySelector('[data-do="race-build"]');
     const builds = sent.filter(b => b.action === 'raceBuild').length;
     if (who === 'visitor' && (tile || builds)) bad.push('a visitor is offered Build the map, or built one');
     if (who === 'admin') {
       if (!tile) bad.push('an admin has no Build the map tile');
-      if (builds !== 1) bad.push('an admin\'s first visit posted raceBuild ' + builds + ' times, wanted once by itself');
-      await wait(200);
-      if (!/No Overpass/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('a refused build did not say why in a toast');
-      /* ONCE A DAY PER DEVICE: a second visit does not build again by itself. */
-      const R = w.racer_();
-      R.autoAsked = false;
-      w.raceAutoBuild_();
-      if (sent.filter(b => b.action === 'raceBuild').length !== 1) bad.push('the automatic build ran again within the day');
+      if (builds !== 0) bad.push('an admin\'s visit built by itself over the shipped Colliers Wood (' + builds + ' raceBuild), which a backend map without parks would replace');
     }
   }
   return bad;
@@ -7718,7 +7715,7 @@ check('racer (464): an admin\'s build replaces the practice streets with the bui
   let built = false;
   const { w, sent } = boot({ before: signedInAs_(RACE_ADMIN_),
     serve: u => (u.indexOf('race=1') !== -1 ? (built ? { version: 'test', built: true, race: FIX } : { version: 'test', built: false, race: null })
-      : /data\/race-map\.json/.test(u) ? RACE_SHIPPED_() : undefined),
+      : /data\/race-map\.json/.test(u) ? RACE_PRACTICE_() : undefined),
     reply: b => (b.action === 'raceBuild' ? (built = true, { success: true, built: true, roads: 6, bld: 62, lowest: 12, highest: 21 }) : undefined) });
   try { w.localStorage.setItem('race-autobuild', String(Date.now())); } catch (e) {}
   await wait(300);
@@ -16815,8 +16812,10 @@ check('no question in the library has a figure page or points at one, and every 
       const owners = list.filter(x => x.diagram === s).length;
       const stemPens = list.filter(x => { const p = w.padSource_(x); return p && p.svg === s && p.from !== 'part'; }).length;
       const uses = list.filter(x => { const y = w.usesOf_(x); const p = y && w.padSource_(y); return p && p.svg === s && x.diagram !== s; }).length;
+      /* AND A SHORT STEM'S FIGURE ON EACH PART'S CARD (500): "picture missing" on 16(a), whose graph was a page before it */
+      const carried = typeof w.stemOnCard_ === 'function' ? list.filter(x => (w.stemOnCard_(x) || {}).diagram === s && x.diagram !== s).length : 0;
       if (!n) miss.push(list[0].row.row_id);
-      else if (n > Math.max(1, owners + stemPens) + uses) twice.push(list[0].row.row_id + ' x' + n);
+      else if (n > Math.max(1, owners + stemPens + carried) + uses) twice.push(list[0].row.row_id + ' x' + n);
     });
   });
   Object.keys(gone).forEach(p => bad.push(gone[p] + ' `' + p + '` page(s) in the strip -- a figure is never a page of its own'));
@@ -23394,13 +23393,14 @@ check('multipart: a search that finds one part brings its whole question, in ord
     if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
     const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
     /* THE OPENING'S FIGURE IS ON ITS PAGE, AMONG ITS WORDS (356). */
-    const want = 'Q8(i):stem0 Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
+    /* A SHORT OPENING WITH A FIGURE RIDES ON EACH PART'S CARD (500), so it is no page of its own here. */
+    const want = 'Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
     if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
     if (hits[0]) {
       const at = w.stuffPageOf_(hits[0]);
       const pg = w.stuffPages_()[at];
       if (!pg || pg.x !== hits[0] || pg.part) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8(ii)\'s card');
-      else if (at !== 3) bad.push('the hit is page ' + at + ' -- Q8(i), its answer and the opening should be the three pages in front of it');
+      else if (at !== 2) bad.push('the hit is page ' + at + ' -- Q8(i) and its answer should be the two pages in front of it');
     }
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
@@ -23461,13 +23461,15 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
   try {
     [['Saved', () => w.savedPages_()], ['Spotlight', () => w.spotPages()]].forEach(([where, f]) => {
       const got = f().map(read).join(' ');
-      const want = 'stem Q8(i) ans Q8(ii) ans Q8';
+      const want = 'Q8(i) ans Q8(ii) ans Q8';   // the opening on each part's card (500)
       if (got !== want) bad.push(where + ' reads "' + got + '", wanted "' + want + '" -- the opening once, the parts in the paper\'s order');
     });
     /* A PART KEPT ALONE STILL HAS ITS OPENING. */
     w.collItems_ = () => [eight[1]];
     const alone = w.savedPages_().map(read).join(' ');
-    if (alone !== 'stem Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its opening in front of it');
+    if (alone !== 'Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its card (its opening on it, 500) and its answer');
+    const card = w.questionCard_(eight[1]);
+    if (!/qstem-fig/.test(card)) bad.push('Q8(ii)\'s card does not carry its opening\'s figure (500)');
   } finally { w.collItems_ = heldC; lib.put(); }
   return bad;
 });
@@ -23539,10 +23541,10 @@ check('multipart: a (d) opening is drawn once before (d)(i), tagged as (d)(i), a
   try {
     S.q = 'q1'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
     const strip = w.stuffPages_().filter(pg => String(pg.x.qNumber) === '1').map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
-    const want = 'Q1c:card Q1d(i):stem0 Q1d(i):card Q1d(ii):card';
+    const want = 'Q1c:card Q1d(i):card Q1d(ii):card';   // the (d) opening rides on (d)(i)'s and (d)(ii)'s cards (500)
     if (strip !== want) bad.push('Q1 reads "' + strip + '", wanted "' + want + '" -- the (d) opening once, between (c) and (d)(i)');
     const di = lib.items.find(x => x.name === 'Q1d(i)'), dii = lib.items.find(x => x.name === 'Q1d(ii)'), c = lib.items.find(x => x.name === 'Q1c');
-    if (dii && JSON.stringify(w.pageParts_(dii)) !== '["stem0",null]') bad.push('(d)(ii) opened alone has pages ' + JSON.stringify(w.pageParts_(dii)) + ' -- it needs its (d) opening');
+    if (dii && (JSON.stringify(w.pageParts_(dii)) !== '[null]' || !/REST/.test(w.questionCard_(dii)))) bad.push('(d)(ii) opened alone has pages ' + JSON.stringify(w.pageParts_(dii)) + ' -- its card needs its (d) opening on it');
     if (c && (c.stems || []).length) bad.push('(c) carries the (d) opening, which would stand in front of it');
     if (di) {
       const h = d.createElement('div');
