@@ -12,6 +12,7 @@ reads (never runs) these files from it and writes data/orthodox/index.json and o
                      npnf203 npnf204 npnf208 npnf209 npnf214 npnf109 anf05; hcc1 ... hcc8 (Schaff, History of the Christian Church)
   calvin_institutes.xml  https://www.ccel.org/ccel/calvin/institutes.xml (Beveridge, 1845)
   rolt_dionysius.xml     https://www.ccel.org/ccel/rolt/dionysius.xml (C. E. Rolt, 1920; Rolt died 1923)
+  aquinas_summa.xml  https://www.ccel.org/ccel/aquinas/summa.xml (Summa Theologiae, Fathers of the English Dominican Province, 1920)
   hapgood.txt        https://archive.org/download/cu31924029363128/cu31924029363128_djvu.txt (Hapgood's Service Book, 1906)
 """
 import json, os, re, sys
@@ -503,12 +504,46 @@ def hapgood():
                'Compline, the feasts, Holy Week and Pascha, and the sacraments.')
 
 
+# ---------------------------------------------------------------- Aquinas, Summa Theologiae: one card an article
+SUMMA = [('FP', 'I', 'First Part', 'God, the Trinity, creation, the angels, man and divine government.'),
+         ('FS', 'I-II', 'First Part of the Second Part', 'The last end, human acts, the passions, habits, virtue and vice, law and grace.'),
+         ('SS', 'II-II', 'Second Part of the Second Part', 'Faith, hope and charity, the cardinal virtues, the gifts of grace and the states of life.'),
+         ('TP', 'III', 'Third Part', 'The Incarnation, the life of Christ and the sacraments; left unfinished at his death in 1274.'),
+         ('XP', 'Suppl.', 'Supplement', 'The rest of the sacraments and the last things, completed after his death from his Commentary '
+                                        'on the Sentences, with its two appendices.')]
+
+
+def aquinas():
+    name = 'aquinas_summa.xml'
+    if not os.path.exists(os.path.join(DL, name)):
+        return
+    arts = {}
+    for d in tree(name).find(lambda n: isdiv(n) and re.match(r'^(FP|FS|SS|TP|XP|AP\d)_Q\d+_A\d+$', n.a.get('id', ''))):
+        part, q, a = re.match(r'^(\w\w|AP\d)_Q(\d+)_A(\d+)$', d.a['id']).groups()
+        title = re.sub(r'\s+', ' ', re.sub(r'^Article\.?\s*\d+\s*-\s*', '', d.a.get('title', ''))).strip()
+        if part.startswith('AP'):
+            say, part = 'Suppl. App. %s.%s.%s %s' % (part[2], q, a, title), 'XP'
+        else:
+            say = '%s.%s.%s %s' % (next(s for k, s, _, _ in SUMMA if k == part), q, a, title)
+        arts.setdefault(part, []).append((say, heads(d.paras(), d.a.get('title', ''))))
+    for key, short, title, about in SUMMA:
+        work('Aquinas, Summa Theologiae, %s (%s)' % (title, short), arts[key],
+             src='Thomas Aquinas, Summa Theologiae, literally translated by Fathers of the English Dominican Province '
+                 '(second and revised edition, 1920; public domain, also on Project Gutenberg), via ' + CCEL,
+             url=ccel('aquinas/summa'), author='Thomas Aquinas', tradition='Catholic', era='Medieval', genre='Dogmatic',
+             collection='Scholastics | Summa Theologiae', unit='Article', date_text='1265–1274',
+             translator='Fathers of the English Dominican Province',
+             about='Each card is one article (Part.Question.Article): objections, "On the contrary", "I answer that" and the '
+                   'replies. ' + about)
+
+
 # ---------------------------------------------------------------- writing it out
 def main():
     canons()
     fathers()
     schaff({1, 2, 3, 4})
     hapgood()
+    aquinas()
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
         if re.match(r'^OR-\d{4}\.json$', f):
