@@ -124,7 +124,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-27-zi-no-email";
+const BACKEND_VERSION = "2026-10-28-words";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -701,6 +701,10 @@ const DIGEST_WORDS = {
 };
 const DIGEST_WORD_MAX = 300;
 const LAYOUT_MAX = 8000;
+/* THE SITE'S OWN WORDS (497): one config row of {key: text} an admin types in place over the code's; a piece's longest, and the whole row's. */
+const WORDS_KEY = 'words';
+const WORDS_PIECE_MAX = 300;
+const WORDS_MAX = 40000;
 /* NOTES FOR CLAUDE (484): the plain-text file a session reads by exact title, in the library imports folder, and the longest note. */
 const CLAUDE_NOTES_FILE = 'Notes for Claude';
 const CLAUDE_NOTE_MAX = 4000;
@@ -1603,6 +1607,8 @@ const ACTION_ACCESS = {
   pinShow: 'admin',
   /* THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets and which are deleted, one config row. */
   layoutSave: 'admin',
+  /* EDIT WORDS IN PLACE (497): the site's words over the code's, one config row. */
+  wordsSave: 'admin',
   /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
   digestWordsSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */

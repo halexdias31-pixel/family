@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-27-zi-no-email";
+  --css-version: "2026-10-28-words";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6879,3 +6879,16 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .dp-q { border: 1px solid var(--dp-line); padding: .4rem .5rem; margin: 0 0 .4rem; display: flex; flex-direction: column; }
 .dp-v { font-size: .7rem; } .dp-v.is-right { color: var(--dp-right); } .dp-v.is-wrong { color: var(--dp-wrong); }
 .dw-row { display: flex; flex-direction: column; margin-bottom: .5rem; }
+
+/* ---------- EDIT WORDS IN PLACE AND WHO SEES THIS (497, words.js) ---------- */
+.wk-editing [data-wk] { outline: 1px dashed var(--gold); outline-offset: 2px; cursor: text; min-width: 2rem; display: inline-block; }
+.wk-editing h1[data-wk], .wk-editing h2[data-wk], .wk-editing h3[data-wk], .wk-editing h4[data-wk], .wk-editing p[data-wk] { display: block; }
+.wk-editing [data-wk]:focus { outline-style: solid; }
+.wk-reset { display: inline-flex; margin: .25rem 0; vertical-align: middle; }
+.wk-ph-row { display: block; margin: .25rem 0; font-size: .85rem; }
+.wk-bar { margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--line); }
+.wk-bar .wk-say { margin: 0 0 .5rem; }
+.seen-box { margin: .5rem 0; padding-top: .5rem; border-top: 1px solid var(--line); }
+.seen-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
+.seen-row select { min-height: 44px; max-width: 60%; }
+.seen-box .seen-say { margin: .25rem 0 .5rem; }
