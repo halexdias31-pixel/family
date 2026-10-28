@@ -158,24 +158,24 @@
 <p id="boot-slow" class="hidden"></p>
 <script>
   /* AND IF THE CODE ARRIVED AND THE DATA NEVER DOES. § */
+  /* ONLY WHILE THE CODE OR THE BACKEND'S REPLY IS MISSING, and it says which in plain words (503). "Files" was the deploy stamp, not a count. */
   setTimeout(function () {
     if (typeof LOADED !== 'undefined' && LOADED) return;     // finished
     var codeHere = (typeof go === 'function');
-    var dataHere = (typeof DATA !== 'undefined' && DATA && Object.keys(DATA).length > 1);
-    var url = (typeof API !== 'undefined') ? API : '(API not defined — data.js did not load)';
-    /* ---------- IT SAYS SO. IT DOES NOT LIFT THE SPLASH § */
+    if (codeHere && window.PAYLOAD_IN) return;               // the reply came; the rest has its own deadlines
+    var url = (typeof API !== 'undefined') ? API : '';
     try { LOAD_SLOW = true; } catch (e) {}
     var b = document.getElementById('boot-slow');
     if (!b) return;
     b.className = '';
     b.innerHTML = '<b>Still loading after 30 seconds.</b><br>'
-      + 'Code: ' + (codeHere ? 'arrived' : 'DID NOT ARRIVE')
-      + ' \u00b7 Data: ' + (dataHere ? 'arrived' : 'not yet')
-      + ' \u00b7 Files: <code>' + LOAD + '</code><br>'
-      + 'It is calling:<br><code>' + url + '</code><br>'
-      + 'Open that address in a tab. JSON means the backend is fine and this is the site; a '
-      + 'sign-in page means the deployment is not shared; a 404 means the address is wrong; a very '
-      + 'long wait means the backend is busy and will finish on its own.';
+      + (codeHere
+        ? 'The app is here; it is waiting for the server to answer. A cold server can take a minute, and it will finish by itself.'
+        : 'The app\u2019s own code has not finished arriving' + (window.__gone && window.__gone.length
+          ? ' (' + window.__gone.join(', ') + ' failed)' : '') + '. Reload the page to ask again.')
+      + (url ? '<br>It is calling:<br><code>' + url + '</code><br>'
+        + 'Open that address in a tab. JSON means the backend is fine; a sign-in page means the deployment is not shared; '
+        + 'a 404 means the address is wrong.' : '');
   }, 30000);
 
 </script>

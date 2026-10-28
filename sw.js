@@ -29,7 +29,7 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate' || /(?:^|\/)index\.html$/.test(url.pathname)) {
     return e.respondWith(page(req));
   }
-  e.respondWith(file(req, url));
+  e.respondWith(file(req, url, e));
 });
 
 /* ---------- index.html: THE NETWORK IS THE TRUTH § */
@@ -48,7 +48,19 @@ async function page(req) {
 }
 
 /* ---------- everything else: THE SAME URL IS FREE, A CHANGED ONE IS ASKED ABOUT § */
-async function file(req, url) {
+/* KEPT BESIDE THE ANSWER, NOT BEFORE IT (503): an awaited `put` held every reply until its whole body was in the store, and a full store turned the reply into a failure. */
+function keep(e, store, key, res, was) {
+  const job = store.put(key, res).then(() => (was ? store.delete(was) : null)).catch(() => {});
+  try { e.waitUntil(job); } catch (err) {}
+}
+/* A REVALIDATION GETS 15 SECONDS WHEN THERE IS A COPY TO FALL BACK ON (503), so a stalled network never hangs a file we already have. */
+function within(p, ms) {
+  let t;
+  return Promise.race([p, new Promise((u, no) => { t = setTimeout(() => no(new Error('slow')), ms); })])
+    .finally(() => clearTimeout(t));
+}
+
+async function file(req, url, e) {
   const store = await caches.open(STORE);
 
   const exact = await store.match(req.url);
@@ -64,21 +76,19 @@ async function file(req, url) {
   if (held && tag) {
     try {
       /* OUR OWN `If-None-Match`, AND `cache: 'no-store'` SO THE BROWSER'S CACHE STAYS OUT OF IT. § */
-      const res = await fetch(url.href, {
+      const res = await within(fetch(url.href, {
         cache: 'no-store',
         headers: { 'If-None-Match': tag },
-      });
+      }), 15000);
       if (res.status === 304) {
         /* THE SERVER SAYS OUR COPY IS CURRENT. Re-file it under the new URL so the next visit is
            an exact hit and costs nothing, and drop the old key so the store does not grow by one
            entry per file per deploy for ever. */
-        await store.put(req.url, held.clone());
-        await store.delete(was);
+        keep(e, store, req.url, held.clone(), was);
         return held;
       }
       if (res.ok) {
-        await store.put(req.url, res.clone());
-        await store.delete(was);
+        keep(e, store, req.url, res.clone(), was);
         return res;
       }
       return held;                                   // a 5xx: what we have beats what it sent
@@ -88,8 +98,8 @@ async function file(req, url) {
   }
 
   try {
-    const res = await fetch(req);
-    if (res && res.ok) await store.put(req.url, res.clone());
+    const res = held ? await within(fetch(req), 15000) : await fetch(req);
+    if (res && res.ok) keep(e, store, req.url, res.clone(), null);
     return res;
   } catch (err) {
     if (held) return held;

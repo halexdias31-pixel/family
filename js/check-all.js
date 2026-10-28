@@ -177,6 +177,7 @@ const SUITE = [
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
+  { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
