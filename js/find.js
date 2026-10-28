@@ -421,7 +421,9 @@ const FACETS = [
   { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
   { field: 'wtWork',    label: 'Work',        of: x => x.wtWork || '' },
   { field: 'wtChapter', label: 'Chapter',     of: x => x.wtChapter || '' },
-  { field: 'wtLanguage', label: 'Language',   of: x => x.wtLanguage || '' },
+  { field: 'wtSection', label: 'Section',     of: x => x.wtSection || '' },
+  /* `Text` (504), as the Bible's: which text of the writing, its language and whose translation. */
+  { field: 'wtLanguage', label: 'Text',       of: x => x.wtLanguage || '' },
   /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
   { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
   { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
@@ -1772,6 +1774,23 @@ function msFacts_(r) {
     .filter(Boolean).map(esc).join(' · ');
 }
 
+/* REFERENCES (504): the owner's bibliography, word for word and without page numbers, shown only on the cards each one is about. */
+const WRITING_REFS = [
+  'Karen H. Jobes and Moisés Silva, Invitation to the Septuagint, 2nd edn (Grand Rapids, MI: Baker Academic, 2015).',
+  '\'The Letter of Aristeas\', trans. by H. T. Andrews, in The Apocrypha and Pseudepigrapha of the Old Testament in English, ed. by R. H. Charles, 2 vols (Oxford: Clarendon Press, 1913), II, 83–122.',
+  'Philo, On the Life of Moses, trans. by C. D. Yonge (1854–55).',
+  'Jennifer M. Dines, The Septuagint, ed. by Michael A. Knibb (London: T&T Clark, 2004).',
+  'Emanuel Tov, Textual Criticism of the Hebrew Bible, 3rd edn (Minneapolis: Fortress Press, 2012).',
+  'Timothy Michael Law, When God Spoke Greek: The Septuagint and the Making of the Christian Bible (Oxford: Oxford University Press, 2013).',
+];
+/* WHICH CARDS: the Septuagint (Greek and Brenton's English), the Masoretic (Tov), the Letter of Aristeas, Ptolemy II. Numbers into WRITING_REFS. */
+const WRITING_REFS_ON = { 'bible:lxx': [0, 1, 2, 3, 5], 'bible:brenton': [0, 1, 2, 3, 5], 'bible:hbo': [4],
+  'WR-0002': [1, 0, 3, 5], 'FIG-0010': [1, 2, 3] };
+const writingRefs_ = on => {
+  const at = WRITING_REFS_ON[on];
+  return at ? '<section class="fc-sec wt-refs"><p class="wt-refs-h">Sources</p><ol>' + at.map(i => '<li>' + esc(WRITING_REFS[i]) + '</li>').join('') + '</ol></section>' : '';
+};
+
 const HIST_TILE_LINKS = 3;
 function histCard_(x) {
   const r = x.row || {};
@@ -1800,6 +1819,7 @@ function histCard_(x) {
     ${tagRow_(x)}
     <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
       histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${writingRefs_(r.id)}
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
@@ -2140,7 +2160,8 @@ function bibleVerseCard_(x) {
       + (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
         : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
         : bibleV_(w))
-      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : 'King James Version (1611)') + ': public domain</p>';
+      + '<p class="bb-credit">' + (also ? esc(also.name || also.translation) : 'King James Version (1611)') + ': public domain</p>'
+      + writingRefs_('bible:' + bb.dir);
   }
   else if (BIBLE.missed[k] && !BIBLE.loading[k]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
@@ -10290,7 +10311,7 @@ const TAG_OF = {
   talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper', talSide: 'paper',
   hadithCollection: 'level', hadithBook: 'topic', hadithNumber: 'paper', hadithTranslation: 'board',
   quranTranslation: 'board', quranSurah: 'topic', quranAyah: 'paper', quranJuz: 'level', quranPlace: 'board', quranSajda: 'check',
-  wtWork: 'topic', wtChapter: 'paper', wtLanguage: 'board',
+  wtWork: 'topic', wtChapter: 'paper', wtSection: 'paper', wtLanguage: 'board',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */

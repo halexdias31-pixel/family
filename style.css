@@ -6869,6 +6869,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .bb-he { font: 400 1.3rem/1.9 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; text-align: right; overflow-wrap: anywhere; }
 .bb-grc, .wt-text[lang="grc"] { font-family: 'Noto Serif Greek', var(--serif, Georgia, serif); }
 
+/* A WRITING'S REFERENCES (504): the bibliography, small and quiet under the credit. */
+.wt-refs { margin: .5rem 0 0; }
+.wt-refs-h { margin: 0 0 .15rem; font: 600 .6rem/1.2 var(--mono); color: var(--faint); letter-spacing: .05em; }
+.wt-refs ol { margin: 0; padding-left: 1.1rem; font-size: .7rem; line-height: 1.4; color: var(--dim); }
+
 /* A MANUSCRIPT AS IT LOOKS (490): paper tokens for the leaf; papyrus and parchment are this component's own tints of them. */
 .hdb-ms { margin: .6rem 0 .3rem; }
 .hdb-ms-sides { display: flex; gap: .6rem; align-items: flex-start; }

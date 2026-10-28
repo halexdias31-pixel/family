@@ -60,3 +60,25 @@ granularity: "each verse or chapter is a widget."
 - **The dots end.** Under a question whose cards are all scripture, `scriptureWait_` draws the dots only while one of
   the indexes is still being asked for, and a failed index says so in words. Every scripture fetch goes through
   `scriptureFetch_`, which gives up after 20 seconds, and a failed Quran, Talmud or Hadith index repaints.
+
+## The Letter of Aristeas, Ptolemy II, Philo, and the references
+
+The owner: "use whatever we can, no taking risks."
+
+- **The Letter of Aristeas** (WR-0002) is on the Writings shelf, one card a numbered section (§1–§322, the unit a
+  verse is elsewhere): H. T. Andrews' translation (Charles, 1913; Andrews d. 1928, public domain) as CCEL prints it,
+  split on CCEL's own section numbers by `tools/aristeas-text.py`. Tags Writing, Section, Text ("English (Andrews)");
+  Religious Studies, 18+ like the rest of the shelf; its history-database row says the Septuagint story is a tradition.
+  **Left out:** Thackeray's English (1904) and any Greek (Thackeray's in Swete, or Wendland) — archive.org has the
+  scans, but only as unproofed OCR whose section numbers are lost or misread.
+- **Philo, On the Life of Moses, in Yonge's 1854–55 translation: left out.** Yonge's original is divided into three
+  books of Roman-numbered chapters; the "II.37" section numbers belong to the modern (Loeb/1993 Hendrickson)
+  numbering, which must not be used. The only reachable copy of the original (archive.org, Bohn 1855) is unproofed
+  OCR that drops some chapter heads. Its reference is still listed where it is relevant.
+- **Ptolemy II Philadelphus** (FIG-0010), a history-database figure: dates, parents, his marriage to Arsinoe II, the
+  Library and Mouseion, the Pharos; the Septuagint commission said as tradition. No picture (none checked as public
+  domain). Linked to the Letter by name in both rows: the schema only links a figure to a writing it authored, and an
+  event needs a dated timeline with its own animation.
+- **Sources** lines, the owner's bibliography word for word without page numbers, only where relevant
+  (`WRITING_REFS_ON`): the Septuagint and Brenton cards (Jobes and Silva, Aristeas, Philo, Dines, Law), the Masoretic
+  (Tov), the Letter of Aristeas, and Ptolemy II (Aristeas, Philo, Dines).

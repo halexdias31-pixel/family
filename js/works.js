@@ -40,9 +40,11 @@ function worksItems_() {
       list.push({
         kind: 'worktext', key: 'wt:' + w.id + ':' + lang + ':' + i, name: w.title + ' ' + say, image: '', row: null,
         /* ON THE ONE WRITINGS SHELF (504) beside the Bible, the Quran, the Talmud and the Hadith, still a Text of the history database. */
-        shelf: BIBLE_SHELF, subject: SCRIPTURE_SUBJECT(), libBook: w.title, histKind: 'Texts', unit: WRITING_UNIT.worktext, min_age: age, sub: lang,
+        shelf: BIBLE_SHELF, subject: SCRIPTURE_SUBJECT(), libBook: w.title, histKind: 'Texts', unit: w.unit === 'section' ? 'verse' : WRITING_UNIT.worktext, min_age: age, sub: lang,
         text: [w.title, say, lang, w.id].join(' '),
-        wtWork: w.title, wtChapter: say, wtLanguage: lang, wt: { id: w.id, file: w.file, i: i, lang: lang },
+        /* A WRITING NUMBERED IN SECTIONS (504, the Letter of Aristeas) is asked Section, not Chapter; its Text says whose words. */
+        wtWork: w.title, wtChapter: w.unit === 'section' ? '' : say, wtSection: w.unit === 'section' ? say : '',
+        wtLanguage: (w.says && w.says[lang]) || lang, wt: { id: w.id, file: w.file, i: i, lang: lang },
       });
     }));
   });
@@ -72,7 +74,7 @@ function worksBody_(x) {
     const c = d.chapters[x.wt.i] || {};
     const src = (d.sources || []).find(s => s.language === x.wt.lang) || {};
     return `<p class="wt-text" lang="${L.lang}">${esc(c[L.k] || '')}</p>
-      <p class="wt-credit">${esc(src.text || '')}${src.via ? ', via ' + esc(src.via) : ''} · ${esc(src.licence || '')}</p>`;
+      <p class="wt-credit">${esc(src.text || '')}${src.via ? ', via ' + esc(src.via) : ''} · ${esc(src.licence || '')}</p>${writingRefs_(x.wt.id)}`;
   }
   if (WORKS.missed[x.wt.id] && !WORKS.loading[x.wt.id]) return '<p class="fc-note">This text did not arrive.</p>';
   if (!WORKS.loading[x.wt.id]) worksLoad_(x.wt.id, x.wt.file).then(() => worksRedraw_(x.wt.id));
