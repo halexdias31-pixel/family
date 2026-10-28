@@ -1706,13 +1706,15 @@ function msFacts_(r) {
     .filter(Boolean).map(esc).join(' · ');
 }
 
+const HIST_TILE_LINKS = 3;
 function histCard_(x) {
   const r = x.row || {};
   const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim());
-  const tiles = histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
+  /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
+  const tiles = histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
     label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
-    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
+    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
       tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
   const look = x.kind === 'manuscript' ? msFragSvg_(r) : '';
@@ -9544,7 +9546,7 @@ function accountPages_(col) {
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
-    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more) : ''));
+    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
   const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
@@ -9559,13 +9561,14 @@ function accountPages_(col) {
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
     /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
+    /* A PERSON'S ROW STANDS ALONE (498): the list's layout row was joined onto the last person's, so one client "has loads of tile options". */
     .map(p => personMark_(p.personId, personForm_(p) || card_(p)
       + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : '')) : '')));
+          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
@@ -10064,7 +10067,9 @@ function stuffCard(x, credits) {
   const html = (kindOf_(x).card || thingCard_)(x, credits);
   if (!x.key) return html;
   /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  const out = `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  /* A HISTORY CARD'S LINKS AND ITS STAR ON ONE LINE (498): "they don't even appear on the same line". */
+  return x.hdb && typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(out) : out;
 }
 
 /* WHAT A CHIP READS: the words its button said (`facetShort_`), memoised per finder. */

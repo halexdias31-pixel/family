@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-27-zi-no-email";
+const DOPOST_VERSION = "2026-10-28-n4a-notes";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2780,7 +2780,8 @@ function doPost(e) {
       const kind = norm(body.kind);
       if (!REPORT_KIND_RE.test(kind)) return jsonOut({ error: 'Which thing? Nothing was sent.' });
       const item = S(body.itemId).trim();
-      if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9_.:|#\/-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
+      /* A SHOP ITEM'S ID IS ITS NAME (498), spaces and brackets and all: "Gooey Louie (board game)" was refused, so Suggest on the shop did nothing. */
+      if (item.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9 _.:|#\/()'&,+-]*$/.test(item) || (kind === 'question' && !/^q:./.test(item)))
         return jsonOut({ error: 'Which one? Nothing was sent.' });
       /* AN OLD PHONE'S REASON IS KEPT AS WORDS in front of the note. */
       const why = Object.prototype.hasOwnProperty.call(REPORT_REASONS, S(body.reason)) && S(body.reason) !== 'suggest' ? REPORT_REASONS[S(body.reason)] : '';
@@ -2796,6 +2797,18 @@ function doPost(e) {
         if (!msg) return jsonOut({ error: 'Not found.' });
         if (S(msg.to_id) !== S(me.person_id) && !admin) return jsonOut({ error: 'Not yours to send on.' });
       }
+      /* A PICTURE WITH IT (498): one image, shrunk on the phone, kept in the posts folder and named on the note as a link. */
+      let pic = '';
+      const img = S(body.image).trim();
+      if (img) {
+        if (!/^data:image\/(jpeg|png|webp);base64,/i.test(img) || img.length > SUGGEST_PIC_MAX) return jsonOut({ error: 'That picture could not be sent — try a smaller one.' });
+        const folder = getPostFolder();
+        if (!folder) return jsonOut({ error: 'No posts folder for the picture. Add `posts_folder` to the config tab.' });
+        try { pic = driveKeep_(folder, img, 'suggest-' + Date.now()); } catch (err) { return jsonOut({ error: 'The picture could not be kept in Drive.' }); }
+      }
+      /* AND THE FUNNEL PATH ON FIND (498): which answers and words led to the card, so the note says which menu it meant. */
+      const path = S(body.path).replace(/\s+/g, ' ').trim().slice(0, 300);
+      const noteAll = [note || (people ? 'A message they were sent' : ''), path ? 'Path: ' + path : '', pic ? 'Picture: ' + pic : ''].filter(Boolean).join('\n');
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
       let out = {}, made = null;
@@ -2810,7 +2823,7 @@ function doPost(e) {
           const had = !admin && t.rows.find(r => S(r.made_by) === pid && S(r.item_id) === key && norm(r.status) === 'pending' && reportDay_(r.made_at) === today);
           if (had) out = { success: true, already: true };
           else {
-            made = suggestRow_(t, pid, kind, item, reportCut_(body.label, REPORT_FIELD_MAX), note || 'A message they were sent', admin ? 'open' : 'pending');
+            made = suggestRow_(t, pid, kind, item, reportCut_(body.label, REPORT_FIELD_MAX), noteAll, admin ? 'open' : 'pending');
             out = { success: true, serious: admin, id: made.note_id };
           }
         }
