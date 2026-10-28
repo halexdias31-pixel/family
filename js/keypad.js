@@ -700,8 +700,8 @@ function kpDone_(inp) {
   const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
   if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
-  const go = box && (box.querySelector('.qp-check[data-do="qp-check"]')
-    || box.querySelector('.qp-send[data-do="qp-send"]')
+  /* ONE SUBMIT PATH (508): ✓ presses the box's own send tile, whatever it is called — a rule-marked box's `qp-rule` was missed before. */
+  const go = box && (box.querySelector('.tile.is-submit[data-do]:not([disabled])')
     || box.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
   const run = go && ACTIONS[go.getAttribute('data-do')];
   if (run) run(go);

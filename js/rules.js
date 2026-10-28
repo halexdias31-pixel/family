@@ -3,10 +3,10 @@
 
 /* ONE ROW A RULE: `say` the exception, `where` it applies, `uni` what Universal does instead, `lock` why it cannot be universal (never flips). */
 const RULES = [
-  { id: 'tap-44', say: 'Keypad keys and multiple-choice options stay 44px tall while every tile is 22px', where: 'A question\'s pages (487)',
-    uni: 'They shrink to the 22px tile size.' },
-  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 10px', where: 'Find and Find 2 (487)',
-    uni: 'The magnifier is 10px like every tile\'s mark.' },
+  { id: 'tap-44', say: 'Keypad keys, multiple-choice options and every Check/Send stay 44px while every other tile is 36px', where: 'A question\'s pages (487, 508)',
+    uni: 'They shrink to the 36px tile size.' },
+  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find and Find 2 (487)',
+    uni: 'The magnifier is 16px like every tile\'s mark.' },
   { id: 'whole-widgets', say: 'Console, Board games, Word & number games, Calculator, Whiteboard and Reels cannot be merged', where: 'Widget columns (480)',
     uni: 'They get Merge with the card above like every other widget.' },
   { id: 'library-one-card', say: 'Library cards holds one card, with no Add another', where: 'Settings (489)',
@@ -21,7 +21,7 @@ const RULES = [
     uni: 'Signed out sees the finders like every other column.' },
   { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
     uni: 'Delete on it like every other widget.', lock: 'It is the one place a shop order is paid; without it nobody could pay.' },
-  { id: 'admin-cols', say: 'Business and Site cards stay on those two columns, and no other card moves onto them', where: 'Business and Site (491)',
+  { id: 'admin-cols', say: 'Business and Site cards stay on those two columns and admin-only columns made past Site (508), and no other card moves onto them', where: 'Business and Site (491)',
     uni: 'Any card moves to any column.', lock: 'A card moved onto an admin column would vanish for everyone but an admin.' },
   { id: 'people-no-merge', say: 'A card drawn a page a person (Tutor directory, Every student, Every parent) cannot be merged', where: 'Profile columns (480)',
     uni: 'Merge on them too.', lock: 'A merged card is one page, and people cannot be stacked on one.' },

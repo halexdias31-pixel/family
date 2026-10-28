@@ -684,6 +684,9 @@ function columnShift_(host, at) {
   if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
       && h.vp === innerWidth + 'x' + innerHeight) {
     const room = boxH - cur.offsetHeight;
+    /* HELD ONLY WHILE IT GROWS (508): a card that shrank (words or chips cleared) is centred again, and held from there. */
+    if (h.h != null && cur.offsetHeight < h.h - 1) h.top = Math.max(0, room / 2);
+    h.h = cur.offsetHeight;
     /* `lift` IS THE MATHS KEYPAD'S, and only the keypad's — see `kpLift_` in keypad.js. § */
     return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - (h.lift || 0) - cur.offsetTop;
   }
@@ -691,7 +694,7 @@ function columnShift_(host, at) {
 }
 
 /* ---------- ONCE YOU ARE USING A CARD, IT STAYS WHERE IT IS § */
-let HOLD_AT = null;      // { id, p, top, vp, lift } — the card being used, where its top is held, and how far the keypad lifted it
+let HOLD_AT = null;      // { id, p, top, h, vp, lift } — the card being used, where its top is held, and how far the keypad lifted it
 
 function holdHere_(t) {
   try {
@@ -703,7 +706,7 @@ function holdHere_(t) {
     if (HOLD_AT && HOLD_AT.id === AT && HOLD_AT.p === (PAGE[AT] || 0)) return;
     const at = colPlaced_(host);
     if (!at) return;
-    HOLD_AT = { id: AT, p: PAGE[AT] || 0, top: at[1] + pg.offsetTop, vp: innerWidth + 'x' + innerHeight };
+    HOLD_AT = { id: AT, p: PAGE[AT] || 0, top: at[1] + pg.offsetTop, h: pg.offsetHeight, vp: innerWidth + 'x' + innerHeight };
   } catch (e) { HOLD_AT = null; }
 }
 

@@ -1,7 +1,8 @@
 /* @family. — submit.js EVERY ANSWER SENT IS AN EVENT, AND WHAT A CHILD SEES IS THE LATEST ONE. § */
 
 /* THE SERVER'S CEILINGS, said again, because the phone must not send what will be refused for ever — `SUBMISSIONS_PER_POST` and `ANSWER_TEXT_MAX` in § */
-const SUB_PER_POST = 25, SUB_ANSWER_MAX = 20000;
+const SUB_PER_POST = 25, SUB_ANSWER_MAX = 20000, SUB_TWICE_MS = 1000;
+const SUB_LAST = new Map();   // who|key -> the last press made on this page, for the double-tap guard (508)
 /* WHAT A `keepalive` REQUEST MAY CARRY — a browser refuses one over 64 KB (answers.js says the same). */
 const SUB_KEEPALIVE_MAX = 60000;
 
@@ -104,7 +105,11 @@ function subRecord_(k, answer, verdict, sound) {
     return null;
   }
   const key = subKeyOf_(k);
+  /* ONE PRESS, ONE SUBMISSION (508): the same answer and verdict again within a second is a double tap, not a second try. */
+  const prev = SUB_LAST.get(who + '|' + key);
+  if (prev && prev.e.a === answer && prev.e.v === String(verdict) && Date.now() - prev.t < SUB_TWICE_MS) return prev.e;
   const e = { a: answer, v: String(verdict), at: Date.now(), id: subId_() };
+  SUB_LAST.set(who + '|' + key, { e: e, t: e.at });
   /* SIGNED IN WITH AN ID: the account's. Over the account's ceiling it stays here and says so. */
   const pid = who && typeof USER === 'object' && USER && USER.personId && who === 'u:' + String(USER.personId) ? String(USER.personId) : '';
   if (pid) {
@@ -691,7 +696,7 @@ function reportBoxHtml_(kind, id, label, finder, path) {
       placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
     <input type="file" accept="image/*" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
     <img class="rep-pic-show" alt="The picture going with it" hidden>
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send' })}${
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
       people ? '' : tile_({ icon: 'photo', label: 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
     <p class="faint me-said rep-said" aria-live="polite">${admin

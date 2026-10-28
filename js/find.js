@@ -3787,6 +3787,10 @@ function markNorm_(s) {
     .replace(/&pound;/g, '£').replace(/&euro;/g, '€').replace(/&minus;/g, '−')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ')
+    /* WHAT A PASTE OR A PHONE'S SMART PUNCTUATION ADDS (508): invisible characters go, curly quotes are straight, full-width digits are digits. */
+    .replace(/[\u200b-\u200d\u2060\ufeff\u00ad]/g, '')
+    .replace(/[\u2018\u2019\u02bc]/g, "'").replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\uff10-\uff19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xff10 + 48))
     .toLowerCase()
     .replace(/[−–—]/g, '-')          /* minus, en dash, em dash */
     .replace(/[£$€]/g, '')
@@ -4810,7 +4814,8 @@ function subBoxSay_(k, val) {
 on('qp-check', (el) => {
   const box = el.closest('.qp-mark');
   const card = el.closest('.qcard');
-  const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
+  /* ITS OWN BOX'S FIELD FIRST (508), as `qp-rule` and `qp-send` read it: a card with two boxes marked the first one's. */
+  const inp = (box && box.querySelector('.qp-multi-val, .qp-ans-in')) || (card && card.querySelector('.qp-multi-val, .qp-ans-in'));
   const out = box && box.querySelector('.qp-verdict');
   if (!box || !inp || !out) return;
   const verdict = markAnswer_(inp.value, box.getAttribute('data-accept'));

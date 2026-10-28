@@ -179,6 +179,7 @@ const SUITE = [
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
+  { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },

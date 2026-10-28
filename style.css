@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zr-qtools";
+  --css-version: "2026-10-28-n5a-round-tiles";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -54,8 +54,8 @@
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
-  /* ONE TILE SPEC (467, 487): a 22px plate, a 10px mark, 3px apart -- a quarter of the old 44px area, the owner's choice (487). */
-  --tile: 22px; --tile-i: 10px; --tile-gap: 3px;
+  /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
+  --tile: 36px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -4913,7 +4913,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile {
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--tile); height: var(--tile); padding: 0; flex: none; box-sizing: border-box;
-  color: var(--dim); border-radius: var(--r);
+  /* ROUND (508): the owner, "turn all tiles into circles"; a square plate, so a circle; its focus ring follows the radius. */
+  color: var(--dim); border-radius: 50%;
   background: rgb(255 255 255 / .03);
   border: 1px solid var(--line);
   font: 600 .72rem/1 var(--mono);
@@ -4935,7 +4936,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    one today, and a blank 44px square would be worse than an ugly one. */
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
 /* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
-.tile.is-sure { width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
+.tile.is-submit { width: var(--tile-send); height: var(--tile-send); }
+.tile.is-sure { border-radius: 999px; width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 
@@ -6929,6 +6931,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rules-card .rule-opt { min-height: 44px; flex: 1 1 0; }
 .rules-card .rule-opt.on { border-color: var(--gold); color: var(--gold); }
 :root[data-uni~="tap-44"] .kp-key, :root[data-uni~="tap-44"] .qp-opt { min-height: var(--tile); }
+:root[data-uni~="tap-44"] .tile.is-submit { width: var(--tile); height: var(--tile); }
 :root[data-uni~="search-icon"] .search-pill .tile-i { width: var(--tile-i); height: var(--tile-i); }
 /* ---------- EDIT WORDS IN PLACE AND WHO SEES THIS (497, words.js) ---------- */
 .wk-editing [data-wk] { outline: 1px dashed var(--gold); outline-offset: 2px; cursor: text; min-width: 2rem; display: inline-block; }
