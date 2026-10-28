@@ -21047,6 +21047,9 @@ check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing o
   if (card && card.querySelector('h3')) bad.push('the card still has a title');
   const svg = card && card.querySelector('.hdb-ms svg');
   if (!svg || !svg.querySelector('clipPath path') || !svg.querySelectorAll('text').length) bad.push('the card has no drawing of the fragment');
+  /* TRACED, BOTH SIDES (495): recto and verso, and only letters that survive -- a whole line of 30 would be the old guess. */
+  if (card && card.querySelectorAll('.hdb-ms-side svg').length !== 2) bad.push('the drawing does not show both recto and verso');
+  if (svg && svg.querySelectorAll('text').length > 80) bad.push('the recto draws ' + svg.querySelectorAll('text').length + ' letters; about 60 survive');
   const facts = (card && card.querySelector('.hdb-facts') || {}).textContent || '';
   if (!/Found: .*1920/.test(facts) || !/Dated: /.test(facts) || !/Held: John Rylands Library/.test(facts)) bad.push('the facts line says "' + facts + '"');
   return bad;
