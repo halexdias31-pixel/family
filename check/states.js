@@ -4189,6 +4189,27 @@ const STATES = {
         && document.querySelector('#s-tools #fm-said b'),
       wants: 'the flyer maker saying what will print, with no preview on the card' },
 
+    /* ---------- THE REWRITE COACH, ONE FACT AT A TIME (519): the owner's "one question at a time on screen", at every width ---------- */
+    { name: 'the Rewrite coach, one fact at a time',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'rewrite');
+        if (n < 0) throw new Error('no Rewrite coach in the roster');
+        goPage('tools', n, true);
+        Object.assign(RW, RW_FRESH(), { text: 'The Septuagint is the oldest surviving Greek translation of the Hebrew Bible. It was made in Alexandria for Jews who spoke '
+          + 'Greek rather than Hebrew. Scholars often abbreviate the Septuagint as LXX, the Roman numeral for seventy. Early Christians read the Septuagint as their Old Testament.' });
+        rwRedraw_(true);
+        const tap = a => { const el = document.querySelector('#s-tools #rw-box [data-do="' + a + '"]'); if (!el) throw new Error('no ' + a + ' tile'); el.click(); };
+        tap('rw-ideas'); tap('rw-recall');
+        RW.mine[0] = 'The Septuigint was the first translation of the Hebrew Bible into Greek.';
+        rwRedraw_(true);
+      },
+      expect: () => document.querySelectorAll('#s-tools #rw-box [data-rw="mine"]').length === 1
+        && /^1 of \d+$/.test((document.querySelector('#s-tools #rw-box .rw-step') || {}).textContent || '')
+        && document.querySelector('#s-tools #rw-box .rw-spell')
+        && document.querySelector('#s-tools #rw-box [data-do="rw-next"]'),
+      wants: 'the Rewrite coach on one fact: "1 of N", a specific cue, one box with its score and a gentle spelling note, Back and Next' },
+
     /* ---------- CHECK UPLOADS, ANSWERED — THE ADMIN'S, LIKE THE FLYER § */
     { name: 'check uploads, answered',
       only: () => typeof isAdmin === 'function' && isAdmin(),

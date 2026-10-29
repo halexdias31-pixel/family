@@ -22,6 +22,22 @@ function cssVersion() {
 
 let DATA = {};
 
+/* ---------- A ROW THAT IS NOT A ROW IS DROPPED AT THE DOOR (R6) ---------- */
+/* null is never a row; in a list of objects a string or number is not one either. Returns {key: dropped}, so load() can report the count. */
+function dataRowsClean_(d) {
+  const out = {};
+  if (!d || typeof d !== 'object') return out;
+  const isRow = x => !!x && typeof x === 'object' && !Array.isArray(x);
+  Object.keys(d).forEach(k => {
+    const v = d[k];
+    if (!Array.isArray(v)) return;
+    const rows = v.some(isRow);
+    const kept = v.filter(x => x != null && (!rows || isRow(x)));
+    if (kept.length !== v.length) { out[k] = v.length - kept.length; d[k] = kept; }
+  });
+  return out;
+}
+
 /* ---------- ASKING BY SCRIPT TAG, FOR A PAGE THAT HAS NO ORIGIN § */
 function jsonp(url) {
   return new Promise((ok, no) => {

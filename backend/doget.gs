@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-zz5-merge4";
+const DOGET_VERSION = "2026-10-29-merge-rw3";
 
 
 function doGet(e) {
@@ -249,6 +249,8 @@ function doGet(e) {
                  'favLinksSave', 'rewriteIdeas', 'rewriteCheck',
                  /* Suggest a change (494), and an old phone's report. */
                  'suggest', 'report', 'suggestUpload',
+                 /* The error log (O5): phones report, the Business column lists. */
+                 'clientError', 'listClientErrors',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */

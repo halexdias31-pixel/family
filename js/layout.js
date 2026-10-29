@@ -418,6 +418,7 @@ const CARD_REG = [
   { id: 'biz:setup', col: 'site', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
   { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
+  { id: 'biz:errs', col: 'biz', label: 'Error log', re: /^<div class="card biz errs/, say: 'What broke on people\'s screens, counted once per error.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
   { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
   { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },

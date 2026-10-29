@@ -51,3 +51,40 @@ flagged; a quote not in the answer loses its verdict; turning off rarity weights
 A journey in `check-flow.js` drives the widget: AI off end to end, then with the AI stubbed.
 
 Stamps: `2026-10-28-zz4-rewrite-facts` (all four), css the same.
+
+## The Septuagint run (29 Oct): one fact at a time, small facts, specific cues
+
+The owner pasted a text about the Septuagint and got 12 facts on screen at once, facts of 26–66 words of
+substance, the cue "What did the text say about Septuagint?" five times and "Greek" three, "Septuigint" and
+"origional" counted as missing, a good sentence scoring 20% and 6% overall. Owner: "this widget is a bit faulty,
+also should be one question at a time on screen otherwise it's too much to hold in one widget." On a second run:
+the cue "Jewish?" "makes no sense"; "septuigent was used in alexandria by jews there." scored 7%; "Own wording
+100%" over answers of "done"; and "the questions should be more specific. They are too vague."
+
+The rules now (rewrite.js):
+- **One fact at a time** (`rwOneHtml_`): "3 of 12", one box, its own score; Back and Next tiles; past the last a
+  summary (`rwSummaryHtml_`) with Check. Answers stay in `RW.mine` while stepping. Try again steps only through the
+  facts still out.
+- **Small facts** (`rwFits_`, `rwCut_`): at most 12 words of substance and 3 names, numbers or compound terms; a
+  sentence that fits is never cut; one too big is cut at a clause, then a phrase, into as few even pieces as fit;
+  a scrap joins a neighbour. A long text keeps its 12 most substantial facts and says how many are left (`rwPick_`).
+  Term runs no longer mix a name with a word ("New Testament" + "quote") or run onto a verb ("scholars" +
+  "translated"); a name runs through "of" ("Letter of Aristeas").
+- **Specific, distinct cues** (`rwCues_`, `rwAsk_`, `rwGap_`): every cue hides its fact's answer — the rarest names
+  first, never an answer an earlier cue already asked — and shows at most ~8 words of context: "What is …?" for a
+  subject, "When?" for a date, "Where?" for a place (never a language), else the fact with gaps "— fill in from
+  memory". No two cues are the same. With "Tidy the facts", the AI may word each cue (`questions`), kept only if it
+  is a question, names none of the hidden terms and shares a word with the fact (`rwAiCue_`).
+- **Spelling and kin words** (`rwLike_`): one slip in 5–7 letters, two in 8+, on the word or its stem, count —
+  with "Check spelling: Septuagint" under the box; Jew/Jewish, Greek/Greeks, Rome/Roman are the same word.
+- **Scores** (`rwCover_`, `rwScore_`, `rwAverage_`): a fact is scored on its key words (rare words, names,
+  numbers); the cue's visible words are given once the student earns a key word of their own, so "done" is 0.
+  Overall is the average over facts answered, with "N of M facts answered". Own wording is judged only over
+  answers of 5+ words, 10+ in all (`rwOwnText_`), else "not enough written yet".
+
+Checks: `check-rewrite.js` runs a Septuagint paragraph written for it (the owner's answers score ≥ 40% for their
+own fact, a good sentence > 50%, "done" 0) and a case per rule; every rule was proven by a mutation turning it
+red. The flow journey steps one fact at a time, Back keeps the typing, "done" leaves own wording unjudged.
+`check/states.js` adds "the Rewrite coach, one fact at a time" to `check/ui.js --screen=tools`.
+
+Stamps: `2026-10-29-rw3` (all four), css the same.
