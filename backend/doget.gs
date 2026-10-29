@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-r2-safety2";
+const DOGET_VERSION = "2026-10-29-merge-rw3";
 
 
 function doGet(e) {

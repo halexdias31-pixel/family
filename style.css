@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-28-zz5-merge4";
+  --css-version: "2026-10-29-rw3";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6994,6 +6994,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-kept.is-changed, .rw-kept.is-missing { color: var(--warn); }
 .rw-quote { margin: .1rem 0; font-size: .85rem; color: var(--dim); }
 .rw-q { margin: .1rem 0; font-size: .85rem; }
+/* ONE FACT AT A TIME (519): where you are, then the cue and its box. */
+.rw-step { margin: .4rem 0 0; font-size: .78rem; color: var(--dim); letter-spacing: .04em; }
+.rw-sum { margin: .2rem 0 .4rem 1.1rem; padding: 0; font-size: .85rem; }
+.rw-sum li { margin: .15rem 0; }
+.rw-spell { margin: .1rem 0 0; font-size: .8rem; color: var(--dim); font-style: italic; }
 /* FILES FOR CLAUDE (515): the chosen files, one line each, scrolled when a whole folder is chosen. */
 .rep-file-list { margin: .4rem 0; padding-left: 1.2rem; max-height: 10rem; overflow-y: auto; font-size: .85rem; }
 .rep-file.is-failed { color: var(--ink); font-weight: 600; }

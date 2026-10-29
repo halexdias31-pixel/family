@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-28-r2-safety2";
+const BACKEND_VERSION = "2026-10-29-merge-rw3";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
