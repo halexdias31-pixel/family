@@ -95,5 +95,10 @@ rule, `QT_WORDY_SUBJECT`, `qToolkit_`/`qToolTiles_`, `padSendRow_`/`pad-send`, t
   three JPEGs, and puts the PNG first, as the prompt says.
 - `penPng_` left out the Grid tool's overlay (CSS on screen) and any `<img>` figure; `penSvg_` now draws the overlay
   as lines between the figure and the ink, and the canvas draws `<img>` figures under it (without them if one taints it).
+- `check/ui.js` never measured a question card: "the library still coming" empties the library, its expect missed, and
+  a missed state skipped its `leave`, so every later Find state said "Q0664 is not in the library". Every way out of a
+  state now puts it back. The first run that reached them found the Calculator's keys 40px wide at 320 (now each key's
+  box is its whole cell, 44px), and ten question-page states in `check/states.js` that still describe the page before
+  round 3 (a pen drawn before any tap, no box on a drawn part, Send in the bar, 30/39/40-key pads): left for rewriting.
 - Not changed, for the owner: the Calculator on Non-calculator papers (the decided design says every tool on every
   part); 7 accepted answers using ≈ → … ∛ cannot be typed (fix-r2-marking owns `markNorm_`).

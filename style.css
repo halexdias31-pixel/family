@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-29-r3-review-b";
+  --css-version: "2026-10-29-r3-review-b2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6110,14 +6110,15 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qt-how { flex: 1 1 100%; margin: .3rem 0 0; padding: 0 .25rem; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
 .qt-panel { margin-top: .6rem; }
 .qt-panel[hidden] { display: none; }
-/* THE CALCULATOR'S KEYS are a form's buttons: their height in px for a fingertip, the rest in rem */
+/* THE CALCULATOR'S KEYS are a form's buttons, 44px tall; each key's box is its whole cell, the gap a transparent border inside it, so five fit a 320 phone at 44px wide */
 .qcalc-out { display: block; min-height: 3.2rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: .5rem; text-align: right; overflow-x: auto; }
 .qcalc-in { min-height: 1.4rem; white-space: nowrap; }
 .qcalc-res { font-size: 1.3rem; font-weight: 600; }
-.qcalc-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; margin-top: .5rem; }
-.qcalc-k { min-height: 44px; border: 1px solid var(--line); border-radius: .5rem; background: var(--bg); color: var(--ink); font-size: 1rem; }
+.qcalc-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-top: .3rem; }
+.qcalc-k { min-height: 44px; border: .2rem solid transparent; background-clip: padding-box; box-shadow: inset 0 0 0 1px var(--line);
+           border-radius: .7rem; background-color: var(--bg); color: var(--ink); font-size: 1rem; }
 .qcalc-k.is-op { color: var(--gold); }
-.qcalc-k.is-eq { background: var(--gold); color: var(--bg); }
+.qcalc-k.is-eq { background-color: var(--gold); color: var(--bg); }
 /* THE TABLE: cells to work in, any size; a fingertip tall */
 .qt-table table { border-collapse: collapse; width: 100%; table-layout: fixed; }
 .qt-table td { border: 1px solid var(--line); padding: 0; }
