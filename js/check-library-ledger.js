@@ -298,7 +298,7 @@ function fakeDrive(me) {
       getName: () => f.name, getId: () => f.id, isTrashed: () => false, getOwner: () => who(f.owner),
       getFiles: () => iter(files.filter(x => x.parent === f)),
       getFoldersByName: nm => iter(folders.filter(x => x.parent === f && x.name === nm)),
-      createFolder: nm => folderObj(nm, f, me),
+      createFolder: nm => folderObj(nm, f, me), createFile: (nm, text, mime) => fileObj(nm, String(text), f, me, mime),
       addFile: x => { x.parent = f; return f; }, removeFile: () => f };
     folders.push(f);
     return f;
@@ -453,6 +453,58 @@ function fakeDrive(me) {
   if (h2.why !== 'busy') bad.push('an hourly run while the lock is held should give way: ' + JSON.stringify(h2));
   held = false;
   g.LockService = realLS;
+
+  /* ---------- 9. ONE ZIP OF MANY FILES: unpacked into the folder (only lib-import-*.json names, none twice), moved to imported, imported the same run; too big refused ---------- */
+  /* A FAKE ZIP: its blob carries its entries; Utilities.unzip hands them back as blobs, and counts how often it was asked. */
+  let unzips = 0;
+  const realU = g.Utilities, logged9 = [], realLog = g.Logger;
+  g.Utilities = Object.assign({}, realU, { unzip: b => { unzips++; return b.entries.map(e => ({ getName: () => e.name, getDataAsString: () => e.text })); } });
+  g.Logger = { log: m => logged9.push(String(m)) };
+  const zipOf = (name, entries, size) => {
+    const z = drive.fileObj(name, '', home, OWNER, 'application/zip');
+    z.getSize = () => size || 1000;
+    z.getBlob = () => ({ entries, setContentType() { return this; }, getDataAsString: () => '' });
+    return z;
+  };
+  const part9 = k => JSON.stringify({ version: 1, files: { practicals: [{ id: 'P-ZIP-' + k, aim: 'Zip ' + k }] }, cards: { practicals: [{ practical_id: 'P-ZIP-' + k }] } });
+  const zip = zipOf('lib-import-2026-10-29-zip.zip', [
+    { name: 'out/lib-import-zip-01.json', text: part9(1) },
+    { name: 'lib-import-zip-02.json', text: part9(2) },
+    { name: 'run-me.gs', text: 'function evil() {}' },
+    { name: '../lib-import-hr-part-01-of-03.json', text: JSON.stringify({ version: 1, files: { practicals: [{ id: 'P-HR-1', aim: 'DUPLICATE' }] } }) }]);
+  const lz = w.ask(HAL, { action: 'libImportList' });
+  const zl = (lz.pending || []).find(p => p.name === zip.name);
+  if (!zl || !zl.zip || zl.files !== 3 || zl.said !== 'zip waiting (3 files)') bad.push('libImportList should show the zip as "zip waiting (3 files)": ' + JSON.stringify(lz.pending).slice(0, 300));
+  const hz = JSON.parse(w.b.ev('JSON.stringify(libImportHourly())'));
+  const pz = tabItems(w, 'practicals');
+  const z0 = (hz.zips || [])[0] || {};
+  if (z0.unzipped !== 2 || z0.skipped !== 1 || z0.error) bad.push('the zip should give two files and skip the one already imported: ' + JSON.stringify(hz.zips));
+  if (hz.imported !== 2 || [1, 2].some(k => !pz['P-ZIP-' + k] || pz['P-ZIP-' + k].aim !== 'Zip ' + k)) bad.push('the zip\'s two files were not imported by the same run: ' + JSON.stringify(hz).slice(0, 300));
+  if (zip.parent !== done7) bad.push('the unpacked zip was not moved to imported');
+  if (pz['P-HR-1'].aim !== 'Part 1' || drive.files.filter(f => f.name === 'lib-import-hr-part-01-of-03.json').length !== 1) bad.push('a zip\'s file named like one already imported was made again');
+  if (drive.files.some(f => /run-me|^out|\.\./.test(f.name))) bad.push('a zip entry not named lib-import-*.json, or its path, reached Drive');
+  if (['lib-import-zip-01.json', 'lib-import-zip-02.json'].some(nm => { const f = drive.files.find(x => x.name === nm); return !f || f.parent !== done7 || f.owner !== OWNER; })) bad.push('the unpacked files are not our own, imported, in imported');
+  /* A ZIP OF ONLY FILES ALREADY THERE: moved, and the hourly run says so rather than "nothing". */
+  const dz = zipOf('lib-import-2026-10-29-dup.zip', [{ name: 'lib-import-zip-02.json', text: part9(2) }]);
+  const hd = JSON.parse(w.b.ev('JSON.stringify(libImportHourly())'));
+  const la = w.ask(HAL, { action: 'libImportList' }).auto || {};
+  if (hd.nothing || dz.parent !== done7 || ((la.zips || [])[0] || {}).skipped !== 1) bad.push('an hourly run that unpacked a zip of duplicates should report it, not "nothing": ' + JSON.stringify([hd, la.zips]).slice(0, 300));
+  /* TOO BIG: refused before unpacking, said in the log and on the card, and it stays. */
+  const u0 = unzips;
+  const big = zipOf('lib-import-2026-10-29-big.zip', [{ name: 'lib-import-big.json', text: part9(9) }], 60 * 1024 * 1024);
+  const lb = (w.ask(HAL, { action: 'libImportList' }).pending || []).find(p => p.name === big.name) || {};
+  const tb = w.ask(HAL, { action: 'libImportDrive' });
+  const zb = (tb.zips || [])[0] || {};
+  if (unzips !== u0 || !/at most 45\.0 MB/.test(zb.error || '') || big.parent !== home || drive.files.some(f => f.name === 'lib-import-big.json')
+      || !/zip refused/.test(lb.said || '') || !logged9.some(m => /lib-import-2026-10-29-big\.zip refused/.test(m))) bad.push('a 60 MB zip was not refused untouched, with a log line: ' + JSON.stringify([zb, lb, logged9]).slice(0, 300));
+  /* TOO MANY FILES: refused the same way. */
+  big.parent = theirs;
+  const many = zipOf('lib-import-2026-10-29-many.zip', Array.from({ length: 501 }, (_, k) => ({ name: 'lib-import-m-' + k + '.json', text: part9(9) })));
+  const tm = w.ask(HAL, { action: 'libImportDrive' });
+  if (!/at most 500/.test(((tm.zips || [])[0] || {}).error || '') || many.parent !== home || drive.files.some(f => /^lib-import-m-/.test(f.name))) bad.push('a zip of 501 files was not refused: ' + JSON.stringify(tm.zips));
+  many.parent = theirs;
+  g.Utilities = realU;
+  g.Logger = realLog;
 }
 
 if (bad.length) {
@@ -461,4 +513,4 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('OK — the library copies into the Ledger a step at a time and only counts once every row reads back as its source (' + asked
-  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all, by a tap or the hourly run.');
+  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all, by a tap or the hourly run, and a zip of them unpacks first (too big refused).');

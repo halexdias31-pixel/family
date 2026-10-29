@@ -1739,6 +1739,10 @@ const LIB_DRIVE_LAST = 'LIB_IMPORT_LAST';
 /* THE HOURLY RUN (443): its handler, and the property holding what the last automatic import that found files did. */
 const LIB_DRIVE_HOURLY = 'libImportHourly';
 const LIB_DRIVE_AUTO = 'LIB_IMPORT_AUTO';
+/* ONE ZIP OF MANY FILES: lib-import-*.zip in the folder is unpacked into lib-import-*.json beside it, then moved to `imported`. Over Apps Script's blob limit (~50 MB) it is refused. */
+const LIB_DRIVE_ZIP = /^lib-import-[A-Za-z0-9._:-]{1,80}\.zip$/;
+const LIB_DRIVE_ZIP_BYTES = 45 * 1024 * 1024;
+const LIB_DRIVE_ZIP_FILES = 500;
 
 /* WHO OWNS IT, '' WHEN DRIVE WILL NOT SAY — only this account's own folder and files are read, never one shared with it. */
 const libDriveOwner_ = f => { try { const o = f.getOwner && f.getOwner(); return o ? norm(o.getEmail()) : ''; } catch (err) { return ''; } };
@@ -1915,6 +1919,59 @@ function libDrivePending_(folder) {
   while (it.hasNext()) { const f = it.next(); if (LIB_DRIVE_NAME.test(S(f.getName())) && libDriveMine_(f)) out.push(f); }
   return out.sort((a, b) => (S(a.getName()) < S(b.getName()) ? -1 : S(a.getName()) > S(b.getName()) ? 1 : 0));
 }
+/* THE ZIPS WAITING, the same way: in the folder itself, this account's own, oldest name first. */
+function libDriveZips_(folder) {
+  const out = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) { const f = it.next(); if (LIB_DRIVE_ZIP.test(S(f.getName())) && libDriveMine_(f)) out.push(f); }
+  return out.sort((a, b) => (S(a.getName()) < S(b.getName()) ? -1 : S(a.getName()) > S(b.getName()) ? 1 : 0));
+}
+/* A ZIP'S lib-import-*.json FILES as {name, text}: only the name after the last slash, nothing else in it read, nothing run. {error} when too big or too many. */
+function libDriveZipRead_(z) {
+  const size = Number(z.getSize && z.getSize()) || 0, mb = n => (n / 1048576).toFixed(1) + ' MB';
+  if (size > LIB_DRIVE_ZIP_BYTES) return { error: 'it is ' + mb(size) + ' — a zip may be at most ' + mb(LIB_DRIVE_ZIP_BYTES) + ' (Apps Script cannot unpack more); split it' };
+  const blob = z.getBlob();
+  try { if (typeof blob.setContentType === 'function') blob.setContentType('application/zip'); } catch (err) {}
+  let inner;
+  try { inner = Utilities.unzip(blob) || []; } catch (err) { return { error: 'it could not be unzipped — ' + S(err && err.message || err).slice(0, 120) }; }
+  if (inner.length > LIB_DRIVE_ZIP_FILES) return { error: 'it holds ' + inner.length + ' files — at most ' + LIB_DRIVE_ZIP_FILES + ' a zip' };
+  const parts = [];
+  let total = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const name = S(inner[i].getName()).split(/[\\/]/).pop();
+    if (!LIB_DRIVE_NAME.test(name)) continue;
+    const text = String(inner[i].getDataAsString('UTF-8'));
+    total += text.length;
+    if (total > LIB_DRIVE_ZIP_BYTES) return { error: 'its files come to more than ' + mb(LIB_DRIVE_ZIP_BYTES) + ' unpacked; split it' };
+    parts.push({ name: name, text: text });
+  }
+  return { parts: parts };
+}
+/* EVERY WAITING ZIP UNPACKED: a name already in the folder or `imported` is skipped, the zip then moves to `imported`. A refused zip stays, said in the log. */
+function libDriveUnzip_(folder, done, zips) {
+  const have = {};
+  [folder, done].forEach(d => { const it = d.getFiles(); while (it.hasNext()) have[S(it.next().getName())] = 1; });
+  return zips.map(z => {
+    const name = S(z.getName());
+    try {
+      const r = libDriveZipRead_(z);
+      if (r.error) { Logger.log('library import: ' + name + ' refused — ' + r.error); return { name: name, error: r.error }; }
+      let made = 0, skipped = 0;
+      r.parts.forEach(p => {
+        if (have[p.name]) { skipped++; return; }
+        folder.createFile(p.name, p.text, 'application/json');
+        have[p.name] = 1;
+        made++;
+      });
+      libDriveMove_(z, folder, done);
+      return { name: name, unzipped: made, skipped: skipped };
+    } catch (err) {
+      const why = S(err && err.message || err).slice(0, 160);
+      Logger.log('library import: ' + name + ' failed — ' + why);
+      return { name: name, error: why };
+    }
+  });
+}
 /* A FILE'S TEXT. Drive may have made a Google Doc of an upload; that is exported as plain text rather than refused. */
 function libDriveText_(f) {
   const mime = S(f.getMimeType && f.getMimeType());
@@ -1935,7 +1992,15 @@ function libDriveMove_(f, folder, to) {
 function libImportList_() {
   let folder;
   try { folder = libDriveFolder_(); } catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
-  const pending = libDrivePending_(folder).map(f => ({ name: S(f.getName()), size: Number(f.getSize && f.getSize()) || 0 }));
+  /* A ZIP IS ONE LINE: how many lib-import files it holds, or why it will be refused. */
+  const zips = libDriveZips_(folder).map(z => {
+    let r;
+    try { r = libDriveZipRead_(z); } catch (err) { r = { error: S(err && err.message || err).slice(0, 160) }; }
+    const n = r.error ? 0 : r.parts.length;
+    return { name: S(z.getName()), size: Number(z.getSize && z.getSize()) || 0, zip: true, files: n,
+             said: r.error ? 'zip refused — ' + r.error : 'zip waiting (' + n + (n === 1 ? ' file)' : ' files)'), error: r.error || undefined };
+  });
+  const pending = zips.concat(libDrivePending_(folder).map(f => ({ name: S(f.getName()), size: Number(f.getSize && f.getSize()) || 0 })));
   let last = null, auto = null;
   try { last = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_LAST) || 'null'); } catch (err) { last = null; }
   try { auto = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_AUTO) || 'null'); } catch (err) { auto = null; }
@@ -2080,9 +2145,13 @@ function libImportDrive_(by, auto) {
     let folder, done, files;
     try {
       folder = auto ? libDriveFind_(DriveApp.getFoldersByName(LIB_DRIVE_FOLDER)) : libDriveFolder_();
+      /* ZIPS FIRST, so the files they hold are imported by this same run. */
+      const zips = folder ? libDriveZips_(folder) : [];
+      if (zips.length) { done = libDriveDone_(folder); report.zips = libDriveUnzip_(folder, done, zips); }
       files = folder ? libDrivePending_(folder) : [];
-      if (auto && !files.length) return { success: true, auto: true, at: report.at, files: [], imported: 0, failed: 0, left: 0, nothing: true };
-      done = libDriveDone_(folder);
+      const unzipped = (report.zips || []).some(z => !z.error);
+      if (auto && !files.length && !unzipped) return { success: true, auto: true, at: report.at, files: [], imported: 0, failed: 0, left: 0, nothing: true, zips: report.zips };
+      done = done || libDriveDone_(folder);
     }
     catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
     const memo = {};

@@ -347,7 +347,7 @@ on('rep-open', el => {
 });
 
 /* ---------- LIBRARY UPDATES A SESSION LEFT IN DRIVE (407) ----------
-   `libImportList` counts the lib-import-*.json files in the owner's family-library-imports folder; the tile imports them (`libImportDrive`). */
+   `libImportList` counts the lib-import-*.json (and .zip) files in the owner's family-library-imports folder; the tile imports them (`libImportDrive`). */
 const LIBIMP = { list: null, last: null, auto: null, asking: false, error: '' };
 function libImpCard_() {
   const wait = !LIBIMP.list && !LIBIMP.error && typeof loading_ === 'function';
@@ -355,11 +355,14 @@ function libImpCard_() {
 }
 /* WHAT THE LAST PRESS DID, a line a file: its counts per library file, or why nothing of it was written. */
 function libImpSaid_(r) {
-  if (!r || !Array.isArray(r.files) || !r.files.length) return '';
+  /* A ZIP A LINE: how many files it gave, or why it was refused. */
+  const zips = r && Array.isArray(r.zips) ? r.zips.map(z => `<p class="faint libimp-file"><b>${esc(z.name)}</b> — ${esc(z.error ? 'zip refused: ' + z.error
+    : 'unzipped ' + (Number(z.unzipped) || 0) + (z.skipped ? ', ' + z.skipped + ' already there' : ''))}</p>`).join('') : '';
+  if (!r || !Array.isArray(r.files) || !r.files.length) return zips;
   const counts = c => Object.keys(c || {}).map(k => `${k} ${c[k].added} new, ${c[k].replaced} changed${c[k].same ? ', ' + c[k].same + ' unchanged' : ''}`).join('; ');
   /* AND WHAT IMPORTED BUT CANNOT BE MARKED YET (457, `libSelfTest_`): options with no right one, say -- named, one paragraph */
   const flagged = f => (Array.isArray(f.flagged) && f.flagged.length ? ' Waiting for a scheme: ' + f.flagged.join('; ') + '.' : '');
-  return r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : (counts(f.counts) || 'nothing to change') + flagged(f))}</p>`).join('');
+  return zips + r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : (counts(f.counts) || 'nothing to change') + flagged(f))}</p>`).join('');
 }
 /* THE HOURLY RUN (443): when it last found files, and what it imported. */
 function libImpAuto_(a) {
@@ -373,7 +376,8 @@ function libImpInner_(wait) {
   return `<h3>Library updates</h3>
     ${bizNeed_('libimp', LIBIMP.list ? n : 0, n + (n === 1 ? ' file waits' : ' files wait') + ' in Drive')}
     <div class="biz-body libimp-body"${wait ? ' aria-busy="true"' : ''}>
-      ${LIBIMP.list ? `<p class="faint">${n ? n + ' in' : 'Nothing waiting in'} the Drive folder family-library-imports.</p>` : ''}
+      ${LIBIMP.list ? `<p class="faint">${n ? n + ' in' : 'Nothing waiting in'} the Drive folder family-library-imports — lib-import-*.json files, or one lib-import-*.zip of them.</p>` : ''}
+      ${(LIBIMP.list || []).filter(f => f.zip).map(f => `<p class="faint libimp-zip"><b>${esc(f.name)}</b> — ${esc(f.said || '')}</p>`).join('')}
       ${LIBIMP.list ? libImpAuto_(LIBIMP.auto) : ''}
       ${LIBIMP.last && !LIBIMP.last.auto ? libImpSaid_(LIBIMP.last) : ''}
       <div class="tile-row">${tile_({ icon: 'in', label: 'Import library updates (' + n + ')', note: 'into the Ledger', act: 'lib-import', off: !n })}</div>
@@ -401,7 +405,7 @@ on('lib-import', el => {
       LIBIMP.last = d;
       LIBIMP.error = '';
       const out = {};
-      (d.files || []).forEach(f => { if (!f.error) out[f.name] = 1; });
+      (d.files || []).concat(d.zips || []).forEach(f => { if (!f.error) out[f.name] = 1; });
       LIBIMP.list = (LIBIMP.list || []).filter(f => !out[f.name]);
       libImpDraw_();
       toast(d.failed ? d.imported + ' imported, ' + d.failed + ' not — see the card' : d.imported + (d.imported === 1 ? ' file imported' : ' files imported'));
