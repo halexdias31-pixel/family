@@ -10296,33 +10296,68 @@ check('each stage tick takes the date it actually happened on', async () => {
   return bad;
 });
 
-check('a day says how many hours it is, in the column that multiplies', async () => {
-  /* ---------- REPORTED AS A COLUMN WITH NOTHING IN IT § */
-  const { w } = boot();
+check('the week says how many boxes are ticked, once, in the column that multiplies', async () => {
+  /* ---------- REPORTED AS *"4 boxes are ticked. it should say times 4 on multiplier column"* (525) § */
+  /* A TERM STILL TO COME, so the card prices whatever today is: six weeks from next Monday. */
+  const dmy = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/'
+    + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
+  const mon = new Date(); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() + 7 + ((8 - mon.getDay()) % 7));
+  const sun = mon.getTime() + (6 * 7 - 1) * 864e5;
+  const pl = payload();
+  pl.intervals = [Object.assign({}, pl.intervals[0], { rel: 'Next', term: 'Ahead', label: 'Ahead', weeks: 6,
+    startDate: dmy(mon), endDate: dmy(sun), opensOn: dmy(mon), closesOn: dmy(sun), lastSun: dmy(sun) })];
+  const { w } = boot({ payload: pl });
   await wait(300);
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot read the card'];
   const B = w.__t.BOOKING;
   const bad = [];
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
-  B.slots = ['m11', 'm12', 'm13', 'w12'];
-
-  const rows = String(w.__t.paper() || '')
-    .split('<div class="bk-row').filter(r => r.indexOf('bk-wk') !== -1);
-  if (rows.length !== 7) return ['the card draws ' + rows.length + ' day rows, not 7'];
-  const mul = r => (/<span class="bk-m">([^<]*)<\/span>/.exec(r) || ['', ''])[1].trim();
-  const said = rows.map(mul);
-  const want = ['\u00d7 3', '', '\u00d7 1', '', '', '', ''];
-  if (JSON.stringify(said) !== JSON.stringify(want)) {
-    bad.push('three hours on Monday and one on Wednesday reads ' + JSON.stringify(said)
-             + ', wanted ' + JSON.stringify(want));
+  B.how = 'A session of your own'; B.subjects = ['Maths']; B.level = 'GCSE'; B.n = '1';
+  B.loc = 'Colliers Wood Library'; B.hosting = 'No — we book the room'; B.interval = ['Ahead'];
+  const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+  const pounds = t => parseFloat(String(t || '').replace(/[^\d.]/g, '')) || 0;
+  const cell = (r, c) => ((r && r.querySelector('.' + c)) || {}).textContent || '';
+  /* ONE TO FOUR BOXES, the last two on a second day — the owner's four were two days of two. */
+  const ticks = ['m13', 'm14', 'w12', 'w13'];
+  for (let n = 1; n <= 4; n++) {
+    B.slots = ticks.slice(0, n);
+    const d = doc(String(w.__t.paper() || ''));
+    const days = [...d.querySelectorAll('.bk-row.bk-wk')];
+    if (days.length !== 7) { bad.push(n + ' ticked: the card draws ' + days.length + ' day rows, not 7'); continue; }
+    const said = days.map(r => cell(r, 'bk-m').trim());
+    const want = ['', '', '', '', '', '', '× ' + n];
+    if (JSON.stringify(said) !== JSON.stringify(want)) {
+      bad.push(n + ' box(es) ticked reads ' + JSON.stringify(said) + ' down the week, wanted ' + JSON.stringify(want));
+    }
+    const spec = w.__t.spec ? w.__t.spec() : null;
+    if (spec && Number(spec.hoursPerWeek) !== n) bad.push(n + ' ticked and the price is built on ' + spec.hoursPerWeek + ' hours a week');
+    /* AND THE TOTAL IS THE COLUMN READ DOWN: the hourly figure above the week × N × the term's weeks. */
+    const rows = [...d.querySelectorAll('.bk-row')];
+    const at = rows.indexOf(days[0]);
+    const hourly = rows.slice(0, at).reverse().find(r => /\d/.test(cell(r, 'bk-t')));
+    const term = rows.find(r => cell(r, 'bk-k').trim() === 'Term');
+    const total = d.querySelector('.rc-total:not(.rc-more) .bk-t');
+    const weeks = pounds(cell(term, 'bk-m'));
+    if (!hourly || !term || !total || !weeks) {
+      bad.push(n + ' ticked: no hourly figure above the week, Term multiplier or total to add up ('
+               + [!!hourly, !!term, !!total, weeks].join(', ') + ')');
+      continue;
+    }
+    const sum = Math.round(pounds(cell(hourly, 'bk-t')) * n * weeks * 100) / 100;
+    if (Math.abs(sum - pounds(total.textContent)) > 0.005) {
+      bad.push(n + ' ticked: ' + cell(hourly, 'bk-t') + ' × ' + n + ' × ' + weeks + ' is £' + sum.toFixed(2)
+               + ' and the card totals ' + total.textContent.trim());
+    }
   }
-  /* AND THE SEVEN ADD UP TO WHAT THE PRICE IS BUILT FROM. */
-  const spec = w.__t.spec ? w.__t.spec() : null;
-  const sum = said.reduce((a, t) => a + (parseFloat(String(t).replace(/[^\d.]/g, '')) || 0), 0);
-  if (spec && Number(spec.hoursPerWeek) !== sum) {
-    bad.push('the day figures add to ' + sum + ' and the price is built on '
-             + spec.hoursPerWeek + ' hours a week');
+  /* AND THE RECEIPT'S WEEK IS THE SAME RULE: two days of two hours is × 4 on its last row. */
+  if (w.__t.jobRows) {
+    const jr = w.__t.jobRows({ id: 'J1', jobId: 'J1', subject: 'Maths', weekday: 'Monday, Wednesday',
+      time: '13:00', hours: 2, dates: '' }).filter(r => r.strip);
+    const js = jr.map(r => r.mul || '');
+    if (jr.length === 7 && JSON.stringify(js) !== JSON.stringify(['', '', '', '', '', '', '× 4'])) {
+      bad.push('a saved job of two days of two hours reads ' + JSON.stringify(js) + ' down its week, wanted × 4 once');
+    }
   }
   return bad;
 });

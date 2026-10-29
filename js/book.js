@@ -1366,10 +1366,13 @@ function slotHead_(hours) {
 function weekRows_(days, cell, opts) {
   const o = opts || {};
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
+  /* THE WEEK'S HOURS, ONCE, on its last row: four boxes ticked over two days is × 4, the hours a week
+     `priceFrom` multiplies by, never × 2 twice (docs/history/525). */
+  const week = days.reduce((n, d) => n + (Number(d.mul) || 0), 0);
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
-    /* ---------- HOW MANY HOURS THAT DAY IS, IN THE COLUMN THAT MULTIPLIES § */
-    mul: d.mul ? '\u00d7 ' + d.mul : '', rate: '', total: '',
+    /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
+    mul: (i === days.length - 1 && week) ? '\u00d7 ' + week : '', rate: '', total: '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
@@ -1741,7 +1744,8 @@ function bookBreakdown(L, foot) {
   steps.forEach(r => {
     const p = byStep[r.id];
     if (!p) return;
-    r.mul = p.mul; r.rate = p.rate; r.total = p.total;
+    /* A ROW'S OWN FIGURE STAYS when its priced line has none: the week's `× 4` was wiped by its day lines' blank (525). */
+    r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = p.total;
     p.used = true;
     const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
     if (k) merged[k] = true;
