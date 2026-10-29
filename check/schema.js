@@ -165,12 +165,40 @@ const FILL_IN = [
   /\blabel (?:the|each) (?:parts?|structures?|blanks?|boxes|organs?)\b|\blabel (?:the )?(?:diagram|figure)\b/i,
   /\bmatch each\b|\bdraw (?:a |one )?lines? (?:from|to) each\b|\bjoin each\b/i,
 ];
-/* PARTS THE CELLS RULE LEAVES, one written reason each: cells mark each box alone, so an open pair stays one box per value. */
+/* PARTS THE CELLS RULE LEAVES, one written reason each: cells mark each box alone, so an open pair or an open table stays as
+   it is; a bulk-imported paper (521) whose boxes and key were pictures has nothing here to make cells from. */
+const PICTURED = 'the paper prints its boxes as pictures and the scheme its key as drawn lines, neither in the text layer: no items, options or key here to make cells from';
 const CELLS_EXEMPT = {
   'Q-CBM-square-numbers-16': 'an open pair (81 and 9, or 36 and 54): one box per value, marked as a pair',
   'Q-CBM-5AD-F-0606-1': 'an open pair in either order (5 and -5): one box per value, marked as a pair',
   'Q-CBM-5AD-F-0606-1b': 'an open pair in either order (4 and -1): one box per value, marked as a pair',
   'Q-STA-KS2-2024-P3-11': 'its digits could not be recovered from the transcription (examiner note), so there is no answer to make cells from',
+  'Q-AQA-7402-1806-2-064': 'an open table: the four phenotypes and their ratios may be written in any order, which cells marked a box at a time cannot accept',
+  'Q-AQA-7402-2011-1-081': 'an open table: any three of five differences, in any order, which cells marked a box at a time cannot accept',
+  'Q-AQA-7402-2206-1-071': 'an open table: any three of seven differences, in any order, which cells marked a box at a time cannot accept',
+  'Q-AQA-8463-2111-1F-011': PICTURED,
+  'Q-AQA-8463-2206-1F-045': PICTURED,
+  'Q-AQA-8463-2206-2F-011': 'its magnets are pictures the text layer lost, and the scheme’s ticks with them: no rows or key here to make cells from',
+  'Q-AQA-8463-2306-1F-016': PICTURED,
+  'Q-AQA-8463-2506-1F-015': PICTURED,
+  'Q-AQA-8464B-2306-1F-011': PICTURED,
+  'Q-AQA-8464B-2506-1F-036': PICTURED,
+  'Q-AQA-8464B-2506-2F-021': PICTURED,
+  'Q-AQA-8464B-2506-2F-051': PICTURED,
+  'Q-AQA-8464B-2506-2H-011': PICTURED,
+  'Q-AQA-8464C-2111-1F-036': PICTURED,
+  'Q-AQA-8464C-2406-2F-011': PICTURED,
+  'Q-AQA-8464C-2406-2F-045': PICTURED,
+  'Q-AQA-8464C-2506-1F-013': PICTURED,
+  'Q-AQA-8464C-2506-1F-023': PICTURED,
+  'Q-AQA-8464C-2506-2F-026': 'the candidate builds the table: its headings and units are their own words, either way round, which cells marked a box at a time cannot accept',
+  'Q-AQA-8464P-2206-1F-036': 'the scheme’s key is drawn lines its text layer lost, and two of the descriptions (the source, the time) could each be the control variable',
+  'Q-AQA-8464P-2506-1F-042': PICTURED,
+  'Q-AQA-8582-2011-2-105': 'half its cells are open: any sporting example that suits the body type, which a cell’s list of ways cannot mark',
+  'Q-AQA-8582-2206-2-124': 'half its cells are open: any of several effects on the body in the candidate’s words, which a cell’s list of ways cannot mark',
+  'Q-OCR-H420-2011-01-21a': 'the scheme’s ticks and crosses did not survive its text layer, so there is no key here to make cells from',
+  'Q-OCR-H420-2306-03-02cii': 'the scheme’s ticks and crosses did not survive its text layer, so there is no key here to make cells from',
+  'Q-OCR-J248-1906-02-17a': 'one of its three blanks is the displayed formula of butane to draw, which a cell cannot hold',
 };
 function fillIn(html) {
   const t = S(html).replace(/<svg[\s\S]*?<\/svg>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/&[a-z]+;|&#\d+;/gi, ' ').replace(/\s+/g, ' ');

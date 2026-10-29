@@ -27,7 +27,7 @@ from svgplot import W, scatter
 PAPER = 'P-AQA-7408-2306-3BA'
 QP = '1OM5xFiWHOcVog-QAJ5i5mh-Dx72SQKep'
 DOC = dict(paper_id=PAPER, subject='Physics', key_stage='KS5', band_type='stage',
-           band_value='A-Level', level='Alevel', company='AQA', exam_board='AQA',
+           band_value='A-Level', level='A-Level', company='AQA', exam_board='AQA',
            spec_code='7408/3BA', exam_wave='First wave', year='2023', month='6', paper='3',
            exam_date='2023-06-15', document_type='Past paper',
            name='Paper 3 Section B: Astrophysics — June 2023', active='True',

@@ -93,9 +93,15 @@ function split(name) {
 /* ---------- JOIN: whole rows back into data/, for a tool ---------- */
 function join(name) {
   const def = L.defs().files[name];
-  const t = L.text(name);
+  /* A CARD WHOSE WORDS ARE NOT HERE (a lib_pending row before `pull`) keeps its `lib_has`: split cannot rebuild it from nothing */
+  const { rows: cards, style } = readRows(name);
+  const has = new Map(cards.filter(r => r && Object.prototype.hasOwnProperty.call(r, 'lib_has')).map(r => [L.idOf(def, r), r.lib_has]));
+  const map = L.readPrivate(name) || {};
+  const rows = JSON.parse(L.text(name));
+  rows.forEach(r => { const id = L.idOf(def, r); if (has.has(id) && !map[id]) r.lib_has = has.get(id); });
+  const t = L.fileText(rows, style);
   fs.writeFileSync(fileOf(name), t);
-  const n = JSON.parse(t).length;
+  const n = rows.length;
   console.log(def.file + ': ' + n + ' whole row(s). Split it again before committing — check-secrets refuses a file with words in it.');
 }
 

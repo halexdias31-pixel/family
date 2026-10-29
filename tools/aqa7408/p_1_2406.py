@@ -44,7 +44,7 @@ from svgplot import W, axes
 PAPER = 'P-AQA-7408-2406-1'
 QP = '1x6JRy-coffewJPherOs-totrRN3vP6un'
 DOC = dict(paper_id=PAPER, subject='Physics', key_stage='KS5', band_type='stage',
-           band_value='A-Level', level='Alevel', company='AQA', exam_board='AQA',
+           band_value='A-Level', level='A-Level', company='AQA', exam_board='AQA',
            spec_code='7408/1', exam_wave='First wave', year='2024', month='5', paper='1',
            exam_date='2024-05-24', document_type='Past paper',
            name='Paper 1 — June 2024', active='True', trackable='True', printable='False')

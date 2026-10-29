@@ -27629,7 +27629,9 @@ check('the fill-in standard: every library part that asks to fill something in s
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
   if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];
   const papers = new Set(asks.map(r => r.paper_id));
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined) });
+  /* AN ADULT, SIGNED IN: a GCSE-and-above psychology or history part is 14+ (505), and a signed-out viewer is never shown it */
+  const adult = Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } });
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined), before: signedInAs_(adult) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   if (typeof w.questionCard_ !== 'function' || typeof w.cellsOf_ !== 'function' || !A['qp-cells-check']) return ['questionCard_, cellsOf_ or qp-cells-check not reachable — NOT checked'];

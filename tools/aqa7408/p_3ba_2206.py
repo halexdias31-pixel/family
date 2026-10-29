@@ -27,7 +27,7 @@ PAPER = 'P-AQA-7408-2206-3BA'
 QP = '1myUEDH6HaVM9qhgwffr_xS-pyg_CUXyY'
 NAME = 'Paper 3 Section B: Astrophysics — June 2022'
 BASE = dict(paper_id=PAPER, subject='Physics', key_stage='KS5', band_type='stage',
-            band_value='A-Level', level='Alevel', company='AQA', exam_board='AQA',
+            band_value='A-Level', level='A-Level', company='AQA', exam_board='AQA',
             spec_code='7408/3BA', exam_wave='First wave', year='2022', month='6', paper='3',
             document_type='Past paper', name=NAME, active='True', trackable='True',
             printable='False')

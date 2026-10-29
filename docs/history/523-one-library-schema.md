@@ -126,3 +126,33 @@ pinned table and check/schema.js's `LEGACY` lists are gone), and `level` is a li
   per item: without it every `KS3, GCSE` cell is a stray. Kept, with a comment saying who reads it.
 
 The 126 removed row ids (the stem, then its folded parts' suffixes), orphans in `lib_questions`: `Q-9MA031-2206-5` cii/ciii/civ; `Q-1MA1-2406-2H-5` aii/aiii; `Q-1MA1-2406-2H-11` aii/aiii/aiv/av; `Q-1MA1-2406-2F-24` aii/aiii; `Q-1MA1-2406-3F-13` b/c/d/e/f; `Q-STA-KS2-2024-P2-4` b; `Q-STA-KS2-2024-P2-5` b/c; `Q-STA-KS2-2024-P2-8` b; `Q-STA-KS2-2024-P2-11` b; `Q-STA-KS2-2024-P3-9` b/c; `Q-STA-KS2-2024-P3-23` b/c; `Q-STA-KS2-2025-GPS1-38` b; `Q-1CM-direct-and-inverse-proportion-9` aii/bii/cii/dii; `Q-1CM-interpreting-histograms-1` aii/aiii/aiv; `Q-1CM-similar-areas-and-volumes-6` aii; `Q-1CM-standard-form-13` bii; `Q-CBM-sequences-1` b; `Q-CBM-sequences-2` b/c; `Q-CBM-sequences-3` b; `Q-CBM-sequences-4` b; `Q-CBM-sequences-10` b; `Q-CBM-sequences-11` b; `Q-CBM-sequences-12` b; `Q-CBM-sequences-13` b; `Q-1MA1-2005-1H-12` aii/aiii/aiv/av/avi; `Q-1MA1-2006-2H-4` aii/aiii/aiv; `Q-1MA1-1905-1H-1` aii; `Q-1MA1-1905-1H-11` aii/aiii; `Q-1MA1-1906-2H-11` aii/aiii/aiv/av/avi; `Q-AQA-8461-2406-1F-012` ii; `Q-AQA-8461-2406-1F-031` ii; `Q-AQA-8462-2406-1F-043` ii; `Q-AQA-8462-2406-1F-062` ii/iii; `Q-AQA-8462-2406-2F-053` ii; `Q-AQA-8463-2406-2F-032` ii; `Q-STA-KS2-2019-P2-1` b/c; `Q-STA-KS2-2019-P2-5` b/c; `Q-STA-KS2-2019-P2-14` b/c; `Q-STA-KS2-2019-P3-5` b/c; `Q-STA-KS2-2019-P3-7` bii/biii; `Q-STA-KS2-2019-P3-11` b/c; `Q-STA-KS2-2019-P3-12` b; `Q-AQA-8461-2406-1H-072` ii; `Q-CBM-5AD-F-0601-6` aii/aiii/aiv/av/avi; `Q-CBM-5AD-F-0607-5` aii/aiii/aiv; `Q-CBM-5AD-F-0619-3` aii/aiii; `Q-CBM-5AD-F-0620-6` aii; `Q-CBM-5AD-F-0710-2` aii/aiii; `Q-CBM-5AD-F-0726-4` aii/aiii/aiv/av; `Q-CBM-5AD-F-0731-2` aii/aiii; `Q-CBM-5AD-F-0804-3` aii/aiii/aiv; `Q-CBM-5AD-F-0903-3` bii/biii/biv; `Q-CBM-5AD-F-0910-2` aii/aiii/aiv; `Q-CBM-5AD-F-1004-3` aii/aiii; `Q-CBM-5AD-F-1007-2` aii/aiii/aiv; `Q-CBM-5AD-F-1017-4` aii/aiii/aiv/av/avi/avii; `Q-CBM-5AD-F-1025-3` aii/aiii; `Q-AQA-7408-2406-3A-025` ii; `Q-STA-KS1-2026-P2-15` b/c; `Q-STA-KS1-2026-P2-20` b.
+
+## Round 2b again, on the papers that merged after it (521's 818 bulk AQA/OCR papers, 45 A-level Maths papers by hand)
+
+The schema and P4 were built before those merges, so check-schema found 2,287 `level` and 2,287 `tier` problems, 147
+`answer` and 122 `cells`; check-library failed on the same level and tier. Fixed the way P4 did, one-off scripts outside
+the repository (the import file and the scripts are in the session's scratchpad, `r2b/`):
+
+- **Level and tier.** The 45 A-level Maths papers (AQA 7357, OCR H240, 2,287 rows) said `Alevel` and tier `A-Level`: now
+  `A-Level` and no tier. The writers that still spelt it the old way are fixed: the A-level Maths spec (`alspec.py`), the bulk
+  runners (`aqa_run.py`, `ocr_run.py`, outside the repository), `tools/aqa7408/*` and `tools/inserts.py`.
+- **Answers (147).** Not words for a keypad, as P4's were: the bulk importer had taken the scheme's general guidance
+  ("Marking procedure for calculations…", "Phonetic spelling…") or "See the official mark scheme" as the answer. Each is now
+  the scheme's own result with its working, read from the paper's mark scheme; seven "Show that" parts are `proof`, one
+  "which equipment" part `short`, and three A-level Maths parts answered by letters or ℝ `short`. The bulk runners now drop
+  the guidance paragraphs and, for a calculation, take the scheme's last `= number` as the result (`calc_fix`).
+- **Cells (122).** The bulk papers had flattened every table to `a | b` paragraphs. 96 parts got their table back from the
+  question paper's layout, blanks as cells filled from the scheme: tables, truth tables, tick tables (✓ or y / ✗ or n in
+  every box, said above the table), orderings and 26 matchings (the options lettered above, a letter cell per item, "write its letter" in place of a line). Where
+  a scheme's ticks or lines were lost from its text layer and the key is a fact the paper fixes (renewable or not, a
+  pathogen's type), the key is that fact. 26 more are in `CELLS_EXEMPT` with a reason each: 16 whose boxes and key were
+  pictures, 3 open tables (answers in any order), 2 with open cells (any suitable sporting example), 2 whose ticks are
+  lost and in doubt, one control variable two options could be, one table the candidate builds, one with a formula to draw.
+  29 long cells answers got a short result in front of a dash (check-answers' 120 characters).
+  Each table stands last in its part, where the card draws its cells. check-flow's fill-in journey now boots as a signed-in
+  adult: GCSE-and-above psychology parts are 14+ (505), and a signed-out viewer never reached them in Find.
+- **A join that lost cards.** `lib-private.js join` dropped `lib_has` from every row whose words were not here (4,225
+  lib_pending rows on this machine), and `split` could not put it back. `join` now keeps a card's `lib_has` when its words
+  are absent.
+- **The Ledger.** All 240 changed parts are `lib_pending`; their words are `lib-import-r2b-bulk-answers-cells.json`, to import
+  before this is pushed, as with P4's file.
