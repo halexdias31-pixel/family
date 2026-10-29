@@ -36,9 +36,6 @@ const BOARDS = ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas'];
 const BOARD_NAMES = ['Standards & Testing Agency'];
 const SOURCES = () => Array.from(app().LIB_SOURCES);
 const TIERS = () => [...new Set([].concat(...LEVEL_TABLE().map(l => l.tiers)))];
-/* SPELLINGS STORED TODAY THAT THE SCHEMA DOES NOT WANT: check-library still lets them through, check-schema counts each one
-   (P4 rewrites the rows, then these lists go). */
-const LEGACY = { level: ['Alevel'], tier: ['A-Level', 'AS'] };
 
 /* THE QUESTIONS FILE'S CLOSED LISTS (moved here from js/check-library.js; the story of each word is in
    docs/notes/js/check-library.js.md under its old heading). A list column is checked per item. */
@@ -56,9 +53,9 @@ function VOCAB() {
     document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
     key_stage:     KEY_STAGES,
     band_type:     ['grade', 'stage', 'tier', 'year'],
-    /* THE TIERS ARE LEVEL_TABLE'S (`Foundation Plus`, `Higher Plus` are Corbettmaths' 5-a-day levels), and the legacy two. */
-    tier:          TIERS().concat(LEGACY.tier),
-    level:         LEVELS().concat(LEGACY.level),
+    /* THE TIERS ARE LEVEL_TABLE'S (`Foundation Plus`, `Higher Plus` are Corbettmaths' 5-a-day levels). */
+    tier:          TIERS(),
+    level:         LEVELS(),
     exam_board:    BOARDS,
     /* WHO MADE IT: a board (by either name) or a worksheet maker, which is a Source and not a board (O3). */
     company:       BOARDS.concat(BOARD_NAMES, SOURCES()),
@@ -85,7 +82,8 @@ function VOCAB() {
     lib_pending:   ['True'],
   };
 }
-const LIST_COLS = new Set(['needs', 'key_stage']);
+/* A LEVEL IS A LIST OF REAL LEVELS (O1): `KS3, GCSE` is two. */
+const LIST_COLS = new Set(['needs', 'key_stage', 'level']);
 
 /* ---------- ONE TABLE OF COLUMN NAMES PER CARD FILE: `cols` every column a row may have, and which column holds each idea ---------- */
 const FILES = {
@@ -142,6 +140,17 @@ function topicWords() {
 
 const S = v => (v === undefined || v === null ? '' : String(v)).trim();
 const atoms = v => (Array.isArray(v) ? v.map(S) : S(v).split(',').map(s => s.trim())).filter(Boolean);
+
+/* AN ANSWER THE MATHS KEYPAD CAN TYPE: its head (the bold words, or up to the dash) holds a digit, or is algebra — an
+   operator, `)(`, or two single letters joined by a minus (`b − a`); or so is one of its accepted ways. A word or a letter
+   (`random`, `F`) is not. */
+function mathsy(answer) {
+  const h = S(answer);
+  const b = /^\s*<b>([\s\S]*?)<\/b>/i.exec(h);
+  const head = (b ? b[1] : h.split(/&mdash;|—/)[0]).replace(/<[^>]+>/g, ' ').replace(/&minus;/g, '−')
+    .replace(/&times;/g, '×').replace(/&divide;/g, '÷').replace(/&pi;/g, 'π').replace(/&[a-z]+;|&#\d+;/gi, ' ');
+  return /\d/.test(head) || /[=+−×÷^√π/]|\)\s*\(|\b[a-zA-Z]\s*[−-]\s*[a-zA-Z]\b/.test(head);
+}
 
 /* THE LEVELS A ROW IS TAUGHT AT, read as `levelsOf_` reads an item: a stage band wins over the level cell. */
 function rowLevels(row, file) {
@@ -226,7 +235,7 @@ function validate(row, file) {
     if (kind === 'question' && live && S(row.document_type) === 'Past paper' && !S(row.marks)) bad('marks', 'marks', 'a past-paper question with no marks');
     if (S(row.total_marks) && !/^\d+$/.test(S(row.total_marks))) bad('marks', 'total_marks', 'total_marks ' + JSON.stringify(S(row.total_marks)) + ' is not a whole number');
     /* THE ANSWER'S SHAPE IS ITS TYPE'S: a calculation's answer has a number in it; an ordering has its options and its order. */
-    if (kind === 'question' && S(row.answer_type) === 'calculation' && S(row.answer) && !/\d/.test(S(row.answer))) bad('answer', 'answer', "a calculation whose answer has no digit — it gets a number keypad");
+    if (kind === 'question' && S(row.answer_type) === 'calculation' && S(row.answer) && !mathsy(row.answer) && !(S(row.accept) && mathsy(row.accept))) bad('answer', 'answer', "a calculation whose answer is neither a number nor algebra — it gets a number keypad");
     if (kind === 'question' && S(row.answer_type) === 'order' && S(row.html) && !(S(row.choices) && S(row.choice_right))) bad('answer', 'choices', 'an ordering with no choices or no choice_right');
   }
 
@@ -299,5 +308,5 @@ function committed(file, map) {
   });
 }
 
-module.exports = { FILES, VOCAB, LIST_COLS, LEGACY, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
+module.exports = { FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
                    levelsIn, rowLevels, validate, validateFile, newProblems, refuse, committed, topicWords };

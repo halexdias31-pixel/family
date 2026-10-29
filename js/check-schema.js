@@ -97,7 +97,9 @@ else {
    ['marks', Object.assign({ marks: '' }, pp), Object.assign({ marks: '3' }, pp)],
    ['marks', { marks: '2.5' }, { marks: '2' }],
    ['marks', { total_marks: 'eighty' }, { total_marks: '80' }],
-   ['answer', { answer_type: 'calculation', answer: 'x squared' }, { answer_type: 'calculation', answer: '12' }],
+   ['answer', { answer_type: 'calculation', answer: 'x squared', accept: '' }, { answer_type: 'calculation', answer: '12', accept: '' }],
+   ['answer', { answer_type: 'calculation', answer: '<b>random</b> &mdash; 2 ways', accept: 'random' },
+              { answer_type: 'calculation', answer: '<b>(a + b)(a &minus; b)</b> &mdash; a difference of squares', accept: '' }],
    ['answer', { answer_type: 'order', html: 'Put these in order.', choices: '', choice_right: '' },
               { answer_type: 'order', html: 'Put these in order.', choices: '1|2|3', choice_right: '3|1|2' }]]
     .forEach(([rule, bad, good]) => {
