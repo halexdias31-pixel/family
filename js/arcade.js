@@ -712,7 +712,7 @@ function widgetUp_(w, col) {
   if (slot) { slot.WHO = widgetWho_(); delete slot.AHEAD; delete slot.LENT; slot.UP_PAID = typeof FIRST_PAINT_DONE !== 'undefined' && !!FIRST_PAINT_DONE; }
   WIDGET_UPS[id] = (WIDGET_UPS[id] || 0) + 1;
   try { if (!adopt && w.start) w.start(); }
-  catch (e) { console.warn('[widget]', w.id, e); }
+  catch (e) { oops_(e, 'widget:' + id, slot); }
   finally {
     if (typeof loaded_ === 'function') {
       loaded_(slot);

@@ -1,6 +1,46 @@
 /* @family. — shell.js ONE FILE, SPLIT. § */
 
 
+/* ---------- ONE SINK FOR EVERY ERROR (R6, O5) ---------- */
+/* Logged, a friendly line drawn in `host` if given, and one report per distinct message+where per visit — message, where, version, screen; never a name or an answer. */
+const OOPS = { sent: new Set(), n: 0, max: 10, told: 0 };
+function oopsDevice_() {
+  try {
+    let d = localStorage.getItem('familyDevice');
+    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('familyDevice', d); }
+    return d;
+  } catch (e) { return 'nostore'; }
+}
+function oopsHtml_() {
+  return '<div class="card oops"><h3>This part did not load</h3><p class="sub">The rest of the app is fine.</p></div>';
+}
+function oops_(err, where, host, o) {
+  o = o || {};
+  if (err && typeof err === 'object') { if (err.__oops) return; try { err.__oops = true; } catch (e) { /* a frozen error is still reported */ } }
+  /* QUOTED TEXT CUT before it leaves: a parse error quotes the answer it choked on. */
+  const msg = String((err && err.message) || err || 'unknown').replace(/\x22[^\x22]*\x22|\x60[^\x60]*\x60|(^|[^\w])\x27[^\x27]*\x27(?=[^\w]|$)/g, (m0, pre) => (pre || '') + '[quoted]').replace(/\s+/g, ' ').slice(0, 300);
+  where = String(where || 'unknown').slice(0, 120);
+  try { console.error('[' + where + ']', err); } catch (e) { /* no console, nothing to lose */ }
+  if (host && host.nodeType === 1) { try { host.innerHTML = oopsHtml_(); host.removeAttribute('aria-busy'); } catch (e) { /* the report still goes */ } }
+  else if (o.toast && Date.now() - OOPS.told > 5000 && typeof toast === 'function') {
+    OOPS.told = Date.now();
+    try { toast('Something went wrong there.'); } catch (e) { /* the report still goes */ }
+  }
+  const key = msg + '|' + where;
+  if (OOPS.sent.has(key) || OOPS.n >= OOPS.max || typeof API !== 'string' || typeof fetch !== 'function') return;
+  OOPS.sent.add(key); OOPS.n++;
+  const body = { action: 'clientError', message: msg, where: where, version: typeof SITE_VERSION === 'string' ? SITE_VERSION : '',
+                 screen: typeof AT === 'string' ? AT : '', device: oopsDevice_() };
+  try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(body) })).catch(() => {}); }
+  catch (e) { /* a report that cannot leave is only lost */ }
+}
+window.addEventListener('error', e => oops_(e && (e.error || e.message), 'onerror', null, { toast: true }));
+window.addEventListener('unhandledrejection', e => oops_(e && e.reason, 'promise', null, { toast: true }));
+/* A STEP THAT MAY THROW, RUN SO THAT IT CANNOT TAKE ITS CALLER WITH IT. */
+function oopsTry_(where, fn, host) {
+  try { return fn(); } catch (err) { oops_(err, where, host); return undefined; }
+}
+
 /* ---------- THE TABS § */
 const TABS = [
   /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
@@ -203,11 +243,11 @@ function go(id, remember, instant) {
   /* THE WAY THE ROW WAS LAST TRAVELLED — the builder takes the columns on that side first (`ahead_`). */
   if (way) AHEAD.dir.x = way;
   /* AND A COLUMN THIS LANDING WILL SHOW THAT STILL HOLDS THE BOOT'S LOADER IS DRAWN NOW — see `bootGlass_`. */
-  bootGlass_();
+  oopsTry_('go:glass', bootGlass_);
 
   /* PAINT FIRST, PLACE SECOND, ALWAYS. § */
-  paintNeighbours();
-  placeCells('x', instant);
+  oopsTry_('go:neighbours', paintNeighbours);
+  oopsTry_('go:place', () => placeCells('x', instant));
 
 
   /* THE HEADER IS GONE, and so is everything that wrote to it — a title, and a slot for one action per screen. § */
@@ -215,8 +255,8 @@ function go(id, remember, instant) {
   /* ---------- WHY A SIDEWAYS SWIPE WAS THE ROUGH ONE § */
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
   const painted = !screenHasMarkup_(AT) || !!STALE[AT];
-  if (painted) paint(AT);
-  if (was !== AT && typeof widgetsBeforeSlide_ === 'function') widgetsBeforeSlide_(AT);
+  if (painted) oopsTry_('go:paint:' + AT, () => paint(AT));
+  if (was !== AT && typeof widgetsBeforeSlide_ === 'function') oopsTry_('go:beforeSlide', () => widgetsBeforeSlide_(AT));
   /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. § */
@@ -253,12 +293,12 @@ function go(id, remember, instant) {
   if (finder) {
     const host = $('s-' + finder.id);
     const drawn = host && host.querySelector('.page[data-filled]');
-    if (instant || !drawn) inFinder_(finder, fillStuffPages);
+    if (instant || !drawn) oopsTry_('go:fill:' + finder.id, () => inFinder_(finder, fillStuffPages));
     else afterSlide_(() => inFinder_(finder, fillStuffPages), 'fill:' + finder.id);
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   /* `true` used to be written here, and it cancelled the slide `placeCells('x', instant)` had started twenty lines above — two correct calls in one turn § */
-  paintPager(AT, instant);
+  oopsTry_('go:pager', () => paintPager(AT, instant));
 
   /* `scrollTo` was here, putting the window back to the top on every tab change. § */
 
@@ -394,10 +434,9 @@ function paint(id, fresh, o) {
   try {
     html = s ? s.draw() : null;
   } catch (err) {
-    console.error('[screen ' + id + ']', err);
+    oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
-        <p class="sub">${esc(String((err && err.message) || err))}</p>
         <p class="faint">The rest of the app is fine — swipe across. If a file did not load, the
           banner at the top says which.</p>
       </div></div>`;
@@ -1670,7 +1709,7 @@ function afterSlide_(fn, key) {
     /* ONE JOB THAT THROWS MUST NOT TAKE THE REST WITH IT. § */
     const next = () => {
       const f = jobs.shift();
-      if (f) { try { f(); } catch (e) {} }
+      if (f) oopsTry_('afterSlide', f);
       if (jobs.length) { setTimeout(next, 0); return; }
       if (AFTER_SLIDE === mark) AFTER_SLIDE = null;
       /* AND THEN THE BUILDER, which waits for exactly this list to be empty — see `ahead_` below. */
@@ -2514,8 +2553,8 @@ document.addEventListener('click', e => {
     try {
       ACTIONS[doer.dataset.do](doer, e);
     } catch (err) {
-      console.error('[' + doer.dataset.do + ']', err);
-      toast(doer.dataset.do + ' — ' + String((err && err.message) || err));
+      oops_(err, 'act:' + doer.dataset.do);
+      toast('That did not work. Everything else still works.');
     }
   }
 });
@@ -2574,6 +2613,7 @@ async function filesOnly_() {
   d.dropdowns = d.dropdowns || {};
   d.dropdowns.checklists = d.dropdowns.checklists || {};
   /* A PLAIN OBJECT, NOT THE PROXY. § */
+  loadRowsClean_(d);
   DATA = d;
   /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
      things that decide what the app looks like before anything is drawn. */
@@ -2783,6 +2823,13 @@ document.addEventListener('focusout', () => {
 
 /* THE LOAD, AS EVERY CALLER ASKS FOR IT. `again` is the retry above and nothing else passes it: any
    other caller is somebody signing in, saving, or pressing Try again, and that starts the count over. */
+/* NON-ROWS DROPPED AND COUNTED, reported once as one line: a null in the sheet must not blank nine columns. */
+function loadRowsClean_(d) {
+  let gone = {};
+  try { gone = dataRowsClean_(d); } catch (e) { oops_(e, 'load:clean'); return; }
+  const keys = Object.keys(gone);
+  if (keys.length) oops_(new Error(keys.map(k => k + ' ' + gone[k]).join(', ') + ' malformed row(s) dropped'), 'load:rows');
+}
 async function load(again) {
   const R = RECONNECT;
   if (!again) reconnectStop_();
@@ -2894,6 +2941,7 @@ async function loadOnce_(again, n) {
 
       /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. § */
       if (loadStale_(n, who)) return;
+      loadRowsClean_(d);
       DATA = new Proxy(d, {
         get(t, k) {
           /* `then` is asked for by anything that awaits an object, to find out whether it is a
