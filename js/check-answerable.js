@@ -66,12 +66,24 @@ function boot(lib) {
 const S = v => (v == null ? '' : String(v)).trim();
 /* THE TOOL ROW AS ITS TOOLS' NAMES, left to right, Check last: read off the tiles' own acts, never off a list in the app */
 /* THE OWNER'S ORDER, written here and not read from the app, so an app that reorders its tools fails */
-const TOOL_ORDER = ['pen', 'ruler', 'protractor', 'compass', 'grid', 'calc', 'table', 'photo', 'formula', 'mag', 'read', 'check'];
-const TOOL_OF = { 'qt-pen': 'pen', 'qt-grid': 'grid', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read' };
+/* round 4: no Calculator, Grid, Table or Formula sheet (a question brings its own), and the padlock once, in the row */
+const TOOL_ORDER = ['pen', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
+const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
+/* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
+const SAME_AS = { 'game-lock': 'q-lock' };
+const twiceOn = root => {
+  const seen = {};
+  [...root.querySelectorAll('.tile[data-do]')].forEach(t => {
+    const act = t.getAttribute('data-do');
+    const k = (SAME_AS[act] || act) + (t.getAttribute('data-tool') ? ' ' + t.getAttribute('data-tool') : '');
+    seen[k] = (seen[k] || 0) + 1;
+  });
+  return Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' x' + seen[k]);
+};
 const toolsOf = row => [...row.querySelectorAll('.tile')].filter(t => !t.classList.contains('qt-fold')).map(t => {
   if (t.classList.contains('is-submit')) return 'check';
   const act = t.getAttribute('data-do') || '';
-  return TOOL_OF[act] || ((act === 'qt-inst' || act === 'qt-panel') ? t.getAttribute('data-tool') : act || '?');
+  return TOOL_OF[act] || (act === 'qt-inst' ? t.getAttribute('data-tool') : act || '?');
 });
 const DRAWN = new Set(['label', 'points', 'line', 'shape', 'shade', 'hand', 'graph', 'construct', 'numline']);
 const TYPED = new Set(['value', 'unit', 'multi', 'fraction', 'coords', 'expr', 'words', 'reason', 'measure']);
@@ -95,6 +107,9 @@ const MARKER_OF = (x, r) => {
   if (Array.isArray(x.choices) && x.choices.length >= 2) return S(x.answerType || r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
   return S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'ai';
 };
+/* A MARK SCHEME FROM THE ROW ITSELF (round 4): an AI part with no `answer` has none -- an importer's note is not one -- and its Check is never the AI's */
+const SCHEME_IN = r => !!S(r.answer).replace(/<[^>]*>/g, ' ').replace(/&nbsp;|\s+/g, ' ').trim();
+const NO_SCHEME_SAYS = /^No mark scheme yet\b/;
 const PEN_DRAW_EVERY = 10;
 const byMarker = {}, notReady = {}, notReadyLive = [];   // no letter sum or product hides in either ("9x7" was 63)
 
@@ -178,6 +193,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (!figs()) bad('figures', x, 'a drawing with no size or a picture with no source');
     if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'no Magnifier tile in its row');
     if (!has('[data-do="q-lock"]')) bad('magnifier', x, 'no padlock in its row');
+    if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
     if (has('.qsheet figure')) count.zoomed++;
     /* ---------- AN ANSWER CONTROL THAT FITS ITS TYPE ---------- */
     const pen = has('.qpad .qpad-ink');
@@ -192,7 +208,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const fam = TYPED.has(type) ? 'typed' : DRAWN.has(type) ? (type === 'label' ? 'label' : 'drawn') : type;
     if (control[fam] === false) bad('control', x, 'a ' + type + ' part with no ' + fam + ' control');
     if (control[fam] === undefined) bad('control', x, 'type ' + type + ' has no control rule in this check');
-    /* ---------- ONE PAGE FOR EVERY PART (round 3): the twelve tools in one order, one answer box, a surface to draw on ---------- */
+    /* ---------- ONE PAGE FOR EVERY PART (round 3): the nine tools in one order, one answer box, a surface to draw on ---------- */
     const rows = host.querySelectorAll('.qt-row');
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
@@ -207,15 +223,23 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (m && m.kind !== own) bad('marker', x, 'its row says it is marked by ' + own + ', and the app marks it by ' + m.kind);
       if (m && (own === 'choice' || own === 'order') && m.ready !== !!S(r.choice_right)) bad('marker', x, 'its options ' + (S(r.choice_right) ? 'have' : 'have no') + ' key, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
       if (m) {
-        const want = CHECK_OF[own];
+        const want = own === 'ai' && !SCHEME_IN(r) ? 'qp-noscheme' : CHECK_OF[own];
+        if (own === 'ai' && m.ready !== SCHEME_IN(r)) bad('marker', x, 'its row ' + (SCHEME_IN(r) ? 'has' : 'has no') + ' mark scheme, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
         const go = [...rows[0].querySelectorAll('.is-submit')];
         if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
         else {
           byMarker[m.kind] = (byMarker[m.kind] || 0) + 1;
           if (!m.ready) { notReady[m.kind] = (notReady[m.kind] || 0) + 1; if (!LIB_FULL.pending(r)) notReadyLive.push(r.row_id); }
           if (go.length !== 1 || go[0].getAttribute('data-do') !== want) bad('marker', x, 'marked by ' + own + ', its Check is ' + go.map(g => g.getAttribute('data-do')).join(', ') + ', wanted ' + want);
-          else if (own === 'ai' && !m.ready && !go[0].disabled) bad('marker', x, 'no scheme to mark against, and its AI Check can still be pressed');
           else if (own === 'ai' && m.ready && go[0].disabled) bad('marker', x, 'a scheme to mark against, and its AI Check cannot be pressed');
+          else if (want === 'qp-noscheme') {
+            /* PRESSED, IT SAYS SO ON THE VERDICT LINE AND SENDS NOTHING: the line under the row says it before the press */
+            const out = box && box.querySelector('.qp-verdict');
+            try { A.ACTIONS['qp-noscheme'](go[0]); } catch (e) { bad('marker', x, 'its Check threw: ' + e.message); }
+            if (!out || !NO_SCHEME_SAYS.test(S(out.textContent))) bad('marker', x, 'no mark scheme, and its Check says ' + JSON.stringify(out ? out.textContent : null));
+            if (!NO_SCHEME_SAYS.test(S((host.querySelector('.qt-how') || {}).textContent))) bad('marker', x, 'no mark scheme, and the line under the row does not say so');
+            if (box && (box.classList.contains('qp-ai') || box.querySelector('[data-do="qp-ai"]'))) bad('marker', x, 'no mark scheme, and its box still offers the AI');
+          }
         }
         const how = host.querySelector('.qt-how');
         if (!how || !S(how.textContent) || S(how.textContent) !== S(m.how)) bad('marker', x, 'the line under Check says ' + JSON.stringify(how ? how.textContent : null) + ', not how it is marked');
@@ -295,6 +319,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
           host.innerHTML = w.questionStemCard_(x, i, j);
           count.pages++;
           if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'stem page ' + i + '.' + j + ' has no Magnifier');
+          if (twiceOn(host).length) bad('twice', x, 'stem page ' + i + '.' + j + ' has a tile more than once: ' + twiceOn(host).join(', '));
           if (!figs()) bad('figures', x, 'stem ' + i + ' has a drawing with no size');
         }
       });
@@ -303,6 +328,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
         host.innerHTML = w.questionPreCard_(x, j);
         count.pages++;
         if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'page ' + (j + 1) + ' of its words has no Magnifier');
+        if (twiceOn(host).length) bad('twice', x, 'page ' + (j + 1) + ' of its words has a tile more than once: ' + twiceOn(host).join(', '));
       }
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -352,7 +378,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   const inv = Object.keys(fails);
   const total = inv.reduce((s, k) => s + fails[k].length, 0);
   const line = `parts ${count.parts} (pending without words skipped ${count.skipped}), pages ${count.pages}, figures ${count.figures}, `
-    + `cards with a figure under the Magnifier ${count.zoomed}, drawn ${count.drawn}, a surface on the first Pen tap ${count.lazy} (${count.lazyDrawn} drawn), by marker ${Object.keys(CHECK_OF).map(k => k + ' ' + (byMarker[k] || 0)).join(', ')} (none by a person; nothing yet to mark against: ${Object.keys(notReady).map(k => k + ' ' + notReady[k]).join(', ') || 'none'}, ${notReadyLive.length} of them not waiting on an import), every part with the twelve tools in order and one box, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
+    + `cards with a figure under the Magnifier ${count.zoomed}, drawn ${count.drawn}, a surface on the first Pen tap ${count.lazy} (${count.lazyDrawn} drawn), by marker ${Object.keys(CHECK_OF).map(k => k + ' ' + (byMarker[k] || 0)).join(', ')} (none by a person; nothing yet to mark against: ${Object.keys(notReady).map(k => k + ' ' + notReady[k]).join(', ') || 'none'}, ${notReadyLive.length} of them not waiting on an import), every part with the nine tools in order, each tile once, and one box, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
   if (!total) { console.log('OK — every question part can be answered: ' + line); process.exit(0); }
   console.log('FAILED — ' + total + ' failure(s) across ' + inv.length + ' invariant(s): ' + line);
   inv.forEach(k => {

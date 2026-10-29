@@ -420,8 +420,8 @@ function cardTiles_(x) {
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + (typeof magCardTile_ === 'function' ? magCardTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '')
-    /* AND THE PADLOCK (498): the owner, "add the padlock to every widget, so that I can highlight and copy and paste". */
-    + (x.key && x.kind !== 'me' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '')
+    /* AND THE PADLOCK (498): "add the padlock to every widget" -- a question's is its tool row's (`qtRow_`), so it has one, not two (round 4) */
+    + (x.key && x.kind !== 'me' && x.kind !== 'question' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '')
     /* AND `Suggest a change` ON EVERY CARD, Student rank and up (486, 494) — `suggestTileFor_` in submit.js. */
     + (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : '');
   const admin = adminTiles_(x, x.topic || null);

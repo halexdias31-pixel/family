@@ -138,9 +138,10 @@ on('qp-work-send', el => {
     });
 });
 
-/* ---------- AND SEEN BY THE PEOPLE WHO MAY (`workingOf`): the student, a parent they accepted, staff and admin. Fetched on the tap, never in the payload. */
-function workSeeTile_(pid) {
-  if (!pid) return '';
+/* ---------- AND SEEN BY THE PEOPLE WHO MAY (`workingOf`): the student, a parent they accepted, and the admin. Fetched on the tap, never in the payload. */
+/* `workingMaySee_`'s rule (dopost.gs): a parent of theirs, or rank Admin -- never a tutor (owner, 28 Oct), so the tile is not drawn for one */
+function workSeeTile_(pid, asParent) {
+  if (!pid || !(asParent === true || rankAtLeast_('admin'))) return '';
   return tile_({ icon: 'photo', label: 'Working photos', note: 'with the AI’s mark', act: 'work-see', data: { id: pid } });
 }
 on('work-see', el => {
