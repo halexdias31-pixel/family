@@ -1,4 +1,4 @@
-# 522 — one library schema, and a gate on every row-writer (finder stabilisation P3)
+# 523 — one library schema, and a gate on every row-writer (finder stabilisation P3)
 
 **Found by** the October audit of the library (everything but the Writings): the same facts were spelt many ways across
 the five card files, so the funnel split one answer into several and missed items. Questions said `key_stage`,
@@ -17,7 +17,8 @@ and `levelOf_` passed a range through whole, so 31 practicals were never found u
 ## What changed
 
 - `LEVEL_TABLE` (js/find.js): each real level, its key stages and tiers, the other spellings a cell uses, and its rung.
-  `levelsIn_` reads a cell (a comma list; `X–Y` is every rung between), `levelsOf_` an item, `levelOf_` gives the facet
+  `levelsIn_` reads a cell (a comma list; `X–Y`, `X to Y` or `X-Y` is every rung between; `X/Y`, or a range with an end
+  off the ladder like AS, is just the two), `levelsOf_` an item, `levelOf_` gives the facet
   one value or a list. `ksLevel_` (and so `ksFallback_`) reads the table too. `check/schema.js` runs the same literal
   and the same function, extracted from find.js, so there is one copy.
 - `LIB_SOURCES` (js/find.js) and the `source` facet ("Source"). `boardOf_`: a maker's sheet answers no Exam board. The
@@ -29,10 +30,25 @@ and `levelOf_` passed a range through whole, so 31 practicals were never found u
 - `tools/add-past-paper.js` (now `importPapers`, pure) and `tools/lib-private.js split` (`splitGate`) refuse any row
   problem the same rows did not already have — new rows strictly, old rows on what they had at HEAD — and write nothing.
 - `js/check-schema.js` runs the schema over the whole library with a count per file and rule pinned at today's figure
-  (21,549 in all): a count may only fall. P4 rewrites the rows and brings each pin to 0.
+  (21,251 in all): a count may only fall. P4 rewrites the rows and brings each pin to 0. A problem in a private field
+  (the `answer` rule) of a `lib_pending` row is not counted: whether its words are here depends on the last seed or pull.
+  Every rule is proved both ways on a fixture row — one change that must break it, one that must not — the two cross-row
+  rules (preamble, total) through `validateFile`, so a rule switched off goes red and not merely to a lower count.
+
+## Review fixes
+
+- A first draft had a rule "`lib_pending` on a row whose words are here is stale". It contradicted docs/library.md (the
+  marker stays on once the words arrive) and `tools/paperspec.py`, which writes `lib_pending: "True"` with the words on
+  every row: the gate refused every new past paper and every new pending content card, and the pinned counts moved with
+  whatever `pull` had fetched. The rule is gone; check-schema imports a brand-new paper shaped exactly as paperspec writes
+  it, and splits a new pending content card with its words, and both must pass.
+- `backend/digest.gs` copies `LEVEL_TABLE`/`levelsIn_` as `DIGEST_LEVELS`/`digestLevelsIn_`, so the email says `A-Level`
+  for `Alevel` and `GCSE` for `KS4` as the card does; check-schema asks both copies every level cell in the library.
+- Still the owner's to confirm: a KS2 range end is placed under SATs (the old `ksLevel_` mapping), so a KS2–GCSE practical
+  (19 of them, and 5 projects) is found under SATs even in a subject with no SATs. 11+ is off the ladder, never in a range.
 
 ## Left for P4 (the data)
 
 `Alevel` → `A-Level` (8,209 cells), tier `A-Level`/`AS` (7,828), GCSE rows marked KS3 or KS2 (1,255), makers' sheets
 carrying a board (2,402), topics not spelt as data/topics.json (1,273), ranges (50), 130 past-paper parts with no marks,
-47 calculations whose answer has no digit, 298 stale `lib_pending`, one paper whose parts sum to 75 of its 80.
+47 calculations whose answer has no digit, one paper whose parts sum to 75 of its 80.

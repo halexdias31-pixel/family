@@ -105,13 +105,16 @@ figures through `tools/pdf_figure.py`; the script with the words stays outside t
 after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
 (`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
 
-## The schema: a row a tool writes is checked first (522)
+## The schema: a row a tool writes is checked first (523)
 
 `check/schema.js` is the library's one schema: each card file's columns, which column holds each idea (level, key stage,
 tier, board, topics), and the closed vocabularies. Levels come from `LEVEL_TABLE` in js/find.js — store a list of real
 levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is a Source; its sheet carries no
 `exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
-the same rows did not have at HEAD; `node js/check-schema.js -v` lists the library's counts against their pins.
+the same rows did not have at HEAD; `node js/check-schema.js -v` lists the library's counts against their pins. The
+schema asks nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in
+a private field of a `lib_pending` row is left out of the pinned counts, since whether those words are here depends on
+the last pull.
 
 ## The checks
 
