@@ -82,7 +82,8 @@ function VOCAB() {
     lib_pending:   ['True'],
   };
 }
-/* A LEVEL IS A LIST OF REAL LEVELS (O1): `KS3, GCSE` is two. */
+/* A LEVEL IS A LIST OF REAL LEVELS (O1): `KS3, GCSE` is two. check-library reads VOCAB through this per item; validate's own level
+   block below asks level itself. */
 const LIST_COLS = new Set(['needs', 'key_stage', 'level']);
 
 /* ---------- ONE TABLE OF COLUMN NAMES PER CARD FILE: `cols` every column a row may have, and which column holds each idea ---------- */
@@ -151,17 +152,26 @@ function mathsy(answer) {
   return /\d/.test(head) || /[=+−×÷^√π/]|\)\s*\(|\b[a-zA-Z]\s*[−-]\s*[a-zA-Z]\b/.test(head);
 }
 
+/* A NOTE SAYING A PART'S MARKS ARE FOR THE PARTS BEFORE IT TOO, in the library's two shapes: "The question's N mark is
+   for …", "The paper gives (its) N marks for the whole / all / both / … together". */
+const SHARED = /\bthe question(?:'|’|&rsquo;)s \d+ marks? (?:is|are) for\b|\bthe paper (?:gives|prints) (?:its )?\d+ marks? for (?:the whole\b|all\b|both\b|[^.]*?\btogether\b|[^.]*?\bdoes not divide them\b)/i;
 /* WORDS THAT ASK FOR SOMETHING TO BE FILLED IN: a table, Venn or tree completed, boxes filled, a figure labelled, a
    matching. Not one missing number (the answer box), a label on one's own drawing, a Punnett square (cells fold case). */
-/* AN EXAMINER NOTE THAT SAYS A PART'S MARKS ARE FOR THE PARTS BEFORE IT TOO. */
-const SHARED = /\bmarks?\b[\s\S]*?\b(?:together|whole|all|both|does not divide|completing)\b/i;
 const FILL_IN = [
   /\b(?:complete|fill in)(?: in)? (?:the |this )?(?:[\w-]+ ){0,3}?(?:table|grid|venn diagram|tree diagram|frequency tree|distance chart|tally chart)\b/i,
-  /\bfill in the missing (?:[\w-]+ )?(?:numbers|digits|words|values)\b|\bfill in the (?:blanks|gaps|boxes)\b/i,
+  /\b(?:fill in|write(?: in)?) the missing (?:[\w-]+ )?(?:numbers|digits|words|values)\b|\bfill in the (?:blanks|gaps|boxes)\b/i,
+  /\b(?:write|put)\b[^.?]{0,40}?\bin (?:each (?:empty |blank )?box|the (?:empty |blank )?boxes)\b|\bgo in the boxes\b/i,
   /\bwhat (?:number|digit|word|letter)s? goes? in (?:box|cell|region)\b/i,
   /\blabel (?:the|each) (?:parts?|structures?|blanks?|boxes|organs?)\b|\blabel (?:the )?(?:diagram|figure)\b/i,
   /\bmatch each\b|\bdraw (?:a |one )?lines? (?:from|to) each\b|\bjoin each\b/i,
 ];
+/* PARTS THE CELLS RULE LEAVES, one written reason each: cells mark each box alone, so an open pair stays one box per value. */
+const CELLS_EXEMPT = {
+  'Q-CBM-square-numbers-16': 'an open pair (81 and 9, or 36 and 54): one box per value, marked as a pair',
+  'Q-CBM-5AD-F-0606-1': 'an open pair in either order (5 and -5): one box per value, marked as a pair',
+  'Q-CBM-5AD-F-0606-1b': 'an open pair in either order (4 and -1): one box per value, marked as a pair',
+  'Q-STA-KS2-2024-P3-11': 'its digits could not be recovered from the transcription (examiner note), so there is no answer to make cells from',
+};
 function fillIn(html) {
   const t = S(html).replace(/<svg[\s\S]*?<\/svg>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/&[a-z]+;|&#\d+;/gi, ' ').replace(/\s+/g, ' ');
   for (const re of FILL_IN) { const m = re.exec(t); if (m) return m[0]; }
@@ -260,7 +270,7 @@ function validate(row, file) {
     if (kind === 'question' && S(row.answer_type) === 'calculation' && S(row.answer) && !mathsy(row.answer) && !(S(row.accept) && mathsy(row.accept))) bad('answer', 'answer', "a calculation whose answer is neither a number nor algebra — it gets a number keypad");
     if (kind === 'question' && S(row.answer_type) === 'order' && S(row.html) && !(S(row.choices) && S(row.choice_right))) bad('answer', 'choices', 'an ordering with no choices or no choice_right');
     /* A PART THAT ASKS TO FILL SOMETHING IN IS ANSWERED IN CELLS (the owner's fill-in standard): never on the diagram. */
-    if (kind === 'question' && live && !S(row.cells)) {
+    if (kind === 'question' && live && !S(row.cells) && !CELLS_EXEMPT[S(row.row_id)]) {
       const ask = fillIn(row.html);
       if (ask) bad('cells', 'cells', 'its words ask to ' + JSON.stringify(ask) + ' and it has no cells — a table of cells, laid out as the paper\'s');
     }
@@ -345,5 +355,5 @@ function committed(file, map) {
   });
 }
 
-module.exports = { fillIn, FILL_IN, SHARED, FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
+module.exports = { fillIn, FILL_IN, SHARED, CELLS_EXEMPT, FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
                    levelsIn, rowLevels, validate, validateFile, newProblems, refuse, committed, topicWords };

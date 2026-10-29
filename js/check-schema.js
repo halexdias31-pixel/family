@@ -10,7 +10,7 @@ const fail = [];
 const note = [];
 
 /* ---------- 1. EVERY ROW OF EVERY CARD FILE: no problem at all (P4 rewrote the rows; the pinned counts are gone) ---------- */
-/* A private field of a lib_pending row is not counted: whether its words are here depends on the last pull (history 523). */
+/* A private field of a lib_pending row whose words here are older than its card (`waits`, a fresh clone) is not counted (523). */
 const counts = {}, first = {};
 let rowsSeen = 0, unsure = 0;
 L.NAMES().forEach(name => {
@@ -19,7 +19,7 @@ L.NAMES().forEach(name => {
   rowsSeen += rows.length;
   const def = L.defs().files[name];
   const priv = new Set(def.private || []);
-  const pend = new Set(rows.filter(r => /^true$/i.test(String(r.lib_pending || '').trim())).map(r => L.idOf(def, r)));
+  const pend = new Set(rows.filter(r => L.waits(name, r)).map(r => L.idOf(def, r)));
   SC.validateFile(rows, name).forEach(p => {
     if (priv.has(p.col) && pend.has(p.id)) { unsure++; return; }
     const k = name + ':' + p.rule;
@@ -38,7 +38,15 @@ Object.keys(counts).sort().forEach(k => {
 const qWhole = L.rows('questions');
 const asks = qWhole.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html));
 const withCells = asks.filter(r => String(r.cells || '').trim()).length;
-console.log('  fill-in parts with their words here: ' + asks.length + ', ' + withCells + ' of them with cells');
+const fillWaits = asks.filter(r => !String(r.cells || '').trim() && L.waits('questions', r)).length;
+const exempt = asks.filter(r => !String(r.cells || '').trim() && SC.CELLS_EXEMPT[r.row_id]).length;
+console.log('  fill-in parts with their words here: ' + asks.length + ', ' + withCells + ' of them with cells, ' + exempt + ' exempt (CELLS_EXEMPT), ' + fillWaits + ' pending with words older than their card');
+/* AN EXEMPTION FOR A PART THE LIBRARY HAS NOT GOT, OR ONE THAT NOW HAS CELLS, IS STALE WEIGHT. */
+Object.keys(SC.CELLS_EXEMPT).forEach(id => {
+  const r = qWhole.find(x => x.row_id === id);
+  if (!r) fail.push('CELLS_EXEMPT names ' + id + ', which is not in the library — take it off');
+  else if (String(r.cells || '').trim()) fail.push('CELLS_EXEMPT names ' + id + ', which has cells now — take it off');
+});
 if (asks.length < 100) fail.push('only ' + asks.length + ' parts ask to fill something in — the words did not load, so the fill-in rule was not asked');
 
 /* ---------- 2. THE RULES, PROVED ON FIXTURES: each catches what it is for and passes what it is not ---------- */
@@ -100,6 +108,10 @@ else {
              { kind: 'question', active: 'True', html: '<p>Reflect shape A in the y-axis. Label the image shape C.</p>', cells: '' }],
    ['cells', { kind: 'question', active: 'True', html: '<p>Fill in the missing square numbers.</p>', cells: '' },
              { kind: 'question', active: 'True', html: '<p>Fill in the missing number: 5/8 = ?/24</p>', cells: '' }],
+   ['cells', { kind: 'question', active: 'True', html: '<p>Write the missing numbers so that 3 &times; a &minus; b = 2</p>', cells: '' },
+             { kind: 'question', active: 'True', html: '<p>Write the missing number.</p>', cells: '' }],
+   ['cells', { kind: 'question', active: 'True', html: '<p>Write a digit in each box to show the number.</p>', cells: '' },
+             { kind: 'question', active: 'True', html: '<p>Tick two boxes. Write a number in the box.</p>', cells: '' }],
    ['cells', { kind: 'question', active: 'True', html: '<p>Match each tissue to its feature.</p>', cells: '' },
              { kind: 'question', active: 'True', html: '<p>Complete the pie chart. Label each sector.</p>', cells: '' }],
    ['answer', { answer_type: 'order', html: 'Put these in order.', choices: '', choice_right: '' },
@@ -126,6 +138,9 @@ else {
   const shared = 'The paper gives 2 marks for the two values together.';
   if (rulesIn([pq('FX6', 'a', '', ''), pq('FX6', 'b', '2', '')]).indexOf('marks') === -1) fail.push('a past-paper part with no marks, its next part saying nothing of sharing, broke no `marks` rule');
   if (rulesIn([pq('FX7', 'a', '', ''), pq('FX7', 'b', '2', shared)]).indexOf('marks') !== -1) fail.push('a past-paper run whose last part carries the marks for both, and says so, broke the `marks` rule');
+  /* ONLY A NOTE SAYING THE PAPER'S MARKS ARE FOR THE RUN: a mark-scheme line that merely says "both marks" is not one. */
+  if (rulesIn([pq('FX11', 'a', '', ''), pq('FX11', 'b', '2', 'Allow both marks for a correct method. Award all marks for 12.')]).indexOf('marks') === -1) fail.push('a past-paper run whose last note only says "Allow both marks" broke no `marks` rule');
+  if (rulesIn([pq('FX12', 'a', '', ''), pq('FX12', 'b', '1', 'The question&rsquo;s 1 mark is for the numerals matched correctly.')]).indexOf('marks') !== -1) fail.push('a run whose last note says "The question\'s 1 mark is for…" broke the `marks` rule');
   if (rulesIn([pq('FX8', 'a', '2', shared), pq('FX8', 'b', '', '')]).indexOf('marks') === -1) fail.push('a past-paper part with no marks and no later part broke no `marks` rule');
   if (rulesIn(fx('FX9', [pq('FX9', 'a', '', ''), pq('FX9', 'b', '5', shared)])).indexOf('total') !== -1) fail.push('a paper of 5 marks whose one run shares its 5 broke the `total` rule');
   if (rulesIn(fx('FX10', [pq('FX10', 'a', '', ''), pq('FX10', 'b', '4', shared)])).indexOf('total') === -1) fail.push('a paper of 5 marks whose one run shares 4 broke no `total` rule');
@@ -183,11 +198,11 @@ else {
 }
 
 console.log('\n' + rowsSeen + ' library rows against check/schema.js, ' + Object.keys(counts).length + ' file:rule(s) with a problem; '
-  + unsure + ' problem(s) in the words of lib_pending rows not counted (they depend on what this machine last pulled).');
+  + unsure + ' problem(s) in the words of lib_pending rows not counted (their words here are older than their card: a fresh clone before pull).');
 if (note.length) { console.log('\nWORTH A LOOK — not failures:'); note.forEach(n => console.log('  ' + n)); }
 if (fail.length) {
   console.log('\nTHE LIBRARY BREAKS ITS SCHEMA:');
   fail.forEach(f => console.log('  ' + f));
   process.exit(1);
 }
-console.log('OK — every library row (' + rowsSeen + ') keeps the one schema, every fill-in part (' + asks.length + ') has cells, and both writers refuse a bad row.');
+console.log('OK — every library row (' + rowsSeen + ') keeps the one schema, every fill-in part (' + withCells + ') has cells' + (exempt ? ' (' + exempt + ' exempt, a reason each)' : '') + (fillWaits ? ' (' + fillWaits + ' pending, their words here older)' : '') + ', and both writers refuse a bad row.');

@@ -27555,8 +27555,10 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
   const SC = require('../check/schema.js');
   const LIB = LIB_FULL.rows('questions');
-  const asks = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html));
-  if (asks.length < 100) return ['only ' + asks.length + ' parts ask to fill something in — the words did not load, NOT checked'];
+  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim()));
+  /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
+  const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
+  if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];
   const papers = new Set(asks.map(r => r.paper_id));
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined) });
   await wait(300);
@@ -27593,7 +27595,7 @@ check('the fill-in standard: every library part that asks to fill something in s
     try { w.localStorage.removeItem(w.ansKey_(x)); } catch (e) {}
   });
   host.remove();
-  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' as labelled boxes, each marked right by its own answers');
+  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' as labelled boxes, each marked right by its own answers; ' + waiting + ' waiting for newer words');
   return bad;
 });
 

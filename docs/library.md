@@ -80,13 +80,16 @@ A file that has gone in is not undone by deleting it: send another file with the
 
 A fresh clone rebuilds `data-private/` from `LIB_SOURCE_COMMIT`, so it can never hold the words of a row added after that
 commit, and `check/lib-full.js` would call the row lost ("run pull"). Such a row carries `lib_pending: "True"` on its card
-— public, kept by `split` like any card column. Three things honour it, and nothing else:
+— public, kept by `split` like any card column. These honour it, and nothing else:
 
 - **`check/lib-full.js`**: a pending row with no words here is a card, not lost. With words in `data-private/` it is
   joined whole like any row, and the marker stays on it.
 - **`js/check-textbooks.js`**: a pending chapter with none of its three lists here skips the word and worked-line minimums,
   and an animation under it skips the `about` rule, and the check prints how many it skipped. With the words here,
   everything is checked.
+- **check-schema, check-qtypes and check-flow's fill-in journey**: a pending row whose words here are not the fields its
+  card's `lib_has` names (`waits` in `check/lib-full.js`: missing, or a seed older than the card) has its private-field
+  problems, its `function_verified` and its cells skipped, counted aloud. With current words, everything is checked.
 - **The site**: a pending card the Ledger answers `missing` for says "Coming soon." in place of "This one is not in the
   library yet." (`libSay_`, `pending` on the chapter in `library.js`).
 
@@ -113,13 +116,17 @@ levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is 
 `exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
 the same rows did not have at HEAD; `node js/check-schema.js` fails on any problem in the library. The schema asks
 nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in a private
-field of a `lib_pending` row is not counted, since whether those words are here depends on the last pull.
+field of a `lib_pending` row whose words here are older than its card is not counted (a fresh clone before `pull`).
+A changed part's words are newer than the seed too, so a tool that changes them marks the row `lib_pending` (523).
 
 A part whose words ask to fill something in (complete a table, grid, Venn diagram or tree; fill in the missing numbers;
 what goes in box (a); label a figure's parts; match) has `cells` — a table of cells laid out as the paper's, printed
 values filled in, or labelled boxes `(a)`, `(b)` where the boxes are printed in a stem or a figure; never a part per blank.
-A past-paper part with no marks is right only when a later part of its question carries the run's marks and its
-examiner note says so. A board's own paper names the board as `company` and `exam_board` both (523).
+"Write the missing numbers" and "a digit in each box" ask too; one missing number or "the box" is the answer box. An
+open pair, which cells cannot mark, is named in `CELLS_EXEMPT` with its reason. A topic is spelled as its label; an
+alias is for an import's spelling, and Find does not fold it. A past-paper part with no marks is right only when a later
+part of its question carries the run's marks and its examiner note says so ("The paper gives N marks for the whole…",
+"The question's N mark is for…"). A board's own paper names the board as `company` and `exam_board` both (523).
 
 ## The checks
 

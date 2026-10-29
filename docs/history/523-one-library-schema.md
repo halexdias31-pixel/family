@@ -93,3 +93,36 @@ pinned table and check/schema.js's `LEGACY` lists are gone), and `level` is a li
 - **The Ledger.** The 95 parts' new words (html, cells, answer; accept, choices and choice_right sent as null) went as an
   import file; a machine with an older `data-private/` needs `pull` after the owner imports it, or check-schema finds
   those parts without cells.
+
+## P4 review fixes (fix-r2-data)
+
+- **A fresh clone was red.** The 95 parts' new words were only in this machine's `data-private/` and the import file, and
+  their cards carried no marker. A clone seeds `data-private/` from `LIB_SOURCE_COMMIT`, which holds the old words (no
+  cells, `function_verified` computed False), so check-schema (86 cells problems), check-qtypes (27 flags) and the
+  fill-in journey went red; importing to the Ledger does not help, since the seed reads git. Fixed the repo's way: the
+  98 parts whose words changed carry `lib_pending: "True"`, and `check/lib-full.js` gains `waits(name, row)` — a pending
+  row whose words here are not the fields its card's `lib_has` names (missing, or a seed older than the card). check-schema
+  (private-field problems), check-qtypes (the flag) and the fill-in journey skip only such rows and print how many; with
+  the words here every pending row is checked whole, which check-schema did not do before (it skipped every pending row).
+  Proved in a copy of the branch with no `data-private/`: red before, green after, red again when one row loses its marker.
+- **The deploy order.** `data/` goes live on push, so the owner imports `lib-import-p4-fill-in-cells.json` (now 98 items)
+  in Business **before** the branch is pushed; otherwise the site serves the new cards over the old words and the 126
+  folded runs show only their first blank. The import cannot delete: the 126 removed row ids stay as orphan rows in the
+  Ledger's `lib_questions` (listed below) and should be deleted there by hand. Nothing reads them, so until then
+  they are weight, not a fault.
+- **Fill-in wording.** `Write the missing numbers/digits/words/values`, `write … in each box` / `in the boxes` and
+  `… go in the boxes` now ask for cells (the singular `Write the missing number` / `in the box` is one blank, the answer
+  box). Three parts newly caught got cells (KS2 2024 P2 Q25's a/b table, moved out of its `lead`; a Corbettmaths
+  sequence's own table; a four-digit number's four boxes). Four are in `CELLS_EXEMPT` with a reason each: three open
+  pairs (`81 and 9` or `36 and 54`; `5 and −5` either way), which cells cannot mark since each cell is marked alone, so
+  they keep one box per value; and KS2 2024 P3 Q11, whose digits the transcription lost (no answer to make cells from).
+- **Topic aliases were whitelisting drift.** Nothing in the app reads `aliases`, so Find showed `ratio` beside `Ratio &
+  Proportion`. The 85 aliases P4 added are gone again; the 330 rows using them were respelt to the label (two where the
+  alias meant something else were dropped: `parallel` on a vectors part, `Time` on the invisible-ink practical).
+- **The shared-marks note** matched any `marks … all/both`, so `Allow both marks for…` passed. It now matches only the
+  two shapes the library writes: `The question's N mark(s) is/are for …` and `The paper gives/prints (its) N mark(s) for
+  the whole / all / both / … together / … does not divide them`.
+- **`level` in LIST_COLS** looked dead (check-schema stays green without it), but check-library reads VOCAB through it
+  per item: without it every `KS3, GCSE` cell is a stray. Kept, with a comment saying who reads it.
+
+The 126 removed row ids (the stem, then its folded parts' suffixes), orphans in `lib_questions`: `Q-9MA031-2206-5` cii/ciii/civ; `Q-1MA1-2406-2H-5` aii/aiii; `Q-1MA1-2406-2H-11` aii/aiii/aiv/av; `Q-1MA1-2406-2F-24` aii/aiii; `Q-1MA1-2406-3F-13` b/c/d/e/f; `Q-STA-KS2-2024-P2-4` b; `Q-STA-KS2-2024-P2-5` b/c; `Q-STA-KS2-2024-P2-8` b; `Q-STA-KS2-2024-P2-11` b; `Q-STA-KS2-2024-P3-9` b/c; `Q-STA-KS2-2024-P3-23` b/c; `Q-STA-KS2-2025-GPS1-38` b; `Q-1CM-direct-and-inverse-proportion-9` aii/bii/cii/dii; `Q-1CM-interpreting-histograms-1` aii/aiii/aiv; `Q-1CM-similar-areas-and-volumes-6` aii; `Q-1CM-standard-form-13` bii; `Q-CBM-sequences-1` b; `Q-CBM-sequences-2` b/c; `Q-CBM-sequences-3` b; `Q-CBM-sequences-4` b; `Q-CBM-sequences-10` b; `Q-CBM-sequences-11` b; `Q-CBM-sequences-12` b; `Q-CBM-sequences-13` b; `Q-1MA1-2005-1H-12` aii/aiii/aiv/av/avi; `Q-1MA1-2006-2H-4` aii/aiii/aiv; `Q-1MA1-1905-1H-1` aii; `Q-1MA1-1905-1H-11` aii/aiii; `Q-1MA1-1906-2H-11` aii/aiii/aiv/av/avi; `Q-AQA-8461-2406-1F-012` ii; `Q-AQA-8461-2406-1F-031` ii; `Q-AQA-8462-2406-1F-043` ii; `Q-AQA-8462-2406-1F-062` ii/iii; `Q-AQA-8462-2406-2F-053` ii; `Q-AQA-8463-2406-2F-032` ii; `Q-STA-KS2-2019-P2-1` b/c; `Q-STA-KS2-2019-P2-5` b/c; `Q-STA-KS2-2019-P2-14` b/c; `Q-STA-KS2-2019-P3-5` b/c; `Q-STA-KS2-2019-P3-7` bii/biii; `Q-STA-KS2-2019-P3-11` b/c; `Q-STA-KS2-2019-P3-12` b; `Q-AQA-8461-2406-1H-072` ii; `Q-CBM-5AD-F-0601-6` aii/aiii/aiv/av/avi; `Q-CBM-5AD-F-0607-5` aii/aiii/aiv; `Q-CBM-5AD-F-0619-3` aii/aiii; `Q-CBM-5AD-F-0620-6` aii; `Q-CBM-5AD-F-0710-2` aii/aiii; `Q-CBM-5AD-F-0726-4` aii/aiii/aiv/av; `Q-CBM-5AD-F-0731-2` aii/aiii; `Q-CBM-5AD-F-0804-3` aii/aiii/aiv; `Q-CBM-5AD-F-0903-3` bii/biii/biv; `Q-CBM-5AD-F-0910-2` aii/aiii/aiv; `Q-CBM-5AD-F-1004-3` aii/aiii; `Q-CBM-5AD-F-1007-2` aii/aiii/aiv; `Q-CBM-5AD-F-1017-4` aii/aiii/aiv/av/avi/avii; `Q-CBM-5AD-F-1025-3` aii/aiii; `Q-AQA-7408-2406-3A-025` ii; `Q-STA-KS1-2026-P2-15` b/c; `Q-STA-KS1-2026-P2-20` b.
