@@ -3933,7 +3933,7 @@ function doneWords_(k, index) {
 function markNorm_(s) {
   return String(s == null ? '' : s)
     /* ONLY A REAL TAG IS A TAG. § */
-    .replace(/<\/?[a-z][^>]*>/gi, ' ')
+    .replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, ' ')
     /* AND THE ENTITIES A CELL IS WRITTEN IN ARE THE CHARACTERS A CHILD TYPES. § */
     .replace(/&pound;/g, '£').replace(/&euro;/g, '€').replace(/&minus;/g, '−')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')

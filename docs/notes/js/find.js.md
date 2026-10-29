@@ -7150,7 +7150,8 @@ in `markNorm_`
 /* ONLY A REAL TAG IS A TAG. This was `<[^>]*>`, which read the inequality a child types --
        `4 < 7 > 2` -- as a tag and threw away its middle, so every Corbettmaths inequality-signs
        question was unmarkable; the accept cells had to be emptied. A tag starts with a letter or
-       a slash; a comparison sign is followed by a space or a number. */
+       a slash; a comparison sign is followed by a space or a number. And a tag's name ends at a space, a slash or
+       its `>`: `0<a<e^2, a>3` (9MA0 2011 Paper 2 13c) had read `<a<e^2, a>` as a tag, so a name runs into nothing else. */
 ```
 
 ### AND THE ENTITIES A CELL IS WRITTEN IN ARE THE CHARACTERS A CHILD TYPES.
