@@ -195,8 +195,6 @@ function boot(opts) {
       'handleSaid: () => HANDLE_SAID,' +
       /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
       'lib: () => LIB,' +
-      /* A RELOAD, AS THE TOOL ROW SEES ONE: the visit's grids, pens and records forgotten, the stores kept (qtools.js) */
-      'qtForget: () => { QT_GRID.clear(); PEN_OPEN.clear(); PART_MEM.clear(); },' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -11112,6 +11110,33 @@ check('an admin sees everyone on the people column, and nobody else sees more th
   return bad;
 });
 
+/* TUTORS NEVER SEE A STUDENT'S WORKING PHOTOS (owner, 28 Oct; backend `workingMaySee_`): the tile is drawn by that rule -- the admin, or a parent of theirs */
+check('Working photos is drawn for an admin and for a parent of the child, never for a tutor', async () => {
+  const { w } = boot();
+  await wait(400);
+  if (!w.__t.accountPages || typeof w.workSeeTile_ !== 'function') return ['accountPages_ or workSeeTile_ is not reachable — NOT checked'];
+  const bad = [];
+  const D = w.__t.DATA();
+  const photos = () => w.__t.accountPages().filter(h => /data-do="work-see"/.test(h)).length;
+  D.everyone = [{ personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' }];
+  w.__t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk' });
+  if (photos() !== 1) bad.push('an admin\'s students list draws Working photos ' + photos() + ' time(s), wanted once, on Evie');
+  /* A TUTOR, the same list still in the payload (a copy kept from before a rank changed): the tile is the tutor's own rule, not only the list's */
+  w.__t.USER({ name: 'Tom Tutor', personId: 'P-TT', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tt' });
+  if (photos()) bad.push('a tutor is drawn Working photos ' + photos() + ' time(s)');
+  if (w.workSeeTile_('P-E1')) bad.push('workSeeTile_ draws the tile for a tutor: the backend refuses them, so the tile is a door onto nothing');
+  /* A PARENT OF THE CHILD, a tutor or not, may: their family card carries it */
+  D.familyFor = 'P-TT';
+  D.family = [{ personId: 'P-KID', title: 'Kit', handle: 'kit_kind7', relation: 'child' }];
+  if (photos() !== 1) bad.push('a tutor who is the child\'s parent is drawn Working photos ' + photos() + ' time(s) on their family, wanted once');
+  w.__t.USER({ name: 'Pat Parent', personId: 'P-PP', role: 'parent', roles: ['parent'], rank: 'client', token: 'tp' });
+  D.familyFor = 'P-PP';
+  if (photos() !== 1) bad.push('a parent is drawn Working photos ' + photos() + ' time(s) for their child, wanted once');
+  delete D.everyone; delete D.family; delete D.familyFor;
+  w.__t.USER(null);
+  return bad;
+});
+
 /* "I MYSELF NEED TO BE ABLE TO ADD NEW PEOPLE … ADD OR DELETE OR EDIT PEOPLE FROM ADMIN ACCOUNT" (373): the "+" above everybody, its form, Edit and Delete. */
 check('an admin adds a person from the "+" on Students (453), edits one and deletes one (a parent, on Parents), each seen without a reload; nobody else is offered any of it', async () => {
   const PIN = ['6', '1', '4', '8', '2', '7'].join('');
@@ -15554,6 +15579,70 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
 });
 
 /* ---------- THE LETTERS ARE TYPED, SAVED AND MARKED; 123 IS THE MATHS KEYS; A LAPTOP STILL TYPES § */
+/* EVERY STORED ANSWER CAN BE TYPED (round 4): the symbols face, beside 123 on the letters, types ≈ → … ∛ and the Greek, and a ≈ answer typed there is marked */
+check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the box, and an answer with ≈ typed on it is marked right', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — nothing was checked'];
+  const h = d.createElement('div');
+  const x = { kind: 'question', key: 'q-sym-1', name: 'Q5c', marks: 1, html: '<p>Estimate the roots.</p>', answer: '<b>x &asymp; 2.6</b>',
+    answerType: 'calculation', accept: 'x ≈ 2.6', row: { row_id: 'Q-SYM-1', paper_id: 'P-SYM', subject: 'Maths', name: 'Symbols' } };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  h.innerHTML = w.questionCard_(x, 0);
+  d.body.appendChild(h);
+  const inp = h.querySelector('.kp-in');
+  if (!inp) return ['the part drew no keypad box'];
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the box did not open the pad'];
+  const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); };
+  press('x'); press(' '); press('!abc'); press('!sym');
+  if (pad.getAttribute('data-layer') !== 'sym' || !pad.classList.contains('is-sym')) bad.push('αβ on the letters did not turn the pad to its symbols: ' + pad.getAttribute('data-layer'));
+  ['≈', '→', '…', '∛', 'θ', 'μ', '≠', '∞', '{', '[', '∈'].forEach(c => { if (!key(c)) bad.push('the symbols face has no ' + c + ' key'); });
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!abc|!left|!right| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc ← → space ⌫ ✓');
+  press('≈'); press(' '); press('!123'); ['2', '.', '6'].forEach(press);
+  if (inp.value !== 'x ≈ 2.6') bad.push('x, a space, ≈ from the symbols, a space, 2.6 gave ' + JSON.stringify(inp.value));
+  press('!done');
+  const mark = h.querySelector('.qp-mark');
+  if (!mark || !mark.classList.contains('is-right')) bad.push('"x ≈ 2.6" typed on the pad was not marked right against "x ≈ 2.6": ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
+  h.remove();
+  return bad;
+});
+
+/* THE QUESTION RIDES ON THE PAD (round 4, `kpStrip_`): the eight rows never hide what is asked -- its first lines above the keys, on every face, a tap to see it whole */
+check('the pad carries the question\'s first lines above its keys on every face, and a tap on them leaves the pad up on the same box', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key'] || !A['kp-q']) return ['the keypad or its question strip has no handler — nothing was checked'];
+  const h = d.createElement('div');
+  const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle. Give your answer in square centimetres.</p>',
+    answer: '<b>24</b>', answerType: 'calculation', accept: '24', row: { row_id: 'Q-STRIP-1', paper_id: 'P-STRIP', subject: 'Maths', name: 'Strip' } };
+  h.innerHTML = w.questionCard_(x, 0);
+  d.body.appendChild(h);
+  const inp = h.querySelector('.kp-in');
+  if (!inp) return ['the part drew no keypad box'];
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the box did not open the pad'];
+  const strip = () => pad.querySelector(':scope > .kp-q');
+  const says = () => (strip() ? strip().textContent.trim() : '');
+  ['maths', '!abc', '!sym', '!123'].forEach(v => {
+    if (v !== 'maths') { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no ' + v + ' key'); }
+    if (!strip() || pad.firstElementChild !== strip()) bad.push('the ' + pad.getAttribute('data-layer') + ' face has no question strip above its keys');
+    else if (!/^Work out the area of the triangle/.test(says())) bad.push('the strip on the ' + pad.getAttribute('data-layer') + ' face says ' + JSON.stringify(says().slice(0, 60)));
+  });
+  if (strip() && !/^Show the question: Work out/.test(strip().getAttribute('aria-label') || '')) bad.push('the strip does not say it shows the question: ' + strip().getAttribute('aria-label'));
+  if (strip() && strip().tagName !== 'BUTTON') bad.push('the strip is not a button');
+  if (strip()) A['kp-q'](strip());
+  if (pad.hidden || w.document.activeElement !== inp) bad.push('a tap on the strip put the pad away or took the box\'s focus');
+  h.remove();
+  return bad;
+});
+
 check('the pad\'s letters type, save and mark a worded answer; 123 is the maths keys; ⇧, a laptop\'s keys and a paste all type', async () => {
   const { w, errs } = boot();
   await wait(300);
@@ -15576,8 +15665,8 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
   if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
   ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
-  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-6).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 ← → ↵ ⌫ ✓ in the maths pad\'s places');
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 αβ ← → ↵ ⌫ ✓, the maths pad\'s with the symbols beside 123');
   if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
   'egestion'.split('').forEach(press);
   if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
@@ -15998,8 +16087,8 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     const space = pad.querySelector('.kp-key.kp-space');
     if (!space || !/span 24/.test(space.getAttribute('style') || '')) bad.push('the space bar did not give the return its twelve columns');
   }
-  const bottom = keys.slice(-6).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own: 123 ← → ␣ ⌫ ✓');
+  const bottom = keys.slice(-7).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!sym|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own with the symbols beside 123: 123 αβ ← → ␣ ⌫ ✓');
   const doneKey = keys[keys.length - 1];
   if (!doneKey || !doneKey.classList.contains('kp-done-k') || doneKey.textContent.trim() !== 'done' || doneKey.querySelector('svg')) bad.push('the essay\'s ✓ still wears Send\'s aeroplane — on an essay it only puts the pad away, so it says "done"');
   if (!blank()) bad.push('the sheet stopped being blank when it was focused, so the hint went before a letter was written');
@@ -16147,7 +16236,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (!si || !si.closest('.qp-bar') || si.hasAttribute('data-kp-essay') || card.querySelector('.qp-sheet, .qp-words')) bad.push('a three-mark explain box is not the chat bar any more');
   else {
     si.focus();
-    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-6).map(b => b.getAttribute('data-v')).join('|') !== '!123|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
+    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
     si.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     if (!pad.hidden || si.value) bad.push('Enter on a short worded box did not put the pad away as ✓ (value ' + JSON.stringify(si.value) + ')');
   }
@@ -27754,8 +27843,8 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
   return bad;
 });
 
-/* ---------- THE TOOL ROW'S GRID, LAYER, LINE AND SHEET (Review A of round 3) ---------- */
-check('a part\'s grid comes back after a reload and its first Grid tap on a blank surface gives axes; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked; the formula sheet is the brand tab\'s', async () => {
+/* ---------- THE TOOL ROW, THE LAYER AND THE LINE (Review A of round 3; round 4: the owner's nine, no Calculator, Grid, Table or Formula sheet) ---------- */
+check('a part\'s tool row is the owner\'s nine in order with one padlock; its first Pen tap lays a grid to draw on; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -27763,12 +27852,10 @@ check('a part\'s grid comes back after a reload and its first Grid tap on a blan
     R_({ row_id: 'GR-1', question: '1', html: '<p>Work out 3 + 4</p>', answer: '7', accept: '7' }),
     R_({ row_id: 'GR-2', question: '2', subject: 'English', html: '<p>Which prefix could be added to all three words?</p>', answer: 're', accept: 're | re-' }),
   ];
-  const pay = payload();
-  pay.brand = Object.assign({}, pay.brand || {}, { formula_sheet: 'Speed: s = d / t\nArea of a rectangle: A = lw' });
-  const { w } = boot({ payload: pay, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['qt-grid'] || !A['qt-pen'] || !A['qt-panel']) return ['questionCard_ or the qt-grid / qt-pen / qt-panel handlers are not reachable — NOT checked'];
+  if (typeof w.questionCard_ !== 'function' || !A['qt-pen'] || !A['q-lock']) return ['questionCard_ or the qt-pen / q-lock handlers are not reachable — NOT checked'];
   t.STUFF().filters = [];
   const host = d.createElement('div');
   d.body.appendChild(host);
@@ -27778,19 +27865,15 @@ check('a part\'s grid comes back after a reload and its first Grid tap on a blan
   host.innerHTML = w.questionCard_(x1, 0);
   const how = (host.querySelector('.qt-how') || {}).textContent || '';
   if (how !== 'Marked against the accepted answers') bad.push('the line under Check says ' + JSON.stringify(how));
+  /* THE OWNER'S ROW, by the tiles' own names: "get rid of that calculator button … and grid button … table … formula sheet … still two lock buttons" */
+  const row = host.querySelector('.qt-row');
+  const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
+  if (names.join(' | ') !== 'Pen | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('the tool row reads ' + names.join(' | '));
+  if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
+  const locks = host.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
+  if (locks !== 1) bad.push('the part has ' + locks + ' padlocks, wanted one');
   A['qt-pen'](host.querySelector('[data-do="qt-pen"]'));
   if (!host.querySelector('.qpad .qsurf, .qpad svg line.grid')) bad.push('the first Pen tap did not lay a grid surface');
-  A['qt-grid'](host.querySelector('[data-do="qt-grid"]'));
-  if (!host.querySelector('.qpad svg line.axis')) bad.push('the first Grid tap on a blank grid surface changed nothing — wanted axes');
-  /* A RELOAD: the visit's own state gone, the part's record kept */
-  t.qtForget();
-  host.innerHTML = w.questionCard_(x1, 0);
-  if (!host.querySelector('.qpad svg line.axis')) bad.push('after a reload the axes chosen are not drawn — the surface did not reopen');
-  const g = host.querySelector('[data-do="qt-grid"]');
-  if (!g || g.getAttribute('aria-pressed') !== 'true') bad.push('after a reload the Grid tile is not lit');
-  A['qt-panel'](host.querySelector('[data-do="qt-panel"][data-tool="formula"]'));
-  const sheet = (host.querySelector('.qt-formula') || {}).textContent || '';
-  if (!/Speed/.test(sheet) || !/s = d \/ t/.test(sheet) || /Pythagoras/.test(sheet)) bad.push('the formula sheet is not the brand tab\'s: ' + JSON.stringify(sheet.slice(0, 80)));
   const layer = id => { host.innerHTML = w.questionCard_(item(id), 0); const i = host.querySelector('.qp-ans-in'); return i && i.getAttribute('data-kp'); };
   if (layer('GR-2') !== 'words') bad.push('a prefix answer ("re | re-") opens on ' + layer('GR-2') + ', wanted the letters');
   if (layer('GR-1') !== 'maths') bad.push('a number answer ("7") opens on ' + layer('GR-1') + ', wanted the maths');

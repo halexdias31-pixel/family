@@ -102,11 +102,29 @@ const KP_ABC = [].concat(
    kpCh_('?', 'question mark'), kpCh_('-', 'hyphen')]);
 /* THE BOTTOM ROW, THE MATHS PAD'S OWN with `123` where `abc` was. § */
 const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
-const kpBottom_ = (words, essay) => KP_KEYS.slice(-6).map(k =>
-  k.v === '!abc' ? { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }
-  : (words && !essay && k.v === ' ') ? { v: '!nl', a: 'new line', c: ' kp-mode', t: '\u21b5' }
-  : (essay && k.v === '!done') ? KP_DONE_ESSAY : k)
-  .map(k => Object.assign({}, k, { span: 10 }));
+/* AND THE SYMBOLS' KEY BESIDE `123` (round 4); on the symbols face `abc` stands there, and the space stays a space */
+const KP_SYM_KEY = { v: '!sym', a: 'symbols and Greek letters', c: ' kp-mode', t: '\u03b1\u03b2' };
+const KP_BOTTOM_SPAN = [8, 8, 8, 8, 12, 8, 8];
+const kpBottom_ = (words, essay, sym) => {
+  const row = KP_KEYS.slice(-6).map(k =>
+    k.v === '!abc' ? { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }
+    : (words && !essay && !sym && k.v === ' ') ? { v: '!nl', a: 'new line', c: ' kp-mode', t: '\u21b5' }
+    : (essay && k.v === '!done') ? KP_DONE_ESSAY : k);
+  row.splice(1, 0, sym ? { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' } : KP_SYM_KEY);
+  return row.map((k, i) => Object.assign({}, k, { span: KP_BOTTOM_SPAN[i] }));
+};
+/* ---------- THE SYMBOLS (round 4): what a stored answer is written in and no other key types -- Greek letters, ≈ ≠ → ∞ … ∛, sets and intervals */
+const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op kp-sy', span: 6 });
+const KP_SYM = [
+  kpSy_('\u03b1', 'alpha'), kpSy_('\u03b2', 'beta'), kpSy_('\u03b3', 'gamma'), kpSy_('\u03b8', 'theta'), kpSy_('\u03bb', 'lambda'),
+  kpSy_('\u03bc', 'mu'), kpSy_('\u03c3', 'sigma'), kpSy_('\u03c6', 'phi'), kpSy_('\u03c9', 'omega'), kpSy_('\u03a9', 'capital omega, ohms'),
+  kpSy_('\u2248', 'approximately equal to'), kpSy_('\u2260', 'not equal to'), kpSy_('\u2192', 'an arrow, tends to'), kpSy_('\u221e', 'infinity'),
+  kpSy_('\u2026', 'and so on'), kpSy_('\u221b', 'cube root'), kpSy_('~', 'tilde, is distributed as'), kpSy_('\u2208', 'is a member of'),
+  kpSy_('\u222a', 'union'), kpSy_('\u2229', 'intersection'),
+  kpSy_('{', 'open curly bracket'), kpSy_('}', 'close curly bracket'), kpSy_('[', 'open square bracket'), kpSy_(']', 'close square bracket'),
+  kpSy_('_', 'underscore, for a subscript'), kpSy_('!', 'exclamation mark, factorial'), kpSy_('x\u0304', 'a bar over the letter before', '\u0304'),
+  kpSy_('\u2124', 'the integers'), kpSy_('\u211d', 'the real numbers'), kpSy_('\u00b5', 'micro, for a unit'),
+];
 /* ---------- AN ESSAY'S LETTERS: A RETURN KEY YOU CAN SEE § */
 const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret', span: 12,
   t: '<span class="kp-ret-i" aria-hidden="true">\u21b5</span><span class="kp-ret-k">return</span>' };
@@ -119,6 +137,7 @@ const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="k
   k.icon ? tileIcon_(k.icon) : k.t}</button>`;
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 function kpPadHtml_(layer, words, signs, essay, vec) {
+  if (layer === 'sym') return KP_SYM.concat(kpBottom_(words, essay, true)).map(kpKey_).join('');
   if (layer === 'abc') return (vec ? KP_VEC_KEYS.map(k => Object.assign({}, k, { span: 10 })) : []).concat(essay ? KP_ABC_ESSAY : KP_ABC).concat(kpBottom_(words, essay)).map(kpKey_).join('');
   return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
@@ -322,11 +341,46 @@ function kpLayout_(inp) {
   }
   kpNextPaint_(pad, inp);
   pad.classList.toggle('is-abc', KP_LAYER === 'abc');
+  pad.classList.toggle('is-sym', KP_LAYER === 'sym');
   pad.setAttribute('data-layer', KP_LAYER);
-  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : 'Maths keypad');
+  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : 'Maths keypad');
   kpShiftPaint_();
+  kpStrip_(pad, inp);
   return pad;
 }
+/* ---------- THE QUESTION ABOVE THE PAD (round 4): on a phone the pad's eight rows can hide what is asked, so its first lines ride on the pad, and a tap goes to it whole */
+function kpStrip_(pad, inp) {
+  let q = pad.querySelector(':scope > .kp-q');
+  const card = inp && inp.closest && inp.closest('.qcard');
+  const sheet = card && (card.querySelector('.qsheet-part') || card.querySelector('.qsheet'));
+  const said = sheet ? String(sheet.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  if (!said) { if (q) q.remove(); return; }
+  if (!q) {
+    q = document.createElement('button');
+    q.type = 'button';
+    q.className = 'kp-q';
+    q.setAttribute('data-do', 'kp-q');
+    q.innerHTML = '<span class="kp-q-t"></span>';
+  }
+  if (pad.firstElementChild !== q) pad.insertBefore(q, pad.firstElementChild);
+  q.firstElementChild.textContent = said;
+  q.setAttribute('aria-label', 'Show the question: ' + said.slice(0, 160));
+}
+/* THE TAP: the lift and the room for the pad let go, and the question's own scroller brought to its first line; the next key brings the box back */
+on('kp-q', () => {
+  const inp = kpLive_();
+  const card = inp && inp.closest('.qcard');
+  const sheet = card && (card.querySelector('.qsheet') || card);
+  if (!sheet) return;
+  kpRoomBack_();
+  let el = sheet.parentNode;
+  while (el && el !== document.body) {
+    const oy = getComputedStyle(el).overflowY;
+    if (oy === 'auto' || oy === 'scroll') break;
+    el = el.parentNode;
+  }
+  if (el && el !== document.body) el.scrollTop += sheet.getBoundingClientRect().top - el.getBoundingClientRect().top - 8;
+});
 /* ✓ READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and is Send again on the last. */
 function kpNextPaint_(pad, inp) {
   const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
@@ -671,7 +725,7 @@ on('kp-key', (el) => {
   if (!inp) return;
   const v = el.getAttribute('data-v') || '';
   if (v === '!done') return kpDone_(inp);
-  if (v === '!abc' || v === '!123') return kpLayer_(v === '!abc' ? 'abc' : 'maths', inp);
+  if (v === '!abc' || v === '!123' || v === '!sym') return kpLayer_(v === '!abc' ? 'abc' : v === '!sym' ? 'sym' : 'maths', inp);
   if (v === '!shift') return kpShiftTap_();
   kpType_(inp, v, false);
 });
@@ -1052,9 +1106,10 @@ function aiUndecided_() {
 }
 
 /* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and is offered after key words that fall short. */
+/* an AI part with no mark scheme is not offered it (round 4): its Check says "No mark scheme yet" instead (`qtCheck_`) */
 function aiWanted_(x) {
-  const k = x && typeof markerOf_ === 'function' ? markerOf_(x).kind : '';
-  return k === 'ai' || k === 'words';
+  const m = x && typeof markerOf_ === 'function' ? markerOf_(x) : null;
+  return !!m && ((m.kind === 'ai' && m.ready) || m.kind === 'words');
 }
 
 /* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */

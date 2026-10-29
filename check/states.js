@@ -391,34 +391,34 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- AN OPTIONS PART WITH ITS CALCULATOR OUT (Review B): the mark sat on one flex line, and the panel was a sliver beside the row */
-    { name: 'a multiple-choice question, its calculator out',
+    /* ---------- AN OPTIONS PART WITH ITS TOOLS OPEN (Review B: the mark sat on one flex line; round 4: the owner's nine, one padlock) */
+    { name: 'a multiple-choice question, its tools open',
       enter: () => {
         const mc = stuffItemsAll_().find(it => it.kind === 'question'
           && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length && !orderIs_(it));
         if (!mc) throw new Error('no question in the list carries choices');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
-        QT_OPEN.add(mc.key); QT_PANEL.set(mc.key, 'calc');
+        QT_OPEN.add(mc.key);
         paintStuff();
-        window.__calcKey = mc.key;
+        window.__toolsKey = mc.key;
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(mc));
       },
-      /* THE ROW, ITS LINE AND THE PANEL EACH A FULL LINE OF THE MARK, the keys inside the panel and not on each other, the verdict under it */
+      /* THE ROW AND ITS LINE EACH A FULL LINE OF THE MARK, the verdict under them; the tools side by side, a fingertip each, one padlock on the card */
       expect: () => {
-        const panel = [...document.querySelectorAll('#s-stuff .qt-panel')].find(p => p.getAttribute('data-key') === window.__calcKey);
-        const mark = panel && panel.closest('.qp-mark');
-        const row = mark && mark.querySelector('.qt-row'), verdict = mark && mark.querySelector('.qp-verdict');
-        if (!panel || panel.hidden || !row || !verdict) return false;
-        const m = mark.getBoundingClientRect(), p = panel.getBoundingClientRect(), r = row.getBoundingClientRect();
-        const keys = [...panel.querySelectorAll('.qcalc-k')].map(k => k.getBoundingClientRect());
-        return p.width >= m.width - 2 && r.width >= m.width - 2 && p.top >= r.bottom
-               && verdict.getBoundingClientRect().top >= p.bottom - 1
-               && keys.length >= 5 && keys.every(k => k.width > 0 && k.left >= p.left - 1 && k.right <= p.right + 1)
-               && keys.slice(1, 5).every((k, i) => k.left >= keys[i].right - 0.5);
+        const row = [...document.querySelectorAll('#s-stuff .qt-row')].find(p => p.getAttribute('data-key') === window.__toolsKey);
+        const mark = row && row.closest('.qp-mark'), card = row && row.closest('.qcard');
+        const verdict = mark && mark.querySelector('.qp-verdict');
+        if (!row || !verdict || !card) return false;
+        const m = mark.getBoundingClientRect(), r = row.getBoundingClientRect();
+        const tiles = [...row.querySelectorAll('.qt-tools .tile')].map(k => k.getBoundingClientRect());
+        return r.width >= m.width - 2 && verdict.getBoundingClientRect().top >= r.bottom - 1
+               && tiles.length === 8 && tiles.every(k => k.width >= 44 && k.height >= 44 && k.left >= r.left - 1 && k.right <= r.right + 1)
+               && card.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length === 1
+               && !card.querySelector('[data-do="qt-grid"], [data-do="qt-panel"]');
       },
-      wants: 'an options part\'s calculator drawn under its tool row, as wide as the box, its keys side by side inside it, the verdict below it',
-      leave: () => { QT_OPEN.delete(window.__calcKey); QT_PANEL.delete(window.__calcKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'an options part\'s tool row as wide as its box, its eight tools a fingertip each inside it, the verdict below it, one padlock and no Grid, Table, Calculator or Formula sheet',
+      leave: () => { QT_OPEN.delete(window.__toolsKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {
@@ -1338,6 +1338,52 @@ const STATES = {
       wants: '1F Q23b\u2019s box focused, the keypad up, and the box wholly above the pad',
       leave: () => {
         try { localStorage.removeItem(window.__kfKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE QUESTION ABOVE THE PAD (round 4, `kpStrip_`): on a phone its first lines ride above the keys, and a tap shows it whole */
+    { name: 'the keypad up on a phone, the question\'s first lines above the keys, tapped',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-23b');
+        if (!it) throw new Error('1F Q23b is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__kqKey = ansKey_(it);
+        window.__kqTapped = false;
+        let tries = 0;
+        const up = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kqKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!inp || moving || !inp.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+          /* A FINGER ON THE STRIP, once the pad has made its room */
+          setTimeout(() => { const q = document.querySelector('#kp > .kp-q'); if (q) { q.click(); window.__kqTapped = true; } }, 120);
+        };
+        up();
+      },
+      /* THE STRIP, A FINGERTIP TALL, ABOVE EVERY KEY, SAYING THE QUESTION'S OWN FIRST WORDS; TAPPED, THE QUESTION'S FIRST LINE IS ON SCREEN ABOVE THE PAD. A wide screen draws none. */
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kqKey);
+        const q = pad && pad.querySelector(':scope > .kp-q');
+        const sheet = inp && inp.closest('.qcard') && inp.closest('.qcard').querySelector('.qsheet');
+        if (!pad || pad.hidden || !inp || !q || !sheet || !window.__kqTapped) return false;
+        if (innerWidth >= 640) return getComputedStyle(q).display === 'none';
+        const r = q.getBoundingClientRect(), keys = [...pad.querySelectorAll('.kp-key')].map(k => k.getBoundingClientRect().top);
+        const first = String(sheet.textContent).replace(/\s+/g, ' ').trim().slice(0, 20);
+        const s = sheet.getBoundingClientRect();
+        return r.height >= 44 && keys.every(t => t >= r.bottom - 1) && q.textContent.trim().indexOf(first) === 0
+               && s.top >= 0 && s.top + 16 <= r.top;
+      },
+      wants: '1F Q23b’s keypad up with the question’s first lines on a 44px strip above the keys, and after a tap on it the question’s first line on screen above the pad (none on a wide screen)',
+      leave: () => {
+        try { localStorage.removeItem(window.__kqKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);

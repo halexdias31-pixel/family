@@ -170,6 +170,11 @@ const QT_WORDED = { explain: 1, proof: 1, written: 1 };
 const QT_REASON_WORDS = /\b(explain|show that|prove|give (a |your )?reasons?|giving (a |your )?reasons?|comment|interpret|describe|justify|why|evaluate|discuss|compare|suggest|assess|criticise|state, giving)\b/;
 
 /* ---------- THE TYPE: one of QTYPE_ORDER for every question part, never empty. */
+/* A SCHEME'S BOLD ANSWER THAT IS A FORMULA: a sign, a fraction, a root or a power in it, and no word of three letters */
+function qtFormula_(ans) {
+  const h = ((/<b>([\s\S]*?)<\/b>/.exec(qtS_(ans)) || [])[1]) || '';
+  return /=|&frasl;|&radic;|\u221a|\u2044|<su[pb]>|&pi;|\u03c0/.test(h) && !/[a-z]{3,}/i.test(h.replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' '));
+}
 function qType_(x) {
   const r = (x && x.row) || x || {};
   const t = qtS_(r.answer_type).toLowerCase();
@@ -206,6 +211,8 @@ function qType_(x) {
     if (QT_REASON_WORDS.test(words)) return 'reason';
     /* nothing to mark it by yet: the scheme's own answer says whether it is words or a value */
     const a = qtS_(r.answer).replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ');
+    /* its bold answer first when that is a formula: "dr/dt = k/√r — for a constant k" is a value, its gloss words (round 4) */
+    if (qtFormula_(r.answer)) return 'value';
     return !/\d/.test(a) && /[a-z]{3,}/i.test(a) ? 'words' : 'value';
   }
   if (/(?:^|,)\s*(expr|eqn)\s/.test(rules)) return 'expr';
