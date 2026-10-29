@@ -17338,8 +17338,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   const sheet = { kind: 'question', name: 'Q1', qNumber: '1', key: 'q-tags-ws', sub: 'Adding Fractions', subject: 'Maths',
     bandType: 'year', bandValue: '5', keystage: 'KS2', documentType: 'Worksheet', company: '1stclassmaths',
     row: { row_id: 'Q-TAGS-WS', paper_id: 'P-TAGS-WS', name: 'Adding Fractions' }, stems: [], html: '<p>1/4 + 2/4</p>' };
+  /* THE STA'S OWN PAPER, as the library spells its publisher: a maker's name here would make it a worksheet, which has no board (O3). */
   const sta = Object.assign({}, sheet, { key: 'q-tags-sta', bandType: 'stage', bandValue: 'KS2 SATs', documentType: 'Past paper',
-    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1,
+    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1, company: 'Standards & Testing Agency',
     row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
   [['a SATs worksheet', sheet, false], ['an STA paper', sta, true]].forEach(([what, x, board]) => {
     const r = row(w.questionCard_(x));
@@ -17350,6 +17351,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (board && !r.tags.some(y => y.tag === 'board' && y.text === 'STA')) bad.push(what + ' hides its board, STA: ' + say(r.tags));
     if (!r.tags.some(y => y.f === 'qNumber' && y.text === 'Q1')) bad.push(what + ' has no [Q1] tag: ' + say(r.tags));
   });
+  /* A MAKER'S SHEET (O3): its maker is its Source tag, and it says no exam board even where the row names one. */
+  const ws = row(w.questionCard_(Object.assign({}, sheet, { key: 'q-tags-ws2', examBoard: 'Edexcel' })));
+  if (!ws.tags.some(y => y.f === 'source' && y.text === '1st Class Maths') || ws.tags.some(y => y.f === 'examBoard')) bad.push('a 1st Class Maths sheet should say its Source and no exam board: ' + say(ws.tags));
   return bad;
 });
 
