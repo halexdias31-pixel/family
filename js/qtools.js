@@ -20,25 +20,42 @@ const QT_TOOLS = [
 const QT_ORDER = QT_TOOLS.map(t => t.id);
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
-/* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, table): read whole, the old keys folded in. */
+/* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, grid, table, the AI's mark): keyed as its answer is. */
 const PART_MEM = new Map();
-const partRecKey_ = x => 'part:' + (typeof whoIs_ === 'function' && whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
-function partRecRaw_(x) {
-  const k = partRecKey_(x);
-  if (PART_MEM.has(k)) return PART_MEM.get(k);
+/* 'ans:<who>:<item>' is 'part:<who>:<item>': any box's key names its record, so a writer holding only the key finds it */
+const partKeyOfAns_ = k => /^ans:/.test(String(k || '')) ? String(k).replace(/^ans:/, 'part:') : 'part:' + String(k || '?');
+const partRecKey_ = x => partKeyOfAns_(ansKey_(x));
+function partRecAt_(pk) {
+  if (PART_MEM.has(pk)) return PART_MEM.get(pk);
   let rec = null;
-  try { rec = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { rec = null; }
-  if (!rec || typeof rec !== 'object') rec = { v: 1 };
-  PART_MEM.set(k, rec);
+  try { rec = JSON.parse(localStorage.getItem(pk) || 'null'); } catch (e) { rec = null; }
+  if (!rec || typeof rec !== 'object') rec = partMigrate_(pk);
+  PART_MEM.set(pk, rec);
   return rec;
 }
-function partRecPut_(x, field, v) {
-  const k = partRecKey_(x), rec = partRecRaw_(x);
-  if (v == null || v === '') delete rec[field]; else rec[field] = v;
-  try { localStorage.setItem(k, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+/* ONCE, THE FIRST TIME A PART IS READ: the old store kept beside it (the AI's mark, `aiMark:<ans key>`) folded in and removed. */
+function partMigrate_(pk) {
+  const rec = { v: 1 };
+  const old = 'aiMark:' + pk.replace(/^part:/, 'ans:');
+  try {
+    const raw = localStorage.getItem(old);
+    if (raw === null) return rec;
+    const ai = JSON.parse(raw);
+    if (ai && typeof ai.a === 'string' && typeof ai.v === 'string') rec.ai = ai;
+    localStorage.setItem(pk, JSON.stringify(rec));
+    localStorage.removeItem(old);
+  } catch (e) { /* the old key stays, and is read again next visit */ }
+  return rec;
 }
-/* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen still travel under their own
-   synced keys (answers.js); this reads them, so an answer saved before the record existed is still found. */
+function partRecPutAt_(pk, field, v) {
+  const rec = partRecAt_(pk);
+  if (v == null || v === '') delete rec[field]; else rec[field] = v;
+  try { localStorage.setItem(pk, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+}
+const partRecRaw_ = x => partRecAt_(partRecKey_(x));
+const partRecPut_ = (x, field, v) => partRecPutAt_(partRecKey_(x), field, v);
+/* WHAT THE PART HOLDS, every kind of answer in one shape. The typed box and the pen go to the account under their own
+   synced keys (answers.js, the server's ceilings); the record reads them, so nothing saved before it is lost. */
 function partRec_(x) {
   const rec = Object.assign({}, partRecRaw_(x));
   const ak = typeof ansKey_ === 'function' ? ansKey_(x) : '';

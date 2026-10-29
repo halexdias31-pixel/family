@@ -16040,10 +16040,13 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     r = said();
     if (r.v !== '27 of 40 marks · AI · before your changes' || r.cls.indexOf(' is-stale ') < 0 || r.cls.indexOf(' is-near ') >= 0 || r.why !== FEEDBACK) bad.push('other text arriving from the account drew ' + JSON.stringify(r) + ' — wanted the mark kept and said to be "before your changes", its points under it');
   } else bad.push('ansRefresh_ is not reachable — the account\'s copy over a kept mark was NOT checked');
+  /* KEPT IN THE PART'S ONE RECORD (round 3), field `ai`; the reload below starts from the OLD `aiMark:` key, so it proves the one-time move */
+  const pk = k.replace(/^ans:/, 'part:');
   let keptRec = null;
-  try { keptRec = w.localStorage.getItem('aiMark:' + k); } catch (e) {}
-  if (!keptRec) bad.push('the essay\'s mark was not kept on the device (aiMark:' + k + ')');
-  else {
+  try { const r = JSON.parse(w.localStorage.getItem(pk) || 'null'); keptRec = r && r.ai ? JSON.stringify(r.ai) : null; } catch (e) {}
+  if (!keptRec) bad.push('the essay\'s mark was not kept in the part\'s record (' + pk + ')');
+  try { if (w.localStorage.getItem('aiMark:' + k) !== null) bad.push('a new mark was still written to the old aiMark: key beside the part\'s record'); } catch (e) {}
+  if (keptRec) {
     const b3 = boot({ payload: Object.assign(payload(), { features: ['aiMark', 'aiMarkWhole'], aiMarking: true }),
       before: w3 => { try { w3.localStorage.setItem('aiMark:' + k, keptRec); w3.localStorage.setItem(k, big); } catch (e) {} },
       serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
@@ -16057,8 +16060,11 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     if (!fresh3 || (fresh3.querySelector('.qp-verdict') || {}).textContent !== '27 of 40 marks \u00b7 AI' || !fresh3.classList.contains('is-near')
         || (h3.querySelector('.qp-ai-why') || {}).textContent !== FEEDBACK) bad.push('after a reload the essay\'s mark and points are gone: ' + JSON.stringify(fresh3 && fresh3.outerHTML.slice(-300)));
     if (b3.sent.some(b => b.action === 'aiMark')) bad.push('a reload asked Gemini again to show a mark it already had');
+    let moved = null, left = 'x';
+    try { moved = JSON.parse(b3.w.localStorage.getItem(pk) || 'null'); left = b3.w.localStorage.getItem('aiMark:' + k); } catch (e) {}
+    if (!moved || !moved.ai || moved.ai.v !== '27 of 40 marks \u00b7 AI' || left !== null) bad.push('the old aiMark: key was not moved into the part\'s record once: record ' + JSON.stringify(moved) + ', old key ' + JSON.stringify(left));
   }
-  try { w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+  try { w.localStorage.removeItem('aiMark:' + k); w.localStorage.removeItem(pk); } catch (e) {}
   /* ---------- A SHORT WORDED BOX IS STILL THE BAR, AND ENTER IS STILL ✓ ---------- */
   const sx = { kind: 'question', key: 'q-essay-short', name: 'Q2', marks: 3, answerType: 'explain', accept: '',
     row: { row_id: 'Q-ESSAY-SHORT', paper_id: 'P-ESSAY', subject: 'Chemistry', name: 'Rates' },
@@ -16115,7 +16121,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
   const host = d.createElement('div');
   d.body.appendChild(host);
   const mark = async text => {
-    try { w.localStorage.setItem(k, text); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+    try { w.localStorage.setItem(k, text); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
     host.innerHTML = w.questionCard_(x, 0);
     const go = host.querySelector('.qp-ai-go');
     if (!go) return null;
@@ -16137,7 +16143,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
   w.__t.DATA().features = ['aiMark', 'aiMarkWhole'];
   const whole = await mark(long);
   if (!whole || whole.went.length !== 1 || whole.went[0].answer !== long) bad.push('with aiMarkWhole the essay was not sent whole: ' + JSON.stringify(whole && whole.went.map(b => String(b.answer).length)));
-  try { w.localStorage.removeItem(k); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });

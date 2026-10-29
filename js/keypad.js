@@ -1125,20 +1125,15 @@ function aiWhole_() {
 const aiCount_ = n => String(n).replace(/\B(?=(\d{3})+$)/g, ',');
 
 /* ---------- AN ESSAY'S MARK STAYS WHILE IT IS REVISED, AND ACROSS A RELOAD § */
-const AI_KEPT = new Map();
+/* KEPT IN THE PART'S ONE RECORD (qtools.js `partRecAt_`), field `ai`; an old `aiMark:` key is folded into it once. */
 function aiKeep_(k, rec) {
   if (!k) return;
-  AI_KEPT.set(k, rec);
-  try { localStorage.setItem('aiMark:' + k, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+  partRecPutAt_(partKeyOfAns_(k), 'ai', rec);
 }
 function aiKept_(k) {
   if (!k) return null;
-  if (AI_KEPT.has(k)) return AI_KEPT.get(k);
-  let rec = null;
-  try { rec = JSON.parse(localStorage.getItem('aiMark:' + k) || 'null'); } catch (e) { rec = null; }
-  if (!rec || typeof rec.a !== 'string' || typeof rec.v !== 'string') return null;
-  AI_KEPT.set(k, rec);
-  return rec;
+  const rec = partRecAt_(partKeyOfAns_(k)).ai;
+  return rec && typeof rec.a === 'string' && typeof rec.v === 'string' ? rec : null;
 }
 /* WHAT THE ROW SHOWS FOR A KEPT MARK against the answer as it is now -- read by `ansBox_` when the card
    is drawn and by the `input` listener as it is typed into. */
