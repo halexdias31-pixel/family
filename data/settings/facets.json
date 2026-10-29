@@ -48,7 +48,7 @@
 {"field": "qPages", "label": "Pages", "sort_order": 147, "note": "how many reading pages a part has", "active": true},
 {"field": "marks", "label": "Marks", "sort_order": 148, "note": "what a question is worth", "active": true},
 {"field": "needs", "label": "What you need", "sort_order": 150, "note": "a comma-list: compasses and the printed sheet at once; the calculator is said as Non-calculator or Calculator allowed", "active": true},
-{"field": "company", "label": "Publisher", "sort_order": 160, "note": "who published it; may repeat the exam board, and a card says a repeated word once", "active": true},
+{"field": "source", "label": "Source", "sort_order": 160, "note": "who made a worksheet (Corbettmaths, 1st Class Maths); a board's own paper has none and a maker's sheet has no exam board (O3)", "active": true},
 {"field": "accuracy", "label": "Accuracy", "sort_order": 152, "note": "Accuracy verified when the answer was checked against the official scheme (388)", "active": true},
 {"field": "function", "label": "Function", "sort_order": 154, "note": "Function verified when the question type is complete and machine-marked (388)", "active": true},
 {"field": "myResult", "label": "Your result", "sort_order": 156, "note": "the signed-in person's own latest answer to a question: Unattempted, Attempted, and Correct, Incorrect or Part marks once marked (463)", "active": true},

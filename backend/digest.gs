@@ -1171,7 +1171,10 @@ function digestLibrary_(site) {
 const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
   ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
   ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'],
-  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['company', 'board']];
+  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['source', 'board']];
+/* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
+const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
+const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
 /* `[data-tag]`'s colours (style.css `--tag-*`), one for every kind `TAG_OF` gives. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
   type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', kind: '#e2cfa6', check: '#9ec5e8', other: '#bdbdbd' };
@@ -1218,7 +1221,7 @@ const digestList_ = v => (Array.isArray(v) ? v : v == null || v === false ? [] :
 function digestTagItem_(q) {
   return { src: q, subject: digestLibS_(q.subject), documentType: digestLibS_(q.document_type), keystage: digestLibS_(q.key_stage),
            bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
-           examBoard: digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
+           examBoard: digestTagSource_(q) ? '' : digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
 }
 /* `levelOf_` and `ksFallback_`. */
 function digestTagLevel_(it) {
@@ -1412,7 +1415,7 @@ function digestCardTags_(q, T) {
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
     paperId: () => pid, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
-    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), company: () => digestLibS_(q.company),
+    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), source: () => digestTagSource_(q),
   };
   const say = { paperId: () => digestTagPaper_(it, T) };
   /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`). */
