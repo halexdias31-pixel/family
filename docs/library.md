@@ -63,7 +63,12 @@ node tools/lib-private.js drive-pack /tmp/x.json --ids Q-1a,Q-1b --private <anot
    it (the pinned commit, plus what `.pushed.json` says was pushed or pulled since). Each item goes whole, with `null` for a
    field that was removed; a new id carries its public card under `cards`.
 2. **Claude uploads** it, as `application/json`, into the Drive folder **`family-library-imports`** (the backend makes it
-   the first time an admin opens Business), keeping the name `lib-import-<time>.json`.
+   the first time an admin opens Business), keeping the name `lib-import-<time>.json`. **Many files go as one zip**:
+   `lib-import-<time>.zip` holding them (any folders inside are ignored; only names `lib-import-*.json` are taken). Each
+   import run — the tap or the hourly one — first unpacks every waiting zip into the folder (a name already there or in
+   `imported` is skipped, never overwritten), moves the zip to `imported`, then imports the files in the same run. A zip
+   over 45 MB, holding more than 500 files, or unpacking to more than 45 MB is refused with a log line and stays put; the
+   card shows each waiting zip as "zip waiting (n files)" or why it is refused. Nothing in a zip is ever run.
 3. **The owner taps** *Import library updates (N)* on the **Library updates** card in Business — it glows while files
    wait — or opens `?run=libImportDrive&name=…&pin=…`.
 
