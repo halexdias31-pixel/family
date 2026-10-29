@@ -27574,6 +27574,8 @@ check('every drawn part in the library has its pen and one Check in its tool row
   }
   host.remove();
   if (n < 100) bad.push('only ' + n + ' drawn parts were found — wanted the library\'s hundreds');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 20).concat(bad.length > 20 ? ['… and ' + (bad.length - 20) + ' more'] : []);
 });
 
@@ -27604,6 +27606,8 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   host.remove();
   if (n < 1300) bad.push('only ' + n + ' Corbettmaths primary parts reached Find — wanted 1358');
   if (later > 4) bad.push(later + ' parts are typed with nothing to mark them by machine — 4 were known (362)');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
@@ -27704,6 +27708,8 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   host.remove();
   if (sets.cbm < 72) bad.push('only ' + sets.cbm + ' Corbettmaths drawn parts are marked by geometry — wanted 72');
   if (sets.gcse < 74) bad.push('only ' + sets.gcse + ' GCSE Maths drawn parts are marked by geometry — wanted 74');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
@@ -27765,6 +27771,8 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   if (bw && box && !(bw.compareDocumentPosition(box) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('(b) its box is not under its words');
   if (host.querySelectorAll('[data-do="qp-check"]').length !== 1) bad.push('(b) wants one Check');
   host.remove();
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad;
 });
 
@@ -27820,6 +27828,8 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
   if (n < 80) bad.push('only ' + n + ' parts draw on a stem\'s figure — wanted the library\'s 82');
   if (carried < 35) bad.push('only ' + carried + ' carry their stem onto the card — wanted the 39 that come first');
   if (under < 40) bad.push('only ' + under + ' showed the other parts\' ink under their own');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
