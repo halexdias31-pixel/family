@@ -5044,11 +5044,13 @@ function padAdopt_(k, bare) {
 
 /* THE PICTURE IT DRAWS ON: its own figure, else its stem's, else a grid -- for a drawn part (qType_) at once, for any
    other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
-const padDrawn_ = x => !!x && typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && qtDrawn_(workRow_(x));
+/* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
+const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
+const padDrawn_ = x => !!x && typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && qtDrawn_(workRow_(x)) && !padPicked_(x);
 function padSource_(x) {
   if (!x) return null;
   /* a passage to ring words in is the part's own surface; its Pen still opens a grid below it */
-  const said = padSurface_(x), surf = said === 'text' ? '' : said;
+  const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
   const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
   if (said === 'text' && !opened) return null;
   if (!padDrawn_(x) && !surf && !opened) return null;
@@ -7659,9 +7661,11 @@ function cardFigFit_(pane) {
     if (!(by > 2)) return;
     /* THE WORDS: every element of the card that holds no picture and is none of what keeps its size, found by walking down only through what holds a picture -- so a § */
     const words = [];
+    /* A TABLE OF CELLS TO TYPE IN keeps its size too: its cells are 44px fingertips, and the tool row under every part (round 3) made such cards zoom them to 31 */
+    const keep = e => e.matches(FIG_KEEP) || (e.tagName === 'TABLE' && !!e.querySelector('.qp-cell'));
     const walk = el => [].forEach.call(el.children, e => {
-      if (e.matches(FIG_KEEP)) return;
-      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP)) walk(e); else words.push(e);
+      if (keep(e)) return;
+      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP + ', .qp-cell')) walk(e); else words.push(e);
     });
     walk(card);
     const hw = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);

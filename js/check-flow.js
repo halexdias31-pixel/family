@@ -16844,8 +16844,8 @@ check('no question in the library has a figure page or points at one, and every 
 });
 
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`qtDrawn_` and its marker since round 3; was `answerKinds_`) § */
-check('the hexagon shows its surface and its box, a question with options shows them and no pen, and the triangle is a pen with ruler and protractor', async () => {
-  const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13'];
+check('the hexagon shows its surface and its box, a question with options or cells shows them and no pen until its Pen is tapped, and the triangle is a pen with ruler and protractor', async () => {
+  const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13', 'Q-CBM-5AD-F-0708-4'];
   const LIB = LIB_FULL.rows('questions');
   const rows = IDS.map(id => LIB.find(r => r.row_id === id));
   if (rows.some(r => !r)) return ['a row is missing from data/questions.json — NOT checked'];
@@ -16854,13 +16854,19 @@ check('the hexagon shows its surface and its box, a question with options shows 
   await wait(300);
   const d = w.document, bad = [];
   if (typeof w.markerOf_ !== 'function' || typeof w.qtRow_ !== 'function') return ['markerOf_ or qtRow_ not reachable — NOT checked'];
-  const [hex, gps, tri] = IDS.map(id => w.stuffItemsAll_().find(it => it.row && it.row.row_id === id));
-  if (!hex || !gps || !tri) return ['a real row did not come through the loader — NOT checked'];
+  const [hex, gps, tri, lab] = IDS.map(id => w.stuffItemsAll_().find(it => it.row && it.row.row_id === id));
+  if (!hex || !gps || !tri || !lab) return ['a real row did not come through the loader — NOT checked'];
   const card = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x); return h; };
   const H = card(hex), G = card(gps), T = card(tri);
   if (!H.querySelector('.qp-area .qpad') || !H.querySelector('.qp-ans-in')) bad.push('the hexagon does not show both its surface and its box');
   /* ROUND 3: options and no pen until the Pen is tapped; the triangle a pen over its figure AND the one box every part has */
   if (!G.querySelector('.qp-choices') || G.querySelector('.qpad')) bad.push('GPS1-2 does not show its options alone before its Pen is tapped');
+  /* A DRAWN TYPE ANSWERED BY CELLS (a times-table grid to annotate): its cells, and its pen only once the Pen is tapped */
+  const Lb = card(lab);
+  if (!Lb.querySelector('.qp-cell') || Lb.querySelector('.qpad')) bad.push('5AD-F-0708-4 does not show its cells alone before its Pen is tapped');
+  w.qtPenSet_(lab, true);
+  if (!card(lab).querySelector('.qpad')) bad.push('5AD-F-0708-4 has nothing to draw on after its Pen is tapped');
+  w.qtPenSet_(lab, false);
   if (w.markerOf_(gps).kind !== 'choice') bad.push('GPS1-2 is marked as ' + w.markerOf_(gps).kind + ', wanted by its options');
   if (!T.querySelector('.qsheet .qpad') || T.querySelectorAll('.qp-ans-in').length !== 1) bad.push('KS2 2019 P2 Q13 is not a pen over its figure with its one box');
   const tools = [...T.querySelectorAll('.qt-row .qt-t[data-tool]')].map(e => e.getAttribute('data-tool'));

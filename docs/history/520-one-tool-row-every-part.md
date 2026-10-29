@@ -27,6 +27,10 @@ marked"); a pen's strokes and a typed box were saved under two keys.
   part's type only picks the layer it opens on. An essay is the same box, bigger.
 - **Every part has a drawing surface**: a drawn part (`qtDrawn_`) at once; any other on its first Pen tap
   (`PEN_OPEN`) or once it has saved strokes — its figure, else its stem's, else a grid. One canvas per card.
+- **Options or cells are the answer** where a row has them: such a part's pen (and a stated `surface`) waits for
+  its first Pen tap, as before; a table of cells in the question's words keeps its 44px cells when a tall card's
+  words give way (`cardFigFit_`), which the extra row had made zoom them to 31px.
+- **The keypad keeps the box's tool row above it** (`kpBox_`), so the Check under the box is never under a key.
 - **Calculator** (scientific, in the page, no network — arcade.js's engine) and **Table** (any part).
 - **One record per part** (`partRec_`, key `part:<who>:<item>`, named from the answer's key): grid, table,
   calculator result and the AI's kept mark live in it; the typed answer and the strokes are read into it from
@@ -47,8 +51,9 @@ rule, `QT_WORDY_SUBJECT`, `qToolkit_`/`qToolTiles_`, `padSendRow_`/`pad-send`, t
   Proven by mutation: a row without Table, a Pen that opens nothing, a card with two boxes — each red.
 - `check-flow`: the drawn-answer, stem-figure, AI-off, keypad, essay and sound journeys rewritten for the one
   row; "a drawn answer is never sent to a person"; the essay's kept mark proves the one-time `aiMark:` move.
-- `check/pen.js`, `check/ruler.js`, `check/states.js`: tools are tapped in the card's row; on a phone the
-  Tools tile is opened with a real tap first.
+- `check/pen.js`, `check/ruler.js`, `check/states.js`, `check/types.js`: tools are tapped in the card's row; on a
+  phone the Tools tile is opened with a real tap first. `check/types.js` went from 377 faults to 170 (the base
+  had 187, all of the same kinds) once the row was kept above the keypad and cells kept their size.
 
 ## Left
 
