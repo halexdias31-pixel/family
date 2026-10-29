@@ -18,7 +18,8 @@ marked"); a pen's strokes and a typed box were saved under two keys.
   row, the verdict.
 - **One registry** (`QT_TOOLS`, js/qtools.js): Pen, Ruler, Protractor, Compass, Grid, Calculator, Table, Photo of
   working, Formula sheet, Magnifier, Read aloud, Check — always drawn in that order inside the part's mark.
-  On a phone (under 40rem) the eleven tools fold behind one Tools tile; Check stays out.
+  On a phone (under 40rem) the eleven tools fold behind one Tools tile; Check stays out. *(Round 4, below: the row is
+  now Pen, Ruler, Protractor, Compass, Photo of working, Magnifier, Read aloud, Lock, Check.)*
 - **One marker** (`qtMarker_`, qtypes.js; `markerOf_`, qtools.js): choice_right, then cells, then draw_answer
   geometry, then accept, then mark_words, else the AI. The page's Check and the Function verified tag
   (`qtMachine_`) read the same function. With AI marking off, the AI's Check stays, unpressable, and one line
@@ -102,3 +103,39 @@ rule, `QT_WORDY_SUBJECT`, `qToolkit_`/`qToolTiles_`, `padSendRow_`/`pad-send`, t
   round 3 (a pen drawn before any tap, no box on a drawn part, Send in the bar, 30/39/40-key pads): left for rewriting.
 - Not changed, for the owner: the Calculator on Non-calculator papers (the decided design says every tool on every
   part); 7 accepted answers using ≈ → … ∛ cannot be typed (fix-r2-marking owns `markNorm_`).
+
+## Round 4 (29 Oct): the owner's row, and what the leftovers became
+
+The owner, on the live site: *"There shouldn't even be a calculator button, there already is a calculator tool"*, then
+*"get rid of that calculator button you made and grid button. the questions usually come with a grid and table button.
+and formula sheet button. there's still two lock buttons."*
+
+- **The row is nine** (`QT_TOOLS`): Pen, Ruler, Protractor, Compass, Photo of working, Magnifier, Read aloud, Lock,
+  Check — eight fold behind Tools on a phone. Deleted: the in-page Calculator (`.qcalc`, `QCALC_*`, `calcHtml_`), the
+  Grid tool (`qt-grid`, `QT_GRID`, `qtGridOf_`, the `qt-over-*` overlay and its lines in `penSvg_`), the Table
+  (`qt-panel`, `tableHtml_`, the `table` field of the part record) and the Formula sheet panel (`FORMULAE`, the brand
+  key `formula_sheet`). The Tools column's Calculator is untouched; a question that needs a grid or a table brings its
+  own (its figure or blank surface under the Pen, its cells); a formulae sheet is an insert card in Find, as before
+  round 3 (463: "they can open it in their 2nd finder"). The Grid choice that came back after a reload (Review A)
+  went with the Grid.
+- **Two padlocks**: a question card had `q-lock` (`questionTiles_`) and the every-widget padlock `game-lock` (498,
+  `cardTiles_`). The padlock is now the row's Lock alone; `cardTiles_` leaves `game-lock` off a question.
+  `check-answerable` fails any page of a question (card, stem page, first pages) with a tile twice, `game-lock` and
+  `q-lock` counted as one: proven by putting either back.
+- **No mark scheme, no AI Check**: an `ai` part with no `answer` (an importer's `examiner_note` is not a scheme, which
+  is how Q-STA-KS2-2024-P3-10a had a live AI Check) has `ready: false` (`qtSchemeIn_`), its Check is `qp-noscheme`,
+  which sends nothing and says "No mark scheme yet — flag it and we will add one" on the verdict line, as options
+  with no key do; the line under the row says it before the press; `aiWanted_` no longer offers the AI there.
+  check-answerable works readiness out from the row and presses the Check.
+- **Working photos** is drawn by `workingMaySee_`'s rule (`workSeeTile_`): rank Admin, or a parent of the child —
+  never a tutor, even with an `everyone` list in a kept payload. check-flow "Working photos is drawn …".
+- **The question above the pad** (`kpStrip_`): on a phone a 44px strip over the keys carries the question's first
+  two lines on every face; a tap lets go of the lift and scrolls the question's first line into view, the pad still up.
+  check-flow and `check/states.js` ("the keypad up on a phone, the question's first lines above the keys, tapped").
+- **The opening layer**: the accepted ways when there are any, `qType_` only when there are none (already so since
+  Review A for "re | re-" and "HHH, HHT, …"); `qType_` reads a bold answer that is a formula as a value, so
+  Q-9MA0-2406-P1-14a ("dr/dt = k/√r — for a constant k") opens on the maths layer. check-library names all three.
+- **Every stored answer can be typed**: a third face, symbols (`KP_SYM`, `αβ` beside `123` on the letters): Greek
+  letters, ≈ ≠ → ∞ … ∛ ~ ∈ ∪ ∩, { } [ ] _ !, a bar over a letter, ℤ ℝ µ. `check-typeable.js` reads the three faces
+  as `kpPadHtml_` draws them, checks each reaches the others, and fails any accept with no written way the keys type
+  (markNorm_'s spellings counted). Proven by taking ≈ off, and the `αβ` key away.

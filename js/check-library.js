@@ -974,6 +974,16 @@ if (MARKS.missing.length) {
         + ' is not maths-shaped');
     });
 
+    /* THE OPENING LAYER (round 4): the accepted ways when there are any, the type only when there are none -- these opened on the wrong one */
+    [['Q-STA-KS2-2025-GPS1-29', false, 'a prefix ("re | re-")'], ['Q-1MA1-2406-2F-10', false, 'outcomes ("HHH, HHT, …")'],
+     ['Q-9MA0-2406-P1-14a', true, 'no accepted ways, its scheme a formula ("dr/dt = k/√r — for a constant k")']].forEach(([id, maths, what]) => {
+      const r = rows.find(x => x && x.row_id === id);
+      if (!r) { fail.push(id + ' is not in the library — renamed? It was checked for its opening layer by name.'); return; }
+      const item = { row: r, answerType: r.answer_type, accept: r.accept, answer: r.answer, html: r.html, marks: r.marks, subject: r.subject,
+                     choices: r.choices ? String(r.choices).split('|') : [] };
+      if (KP.ansMaths_(item) !== maths) fail.push(id + ', ' + what + ', opens on the ' + (maths ? 'letters' : 'maths') + ' layer, wanted the ' + (maths ? 'maths' : 'letters'));
+    });
+
     /* ---------- A BAND IS A NUMBER, AND GETS THE KEYS FOR ONE § */
     let bandRows = 0, bandKeyboard = 0;
     rows.forEach(r => {

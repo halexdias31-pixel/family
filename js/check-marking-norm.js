@@ -33,6 +33,7 @@ const CASES = [
   ['x+x+3', '2x+3', false, 'unsimplified is not simplified'], ['(x+2)(x+3)', 'x^2+5x+6', false, 'factorised is not expanded'],
   ['x^2+6x+5', 'x^2+5x+6', false, 'swapped coefficients'], ['2x-3', '2x+3', false, 'a sign flipped'],
   ['3+2x', '2x+3|rule: expr 2x+3, nobracket', true, 'a rule row still marks by its rule'],
+  ['0<a<e^2, a>3', '0 < a < e^2, a > 3', true, 'a letter after < is not a tag'], ['0<a<e^2, a>3', '0 < a < e^3, a > 3', false, 'nor is its bound dropped'],
 ];
 CASES.forEach(c => want('case', c[0], c[1], c[2], c[3]));
 
@@ -58,7 +59,8 @@ LIB.forEach(r => {
     const id = r.row_id;
     n.self++; want(id, ways[i], acc, true, 'itself');
     if (/^-?0\.\d+$/.test(w)) { n.dot++; want(id, w.replace('0.', '.'), acc, true, 'with no leading 0'); }
-    if (/\^[23](?!\d)/.test(w)) { n.sup++; want(id, w.replace(/\^2(?!\d)/g, '²').replace(/\^3(?!\d)/g, '³'), acc, true, 'in superscripts'); }
+    /* ^2.08 is not ² then .08: a decimal power has no superscript spelling, so only a whole 2 or 3 is tried */
+    if (/\^[23](?![\d.])/.test(w)) { n.sup++; want(id, w.replace(/\^2(?![\d.])/g, '²').replace(/\^3(?![\d.])/g, '³'), acc, true, 'in superscripts'); }
     if (/^-?\d+(?:\.\d+)?(?:,\s*-?\d+(?:\.\d+)?)+$/.test(w)) {
       n.list++; want(id, w.replace(/,\s*/g, '\n'), acc, true, 'one a line'); want(id, w.replace(/,\s*/g, '; '), acc, true, 'by semicolons');
     }

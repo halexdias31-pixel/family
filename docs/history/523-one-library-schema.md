@@ -156,3 +156,13 @@ the repository (the import file and the scripts are in the session's scratchpad,
   are absent.
 - **The Ledger.** All 240 changed parts are `lib_pending`; their words are `lib-import-r2b-bulk-answers-cells.json`, to import
   before this is pushed, as with P4's file.
+
+## Round 2b on the 25 Edexcel 9MA0 papers by hand (fix-edexcel-alevel)
+
+They were built before the schema and Round 2a's normal form. **Level and tier**: 1,041 rows said `Alevel` and tier
+`A-Level`; now `A-Level` and no tier, and the 9MA0 spec builder (`Edx` in the scratchpad's `alspec.py`) writes it that way.
+No words changed, so there is no Ledger file. **Marking**: check-marking-norm found two parts whose accepts were right by
+the scheme. 2011 Paper 2 13c (`0 < a < e^2, a > e^(7/3)`) was the marker's fault: typed without spaces, `<a<e^2, a>` read as
+an HTML tag and the answer lost its middle, so a right answer was marked wrong; `markNorm_` now takes a tag only when its
+name ends at a space, a slash or `>`, and a named case proves it. 2019 Paper 2 9b (`d = 0.017V^2.08`) was the check's: it
+superscripted `^2.08` as `².08`, which no one types for a decimal power; it now tries only a whole 2 or 3.

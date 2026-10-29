@@ -3933,7 +3933,7 @@ function doneWords_(k, index) {
 function markNorm_(s) {
   return String(s == null ? '' : s)
     /* ONLY A REAL TAG IS A TAG. § */
-    .replace(/<\/?[a-z][^>]*>/gi, ' ')
+    .replace(/<\/?[a-z][a-z0-9]*(?=[\s\/>])[^>]*>/gi, ' ')
     /* AND THE ENTITIES A CELL IS WRITTEN IN ARE THE CHARACTERS A CHILD TYPES. § */
     .replace(/&pound;/g, '£').replace(/&euro;/g, '€').replace(/&minus;/g, '−')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
@@ -4951,7 +4951,7 @@ function ansBox_(x) {
   const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
-  const isAi = m.kind === 'ai' || (m.kind === 'words' && ai);
+  const isAi = (m.kind === 'ai' && m.ready) || (m.kind === 'words' && ai);
   const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
   const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
@@ -5100,15 +5100,14 @@ function padSource_(x) {
   if (!x) return null;
   /* a passage to ring words in is the part's own surface; its Pen still opens a grid below it */
   const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
-  /* a grid chosen and saved reopens the surface it was chosen on, as saved ink does (Review A) */
-  const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x) || (x.kind === 'question' && typeof qtGridOf_ === 'function' && !!qtGridOf_(x)));
+  const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
   if (said === 'text' && !opened) return null;
   if (!padDrawn_(x) && !surf && !opened) return null;
-  if (said === 'text') return { svg: surfaceSvg_((typeof qtGridOf_ === 'function' && qtGridOf_(x)) || 'grid'), from: 'surface', surface: 'grid' };
+  if (said === 'text') return { svg: surfaceSvg_('grid'), from: 'surface', surface: 'grid' };
   if (x.diagram) return { svg: x.diagram, from: 'part' };
   const stems = (x.stems || []).filter(p => p && p.diagram);
   if (stems.length === 1) return { svg: stems[0].diagram, from: stems[0] };
-  const kind = (typeof qtGridOf_ === 'function' && qtGridOf_(x)) || surf || 'grid';
+  const kind = surf || 'grid';
   return { svg: surfaceSvg_(kind), from: 'surface', surface: kind };
 }
 /* MARKS ALREADY SAVED keep the pen open across a reload; asked of the raw store, never parsed, as it runs for every part. */
@@ -5255,11 +5254,9 @@ function padWrap_(x, svg, foot) {
   const tool = held && held !== 'protractor' && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
-  /* THE GRID TOOL over a figure lies on it as a light grid; on a made-up surface it is the surface (qtools.js) */
-  const gr = x && x.key && !/class="qsurf/.test(svg) && typeof qtGridOf_ === 'function' ? qtGridOf_(x) : '';
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
     under.length ? ` data-under="${esc(under.map(padKey_).join(' '))}"` : ''}${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
-    <div class="qpad-art${gr ? ' qt-over-' + gr : ''}">${svg}
+    <div class="qpad-art">${svg}
       <svg class="qpad-ink" data-noswipe viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         ${under.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
@@ -8309,10 +8306,8 @@ function ansHide_(x) { ansSet_(x, false); }
 
 /* ---------- `To the answer` AND `ansWhere_` WERE HERE § */
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
-function questionTiles_(x) {
-  /* THE CARD'S OWN ROW KEEPS THE PADLOCK; every tool is in the part's one tool row (`qtRow_`, qtools.js). */
-  return x && x.kind === 'question' ? qLockTile_() : '';
-}
+/* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
+function questionTiles_(x) { return ''; }
 /* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words. */
 const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
 
@@ -9778,7 +9773,7 @@ function accountPages_(col) {
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     /* A CHILD'S PHOTOGRAPHED WORKING (501), to the parent they accepted; staff see it on the admin's list below. */
-    const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId) : '')
+    const more = (f.relation === 'child' && typeof workSeeTile_ === 'function' ? workSeeTile_(f.personId, true) : '')
       + (typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '');
     return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more, 'person-tiles') : ''));
   };

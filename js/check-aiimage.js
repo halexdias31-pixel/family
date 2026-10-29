@@ -139,28 +139,24 @@ const tick = ms => new Promise(r => setTimeout(r, ms));
       await tick(50);
       if (posts.length !== 1 || 'images' in posts[0]) bad.push('words only: the request was ' + JSON.stringify(posts[0] || null).slice(0, 120));
     }
-    /* WHAT THE PNG IS DRAWN FROM (Review B): the figure, the Grid tool's axes as lines (on screen they are CSS), the ink last, and an <img> figure for the canvas */
+    /* WHAT THE PNG IS DRAWN FROM (Review B): the figure, the ink last, and an <img> figure for the canvas (the Grid tool's overlay went with it, round 4) */
     if (want === 'images') {
       const pad = host.querySelector('.qpad'), art = pad && pad.querySelector('.qpad-art');
       if (!art || typeof w.penSvg_ !== 'function') bad.push('images: no pad art, or penSvg_ is not in the app — the PNG\'s contents NOT checked');
       else {
         w.Element.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340 });
-        art.classList.add('qt-over-coord');
         const pic = w.document.createElement('img');
         art.insertBefore(pic, art.firstChild);
         const made = w.penSvg_(pad);
         const kids = made ? [...made.out.children] : [];
-        const overAt = kids.findIndex(c => c.classList && c.classList.contains('qt-over'));
         const inkAt = kids.findIndex(c => c.querySelector && c.querySelector('.qpad-g path, path'));
-        const lines = overAt >= 0 ? kids[overAt].querySelectorAll('line').length : 0;
         if (!made) bad.push('images: penSvg_ made nothing from a pad with ink');
         else {
-          if (lines < 40) bad.push('images: the Grid tool\'s axes are not in the PNG (' + lines + ' lines drawn for them)');
-          if (overAt < 0 || kids.length < 3 || overAt === kids.length - 1) bad.push('images: the grid is not drawn between the figure and the ink');
+          if (kids.length < 2 || inkAt !== kids.length - 1) bad.push('images: the ink is not drawn last, over the figure');
           if (made.imgs.length !== 1 || made.imgs[0].el !== pic) bad.push('images: a picture figure is not passed to the canvas (' + made.imgs.length + ')');
         }
         if (inkAt < 0) bad.push('images: the ink is not in the PNG');
-        pic.remove(); art.classList.remove('qt-over-coord');
+        pic.remove();
       }
     }
     /* THE REAL RENDERER IN A DOM WITH NO CANVAS gives '' and never throws: the words still go */
