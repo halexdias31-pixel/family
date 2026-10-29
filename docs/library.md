@@ -111,10 +111,15 @@ after its cover row, splits them, and marks them pending. Their words reach the 
 tier, board, topics), and the closed vocabularies. Levels come from `LEVEL_TABLE` in js/find.js — store a list of real
 levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is a Source; its sheet carries no
 `exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
-the same rows did not have at HEAD; `node js/check-schema.js -v` lists the library's counts against their pins. The
-schema asks nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in
-a private field of a `lib_pending` row is left out of the pinned counts, since whether those words are here depends on
-the last pull.
+the same rows did not have at HEAD; `node js/check-schema.js` fails on any problem in the library. The schema asks
+nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in a private
+field of a `lib_pending` row is not counted, since whether those words are here depends on the last pull.
+
+A part whose words ask to fill something in (complete a table, grid, Venn diagram or tree; fill in the missing numbers;
+what goes in box (a); label a figure's parts; match) has `cells` — a table of cells laid out as the paper's, printed
+values filled in, or labelled boxes `(a)`, `(b)` where the boxes are printed in a stem or a figure; never a part per blank.
+A past-paper part with no marks is right only when a later part of its question carries the run's marks and its
+examiner note says so. A board's own paper names the board as `company` and `exam_board` both (523).
 
 ## The checks
 

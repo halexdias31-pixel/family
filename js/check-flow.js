@@ -27551,6 +27551,52 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   return bad;
 });
 
+/* ---------- THE FILL-IN STANDARD ON THE REAL LIBRARY (523): every part asking to fill in is answered in its cells ---------- */
+check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
+  const SC = require('../check/schema.js');
+  const LIB = LIB_FULL.rows('questions');
+  const asks = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html));
+  if (asks.length < 100) return ['only ' + asks.length + ' parts ask to fill something in — the words did not load, NOT checked'];
+  const papers = new Set(asks.map(r => r.paper_id));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || typeof w.cellsOf_ !== 'function' || !A['qp-cells-check']) return ['questionCard_, cellsOf_ or qp-cells-check not reachable — NOT checked'];
+  w.__t.STUFF().filters = [];
+  const all = w.stuffItemsAll_();
+  const host = d.createElement('div');
+  host.className = 'qcard-host';
+  d.body.appendChild(host);
+  let inTable = 0, boxes = 0;
+  asks.forEach(r => {
+    const x = all.find(i => i.row && i.row.row_id === r.row_id);
+    if (!x) { bad.push(r.row_id + ' did not reach Find'); return; }
+    host.innerHTML = w.questionCard_(x, 0);
+    const want = w.cellsOf_(x).map((c, i) => [c, i]).filter(([c]) => c.ways);
+    const inputs = [...host.querySelectorAll('.qp-cell')];
+    if (!want.length || inputs.length !== want.length) { bad.push(r.row_id + ' shows ' + inputs.length + ' cell(s) for ' + want.length + ' asked'); return; }
+    if (host.querySelector('table[data-cells]')) inTable++; else boxes++;
+    /* A TABLE OF ITS OWN WITH BLANKS IS WHERE ITS CELLS GO: one more or one fewer, and they fall out under it as boxes. */
+    const own = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
+    const blanks = (own.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length;
+    if (blanks && !host.querySelector('table[data-cells]')) bad.push(r.row_id + '\'s own table has ' + blanks + ' blank(s) and its cells are ' + w.cellsOf_(x).length + ' — they stand under it, not in it');
+    if (host.querySelector('.qpad')) bad.push(r.row_id + ' is answered in cells and still draws a pen surface — the diagram is never the answer box');
+    want.forEach(([c, i]) => {
+      const el = inputs.find(e => +e.getAttribute('data-n') === i);
+      if (!el) return;
+      el.value = c.ways.split('|')[0].trim();
+      el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    });
+    A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+    const say = (host.querySelector('.qp-cells-box .qp-verdict') || {}).textContent;
+    if (say !== 'Correct — every cell') bad.push(r.row_id + ': its own answers typed into its cells say ' + JSON.stringify(say));
+    try { w.localStorage.removeItem(w.ansKey_(x)); } catch (e) {}
+  });
+  host.remove();
+  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' as labelled boxes, each marked right by its own answers');
+  return bad;
+});
+
 /* ---------- ONE BOX PER VALUE: AN ANSWER OF SEVERAL VALUES GETS A BOX EACH, AND THE MARKER THE LIST (docs/history/362) ---------- */
 check('one box per value: a counted rule, a pair and an open list each get their boxes; typing keeps them, a comma string loads into them, Check marks the list', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True', kind: 'question', name: 'Lists', paper_id: 'MB', marks: '1', answer_type: 'calculation' };

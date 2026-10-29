@@ -141,15 +141,31 @@ function topicWords() {
 const S = v => (v === undefined || v === null ? '' : String(v)).trim();
 const atoms = v => (Array.isArray(v) ? v.map(S) : S(v).split(',').map(s => s.trim())).filter(Boolean);
 
-/* AN ANSWER THE MATHS KEYPAD CAN TYPE: its head (the bold words, or up to the dash) holds a digit, or is algebra — an
-   operator, `)(`, or two single letters joined by a minus (`b − a`); or so is one of its accepted ways. A word or a letter
-   (`random`, `F`) is not. */
+/* AN ANSWER THE MATHS KEYPAD CAN TYPE: its head (the bold words, or up to the dash), or an accepted way, holds a digit or
+   is algebra (an operator, `)(`, `b − a`). A word or a letter (`random`, `F`) is not. */
 function mathsy(answer) {
   const h = S(answer);
   const b = /^\s*<b>([\s\S]*?)<\/b>/i.exec(h);
   const head = (b ? b[1] : h.split(/&mdash;|—/)[0]).replace(/<[^>]+>/g, ' ').replace(/&minus;/g, '−')
     .replace(/&times;/g, '×').replace(/&divide;/g, '÷').replace(/&pi;/g, 'π').replace(/&[a-z]+;|&#\d+;/gi, ' ');
   return /\d/.test(head) || /[=+−×÷^√π/]|\)\s*\(|\b[a-zA-Z]\s*[−-]\s*[a-zA-Z]\b/.test(head);
+}
+
+/* WORDS THAT ASK FOR SOMETHING TO BE FILLED IN: a table, Venn or tree completed, boxes filled, a figure labelled, a
+   matching. Not one missing number (the answer box), a label on one's own drawing, a Punnett square (cells fold case). */
+/* AN EXAMINER NOTE THAT SAYS A PART'S MARKS ARE FOR THE PARTS BEFORE IT TOO. */
+const SHARED = /\bmarks?\b[\s\S]*?\b(?:together|whole|all|both|does not divide|completing)\b/i;
+const FILL_IN = [
+  /\b(?:complete|fill in)(?: in)? (?:the |this )?(?:[\w-]+ ){0,3}?(?:table|grid|venn diagram|tree diagram|frequency tree|distance chart|tally chart)\b/i,
+  /\bfill in the missing (?:[\w-]+ )?(?:numbers|digits|words|values)\b|\bfill in the (?:blanks|gaps|boxes)\b/i,
+  /\bwhat (?:number|digit|word|letter)s? goes? in (?:box|cell|region)\b/i,
+  /\blabel (?:the|each) (?:parts?|structures?|blanks?|boxes|organs?)\b|\blabel (?:the )?(?:diagram|figure)\b/i,
+  /\bmatch each\b|\bdraw (?:a |one )?lines? (?:from|to) each\b|\bjoin each\b/i,
+];
+function fillIn(html) {
+  const t = S(html).replace(/<svg[\s\S]*?<\/svg>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/&[a-z]+;|&#\d+;/gi, ' ').replace(/\s+/g, ' ');
+  for (const re of FILL_IN) { const m = re.exec(t); if (m) return m[0]; }
+  return '';
 }
 
 /* THE LEVELS A ROW IS TAUGHT AT, read as `levelsOf_` reads an item: a stage band wins over the level cell. */
@@ -225,18 +241,29 @@ function validate(row, file) {
     bad('source', f.board, S(row[f.company]) + ' is a Source, so its sheet carries no ' + f.board + ' (' + S(row[f.board]) + ')');
   }
 
+  /* A BOARD'S OWN PAPER (past or specimen) NAMES THE BOARD TWICE: its maker (`company`) is the board it is set by. */
+  if (f.company && /^(Past|Specimen) paper$/.test(S(row.document_type))) {
+    const co = S(row[f.company]), bo = S(row[f.board]);
+    if (bo && !co) bad('board', f.company, 'a ' + S(row.document_type).toLowerCase() + ' of ' + bo + ' names no company');
+    else if (BOARDS.indexOf(co) !== -1 && co !== bo) bad('board', f.board, 'a ' + S(row.document_type).toLowerCase() + ' made by ' + co + ' is set by ' + (bo || 'no board'));
+  }
+
   /* TOPICS: each spelled exactly as data/topics.json spells a label or an alias. */
   if (f.topics) atoms(row[f.topics]).forEach(t => { if (!topicWords().has(t)) bad('topic', f.topics, 'topic ' + JSON.stringify(t) + ' is not a label or alias in data/topics.json'); });
 
   if (file === 'questions') {
     const kind = S(row.kind), live = S(row.active) !== 'False';
-    /* MARKS: a whole number wherever given, and on every live past-paper question. */
+    /* MARKS: a whole number wherever given; a live past-paper part with none is asked in validateFile (a run may share them). */
     if (S(row.marks) && !/^\d+$/.test(S(row.marks))) bad('marks', 'marks', 'marks ' + JSON.stringify(S(row.marks)) + ' is not a whole number');
-    if (kind === 'question' && live && S(row.document_type) === 'Past paper' && !S(row.marks)) bad('marks', 'marks', 'a past-paper question with no marks');
     if (S(row.total_marks) && !/^\d+$/.test(S(row.total_marks))) bad('marks', 'total_marks', 'total_marks ' + JSON.stringify(S(row.total_marks)) + ' is not a whole number');
     /* THE ANSWER'S SHAPE IS ITS TYPE'S: a calculation's answer has a number in it; an ordering has its options and its order. */
     if (kind === 'question' && S(row.answer_type) === 'calculation' && S(row.answer) && !mathsy(row.answer) && !(S(row.accept) && mathsy(row.accept))) bad('answer', 'answer', "a calculation whose answer is neither a number nor algebra — it gets a number keypad");
     if (kind === 'question' && S(row.answer_type) === 'order' && S(row.html) && !(S(row.choices) && S(row.choice_right))) bad('answer', 'choices', 'an ordering with no choices or no choice_right');
+    /* A PART THAT ASKS TO FILL SOMETHING IN IS ANSWERED IN CELLS (the owner's fill-in standard): never on the diagram. */
+    if (kind === 'question' && live && !S(row.cells)) {
+      const ask = fillIn(row.html);
+      if (ask) bad('cells', 'cells', 'its words ask to ' + JSON.stringify(ask) + ' and it has no cells — a table of cells, laid out as the paper\'s');
+    }
   }
 
   /* No lib_pending rule: the marker stays on once the words arrive (docs/library.md), so its presence says nothing. */
@@ -258,6 +285,9 @@ function validateFile(rows, file) {
     byPaper.get(pid).push(r);
     byQ.add(pid + '|' + S(r.question));
   });
+  /* THE NEXT PART OF THE SAME QUESTION, IN FILE ORDER, THAT CARRIES MARKS — the one a run of unmarked parts shares. */
+  const order = new Map(qs.map((q, i) => [q, i]));
+  const laterMarked = q => byPaper.get(S(q.paper_id)).find(o => S(o.question) === S(q.question) && order.get(o) > order.get(q) && S(o.marks)) || null;
   (rows || []).forEach(r => {
     if (!r) return;
     const pid = S(r.paper_id);
@@ -265,12 +295,19 @@ function validateFile(rows, file) {
     if (S(r.kind) === 'preamble' && !(S(r.question) ? byQ.has(pid + '|' + S(r.question)) : byPaper.has(pid))) {
       out.push({ id: idOf(r), rule: 'preamble', col: 'question', msg: 'a preamble with no question under it' });
     }
-    /* TOTAL_MARKS COVERS WHAT IS COUNTED: never less than its questions' sum, and equal once every question has marks.
-       A cover with no question yet is hidden (O6), so it is not asked. */
+    /* A LIVE PAST-PAPER PART HAS MARKS, or a later part of its question carries the run's marks and its examiner note
+       says so (the note is private, so a pending row without its words is not counted). */
+    if (S(r.kind) === 'question' && S(r.active) !== 'False' && S(r.document_type) === 'Past paper' && !S(r.marks)) {
+      const later = laterMarked(r);
+      if (!later) out.push({ id: idOf(r), rule: 'marks', col: 'marks', msg: 'a past-paper question with no marks' });
+      else if (!SHARED.test(S(later.examiner_note))) out.push({ id: idOf(r), rule: 'marks', col: 'examiner_note', msg: 'no marks, and ' + idOf(later) + ' after it has marks but no examiner note saying they are for the parts together' });
+    }
+    /* TOTAL_MARKS COVERS WHAT IS COUNTED: never under its parts' sum, equal once each part has or shares marks. A
+       switched-off part counts (it is on the paper); a cover with no question is hidden (O6), not asked. */
     if (S(r.kind) === 'document' && /^\d+$/.test(S(r.total_marks)) && byPaper.has(pid)) {
-      const mine = byPaper.get(pid).filter(q => S(q.active) !== 'False');
+      const mine = byPaper.get(pid);
       const sum = mine.reduce((n, q) => n + (Number(S(q.marks)) || 0), 0), total = Number(S(r.total_marks));
-      const whole = mine.every(q => /^\d+$/.test(S(q.marks)));
+      const whole = mine.every(q => /^\d+$/.test(S(q.marks)) || laterMarked(q));
       if (sum > total || (whole && mine.length && sum !== total)) {
         out.push({ id: idOf(r), rule: 'total', col: 'total_marks', msg: 'total_marks ' + total + ' and its questions count ' + sum });
       }
@@ -308,5 +345,5 @@ function committed(file, map) {
   });
 }
 
-module.exports = { FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
+module.exports = { fillIn, FILL_IN, SHARED, FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
                    levelsIn, rowLevels, validate, validateFile, newProblems, refuse, committed, topicWords };
