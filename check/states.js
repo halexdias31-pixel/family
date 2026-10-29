@@ -52,7 +52,7 @@ const STATES = {
                          { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       /* ---------- AND THE CHIPS SAY ONLY WHAT WAS CHOSEN, WITH CLEAR BESIDE THE BOX § */
       expect: () => {
@@ -78,7 +78,7 @@ const STATES = {
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
@@ -100,7 +100,7 @@ const STATES = {
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
@@ -124,7 +124,7 @@ const STATES = {
                          { field: 'examYear', any: true },
                          { field: 'examMonth', value: 'May' }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
@@ -161,7 +161,7 @@ const STATES = {
                && !!card && sit.join('|') === '2017|June';
       },
       wants: 'the Question question after Paper, Q1 onwards, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A LONG LIST, DRAWN WHOLE § */
     { name: 'a long list, drawn whole',
       enter: () => {
@@ -173,14 +173,14 @@ const STATES = {
                          { field: 'yearGroup', value: 'Year 5' },
                          /* SATs, since 396 asks Level here (a Year 5 sheet filed GCSE makes two answers); then Paper, 13 sheets. */
                          { field: 'level', value: 'SATs' }];
-        paintStuff(); goPage('stuff', 0, true);
+        paintStuff(); goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
         return rows.length >= 10;
       },
       wants: 'ten or more answer chips on one question, none of them a range',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS § */
     { name: 'a bundle of papers',
       enter: () => {
@@ -205,7 +205,7 @@ const STATES = {
       },
       wants: 'a bundle card listing its papers, with a trolley to put them in the basket',
       leave: () => {
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
         CART = []; cartSave(); if (typeof cartPaint_ === 'function') cartPaint_();
       } },
     /* ---------- AND THE DOCUMENT BEHIND THE TILE § */
@@ -241,7 +241,7 @@ const STATES = {
                && !document.querySelector('#s-stuff .prac-part:not(.is-fig) figure');
       },
       wants: 'a practical split into cards — the card, its diagram, the kit list, the steps, and a worksheet of three boxes',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A PROJECT, ON ITS LAST PAGE § */
     { name: 'a project',
       enter: () => {
@@ -265,7 +265,7 @@ const STATES = {
                && !document.querySelector('#s-stuff .card.prac:not(.proj)');
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A COURSEWORK, ON ITS STAGES PAGE § */
     { name: 'a coursework',
       enter: () => {
@@ -287,7 +287,7 @@ const STATES = {
                && !!steps.querySelector('.prac-steps ol > li');
       },
       wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A QUESTION ANSWERED BY DRAWING, DRAWN ON ITS OWN FIGURE IN ITS CARD (docs/history/356) § */
     { name: 'a question drawn on the paper\'s own figure, the grid under the pen in its card',
       enter: () => {
@@ -317,7 +317,7 @@ const STATES = {
                && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(pad.textContent);
       },
       wants: 'June 2024 1F Q7 as one card: its ask and its own grid under the pen and ready for the first touch (no lock, 368), its tools, Undo and Clear at 44px, no box, no Draw tile, no "on the next page", nothing drawn smaller whole, the grid no narrower than its floor',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A STEM'S MAP UNDER A PART'S OWN PEN, AND ITS BOX AT THE FOOT § */
     { name: 'a stem\'s map under a part\'s own pen, with its box at the foot',
       enter: () => {
@@ -337,7 +337,7 @@ const STATES = {
         return !!pad && !!box && !!(pad.compareDocumentPosition(box) & 4) && !card.parentElement.querySelector('.q-drawt');
       },
       wants: 'the stem\'s map under the part\'s pen in its card, and the box under it at the foot',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- THE TALLEST FIGURE UNDER A PEN, AT 320 TOO § */
     { name: 'the tallest figure under a pen, its tiles a fingertip and never under its floor',
       enter: () => {
@@ -364,7 +364,7 @@ const STATES = {
                && (!art.style.width || !!gave);
       },
       wants: 'the four sine grids under the pen, its tiles at 44px, nothing drawn smaller whole, the figure no narrower than the floor and narrowed only once the words have given way',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING § */
     { name: 'a multiple-choice question',
       enter: () => {
@@ -390,7 +390,7 @@ const STATES = {
                && !card.querySelector('textarea.qp-ans-in');
       },
       wants: 'a question whose options are buttons, with no text box on its card',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AN OPTIONS PART WITH ITS TOOLS OPEN (Review B: the mark sat on one flex line; round 4: the owner's nine, one padlock) */
     { name: 'a multiple-choice question, its tools open',
       enter: () => {
@@ -418,7 +418,7 @@ const STATES = {
                && !card.querySelector('[data-do="qt-grid"], [data-do="qt-panel"]');
       },
       wants: 'an options part\'s tool row as wide as its box, its eight tools inside it (their size is check/tiles.js\'s), the verdict below it, one padlock and no Grid, Table, Calculator or Formula sheet',
-      leave: () => { QT_OPEN.delete(window.__toolsKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { QT_OPEN.delete(window.__toolsKey); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {
@@ -438,7 +438,7 @@ const STATES = {
                && !!c.querySelector('.qsheet-more');
       },
       wants: 'the stem of Q5 on its own page, tagged Questions, Q5 and a (its part\'s row), no page number, no box and no picture, saying what is next',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A MADE-UP SURFACE AND A BOX: THE HEXAGON (docs/history/356) § */
     { name: 'a question answered on a surface and in a box: its blank space under the pen and the box below',
       enter: () => {
@@ -459,7 +459,7 @@ const STATES = {
                && !card.parentElement.querySelector('.q-drawt');
       },
       wants: 'the hexagon\'s blank space under the pen and its box below it, on one card, no Draw tile',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A MADE-UP SURFACE AND NOTHING ELSE § */
     { name: 'a question answered on a made-up surface alone, the surface under the pen where the box would be',
       enter: () => {
@@ -481,7 +481,7 @@ const STATES = {
         return !a.closest('.qcard').querySelector('.qp-ans') && Math.abs(r.width - k.width) <= 1 && Math.abs(r.height - k.height) <= 1;
       },
       wants: 'a made-up surface under the pen where the box would be, the ink exactly its size, and no box',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF ITS WORDS, IN ITS CARD § */
     { name: '"use your graph", with the graph drawn on (b) in front of its words',
       enter: () => {
@@ -515,7 +515,7 @@ const STATES = {
       wants: '(b)\'s grid with the curve drawn on it, read only, in (c)\'s card in front of "Use your graph", the ink exactly the grid\'s size, with no line about whose marks they are',
       leave: () => {
         try { localStorage.removeItem(window.__useKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* THE FIGURE TILE ON "use your graph" WAS HERE: the tile went in 463, the owner's "they scroll up". */
     /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT § */
@@ -559,7 +559,7 @@ const STATES = {
       leave: () => {
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE PROTRACTOR LAID ON A PEN'S PAGE (458), turned to 50°, the Ruler in hand beside it */
     { name: 'a construction with the protractor laid on the page, turned 50 degrees, the Ruler in hand',
@@ -593,7 +593,7 @@ const STATES = {
       leave: () => {
         PAD_PROT.delete(window.__protKey);
         PAD_ON = ''; PAD_TOOL.delete(window.__protKey);
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED § */
     { name: 'a passage with two words ringed',
@@ -637,7 +637,7 @@ const STATES = {
           it.surface = window.__ringHad || '';
           CHUNK_MEMO.delete(it);
         }
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A PART TOO LONG FOR ONE PAGE, CUT BETWEEN PARAGRAPHS § */
     { name: 'a long part\'s first page, cut before its ask',
@@ -657,7 +657,7 @@ const STATES = {
                && /^\d+ pages$/.test((c.querySelector('.qcard-tags [data-f="qPages"]') || {}).textContent || '');
       },
       wants: 'the first page of a long part: its reading, no box, tagged [Page 1] [N pages], saying it continues',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
     { name: 'a question you last got right',
       only: () => typeof whoIs_ === 'function' && !!whoIs_(),
@@ -691,7 +691,7 @@ const STATES = {
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
           if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'a question you last got wrong, not yet',
       only: () => typeof whoIs_ === 'function' && !!whoIs_(),
@@ -725,7 +725,7 @@ const STATES = {
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
           if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'a question you last sent, unmarked',
       only: () => typeof whoIs_ === 'function' && !!whoIs_(),
@@ -759,7 +759,7 @@ const STATES = {
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
           if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A KS2 SATs QUESTION: `SATs` AND `KS2`, TWO TAGS, AND WHAT TO BRING AS ITS OWN § */
     { name: 'a KS2 SATs question, SATs and KS2 as two tags',
@@ -780,7 +780,7 @@ const STATES = {
                && !document.querySelector('#s-stuff .page.on .qcard-needs, #s-stuff .page.on .qcard-top');
       },
       wants: 'a KS2 SATs question tagged Learning and Questions first, then SATs and KS2 side by side, its board STA, Q1, its mark and Ruler as what to bring -- no header line, no needs line',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN § */
     /* THE RESULT EXPECTED IS THE ONE THE APP SAYS, not a word copied in here. § */
     { name: 'an answer, hidden until it is asked for',
@@ -802,7 +802,7 @@ const STATES = {
                && !!c.querySelector('[data-do="qa-show"]');
       },
       wants: 'Q3\'s answer page, after its question, for whoever is looking: "Answer hidden", Show the answer, and no answer in it',
-      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- SWIPED TO, NOT TURNED TO BY A TILE § */
     { name: 'the answer, swiped to from its question',
       enter: () => {
@@ -833,7 +833,7 @@ const STATES = {
                && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
       wants: 'the question\'s page with no tile to the answer on the strip, then one swipe on: its answer, still hidden, Show the answer waiting',
-      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- QUESTIONS CHOSEN: THE PAGE AFTER A QUESTION IS THE NEXT QUESTION § */
     { name: 'Questions chosen, Q1 then Q2',
       enter: () => {
@@ -855,14 +855,14 @@ const STATES = {
                && !document.querySelector('#s-stuff .qans-card');
       },
       wants: 'the subtraction sheet with Questions chosen: Q1, one swipe, and Q2\'s card -- no answer card on the strip at all',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- WHAT KIND: QUESTIONS FIRST § */
     { name: 'What kind, Questions first',
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const chips = [...document.querySelectorAll('#s-stuff .page.on [data-do="facet-pick"][data-field="kindLabel"]')]
@@ -870,7 +870,7 @@ const STATES = {
         return chips[0] === 'Questions' && chips[1] === 'Answers';
       },
       wants: 'the What kind question with Questions as its first chip and Answers the second',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
         ANS_SHOWN.clear();
@@ -901,7 +901,7 @@ const STATES = {
                && !!c.querySelector('.tile[data-do="qa-hide"]') && !c.querySelector('[data-do="qa-show"]');
       },
       wants: 'the answer page showing its result (the head answerParts_ gives) once its tile is pressed, nothing under it, and Hide the answer where Show was',
-      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AND HIDDEN AGAIN, WITH THE TILE WHERE THE THUMB LEFT IT § */
     { name: 'an answer shown and hidden again, its tile where it was',
       enter: () => {
@@ -948,7 +948,7 @@ const STATES = {
                && !!c && c.classList.contains('is-hidden') && !c.querySelector('.qans, .qans-body');
       },
       wants: 'Show then Hide pressed on the answer page: the tile in the same place at every step, and the page hidden again with no answer in it',
-      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- MARKED, AND NOTHING MOVED § */
     { name: 'a typed answer, marked not yet, nothing moved',
       enter: () => {
@@ -990,7 +990,7 @@ const STATES = {
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'a typed answer, marked right, the question still',
       enter: () => {
@@ -1037,7 +1037,7 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
         ANS_SHOWN.clear();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- AN ORDERING, HALF PLACED, AND THEN SENT RIGHT § */
     { name: 'an ordering, half placed',
@@ -1077,7 +1077,7 @@ const STATES = {
       wants: 'the real 1F Q4 as an ordering: 0.03 and 0.1 in the first two slots, their ghosts in the row under it, three slots empty, no text box',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'an ordering, sent wrong then right, nothing moved',
       enter: () => {
@@ -1152,7 +1152,7 @@ const STATES = {
           localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
         } catch (e) {}
         subForget_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION § */
     { name: 'an ordering of powers, raised as printed',
@@ -1207,7 +1207,7 @@ const STATES = {
           localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
         } catch (e) {}
         subForget_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'a tapped answer, not yet, nothing moved',
       enter: () => {
@@ -1254,7 +1254,7 @@ const STATES = {
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE MATHS KEYPAD, UP, WITH A FRACTION HALF BUILT § */
     { name: 'a maths answer, the keypad up, a fraction half built',
@@ -1301,7 +1301,7 @@ const STATES = {
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD § */
     { name: 'a part with a figure behind it, the keypad up, its box above the pad',
@@ -1340,7 +1340,7 @@ const STATES = {
         try { localStorage.removeItem(window.__kfKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE QUESTION ABOVE THE PAD (round 4, `kpStrip_`): on a phone its first lines ride above the keys, and a tap shows it whole */
     { name: 'the keypad up on a phone, the question\'s first lines above the keys, tapped',
@@ -1422,7 +1422,7 @@ const STATES = {
       wants: 'Q0664\'s box empty and at rest: the field the paper colour, "Type your answer" in it, and the gold Send tile beside it',
       leave: () => {
         try { localStorage.removeItem(window.__restK); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE KEYPAD UP, IN ITS SUNLIGHT COLOURS § */
     { name: 'the keypad up, colours for sunlight',
@@ -1463,7 +1463,7 @@ const STATES = {
         try { localStorage.removeItem(window.__sunK); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A REPAINT WITH THE KEYPAD UP § */
     { name: 'a repaint with the keypad up',
@@ -1510,7 +1510,7 @@ const STATES = {
         try { localStorage.removeItem(window.__rpK); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" BESIDE IT § */
     { name: 'a worded answer, Mark with AI beside it',
@@ -1566,7 +1566,7 @@ const STATES = {
         if (window.__aiTok && USER) delete USER.token;
         try { localStorage.removeItem(window.__aiKey); } catch (e) {}
         DATA.aiMarking = false;
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- A WORDED ANSWER, THE PAD UP ON ITS LETTERS § */
     { name: 'a worded answer, the pad up on its letters',
@@ -1617,7 +1617,7 @@ const STATES = {
         try { localStorage.removeItem(window.__abcKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- AN ESSAY, WRITTEN ON ITS SHEET IN PARAGRAPHS, THE PAD UP § */
     { name: 'an essay, three paragraphs on its sheet, the pad up',
@@ -1682,7 +1682,7 @@ const STATES = {
         try { localStorage.removeItem(window.__essayKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX § */
     { name: 'a typed answer, filled from the account on another device',
@@ -1723,7 +1723,7 @@ const STATES = {
         DATA.features = window.__svFeat;
         if (window.__svTok && USER) delete USER.token;
         try { localStorage.removeItem(window.__svKey); localStorage.removeItem('ansAt:' + window.__svKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     { name: 'a typed answer, kept on this device only',
       only: () => typeof USER !== 'undefined' && !USER,
@@ -1752,7 +1752,7 @@ const STATES = {
       wants: 'Q0664 typed into signed out, and "On this device only \u2014 sign in to keep it" under the box on one line',
       leave: () => {
         try { localStorage.removeItem(window.__svKey); } catch (e) {}
-        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_());
       } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR IS SENT — AND WHICH FIND DOES NOT HAVE § */
     { name: 'no films in Find, an admin’s',
@@ -1780,10 +1780,10 @@ const STATES = {
       wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, no film found by its title, and no film anywhere in Find' },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION § */
     { name: 'a search that matches nothing',
-      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', 0, true); },
+      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
-      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* AND A SEARCH A CHIP HIDES. § */
     { name: 'a search a chip hides',
       enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
@@ -1792,7 +1792,7 @@ const STATES = {
         return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
       },
       wants: 'Find\'s empty search under a chip saying "Try fewer words, or take a filter off." and offering no other column',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
@@ -1805,7 +1805,7 @@ const STATES = {
           if (!r) break;
           r.click();
         }
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const end = document.querySelector('#stuff-groups .find-end');
@@ -1815,14 +1815,14 @@ const STATES = {
                && parseFloat(getComputedStyle(chips).borderBottomWidth) >= 1;
       },
       wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT § */
     { name: 'an answer pressed, the search box and the chips still',
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
-        goPage('stuff', 0, true);
+        goPage('stuff', stuffQuestionPage_(), true);
         window.__findStill = null;
         /* AT ONCE, where the page is already built; after a tick only if not -- a loaded run's 150ms
            timer is what left this state unreached (the answer states above say more). */
@@ -1850,7 +1850,7 @@ const STATES = {
         return !!s && s.n === 2 && s.a[1] >= 0 && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
       wants: 'a second chip added with the search box and the first chip exactly where they were',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT § */
     { name: "a practical's pages filled, its card still",
       enter: () => {
@@ -1889,7 +1889,7 @@ const STATES = {
         return !!s && !!s.a && !!s.b && s.redrawn && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
   ],
   /* FIND 2, RIGHT OF FIND (docs/history/329, 347) § */
   res: [

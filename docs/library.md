@@ -137,6 +137,43 @@ alias is for an import's spelling, and Find does not fold it. A past-paper part 
 part of its question carries the run's marks and its examiner note says so ("The paper gives N marks for the whole…",
 "The question's N mark is for…"). A board's own paper names the board as `company` and `exam_board` both (523).
 
+## What's missing: the papers the library should have (526)
+
+An admin sees a **What's missing** card directly above Find's question (the page above the search box; Find still
+opens on the question, and nobody else sees or fetches it). It compares an owner-written list,
+`data/settings/expected-papers.json`, with the past-paper covers in `data/questions.json` (`kind: document`,
+`document_type: Past paper`), and lists the gaps by qualification: a fold per qualification with its count ("12 missing",
+"none yet"), one line per sitting inside ("June 2022 — Papers 1, 3"); a complete one says "complete". The line at the
+top counts the covers whose questions still carry `lib_pending` ("N papers waiting for their words"). Read only.
+
+**Editing the list on GitHub** — one qualification per line, `[` and `]` alone on the first and last lines:
+
+```json
+{"board": "Edexcel", "level": "A-Level", "subject": "Maths", "spec": "9MA0", "label": "Edexcel A-level Maths",
+ "papers": ["1", "2", "31", "32"], "series": ["June"], "from": 2018, "to": 2025,
+ "also": ["November 2020", "November 2021"], "skip": ["June 2020", "June 2021"], "papers_in": {"June 2018": ["1", "2", "3"]}}
+```
+
+- `board`, `level`, `subject` are spelled as the library spells them (`check/schema.js`: `A-Level`, not `A level`).
+  `label` is what the card says. `spec` (optional) keeps two specifications filed under one subject apart (AQA's
+  7062 Religious Studies and 7172 Philosophy); a cover with no `spec_code` counts for the first line naming its
+  board, level and subject.
+- `papers`: each paper's number; `31` is Edexcel's Paper 31 (filed as paper 3, named "Paper 31"); add `F` or `H` when
+  only that tier will do (`1F`, `2H`). A plain `1` is satisfied by either tier (OCR's Gateway sciences number their
+  tiers' papers 1–4).
+- `series`: `June` (a May or June paper), `November`; every year from `from` to `to`. `also` adds single sittings,
+  `skip` removes them (no summer exams were sat in 2020 or 2021), `papers_in` gives one sitting other papers.
+- A cover counts when its board, level and subject match (a blank level is read off its key stage, KS4 GCSE and
+  KS5 A-level), and its year, series and paper match; its name fills a blank year, month or paper. Switched-off
+  covers count: they are in the library.
+- A line the card cannot read is counted on the card, never dropped silently; `node js/check-missing.js` names it
+  (an unknown key, a board, level, subject or paper spelled otherwise). `-v` prints today's gaps.
+
+Seeded 29 Oct 2026 with Edexcel A-level Maths (9MA0) and GCSE Maths (1MA1), AQA A-level Maths (7357), OCR A-level
+Maths (H240), AQA GCSE Statistics (8382), and the AQA and OCR qualifications the bulk import covered (521) — every
+year from each specification's first exams to 2025. AQA Combined Science (8464) is left out: its six papers per tier
+share numbers 1 and 2 across Biology, Chemistry and Physics, which the paper number alone cannot tell apart.
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
