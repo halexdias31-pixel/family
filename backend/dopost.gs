@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-28-zz5-merge4";
+const DOPOST_VERSION = "2026-10-29-rw3";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4442,21 +4442,28 @@ function rewriteIdeasAsk_(key, models, text, split) {
     + 'clean checklist, merging items that are one fact and splitting items that hold two, each a short note under 16 words '
     + 'that keeps the source\'s technical terms, names and numbers exactly; never add a fact the source does not state. '
     + 'Also `vocab`, up to 8 key words of the source with a simple definition under 15 words, and `tips`, 2 or 3 short tips '
-    + 'on articulation (order, linking words, register) that contain no sentence of the text.';
+    + 'on articulation (order, linking words, register) that contain no sentence of the text. And `questions`: for each fact you '
+    + 'give, in the same order, one natural question under 16 words that asks for that fact\'s terms, names or numbers and '
+    + 'never contains them, so the student recalls them; the phone keeps its own cue for any question that gives them away.';
   const ask = '<source>\n' + text + '\n</source>\n' + split.map((f, i) => '<fact n="' + (i + 1) + '">' + f + '</fact>').join('\n');
   const reply = rewriteGemini_(key, models, rules, ask,
     { type: 'OBJECT', properties: {
       facts: { type: 'ARRAY', items: { type: 'STRING' } },
       vocab: { type: 'ARRAY', items: { type: 'OBJECT', properties: { word: { type: 'STRING' }, meaning: { type: 'STRING' } }, required: ['word', 'meaning'] } },
-      tips: { type: 'ARRAY', items: { type: 'STRING' } } },
-      required: ['facts', 'vocab', 'tips'] });
+      tips: { type: 'ARRAY', items: { type: 'STRING' } },
+      questions: { type: 'ARRAY', items: { type: 'STRING' } } },
+      required: ['facts', 'vocab', 'tips', 'questions'] });
   if (reply.error) return reply;
-  const facts = rwArr_(reply.got.facts).map(f => (typeof f === 'string' ? rwLine_(f, 200) : '')).filter(Boolean).slice(0, REWRITE_FACTS_MAX);
+  /* EACH QUESTION STAYS PAIRED WITH ITS FACT; the phone decides whether it may be used (rwAiCue_). */
+  const qs = rwArr_(reply.got.questions);
+  const pairs = rwArr_(reply.got.facts).map((f, i) => ({ f: typeof f === 'string' ? rwLine_(f, 200) : '', q: typeof qs[i] === 'string' ? rwLine_(qs[i], 160) : '' }))
+    .filter(p => p.f).slice(0, REWRITE_FACTS_MAX);
+  const facts = pairs.map(p => p.f);
   if (facts.length < 1) return { error: 'The AI could not tidy the facts — the facts as split are fine to use.' };
   const vocab = rwArr_(reply.got.vocab).slice(0, 8)
     .map(v => ({ word: rwLine_(v && v.word, 40), meaning: rwLine_(v && v.meaning, 140) })).filter(v => v.word && v.meaning);
   const tips = rwArr_(reply.got.tips).map(t => (typeof t === 'string' ? rwLine_(t, 160) : '')).filter(Boolean).slice(0, 3);
-  return { facts: facts, vocab: vocab, tips: tips };
+  return { facts: facts, questions: pairs.map(p => p.q), vocab: vocab, tips: tips };
 }
 /* ONE FACT AGAINST ITS ONE ANSWER, per item, and a narrow verdict: the smaller the question, the less a weaker model gets wrong (519). */
 const REWRITE_VERDICTS = ['yes', 'partly', 'no'];

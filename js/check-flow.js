@@ -30290,11 +30290,12 @@ function puWorld_(o) {
   };
   return { T, p, before, reply };
 }
-check('the Rewrite coach (519): an admin lists the facts with the AI off; recall hides the text and Peek is counted; the scanner follows typing; Check gives a score line; with the AI a verdict without its real quote falls to missing; Try again asks only the facts still out', async () => {
+check('the Rewrite coach (519): an admin lists the facts with the AI off; recall shows ONE fact at a time, "1 of N", with a specific cue; Next and Back keep what was typed; the summary checks; "done" is not enough to judge own wording; with the AI a verdict without its real quote falls to missing; Try again steps only through the facts still out', async () => {
   const bad = [];
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
   const TEXT = 'Photosynthesis is the process by which green plants use sunlight to make glucose from carbon dioxide and water. '
     + 'It happens in the chloroplasts, which contain a green pigment called chlorophyll that absorbs light energy. Oxygen is released as a by-product.';
+  const GOOD = 'Using sunlight, plants build glucose out of water and carbon dioxide; that is photosynthesis.';
   const open = async (ai, reply) => {
     const p = payload(); p.aiMarking = ai;
     const m = boot({ payload: p, reply: reply, before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
@@ -30303,30 +30304,54 @@ check('the Rewrite coach (519): an admin lists the facts with the AI off; recall
   };
   const box = m => m.w.document.querySelector('#rw-box');
   const tap = async (m, act) => { const el = box(m) && box(m).querySelector('[data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile: ' + (box(m) || {}).textContent); return false; } el.click(); await wait(80); return true; };
-  const type = async (m, sel, v) => { const el = box(m).querySelector(sel); if (!el) { bad.push('no box ' + sel); return; } el.value = v; el.dispatchEvent(new m.w.Event('input', { bubbles: true })); await wait(30); };
+  const type = async (m, sel, v) => { const el = box(m).querySelector(sel); if (!el) { bad.push('no box ' + sel + ': ' + box(m).textContent.slice(0, 200)); return; } el.value = v; el.dispatchEvent(new m.w.Event('input', { bubbles: true })); await wait(30); };
+  const boxes = m => [...box(m).querySelectorAll('[data-rw="mine"]')];
+  const stepOf = m => ((box(m).querySelector('.rw-step') || {}).textContent || '').trim();
+  /* NEXT UNTIL THE SUMMARY, at most 20 taps. */
+  const toEnd = async m => { for (let k = 0; k < 20 && box(m).querySelector('[data-do="rw-next"]'); k++) await tap(m, 'rw-next'); };
   {
     const m = await open(false);
     if (!box(m)) return ['an admin\'s Tools has no Rewrite coach, so nothing was asked'];
     await type(m, '[data-rw="src"]', TEXT);
     await tap(m, 'rw-ideas');
-    const items = box(m).querySelectorAll('.rw-facts li');
-    if (items.length < 3) bad.push('with the AI off the facts were not listed: ' + box(m).textContent.slice(0, 200));
+    const n = box(m).querySelectorAll('.rw-facts li').length;
+    if (n < 3) bad.push('with the AI off the facts were not listed: ' + box(m).textContent.slice(0, 200));
     if (!box(m).querySelector('.rw-term')) bad.push('no protected term was shown with the AI off');
     await tap(m, 'rw-recall');
     if (box(m).querySelector('.rw-src-text') || box(m).querySelector('.rw-facts')) bad.push('writing from memory still shows the text or the checklist');
-    const cues = [...box(m).querySelectorAll('[data-rw="mine"]')].map(t => t.closest('label').textContent);
-    if (!cues.length || !/What did the text say about/.test(cues[0])) bad.push('no cue per fact: ' + JSON.stringify(cues));
+    /* ONE FACT ON SCREEN, with where you are and a specific cue. */
+    if (boxes(m).length !== 1 || stepOf(m) !== '1 of ' + n) bad.push('recall showed ' + boxes(m).length + ' boxes at "' + stepOf(m) + '", wanted one at "1 of ' + n + '"');
+    const cue = boxes(m).length ? boxes(m)[0].closest('label').textContent : '';
+    if (!/^(?:What|When|Where|How many|Who)\b|___/.test(cue.trim()) || /What did the text say about/.test(cue)) bad.push('the cue is not a specific question: ' + cue);
+    const back = box(m).querySelector('[data-do="rw-back"]');
+    if (!back || !back.disabled) bad.push('Back was missing or live on the first fact');
+    if (box(m).querySelector('[data-do="rw-check"]')) bad.push('Check was offered before the last step');
     await tap(m, 'rw-peek');
     if (!box(m).querySelector('.rw-src-text')) bad.push('Peek did not show the text');
     await tap(m, 'rw-hide');
     if (!/1 so far/.test(box(m).innerHTML) || box(m).querySelector('.rw-src-text')) bad.push('Hide again did not hide, or the peek was not counted');
-    const before = box(m).querySelector('[data-rw-scan="0"]').textContent;
-    await type(m, '[data-rw="mine"][data-i="0"]', 'Using sunlight, plants build glucose out of water and carbon dioxide; that is photosynthesis.');
-    const after = box(m).querySelector('[data-rw-scan="0"]').textContent;
-    if (before === after || !/Substance [89]\d%|Substance 100%/.test(after)) bad.push('the scanner did not follow the typing: ' + before + ' → ' + after);
+    /* "done" EVERYWHERE IS NOT ENOUGH TO JUDGE OWN WORDING. */
+    await type(m, '[data-rw="mine"][data-i="0"]', 'done');
+    await tap(m, 'rw-next');
+    if (stepOf(m) !== '2 of ' + n || !box(m).querySelector('[data-rw="mine"][data-i="1"]')) bad.push('Next did not show fact 2 alone: "' + stepOf(m) + '"');
+    await tap(m, 'rw-back');
+    const kept = box(m).querySelector('[data-rw="mine"][data-i="0"]');
+    if (stepOf(m) !== '1 of ' + n || !kept || kept.value !== 'done') bad.push('Back did not bring fact 1 back with what was typed: ' + (kept && kept.value));
+    await toEnd(m);
+    if (boxes(m).length || box(m).querySelectorAll('.rw-sum li').length !== n) bad.push('the last step is not a summary of the ' + n + ' facts: ' + box(m).textContent.slice(0, 300));
+    if (!/1 of \d+ facts answered|0 of \d+ facts answered/.test(box(m).textContent)) bad.push('the summary does not say how many facts were answered');
     await tap(m, 'rw-check');
-    const score = (box(m).querySelector('.rw-score:not([data-rw-scan] *)') || box(m).querySelectorAll('.rw-score')[1] || {}).textContent || '';
-    if (!/Facts kept 1\/\d+/.test(box(m).textContent) || !/Own wording 100%/.test(box(m).textContent)) bad.push('no score line after Check: ' + score);
+    if (!/Own wording not enough written yet/.test(box(m).textContent) || /Own wording \d+%/.test(box(m).textContent)) bad.push('"done" was judged for own wording: ' + box(m).textContent.slice(-300));
+    /* TRY AGAIN STEPS THROUGH THE FACTS STILL OUT, the scanner following the typing. */
+    await tap(m, 'rw-retry');
+    if (boxes(m).length !== 1) bad.push('Try again showed ' + boxes(m).length + ' boxes at once');
+    const before = box(m).querySelector('[data-rw-scan="0"]').textContent;
+    await type(m, '[data-rw="mine"][data-i="0"]', GOOD);
+    const after = box(m).querySelector('[data-rw-scan="0"]').textContent;
+    if (before === after || !/Substance [5-9]\d%|Substance 100%/.test(after)) bad.push('the scanner did not follow the typing: ' + before + ' → ' + after);
+    await toEnd(m);
+    await tap(m, 'rw-check');
+    if (!/Facts kept 1\/\d+/.test(box(m).textContent) || !/Own wording 100%/.test(box(m).textContent)) bad.push('no score line after Check: ' + box(m).textContent.slice(-300));
     if (!box(m).querySelector('[data-do="rw-retry"]')) bad.push('no Try again with facts still out');
   }
   {
@@ -30338,16 +30363,19 @@ check('the Rewrite coach (519): an admin lists the facts with the AI off; recall
     });
     await type(m, '[data-rw="src"]', TEXT);
     await tap(m, 'rw-ideas'); await tap(m, 'rw-recall');
-    const n = box(m).querySelectorAll('[data-rw="mine"]').length;
+    const n = Number((stepOf(m).match(/of (\d+)/) || [])[1]) || 0;
     await type(m, '[data-rw="mine"][data-i="0"]', 'Using sunlight, plants build glucose out of water and carbon dioxide.');
+    await tap(m, 'rw-next');
     await type(m, '[data-rw="mine"][data-i="1"]', 'Somewhere in the leaf.');
+    await toEnd(m);
     await tap(m, 'rw-check'); await wait(150);
     if (!asked || asked.items.length !== n || asked.items[1].mine !== 'Somewhere in the leaf.') bad.push('the check did not send one answer per fact: ' + JSON.stringify(asked).slice(0, 200));
     if (!new RegExp('Facts kept 1/' + n).test(box(m).textContent)) bad.push('a verdict without its real quote was kept: ' + box(m).textContent.slice(-300));
     await tap(m, 'rw-retry');
-    const left = box(m).querySelectorAll('[data-rw="mine"]').length;
-    if (left !== n - 1) bad.push('Try again showed ' + left + ' boxes, wanted the ' + (n - 1) + ' facts still out');
+    if (stepOf(m) !== '1 of ' + (n - 1) || !box(m).querySelector('[data-rw="mine"][data-i="1"]')) bad.push('Try again began at "' + stepOf(m) + '", wanted fact 2 at "1 of ' + (n - 1) + '"');
     await type(m, '[data-rw="mine"][data-i="1"]', 'Chlorophyll in the chloroplasts soaks up the light.');
+    await toEnd(m);
+    if (box(m).querySelectorAll('.rw-sum li').length !== n - 1) bad.push('the Try again summary did not list only the ' + (n - 1) + ' facts still out');
     asked = null; await tap(m, 'rw-check'); await wait(150);
     if (!asked || asked.items.length !== n - 1 || asked.items.some(it => /plants build glucose/.test(it.mine))) bad.push('Try again re-asked a kept fact: ' + JSON.stringify(asked).slice(0, 200));
   }
