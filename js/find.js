@@ -46,6 +46,21 @@ function inFinder_(F, fn) {
   try { return fn(); }
   finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
 }
+/* THE ONE WRITER of a finder's question (R1): chips, words and box set together, so a door opened from a card never keeps old words under its new chips. `paint: false` only to count first. */
+function finderSet_(F, o) {
+  F = F || FINDERS.stuff;
+  o = o || {};
+  return inFinder_(F, () => {
+    clearTimeout(stuffTimer);
+    stuffTimer = null;
+    STUFF.filters = Array.isArray(o.filters) ? o.filters.map(c => Object.assign({}, c)) : [];
+    STUFF.q = typeof o.q === 'string' ? o.q : '';
+    const box = $(F.id + '-q');
+    if (box) box.value = STUFF.q;
+    /* WITHOUT `keepPage`, paintStuff puts the column back on its question page. */
+    if (o.paint !== false) paintStuff();
+  });
+}
 /* By screen id; and by the screen an element is drawn in, falling back to the column in front and then Find — a handler pressed from a detached button § */
 function finderOf_(id) { return Object.prototype.hasOwnProperty.call(FINDERS, id) ? FINDERS[id] : null; }
 function finderAt_(el) {
@@ -2308,11 +2323,7 @@ on('bible-go', el => {
     { field: 'wText', value: x ? x.bb.text : writingText_(writingTextOf_(BIBLE.index.translation)) }];
   if (x) f.push({ field: 'wBook', value: x.bb.book }, { field: 'wChapter', value: x.ch });
   inFinder_(F, () => {
-    STUFF.q = '';
-    const box = $(F.id + '-q');
-    if (box) box.value = '';
-    STUFF.filters = f;
-    paintStuff();
+    finderSet_(F, { filters: f });
     if (AT !== F.id) go(F.id);
     goPage(F.id, x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
   });
@@ -2350,11 +2361,9 @@ function finderWalk_(x) {
 function finderOpen_(x, part, F) {
   F = F || FINDERS.stuff;
   inFinder_(F, () => {
-    STUFF.q = '';
-    const box = $(F.id + '-q');
-    if (box) box.value = '';
-    STUFF.filters = finderWalk_(x);
-    paintStuff();
+    /* THE WORDS GO FIRST: the walk asks `stuffFiltered`, which reads them. */
+    finderSet_(F, { paint: false });
+    finderSet_(F, { filters: finderWalk_(x) });
     if (AT !== F.id) go(F.id);
     const pages = stuffPages_();
     let i = pages.findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
@@ -8880,14 +8889,10 @@ function findPlaceBack_(F) {
       const p = JSON.parse(raw);
       if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
       if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
-      STUFF.filters = (Array.isArray(p.f) ? p.f : [])
+      finderSet_(F, { filters: (Array.isArray(p.f) ? p.f : [])
         .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
         .map(placeChipMoved_)
-        .filter(f => !placeChipDead_(f));
-      STUFF.q = typeof p.q === 'string' ? p.q : '';
-      const box = $(F.id + '-q');
-      if (box) box.value = STUFF.q;
-      paintStuff();
+        .filter(f => !placeChipDead_(f)), q: typeof p.q === 'string' ? p.q : '' });
       if (!p.key) return;
       const pages = stuffPages_();
       const mine = pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key;

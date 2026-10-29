@@ -167,6 +167,8 @@ const SUITE = [
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
   /* ---------- AND THE NINE TABS THAT BECAME FILES § */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
+  /* R1 (522): a finder's chips and words are written by `finderSet_` alone — read, not run, so it stays in --fast. */
+  { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */

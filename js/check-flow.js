@@ -10737,6 +10737,41 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   return bad;
 });
 
+/* ---------- R1 (522): A DOOR INTO FIND FROM A CARD STARTS A NEW QUESTION — the words typed before go with the box ---------- */
+check('a door into Find from a card (Book this, take a seat, Practise) clears the words typed there: the box empty, its own chip on, the list not empty (522)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  /* A TOPIC FIND ANSWERS, read off its own Topic question rather than named here. */
+  const tf = w.facetList().find(f => f.field === 'topic');
+  const topic = tf ? ((w.facetValues(w.stuffItems(), tf)[0] || {}).value || '') : '';
+  const doors = [
+    ['Book this', () => t.ACTIONS['book-with'](d.createElement('button')), [{ field: 'forLabel', value: 'Booking' }]],
+    ['take a seat', () => t.ACTIONS['job-take-seat']({ disabled: false, dataset: { id: 'W-LIST' } }), [{ field: 'forLabel', value: 'Booking' }]],
+    ['Practise ' + topic, () => t.ACTIONS['prog-practise']({ dataset: { topic: String(topic || ''), key: '' } }), [{ field: 'topic', value: topic }]],
+  ];
+  if (!topic) bad.push('Find answers no Topic, so Practise was NOT checked');
+  for (const [say, press, want] of doors) {
+    if (!want[0].value) continue;
+    t.go('stuff', false, true); await wait(120); await woken_();
+    if (!resType_(w, 'stuff', 'fractions')) return bad.concat(['Find drew no search box — NOT checked']);
+    await wait(260);
+    if (t.STUFF().q !== 'fractions') { bad.push('typing into Find left its words ' + JSON.stringify(t.STUFF().q) + ' — ' + say + ' NOT checked'); continue; }
+    try { press(); } catch (e) { bad.push(say + ' threw: ' + e.message); continue; }
+    await wait(LEAVE_MS); await woken_();
+    const box = d.getElementById('stuff-q');
+    if (t.AT() !== 'stuff') bad.push(say + ' left the app on ' + t.AT() + ', wanted Find');
+    if (t.STUFF().q) bad.push(say + ' kept the words ' + JSON.stringify(t.STUFF().q) + ' typed before it');
+    if (!box || box.value) bad.push(say + ' left the box ' + (box ? 'saying ' + JSON.stringify(box.value) : 'undrawn'));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify(want)) bad.push(say + ' left the chips ' + JSON.stringify(t.STUFF().filters) + ', wanted ' + JSON.stringify(want));
+    /* THE LIST IS WHAT FOLLOWS THE QUESTION PAGE: the booking form's pages in front, then the results. */
+    const n = w.finderPageCount_('stuff') - 1;
+    if (n < 1) bad.push(say + ' opened Find on nothing past its question');
+  }
+  t.USER(null);
+  return bad;
+});
+
 /* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT § */
 const joinPage_ = (w, id) => {
   w.__t.ACTIONS['job']({ dataset: { id } });

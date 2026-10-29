@@ -492,9 +492,8 @@ document.addEventListener('change', e => {
 /* ---------- BOOKING FROM A CARD § */
 on('book-with', () => {
   closeSheet();
-  STUFF.filters = [{ field: 'forLabel', value: 'Booking' }];
+  finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Booking' }] });
   go('stuff');
-  paintStuff();
 });
 
 /* `on('prof-shot')` WAS HERE — a tutor's extra photograph opened across its row on a tap. Taken out

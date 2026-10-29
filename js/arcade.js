@@ -1460,14 +1460,9 @@ on('prog-practise', el => {
   if (!topic || typeof FINDERS === 'undefined') return;
   const F = FINDERS.stuff;
   let n = 0;
-  inFinder_(F, () => {
-    STUFF.q = '';
-    const box = $(F.id + '-q');
-    if (box) box.value = '';
-    STUFF.filters = [{ field: 'topic', value: topic }];
-    try { n = stuffFiltered().length; } catch (e) { n = 0; }
-    if (!n) STUFF.filters = [];
-  });
+  finderSet_(F, { filters: [{ field: 'topic', value: topic }], paint: false });
+  inFinder_(F, () => { try { n = stuffFiltered().length; } catch (e) { n = 0; } });
+  if (!n) finderSet_(F, { paint: false });
   if (!n) {
     const x = key ? (stuffItemsAll_() || []).find(y => y && y.kind === 'question' && String(y.key || y.name) === key.replace(/#[^#]*$/, '')) : null;
     if (x && typeof finderOpen_ === 'function') { finderOpen_(x, null, F); return; }
