@@ -331,9 +331,11 @@ function deletedCard_() {
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  const html = `<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`;
-  /* EVERY TOP-LEVEL CARD HAS THE ONE REPORT TILE (486), this one too. */
-  return typeof suggestRowIn_ === 'function' ? suggestRowIn_(html, 'card', 'deleted-card', 'Deleted') : html;
+  const html = cardSayIn_(`<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`, 'biz:deleted');
+  /* EVERY THING HAS THE ADMIN'S TILES (487) and the one Report tile (486) in one row -- here Edit words and Report, never Delete or a move. */
+  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin no-move" data-lay-for="biz:deleted">${
+    tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: 'biz:deleted' } })}${
+    typeof suggestTile_ === 'function' ? suggestTile_('card', 'deleted-card', 'Deleted') : ''}</div>`);
 }
 on('lay-putback', el => {
   if (!layoutIsAdmin_()) return;
@@ -441,7 +443,7 @@ function ownSecReg_() {
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
-const CARD_SAY_DYN = { 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',
+const CARD_SAY_DYN = { 'deleted': 'Every deleted widget and card, each with Put back.', 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',
   'photos': 'The photos and video on your tutor card.', 'your-rate-and-group-size': 'Your rate, extra seats and group sizes.',
   'qualifications': 'What you are qualified in and teach.', 'availability': 'The hours you can teach each week.',
   'where-you-teach': 'Where you teach and how far you travel.', 'about-you-as-a-tutor': 'Your headline, experience and the ages you teach.',

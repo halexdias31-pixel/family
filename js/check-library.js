@@ -9,50 +9,9 @@ const path = require('path');
 const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
 
 /* ---------- THE CLOSED VOCABULARY § */
-const VOCAB = {
-  kind:          ['document', 'preamble', 'question'],
-  active:        ['True', 'False'],
-  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
-                  'Physics', 'Religious Studies', 'Driving Theory', 'Statistics',
-                  /* the boards' own past papers (fix-pastpapers), spelled as data/textbooks.json spells them */
-                  'Business', 'Citizenship', 'Computer Science', 'Design and Technology', 'Drama', 'Economics',
-                  'English Literature', 'Food Preparation and Nutrition', 'Further Maths', 'Geography', 'History',
-                  'Media Studies', 'Physical Education', 'Politics', 'Psychology', 'Sociology'],
-  /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the reason it is a value rather than a naming convention: § */
-  document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
-  /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
-     see LIST_COLS below for why a list column is checked per item. */
-  key_stage:     ['KS1', 'KS2', 'KS3', 'KS4', 'KS5'],
-  band_type:     ['grade', 'stage', 'tier', 'year'],
-  /* `Foundation Plus` AND `Higher Plus` ARE CORBETTMATHS' OWN LEVELS, printed on the front of every 5-a-day, and they are not exam tiers — Edexcel and AQA have two. § */
-  tier:          ['A-Level', 'AS', 'Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'],
-  level:         ['AS', 'Alevel', 'GCSE', 'Theory test'],
-  exam_board:    ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas'],
-  exam_wave:     ['First wave', 'Second wave',
-                  '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
-                  '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
-  /* `order` IS AN ORDERING -- items tapped into slots, marked by their order (see the rule for it below
-     and `orderBox_` in find.js). A value of its own because it draws a different box. */
-  answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'order', 'proof', 'short', 'written'],
-  /* WHAT A MARK IS MADE ON -- squared paper, axes, a blank space, or the passage itself. § */
-  surface:       ['blank', 'coord', 'grid', 'text'],
-  month:         ['5', '6', '11'],
-  /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. § */
-  /* 7 IS OCR RELIGIOUS STUDIES' SEVENTH COMPONENT (H573/07), one per religion studied. */
-  paper:         ['1', '2', '3', '4', '5', '6', '7'],
-  /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. § */
-  /* `Periodic table` IS THE SCIENCES' VERSION OF THE SAME FACT and arrived with the first AQA chemistry paper: § */
-  /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: § */
-  needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper',
-                  'Periodic table', 'Equation booklet'],
-  needs_print:   ['True', 'False'],
-  printable:     ['True', 'False'],
-  trackable:     ['True', 'False'],
-  print_required:['True', 'False'],
-  pages_checked: ['True', '2026-08-06'],
-  verified:      ['True'],
-  currency:      ['GBP'],
-};
+/* ONE SCHEMA (R4): the lists live in check/schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
+const SCHEMA = require('../check/schema.js');
+const VOCAB = SCHEMA.VOCAB();
 
 /* Columns that must never come back. See the header. */
 const FORBIDDEN = /^ticks?(_\d+)?$/i;
@@ -174,7 +133,7 @@ rows.forEach(r => {
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
 const strays = [];
 /* ---------- A LIST COLUMN IS CHECKED PER ITEM, NOT PER CELL § */
-const LIST_COLS = new Set(['needs', 'key_stage']);
+const LIST_COLS = SCHEMA.LIST_COLS;
 /* ---------- A VOCABULARY WRITTEN BEFORE ITS COLUMN, ON PURPOSE § */
 const VOCAB_AHEAD = new Set([]);
 
@@ -980,11 +939,14 @@ if (MARKS.missing.length) {
   /* ---------- A ROOT OR π ANSWER GETS THE KEY FOR IT § */
   const kpSrc = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
   /* the cutter by its full name: `cutFrom` is destructured further down this file, past where this runs */
-  const kpParts = ['KP_WORDED', 'KP_LEAD', 'kpMathsy_', 'ansMaths_'].map(n => require('./check-marks-load.js').cutFrom(kpSrc, n));
+  /* THE LAYER IS READ OFF qType_ (round 3), so qtypes.js and working.js's `workRow_` come with the keypad's own names */
+  const qtSrc_ = fs.readFileSync(path.join(__dirname, 'qtypes.js'), 'utf8');
+  const wrSrc_ = require('./check-marks-load.js').cutFrom(fs.readFileSync(path.join(__dirname, 'working.js'), 'utf8'), 'workRow_');
+  const kpParts = ['KP_LEAD', 'kpMathsy_', 'ansMaths_'].map(n => require('./check-marks-load.js').cutFrom(kpSrc, n)).concat([wrSrc_]);
   if (kpParts.some(c => !c)) {
-    fail.push('KP_WORDED, KP_LEAD, kpMathsy_ or ansMaths_ is not in keypad.js — renamed? No row was checked for which keyboard it gets.');
+    fail.push('KP_LEAD, kpMathsy_ or ansMaths_ is not in keypad.js, or workRow_ not in working.js — renamed? No row was checked for which layer it opens on.');
   } else {
-    const KP = eval('(function () { ' + MARKS.source + '\n' + kpParts.join('\n')
+    const KP = eval('(function () { ' + MARKS.source + '\n' + qtSrc_ + '\n' + kpParts.join('\n')
       + '\n; return { kpMathsy_: kpMathsy_, ansMaths_: ansMaths_, markNorm_: markNorm_, markRange_: markRange_ }; })()');
     let rootRows = 0, rootKeyboard = 0;
     rows.forEach(r => {
@@ -1187,12 +1149,13 @@ const withPad = drawQs.filter(r => r.diagram
    that cannot find its subject exits non-zero: "I did not count" is not "there were none". */
 const findSrc_ = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 const { cutFrom } = require('./check-marks-load.js');
-const surfParts_ = ['PAD_TYPES', 'padWanted_', 'padSurface_'].map(n => cutFrom(findSrc_, n));
+const surfParts_ = ['padPicked_', 'padDrawn_', 'padSurface_'].map(n => cutFrom(findSrc_, n))
+  .concat([cutFrom(fs.readFileSync(path.join(__dirname, 'working.js'), 'utf8'), 'workRow_')]);
 if (surfParts_.some(c => !c)) {
-  fail.push('padSurface_, padWanted_ or PAD_TYPES is not in find.js — renamed? The surfaces were NOT counted.');
+  fail.push('padSurface_, padDrawn_ or padPicked_ is not in find.js, or workRow_ not in working.js — renamed? The surfaces were NOT counted.');
 }
 const padSurface_ = surfParts_.some(c => !c) ? (() => '')
-  : new Function(surfParts_.join('\n') + '\nreturn padSurface_;')();
+  : new Function(fs.readFileSync(path.join(__dirname, 'qtypes.js'), 'utf8') + '\n' + surfParts_.join('\n') + '\nreturn padSurface_;')();
 const onSurface = {};
 drawQs.filter(r => withPad.indexOf(r) === -1).forEach(r => {
   const k = padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r }) || 'none';
@@ -1202,47 +1165,7 @@ console.log(`questions answered by drawing: ${drawQs.length} — on their own pi
   + `on a surface while the picture is transcribed: ${Object.keys(onSurface).sort()
     .map(k => `${k} ${onSurface[k]}`).join(', ') || 'none'}`);
 
-/* ---------- A RULER AND A COMPASS ON THE PEN, AND HOW MANY QUESTIONS ASK FOR THEM § */
-const toolsSrc_ = cutFrom(findSrc_, 'padTools_');
-/* SAID AS WELL AS COUNTED: the failures pushed this far down are past the place this file prints them,
-   so a bare `fail.push` would end the run red with no sentence saying why. */
-if (!toolsSrc_) {
-  const why = 'padTools_ is not in find.js — renamed? The ruler and compass questions were NOT counted.';
-  fail.push(why);
-  console.log('\n' + why);
-}
-const padTools_ = toolsSrc_ ? new Function(toolsSrc_ + '\nreturn padTools_;')() : (() => ['pen']);
-const docNeeds_ = {};
-rows.forEach(r => { if (r && r.kind === 'document' && r.needs) docNeeds_[String(r.paper_id)] = String(r.needs); });
-const preHtml_ = {};
-rows.forEach(r => {
-  if (!r || r.kind !== 'preamble') return;
-  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
-  (preHtml_[k] = preHtml_[k] || []).push({ html: r.html });
-});
-const toolCount = { ruler: 0, compass: 0, protractor: 0 };
-const toolPen = { ruler: 0, compass: 0 };
-const toolNoPen = [];
-rows.forEach(r => {
-  if (!r || r.kind !== 'question') return;
-  const needs = String(docNeeds_[String(r.paper_id)] || '').split(',').concat(String(r.needs || '').split(','));
-  const got = padTools_({ needs: needs, html: r.html, lead: r.lead,
-                          stems: preHtml_[String(r.paper_id) + '\u0000' + String(r.question || '')] || [] });
-  const pen = /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim())
-    || ['grid', 'coord', 'blank'].indexOf(String(r.surface || '').trim().toLowerCase()) !== -1;
-  Object.keys(toolCount).forEach(t => { if (got.indexOf(t) !== -1) toolCount[t]++; });
-  ['ruler', 'compass'].forEach(t => { if (pen && got.indexOf(t) !== -1) toolPen[t]++; });
-  if (!pen && (got.indexOf('ruler') !== -1 || got.indexOf('compass') !== -1)
-      && /construct|locus|loci|bisect|compasses|use a ruler/i.test(String(r.html || ''))) toolNoPen.push(r.row_id);
-});
-console.log(`the pen's tools: a Ruler on ${toolPen.ruler} pen question(s), a Compass on ${toolPen.compass}`
-  + `   (asked for anywhere: ruler ${toolCount.ruler}, compass ${toolCount.compass}; `
-  + `protractor ${toolCount.protractor}, not built)`);
-if (toolNoPen.length) {
-  console.log(`   asking in their own words for a ruler or compasses with no pen to use them on: ${toolNoPen.length} — `
-    + toolNoPen.slice(0, 4).join(', ') + (toolNoPen.length > 4 ? ', …' : '')
-    + '   (their answer_type is not drawing; a `surface` would give them one)');
-}
+/* THE PEN'S INSTRUMENTS are no longer counted per question: every part has every tool (round 3, qtools.js; check-tools.js). */
 
 /* ---------- "USE YOUR GRAPH" NAMES THE PART WHOSE GRAPH § */
 const usesKey_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');

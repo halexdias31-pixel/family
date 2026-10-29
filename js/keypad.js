@@ -1,7 +1,7 @@
 /* @family. — keypad.js THE ANSWER BOX, IN TWO KINDS: § */
+/* (round 3: one pad that types anything -- the two kinds are now only the layer it opens on.) */
 
 /* ---------- WHICH ANSWERS ARE MATHS § */
-const KP_WORDED = { explain: 1, written: 1, proof: 1, drawing: 1, annotate: 1 };
 /* THE NUMBER AT THE FRONT, AND EVERY WORD AFTER IT GOES. § */
 const KP_LEAD = new RegExp('^(-?[\\d.,\\/\\s]*' + MARK_NUM + ')\\s*[a-z\u00b0%].*$');
 const kpMathsy_ = w => {
@@ -9,45 +9,28 @@ const kpMathsy_ = w => {
     .replace(/\s+[a-z]{1,3}(?:[\/\^][a-z0-9]+|[²³])?$/, '');
   return !!s && /[0-9a-z]/.test(s) && !/[a-z]{2,}/.test(s);
 };
+/* THE LAYER THE ONE PAD OPENS ON: the accepted ways when the row has any, else its type (qtypes.js `qType_`). Never a gate on what it can type. */
+/* the first way, the scheme's own answer, decides (Review A): 're | re-' is a prefix and 'HHH, HHT' outcomes, whatever their type says */
 function ansMaths_(x) {
   if (!x) return false;
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
-  const t = String(x.answerType || '').trim().toLowerCase();
-  if (KP_WORDED[t]) return false;
-  /* a `rule:` way (markRule_) is a test, not an answer, so it says nothing about the keys */
   const ways = String(x.accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
-  /* A CALCULATION WITH A SCHEME THAT IS WORDS is a calculation whose answer is a sentence — "Yes,
-     because 3 kg covers 45 m²" — and that is the letters' job. */
-  if (t === 'calculation') return !ways.length || ways.every(kpMathsy_);
-  return ways.length > 0 && ways.every(kpMathsy_);
+  /* "x < 4 or x > 5" is two inequalities joined by a word: the joining word is not what is typed most */
+  if (ways.length) return kpMathsy_(ways[0].replace(/\s+(or|and)\s+/gi, ' '));
+  try { return !!QT_MATHS[qType_(workRow_(x))]; } catch (e) { return false; }
 }
 
 /* ---------- WHICH ANSWERS ARE ESSAYS § */
-const KP_ESSAY_TYPES = { written: 1, explain: 1 };
-const KP_ESSAY_MARKS = 6;
-const KP_ESSAY_NOT = /\bmath|statistic/i;
+/* THE SAME ONE BOX, BIGGER: a part qType_ calls an essay is written on the sheet. */
 function ansEssay_(x) {
-  if (!x || ansMaths_(x) || padWanted_(x)) return false;
-  if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
-  if (KP_ESSAY_NOT.test(String(x.subject || (x.row && x.row.subject) || ''))) return false;
-  return !!KP_ESSAY_TYPES[String(x.answerType || '').trim().toLowerCase()] && Number(x.marks) >= KP_ESSAY_MARKS;
+  if (!x) return false;
+  try { return qType_(workRow_(x)) === 'essay'; } catch (e) { return false; }
 }
 /* AND HOW LONG IT IS, in words -- the one thing a pupil checks about an essay while writing it, so the sheet says it under itself rather than leaving it to be § */
 const KP_NOT_WORD = /^[.,;:!?'"()\[\]\-‐-―‘-‟…·*\/]+$/;
 function kpWordCount_(v) { return (String(v || '').match(/\S+/g) || []).filter(w => !KP_NOT_WORD.test(w)).length; }
 function kpWordsSay_(n) { return n + (n === 1 ? ' word' : ' words'); }
 
-/* ---------- THE SIGNS A SCHEME NEEDS AND THE DIGITS DO NOT HAVE § */
-const KP_SIGN_RE = /[<>\u2264\u2265\u00b1]|\d\s*:\s*\d/;
-function kpSigns_(x) {
-  if (!x) return false;
-  const accept = String(x.accept || '').trim();
-  if (accept) return KP_SIGN_RE.test(accept);
-  const lead = String(x.answer || '').split(/&mdash;|\u2014/)[0].replace(/<[^>]*>/g, ' ')
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&le;/g, '\u2264').replace(/&ge;/g, '\u2265')
-    .replace(/&plusmn;/g, '\u00b1');
-  return KP_SIGN_RE.test(lead);
-}
 
 /* ---------- THE KEYS § */
 const KP_KEYS = [
@@ -76,7 +59,7 @@ const KP_KEYS = [
   /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the same act -- one mark for "mark it" wherever the child is § */
   { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
 ];
-/* THE SIGNS ROW (`kpSigns_`), in the structures' amber because they are the keys that make an answer
+/* THE SIGNS ROW, on every box, in the structures' amber because they are the keys that make an answer
    mathematical. `t` is drawn as markup, so `<` and `>` are written as entities there and typed as
    themselves through `v`. */
 const KP_SIGN_KEYS = [
@@ -88,13 +71,14 @@ const KP_SIGN_KEYS = [
   { t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
 ];
 
-/* THE VECTOR ROW (385): a column vector, top over bottom in one pair of brackets, and what goes with it. Shown where the question's answer is a vector or a translation (`kpVec_`) */
+/* THE VECTOR ROW (385): a column vector, top over bottom in one pair of brackets, and what goes with it. */
 const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
+/* ONE PAD TYPES ANYTHING (round 3): this row is on every box, with the units a value needs beside the vector */
 const KP_VEC_KEYS = [
   { v: '!vec', a: 'column vector', c: ' kp-op kp-vec', t: '<span class="kp-vc" aria-hidden="true"><i></i><i></i></span>' },
-  { v: '-', a: 'minus', t: '\u2212', c: ' kp-op' },
-  { t: '(', a: 'open bracket', c: ' kp-op' }, { t: ')', a: 'close bracket', c: ' kp-op' },
-  { t: ',', a: 'comma', c: ' kp-op' }, { t: '\u00b0', a: 'degrees', c: ' kp-op' },
+  { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' },
+  { t: '\u00b0', a: 'degrees', c: ' kp-op' }, { t: '\u00b2', a: 'squared, for a unit', c: ' kp-op' },
+  { t: '\u00b3', a: 'cubed, for a unit', c: ' kp-op' },
 ];
 /* AN EMPTY TOP OR BOTTOM DRAWN AS A HOLE TO TAP INTO, as the fraction's are */
 const kpHoles_ = h => h.replace(/<span class="vec-(a|b)">(\u03db?)<\/span>/g, (m, w, c) => '<span class="vec-' + w + '">' + c + '<span class="kp-hole"></span></span>');
@@ -104,13 +88,6 @@ function kpVecStep_(v, a) {
   if (c === KP_VEC_A || c === KP_VEC_B) return { at: a - 1 };
   if (c === ',' && v.lastIndexOf(KP_VEC_A, a - 1) > v.lastIndexOf(KP_VEC_B, a - 1)) return { at: a - 1 };
   return null;
-}
-/* DOES THIS QUESTION'S ANSWER INVOLVE A VECTOR: a translation, a column vector, a "describe fully" transformation */
-function kpVec_(x) {
-  if (!x) return false;
-  const r = x.row || x;
-  const t = [r.accept, r.mark_words, r.answer, x.html || r.html].map(v => String(v || '')).join(' ').replace(/<[^>]*>/g, ' ');
-  return /\b(column\s+)?vector\b|\btranslat|single transformation/i.test(t);
 }
 
 /* ---------- THE LETTERS § */
@@ -334,9 +311,10 @@ function kpPad_() {
 function kpLayout_(inp) {
   const pad = kpPad_();
   const words = !!inp && inp.getAttribute('data-kp') === 'words';
-  const signs = !!inp && inp.hasAttribute('data-kp-signs');
+  /* EVERY BOX'S PAD HAS THE SIGNS AND THE VECTOR AND UNIT ROW (round 3); the box's kind only picks the opening layer */
+  const signs = true;
   const essay = !!inp && inp.hasAttribute('data-kp-essay');
-  const vec = !!inp && inp.hasAttribute('data-kp-vec');
+  const vec = true;
   const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '');
   if (pad.getAttribute('data-sig') !== sig) {
     pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec);
@@ -410,6 +388,10 @@ function kpClose_() {
 /* ---------- AND THE BOX STAYS ABOVE THE PAD § */
 let KP_ROOM = null;
 const kpBox_ = inp => {
+  /* THE BOX AND ITS TOOL ROW (round 3): the row is under the box with Check last in it, so the row's foot is what stays above the pad */
+  const mark = inp && inp.closest && inp.closest('.qp-mark');
+  const row = mark && mark.querySelector(':scope > .qt-row');
+  if (row) return row;
   const essay = inp && inp.closest && inp.closest('.qp-essay');
   return (essay && essay.querySelector('.qp-sheet-foot')) || (inp && inp.closest && inp.closest('.qp-ans')) || inp;
 };
@@ -1069,11 +1051,10 @@ function aiUndecided_() {
   catch (e) { return false; }
 }
 
+/* THE AI MARKS EVERY PART NO RULE CAN (`markerOf_`, qtools.js), and is offered after key words that fall short. */
 function aiWanted_(x) {
-  if (!x || ansMaths_(x) || padWanted_(x)) return false;
-  if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
-  if (String(x.accept || '').trim()) return false;
-  return !!String(x.answer || '').trim();
+  const k = x && typeof markerOf_ === 'function' ? markerOf_(x).kind : '';
+  return k === 'ai' || k === 'words';
 }
 
 /* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */
@@ -1124,18 +1105,13 @@ function aiWhyNot_(x) {
   return AI_OFF ? 'AI marking isn\u2019t switched on' : 'AI marking isn\u2019t switched on yet';
 }
 
-/* AND THE BOX KEEPS A WAY TO SEND. § */
+/* AND THE BOX SAYS THE MARKER IS OFF; its Check stays, unpressable, until it is on. */
 function aiOff_(said) {
   AI_OFF = true;
   document.querySelectorAll('.qp-ai').forEach(box => {
     box.classList.add('is-off');
-    const b = box.querySelector('.qp-ai-go');
-    const send = typeof subSendTile_ === 'function' ? subSendTile_() : '';
-    if (b && send) {
-      const t = document.createElement('div');
-      t.innerHTML = send;
-      if (t.firstElementChild) b.replaceWith(t.firstElementChild);
-    } else if (b) b.disabled = true;
+    /* NEVER SWAPPED FOR A PLAIN SEND: a human never marks, so the Check waits for the AI, off */
+    box.querySelectorAll('.qp-ai-go').forEach(b => { b.disabled = true; });
     const out = box.querySelector('.qp-verdict');
     const say = said || 'AI marking isn\u2019t switched on';
     if (out) out.textContent = say;
@@ -1154,20 +1130,15 @@ function aiWhole_() {
 const aiCount_ = n => String(n).replace(/\B(?=(\d{3})+$)/g, ',');
 
 /* ---------- AN ESSAY'S MARK STAYS WHILE IT IS REVISED, AND ACROSS A RELOAD § */
-const AI_KEPT = new Map();
+/* KEPT IN THE PART'S ONE RECORD (qtools.js `partRecAt_`), field `ai`; an old `aiMark:` key is folded into it once. */
 function aiKeep_(k, rec) {
   if (!k) return;
-  AI_KEPT.set(k, rec);
-  try { localStorage.setItem('aiMark:' + k, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+  partRecPutAt_(partKeyOfAns_(k), 'ai', rec);
 }
 function aiKept_(k) {
   if (!k) return null;
-  if (AI_KEPT.has(k)) return AI_KEPT.get(k);
-  let rec = null;
-  try { rec = JSON.parse(localStorage.getItem('aiMark:' + k) || 'null'); } catch (e) { rec = null; }
-  if (!rec || typeof rec.a !== 'string' || typeof rec.v !== 'string') return null;
-  AI_KEPT.set(k, rec);
-  return rec;
+  const rec = partRecAt_(partKeyOfAns_(k)).ai;
+  return rec && typeof rec.a === 'string' && typeof rec.v === 'string' ? rec : null;
 }
 /* WHAT THE ROW SHOWS FOR A KEPT MARK against the answer as it is now -- read by `ansBox_` when the card
    is drawn and by the `input` listener as it is typed into. */
@@ -1232,6 +1203,8 @@ on('qp-ai-again', (el) => {
   if (go && !go.disabled) ACTIONS['qp-ai'](go);
 });
 
+const aiMarkSane_ = d => Number.isInteger(Number(d.awarded)) && Number.isInteger(Number(d.available))
+  && Number(d.available) >= 1 && Number(d.awarded) >= 0 && Number(d.awarded) <= Number(d.available) && d.available !== '' && d.awarded !== '';
 on('qp-ai', (el) => {
   const box = el.closest('.qp-ai');
   const card = el.closest('.qcard');
@@ -1245,10 +1218,19 @@ on('qp-ai', (el) => {
   const essayBox = box.classList.contains('qp-essay');
   box.classList.remove('is-right', 'is-near');
   if (why && !essayBox) why.textContent = '';
-  /* NOTHING TYPED IS NOT A WRONG ANSWER, and it is not worth a request either. */
-  if (!inp.value.trim()) { out.textContent = 'Write something first'; return; }
+  /* NOTHING TYPED, DRAWN OR PHOTOGRAPHED IS NOT A WRONG ANSWER, and it is not worth a request either. */
+  const x0 = ansItem_(inp.getAttribute('data-k'));
+  const rec = typeof partRec_ === 'function' && x0 ? partRec_(x0) : {};
+  const seen = (rec.strokes || []).length > 0 || rec.photos > 0;
+  let reads = false;
+  try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
+  if (!inp.value.trim() && !(seen && reads)) {
+    /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
+    out.textContent = seen ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first';
+    return;
+  }
   if (typeof USER !== 'object' || !USER || !USER.token) { out.textContent = 'Sign in to have it marked'; return; }
-  const x = ansItem_(inp.getAttribute('data-k'));
+  const x = x0;
   if (!x) { out.textContent = 'Could not find this question'; return; }
   const sent = inp.value;
   /* TOO LONG IS SAID, NEVER CUT: a mark for part of an essay, shown as a mark for the essay, is the fault
@@ -1275,9 +1257,13 @@ on('qp-ai', (el) => {
   const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); aiStageEnd_(stage, failed); if (letGo) letGo(); };
   /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): § */
   const essay = ansEssay_(x);
-  api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
-        answer: sent, marks: Number(x.marks) || 1, essay: essay })
+  /* THE DRAWING AS A PNG AND THE PHOTOS go with the words (`aiImages_`, qtools.js); drawing it is part of the wait the dots show. Words alone go at once. */
+  const body = { action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
+                 answer: sent, marks: Number(x.marks) || 1, essay: essay };
+  (seen && reads ? aiImages_(x, card).then(images => api(Object.assign(body, images.length ? { images: images } : {}))) : api(body))
     .then(d => {
+      /* BELIEVED ONLY IN THE SHAPE ASKED FOR: whole marks, none below 0 or above what is available */
+      if (d && d.success && !aiMarkSane_(d)) d = { success: false, message: 'Could not mark that just now' };
       /* NO TRY AGAIN WHERE AGAIN CANNOT HELP: switched off, or today's marks used. */
       failed = (!d || !d.success) && !(d && (d.why === 'ai-off' || d.why === 'ai-cap'));
       done();

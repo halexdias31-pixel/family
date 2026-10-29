@@ -71,6 +71,8 @@ const SUITE = [
   /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
   { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
+  /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
+  { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate' },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
@@ -122,6 +124,7 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
+  { file: 'check-aiimage.js', what: 'the pen\'s drawing and the photos reach aiMark and Gemini as images; bad ones refused whole; an old backend sent words only' },
   { file: 'check-working.js', what: 'a photo of the working (501): marked by the AI only, sent as images, kept with its mark, read back only by those who may' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
@@ -173,6 +176,8 @@ const SUITE = [
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
   /* ---------- AND THE NINE TABS THAT BECAME FILES § */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
+  /* R1 (522): a finder's chips and words are written by `finderSet_` alone — read, not run, so it stays in --fast. */
+  { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */

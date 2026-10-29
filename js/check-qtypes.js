@@ -15,7 +15,7 @@ const broken = [];
 let Q = null;
 try {
   Q = vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'qtypes.js'), 'utf8')
-    + '\n;({ qType_, qtIncomplete_, qtMachine_, qtDrawn_, qtFigureOf_, QTYPE_PROTOCOL, QTYPE_ORDER, QT_SHARED_FIGURE })', vm.createContext({}));
+    + '\n;({ qType_, qtIncomplete_, qtMachine_, qtMarker_, qtDrawn_, qtFigureOf_, QTYPE_PROTOCOL, QTYPE_ORDER, QT_SHARED_FIGURE })', vm.createContext({}));
 } catch (e) { broken.push('js/qtypes.js did not load alone in a vm: ' + e.message); }
 
 /* ---------- EVERY PROTOCOL SAYS EVERY THING */
@@ -51,7 +51,8 @@ const FIX = [
   ['numline', { answer_type: 'drawing', html: '<p>On the number line, show x &gt; 3</p>' }],
   ['shade', { answer_type: 'drawing', html: '<p>Shade 3/4 of the shape.</p>' }],
   ['measure', { answer_type: 'calculation', html: '<p>Measure the size of this angle.</p>', accept: '65 to 69' }],
-  ['print', { answer_type: 'calculation', html: '<p>Find g(x).</p>', needs_print: 'True' }],
+  /* NO "PRINT ONLY" (round 3): a part once sent to paper is typed like any other, and drawn on screen */
+  ['value', { answer_type: 'calculation', html: '<p>Find g(x).</p>', needs_print: 'True' }],
   /* a drawing answered in its box (a bearing typed) is the box's type, and a card item is read through its row */
   ['unit', { answer_type: 'annotate', html: '<p>Find the bearing.</p>', accept: '303 | 303°' }],
   ['choose1', { row: { answer_type: 'short', choices: 'A | B', choice_right: '1' } }],
@@ -126,8 +127,45 @@ if (Q) {
 }
 untyped.forEach(u => broken.push('a part with no type: ' + u));
 
+/* ---------- EVERY PART HAS ONE MARKER, NEVER A PERSON (the owner: "a human never marks"): qtypes.js `qtMarker_` */
+/* in the order choice_right, cells, draw_answer, accept, mark_words, else the AI against the scheme -- counted by marker */
+const MARKERS = ['choice', 'order', 'cells', 'draw', 'accept', 'words', 'ai'];
+const byMarker = {};
+MARKERS.forEach(k => { byMarker[k] = 0; });
+if (Q) {
+  if (typeof Q.qtMarker_ !== 'function') broken.push('qtypes.js has no qtMarker_ — no part\'s marker was checked');
+  else rows.forEach(r => {
+    let k = null;
+    try { k = Q.qtMarker_(r); } catch (e) { broken.push(r.row_id + ': its marker threw ' + e.message); return; }
+    if (MARKERS.indexOf(k) === -1) { broken.push(r.row_id + ' is marked by ' + JSON.stringify(k) + ' — every part is marked by a rule or the AI, never a person'); return; }
+    byMarker[k]++;
+    /* the marker's own field is what chose it, in the owner's order */
+    const S = v => String(v == null ? '' : v).trim();
+    const want = S(r.choices) && S(r.choice_right) ? (S(r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice')
+      : S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'ai';
+    if (k !== want) broken.push(r.row_id + ' is marked by ' + k + ', its fields say ' + want);
+  });
+  /* the fixture, one row a marker */
+  [['choice', { choices: 'A | B', choice_right: '1' }], ['order', { answer_type: 'order', choices: '1 | 2', choice_right: '2,1' }],
+   ['cells', { cells: '6 ; 12', accept: '6' }], ['draw', { draw_answer: '{"items":[]}', accept: '7' }], ['accept', { accept: '7', mark_words: 'x' }],
+   ['words', { mark_words: 'no; 16' }], ['ai', { answer_type: 'drawing', html: '<p>Draw it</p>' }], ['ai', { choices: 'A | B' }]].forEach(([want, r]) => {
+    if (typeof Q.qtMarker_ === 'function' && Q.qtMarker_(r) !== want) broken.push('fixture ' + JSON.stringify(r) + ' is marked by ' + Q.qtMarker_(r) + ', wanted ' + want);
+  });
+}
+/* AND NO PATH IN THE APP SENDS A PART TO A PERSON: no pad-send handler, no marker named for a person, no "waiting to be marked" */
+{
+  const HAND = /waiting to be marked|tutor to mark|mark(ed|ing)? by hand|hand[- ]?mark|send to my tutor|awaiting marking/i;
+  fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+    const t = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
+    if (/on\(\s*'pad-send'/.test(t)) broken.push('js/' + f + ' handles pad-send — a drawing sent for a person to mark');
+    if (/kind\s*[=!]==?\s*'person'|return\s+'person'/.test(t)) broken.push('js/' + f + ' names a marker "person"');
+    const m = HAND.exec(t.replace(/\/\*[\s\S]*?\*\//g, ''));
+    if (m) broken.push('js/' + f + ' says "' + m[0] + '" — only a rule or the AI marks');
+  });
+}
+
 /* ---------- EVERY PART CARRIES BOTH VERIFIED TAGS (388): find.js's own `verifyTags_`, run on every row */
-const tags = { acc: 0, fn: 0 };
+const tags = { acc: 0, fn: 0, waiting: 0 };
 if (Q) {
   const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
@@ -142,8 +180,9 @@ if (Q) {
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
       /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */
-      /* A PENDING CARD WHOSE WORDS THIS MACHINE HAS NOT GOT (docs/library.md) has nothing to hold its flag to. */
-      if (r.function_verified !== undefined && !(LFq.pending(r) && !String(r.html || '').trim())) {
+      /* A PENDING CARD WHOSE WORDS HERE ARE MISSING OR OLDER THAN IT (`waits`, docs/library.md) has nothing to hold its flag to. */
+      if (LFq.waits('questions', r)) { if (r.function_verified !== undefined) tags.waiting++; }
+      else if (r.function_verified !== undefined) {
         const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
         if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
       }
@@ -182,6 +221,7 @@ if (broken.length) {
   broken.forEach(b => console.log('  ✗ ' + b));
   process.exit(1);
 }
+console.log('parts by marker: ' + MARKERS.map(k => k + ' ' + byMarker[k]).join(', ') + ' — none by a person');
 console.log('drawn parts by where their figure is: ' + Object.keys(figs).map(k => k + ' ' + figs[k]).join(', '));
 const all = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].n, 0), done = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].complete, 0);
-console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}.`);
+console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types and one marker, never a person (${MARKERS.map(k => k + ' ' + byMarker[k]).join(', ')}); ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}; ${tags.waiting} pending card flag(s) not held, their words here missing or older.`);

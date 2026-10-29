@@ -110,6 +110,19 @@ async function boot(browser, W, H, port, o) {
 const T = (env, type, pts, ms) => env.cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts,
   timestamp: ((env.t0 || 0) + (ms || 0)) / 1000 }).catch(() => {});
 const pt = (x, y, id = 1, r = 8) => ({ x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, id, radiusX: r, radiusY: r, force: 1 });
+/* ON A PHONE THE TOOLS FOLD BEHIND ONE TOOLS TILE (round 3, qtools.js): opened with a real tap, as a child would, before a tool is tapped */
+async function unfold(env) {
+  const b = await env.page.evaluate(() => {
+    const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
+    const row = pad && pad.closest('.qcard') && pad.closest('.qcard').querySelector('.qt-row');
+    const f = row && !row.classList.contains('is-open') && row.querySelector('.qt-fold');
+    if (!f) return null;
+    const r = f.getBoundingClientRect();
+    return r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+  });
+  if (!b) return;
+  await T(env, 'touchStart', [pt(b.x, b.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40); await sleep(300);
+}
 async function stream(env, frames, dt, from) {
   const start = Date.now(), ps = [];
   for (let i = 0; i < frames.length; i++) {
@@ -1032,8 +1045,8 @@ const unmoved = (sec, where, r, b) => {
     const toolBox = () => env.page.evaluate(() => {
       const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
       const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
-      return pad ? { compass: box(pad.querySelector('.qpad-tool[data-tool="compass"]')), ruler: box(pad.querySelector('.qpad-tool[data-tool="ruler"]')),
-                     pen: box(pad.querySelector('.qpad-tool[data-tool="pen"]')), tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
+      return pad ? { compass: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]')), ruler: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]')),
+                     pen: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="pen"]')), tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
     });
     let c = k ? await cardBox(env) : null;
     if (c) c = await arm(env, c, cardBox);
@@ -1045,6 +1058,7 @@ const unmoved = (sec, where, r, b) => {
       await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
       /* THE TOOL CHOSEN WITH A REAL TAP ON ITS TILE; false if the tap did not choose it. */
       const choose = async (sec, name) => {
+        await unfold(env);
         begin(env);
         const tile = (await toolBox())[name];
         await T(env, 'touchStart', [pt(tile.x, tile.y, 9)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
@@ -1218,7 +1232,7 @@ const unmoved = (sec, where, r, b) => {
     const r = pad.querySelector('.qpad-ink').getBoundingClientRect();
     const L = padLattice_(pad, r);
     return L ? { xp: L.xp.map(v => v + r.left), yp: L.yp.map(v => v + r.top), xu: L.xu, yu: L.yu, pitch: L.pitch, sx: r.width / 340, sy: r.height / 340,
-                 tools: [...pad.querySelectorAll('.qpad-tool')].map(t => t.getAttribute('data-tool')) } : { none: true };
+                 tools: [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(t => t.getAttribute('data-tool')) } : { none: true };
   });
   /* SIX INTERSECTIONS SPREAD OVER THE GRID, none on its edge. */
   const sixOf = L => {
@@ -1238,9 +1252,10 @@ const unmoved = (sec, where, r, b) => {
     return sent;
   }
   const tapTool = async (env, name) => {
+    await unfold(env);
     const b = await env.page.evaluate(n => {
       const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
-      const t = pad && pad.querySelector('.qpad-tool[data-tool="' + n + '"]');
+      const t = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="' + n + '"]');
       if (!t) return null; const r = t.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }, name);
     if (!b) return false;
@@ -1254,6 +1269,9 @@ const unmoved = (sec, where, r, b) => {
     let c = k ? await cardBox(env) : null;
     if (!c) { fail('REACH', at, row + '\'s pen is not on the screen'); return null; }
     await reset(env, k);
+    /* THE TOOLS OUT FIRST, so the card has its final height before anything on it is measured */
+    await unfold(env);
+    c = (await cardBox(env)) || c;
     c = await arm(env, c, cardBox);
     if (!c) { fail('REACH', at, row + '\'s pad could not be armed with a real tap on its ink'); return null; }
     reached++;

@@ -289,12 +289,12 @@ ROWS = [
     row(insert_id='INS-ALEVEL-MATHS', name='A level Maths formulae booklet',
         summary='The main formulas of the booklet an A level or AS Maths candidate is given in the exam.',
         subject='Maths', level='A-Level, AS', keystage='KS5', board='Edexcel, AQA, OCR',
-        for_subjects='Maths', for_levels='A-Level, Alevel, AS',
+        for_subjects='Maths', for_levels='A-Level, AS',
         verified_note=ALM_NOTE, official=ALM_LINKS, sections=ALM),
     row(insert_id='INS-ALEVEL-PHYSICS', name='A level Physics data and formulae',
         summary='The key constants and equations of the booklet an A level Physics candidate is given in the exam.',
         subject='Physics', level='A-Level', keystage='KS5', board='AQA',
-        for_subjects='Physics', for_levels='A-Level, Alevel',
+        for_subjects='Physics', for_levels='A-Level',
         verified_note=APH_NOTE, official=APH_LINKS, sections=APH),
 ]
 

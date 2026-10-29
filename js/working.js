@@ -3,34 +3,16 @@ const WORK_MAX = 3, WORK_EDGE = 1600, WORK_BYTES = 500 * 1024;
 /* WHAT EACH BOX HOLDS, by answer key: [{ url }] -- data URLs, in memory only; a photo is never kept in browser storage. */
 const WORK_PICS = {};
 
-/* WHICH QUESTIONS ASK FOR WORKING: a proof, an explanation or an essay (`reason`, `essay`), or words that ask for the working outright. */
-const WORK_WORDS = /\b(show that|prove|show (all )?(of )?(your )?working|showing (all )?(of )?(your )?working|you must show|hence (show|prove|find)|derive|justify)\b/;
-const WORK_TYPES = { reason: 1, essay: 1 };
-const WORK_NEVER = { choose1: 1, chooseN: 1, order: 1, match: 1, table: 1, label: 1, construct: 1, hand: 1, numline: 1, graph: 1, line: 1, shape: 1, shade: 1, points: 1 };
+/* EVERY PART TAKES A PHOTO OF THE WORKING (round 3): its tile is in the part's one tool row (qtools.js), its strip under the box. */
 function workRow_(x) {
   const r = (x && x.row) || {};
   return Object.assign({}, r, { lead: x.lead, html: x.html, answer: x.answer, answer_type: x.answerType || r.answer_type,
     accept: x.accept || '', mark_words: x.markWords || '', cells: x.cells || '', draw_answer: x.drawAnswer || '',
     choices: (x.choices || []).join('|'), choice_right: (x.choiceRight || []).join('|'), marks: x.marks, subject: x.subject || r.subject });
 }
-function workWanted_(x) {
-  if (!x || x.kind !== 'question') return false;
-  let t = '';
-  try { t = typeof qType_ === 'function' ? qType_(workRow_(x)) : ''; } catch (e) { t = ''; }
-  if (WORK_NEVER[t]) return false;
-  if (WORK_TYPES[t]) return true;
-  try { return WORK_WORDS.test(qtText_(workRow_(x))); } catch (e) { return false; }
-}
-
-/* THE TILE, in the question's answer row beside Send or Mark with AI. */
-function workTile_(x) {
-  if (!workWanted_(x)) return '';
-  return tile_({ icon: 'photo', label: 'Photo of my working', note: 'up to ' + WORK_MAX + ' pages', act: 'qp-work', cls: 'qp-work-go',
-                 data: { k: ansKey_(x) } });
-}
 /* THE STRIP UNDER THE BOX: thumbnails, then Mark my working -- the AI's alone ("A human never marks"); a failed mark keeps the photos to try again. */
 function workStrip_(x) {
-  if (!workWanted_(x)) return '';
+  if (!x || x.kind !== 'question') return '';
   const k = ansKey_(x);
   return `<div class="qp-work" data-k="${esc(k)}"${(WORK_PICS[k] || []).length ? '' : ' hidden'}>${workStripInner_(k)}</div>`;
 }

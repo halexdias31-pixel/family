@@ -100,16 +100,17 @@ const adiff = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
     await sleep(1200);
     const cdp = await ctx.newCDPSession(page);
 
-    /* 0. EVERY FIGURE HAS THE TOOLS (502): each question with a figure has Ruler and Protractor unless a registered rule keeps them off */
+    /* 0. EVERY PART HAS THE TOOLS (round 3): each question's one tool row, drawn, holds Ruler and Protractor -- no rule keeps them off */
     const cover = await page.evaluate(() => {
-      const qs = stuffItemsAll_().filter(x => x && x.kind === 'question' && cardDiagram_(x));
-      const bare = qs.filter(x => !measTools_(x).length && !(padSource_(x) && padSource_(x).from === 'part') && !QT_WORDY_SUBJECT.test(String(x.subject || (x.row && x.row.subject) || '')));
-      return { n: qs.length, with: qs.filter(x => measTools_(x).length === 2).length, bare: bare.slice(0, 5).map(x => x.key), rules: ['meas-wordy', 'meas-under-pen', 'pen-chosen', 'mag-items', 'speed-long', 'hear-lang'].filter(id => !RULE_OF_(id)) };
+      const qs = stuffItemsAll_().filter(x => x && x.kind === 'question' && x.key);
+      const host = document.createElement('div');
+      const bare = qs.filter(x => { host.innerHTML = qtRow_(x); return !host.querySelector('.qt-t[data-tool="ruler"]') || !host.querySelector('.qt-t[data-tool="protractor"]'); });
+      return { n: qs.length, with: qs.length - bare.length, bare: bare.slice(0, 5).map(x => x.key), rules: ['meas-wordy', 'meas-under-pen', 'pen-chosen'].filter(id => RULE_OF_(id)) };
     });
-    if (!cover.n) fail.push('no question with a figure reached the page -- nothing to prove the tools on');
-    if (cover.bare.length) fail.push('figure questions with no Ruler or Protractor and no rule saying why: ' + cover.bare.join(', '));
-    if (cover.rules.length) fail.push('tool rules missing from the Rules card: ' + cover.rules.join(', '));
-    ok.push(cover.with + ' of ' + cover.n + ' figure questions with both tools');
+    if (!cover.n) fail.push('no question reached the page -- nothing to prove the tools on');
+    if (cover.bare.length) fail.push('questions with no Ruler or Protractor in their tool row: ' + cover.bare.join(', '));
+    if (cover.rules.length) fail.push('a rule that took the tools off a question is back on the Rules card: ' + cover.rules.join(', '));
+    ok.push(cover.with + ' of ' + cover.n + ' questions with both tools');
     let e = await openTool(page, ROW, 'ruler');
     if (e) { console.log('COULD NOT RUN — ' + ROW + ': ' + e); process.exit(1); }
     let w = await where(page, [[0, 0]]);
@@ -206,7 +207,7 @@ const adiff = (a, b) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
         goPage('stuff', stuffPageOf_(h2) + stuffFirstResult_(), true);
         await new Promise(z => setTimeout(z, 1400));
         const pad = document.querySelector('#s-stuff .page.on .qpad[data-k="' + CSS.escape(padKey_(h2)) + '"]');
-        const t = pad && pad.querySelector('.qpad-tool[data-tool="compass"]');
+        const t = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]');
         if (!t) return null;
         t.click();
         await new Promise(z => setTimeout(z, 200));

@@ -19,7 +19,7 @@ W = 340
 
 DOC = dict(row_id='D-' + PID, paper_id=PID, kind='document', active='True',
            name='Paper 3 Section B: Astrophysics — June 2017', subject='Physics', key_stage='KS5',
-           band_type='stage', band_value='A-Level', level='Alevel', company='AQA', exam_board='AQA',
+           band_type='stage', band_value='A-Level', level='A-Level', company='AQA', exam_board='AQA',
            spec_code='7408/3BA', exam_wave='First wave', year='2017', month='6', paper='3',
            exam_date='2017-06-29', document_type='Past paper', total_marks=str(TOTAL),
            needs='Calculator, Ruler, Equation booklet',

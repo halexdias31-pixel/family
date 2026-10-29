@@ -33,7 +33,7 @@ import math
 
 PAPER = 'P-AQA-7408-2111-3BA'
 BASE = dict(paper_id=PAPER, subject='Physics', key_stage='KS5', band_type='stage',
-            band_value='A-Level', tier='A-Level', level='Alevel', company='AQA',
+            band_value='A-Level', level='A-Level', company='AQA',
             exam_board='AQA', spec_code='7408/3BA', exam_wave='Second wave', year='2021',
             month='11', paper='3', document_type='Past paper',
             name='Paper 3 Section B: Astrophysics — November 2021', active='True',
