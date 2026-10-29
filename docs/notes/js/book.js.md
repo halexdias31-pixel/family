@@ -3218,7 +3218,9 @@ top level, before `weekRows_`
    nothing. */
 ```
 
-### ---------- HOW MANY HOURS THAT DAY IS, IN THE COLUMN THAT MULTIPLIES
+### ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES
+
+Superseded in part by docs/history/525: the figure is now the week's total, once, on the last day row (owner: four boxes ticked should say × 4). The per-day figure below was the first answer.
 
 in `weekRows_`
 
