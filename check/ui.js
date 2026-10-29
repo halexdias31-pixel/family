@@ -1090,6 +1090,13 @@ function inspect(opts) {
          no `enter`, which is precisely what every screen had before this existed. */
       for (const state of statesOf(id)) {
         const label = state.name ? `${id} · ${state.name}` : id;
+        /* PUT BACK ON EVERY WAY OUT, not only after measuring: "the library still coming" empties the library, and a miss that skipped
+           its leave left every later Find state with no questions ("Q0664 is not in the library", Review B) */
+        const putBack = async () => {
+          if (!state.leave) return;
+          await page.evaluate(src => { try { (0, eval)('(' + src + ')')(); } catch (e) {} }, String(state.leave));
+          await page.waitForTimeout(250);
+        };
         /* WHOSE STATE IS THIS. A widget marked `admin` is not in a stranger's roster, so asking a
            stranger to reach it would report a fault about the check rather than about the app. */
         if (state.only) {
@@ -1105,6 +1112,7 @@ function inspect(opts) {
           if (entered !== true) {
             console.warn(`  ! could not reach "${label}" at ${width}px: ${entered}`);
             failures++;
+            await putBack();
             continue;
           }
           await page.waitForTimeout(500);
@@ -1132,6 +1140,7 @@ function inspect(opts) {
             console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
                        + `that state was NOT measured.` + (why ? `\n      ${why}` : ''));
             failures++;
+            await putBack();
             continue;
           }
         }
@@ -1147,6 +1156,7 @@ function inspect(opts) {
         if (threw) {
           /* REPORTED THROUGH `rows` LIKE EVERY OTHER FINDING, not counted here. § */
           rows.push({ width, id: label, as: who.as, drawFailed: threw });
+          await putBack();
           continue;
         }
 
@@ -1410,12 +1420,7 @@ function inspect(opts) {
         }
 
         /* ---------- PUT IT BACK, BECAUSE THE NEXT STATE IS THE SAME PAGE § */
-        if (state.leave) {
-          await page.evaluate(src => {
-            try { (0, eval)('(' + src + ')')(); } catch (e) {}
-          }, String(state.leave));
-          await page.waitForTimeout(250);
-        }
+        await putBack();
       }
     }
 

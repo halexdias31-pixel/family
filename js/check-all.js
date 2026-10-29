@@ -124,6 +124,7 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
+  { file: 'check-aiimage.js', what: 'the pen\'s drawing and the photos reach aiMark and Gemini as images; bad ones refused whole; an old backend sent words only' },
   { file: 'check-working.js', what: 'a photo of the working (501): marked by the AI only, sent as images, kept with its mark, read back only by those who may' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. § */
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },

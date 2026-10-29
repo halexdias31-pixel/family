@@ -446,6 +446,12 @@ async function driveMeasure(env, ctx) {
       cm: typeof MEAS !== 'undefined' && MEAS ? MEAS.cm : null, accept: String((stuffItemsAll_().find(it => ansKey_(it) === window.__tk.k) || {}).accept || '') };
   }, C);
   const home = await env.page.evaluate(() => PAGE.stuff);
+  /* ON A PHONE THE TOOLS FOLD BEHIND ONE TOOLS TILE (round 3, qtools.js): opened with a real tap first, as a child would */
+  const folded = await env.page.evaluate(sel => {
+    const r = document.querySelector(sel + ' .qt-row'), f = r && r.querySelector('.qt-fold');
+    return !!f && !r.classList.contains('is-open') && getComputedStyle(f).display !== 'none';
+  }, C);
+  if (folded) await tap(env, ctx, `${C} .qt-row .qt-fold`, 0, 'the Tools tile');
   await tap(env, ctx, `${C} .q-meast[data-tool="${tool}"]`, 0, tool === 'protractor' ? 'the Protractor tile' : 'the Ruler tile');
   await sleep(300);
   let g = await geo();

@@ -111,7 +111,8 @@ function boot(opts) {
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   w.scrollTo = () => {};
   w.HTMLElement.prototype.scrollIntoView = () => {};
-  w.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0);
+  /* A CLOSED WINDOW DRAWS NO MORE FRAMES, as in a browser: this is Node's timer, which outlives `w.close()` and ran a frame on a window with no document */
+  w.requestAnimationFrame = cb => setTimeout(() => { if (w.document) cb(Date.now()); }, 0);
   w.cancelAnimationFrame = id => clearTimeout(id);
   w.confirm = () => true;
   w.prompt = () => opts.prompt !== undefined ? opts.prompt : 'Weekday evenings';
@@ -194,6 +195,8 @@ function boot(opts) {
       'handleSaid: () => HANDLE_SAID,' +
       /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
       'lib: () => LIB,' +
+      /* A RELOAD, AS THE TOOL ROW SEES ONE: the visit's grids, pens and records forgotten, the stores kept (qtools.js) */
+      'qtForget: () => { QT_GRID.clear(); PEN_OPEN.clear(); PART_MEM.clear(); },' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -280,6 +283,7 @@ function boot(opts) {
       'pressMoved: v => { PRESS_MOVED = !!v; },' +
       /* THE PEN ON A QUESTION'S DIAGRAM, both halves: § */
       'padWrap: typeof padWrap_ === "function" ? padWrap_ : null,' +
+      'padCard: typeof padWrap_ === "function" ? (x, svg, f) => \'<div class="qcard">\' + padWrap_(x, svg, f) + (x && x.key ? qtRow_(x) : \'\') + \'</div>\' : null,' +
       'padArm: typeof padArm_ === "function" ? padArm_ : null,' +
       /* AND THE STATE THE MARKUP IS BUILT FROM, so the repaint path can be asked the same question as the press path. § */
       'padOn: v => { PAD_ON = v; },' +
@@ -4312,7 +4316,7 @@ check('the finger pen: on a question\'s pad a two-finger tap, pan or pinch, a th
     w.padDrop_();
     try { w.localStorage.removeItem(k); } catch (e) {}
     t.padOn(k);
-    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 170"></svg>', '');
     ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   };
   const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
@@ -4631,8 +4635,8 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
   if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function'
       || typeof t.padTouch !== 'function' || !t.padTouch() || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function'
-      || !A['pad-undo'] || !A['pad-tool'] || typeof w.padSegs_ !== 'function') {
-    return ['the board, padBusy_, padDrop_, PAD_TOUCH, padWrap_, padSegs_ or the pad-undo / pad-tool handlers are not reachable — the review\'s cases were NOT checked'];
+      || !A['pad-undo'] || !A['qt-inst'] || typeof w.padSegs_ !== 'function') {
+    return ['the board, padBusy_, padDrop_, PAD_TOUCH, padWrap_, padSegs_ or the pad-undo / qt-inst handlers are not reachable — the review\'s cases were NOT checked'];
   }
   t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
   const roster = t.widgetsOf('tool').map(x => String(x.id));
@@ -4799,7 +4803,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     if (item) { x = item; k = t.padKey(x); }
     try { w.localStorage.removeItem(k); } catch (e) {}
     t.padOn(k);
-    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 170"></svg>', '');
     ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   };
   const fire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
@@ -4887,12 +4891,12 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   /* ==================== A PIN HELD ON A COMPASS'S CENTRE OR A RULER'S END ==================== */
   const tq = { kind: 'question', answerType: 'drawing', html: '<p>Use a ruler and compasses to construct the bisector of angle ABC.</p>', key: 'q:Q-FINGER-6' };
   fresh(tq);
-  const tool = name => host.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  const tool = name => host.querySelector('.qt-row .qt-t[data-tool="' + name + '"]');
   if (!tool('compass') || !tool('ruler')) bad.push('setup: the construction question has no Ruler and Compass tiles — the held pin was NOT checked');
   else {
     for (const name of ['compass', 'ruler']) {
       fresh();
-      A['pad-tool'](tool(name));
+      (e => A[e.getAttribute('data-do')](e))(tool(name));
       ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
       /* THE PIN: finger 1 on (270, 135), held 300ms, trembling under a pixel. Finger 2 lands 60px right and swings 270
          degrees round it (the compass) or slides 40px (the ruler). Nothing is stored -- as before 338. */
@@ -4917,7 +4921,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     };
     const tfresh = name => {
       fresh();
-      A['pad-tool'](tool(name));
+      (e => A[e.getAttribute('data-do')](e))(tool(name));
       ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
     };
     /* AND A PIN THAT ROLLS (second review, 12 Oct; third, the same day): § */
@@ -5088,7 +5092,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     for (const [name, gap] of [['ruler', 120], ['pen', 400]]) {
       fresh();
       if (!tool(name)) { bad.push('setup: the construction question has no ' + name + ' tile — the palm ' + gap + 'ms before was NOT checked'); continue; }
-      A['pad-tool'](tool(name));
+      (e => A[e.getAttribute('data-do')](e))(tool(name));
       ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
       fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
       for (let i = 1; i <= gap / 10; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
@@ -5106,7 +5110,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     }
     /* AND A PALM FIRST, THEN THE COMPASS FINGER 40ms LATER: the finger's circle, about where IT went down. */
     fresh();
-    A['pad-tool'](tool('compass'));
+    (e => A[e.getAttribute('data-do')](e))(tool('compass'));
     ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
     fire('pointerdown', 1, 420, 210, 1000, { prim: true });
     fire('pointerdown', 2, 270, 135, 1040);
@@ -5408,7 +5412,7 @@ check('the finger pen keeps every sample: the folded ones, one box read per even
     try { w.localStorage.removeItem(k); } catch (e) {}
     t.padOn(k);
     L = 100; T = 50;
-    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 170"></svg>', '');
     ink().getBoundingClientRect = () => { reads++; return { left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }; };
   };
   const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
@@ -5531,14 +5535,14 @@ check('a placement snaps to the grid the picture draws and a line never does: Q7
     w.padDrop_();
     try { w.localStorage.removeItem(k); } catch (e) {}
     t.padOn(k);
-    host.innerHTML = t.padWrap(x, q7.diagram, '');
+    host.innerHTML = t.padCard(x, q7.diagram, '');
     host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: Wd, height: Hd, right: L + Wd, bottom: T + Hd, x: L, y: T });
   };
   const ink = () => host.querySelector('.qpad-ink');
   const fire = (type, px, py, ts) => penEv_(w, ink(), type, { id: 1, x: px, y: py, t: ts, prim: type === 'pointerdown' });
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
   fresh();
-  if (!host.querySelector('.qpad-tool[data-tool="ruler"]')) bad.push('Q7\'s pad offers no Ruler — every grid gets one');
+  if (!host.querySelector('.qt-row .qt-t[data-tool="ruler"]')) bad.push('Q7\'s pad offers no Ruler — every grid gets one');
   const ux = G.xs.map(v => v / vb[1] * 340), uy = G.ys.map(v => v / vb[2] * 340);
   const sx = Wd / 340, sy = Hd / 340;
   const aim = [L + ux[5] * sx, T + uy[8] * sy], want = [Math.round(ux[5]), Math.round(uy[8])];
@@ -5556,9 +5560,9 @@ check('a placement snaps to the grid the picture draws and a line never does: Q7
   if (line.length !== 22 || line[0] !== first[0] || line[1] !== first[1]) bad.push('a line was stored as ' + JSON.stringify(line) + ' — wanted 11 raw points from ' + JSON.stringify(first) + ': a line never snaps');
   /* THE RULER: both ends land on their intersections. */
   fresh();
-  const tool = host.querySelector('.qpad-tool[data-tool="ruler"]');
-  if (tool) tool.click();
-  host.innerHTML = t.padWrap(x, q7.diagram, '');
+  const tool = host.querySelector('.qt-row .qt-t[data-tool="ruler"]');
+  if (tool) t.ACTIONS[tool.getAttribute('data-do')](tool);
+  host.innerHTML = t.padCard(x, q7.diagram, '');
   host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: Wd, height: Hd, right: L + Wd, bottom: T + Hd, x: L, y: T });
   const a = [L + ux[2] * sx, T + uy[3] * sy], b = [L + ux[9] * sx, T + uy[12] * sy];
   fire('pointerdown', a[0] - 3, a[1] + 3.5, 3000);
@@ -5663,14 +5667,14 @@ check('a fast line is drawn round and every stored stroke still draws: padPath_ 
   const old = []; for (let i = 0; i <= 9; i++) { const a = 2 * Math.PI * i / 9; old.push(Math.round(170 + 120 * Math.cos(a)), Math.round(170 + 120 * Math.sin(a))); }
   const value = JSON.stringify([old, [50, 100, 200, 180]]);
   w.localStorage.setItem(k, value);
-  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+  host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 340"></svg>', '');
   const pad = host.querySelector('.qpad');
   if (pad.getAttribute('data-aspect') !== '1') bad.push('a square figure\'s pad says data-aspect="' + pad.getAttribute('data-aspect') + '", wanted 1');
   const ds = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
   if (!/C/.test(ds[0] || '') || !ends(ds[0] || '', old)) bad.push('an old fast circle is not drawn round through its stored points: ' + String(ds[0]).slice(0, 60));
   if (ds[1] !== 'M50 100L200 180') bad.push('an old ruler line is drawn ' + ds[1] + ', wanted M50 100L200 180');
   if (w.localStorage.getItem(k) !== value) bad.push('drawing an old drawing changed what is stored');
-  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+  host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 170"></svg>', '');
   const wide = host.querySelector('.qpad');
   if (wide.getAttribute('data-aspect') !== '0.5') bad.push('a 340x170 figure\'s pad says data-aspect="' + wide.getAttribute('data-aspect') + '", wanted 0.5');
   if (wide.querySelector('.qpad-g path').getAttribute('d') !== P(old, 0.5)) bad.push('the pad does not draw its marks with its own aspect');
@@ -5696,7 +5700,7 @@ check('?pen=sizes lists the last eight contacts\' widths for one reading on a de
     try { w.localStorage.removeItem(k); } catch (e) {}
     const host = d.createElement('div'); d.body.appendChild(host);
     t.padOn(k);
-    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 340"></svg>', '');
     const ink = host.querySelector('.qpad-ink');
     ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
     for (let i = 0; i < 10; i++) {
@@ -14737,7 +14741,7 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
   w.padDrop_(); t.padOn('');
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = t.padWrap(x, x.diagram, '') + t.padWrap(y, y.diagram, '');
+  host.innerHTML = t.padCard(x, x.diagram, '') + t.padCard(y, y.diagram, '');
   const pads = host.querySelectorAll('.qpad');
   /* ---------- AS BUILT, NOTHING PRESSED: the figure is the pen already ---------------------------- */
   if (host.querySelector('[data-do="pad-draw"], .qpad-lock')) bad.push('a lock (or a door on the picture) is still drawn — a step before the first mark');
@@ -14764,7 +14768,7 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
   if (stored(kx).length !== 1) bad.push('the stroke on the second figure changed the first one\'s marks');
   /* ---------- A REPAINT KEEPS IT SO ----------------------------------------------------------------- */
   const again = d.createElement('div');
-  again.innerHTML = t.padWrap(x, x.diagram, '');
+  again.innerHTML = t.padCard(x, x.diagram, '');
   if (again.querySelector('[data-do="pad-draw"], .qpad-lock') || !again.querySelector('.qpad-ink[data-noswipe]')) bad.push('a pad drawn again grew a lock or lost `data-noswipe`');
   /* ---------- A FIGURE IN A QUESTION ANSWERED IN A BOX IS NO PEN AT ALL ------------------------------- */
   if (typeof w.padSource_ === 'function' && w.padSource_({ key: 'q:Q-TYPED', answerType: 'number', accept: '12', diagram: x.diagram }))
@@ -14780,31 +14784,16 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof t.padWrap !== 'function' || typeof w.padTools_ !== 'function' || typeof t.padKey !== 'function'
-      || !A['pad-tool'] || !A['pad-undo'] || typeof t.padTool !== 'function') {
-    return ['padWrap_, padTools_, padKey_, PAD_TOOL or the pad-tool / pad-undo handlers are not reachable — the tools were NOT checked'];
+  if (typeof t.padWrap !== 'function' || typeof t.padKey !== 'function'
+      || !A['qt-inst'] || !A['pad-undo'] || typeof t.padTool !== 'function') {
+    return ['padWrap_, padKey_, PAD_TOOL or the qt-inst / pad-undo handlers are not reachable — the tools were NOT checked'];
   }
-  /* ---------- WHICH QUESTIONS GET WHICH TOOLS ---------------------------------------------------- */
+  /* ---------- EVERY PART'S TOOL ROW HAS ALL FOUR, in the owner's order, whatever its words (round 3: `padTools_` and its word patterns are gone) */
   const q = (html, extra) => Object.assign({ kind: 'question', answerType: 'drawing', html: '<p>' + html + '</p>' }, extra || {});
-  [[q('Reflect the shape in the mirror line.', { needs: ['Ruler'] }), 'pen ruler', 'needs: Ruler'],
-   [q('Use a ruler and compasses to construct the perpendicular from P to the line.'), 'pen ruler compass', '"ruler and compasses" in the words'],
-   [q('Construct the locus of points 3 cm from A.'), 'pen ruler compass', 'a locus'],
-   [q('Draw the perpendicular bisector of AB.', { needs: 'Compass, Ruler' }), 'pen ruler compass', 'a comma-list cell and a bisector'],
-   [q('Draw the graph of y = 2x + 1.'), 'pen', 'a plain drawing question'],
-   [q('The two circles represent plotting compasses. Draw an arrow in each.'), 'pen', 'plotting compasses'],
-   [q('Bradley buys 12 rulers. How much is one ruler?'), 'pen', 'rulers in a word problem'],
-   [q('Construct a frequency tree for this information.'), 'pen', 'constructing a tree'],
-   [q('Construct a two-way table for the data.'), 'pen', 'constructing a two-way table'],
-   [q('Measure angle d.', { needs: ['Protractor'] }), 'pen protractor', 'a protractor'],
-   [q('Bisect the angle.', { stems: [{ html: '<p>Use ruler and compasses only.</p>' }] }), 'pen ruler compass', 'a stem that says it']]
-    .forEach(([x, want, what]) => {
-      const got = w.padTools_(x).join(' ');
-      if (got !== want) bad.push(what + ': padTools_ gave "' + got + '", wanted "' + want + '"');
-    });
-  const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
-    return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
-  /* EVERY QUESTION'S PEN HAS ALL FOUR (`qToolkit_`; the Protractor since 458): the words above still say what `padTools_` adds, never what the bar hides */
-  const ALL4 = 'pen ruler compass protractor';
+  const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    return [...h.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' '); };
+  /* WHATEVER THE WORDS ASK FOR, the row is the same four (the tool registry, qtools.js) */
+  const ALL4 = 'pen ruler protractor compass';
   const offered = [[q('Use a ruler.', { key: 'q:T-R' }), ALL4], [q('Construct the bisector.', { key: 'q:T-C' }), ALL4],
     [q('Draw the graph.', { key: 'q:T-N' }), ALL4], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), ALL4]];
   offered.forEach(([x, want]) => {
@@ -14819,7 +14808,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   d.body.appendChild(host);
   const L = 100, T = 50, W = 340, H = 170;
   const mount = () => {
-    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 170"></svg>', '');
     host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
     return host.querySelector('.qpad');
   };
@@ -14829,11 +14818,11 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
   const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
-  const tool = name => pad.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  const tool = name => pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="' + name + '"]');
   if (!tool('ruler') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Ruler and Compass, so the drawing was NOT checked']);
 
   /* RULER */
-  A['pad-tool'](tool('ruler'));
+  (e => A[e.getAttribute('data-do')](e))(tool('ruler'));
   if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not give this pad the pen');
   if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
   if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
@@ -14848,7 +14837,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   if (!pad.classList.contains('is-drawing') || !tool('ruler').classList.contains('on')) bad.push('a card drawn again lost the pen or the Ruler in hand');
 
   /* COMPASS: centre (270,135)px = units (170,170); out to (330,135)px, a radius of 60px. */
-  A['pad-tool'](tool('compass'));
+  (e => A[e.getAttribute('data-do')](e))(tool('compass'));
   if (!tool('compass').classList.contains('on') || tool('ruler').classList.contains('on')) bad.push('pressing Compass did not move the light from Ruler to Compass');
   fire('pointerdown', 270, 135);
   fire('pointermove', 300, 135);
@@ -14896,7 +14885,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('two Undos left ' + JSON.stringify(s).slice(0, 80) + ', wanted only the ruler\'s line');
   if (pad.querySelectorAll('.qpad-g path').length !== 1) bad.push('two Undos left ' + pad.querySelectorAll('.qpad-g path').length + ' marks on the picture, wanted 1');
   /* THE PEN, STILL FREEHAND. */
-  A['pad-tool'](tool('pen'));
+  (e => A[e.getAttribute('data-do')](e))(tool('pen'));
   drag([[110, 60], [120, 70], [130, 66]]);
   s = stored();
   if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
@@ -14904,7 +14893,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   if (!tool('protractor')) bad.push('the construction question\'s bar has no Protractor');
   else {
     const was = stored().length;
-    A['pad-tool'](tool('protractor'));
+    (e => A[e.getAttribute('data-do')](e))(tool('protractor'));
     const prot = () => pad.querySelector('.qpad-art > .qpad-prot');
     if (!prot()) bad.push('pressing Protractor put no protractor on the page');
     if (!tool('protractor').classList.contains('on') || tool('protractor').getAttribute('aria-pressed') !== 'true') bad.push('the Protractor tile is not lit while it lies on the page');
@@ -14936,7 +14925,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
     if (stored().length !== was + 1) bad.push('the pen did not draw with the protractor down');
     pad = mount();
     if (!prot() || !/rotate\(90deg\)/.test(prot().style.transform)) bad.push('a card drawn again lost the protractor or its turn');
-    A['pad-tool'](tool('protractor'));
+    (e => A[e.getAttribute('data-do')](e))(tool('protractor'));
     if (prot() || tool('protractor').classList.contains('on')) bad.push('pressing Protractor again did not pick it up');
     w.padProtOf_(k).on = false;
   }
@@ -14945,7 +14934,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const pk = t.padKey(plain);
   try { w.localStorage.removeItem(pk); } catch (e) {}
   t.padTool().set(pk, 'protractor');
-  host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
+  host.innerHTML = t.padCard(plain, '<svg viewBox="0 0 340 170"></svg>', '');
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   drag([[150, 100], [200, 100], [250, 120]]);
@@ -15273,7 +15262,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
   const sendT = card.querySelector('.qp-check');
   if (!bar || !bar.querySelector(':scope > .qp-ans .kp-in')) bad.push('the answer box is not in a chat bar (`.qp-mark.qp-compose > .qp-bar` holding the field)');
-  if (!sendT || !sendT.matches('.qp-bar > .tile:not(.is-send)[data-do="qp-check"]:last-child') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark, last in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
+  if (!sendT || !sendT.matches('.qt-row > .tile:not(.is-send)[data-do="qp-check"]:last-child') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark, last in the part\'s tool row: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
   const verdictEl = card.querySelector('.qp-verdict');
   if (!verdictEl || !verdictEl.closest('.qp-mark') || verdictEl.closest('.qp-bar')) bad.push('the verdict is not a line of its own under the bar, inside `.qp-mark`');
   inp.focus();
@@ -15450,7 +15439,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const drawn = {
     'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
     'a short worded answer': host(w.questionCard_(shortW)),
-    /* A QUESTION ANSWERED BY DRAWING IS DRAWN, with no box to type in (356): no field at all. */
+    /* A QUESTION ANSWERED BY DRAWING IS DRAWN, and has the one answer box every part has (round 3) */
     'a drawing question\'s card': host(w.questionCard_(pen)),
     'a paper figure question\'s card': host(w.questionCard_(paperPen)),
     'a passage to ring words in': host(w.questionCard_(passage)),
@@ -15459,8 +15448,8 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
   const locked = b => b.matches('.kp-field > .kp-in.qp-ans-in[readonly][inputmode="none"][data-kp]') && b.readOnly
     && !!b.closest('label.qp-ans');
-  const WANT = { 'a maths answer': 1, 'an explain answer': 1, 'a short worded answer': 1, 'a drawing question\'s card': 0,
-    'a paper figure question\'s card': 0,
+  const WANT = { 'a maths answer': 1, 'an explain answer': 1, 'a short worded answer': 1, 'a drawing question\'s card': 1,
+    'a paper figure question\'s card': 1,
     'a passage to ring words in': 1, 'a practical\'s worksheet': 3 };
   let boxes = 0;
   Object.keys(drawn).forEach(name => {
@@ -15603,7 +15592,7 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   /* `123` AND BACK, ⇧ AND CAPS LOCK, ⌫ IN PROSE. */
   inp.focus();
   press('!123');
-  if (pad.getAttribute('data-layer') !== 'maths' || pad.querySelectorAll('.kp-key').length !== 30 || !key('7') || !key('!abc')) bad.push('`123` did not show the maths pad\'s 30 keys with `abc` on it');
+  if (pad.getAttribute('data-layer') !== 'maths' || pad.querySelectorAll('.kp-key').length !== 42 || !key('7') || !key('!abc')) bad.push('`123` did not show the maths pad\'s 42 keys with `abc` on it');
   press('5');
   press('!abc');
   if (pad.getAttribute('data-layer') !== 'abc') bad.push('`abc` did not turn the pad back to its letters');
@@ -15687,7 +15676,8 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   const mi = draw(m).querySelector('.kp-in');
   mi.focus();
   if (pad.getAttribute('data-layer') !== 'maths') bad.push('a maths box opened the pad on ' + pad.getAttribute('data-layer'));
-  if (key('<')) bad.push('a maths box whose scheme is 0.75 has the signs row');
+  /* ONE PAD TYPES ANYTHING (round 3): the signs row is on every box, whatever its scheme */
+  if (!key('<')) bad.push('a maths box whose scheme is 0.75 has no signs row -- the one pad types anything');
   ['3', '*', '4'].forEach(k => mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })));
   if (mi.value !== '3×4') bad.push('a laptop typing 3*4 into a maths box gave ' + JSON.stringify(mi.value) + ', wanted "3×4"');
   mi.value = '(3)/(4)'; mi.setSelectionRange(7, 7);
@@ -15713,19 +15703,17 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
      names wrong forms ("eg 5 : 9") and gave 411 more boxes a sixth row, one of them lifted off the screen. */
   const signed = (id, extra) => draw(Object.assign({}, base, { key: 'q-abc-' + id, answerType: 'calculation',
     row: Object.assign({}, base.row, { row_id: 'Q-ABC-' + id }) }, extra)).querySelector('.kp-in').hasAttribute('data-kp-signs');
-  if (!signed('lead', { accept: '', answer: '140 &lt; <i>h</i> &le; 150 &mdash; the class the median is in' })) bad.push('a box with no scheme whose answer leads "140 < h ≤ 150" has no signs row');
-  if (signed('prose', { accept: '', answer: '<sup>5</sup>&frasl;<sub>9</sub> &mdash; M1 for the right numbers in the wrong form, eg 5 : 9' })) bad.push('a box whose answer is 5/9 was given the signs row off its mark scheme\'s prose ("eg 5 : 9")');
-  if (signed('scheme', { accept: '5/9 | 0.56', answer: '<b>5 : 9</b>' })) bad.push('a box whose scheme is 5/9 was given the signs row off its worked answer -- the scheme decides where there is one');
+  if (['prose', 'scheme'].some((id, n) => !signed(id, n ? { accept: '5/9 | 0.56', answer: '<b>5 : 9</b>' } : { accept: '', answer: '5/9' }))) bad.push('a box with no signs row -- every box has it on the one pad (round 3)');
   /* AND ON A WORDED BOX THAT NEEDS ONE. § */
   const wi = Object.assign({}, base, { key: 'q-abc-wineq', answerType: 'calculation', accept: 'x < 4 or x > 5 | x > 5 or x < 4',
     row: Object.assign({}, base.row, { row_id: 'Q-ABC-WINEQ' }) });
   try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
   const wb = draw(wi).querySelector('.kp-in');
-  if (wb.getAttribute('data-kp') !== 'words' || !wb.hasAttribute('data-kp-signs')) bad.push('a calculation whose scheme is "x < 4 or x > 5" is not a words box marked for the signs row: ' + wb.outerHTML.slice(0, 160));
+  if (!wb.hasAttribute('data-kp-signs')) bad.push('a calculation whose scheme is "x < 4 or x > 5" has no signs row: ' + wb.outerHTML.slice(0, 160));
   wb.focus();
-  if (pad.getAttribute('data-layer') !== 'abc' || key('<')) bad.push('a worded box with the signs row did not open on its plain letters');
-  press('!123');
-  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('the 123 face of a worded box whose scheme is "x < 4 or x > 5" has no ' + v + ' key'); });
+  /* ROUND 3: one pad types anything -- a calculation opens on its maths layer whatever words its scheme holds, the letters one key away */
+  if (pad.getAttribute('data-layer') !== 'maths' || !key('!abc')) bad.push('a calculation whose scheme is "x < 4 or x > 5" did not open on the maths layer with abc on it');
+  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('the maths layer of a box whose scheme is "x < 4 or x > 5" has no ' + v + ' key'); });
   ['x', '<', '4', ' '].forEach(press); press('!abc'); ['o', 'r', ' '].forEach(press); press('!123'); ['x', '>', '5'].forEach(press);
   press('!done');
   if (wb.value !== 'x<4 or x>5' || !wb.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('"x<4 or x>5" typed on the pad into a worded box gave ' + JSON.stringify(wb.value) + ' and was not marked right');
@@ -15770,7 +15758,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
      verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
-  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!go.matches('.qp-mark.qp-ai > .qt-row > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
@@ -15809,18 +15797,21 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   [card, other].forEach((c, i) => {
     const b = c.querySelector('.qp-ai-go');
     if ((b && !b.disabled) || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button still presses');
-    if (!c.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' box has no Send in the AI tile’s place — its answer could never reach the account');
+    if (c.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' box put a Send in the AI tile’s place — a human never marks');
   });
   if (!/switched on/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('"ai-off" did not say AI marking isn’t switched on');
-  if (draw(Object.assign({}, x, { key: 'q-ai-4' })).querySelector('.qp-ai')) bad.push('a card drawn after "ai-off" still offers AI marking');
+  /* ROUND 3: the AI is this part's marker, so its Check stays in the row, unpressable -- never gone, never a plain Send */
+  const g4 = draw(Object.assign({}, x, { key: 'q-ai-4' })).querySelector('.qt-row .qp-ai-go');
+  if (!g4 || !g4.disabled) bad.push('a card drawn after "ai-off" has no AI Check in its row, or one that still presses');
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
-  /* AND NOT DRAWN AT ALL where the payload says there is no key, or the deployment has no action. */
+  /* AND UNPRESSABLE where the payload says there is no key, or the deployment has no action -- with no plain Send in its place (round 3). */
   for (const [why2, p] of [['aiMarking: false', { features: ['aiMark'], aiMarking: false }], ['no aiMark in features', { features: [] }]]) {
     const b2 = boot({ payload: Object.assign(payload(), p) });
     await wait(300);
     const h = b2.w.document.createElement('div');
     h.innerHTML = b2.w.questionCard_(Object.assign({}, x, { key: 'q-ai-5' }), 0);
-    if (h.querySelector('.qp-ai')) bad.push('with ' + why2 + ' the card still drew "Mark with AI"');
+    const g5 = h.querySelector('.qt-row .qp-ai-go');
+    if (!g5 || !g5.disabled || h.querySelector('[data-do="qp-send"]')) bad.push('with ' + why2 + ' the card drew ' + (g5 ? 'a Check that presses' : 'no AI Check') + (h.querySelector('[data-do="qp-send"]') ? ' and a plain Send' : ''));
   }
   return bad;
 });
@@ -15847,8 +15838,8 @@ check('Photo of my working: shown only on working questions, sends its photos to
   const card = draw(proof), other = draw(plain);
   const tile = card.querySelector('.tile[data-do="qp-work"]');
   if (!tile) bad.push('a "show that" proof drew no Photo of my working tile');
-  else if (!tile.closest('.qp-bar, .qp-sheet-foot')) bad.push('the photo tile is not in the question’s answer row');
-  if (other.querySelector('[data-do="qp-work"]')) bad.push('a plain sum with an exact answer was offered a photo of its working');
+  else if (!tile.closest('.qt-row')) bad.push('the photo tile is not in the question’s tool row');
+  if (!other.querySelector('.qt-row [data-do="qp-work"]')) bad.push('a plain sum has no photo of its working -- every part has every tool (round 3)');
   /* TWO PAGES ADDED (the phone's shrink is a canvas; here the pictures arrive already small) */
   const k = w.__t.ansKey(proof);
   w.workPics_(k).push({ url: 'data:image/jpeg;base64,AAAA' }, { url: 'data:image/jpeg;base64,BBBB' });
@@ -15980,14 +15971,14 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     return bad.concat(['the essay\'s box is not the pad\'s locked textarea on a sheet: ' + (inp ? inp.outerHTML.slice(0, 200) : '(none)')]);
   }
   if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
-  const go = card.querySelector('.qp-sheet-foot.tile-row > .tile.qp-ai-go[data-do="qp-ai"]');
+  const go = card.querySelector('.qp-essay > .qt-row > .tile.qp-ai-go[data-do="qp-ai"]');
   if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
   /* ONE CHECK (368): the AI's tile is the same Check as every other question's, with no caption of its own */
   if (card.querySelector('.qp-ai-say')) bad.push('the essay still captions its Check "Mark with AI"');
   if (go && go.getAttribute('aria-label') !== 'Check') bad.push('the essay\u2019s marking tile is ' + JSON.stringify(go.getAttribute('aria-label')) + ', not the Check every question has');
   const blank = () => !!card.querySelector('.qp-sheet > .kp-field.kp-essay.is-blank');
   if (!blank()) bad.push('an empty sheet is not marked is-blank, so it shows no "press return" hint');
-  const words = () => (card.querySelector('.qp-essay .qp-sheet-foot .qp-words') || {}).textContent;
+  const words = () => (card.querySelector('.qp-essay .qp-words') || {}).textContent;
   if (words() !== '0 words') bad.push('an empty sheet\'s count says ' + JSON.stringify(words()) + ', wanted "0 words"');
   const mark = card.querySelector('.qp-mark.qp-ai.qp-essay');
   if (!mark || !mark.querySelector(':scope > .qp-verdict') || !mark.querySelector(':scope > .qp-saved')
@@ -16121,10 +16112,13 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     r = said();
     if (r.v !== '27 of 40 marks · AI · before your changes' || r.cls.indexOf(' is-stale ') < 0 || r.cls.indexOf(' is-near ') >= 0 || r.why !== FEEDBACK) bad.push('other text arriving from the account drew ' + JSON.stringify(r) + ' — wanted the mark kept and said to be "before your changes", its points under it');
   } else bad.push('ansRefresh_ is not reachable — the account\'s copy over a kept mark was NOT checked');
+  /* KEPT IN THE PART'S ONE RECORD (round 3), field `ai`; the reload below starts from the OLD `aiMark:` key, so it proves the one-time move */
+  const pk = k.replace(/^ans:/, 'part:');
   let keptRec = null;
-  try { keptRec = w.localStorage.getItem('aiMark:' + k); } catch (e) {}
-  if (!keptRec) bad.push('the essay\'s mark was not kept on the device (aiMark:' + k + ')');
-  else {
+  try { const r = JSON.parse(w.localStorage.getItem(pk) || 'null'); keptRec = r && r.ai ? JSON.stringify(r.ai) : null; } catch (e) {}
+  if (!keptRec) bad.push('the essay\'s mark was not kept in the part\'s record (' + pk + ')');
+  try { if (w.localStorage.getItem('aiMark:' + k) !== null) bad.push('a new mark was still written to the old aiMark: key beside the part\'s record'); } catch (e) {}
+  if (keptRec) {
     const b3 = boot({ payload: Object.assign(payload(), { features: ['aiMark', 'aiMarkWhole'], aiMarking: true }),
       before: w3 => { try { w3.localStorage.setItem('aiMark:' + k, keptRec); w3.localStorage.setItem(k, big); } catch (e) {} },
       serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
@@ -16138,8 +16132,11 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     if (!fresh3 || (fresh3.querySelector('.qp-verdict') || {}).textContent !== '27 of 40 marks \u00b7 AI' || !fresh3.classList.contains('is-near')
         || (h3.querySelector('.qp-ai-why') || {}).textContent !== FEEDBACK) bad.push('after a reload the essay\'s mark and points are gone: ' + JSON.stringify(fresh3 && fresh3.outerHTML.slice(-300)));
     if (b3.sent.some(b => b.action === 'aiMark')) bad.push('a reload asked Gemini again to show a mark it already had');
+    let moved = null, left = 'x';
+    try { moved = JSON.parse(b3.w.localStorage.getItem(pk) || 'null'); left = b3.w.localStorage.getItem('aiMark:' + k); } catch (e) {}
+    if (!moved || !moved.ai || moved.ai.v !== '27 of 40 marks \u00b7 AI' || left !== null) bad.push('the old aiMark: key was not moved into the part\'s record once: record ' + JSON.stringify(moved) + ', old key ' + JSON.stringify(left));
   }
-  try { w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+  try { w.localStorage.removeItem('aiMark:' + k); w.localStorage.removeItem(pk); } catch (e) {}
   /* ---------- A SHORT WORDED BOX IS STILL THE BAR, AND ENTER IS STILL ✓ ---------- */
   const sx = { kind: 'question', key: 'q-essay-short', name: 'Q2', marks: 3, answerType: 'explain', accept: '',
     row: { row_id: 'Q-ESSAY-SHORT', paper_id: 'P-ESSAY', subject: 'Chemistry', name: 'Rates' },
@@ -16156,7 +16153,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   }
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(w.__t.ansKey(sx)); } catch (e) {}
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
-  /* ---------- AI MARKING OFF: ONE LINE TO A PUPIL, NOTHING TO A STRANGER, NO DEAD CONTROL ---------- */
+  /* ---------- AI MARKING OFF: ONE LINE TO A PUPIL, NOTHING TO A STRANGER, THE CHECK UNPRESSABLE IN ITS PLACE (round 3) ---------- */
   for (const signedIn of [true, false]) {
     const b2 = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: false }),
       serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
@@ -16166,10 +16163,11 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     if (!x2) { bad.push('the essay did not load with AI marking off'); continue; }
     const h2 = b2.w.document.createElement('div');
     h2.innerHTML = b2.w.questionCard_(x2, 0);
-    const note = h2.querySelector('.qp-essay .qp-sheet-foot .qp-ai-note');
-    if (h2.querySelector('.qp-ai-go, .qp-ai, .qp-check')) bad.push('with AI marking off the essay still draws a marking control');
+    const note = h2.querySelector('.qp-essay .qp-ai-note');
+    const g2 = h2.querySelector('.qp-essay .qt-row .qp-ai-go');
+    if (!g2 || !g2.disabled || h2.querySelector('[data-do="qp-send"]')) bad.push('with AI marking off the essay\'s Check is missing, still presses, or became a plain Send');
     if (!h2.querySelector('.qp-sheet .kp-in') || !h2.querySelector('.qp-words')) bad.push('with AI marking off the essay lost its sheet or its count');
-    if (signedIn && !(note && /isn.t switched on/.test(note.textContent))) bad.push('with AI marking off a signed-in pupil is told nothing about why there is no Mark tile');
+    if (signedIn && !(note && /isn.t switched on/.test(note.textContent))) bad.push('with AI marking off a signed-in pupil is told nothing about why the Check does not press');
     if (!signedIn && note) bad.push('a stranger browsing is told about AI marking: ' + note.textContent);
   }
   return bad;
@@ -16195,7 +16193,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
   const host = d.createElement('div');
   d.body.appendChild(host);
   const mark = async text => {
-    try { w.localStorage.setItem(k, text); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+    try { w.localStorage.setItem(k, text); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
     host.innerHTML = w.questionCard_(x, 0);
     const go = host.querySelector('.qp-ai-go');
     if (!go) return null;
@@ -16217,7 +16215,7 @@ check('a backend without aiMarkWhole is sent no essay over its old 2,000-charact
   w.__t.DATA().features = ['aiMark', 'aiMarkWhole'];
   const whole = await mark(long);
   if (!whole || whole.went.length !== 1 || whole.went[0].answer !== long) bad.push('with aiMarkWhole the essay was not sent whole: ' + JSON.stringify(whole && whole.went.map(b => String(b.answer).length)));
-  try { w.localStorage.removeItem(k); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(k.replace(/^ans:/, 'part:')); } catch (e) {}
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -16654,7 +16652,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   const gp = el(w.questionCard_(grid));
   const pad = gp.querySelector('.qcard .qp-area .qpad');
   if (!pad) bad.push('the card of a drawing question shows no pen on its surface');
-  if (gp.querySelector('.qp-ans, .qp-ans-in')) bad.push('a drawing question with no accept still draws a box to type in');
+  if (!gp.querySelector('.qp-ans-in')) bad.push('a drawing question has no answer box -- every part has one (round 3)');
   else {
     if (!pad.querySelector('.qpad-art > svg.qsurf.is-grid')) bad.push('the pen is not over a squared grid: ' + (pad.querySelector('.qpad-art svg') || {}).outerHTML);
     if (pad.querySelectorAll('svg.qsurf line.grid').length < 30) bad.push('the grid has ' + pad.querySelectorAll('svg.qsurf line.grid').length + ' lines -- that is not squared paper');
@@ -16851,7 +16849,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   host.innerHTML = w.questionCard_(x) + w.questionTiles_(x);
   const pad = host.querySelector('.qcard .qsheet .qpad');
   if (!pad) bad.push('the card does not hold the grid as a pen inside its sheet');
-  if (host.querySelector('.qp-ans, .qp-ans-in, .kp-field')) bad.push('the card still draws a box to type in');
+  if (host.querySelectorAll('.qp-ans-in').length !== 1) bad.push('the card draws ' + host.querySelectorAll('.qp-ans-in').length + ' answer boxes, wanted the one every part has');
   if (host.querySelector('[data-do="q-draw"], .q-drawt')) bad.push('the card still carries a Draw tile');
   if (/on the next page/i.test(host.textContent)) bad.push('the card still points at a page');
   if (pad && pad.getAttribute('data-k') !== t.padKey(x)) bad.push('the pad is keyed ' + pad.getAttribute('data-k') + ', not padKey_ ' + t.padKey(x));
@@ -16917,9 +16915,9 @@ check('no question in the library has a figure page or points at one, and every 
   return bad;
 });
 
-/* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`answerKinds_`) § */
-check('the hexagon shows its surface and its box, a question with options shows them and no pen, and the triangle is a pen with ruler and protractor', async () => {
-  const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13'];
+/* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`qtDrawn_` and its marker since round 3; was `answerKinds_`) § */
+check('the hexagon shows its surface and its box, a question with options or cells shows them and no pen until its Pen is tapped, and the triangle is a pen with ruler and protractor', async () => {
+  const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13', 'Q-CBM-5AD-F-0708-4'];
   const LIB = LIB_FULL.rows('questions');
   const rows = IDS.map(id => LIB.find(r => r.row_id === id));
   if (rows.some(r => !r)) return ['a row is missing from data/questions.json — NOT checked'];
@@ -16927,17 +16925,23 @@ check('the hexagon shows its surface and its box, a question with options shows 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined) });
   await wait(300);
   const d = w.document, bad = [];
-  if (typeof w.answerKinds_ !== 'function' || typeof w.padTools_ !== 'function') return ['answerKinds_ or padTools_ not reachable — NOT checked'];
-  const [hex, gps, tri] = IDS.map(id => w.stuffItemsAll_().find(it => it.row && it.row.row_id === id));
-  if (!hex || !gps || !tri) return ['a real row did not come through the loader — NOT checked'];
+  if (typeof w.markerOf_ !== 'function' || typeof w.qtRow_ !== 'function') return ['markerOf_ or qtRow_ not reachable — NOT checked'];
+  const [hex, gps, tri, lab] = IDS.map(id => w.stuffItemsAll_().find(it => it.row && it.row.row_id === id));
+  if (!hex || !gps || !tri || !lab) return ['a real row did not come through the loader — NOT checked'];
   const card = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x); return h; };
   const H = card(hex), G = card(gps), T = card(tri);
   if (!H.querySelector('.qp-area .qpad') || !H.querySelector('.qp-ans-in')) bad.push('the hexagon does not show both its surface and its box');
-  if (JSON.stringify(w.answerKinds_(hex)) !== '{"draw":true,"value":true}') bad.push('the hexagon is ' + JSON.stringify(w.answerKinds_(hex)) + ', wanted both');
-  if (!G.querySelector('.qp-choices') || G.querySelector('.qpad')) bad.push('GPS1-2 does not show its options alone -- a row with choices took a surface');
-  if (w.answerKinds_(gps).draw) bad.push('GPS1-2 is a drawing to answerKinds_');
-  if (!T.querySelector('.qsheet .qpad') || T.querySelector('.qp-ans-in')) bad.push('KS2 2019 P2 Q13 is not a pen over its figure with no box');
-  const tools = w.padTools_(tri);
+  /* ROUND 3: options and no pen until the Pen is tapped; the triangle a pen over its figure AND the one box every part has */
+  if (!G.querySelector('.qp-choices') || G.querySelector('.qpad')) bad.push('GPS1-2 does not show its options alone before its Pen is tapped');
+  /* A DRAWN TYPE ANSWERED BY CELLS (a times-table grid to annotate): its cells, and its pen only once the Pen is tapped */
+  const Lb = card(lab);
+  if (!Lb.querySelector('.qp-cell') || Lb.querySelector('.qpad')) bad.push('5AD-F-0708-4 does not show its cells alone before its Pen is tapped');
+  w.qtPenSet_(lab, true);
+  if (!card(lab).querySelector('.qpad')) bad.push('5AD-F-0708-4 has nothing to draw on after its Pen is tapped');
+  w.qtPenSet_(lab, false);
+  if (w.markerOf_(gps).kind !== 'choice') bad.push('GPS1-2 is marked as ' + w.markerOf_(gps).kind + ', wanted by its options');
+  if (!T.querySelector('.qsheet .qpad') || T.querySelectorAll('.qp-ans-in').length !== 1) bad.push('KS2 2019 P2 Q13 is not a pen over its figure with its one box');
+  const tools = [...T.querySelectorAll('.qt-row .qt-t[data-tool]')].map(e => e.getAttribute('data-tool'));
   if (tools.indexOf('ruler') < 0 || tools.indexOf('protractor') < 0) bad.push('the triangle\'s tools are ' + tools.join(', ') + ', wanted a ruler and a protractor');
   return bad;
 });
@@ -17320,7 +17324,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
-   ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
+   ['qt-pen:pen', 'the Pen'], ['qt-inst:ruler', 'the Ruler'], ['qt-inst:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
@@ -17716,22 +17720,13 @@ check('submission: the latest one is the verdict beside the star, never a date, 
     A['qp-choose'](to.querySelector('.qp-opt[data-n="2"]'));
     if (subSlotOf_(to).textContent !== 'Sent' || subSlotOf_(to).classList.contains('is-right') || subSlotOf_(to).classList.contains('is-near')) bad.push('a pick the scheme never settled says ' + JSON.stringify(say(to)) + ' — wanted "Sent", no tick and no arrow');
   } finally { w.stuffItemsAll_ = held; }
-  /* A BOX NOTHING CAN MARK: a Send of its own, typing is not a submission, and Send is. */
+  /* A BOX NO RULE CAN MARK (round 3): its Check is the AI's, never a plain Send -- a human never marks -- and typing is not a submission. */
   const free = subDraw_(w, Object.assign({}, base, { key: 'q-v-free', accept: '', answerType: 'explain' }));
-  const send = free.querySelector('.qp-send[data-do="qp-send"]');
-  if (!send) bad.push('a box with no scheme and no AI marking has no Send — its answer could never reach the account');
-  else {
-    if (send.classList.contains('qp-check')) bad.push('the plain Send is `.qp-check` — the keypad’s ✓ and Enter would send it');
-    const fin = free.querySelector('.qp-ans-in');
-    fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
-    if (subSlotOf_(free).textContent) bad.push('typing alone put "' + subSlotOf_(free).textContent + '" on the card — typing is not a submission');
-    A['qp-send'](send);
-    if (subSlotOf_(free).textContent !== 'Sent' || free.querySelector('.qp-verdict').textContent !== 'Sent') bad.push('Send on a box nothing marks left the card at ' + JSON.stringify(subSlotOf_(free).textContent) + ' and the line at ' + JSON.stringify(free.querySelector('.qp-verdict').textContent) + ' — wanted "Sent" both');
-    fin.value = ''; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
-    A['qp-send'](send);
-    if (!/Write something first/.test(free.querySelector('.qp-verdict').textContent)) bad.push('Send on an empty box did not ask for an answer');
-    if (subSlotOf_(free).textContent !== 'Sent') bad.push('an empty Send changed the latest verdict to ' + JSON.stringify(subSlotOf_(free).textContent));
-  }
+  if (free.querySelector('[data-do="qp-send"]')) bad.push('a box with no scheme still draws a plain Send — a human never marks');
+  if (!free.querySelector('.qt-row [data-do="qp-ai"]')) bad.push('a box with no scheme has no AI Check in its tool row');
+  const fin = free.querySelector('.qp-ans-in');
+  fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (subSlotOf_(free).textContent) bad.push('typing alone put "' + subSlotOf_(free).textContent + '" on the card — typing is not a submission');
   /* NO CARD SAYS A DAY, anywhere: not the slot, not the old one. */
   if (d.querySelector('.qcard-done')) bad.push('a `.qcard-done` date slot is still drawn');
   [...d.querySelectorAll('.qcard-verdict')].forEach(s => { if (/\b\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|Done/.test(s.textContent)) bad.push('a card says a day: "' + s.textContent + '"'); });
@@ -17926,9 +17921,9 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
     if (m.length !== 1 || m[0].verdict !== 'ai:2/3' || m[0].answer !== 'because it is hot') bad.push('Mark with AI went up as ' + JSON.stringify(m) + ' — wanted one event, ai:2/3');
     const slot = subSlotOf_(ah.querySelector('.qcard') || ah);
     if (!slot || slot.textContent !== '2/3') bad.push('the card after Mark with AI says ' + JSON.stringify(slot && slot.textContent) + ' — wanted the AI’s 2/3');
-    /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE BOX KEEPS A SEND. */
+    /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE CHECK WAITS, unpressable -- no plain Send: a human never marks (round 3) */
     w.aiOff_('AI marking is switched off');
-    if (!ah.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('with AI marking switched off the worded box has nothing to send with');
+    if (ah.querySelector('.qp-ai [data-do="qp-send"]') || !ah.querySelector('.qp-ai-go[disabled]')) bad.push('with AI marking switched off the worded box got a plain Send, or its Check still presses');
   }
   /* A PRACTICAL'S WORKSHEET BOX: its own Send, `sent`, the slot on the key. */
   const sh = w.document.createElement('div');
@@ -18147,26 +18142,16 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   const pad = () => d.getElementById('kp');
   const press = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the pad'); };
   const kd = (el, k, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})));
-  /* A MATHS BOX WITH NO SCHEME: the plain Send beside it, and the gold key is that Send. */
+  /* A MATHS BOX WITH NO SCHEME (round 3): its Check is the AI's, never a plain Send; with AI marking off the gold key sends nothing for a person to mark */
   const fc = subDraw_(w, FREE);
   const fi = fc.querySelector('.kp-in');
-  if (!fi || !fc.querySelector('.qp-send[data-do="qp-send"]')) return bad.concat(['the maths box with no scheme drew no pad box or no plain Send — nothing to press']);
+  if (!fi || fc.querySelector('[data-do="qp-send"]') || !fc.querySelector('.qt-row [data-do="qp-ai"]')) return bad.concat(['the maths box with no scheme drew no pad box, a plain Send, or no AI Check']);
   fi.focus();
   press('4'); press('2');
   press('!done');
   await wait(60);
-  const f1 = items('q:Q-KP-FREE');
-  if (f1.length !== 1 || f1[0].answer !== '42' || f1[0].verdict !== 'sent') bad.push('the gold key on a maths box with no scheme sent ' + JSON.stringify(f1) + ' — wanted one submission, 42, sent (the review: 0 rows, and the pad went away)');
-  if ((fc.querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('after the gold key the box’s line says ' + JSON.stringify((fc.querySelector('.qp-verdict') || {}).textContent) + ' — wanted its verdict, Sent');
-  if (subSlotOf_(fc).textContent !== 'Sent') bad.push('after the gold key the card says ' + JSON.stringify(subSlotOf_(fc).textContent));
-  if (pad() && !pad().hidden) bad.push('the gold key sent and left the pad up');
-  /* AND ENTER ON A LAPTOP, the same act. */
-  fi.focus();
-  kd(fi, '3');
-  kd(fi, 'Enter');
-  await wait(60);
-  const f2 = items('q:Q-KP-FREE');
-  if (f2.length !== 2 || f2[1].answer !== '423') bad.push('Enter on a laptop in the same box sent ' + JSON.stringify(f2.map(i => i.answer)) + ' — wanted a second submission, 423');
+  if (items('q:Q-KP-FREE').some(i => i.verdict === 'sent')) bad.push('the gold key on a maths box with no scheme sent it to be marked by a person');
+  if (pad() && !pad().hidden) bad.push('the gold key left the pad up');
   /* TWO WORKSHEET BOXES SIDE BY SIDE: the key sends the box it is typing in, and only that one. */
   const sh = d.createElement('div');
   d.body.appendChild(sh);
@@ -18198,7 +18183,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
   const ei = eh.querySelector('.kp-in[data-kp-essay]');
   if (!ei) bad.push('the forty-mark English question drew no essay sheet — its "done" was NOT pressed');
   else {
-    if (!eh.querySelector('.qp-send[data-do="qp-send"]')) bad.push('with AI marking off the essay sheet has no Send of its own — it could never reach the account');
+    if (eh.querySelector('[data-do="qp-send"]') || !eh.querySelector('.qt-row .qp-ai-go')) bad.push('with AI marking off the essay sheet drew a plain Send, or no AI Check — a human never marks (round 3)');
     ei.focus();
     ['O', 'n', 'c', 'e'].forEach(c => kd(ei, c));
     press('!done');
@@ -18321,29 +18306,30 @@ check('submission: a typed draft the store refuses is not on the account until i
   if (need.length) return [need.join(', ') + ' not reachable — nothing was refused'];
   const bad = [];
   const c = ansCards_(w, 'R');
-  const k = 'ans:u:P7:' + c.words.key;
+  /* THE MATHS BOX (round 3): a box with no scheme is the AI's to mark, so the box with a scheme is the one sent here */
+  const k = 'ans:u:P7:' + c.maths.key;
   const real = w.Storage.prototype.setItem;
   w.Storage.prototype.setItem = function (key, v) {
     if (/^(ans|pad|draft):/.test(String(key))) throw new w.DOMException('The quota has been exceeded.', 'QuotaExceededError');
     return real.call(this, key, v);
   };
   try {
-    ansType_(w, c.ta(), 'because the heat spreads out');
-    if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('a typed draft the store refused says ' + JSON.stringify(c.saidFor(c.words)) + ' — it is on no device and on no account');
+    ansType_(w, c.kp(), '0.7');
+    if (c.saidFor(c.maths) !== 'Not saved — this browser is not keeping it') bad.push('a typed draft the store refused says ' + JSON.stringify(c.saidFor(c.maths)) + ' — it is on no device and on no account');
     if (w.keepAtRisk_().indexOf(k) === -1) bad.push('a typed draft the store refused is not counted as at risk: ' + JSON.stringify(w.keepAtRisk_()));
     const ev = new w.Event('beforeunload', { cancelable: true });
     w.dispatchEvent(ev);
     if (!ev.defaultPrevented) bad.push('leaving with a refused, unsent draft did not ask first');
     /* SENT: the account holds exactly this, so nothing is at risk and the line says where it went. */
-    const send = c.ta().closest('.qp-mark') && c.ta().closest('.qp-mark').querySelector('[data-do="qp-send"]');
-    if (!send) bad.push('the worded box has no Send — nothing to send it with');
+    const send = c.kp().closest('.qp-mark') && c.kp().closest('.qp-mark').querySelector('.qt-row [data-do="qp-check"]');
+    if (!send) bad.push('the maths box has no Check — nothing to send it with');
     else {
       send.click();
       await wait(60);
       if (rows.length !== 1) bad.push('Send went up ' + rows.length + ' time(s)');
       if (w.keepAtRisk_().indexOf(k) !== -1) bad.push('an answer the account holds, exactly as sent, is still counted as at risk');
-      if (c.saidFor(c.words) !== 'Sent to Ada’s account') bad.push('after Send the line says ' + JSON.stringify(c.saidFor(c.words)));
-      ansType_(w, c.ta(), 'because the heat spreads out evenly');
+      if (c.saidFor(c.maths) !== 'Sent to Ada’s account') bad.push('after Send the line says ' + JSON.stringify(c.saidFor(c.maths)));
+      ansType_(w, c.kp(), '0.75');
       if (w.keepAtRisk_().indexOf(k) === -1) bad.push('typed on after Send, the refused draft is counted as on the account again');
     }
   } finally { w.Storage.prototype.setItem = real; }
@@ -18676,7 +18662,7 @@ check('submission: before the payload lands, an essay and a worded box draw Mark
       const mark = card.querySelector('.qp-compose');
       const ai = mark && mark.querySelector('.qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
       if (on && (!ai || ai.disabled || send)) bad.push(what + ': wanted Mark with AI, pressable, and no plain Send');
-      if (!on && (ai || !send)) bad.push(what + ': wanted the plain Send and no Mark with AI');
+      if (!on && (send || !ai || !ai.disabled)) bad.push(what + ': wanted the AI Check, unpressable, and no plain Send — a human never marks (round 3)');
       if (!on && X === ESSAY && !/switched on yet/.test(card.parentNode.textContent)) bad.push(what + ': the sheet does not say why nothing marks it');
     }
     w.__t.USER(null);
@@ -18709,7 +18695,7 @@ check('submission: every send carries this device’s clock as it sends, so the 
 });
 
 /* ---------- "SENT", THEN A LETTER, AFTER AI MARKING WENT AWAY MID-VISIT (review of 9 Oct) ----------------------- */
-check('submission: after AI marking switches off, the plain Send says Sent, and the next letter takes it off like any verdict', async () => {
+check('submission: after AI marking switches off, the Check waits unpressable with no plain Send, and the line says why until the answer changes', async () => {
   const rows = [];
   const AIQ = { kind: 'question', key: 'q:Q-OFF-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
     row: { row_id: 'Q-OFF-AI', paper_id: 'P-OFF', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
@@ -18728,20 +18714,15 @@ check('submission: after AI marking switches off, the plain Send says Sent, and 
   ansType_(w, inp(), 'because it is hot');
   A['qp-ai'](h.querySelector('.qp-ai-go'));
   await wait(80);
-  const send = h.querySelector('.qp-ai [data-do="qp-send"]');
-  if (!send) return ['the server said ai-off and the box was left with no Send'];
+  /* ROUND 3: no plain Send takes the AI's place -- a human never marks -- and the Check stays, unpressable */
+  if (h.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('the server said ai-off and a plain Send took the AI Check\'s place');
+  if (!h.querySelector('.qp-ai-go[disabled]')) bad.push('after ai-off the AI Check still presses');
   if (!/switched on/.test(out())) bad.push('the line does not say AI marking is off: ' + JSON.stringify(out()));
   /* TYPING WHILE THE LINE STILL SAYS IT KEEPS IT — it is the reason there is no mark. */
   ansType_(w, inp(), 'because it is hot.');
   if (!/switched on/.test(out())) bad.push('a letter typed under "AI marking isn’t switched on" took it off');
-  A['qp-send'](send);
-  await wait(60);
-  if (out() !== 'Sent' || rows.length !== 1) bad.push('the plain Send after ai-off gave ' + JSON.stringify(out()) + ' and ' + rows.length + ' row(s) — wanted Sent and one');
-  ansType_(w, inp(), 'because it is hot. And');
-  if (out() === 'Sent') bad.push('a letter typed after "Sent" left "Sent" over an answer nobody sent (the review’s finding)');
+  if (rows.length) bad.push(rows.length + ' row(s) went up with nothing to mark them');
   if (saved() !== 'On this device until you send it') bad.push('the line under the box says ' + JSON.stringify(saved()));
-  ansType_(w, inp(), 'because it is hot.');
-  if (out() !== 'Sent') bad.push('typed back to the answer sent, the line says ' + JSON.stringify(out()) + ' — wanted Sent, the verdict of that answer');
   w.__t.USER(null);
   return bad;
 });
@@ -18938,10 +18919,10 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
   expect(['buzzer'], 'Send on a wrong order (' + w.ansRead_(w.__t.ansKey(ORD)) + ')');
 
-  /* ---- A BOX NOTHING MARKS: Sent, and silent. ---- */
+  /* ---- A BOX NO RULE MARKS (round 3: its Check is the AI's, never a plain Send): no verdict here, so silent. ---- */
   const free = subDraw_(w, FREE);
-  type(free, '42'); earTap_(rec, free.querySelector('.qp-send')); await wait(30);
-  expect([], 'the plain Send on a box with no scheme (sent)');
+  type(free, '42'); earTap_(rec, free.querySelector('.qt-row .is-submit')); await wait(30);
+  expect([], 'the AI\'s Check on a box with no scheme, with no mark back');
 
   /* ---- THE KEYPAD'S ✓ AND A LAPTOP'S ENTER: the box's own Check, called with no click. ---- */
   const keys = subDraw_(w, KEYS);
@@ -23728,7 +23709,7 @@ const ansCards_ = (w, tag) => {
   w.stuffItemsAll_ = () => (held() || []).concat([words, maths, pick]);
   const draw = () => {
     host.innerHTML = [words, maths, pick].map(x => '<div class="cardhost">' + w.questionCard_(x, 0) + '</div>').join('')
-      + w.__t.padWrap(pen, pen.diagram, '')
+      + w.__t.padCard(pen, pen.diagram, '')
       /* A PASSAGE TO RING WORDS IN, keyed as `circOf_` keys it. */
       + '<div class="qsheet-part is-text" data-circ="' + w.__t.padKey(pen) + ':words">'
       + w.circWords_('<p>The tall tree swayed.</p>', 0, (() => { try { return JSON.parse(w.localStorage.getItem(w.__t.padKey(pen) + ':words') || '[]'); } catch (e) { return []; } })()) + '</div>';
@@ -26190,7 +26171,7 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   if (slots() !== '_ _ _ _ _') bad.push('a fresh card\'s strip reads ' + slots());
   if (verdict() !== '') bad.push('no reserved verdict line under the items before marking — the verdict would arrive as a new line');
   const sendT = box().querySelector('.qp-order-send');
-  if (!sendT || !sendT.matches('.qp-mark > .tile:not(.is-send)[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark on the verdict line');
+  if (!sendT || !sendT.matches('.qp-mark > .qt-row > .tile:not(.is-send)[data-do="qp-order-send"]:last-child') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark, last in the part\'s tool row');
   /* THE QUESTION ABOVE IS NEVER REDRAWN -- the nodes, their markup, and the card's blocks. */
   const sheet = card.querySelector('.qsheet'), tags = card.querySelector('.qcard-tags');
   const sheetHtml = sheet.outerHTML, blocks = [...card.children].map(c => c.classList[0]).join(',');
@@ -27735,7 +27716,7 @@ check('one box per value: a counted rule, a pair and an open list each get their
 });
 
 /* ---------- A DRAWN ANSWER IS SENT: EVERY DRAWING-ONLY QUESTION HAS SEND, AND IT RECORDS A SUBMISSION (docs/history/362) ---------- */
-check('a drawn answer is sent: a made-up surface and a figure each have Send under the pen; nothing drawn says so; a drawing is recorded as sent', async () => {
+check('a drawn answer is never sent to a person: a made-up surface and a figure each have the pen and the AI\'s Check in their tool row; a drawing alone asks for the answer in the box', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True', kind: 'question', name: 'Draw', paper_id: 'DS', marks: '1', answer_type: 'drawing' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -27743,10 +27724,12 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
     R_({ row_id: 'DS-1', question: '1', html: '<p>Draw a kite</p>', answer: 'a kite', surface: 'blank' }),
     R_({ row_id: 'DS-2', question: '2', html: '<p>Draw a radius on the circle</p>', answer: 'a radius', diagram: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>' }),
   ];
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const { w } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !A['pad-send'] || !t.padKey) return ['questionCard_, padKey_ or the pad-send handler is not reachable — NOT checked'];
+  if (typeof w.questionCard_ !== 'function' || !A['qp-ai'] || !t.padKey) return ['questionCard_, padKey_ or the qp-ai handler is not reachable — NOT checked'];
+  /* ROUND 3 (the owner: "a human never marks"): the pen's own Send is gone */
+  if (A['pad-send']) bad.push('pad-send still has a handler — a drawing could be sent for a person to mark');
   t.STUFF().filters = [];
   const host = d.createElement('div');
   d.body.appendChild(host);
@@ -27754,47 +27737,91 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
     const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
     host.innerHTML = w.questionCard_(x, 0);
-    /* a made-up surface is the card's foot, so Send is in the pad; a figure among the words has it at the foot, under the words (381) */
-    const go = host.querySelector((id === 'DS-1' ? '.qpad ' : '.qcard > ') + '.qpad-send [data-do="pad-send"]');
-    if (!go) { bad.push(id + ': no Send under the pen — drawn, and nothing to submit'); continue; }
-    A['pad-send'](go);
-    const out = () => host.querySelector('.qpad-send .qp-verdict').textContent;
-    if (out() !== 'Draw your answer first') bad.push(id + ': Send with nothing drawn says ' + JSON.stringify(out()));
+    if (!host.querySelector('.qpad .qpad-art > svg')) bad.push(id + ': a drawn part with nothing to draw on');
+    if (host.querySelector('[data-do="pad-send"]')) bad.push(id + ': still draws a Send for a person');
+    const go = host.querySelector('.qt-row .qp-ai-go[data-do="qp-ai"]');
+    if (!go) { bad.push(id + ': no AI Check in its tool row — nothing marks it'); continue; }
     try { w.localStorage.setItem(t.padKey(x), JSON.stringify([[30, 30, 120, 90]])); } catch (e) {}
     host.innerHTML = w.questionCard_(x, 0);
-    A['pad-send'](host.querySelector('.qpad-send [data-do="pad-send"]'));
-    if (!/^(Sent|Kept on this device)/.test(out())) bad.push(id + ': Send after drawing says ' + JSON.stringify(out()));
+    A['qp-ai'](host.querySelector('.qt-row .qp-ai-go'));
+    const out = (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';
+    if (!/Write your answer in the box too/.test(out)) bad.push(id + ': Check on a drawing with an empty box says ' + JSON.stringify(out) + ' — wanted it to ask for the answer in the box');
     const latest = w.subLatest_(t.ansKey(x));
-    if (!latest || latest.v !== 'sent' || !/^drawing · 1 mark/.test(latest.a)) bad.push(id + ': the drawing is not recorded as a submission waiting to be marked (' + JSON.stringify(latest) + ')');
-    host.innerHTML = w.questionCard_(x, 0);
-    if (!/^(Sent|Kept)/.test(out()) && out() !== 'Sent — waiting to be marked') bad.push(id + ': drawn again the Send line says ' + JSON.stringify(out()));
+    if (latest && latest.v === 'sent') bad.push(id + ': the drawing was recorded as sent, waiting for a person');
     try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
   }
   host.remove();
   return bad;
 });
 
+/* ---------- THE TOOL ROW'S GRID, LAYER, LINE AND SHEET (Review A of round 3) ---------- */
+check('a part\'s grid comes back after a reload and its first Grid tap on a blank surface gives axes; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked; the formula sheet is the brand tab\'s', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-GR', kind: 'document' }),
+    R_({ row_id: 'GR-1', question: '1', html: '<p>Work out 3 + 4</p>', answer: '7', accept: '7' }),
+    R_({ row_id: 'GR-2', question: '2', subject: 'English', html: '<p>Which prefix could be added to all three words?</p>', answer: 're', accept: 're | re-' }),
+  ];
+  const pay = payload();
+  pay.brand = Object.assign({}, pay.brand || {}, { formula_sheet: 'Speed: s = d / t\nArea of a rectangle: A = lw' });
+  const { w } = boot({ payload: pay, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['qt-grid'] || !A['qt-pen'] || !A['qt-panel']) return ['questionCard_ or the qt-grid / qt-pen / qt-panel handlers are not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
+  const x1 = item('GR-1');
+  if (!x1) { host.remove(); return ['GR-1 did not reach Find']; }
+  host.innerHTML = w.questionCard_(x1, 0);
+  const how = (host.querySelector('.qt-how') || {}).textContent || '';
+  if (how !== 'Marked against the accepted answers') bad.push('the line under Check says ' + JSON.stringify(how));
+  A['qt-pen'](host.querySelector('[data-do="qt-pen"]'));
+  if (!host.querySelector('.qpad .qsurf, .qpad svg line.grid')) bad.push('the first Pen tap did not lay a grid surface');
+  A['qt-grid'](host.querySelector('[data-do="qt-grid"]'));
+  if (!host.querySelector('.qpad svg line.axis')) bad.push('the first Grid tap on a blank grid surface changed nothing — wanted axes');
+  /* A RELOAD: the visit's own state gone, the part's record kept */
+  t.qtForget();
+  host.innerHTML = w.questionCard_(x1, 0);
+  if (!host.querySelector('.qpad svg line.axis')) bad.push('after a reload the axes chosen are not drawn — the surface did not reopen');
+  const g = host.querySelector('[data-do="qt-grid"]');
+  if (!g || g.getAttribute('aria-pressed') !== 'true') bad.push('after a reload the Grid tile is not lit');
+  A['qt-panel'](host.querySelector('[data-do="qt-panel"][data-tool="formula"]'));
+  const sheet = (host.querySelector('.qt-formula') || {}).textContent || '';
+  if (!/Speed/.test(sheet) || !/s = d \/ t/.test(sheet) || /Pythagoras/.test(sheet)) bad.push('the formula sheet is not the brand tab\'s: ' + JSON.stringify(sheet.slice(0, 80)));
+  const layer = id => { host.innerHTML = w.questionCard_(item(id), 0); const i = host.querySelector('.qp-ans-in'); return i && i.getAttribute('data-kp'); };
+  if (layer('GR-2') !== 'words') bad.push('a prefix answer ("re | re-") opens on ' + layer('GR-2') + ', wanted the letters');
+  if (layer('GR-1') !== 'maths') bad.push('a number answer ("7") opens on ' + layer('GR-1') + ', wanted the maths');
+  host.remove();
+  return bad;
+});
+
 /* ---------- AND OVER THE WHOLE LIBRARY: EVERY QUESTION ANSWERED BY DRAWING ALONE CAN BE SENT (docs/history/362) ---------- */
-check('every question in the library answered by drawing alone has a Send or a Check under its pen', async () => {
+check('every drawn part in the library has its pen and one Check in its tool row, and none is sent to a person', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
-  if (typeof w.questionCard_ !== 'function' || typeof w.answerKinds_ !== 'function') return ['questionCard_ or answerKinds_ not reachable — NOT checked'];
+  if (typeof w.questionCard_ !== 'function' || typeof w.qtDrawn_ !== 'function' || typeof w.workRow_ !== 'function') return ['questionCard_, qtDrawn_ or workRow_ not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
   let n = 0;
   for (const x of w.stuffItemsAll_()) {
     if (!x || x.kind !== 'question') continue;
-    const k = w.answerKinds_(x);
-    if (!k.draw || k.value) continue;
+    if (!w.qtDrawn_(w.workRow_(x))) continue;
     n++;
     host.innerHTML = w.questionCard_(x, 0);
-    if (!host.querySelector('.qpad-send [data-do="pad-send"], .qpad-send [data-do="pad-check"]')) bad.push((x.row && x.row.row_id) + ': drawn, with no Send or Check');
+    const go = host.querySelectorAll('.qt-row .is-submit');
+    /* a passage to ring words in (`surface: text`) is drawn on in its words, not under a pen */
+    if (!host.querySelector('.qpad, [data-circ]') || go.length !== 1 || host.querySelector('[data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with ' + (host.querySelector('.qpad, [data-circ]') ? '' : 'no pen, ') + go.length + ' Checks' + (host.querySelector('[data-do="pad-send"]') ? ' and a Send for a person' : ''));
   }
   host.remove();
-  if (n < 100) bad.push('only ' + n + ' drawing-only questions were found — wanted the library\'s hundreds');
+  if (n < 100) bad.push('only ' + n + ' drawn parts were found — wanted the library\'s hundreds');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 20).concat(bad.length > 20 ? ['… and ' + (bad.length - 20) + ' more'] : []);
 });
 
@@ -27825,6 +27852,8 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   host.remove();
   if (n < 1300) bad.push('only ' + n + ' Corbettmaths primary parts reached Find — wanted 1358');
   if (later > 4) bad.push(later + ' parts are typed with nothing to mark them by machine — 4 were known (362)');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
@@ -27897,8 +27926,8 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   let waiting = 0;
   for (const x of all) {
     if (!x || x.kind !== 'question' || !x.row || !inSets(x.row)) continue;
-    const k = w.answerKinds_(x);
-    if (!k.draw || k.value) continue;
+    /* A DRAWN PART NO TYPED RULE MARKS (round 3: `qtDrawn_` and the part's marker, not `answerKinds_`) */
+    if (!w.qtDrawn_(w.workRow_(x)) || ['draw', 'ai'].indexOf(w.markerOf_(x).kind) < 0) continue;
     /* A PENDING ROW WITHOUT ITS WORDS HERE (a fresh clone, 411) has no drawn answer to Check yet: not this journey's subject. */
     if (/^true$/i.test(String(x.row.lib_pending || '')) && !String(x.row.draw_answers || x.row.drawAnswer || x.drawAnswer || '').trim()) continue;
     host.innerHTML = w.questionCard_(x, 0);
@@ -27925,11 +27954,13 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   host.remove();
   if (sets.cbm < 72) bad.push('only ' + sets.cbm + ' Corbettmaths drawn parts are marked by geometry — wanted 72');
   if (sets.gcse < 74) bad.push('only ' + sets.gcse + ' GCSE Maths drawn parts are marked by geometry — wanted 74');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
 /* ---------- A DRAWN PART WHOSE FIGURE IS ON ITS STEM DRAWS ON IT IN PLACE (docs/history/381): Metric Units Q1, by hand ---------- */
-check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'s words on one card, one figure, no box; an arrow at 450 g is Correct on Check; part b is a box under its own words and nothing for the drawing', async () => {
+check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'s words on one card, one figure, its one box; an arrow at 450 g is Correct on Check; part b is a box under its own words and nothing for the drawing', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
@@ -27952,7 +27983,8 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   const text = card.textContent.replace(/\s+/g, ' ');
   const sAt = text.indexOf('A can of beans'), aAt = text.indexOf('Draw an arrow');
   if (sAt < 0 || aAt < 0 || sAt > aAt) bad.push('(a) the card does not read stem, then the part: ' + text.slice(0, 160));
-  if (host.querySelector('.qp-ans-in, .qp-ans, .kp, [data-do="q-fig"]')) bad.push('(a) has a box, a keypad or a Figure tile');
+  /* ROUND 3: the one answer box every part has, and still no Figure tile */
+  if (host.querySelectorAll('.qp-ans-in').length !== 1 || host.querySelector('[data-do="q-fig"]')) bad.push('(a) has ' + host.querySelectorAll('.qp-ans-in').length + ' answer boxes (wanted the one), or a Figure tile');
   const checks = host.querySelectorAll('[data-do="pad-check"]');
   if (checks.length !== 1) bad.push('(a) has ' + checks.length + ' Check tiles');
   /* Check is at the foot, after the part's words, as every part's is */
@@ -27985,11 +28017,13 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   if (bw && box && !(bw.compareDocumentPosition(box) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('(b) its box is not under its words');
   if (host.querySelectorAll('[data-do="qp-check"]').length !== 1) bad.push('(b) wants one Check');
   host.remove();
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad;
 });
 
 /* ---------- AND EVERY PART IN THE LIBRARY THAT DRAWS ON ITS STEM'S FIGURE: one figure, its pen; no box unless it is marked by one; Check at the foot (381) ---------- */
-check('every part that draws on its stem\'s figure has exactly that one figure on its card, under its pen, no box unless its answer is typed, one Check at the foot, and the other parts\' ink faint under its own', async () => {
+check('every part that draws on its stem\'s figure has exactly that one figure on its card, under its pen, one tool row, one Check at the foot, and the other parts\' ink faint under its own', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
@@ -28010,9 +28044,9 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     const svgs = [...host.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child')];
     if (svgs.length !== 1) bad.push(id + ': ' + svgs.length + ' figures on its card');
     else if (!svgs[0].closest('.qpad')) bad.push(id + ': its figure is not under its pen');
-    const k = w.answerKinds_(x);
-    if (!k.value && host.querySelector('.qp-ans-in, .qp-ans, .qp-cell')) bad.push(id + ': answered by drawing, and shows a box');
-    const marks = host.querySelectorAll('[data-do="pad-check"], [data-do="pad-send"], [data-do="qp-check"], [data-do="qp-rule"], [data-do="qp-cells-check"]');
+    /* ROUND 3: one tool row, one Check last in it, whatever marks the part */
+    if (host.querySelectorAll('.qt-row').length !== 1) bad.push(id + ': ' + host.querySelectorAll('.qt-row').length + ' tool rows');
+    const marks = host.querySelectorAll('.qt-row .is-submit');
     if (marks.length !== 1) bad.push(id + ': ' + marks.length + ' Check tiles');
     else if (marks[0].closest('.qpad')) bad.push(id + ': Check is inside the pen, not at the foot');
     if ([...host.querySelectorAll('[data-do="q-fig"]')].length && (w.figsBefore_(x) || []).some(f => f.html.indexOf(p.svg) >= 0)) bad.push(id + ': the Figure tile offers the figure it draws on');
@@ -28040,6 +28074,8 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
   if (n < 80) bad.push('only ' + n + ' parts draw on a stem\'s figure — wanted the library\'s 82');
   if (carried < 35) bad.push('only ' + carried + ' carry their stem onto the card — wanted the 39 that come first');
   if (under < 40) bad.push('only ' + under + ' showed the other parts\' ink under their own');
+  /* THE WHOLE LIBRARY'S WINDOW LET GO, so the journeys after it in the same part have the heap (each card carries a tool row) */
+  try { w.close(); } catch (e) {}
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
@@ -28107,7 +28143,7 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   const host = d.createElement('div');
   d.body.appendChild(host);
   const tileOf = x => { host.innerHTML = w.stuffCard(x); return host.querySelector('[data-do="read-aloud"]'); };
-  /* EVERY QUESTION HAS IT SINCE 457 (the one toolkit, `qToolkit_`); content cards keep the primary rule (394) */
+  /* EVERY QUESTION HAS IT IN ITS TOOL ROW (round 3, qtools.js); content cards keep the primary rule (394) */
   if (!tileOf(gcse)) bad.push('a GCSE question has no Read aloud tile — every question has it (457)');
   const ct = all.filter(x => x.kind === 'content');
   const ctKs2 = ct.find(x => /KS2/.test(x.level || '') || /KS2/.test(x.keystage || '')), ctGcse = ct.find(x => x.level === 'GCSE');
@@ -29253,7 +29289,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof w.qToolkit_ !== 'function' || !A['q-mag'] || !A['q-lock'] || !t.padlock) return ['qToolkit_, the q-mag or q-lock handler, or PADLOCK is not reachable — NOT checked'];
+  if (typeof w.qtRow_ !== 'function' || !A['q-mag'] || !A['q-lock'] || !t.padlock) return ['qtRow_, the q-mag or q-lock handler, or PADLOCK is not reachable — NOT checked'];
   /* NO ZOOM SHEET AND NO FIGURE TILE ANY MORE (463) */
   ['q-zoom', 'q-zoom-fig', 'q-zoom-by', 'q-fig', 'ins-show'].forEach(a => { if (A[a]) bad.push(a + ' still has a handler -- it went in 463'); });
   t.STUFF().filters = [];
@@ -29280,12 +29316,12 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   }
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = w.stuffCard(pick.drawn);
-  const tools = [...host.querySelectorAll('[data-do="pad-tool"]')].map(e => e.getAttribute('data-tool'));
-  if (tools.join() !== 'pen,ruler,compass,protractor') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, compass, protractor');
+  const tools = [...host.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(e => e.getAttribute('data-tool'));
+  if (tools.join() !== 'pen,ruler,protractor,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, protractor, compass');
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
   host.innerHTML = w.stuffCard(pick.typed);
-  const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
-  if (meas.join() !== 'protractor,ruler') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
+  const meas = [...host.querySelectorAll('.q-meast')].map(e => e.getAttribute('data-tool'));
+  if (meas.join() !== 'ruler,protractor') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
   /* THE MAGNIFIER (463): on, a mouse over the page carries a 2.5x copy of it, figure and all; a held finger brings it up above the finger and lifting puts it away */
   const ptr = (type, o) => { const e = new w.Event(type, { bubbles: true, cancelable: true }); Object.keys(o).forEach(k => Object.defineProperty(e, k, { value: o[k] })); return e; };
   host.className = 'page';
@@ -29433,7 +29469,7 @@ check('a twin only: a question whose words came without its drawing shows its PN
       const fig = host.querySelector('.qsheet figure');
       if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in the figure box');
       if (!host.querySelector('[data-do="q-mag"]')) bad.push(x.row.row_id + ': the page has no Magnifier to see the twin bigger');
-    } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="pad-tool"][data-tool="pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
+    } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="qt-pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
   });
   return bad;
 });

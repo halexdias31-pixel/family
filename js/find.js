@@ -4447,6 +4447,7 @@ function choiceBox_(x) {
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
   /* SETTLED (`is-done`) ONLY WHEN RIGHT; a miss (`is-miss`) stays tappable so the child picks again and is marked again (385). */
+  /* THE MARK IS LAID OUT AS THE TYPED BOX'S (`qp-compose`): row, line, open panel and photos each a full line, never squeezed onto one (Review B) */
   return `<div class="qp-ans qp-choices${ok ? ' is-done' : done ? ' is-miss' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
     ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
@@ -4460,12 +4461,12 @@ function choiceBox_(x) {
       return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
-  </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
+  </div><div class="qp-mark qp-compose${done ? (ok ? ' is-right' : ' is-near') : ''}">${qtRow_(x)}${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${done
       /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: § */
       ? (ok ? 'Correct' : 'Not yet — have another go')
       : ''}</span>
-  </div>` : ''}
+  </div>
   <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>`;
 }
 
@@ -4543,7 +4544,6 @@ function orderBox_(x) {
   const n = x.choices.length;
   const seq = orderSeq_(ansRead_(k), n);
   const said = orderSay_(seq);
-  const ways = orderWays_(x);
   /* THE QUESTION'S OWN WORDS FOR ITS ENDS, and a neutral pair where the row has none --
      `check-library.js` fails such a row, and the box still has to make sense while it does. */
   const ends = (x.orderEnds || []).length === 2 ? x.orderEnds : ['first', 'last'];
@@ -4572,16 +4572,15 @@ function orderBox_(x) {
   }).join('');
   /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already there and marking moves nothing (261). § */
   const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
-  const send = ways.length ? checkTile_({ act: 'qp-order-send', cls: 'qp-order-send' }) : '';
   /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over the slots, one at each edge with an arrow between, at the § */
   const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
   return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
     <div class="qp-slots" role="group" style="--qp-ch:${wide}" aria-label="${esc('Your order, ' + ends[0] + ' to ' + ends[1])}">
       <div class="qp-ends" aria-hidden="true"><span class="qp-end">${esc(word(ends[0]))}</span><span class="qp-way"></span><span class="qp-end">${esc(word(ends[1]))}</span></div>${slots}
     </div>
-    <div class="qp-items">${items}</div>
-    <div class="qp-mark${cls}">
-      <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>${clear}${send}
+    <div class="qp-items">${items}<span class="tile-row qp-order-tiles">${clear}</span></div>
+    <div class="qp-mark qp-compose${cls}">${qtRow_(x)}${workStrip_(x)}
+      <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>
     </div>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>`;
@@ -4794,7 +4793,7 @@ function cellsBox_(x) {
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${measTiles_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
+    ${qtRow_(x)}${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4938,62 +4937,53 @@ function ansBox_(x) {
   if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
   if (cellsOf_(x).length) return cellsBox_(x);
   const k = ansKey_(x);
-  /* MARKABLE ONLY WHERE `accept` SAYS SO. § */
-  const can = String(x && x.accept || '').trim();
-  /* EVERY ANSWER IS TYPED ON THE SITE'S OWN PAD, a maths one opening on the maths keys and a worded one on the letters. § */
+  const m = markerOf_(x);
+  const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
+  const rule = m.kind === 'words' ? String(x.markWords || '').trim() : '';
+  const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
+  /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
-  /* THE SIGNS ROW GOES BY THE SCHEME, WHATEVER KIND OF BOX IT IS. § */
-  const signs = (kpSigns_(x) ? 1 : 0) | (kpVec_(x) ? 2 : 0);
-  /* NO CAPTION OVER THE BOX. § */
-  /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
-  const fig = measTiles_(x);
-  /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
-  const rule = can ? '' : String(x && x.markWords || '').trim();
-  const aiNow = can ? '' : aiTile_(x);
-  /* A RULE MARKS FIRST; the AI tile stays hidden until the rule cannot give every mark (`qp-rule`). */
-  const ai = rule && aiNow ? `<span class="qp-ai-later" hidden>${aiNow}</span>` : aiNow;
-  const send = can ? checkTile_({ act: 'qp-check', cls: 'qp-check' })
-    : rule ? checkTile_({ act: 'qp-rule', cls: 'qp-check' }) + ai
-    : ai || subSendTile_();
+  /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
+  const ai = m.kind === 'ai' || m.kind === 'words' ? aiTile_(x) : '';
+  const later = m.kind === 'words' && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
-  /* A PHOTO OF THE WORKING (501, working.js): its tile in this row, its photos in a strip under the box. */
-  const wk = typeof workTile_ === 'function' ? workTile_(x) : '', ws = wk && typeof workStrip_ === 'function' ? workStrip_(x) : '';
-  /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
-  /* THE REVIEW OF 9 OCT ADDED TWO THINGS TO THIS ROW. § */
-  /* AND SINCE 9 OCT (note 308) THE SHEET IS SENT LIKE EVERY OTHER BOX: § */
+  const ws = workStrip_(x);
+  const row = qtRow_(x);
+  /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
+  const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
+  const isAi = m.kind === 'ai' || (m.kind === 'words' && ai);
+  const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
+  const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
+  /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
   if (ansEssay_(x)) {
-    const v = val;
-    const note = ai || can ? '' : aiWhyNot_(x);
-    const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
-    const said = subBoxSay_(k, v);
+    const note = m.kind === 'ai' && !ai ? aiWhyNot_(x) : '';
+    const kept = isAi && typeof aiKeptView_ === 'function' ? aiKeptView_(k, val) : null;
+    const said = subBoxSay_(k, val);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${fig}${send}${wk}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
-      <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
-    const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
-    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
-    ${sheet}${foot}${ws}
-    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>` : ''}
+    return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
+    <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
+    <p class="qp-words">${esc(kpWordsSay_(kpWordCount_(val)))}</p>
+    ${row}${later}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${ai ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
+  </div>${isAi ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
   const many = can ? multiOf_(x) : null;
-  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}${wk}</div>`
+  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, 3)}</div>`
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${send}${wk}</div>`;
-  if (!send) return `<div class="qp-compose">${bar}${ws}
-    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+    ${kpField_(k, val, maths ? 'maths' : 'words', 3)}
+  </label></div>`;
+  const note = m.kind === 'ai' && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
-  const said = subBoxSay_(k, val);
-  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}${rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
-    ${bar}${ws}
-    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
+  const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
+  return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
+    ${bar}${row}${later}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
+  </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
 }
-/* THE PLAIN SEND, for somebody signed in -- see `ansBox_`. The Check tile every Send on a question's
-   pages is, under its own name, so nothing that runs Check runs it. */
+/* THE PLAIN SEND, for a guide's slot only (`guideBox_`): a question part is always marked, by rule or by AI (`markerOf_`). */
 function subSendTile_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
   return checkTile_({ act: 'qp-send', cls: 'qp-send' });
@@ -5101,60 +5091,30 @@ function padAdopt_(k, bare) {
   } catch (e) {}
 }
 
-/* WHICH QUESTIONS GET ONE. § */
-const PAD_TYPES = { drawing: 1, annotate: 1 };
-const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toLowerCase()];
-
-/* THE PICTURE IT DRAWS ON, WHICH IS NOT ALWAYS THE QUESTION'S OWN. § */
+/* THE PICTURE IT DRAWS ON: its own figure, else its stem's, else a grid -- for a drawn part (qType_) at once, for any
+   other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
+/* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
+const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
+const padDrawn_ = x => !!x && typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && qtDrawn_(workRow_(x)) && !padPicked_(x);
 function padSource_(x) {
   if (!x) return null;
-  /* A ROW WITH OPTIONS IS ANSWERED BY CHOOSING ONE, and is given nothing to draw on (18 Oct, 356): § */
-  if (Array.isArray(x.choices) && x.choices.length && (typeof ruleOn_ !== 'function' || ruleOn_('pen-chosen'))) return null;
-  /* AND A ROW WITH CELLS IS ANSWERED IN ITS TABLE (`cellsTable_`), so nothing to draw on either. */
-  if (String(x.cells || '').trim()) return null;
-  const surf = padSurface_(x);
-  if (!padWanted_(x) && (!surf || surf === 'text')) return null;
+  /* a passage to ring words in is the part's own surface; its Pen still opens a grid below it */
+  const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
+  /* a grid chosen and saved reopens the surface it was chosen on, as saved ink does (Review A) */
+  const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x) || (x.kind === 'question' && typeof qtGridOf_ === 'function' && !!qtGridOf_(x)));
+  if (said === 'text' && !opened) return null;
+  if (!padDrawn_(x) && !surf && !opened) return null;
+  if (said === 'text') return { svg: surfaceSvg_((typeof qtGridOf_ === 'function' && qtGridOf_(x)) || 'grid'), from: 'surface', surface: 'grid' };
   if (x.diagram) return { svg: x.diagram, from: 'part' };
   const stems = (x.stems || []).filter(p => p && p.diagram);
   if (stems.length === 1) return { svg: stems[0].diagram, from: stems[0] };
-  if (surf && surf !== 'text') return { svg: surfaceSvg_(surf), from: 'surface', surface: surf };
-  return null;
+  const kind = (typeof qtGridOf_ === 'function' && qtGridOf_(x)) || surf || 'grid';
+  return { svg: surfaceSvg_(kind), from: 'surface', surface: kind };
 }
-
-/* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH § */
-function answerKinds_(x) {
-  const draw = !!padSource_(x);
-  /* key words mark it too (`mark_words`): the box is what is marked, the pen is the working (366) */
-  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || !!String((x && x.markWords) || '').trim() || cellsOf_(x).length > 0 };
-}
-
-/* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH § */
-function padTools_(x) {
-  /* IN ONE ORDER WHATEVER ORDER THEY WERE FOUND IN, so the bar reads Pen, Ruler, Compass on every
-     card and a thumb learns where each one is. */
-  const ORDER = ['pen', 'ruler', 'compass', 'protractor'];
-  const want = { pen: 1 };
-  const add = t => { want[t] = 1; };
-  const out = () => ORDER.filter(t => want[t]);
-  if (!x) return out();
-  const needs = (Array.isArray(x.needs) ? x.needs : String(x.needs || '').split(','))
-    .map(v => String(v == null ? '' : v).trim().toLowerCase()).filter(Boolean);
-  needs.forEach(v => {
-    if (/geometry set|maths set|mathematical instruments/.test(v)) { add('ruler'); add('compass'); add('protractor'); }
-    if (/ruler|straight ?edge/.test(v)) add('ruler');
-    if (/compass/.test(v)) add('compass');
-    if (/protractor|angle measurer/.test(v)) add('protractor');
-  });
-  const words = [x.lead, x.html].concat((x.stems || []).map(p => p && p.html))
-    .map(h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' '))
-    .join(' ').replace(/\s+/g, ' ').toLowerCase().replace(/plotting compass(es)?/g, ' ');
-  if (/\b(use|using|with) (a |an |your )?ruler\b|\bruler and (a pair of )?compasses\b|\bstraight ?edge\b/.test(words)) add('ruler');
-  if (/\bcompasses\b/.test(words)) add('compass');
-  const built = /\bconstruct(ion|ions|ed|ing)?\b/.test(words)
-    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?([\w-]+ )?([\w-]+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument|frequency)s?\b/.test(words);
-  if (built || /\b(locus|loci|bisector|bisect)\b/.test(words)) { add('ruler'); add('compass'); }
-  if (/\bprotractor\b|\bangle measurer\b/.test(words)) add('protractor');
-  return out();
+/* MARKS ALREADY SAVED keep the pen open across a reload; asked of the raw store, never parsed, as it runs for every part. */
+function padHasInk_(x) {
+  if (!x || x.prefix || !x.key || !(typeof whoIs_ === 'function')) return false;
+  try { const v = typeof ansValue_ === 'function' ? ansValue_(padKey_(x)) : null; return !!v && v !== '[]'; } catch (e) { return false; }
 }
 
 /* THROUGH `ansValue_`, THE WRITER'S OWN READER (js/answers.js), and not `localStorage` beside it. § */
@@ -5253,30 +5213,12 @@ function padAspect_(x, svg) {
 /* AND WHAT A PAD ELEMENT SAYS IT IS. */
 const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
-/* ---------- THE PEN'S BAR IS A ROW OF TILES § */
-/* ---------- AND WHAT THE PEN DRAWS WITH, WHERE THE QUESTION ASKS FOR MORE THAN A PEN § */
-const PAD_TOOL_FACE = {
-  pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
-  ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
-  compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
-  protractor: { icon: 'protractor', label: 'Protractor', note: 'on the page: drag it, turn it' },
-};
-const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
-  on: on, pressed: on }, PAD_TOOL_FACE[t]));
-/* AND A RULER ON EVERY GRID (357): § */
-/* AND ON A QUESTION, EVERY INSTRUMENT, ALWAYS (457): the toolkit says so (`qToolkit_`); a row's words or `needs` can only add. */
-const padToolsOf_ = (x, svg) => {
-  const t = padTools_(x).filter(k => PAD_TOOL_FACE[k]);
-  if (t.indexOf('ruler') === -1 && svg && padGrid_(svg)) t.splice(1, 0, 'ruler');
-  const kit = qToolkit_(x);
-  if (kit) kit.pen.forEach(k => { if (PAD_TOOL_FACE[k] && t.indexOf(k) === -1) t.push(k); });
-  return ['pen', 'ruler', 'compass', 'protractor'].filter(k => t.indexOf(k) !== -1);
-};
+/* ---------- THE PEN'S BAR IS UNDO AND CLEAR; the instruments are in the part's tool row (qtools.js). */
+/* EVERY PAD HOLDS EVERY INSTRUMENT (round 3): they are chosen from the part's one tool row (qtools.js), never from its words. */
+const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
+const padToolsOf_ = () => PAD_TOOLS.slice();
 
-/* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. § */
-/* THE PROTRACTOR IS LIT WHILE IT LIES ON THE PAGE, beside whichever tool draws (458): it is put down, not drawn with. */
 const padBar_ = (pen, tools, tool, k) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === 'protractor' ? padProtOn_(k) : t === tool)).join('')}</span>` : ''}
       <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
@@ -5313,9 +5255,11 @@ function padWrap_(x, svg, foot) {
   const tool = held && held !== 'protractor' && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
+  /* THE GRID TOOL over a figure lies on it as a light grid; on a made-up surface it is the surface (qtools.js) */
+  const gr = x && x.key && !/class="qsurf/.test(svg) && typeof qtGridOf_ === 'function' ? qtGridOf_(x) : '';
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
     under.length ? ` data-under="${esc(under.map(padKey_).join(' '))}"` : ''}${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
-    <div class="qpad-art">${svg}
+    <div class="qpad-art${gr ? ' qt-over-' + gr : ''}">${svg}
       <svg class="qpad-ink" data-noswipe viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         ${under.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
@@ -5328,8 +5272,6 @@ function padWrap_(x, svg, foot) {
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
-    ${/* CHECK IS AT THE CARD'S FOOT, UNDER THE PART'S OWN WORDS, where every other part has it (381): here only for a pad that is itself the foot */
-          foot ? padSendRow_(x, marks) : ''}
   </div>`;
 }
 
@@ -5343,21 +5285,8 @@ function padSay_(marks) {
   for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
   return 'drawing \u00b7 ' + n + ' mark' + (n === 1 ? '' : 's') + ' \u00b7 #' + (h >>> 0).toString(36);
 }
-/* ONLY UNDER A QUESTION ANSWERED BY DRAWING ALONE; one with a value as well is sent by its box. */
-function padSendRow_(x, marks) {
-  if (!x || x.prefix || !x.key || answerKinds_(x).value) return '';
-  const k = ansKey_(x), said = subBoxSay_(k, padSay_(marks));
-  /* WITH ITS ANSWER AS GEOMETRY (`draw_answer`, 366) it is marked here, on Check, like a typed one; without, it is sent */
-  const geo = String(x.drawAnswer || '').trim();
-  const tile = geo ? checkTile_({ act: 'pad-check', cls: 'qp-check' }) : checkTile_({ act: 'pad-send', cls: 'qp-check' });
-  return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}" data-pad="${esc(padKey_(x))}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
-      <div class="tile-row">${tile}</div>
-      <span class="qp-verdict" role="status" aria-live="polite">${esc(padSaid_(said.text))}</span>
-    </div>`;
-}
-/* a drawing's verdict line: marks counted by the drawing say so, and a sent one is waiting */
-const padSaid_ = t => t === 'Sent' ? PAD_SENT_SAY : String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');
-const PAD_SENT_SAY = 'Sent \u2014 waiting to be marked';
+/* a drawing's verdict line: marks counted by the drawing say so */
+const padSaid_ = t => String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');
 /* THE PAD A CHECK ROW MARKS: its own card's, by key -- the row stands under the words, not inside the pad (381) */
 function padOfRow_(row) {
   if (!row) return null;
@@ -5369,18 +5298,6 @@ function padOfRow_(row) {
   return (card && [].find.call(card.querySelectorAll('.qpad[data-k]'), mine))
     || [].find.call(document.querySelectorAll('.qpad[data-k]'), mine) || null;
 }
-on('pad-send', el => {
-  const row = el.closest('.qpad-send'), pad = padOfRow_(row);
-  const out = row && row.querySelector('.qp-verdict');
-  if (!row || !pad || !out) return;
-  const say = padSay_(padRead_(pad.getAttribute('data-k')));
-  if (!say) { out.textContent = 'Draw your answer first'; return; }
-  const signed = typeof whoIs_ === 'function' && !!whoIs_();
-  const e = subRecord_(row.getAttribute('data-k'), say, 'sent');
-  out.textContent = !e ? 'Could not send it \u2014 try again' : signed ? PAD_SENT_SAY : 'Kept on this device \u2014 sign in to send it for marking';
-  if (typeof answersPush_ === 'function') answersPush_(true);
-});
-
 /* ---------- A DRAWN ANSWER IS MARKED BY ITS GEOMETRY (366) */
 /* The figure as numbers: its viewBox, its ruled grid (`padGrid_`) and its numeric labels, which give an axis its scale. */
 function drawFig_(svg) {
@@ -6075,8 +5992,11 @@ function padArm_(pad, on) {
   pad.classList.toggle('is-drawing', !!on);
   /* AND THE TOOL IN HAND, lit whether or not this pad was the last touched -- the rule `padBar_` draws by. */
   const tool = padToolNow_(pad);
-  pad.querySelectorAll('.qpad-tool').forEach(t => {
-    const lit = t.getAttribute('data-tool') === tool;
+  /* the tool in hand lit in the card's tool row; the protractor is lit while it lies on the page (458) */
+  const card = pad.closest('.qcard'), k = pad.getAttribute('data-k');
+  if (card) card.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+    const id = t.getAttribute('data-tool');
+    const lit = !!on && (id === 'protractor' ? padProtOn_(k) : id === tool);
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
@@ -6096,7 +6016,7 @@ const PAD_CLEARED_MARK = new Map();
 function padToolNow_(pad) {
   const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
   /* the protractor is laid on the page, never drawn with (458) */
-  return t !== 'pen' && t !== 'protractor' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+  return t !== 'pen' && t !== 'protractor' && PAD_TOOLS.indexOf(t) !== -1 ? t : 'pen';
 }
 
 /* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND § */
@@ -7416,11 +7336,10 @@ function padForgetOthers_() {
   PAD_DUE = null;
 }
 
-/* ---------- PEN, RULER, COMPASS: CHOOSING ONE ALSO GIVES THIS PAD THE PEN (368: there is no lock; the first touch does the same) */
-on('pad-tool', (el) => {
-  const pad = el.closest('.qpad'); if (!pad) return;
+/* ---------- A TOOL TAKEN UP ON A PAD (the tool row's Pen, Ruler, Compass, Protractor): it also gives this pad the pen (368) */
+function padToolPick_(pad, t) {
+  if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  const t = el.getAttribute('data-tool') || 'pen';
   /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
   if (t === 'protractor') {
     const st = padProtOf_(k);
@@ -7429,9 +7348,9 @@ on('pad-tool', (el) => {
     padProtSync_(k);
     return;
   }
-  PAD_TOOL.set(k, t);
+  PAD_TOOL.set(k, t || 'pen');
   if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
-});
+}
 
 /* ---------- THE PROTRACTOR (458): a 180° scale lying over the pen's page, moved by its body, turned by its knob ---------- */
 /* where it lies, per pad key for the visit: its centre in % of the picture, its turn in degrees */
@@ -7475,14 +7394,14 @@ function padProtHtml_(k) {
 function padProtSync_(k) {
   document.querySelectorAll('.qpad').forEach(pad => {
     if ((pad.getAttribute('data-k') || '') !== k) return;
-    const art = pad.querySelector('.qpad-art'), tile = pad.querySelector('.qpad-tool[data-tool="protractor"]');
-    if (!art || !tile) return;
+    const art = pad.querySelector('.qpad-art');
+    if (!art) return;
     const was = art.querySelector(':scope > .qpad-prot');
     if (was) was.remove();
     const on = padProtOn_(k);
     if (on) art.insertAdjacentHTML('beforeend', padProtHtml_(k));
-    tile.classList.toggle('on', on);
-    tile.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const card = pad.closest('.qcard'), tile = card && card.querySelector('.qt-row .qt-t[data-tool="protractor"]');
+    if (tile) tileSet_(tile, { on: on, pressed: on });
   });
 }
 /* ITS OWN DRAG, AHEAD OF THE PEN'S (capture), so a finger on the protractor moves it and never draws or swipes */
@@ -7727,7 +7646,7 @@ function padSurface_(x) {
   if (!x) return '';
   const said = String(x.surface || (x.row && x.row.surface) || '').trim().toLowerCase();
   if (KINDS.indexOf(said) !== -1) return said;
-  if (!padWanted_(x)) return '';
+  if (!padDrawn_(x)) return '';
   const f = String(x.figure || (x.row && x.row.figure) || '').trim().toLowerCase();
   if (/coordinate/.test(f)) return 'coord';
   if (/grid/.test(f) && !/isometric/.test(f)) return 'grid';
@@ -7770,14 +7689,10 @@ const surfaceOf_ = x => { const p = padSource_(x); return p && p.from === 'surfa
 
 /* ---------- THE ANSWER AREA AT THE CARD'S FOOT § */
 function ansArea_(x) {
+  /* ONE PAGE FOR EVERY PART (round 3): a made-up surface above the one answer box; a figure among the words is the pen in place */
   const p = x && x.key ? padSource_(x) : null;
-  if (!p) return ansBox_(x);
-  const box = answerKinds_(x).value ? ansBox_(x) : '';
-  /* A FIGURE AMONG THE WORDS IS THE PEN (`figHtml_`); ITS CHECK IS HERE, at the foot, as a typed part's is (381) */
-  /* THE RULER AND PROTRACTOR ON EVERY FIGURE (502): a drawn answer with no typed box gets them in a row of their own */
-  const meas = box ? '' : measTiles_(x);
-  if (p.from !== 'surface') return box + (meas ? `<div class="tile-row qp-meas-row">${meas}</div>` : '') + padSendRow_(x, padRead_(padKey_(x)));
-  return `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, true)}</div>${box}`;
+  const pad = p && p.from === 'surface' ? `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, true)}</div>` : '';
+  return pad + ansBox_(x);
 }
 
 /* ---------- A CARD WITH A FIGURE IN IT GIVES WAY BEFORE IT IS DRAWN SMALLER, AND NEVER WHOLE § */
@@ -7796,9 +7711,11 @@ function cardFigFit_(pane) {
     if (!(by > 2)) return;
     /* THE WORDS: every element of the card that holds no picture and is none of what keeps its size, found by walking down only through what holds a picture -- so a § */
     const words = [];
+    /* A TABLE OF CELLS TO TYPE IN keeps its size too: its cells are 44px fingertips, and the tool row under every part (round 3) made such cards zoom them to 31 */
+    const keep = e => e.matches(FIG_KEEP) || (e.tagName === 'TABLE' && !!e.querySelector('.qp-cell'));
     const walk = el => [].forEach.call(el.children, e => {
-      if (e.matches(FIG_KEEP)) return;
-      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP)) walk(e); else words.push(e);
+      if (keep(e)) return;
+      if (figs.some(f => e.contains(f)) || e.querySelector(FIG_KEEP + ', .qp-cell')) walk(e); else words.push(e);
     });
     walk(card);
     const hw = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
@@ -8393,42 +8310,11 @@ function ansHide_(x) { ansSet_(x, false); }
 /* ---------- `To the answer` AND `ansWhere_` WERE HERE § */
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
 function questionTiles_(x) {
-  /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
-     its own end (`ansBox_`), where the keypad cannot cover it. */
-  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? measTiles_(x) : '';
-  /* `Draw` / `Type` WAS HERE, the switch between the answer's two faces (327, 337). A question answered by
-     drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
-  /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  /* NO VERDICT BESIDE THE STAR (368), AND NO SOUND SWITCH (374): the verdict is always heard */
-  /* AND THE TOOLS EVERY QUESTION PAGE HAS (457, 463): the Magnifier and the padlock, first, from one place (`qToolTiles_`). */
-  return qToolTiles_(x) + fig;
+  /* THE CARD'S OWN ROW KEEPS THE PADLOCK; every tool is in the part's one tool row (`qtRow_`, qtools.js). */
+  return x && x.kind === 'question' ? qLockTile_() : '';
 }
-
-/* ---------- THE ONE TOOLKIT (457) ---------------------------------------------------------------- */
-/* What a question page has is decided HERE, from what the page is, never from a flag a row can lack (docs/history/457). */
-/* SUBJECTS OF WORDS, whose figures are pictures to look at rather than drawings to measure (502, rule `meas-wordy`) */
-const QT_WORDY_SUBJECT = /english|literature|spanish|french|german|language|religio|philosoph|scripture|bible|quran|talmud/i;
-function qToolkit_(x) {
-  if (!x || x.kind !== 'question') return null;
-  const pen = padSource_(x);
-  return {
-    magnify: true,                 // the Magnifier (463): words, figures, pictures and the pen, under the glass
-    lock: true,                    // every page has an input, a figure or a pen
-    read: true,                    // Read aloud on every question, not only a primary one (394)
-    help: true, report: true,      // `helpRow_` in the card, `suggestTile_` in the row
-    pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
-    measure: measTools_(x).length > 0,
-  };
-}
-/* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: the Magnifier and the padlock. */
-function qToolTiles_(x) {
-  const kit = qToolkit_(x);
-  if (!kit) return '';
-  return (kit.magnify ? magTile_() : '')
-    + (kit.lock ? qLockTile_() : '');
-}
-/* A STEM'S OR A LONG PART'S OWN PAGE has the same, under its words, with Read aloud. */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${qToolTiles_(x)}${readAloudTile_(x)}</div>`;
+/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words. */
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
@@ -8441,7 +8327,7 @@ function magPaint_() {
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
 }
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
-/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qToolTiles_`) */
+/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardTile_(x) {
   if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return '';
@@ -8591,7 +8477,7 @@ function figsBefore_(x) {
 function readAloudFor_(x) {
   if (!x) return false;
   /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
-  if (x.kind === 'question') return !!(qToolkit_(x) || {}).read;
+  if (x.kind === 'question') return true;
   /* EVERY CONTENT CARD AT EVERY LEVEL, and every other thing with words to read (502); the SATs-and-years-1-to-6 limit is gone */
   if (x.kind === 'content') return true;
   return typeof speedText_ === 'function' && (x.kind === 'practical' || x.kind === 'project' || x.kind === 'bible') && !!speedText_(x);
@@ -11680,28 +11566,7 @@ function padSend_(keepalive) {
     });
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
-/* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
-/* THE FIGURE ON A PART'S CARD: its own, else its question's opening's carried onto it (500) -- so 16(a)'s graph has the ruler too. */
-const cardDiagram_ = x => (x && (x.diagram || (x.kind === 'question' && (stemOnCard_(x) || {}).diagram))) || '';
-function measTools_(x) {
-  if (!x || x.kind !== 'question' || !cardDiagram_(x)) return [];
-  /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
-  const pen = padSource_(x);
-  if (pen && pen.from === 'part' && (typeof ruleOn_ !== 'function' || ruleOn_('meas-under-pen'))) return [];
-  /* EVERY FIGURE HAS BOTH (502): the subject list and the word "measure" were flags a row could lack; only a subject of words is left out, and the admin can flip that */
-  const subj = String(x.subject || (x.row && x.row.subject) || '');
-  if (subj && QT_WORDY_SUBJECT.test(subj) && (typeof ruleOn_ !== 'function' || ruleOn_('meas-wordy'))) return [];
-  return ['protractor', 'ruler'];
-}
-const MEAS_FACE = { protractor: { icon: 'protractor', label: 'Protractor', note: 'on the figure' },
-                    ruler: { icon: 'ruler', label: 'Ruler', note: 'on the figure' } };
-function measTiles_(x) {
-  const k = x && x.key || '';
-  /* A CARD DRAWN AGAIN WHILE ITS TOOL IS OUT gets the tool back on its new figure, once the markup is in */
-  if (MEAS && MEAS.k === k && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  return measTools_(x).map(t => tile_(Object.assign({ act: 'q-measure', cls: 'q-meast', data: { tool: t, key: k },
-    on: !!(MEAS && MEAS.k === k && MEAS.tool === t), pressed: !!(MEAS && MEAS.k === k && MEAS.tool === t) }, MEAS_FACE[t]))).join('');
-}
+/* Ruler and Protractor are in every part's tool row (qtools.js); on a figure with no pen open they lie on it here. */
 /* THE TOOL ON THE GLASS: which card, which tool, its centre (protractor) or zero (ruler) in the figure's own units, its turn in degrees */
 let MEAS = null;
 const MEAS_SNAP_PX = 14;    // nearer than this to a corner, the tool's centre or zero sits on it
@@ -11810,7 +11675,8 @@ function measFig_(k) {
   }
   return svg ? svg.parentNode : null;
 }
-on('q-measure', el => {
+/* THE TOOL LAID ON THE FIGURE, from the Ruler or Protractor tile of the part's tool row (`qt-inst`, qtools.js) */
+function measOpen_(el) {
   const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool');
   const again = MEAS && MEAS.k === k && MEAS.tool === tool;
   const was = MEAS && measFig_(MEAS.k);
@@ -11839,7 +11705,7 @@ on('q-measure', el => {
            c: tool === 'protractor' ? [vb[0] + vb[2] / 2, vb[1] + vb[3] * 0.7] : [vb[0] + vb[2] * 0.05, vb[1] + vb[3] * 0.75], geom: G, vb };
   el.closest('.tile-row, .qp-bar') && el.parentNode.querySelectorAll(`.q-meast[data-tool="${tool}"]`).forEach(t => tileSet_(t, { on: true, pressed: true }));
   measDraw_(fig);
-});
+}
 /* THE SNAP: the centre (or zero) onto a corner when near it; then the baseline (or edge) along an arm from that corner when near its direction */
 function measSnap_(svg) {
   const g = MEAS, r = svg.getBoundingClientRect(), u = r.width ? g.vb[2] / r.width : 1;

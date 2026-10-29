@@ -391,6 +391,34 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AN OPTIONS PART WITH ITS CALCULATOR OUT (Review B): the mark sat on one flex line, and the panel was a sliver beside the row */
+    { name: 'a multiple-choice question, its calculator out',
+      enter: () => {
+        const mc = stuffItemsAll_().find(it => it.kind === 'question'
+          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length && !orderIs_(it));
+        if (!mc) throw new Error('no question in the list carries choices');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
+        QT_OPEN.add(mc.key); QT_PANEL.set(mc.key, 'calc');
+        paintStuff();
+        window.__calcKey = mc.key;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(mc));
+      },
+      /* THE ROW, ITS LINE AND THE PANEL EACH A FULL LINE OF THE MARK, the keys inside the panel and not on each other, the verdict under it */
+      expect: () => {
+        const panel = [...document.querySelectorAll('#s-stuff .qt-panel')].find(p => p.getAttribute('data-key') === window.__calcKey);
+        const mark = panel && panel.closest('.qp-mark');
+        const row = mark && mark.querySelector('.qt-row'), verdict = mark && mark.querySelector('.qp-verdict');
+        if (!panel || panel.hidden || !row || !verdict) return false;
+        const m = mark.getBoundingClientRect(), p = panel.getBoundingClientRect(), r = row.getBoundingClientRect();
+        const keys = [...panel.querySelectorAll('.qcalc-k')].map(k => k.getBoundingClientRect());
+        return p.width >= m.width - 2 && r.width >= m.width - 2 && p.top >= r.bottom
+               && verdict.getBoundingClientRect().top >= p.bottom - 1
+               && keys.length >= 5 && keys.every(k => k.width > 0 && k.left >= p.left - 1 && k.right <= p.right + 1)
+               && keys.slice(1, 5).every((k, i) => k.left >= keys[i].right - 0.5);
+      },
+      wants: 'an options part\'s calculator drawn under its tool row, as wide as the box, its keys side by side inside it, the verdict below it',
+      leave: () => { QT_OPEN.delete(window.__calcKey); QT_PANEL.delete(window.__calcKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {
@@ -514,7 +542,7 @@ const STATES = {
           const marks = [[60, 280, 290, 60], ring];
           try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
           padRepaint_(pad, marks);
-          const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
+          const c = pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]');
           if (c) c.click();
           return true;
         };
@@ -522,9 +550,9 @@ const STATES = {
       },
       expect: () => {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
-        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const lit = pad && [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t.on:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' ');
         return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
-               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !pad.querySelector('.qpad-lock')
+               && !!pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]') && !pad.querySelector('.qpad-lock')
                && pad.querySelectorAll('.qpad-g path').length === 2;
       },
       wants: 'Q4\'s figure under the pen on its card, holding the pen, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
@@ -545,19 +573,19 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         const put = () => {
           const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
-          const r = pad && pad.querySelector('.qpad-tool[data-tool="ruler"]'), p = pad && pad.querySelector('.qpad-tool[data-tool="protractor"]');
+          const r = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]'), p = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]');
           if (!r || !p) return false;
           r.click();
           Object.assign(padProtOf_(window.__protKey), { x: 45, y: 72, a: 50 });
           const again = [...document.querySelectorAll('#s-stuff .qpad')].find(q => q.getAttribute('data-k') === window.__protKey);
-          again.querySelector('.qpad-tool[data-tool="protractor"]').click();
+          again.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]').click();
           return true;
         };
         if (!put()) setTimeout(put, 150);
       },
       expect: () => {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
-        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const lit = pad && [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t.on:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' ');
         const prot = pad && pad.querySelector('.qpad-art > .qpad-prot');
         return !!prot && lit === 'ruler protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
       },
