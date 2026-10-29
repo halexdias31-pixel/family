@@ -391,6 +391,34 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AN OPTIONS PART WITH ITS CALCULATOR OUT (Review B): the mark sat on one flex line, and the panel was a sliver beside the row */
+    { name: 'a multiple-choice question, its calculator out',
+      enter: () => {
+        const mc = stuffItemsAll_().find(it => it.kind === 'question'
+          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length && !orderIs_(it));
+        if (!mc) throw new Error('no question in the list carries choices');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
+        QT_OPEN.add(mc.key); QT_PANEL.set(mc.key, 'calc');
+        paintStuff();
+        window.__calcKey = mc.key;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(mc));
+      },
+      /* THE ROW, ITS LINE AND THE PANEL EACH A FULL LINE OF THE MARK, the keys inside the panel and not on each other, the verdict under it */
+      expect: () => {
+        const panel = [...document.querySelectorAll('#s-stuff .qt-panel')].find(p => p.getAttribute('data-key') === window.__calcKey);
+        const mark = panel && panel.closest('.qp-mark');
+        const row = mark && mark.querySelector('.qt-row'), verdict = mark && mark.querySelector('.qp-verdict');
+        if (!panel || panel.hidden || !row || !verdict) return false;
+        const m = mark.getBoundingClientRect(), p = panel.getBoundingClientRect(), r = row.getBoundingClientRect();
+        const keys = [...panel.querySelectorAll('.qcalc-k')].map(k => k.getBoundingClientRect());
+        return p.width >= m.width - 2 && r.width >= m.width - 2 && p.top >= r.bottom
+               && verdict.getBoundingClientRect().top >= p.bottom - 1
+               && keys.length >= 5 && keys.every(k => k.width > 0 && k.left >= p.left - 1 && k.right <= p.right + 1)
+               && keys.slice(1, 5).every((k, i) => k.left >= keys[i].right - 0.5);
+      },
+      wants: 'an options part\'s calculator drawn under its tool row, as wide as the box, its keys side by side inside it, the verdict below it',
+      leave: () => { QT_OPEN.delete(window.__calcKey); QT_PANEL.delete(window.__calcKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {

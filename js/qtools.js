@@ -350,30 +350,58 @@ function penInline_(from, to) {
     b[i].removeAttribute('class');
   });
 }
+/* THE GRID TOOL'S OVERLAY AS LINES: on screen it is CSS (`qt-over-*` ::before/::after), which a copy of the SVG never carries */
+function penOverSvg_(art, w, h) {
+  const m = /\bqt-over-(grid|coord)\b/.exec(art.className && art.className.baseVal != null ? art.className.baseVal : art.className || '');
+  if (!m) return '';
+  const cs = getComputedStyle(art);
+  const line = (cs.getPropertyValue('--line') || '').trim() || '#555', ink = (cs.getPropertyValue('--ink') || '').trim() || '#fff';
+  let out = '';
+  for (let i = 1; i < 20; i++) {
+    out += `<line x1="${w * i / 20}" y1="0" x2="${w * i / 20}" y2="${h}" stroke="${line}" stroke-opacity=".8" stroke-width="1"/>`
+      + `<line x1="0" y1="${h * i / 20}" x2="${w}" y2="${h * i / 20}" stroke="${line}" stroke-opacity=".8" stroke-width="1"/>`;
+  }
+  if (m[1] === 'coord') out += `<line x1="${w / 2}" y1="0" x2="${w / 2}" y2="${h}" stroke="${ink}" stroke-width="2"/><line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}" stroke="${ink}" stroke-width="2"/>`;
+  return `<g class="qt-over">${out}</g>`;
+}
+/* THE PAD AS ONE SVG for the PNG: its figures, the grid's overlay, then the ink; and the <img> figures under it, with their boxes, for the canvas */
+function penSvg_(pad, scale) {
+  const art = pad && pad.querySelector('.qpad-art');
+  if (!art || !art.querySelector('.qpad-ink .qpad-g path')) return null;
+  const box = art.getBoundingClientRect();
+  if (!(box.width > 0 && box.height > 0)) return null;
+  const k = (scale || 1) * Math.min(2, PEN_PNG_EDGE / Math.max(box.width, box.height));
+  const W = Math.max(1, Math.round(box.width * k)), H = Math.max(1, Math.round(box.height * k));
+  const NS = 'http://www.w3.org/2000/svg';
+  const out = document.createElementNS(NS, 'svg');
+  out.setAttribute('xmlns', NS);
+  out.setAttribute('width', W); out.setAttribute('height', H);
+  out.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
+  const at = el => { const r = el.getBoundingClientRect(); return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height }; };
+  const svgs = [].filter.call(art.querySelectorAll('svg'), s => !(s.parentElement && s.parentElement.closest('svg')));
+  const copy = s => {
+    const r = at(s), c = s.cloneNode(true);
+    penInline_(s, c);
+    c.setAttribute('x', r.x); c.setAttribute('y', r.y);
+    c.setAttribute('width', r.w); c.setAttribute('height', r.h);
+    out.appendChild(c);
+  };
+  svgs.filter(s => !s.classList.contains('qpad-ink')).forEach(copy);
+  const over = penOverSvg_(art, box.width, box.height);
+  if (over) { const g = document.createElementNS(NS, 'g'); g.innerHTML = over; out.appendChild(g.firstChild || g); }
+  svgs.filter(s => s.classList.contains('qpad-ink')).forEach(copy);
+  const imgs = [].map.call(art.querySelectorAll('img'), el => Object.assign({ el }, at(el))).filter(m => m.w > 0 && m.h > 0);
+  return { out, W, H, k: W / box.width, imgs };
+}
 /* A PAD'S FIGURE AND INK AS ONE PNG data URL, on the card's own ground; '' when there is no ink, no canvas, or it will not draw in time. */
 function penPng_(pad, scale) {
   return new Promise(done => {
     let over = false;
     const end = v => { if (!over) { over = true; done(v || ''); } };
     try {
-      const art = pad && pad.querySelector('.qpad-art');
-      if (!art || !art.querySelector('.qpad-ink .qpad-g path')) return end('');
-      const box = art.getBoundingClientRect();
-      if (!(box.width > 0 && box.height > 0)) return end('');
-      const k = (scale || 1) * Math.min(2, PEN_PNG_EDGE / Math.max(box.width, box.height));
-      const W = Math.max(1, Math.round(box.width * k)), H = Math.max(1, Math.round(box.height * k));
-      const NS = 'http://www.w3.org/2000/svg';
-      const out = document.createElementNS(NS, 'svg');
-      out.setAttribute('xmlns', NS);
-      out.setAttribute('width', W); out.setAttribute('height', H);
-      out.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
-      [].filter.call(art.querySelectorAll('svg'), s => !(s.parentElement && s.parentElement.closest('svg'))).forEach(s => {
-        const r = s.getBoundingClientRect(), c = s.cloneNode(true);
-        penInline_(s, c);
-        c.setAttribute('x', r.left - box.left); c.setAttribute('y', r.top - box.top);
-        c.setAttribute('width', r.width); c.setAttribute('height', r.height);
-        out.appendChild(c);
-      });
+      const made = penSvg_(pad, scale);
+      if (!made) return end('');
+      const { out, W, H, imgs } = made;
       const card = pad.closest('.qcard') || pad;
       const ground = getComputedStyle(card).backgroundColor;
       const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : '#0b0b0b';
@@ -383,13 +411,19 @@ function penPng_(pad, scale) {
       img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); end(''); };
       img.onload = () => {
         clearTimeout(timer);
-        try {
+        /* a picture figure goes under the SVG; one from another site taints the canvas, and then the drawing goes without it */
+        const paint = withImgs => {
           const cv = document.createElement('canvas');
           cv.width = W; cv.height = H;
           const g = cv.getContext('2d');
           g.fillStyle = bg; g.fillRect(0, 0, W, H);
+          if (withImgs) imgs.forEach(m => { if (m.el.complete && m.el.naturalWidth) g.drawImage(m.el, m.x * made.k, m.y * made.k, m.w * made.k, m.h * made.k); });
           g.drawImage(img, 0, 0, W, H);
-          const png = cv.toDataURL('image/png');
+          return cv.toDataURL('image/png');
+        };
+        try {
+          let png;
+          try { png = paint(imgs.length > 0); } catch (e) { if (!imgs.length) throw e; png = paint(false); }
           URL.revokeObjectURL(url);
           if (!/^data:image\/png;base64,/.test(png)) return end('');
           if (png.length > PEN_PNG_CHARS) return (scale || 1) > 0.3 ? penPng_(pad, (scale || 1) / 2).then(end) : end('');

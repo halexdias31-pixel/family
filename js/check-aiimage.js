@@ -22,7 +22,7 @@ const b = backend({ console: { log: quiet, warn: quiet, error: quiet, info: quie
   getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ awarded: 1, feedback: 'The line is drawn through both points.' }) }] } }] }) }; } } });
 const base = { pin: '0000', verified: 'TRUE', role: 'student', city: 'London' };
 b.seed('people', [Object.assign({ person_id: 'P-S1', first_name: 'Ann', last_name: 'Aa', handle: 'anna', email: 's1@example.org' }, base)]);
-b.seed('config', [{ key: 'ai_marks_per_day', value: '3' }]);
+b.seed('config', [{ key: 'ai_marks_per_day', value: '4' }]);
 const tok = b.post({ action: 'verifyLogin', email: 's1@example.org', pin: '0000' }).token;
 const ask = extra => b.post(Object.assign({ action: 'aiMark', token: tok, personId: 'P-S1', question: 'Draw the line y = x.',
   scheme: 'a straight line through (0,0) and (4,4) (1)', answer: '', marks: 1 }, extra || {}));
@@ -37,8 +37,12 @@ if (!d.success || d.awarded !== 1) bad.push('a drawing with an empty box was not
 if (inl.length !== 2 || inl[0].mimeType !== 'image/png' || inl[0].data !== PNG.split(',')[1] || inl[1].mimeType !== 'image/jpeg' || inl[1].data !== JPG.split(',')[1])
   bad.push('Gemini was not sent the drawing then the photo as inlineData: ' + JSON.stringify(inl).slice(0, 200));
 if (!/drawing/.test(sysOf(last)) || !/photo/.test(sysOf(last))) bad.push('the instructions do not say which picture is the drawing and which the photo');
+/* THE PROMPT SAYS THE FIRST PICTURE IS THE DRAWING, so a drawing sent after a photo is put first on the server (Review B) */
+d = ask({ images: [JPG, PNG] });
+const inl2 = partsOf(sent[sent.length - 1] || {}).filter(p => p.inlineData).map(p => p.inlineData.mimeType);
+if (!d.success || inl2.join(' ') !== 'image/png image/jpeg') bad.push('a photo then a drawing reached Gemini as ' + JSON.stringify(inl2) + ', not the drawing first');
 let n = sent.length;
-[['a GIF', ['data:image/gif;base64,R0lGOD']], ['two drawings', [PNG, PNG]], ['five pictures', [PNG, JPG, JPG, JPG, JPG]],
+[['a GIF', ['data:image/gif;base64,R0lGOD']], ['two drawings', [PNG, PNG]], ['five pictures', [PNG, JPG, JPG, JPG, JPG]], ['four photos', [JPG, JPG, JPG, JPG]],
  ['a picture over the ceiling', ['data:image/png;base64,' + 'A'.repeat(760001)]], ['a picture that is not base64', ['data:image/png;base64,<svg>']]].forEach(([what, images]) => {
   const r = ask({ images });
   if (r.success !== false || !/could not be sent/.test(String(r.message))) bad.push(what + ' was not refused whole: ' + JSON.stringify(r).slice(0, 160));
@@ -46,7 +50,7 @@ let n = sent.length;
 if (sent.length !== n) bad.push('a refused picture still reached Gemini');
 d = ask({ images: [] });
 if (d.success !== false || !/Write something first/.test(String(d.message)) || sent.length !== n) bad.push('nothing typed and no picture was not refused before Gemini: ' + JSON.stringify(d));
-/* THE CAP STILL COUNTS a press with pictures: three a day here, one used above */
+/* THE CAP STILL COUNTS a press with pictures: four a day here, two used above */
 ask({ images: [JPG] }); ask({ images: [JPG] });
 d = ask({ images: [JPG] });
 if (d.why !== 'ai-cap') bad.push('the daily cap did not hold for marks with pictures: ' + JSON.stringify(d));
@@ -134,6 +138,30 @@ const tick = ms => new Promise(r => setTimeout(r, ms));
       t.ACTIONS['qp-ai'](go);
       await tick(50);
       if (posts.length !== 1 || 'images' in posts[0]) bad.push('words only: the request was ' + JSON.stringify(posts[0] || null).slice(0, 120));
+    }
+    /* WHAT THE PNG IS DRAWN FROM (Review B): the figure, the Grid tool's axes as lines (on screen they are CSS), the ink last, and an <img> figure for the canvas */
+    if (want === 'images') {
+      const pad = host.querySelector('.qpad'), art = pad && pad.querySelector('.qpad-art');
+      if (!art || typeof w.penSvg_ !== 'function') bad.push('images: no pad art, or penSvg_ is not in the app — the PNG\'s contents NOT checked');
+      else {
+        w.Element.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340 });
+        art.classList.add('qt-over-coord');
+        const pic = w.document.createElement('img');
+        art.insertBefore(pic, art.firstChild);
+        const made = w.penSvg_(pad);
+        const kids = made ? [...made.out.children] : [];
+        const overAt = kids.findIndex(c => c.classList && c.classList.contains('qt-over'));
+        const inkAt = kids.findIndex(c => c.querySelector && c.querySelector('.qpad-g path, path'));
+        const lines = overAt >= 0 ? kids[overAt].querySelectorAll('line').length : 0;
+        if (!made) bad.push('images: penSvg_ made nothing from a pad with ink');
+        else {
+          if (lines < 40) bad.push('images: the Grid tool\'s axes are not in the PNG (' + lines + ' lines drawn for them)');
+          if (overAt < 0 || kids.length < 3 || overAt === kids.length - 1) bad.push('images: the grid is not drawn between the figure and the ink');
+          if (made.imgs.length !== 1 || made.imgs[0].el !== pic) bad.push('images: a picture figure is not passed to the canvas (' + made.imgs.length + ')');
+        }
+        if (inkAt < 0) bad.push('images: the ink is not in the PNG');
+        pic.remove(); art.classList.remove('qt-over-coord');
+      }
     }
     /* THE REAL RENDERER IN A DOM WITH NO CANVAS gives '' and never throws: the words still go */
     try { const r = await realPng(host.querySelector('.qpad')); if (r !== '') bad.push(want + ': penPng_ with no canvas gave ' + JSON.stringify(String(r).slice(0, 40))); }

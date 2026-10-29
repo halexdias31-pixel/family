@@ -85,6 +85,11 @@ const insText_ = () => {
 const WRONG = ['zzqq wvxk', '987654.321'];
 /* EACH MARKER'S CHECK, written here and not read from the app: a part's Check must be its marker's (Review A) */
 const CHECK_OF = { choice: 'qp-choice-check', order: 'qp-order-send', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-rule', ai: 'qp-ai' };
+/* EACH PART'S MARKER FROM ITS OWN ROW, written here and not asked of the app (Review B: an app that handed every accept part to the AI passed) */
+const MARKER_OF = (x, r) => {
+  if (Array.isArray(x.choices) && x.choices.length >= 2) return S(x.answerType || r.answer_type).toLowerCase() === 'order' ? 'order' : 'choice';
+  return S(r.cells) ? 'cells' : S(r.draw_answer) ? 'draw' : S(r.accept) ? 'accept' : S(r.mark_words) ? 'words' : 'ai';
+};
 const PEN_DRAW_EVERY = 10;
 const byMarker = {}, notReady = {}, notReadyLive = [];   // no letter sum or product hides in either ("9x7" was 63)
 
@@ -193,21 +198,29 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       /* ---------- ITS MARKER (markerOf_), NEVER A PERSON: the Check is that marker's, and the line under it says how ---------- */
       let m = null;
       try { m = w.markerOf_(x); } catch (e) { bad('marker', x, 'markerOf_ threw: ' + e.message); }
+      const own = MARKER_OF(x, r);
+      if (m && m.kind !== own) bad('marker', x, 'its row says it is marked by ' + own + ', and the app marks it by ' + m.kind);
+      if (m && (own === 'choice' || own === 'order') && m.ready !== !!S(r.choice_right)) bad('marker', x, 'its options ' + (S(r.choice_right) ? 'have' : 'have no') + ' key, and the app says it is ' + (m.ready ? '' : 'not ') + 'ready');
       if (m) {
-        const want = CHECK_OF[m.kind];
+        const want = CHECK_OF[own];
         const go = [...rows[0].querySelectorAll('.is-submit')];
-        if (!want) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
+        if (!CHECK_OF[m.kind]) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
         else {
           byMarker[m.kind] = (byMarker[m.kind] || 0) + 1;
           if (!m.ready) { notReady[m.kind] = (notReady[m.kind] || 0) + 1; if (!LIB_FULL.pending(r)) notReadyLive.push(r.row_id); }
-          if (go.length !== 1 || go[0].getAttribute('data-do') !== want) bad('marker', x, 'marked by ' + m.kind + ', its Check is ' + go.map(g => g.getAttribute('data-do')).join(', ') + ', wanted ' + want);
-          else if (m.kind === 'ai' && !m.ready && !go[0].disabled) bad('marker', x, 'no scheme to mark against, and its AI Check can still be pressed');
-          else if (m.kind === 'ai' && m.ready && go[0].disabled) bad('marker', x, 'a scheme to mark against, and its AI Check cannot be pressed');
+          if (go.length !== 1 || go[0].getAttribute('data-do') !== want) bad('marker', x, 'marked by ' + own + ', its Check is ' + go.map(g => g.getAttribute('data-do')).join(', ') + ', wanted ' + want);
+          else if (own === 'ai' && !m.ready && !go[0].disabled) bad('marker', x, 'no scheme to mark against, and its AI Check can still be pressed');
+          else if (own === 'ai' && m.ready && go[0].disabled) bad('marker', x, 'a scheme to mark against, and its AI Check cannot be pressed');
         }
         const how = host.querySelector('.qt-how');
         if (!how || !S(how.textContent) || S(how.textContent) !== S(m.how)) bad('marker', x, 'the line under Check says ' + JSON.stringify(how ? how.textContent : null) + ', not how it is marked');
       }
     }
+    /* THE PHOTO TILE HAS ITS STRIP: thumbnails, removing one and Mark my working show there, on every kind of box (Review B) */
+    host.querySelectorAll('.qt-row [data-do="qp-work"]').forEach(t => {
+      const k = t.getAttribute('data-k'), mark = t.closest('.qp-mark');
+      if (!k || !mark || ![...mark.querySelectorAll('.qp-work')].some(s => s.getAttribute('data-k') === k)) bad('photo', x, 'its Photo of working tile has no strip with its key to show the photos in');
+    });
     const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-choices') + n('.qp-order') + n('.qp-cells-box');
     if (boxes !== 1) bad('box', x, boxes + ' answer boxes, wanted one');
     if (pen) count.drawn++;

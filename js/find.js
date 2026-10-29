@@ -4399,6 +4399,7 @@ function choiceBox_(x) {
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
   /* SETTLED (`is-done`) ONLY WHEN RIGHT; a miss (`is-miss`) stays tappable so the child picks again and is marked again (385). */
+  /* THE MARK IS LAID OUT AS THE TYPED BOX'S (`qp-compose`): row, line, open panel and photos each a full line, never squeezed onto one (Review B) */
   return `<div class="qp-ans qp-choices${ok ? ' is-done' : done ? ' is-miss' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
     ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
@@ -4412,7 +4413,7 @@ function choiceBox_(x) {
       return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
-  </div><div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">${qtRow_(x)}
+  </div><div class="qp-mark qp-compose${done ? (ok ? ' is-right' : ' is-near') : ''}">${qtRow_(x)}${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${done
       /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: § */
       ? (ok ? 'Correct' : 'Not yet — have another go')
@@ -4530,7 +4531,7 @@ function orderBox_(x) {
       <div class="qp-ends" aria-hidden="true"><span class="qp-end">${esc(word(ends[0]))}</span><span class="qp-way"></span><span class="qp-end">${esc(word(ends[1]))}</span></div>${slots}
     </div>
     <div class="qp-items">${items}<span class="tile-row qp-order-tiles">${clear}</span></div>
-    <div class="qp-mark${cls}">${qtRow_(x)}
+    <div class="qp-mark qp-compose${cls}">${qtRow_(x)}${workStrip_(x)}
       <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>
     </div>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
@@ -4744,7 +4745,7 @@ function cellsBox_(x) {
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    ${qtRow_(x)}
+    ${qtRow_(x)}${workStrip_(x)}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4898,7 +4899,7 @@ function ansBox_(x) {
   const ai = m.kind === 'ai' || m.kind === 'words' ? aiTile_(x) : '';
   const later = m.kind === 'words' && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
-  const ws = typeof workStrip_ === 'function' ? workStrip_(x) : '';
+  const ws = workStrip_(x);
   const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';

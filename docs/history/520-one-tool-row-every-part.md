@@ -80,3 +80,20 @@ rule, `QT_WORDY_SUBJECT`, `qToolkit_`/`qToolTiles_`, `padSendRow_`/`pad-send`, t
   the pad's opening layer is the first accepted way's when there is one (`re | re-` opens on letters); the formula
   sheet is the brand tab's `formula_sheet` ("name: formula" a line) with the old list as fallback; check-answerable
   asserts each part's Check is its marker's, draws the pen surface for one part in ten (4m19s, from 7m47s).
+
+## Review B (29 Oct)
+
+- Options and order parts drew their mark as one flex line (`.qp-mark`, `flex-wrap: nowrap`): at 390px the row
+  squeezed beside "Marked by its answer key" and an open Calculator was a sliver with keys over each other. Their mark
+  is now `qp-compose`, as the typed box's: row, line, panel and verdict each a full line. `check/states.js` "a
+  multiple-choice question, its calculator out" measures it (panel and row as wide as the mark, keys side by side).
+- Photo of working on options, order and cells parts (828) opened the camera and showed nothing: only the typed box
+  drew the `.qp-work` strip. All four boxes draw it now; check-answerable fails a photo tile with no strip of its key.
+- check-answerable read the expected marker from the app's own `markerOf_`, so a wrong marker passed (a mutation
+  handing every `accept` part to the AI stayed green). It now works the marker out from the row's own fields.
+- `aiMark` took four JPEGs and no drawing, and trusted the drawing to come first; it now takes one PNG and at most
+  three JPEGs, and puts the PNG first, as the prompt says.
+- `penPng_` left out the Grid tool's overlay (CSS on screen) and any `<img>` figure; `penSvg_` now draws the overlay
+  as lines between the figure and the ink, and the canvas draws `<img>` figures under it (without them if one taints it).
+- Not changed, for the owner: the Calculator on Non-calculator papers (the decided design says every tool on every
+  part); 7 accepted answers using ≈ → … ∛ cannot be typed (fix-r2-marking owns `markNorm_`).

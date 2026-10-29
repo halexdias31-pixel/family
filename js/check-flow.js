@@ -111,7 +111,8 @@ function boot(opts) {
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   w.scrollTo = () => {};
   w.HTMLElement.prototype.scrollIntoView = () => {};
-  w.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0);
+  /* A CLOSED WINDOW DRAWS NO MORE FRAMES, as in a browser: this is Node's timer, which outlives `w.close()` and ran a frame on a window with no document */
+  w.requestAnimationFrame = cb => setTimeout(() => { if (w.document) cb(Date.now()); }, 0);
   w.cancelAnimationFrame = id => clearTimeout(id);
   w.confirm = () => true;
   w.prompt = () => opts.prompt !== undefined ? opts.prompt : 'Weekday evenings';
