@@ -404,7 +404,7 @@ const STATES = {
         window.__toolsKey = mc.key;
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(mc));
       },
-      /* THE ROW AND ITS LINE EACH A FULL LINE OF THE MARK, the verdict under them; the tools side by side, a fingertip each, one padlock on the card */
+      /* THE ROW AND ITS LINE EACH A FULL LINE OF THE MARK, the verdict under them; the eight tools inside the row, one padlock on the card */
       expect: () => {
         const row = [...document.querySelectorAll('#s-stuff .qt-row')].find(p => p.getAttribute('data-key') === window.__toolsKey);
         const mark = row && row.closest('.qp-mark'), card = row && row.closest('.qcard');
@@ -413,11 +413,11 @@ const STATES = {
         const m = mark.getBoundingClientRect(), r = row.getBoundingClientRect();
         const tiles = [...row.querySelectorAll('.qt-tools .tile')].map(k => k.getBoundingClientRect());
         return r.width >= m.width - 2 && verdict.getBoundingClientRect().top >= r.bottom - 1
-               && tiles.length === 8 && tiles.every(k => k.width >= 44 && k.height >= 44 && k.left >= r.left - 1 && k.right <= r.right + 1)
+               && tiles.length === 8 && tiles.every(k => k.width > 0 && k.left >= r.left - 1 && k.right <= r.right + 1)
                && card.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length === 1
                && !card.querySelector('[data-do="qt-grid"], [data-do="qt-panel"]');
       },
-      wants: 'an options part\'s tool row as wide as its box, its eight tools a fingertip each inside it, the verdict below it, one padlock and no Grid, Table, Calculator or Formula sheet',
+      wants: 'an options part\'s tool row as wide as its box, its eight tools inside it (their size is check/tiles.js\'s), the verdict below it, one padlock and no Grid, Table, Calculator or Formula sheet',
       leave: () => { QT_OPEN.delete(window.__toolsKey); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
@@ -1376,7 +1376,7 @@ const STATES = {
         if (!pad || pad.hidden || !inp || !q || !sheet || !window.__kqTapped) return false;
         if (innerWidth >= 640) return getComputedStyle(q).display === 'none';
         const r = q.getBoundingClientRect(), keys = [...pad.querySelectorAll('.kp-key')].map(k => k.getBoundingClientRect().top);
-        const first = String(sheet.textContent).replace(/\s+/g, ' ').trim().slice(0, 20);
+        const first = kpWordsOf_(inp.closest('.qcard').querySelector('.qsheet-part') || sheet).slice(0, 20);
         const s = sheet.getBoundingClientRect();
         return r.height >= 44 && keys.every(t => t >= r.bottom - 1) && q.textContent.trim().indexOf(first) === 0
                && s.top >= 0 && s.top + 16 <= r.top;

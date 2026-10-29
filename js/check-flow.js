@@ -15619,7 +15619,7 @@ check('the pad carries the question\'s first lines above its keys on every face,
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   if (!A['kp-key'] || !A['kp-q']) return ['the keypad or its question strip has no handler — nothing was checked'];
   const h = d.createElement('div');
-  const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle. Give your answer in square centimetres.</p>',
+  const x = { kind: 'question', key: 'q-strip-1', name: 'Q4', marks: 1, html: '<p>Work out the area of the triangle.</p><p>Give your answer in square centimetres.</p>',
     answer: '<b>24</b>', answerType: 'calculation', accept: '24', row: { row_id: 'Q-STRIP-1', paper_id: 'P-STRIP', subject: 'Maths', name: 'Strip' } };
   h.innerHTML = w.questionCard_(x, 0);
   d.body.appendChild(h);
@@ -15633,7 +15633,7 @@ check('the pad carries the question\'s first lines above its keys on every face,
   ['maths', '!abc', '!sym', '!123'].forEach(v => {
     if (v !== 'maths') { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no ' + v + ' key'); }
     if (!strip() || pad.firstElementChild !== strip()) bad.push('the ' + pad.getAttribute('data-layer') + ' face has no question strip above its keys');
-    else if (!/^Work out the area of the triangle/.test(says())) bad.push('the strip on the ' + pad.getAttribute('data-layer') + ' face says ' + JSON.stringify(says().slice(0, 60)));
+    else if (!/^Work out the area of the triangle\. Give your answer/.test(says())) bad.push('the strip on the ' + pad.getAttribute('data-layer') + ' face says ' + JSON.stringify(says().slice(0, 60)));
   });
   if (strip() && !/^Show the question: Work out/.test(strip().getAttribute('aria-label') || '')) bad.push('the strip does not say it shows the question: ' + strip().getAttribute('aria-label'));
   if (strip() && strip().tagName !== 'BUTTON') bad.push('the strip is not a button');

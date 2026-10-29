@@ -349,11 +349,18 @@ function kpLayout_(inp) {
   return pad;
 }
 /* ---------- THE QUESTION ABOVE THE PAD (round 4): on a phone the pad's eight rows can hide what is asked, so its first lines ride on the pad, and a tap goes to it whole */
+/* THE WORDS OF A SHEET: a paragraph's end is a space ("…set, E Find the…", not "EFind"), and a figure's labels are not words */
+function kpWordsOf_(sheet) {
+  const c = sheet.cloneNode(true);
+  c.querySelectorAll('svg, figure, img, .qsheet-more').forEach(el => el.remove());
+  c.querySelectorAll('p, div, li, br, h3, h4, tr, td, th').forEach(el => el.appendChild(document.createTextNode(' ')));
+  return String(c.textContent || '').replace(/\s+/g, ' ').trim();
+}
 function kpStrip_(pad, inp) {
   let q = pad.querySelector(':scope > .kp-q');
   const card = inp && inp.closest && inp.closest('.qcard');
   const sheet = card && (card.querySelector('.qsheet-part') || card.querySelector('.qsheet'));
-  const said = sheet ? String(sheet.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  const said = sheet ? kpWordsOf_(sheet) : '';
   if (!said) { if (q) q.remove(); return; }
   if (!q) {
     q = document.createElement('button');
