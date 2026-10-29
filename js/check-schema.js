@@ -13,21 +13,26 @@ const note = [];
    rows and brings every one to 0, then this table goes. Lower a pin when a count falls; never raise one. */
 const PINNED = {
   'questions:level': 8237, 'questions:tier': 7828, 'questions:agree': 1255, 'questions:source': 2402,
-  'questions:topic': 1258, 'questions:marks': 130, 'questions:answer': 47, 'questions:pending': 284, 'questions:total': 1,
+  'questions:topic': 1258, 'questions:marks': 130, 'questions:answer': 47, 'questions:total': 1,
   'textbooks:level': 26, 'textbooks:topic': 5,
   'practicals:level': 43, 'practicals:topic': 10,
   'projects:level': 7,
-  'inserts:level': 2, 'inserts:pending': 14,
+  'inserts:level': 2,
 };
 
 /* ---------- 1. EVERY ROW OF EVERY CARD FILE ---------- */
+/* A private field of a lib_pending row is not counted: whether its words are here depends on the last pull (history 523). */
 const counts = {}, first = {};
-let rowsSeen = 0;
+let rowsSeen = 0, unsure = 0;
 L.NAMES().forEach(name => {
   let rows;
   try { rows = L.rows(name); } catch (e) { fail.push(name + ': the library could not be read whole (' + e.message + ') — not a pass'); return; }
   rowsSeen += rows.length;
+  const def = L.defs().files[name];
+  const priv = new Set(def.private || []);
+  const pend = new Set(rows.filter(r => /^true$/i.test(String(r.lib_pending || '').trim())).map(r => L.idOf(def, r)));
   SC.validateFile(rows, name).forEach(p => {
+    if (priv.has(p.col) && pend.has(p.id)) { unsure++; return; }
     const k = name + ':' + p.rule;
     counts[k] = (counts[k] || 0) + 1;
     if (!first[k]) first[k] = p.id + ': ' + p.msg;
@@ -46,22 +51,69 @@ keys.forEach(k => {
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 [['KS3–GCSE', ['KS3', 'GCSE']], ['KS2–GCSE', ['SATs', 'KS3', 'GCSE']], ['GCSE–A-level', ['GCSE', 'A-Level']],
  ['KS2–KS3', ['SATs', 'KS3']], ['A-Level, AS', ['A-Level', 'AS']], ['Alevel', ['A-Level']], ['KS2 SATs', ['SATs']],
- ['AS level', ['AS']], ['Functional Skills L2', ['Functional Skills L2']], ['', []]].forEach(([cell, want]) => {
+ ['AS level', ['AS']], ['Functional Skills L2', ['Functional Skills L2']], ['', []],
+ ['KS2-KS3', ['SATs', 'KS3']], ['GCSE-A-Level', ['GCSE', 'A-Level']], ['GCSE/A-Level', ['GCSE', 'A-Level']],
+ ['AS – A-Level', ['AS', 'A-Level']], ['11+ to KS3', ['11+', 'KS3']], ['AS-level', ['AS']], ['A-Level', ['A-Level']],
+ ['N/A', ['N/A']], ['Year 7-9', ['Year 7-9']]].forEach(([cell, want]) => {
   const got = SC.levelsIn(cell);
   if (!eq(got, want)) fail.push('levelsIn_(' + JSON.stringify(cell) + ') is ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(want));
 });
 
+/* THE SUNDAY EMAIL'S COPY (backend/digest.gs `digestLevelsIn_`) READS EVERY LEVEL CELL IN THE LIBRARY AS find.js DOES. */
+try {
+  const b = require('./check-gas-load.js').backend();
+  const cells = new Set(['KS3–GCSE', 'KS2–GCSE', 'GCSE–A-level', 'KS2-KS3', 'GCSE/A-Level', 'AS – A-Level', '11+ to KS3', 'N/A', 'KS1 SATs', 'sats']);
+  L.NAMES().forEach(name => {
+    const f = SC.FILES[name];
+    L.rows(name).forEach(r => [f.level, f.forLevels, f.keystage, 'band_value'].forEach(c => { if (c && r[c]) cells.add(String(r[c])); }));
+  });
+  const differ = [...cells].filter(c => !eq(b.ev('digestLevelsIn_(' + JSON.stringify(c) + ')'), SC.levelsIn(c)));
+  console.log('  the email\'s level copy: ' + cells.size + ' cells, ' + differ.length + ' read differently');
+  if (cells.size < 20) fail.push('only ' + cells.size + ' level cells were compared with the email\'s copy — not a pass');
+  differ.slice(0, 5).forEach(c => fail.push('backend/digest.gs reads level ' + JSON.stringify(c) + ' as ' + JSON.stringify(b.ev('digestLevelsIn_(' + JSON.stringify(c) + ')')) + ', find.js as ' + JSON.stringify(SC.levelsIn(c))));
+} catch (e) { fail.push('the email\'s level copy could not be compared with find.js: ' + e.message + ' — not a pass'); }
+
 const qs = L.rows('questions');
-const clean = qs.find(r => r.kind === 'question' && r.tier === 'Higher' && r.level === 'GCSE' && !SC.validate(r, 'questions').length);
+const clean = qs.find(r => r.kind === 'question' && r.tier === 'Higher' && r.level === 'GCSE' && S(r.topics) && !SC.validate(r, 'questions').length);
+function S(v) { return (v === undefined || v === null ? '' : String(v)).trim(); }
 if (!clean) fail.push('no clean GCSE Higher question to build the fixtures from — the rules were NOT proved');
 else {
+  /* EVERY RULE, BOTH WAYS: a change that must break it, and one beside it that must not. A rule switched off goes red here. */
   const has = (row, rule) => SC.validate(row, 'questions').some(p => p.rule === rule);
-  [['tier', { tier: 'Hgher' }], ['level', { level: 'KS3–GCSE' }], ['level', { level: 'Alevel' }], ['column', { tierr: 'Higher' }],
-   ['agree', { key_stage: 'KS2' }], ['source', { company: 'Corbettmaths', exam_board: 'Edexcel' }], ['vocab', { exam_board: 'Edexcl' }]]
-    .forEach(([rule, change]) => {
-      if (!has(Object.assign({}, clean, change), rule)) fail.push('a row with ' + JSON.stringify(change) + ' broke no `' + rule + '` rule');
+  const topic = S(clean.topics).split(',')[0].trim();
+  const pp = { kind: 'question', active: 'True', document_type: 'Past paper' };
+  [['tier', { tier: 'Hgher' }, { tier: 'Foundation' }],
+   ['level', { level: 'KS3–GCSE' }, { level: 'GCSE' }],
+   ['level', { level: 'Alevel' }, { level: 'GCSE' }],
+   ['level', { band_type: 'stage', band_value: 'Grade 4' }, { band_type: 'stage', band_value: 'GCSE' }],
+   ['column', { tierr: 'Higher' }, { tier: 'Higher' }],
+   ['agree', { key_stage: 'KS2' }, { key_stage: 'KS4' }],
+   ['agree', { band_type: 'stage', band_value: 'KS3', key_stage: '', tier: '' }, { band_type: 'stage', band_value: 'GCSE', key_stage: '', tier: '' }],
+   ['source', { company: 'Corbettmaths', exam_board: 'Edexcel' }, { company: 'Corbettmaths', exam_board: '' }],
+   ['vocab', { exam_board: 'Edexcl' }, { exam_board: 'AQA' }],
+   ['vocab', { key_stage: 'KS9' }, { key_stage: 'KS4' }],
+   ['vocab', { answer_type: 'essayy' }, { answer_type: 'short' }],
+   ['topic', { topics: topic + ', Not A Topic Anywhere' }, { topics: topic }],
+   ['marks', Object.assign({ marks: '' }, pp), Object.assign({ marks: '3' }, pp)],
+   ['marks', { marks: '2.5' }, { marks: '2' }],
+   ['marks', { total_marks: 'eighty' }, { total_marks: '80' }],
+   ['answer', { answer_type: 'calculation', answer: 'x squared' }, { answer_type: 'calculation', answer: '12' }],
+   ['answer', { answer_type: 'order', html: 'Put these in order.', choices: '', choice_right: '' },
+              { answer_type: 'order', html: 'Put these in order.', choices: '1|2|3', choice_right: '3|1|2' }]]
+    .forEach(([rule, bad, good]) => {
+      if (!has(Object.assign({}, clean, bad), rule)) fail.push('a row with ' + JSON.stringify(bad) + ' broke no `' + rule + '` rule');
+      if (has(Object.assign({}, clean, good), rule)) fail.push('a row with ' + JSON.stringify(good) + ' broke the `' + rule + '` rule');
     });
-  if (has(Object.assign({}, clean, { level: 'GCSE' }), 'level')) fail.push('a row with level GCSE broke the level rule');
+
+  /* THE TWO CROSS-ROW RULES, through validateFile: a preamble over no question, and a cover whose total its parts miss. */
+  const fx = (pid, more) => [{ row_id: 'D-' + pid, paper_id: pid, kind: 'document', total_marks: '5' }].concat(more);
+  const rulesIn = rows => SC.validateFile(rows, 'questions').map(p => p.rule);
+  const q = (pid, n, marks) => ({ row_id: pid + '-Q' + n, paper_id: pid, kind: 'question', question: String(n), marks: String(marks) });
+  const pre = (pid, n) => ({ row_id: pid + '-P' + n, paper_id: pid, kind: 'preamble', question: String(n) });
+  if (rulesIn(fx('FX1', [pre('FX1', 9), q('FX1', 1, 5)])).indexOf('preamble') === -1) fail.push('a preamble over question 9, which its paper lacks, broke no `preamble` rule');
+  if (rulesIn(fx('FX2', [pre('FX2', 1), q('FX2', 1, 5)])).indexOf('preamble') !== -1) fail.push('a preamble over its own question broke the `preamble` rule');
+  if (rulesIn(fx('FX3', [q('FX3', 1, 2), q('FX3', 2, 2)])).indexOf('total') === -1) fail.push('a paper of 5 marks whose parts sum to 4 broke no `total` rule');
+  if (rulesIn(fx('FX4', [q('FX4', 1, 2), q('FX4', 2, 3)])).indexOf('total') !== -1) fail.push('a paper of 5 marks whose parts sum to 5 broke the `total` rule');
 
   /* ---------- 3. THE IMPORTER REFUSES A BAD ROW AND WRITES NOTHING (tools/add-past-paper.js, in memory) ---------- */
   const { importPapers } = require('../tools/add-past-paper.js');
@@ -80,6 +132,22 @@ else {
   if (!/tier "Hgher"/.test(threw)) fail.push('tools/add-past-paper.js took a row with tier "Hgher"' + (threw ? ' (it threw: ' + threw.slice(0, 120) + ')' : ''));
   if (JSON.stringify(meta.filter(r => r.paper_id === pid)) !== before) fail.push('the importer changed the rows it was given while refusing them');
 
+  /* A BRAND-NEW PAPER EXACTLY AS tools/paperspec.py WRITES IT — every row lib_pending, its words on it — onto an empty cover. */
+  const NEW = 'RFIX01';
+  const cover = { row_id: 'D-' + NEW, paper_id: NEW, kind: 'document', active: 'False', name: '2017 Paper 1', subject: 'Maths',
+                  tier: 'Higher', exam_board: 'Edexcel', level: 'GCSE', paper: '1', document_type: 'Past paper', source_id: NEW };
+  const pmeta = { paper_id: NEW, name: '2017 Paper 1', subject: 'Maths', key_stage: 'KS4', band_type: 'stage', band_value: 'GCSE',
+                  tier: 'Higher', trackable: 'True', printable: 'True', company: 'Edexcel', exam_board: 'Edexcel', exam_wave: 'First wave',
+                  year: '2017', level: 'GCSE', paper: '1', month: '11', document_type: 'Past paper', source_id: NEW };
+  const prow = r => Object.assign({}, pmeta, r, { lib_pending: 'True' });
+  const fresh = [prow({ row_id: 'Q-FIX-1', question: '1', kind: 'preamble', active: 'True', html: 'Here is a table.' }),
+                 prow({ row_id: 'Q-FIX-1a', question: '1', part: 'a', kind: 'question', marks: '2', answer_type: 'calculation',
+                        needs_print: 'False', active: 'True', topics: topic, html: 'Work out 3 × 4.', answer: '12', verified: 'True' }),
+                 prow({ row_id: 'Q-FIX-1b', question: '1', part: 'b', kind: 'question', marks: '3', answer_type: 'short',
+                        needs_print: 'False', active: 'True', topics: topic, html: 'Name it.', answer: 'a table', verified: 'True' })];
+  try { importPapers(meta.concat([cover]), priv, [{ paper_id: NEW, meta: pmeta, doc: { exam_date: '2017-11-02', spec_code: '1MA1/1H', total_marks: '5' }, rows: fresh }]); }
+  catch (e) { fail.push('the importer refused a brand-new paper shaped as tools/paperspec.py writes it: ' + e.message.split('\n').slice(0, 3).join(' ')); }
+
   /* ---------- 4. AND SO DOES THE SPLIT EVERY OTHER TOOL ENDS WITH (tools/lib-private.js) ---------- */
   const { splitGate } = require('../tools/lib-private.js');
   const prac = L.rows('practicals');
@@ -87,9 +155,20 @@ else {
   let refused = '';
   try { splitGate('practicals', prac.map((r, i) => (i ? r : Object.assign({}, r, { level: 'GCSE–A-Levle' }))), {}, prac); } catch (e) { refused = e.message; }
   if (!/refused/.test(refused)) fail.push('tools/lib-private.js split took a practical whose level is "GCSE–A-Levle"');
+
+  /* A NEW CONTENT CARD WITH lib_pending AND ITS WORDS ON IT (411): what a content tool hands the split; it passes. */
+  const tb = L.rows('textbooks');
+  const base = tb.find(r => !/^true$/i.test(S(r.lib_pending)) && L.privateOf(L.defs().files.textbooks, r) && !SC.validate(r, 'textbooks').length);
+  if (!base) fail.push('no clean content card to build the new-card fixture from — not proved');
+  else {
+    const card = Object.assign({}, base, { chapter: '9999', title: 'A new chapter', lib_pending: 'True' });
+    try { splitGate('textbooks', tb.concat([card]), {}, tb); }
+    catch (e) { fail.push('the split refused a new lib_pending content card with its words: ' + e.message.split('\n').slice(0, 2).join(' ')); }
+  }
 }
 
-console.log('\n' + rowsSeen + ' library rows against check/schema.js; ' + Object.keys(counts).length + ' file:rule counts, all at or under their pins.');
+console.log('\n' + rowsSeen + ' library rows against check/schema.js; ' + Object.keys(counts).length + ' file:rule counts, all at or under their pins; '
+  + unsure + ' problem(s) in the words of lib_pending rows not counted (they depend on what this machine last pulled).');
 if (note.length) { console.log('\nWORTH A LOOK — not failures:'); note.forEach(n => console.log('  ' + n)); }
 if (fail.length) {
   console.log('\nTHE LIBRARY BREAKS ITS SCHEMA:');

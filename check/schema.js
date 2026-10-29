@@ -142,7 +142,6 @@ function topicWords() {
 
 const S = v => (v === undefined || v === null ? '' : String(v)).trim();
 const atoms = v => (Array.isArray(v) ? v.map(S) : S(v).split(',').map(s => s.trim())).filter(Boolean);
-const isTrue = v => /^true$/i.test(S(v));
 
 /* THE LEVELS A ROW IS TAUGHT AT, read as `levelsOf_` reads an item: a stage band wins over the level cell. */
 function rowLevels(row, file) {
@@ -231,9 +230,7 @@ function validate(row, file) {
     if (kind === 'question' && S(row.answer_type) === 'order' && S(row.html) && !(S(row.choices) && S(row.choice_right))) bad('answer', 'choices', 'an ordering with no choices or no choice_right');
   }
 
-  /* LIB_PENDING MEANS THE WORDS ARE NOT HERE YET: a pending row whose words are here is stale (docs/library.md). */
-  const def = L.defs().files[file];
-  if (def && isTrue(row.lib_pending) && L.privateOf(def, row)) bad('pending', 'lib_pending', 'lib_pending on a row whose words are here');
+  /* No lib_pending rule: the marker stays on once the words arrive (docs/library.md), so its presence says nothing. */
   return out;
 }
 

@@ -9159,18 +9159,28 @@ function levelsIn_(cell) {
   const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
   const out = [];
   const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  /* TWO KNOWN LEVELS JOINED: by a dash, `to` or a slash (a list), or a bare hyphen at any point where both sides are levels. */
+  const pair = t => {
+    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
+    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
+    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
+      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
+      if (a && b) return [a, b, false];
+    }
+    return null;
+  };
   String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
     const t = atom.trim();
     if (!t) return;
-    const ends = t.split(/\s*[–—]\s*|\s+-\s+|\s+to\s+/i);
-    const a = ends.length === 2 && find(ends[0]), b = ends.length === 2 && find(ends[1]);
-    if (a && b && a.rung && b.rung) {
-      const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
-      LEVEL_TABLE.filter(l => l.rung >= lo && l.rung <= hi).forEach(l => add(l.level));
-      return;
-    }
     const l = find(t);
-    add(l ? l.level : t);
+    if (l) { add(l.level); return; }
+    const p = pair(t);
+    if (!p) { add(t); return; }
+    const [a, b, list] = p;
+    /* Only two rungs of the ladder span the levels between; a slash, or an end off the ladder (AS, 11+), is just the two. */
+    if (list || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
+    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
+    LEVEL_TABLE.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
   });
   return out;
 }

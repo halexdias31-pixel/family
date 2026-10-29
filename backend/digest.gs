@@ -1236,15 +1236,49 @@ function digestTagLevel_(it) {
       own = k ? ({ ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[digestSpell_(k)] || k) : '';
     }
   }
-  if (!own) return '';
-  if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
-  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
-  return own;
+  const l = digestLevelsIn_(own);
+  return l.length > 1 ? l : (l[0] || '');
+}
+/* find.js's `LEVEL_TABLE` and `levelsIn_` (O1), copied: Apps Script cannot load find.js. check-schema asks both copies every
+   level cell in the library and its range fixtures, and fails on any difference. */
+const DIGEST_LEVELS = [
+  { level: 'SATs', rung: 1, says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] }, { level: '11+', rung: 0, says: [] },
+  { level: 'KS3', rung: 2, says: [] }, { level: 'GCSE', rung: 3, says: ['KS4'] }, { level: 'Functional Skills L2', rung: 0, says: [] },
+  { level: 'A-Level', rung: 4, says: ['Alevel', 'A level', 'KS5'] }, { level: 'AS', rung: 0, says: ['AS level', 'AS-level'] },
+  { level: 'Theory test', rung: 0, says: [] },
+];
+function digestLevelsIn_(cell) {
+  const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const find = v => DIGEST_LEVELS.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  const pair = t => {
+    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
+    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
+    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
+      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
+      if (a && b) return [a, b, false];
+    }
+    return null;
+  };
+  String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
+    const t = atom.trim();
+    if (!t) return;
+    const l = find(t);
+    if (l) { add(l.level); return; }
+    const p = pair(t);
+    if (!p) { add(t); return; }
+    const a = p[0], b = p[1];
+    if (p[2] || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
+    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
+    DIGEST_LEVELS.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
+  });
+  return out;
 }
 const digestTagStages_ = it => String(it.keystage || '').split(',').map(s => s.trim()).filter(Boolean);
 /* `satsStagesOf_`, asked only of a SATs row. */
 function digestTagSats_(it) {
-  if (['sats', 'ks1sats', 'ks2sats', 'ks1', 'ks2'].indexOf(digestSpell_(digestTagLevel_(it))) === -1) return [];
+  if (digestList_(digestTagLevel_(it)).indexOf('SATs') === -1) return [];
   const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
   const named = /\bks\s*([12])\b/i.exec(String((it.bandType === 'stage' && it.bandValue) || it.src.level || ''));
