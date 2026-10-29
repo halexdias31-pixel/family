@@ -69,23 +69,36 @@ function partRec_(x) {
 }
 
 /* ---------- THE MARKER: the one thing that varies between parts -- qtypes.js `qtMarker_`, which the Function tag reads too. */
+/* WHAT THE LINE UNDER CHECK SAYS, by marker: how this part will be marked, before it is. Never a person. */
+const QT_HOW = {
+  choice: 'Marked by its answer key', order: 'Marked by the right order', cells: 'Each box marked by its own answer',
+  draw: 'Marked by your drawing\u2019s geometry', accept: 'Marked against the accepted answers',
+  words: 'Marked by key words \u2014 then by AI, if you ask', ai: 'Marked by AI against the mark scheme: your answer, drawing and photos',
+};
+/* `ready` is false where the marker has nothing to mark against yet (no key, no scheme): Check says so instead of asking */
 function markerOf_(x) {
   let kind = 'ai';
   try { kind = qtMarker_(workRow_(x || {})); } catch (e) { kind = 'ai'; }
   /* options with no key are still options to tap: their Check says the key is missing (never a person) */
   if (kind !== 'choice' && kind !== 'order' && x && Array.isArray(x.choices) && x.choices.length >= 2) kind = orderIs_(x) ? 'order' : 'choice';
-  return { kind };
+  let ready = true;
+  if (kind === 'choice' || kind === 'order') ready = Array.isArray(x.choiceRight) ? x.choiceRight.length > 0 : !!x.choiceRight;
+  if (kind === 'ai') { try { ready = typeof aiScheme_ !== 'function' || !!aiScheme_(x).trim(); } catch (e) { ready = true; } }
+  const how = !ready && kind === 'ai' ? 'No mark scheme yet \u2014 the AI marks it once one is added'
+    : !ready ? 'No answer key yet \u2014 flag it and we will add one' : QT_HOW[kind];
+  return { kind, ready, how };
 }
 /* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
-function qtCheck_(x) {
-  const k = markerOf_(x).kind;
+function qtCheck_(x, m) {
+  const k = (m || markerOf_(x)).kind;
   if (k === 'choice') return checkTile_({ act: 'qp-choice-check', cls: 'qp-check' });
   if (k === 'order') return checkTile_({ act: 'qp-order-send', cls: 'qp-order-send qp-check' });
   if (k === 'cells') return checkTile_({ act: 'qp-cells-check', cls: 'qp-check' });
   if (k === 'draw') return checkTile_({ act: 'pad-check', cls: 'qp-check' });
   if (k === 'accept') return checkTile_({ act: 'qp-check', cls: 'qp-check' });
   if (k === 'words') return checkTile_({ act: 'qp-rule', cls: 'qp-check' });
-  const ai = typeof aiTile_ === 'function' ? aiTile_(x) : '';
+  /* NO SCHEME, NO REQUEST: a press could only come back "no mark scheme to mark against" (131 live parts, Review A) */
+  const ai = (m || markerOf_(x)).ready && typeof aiTile_ === 'function' ? aiTile_(x) : '';
   return ai || checkTile_({ act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
@@ -107,7 +120,7 @@ function qtToolTile_(t, x) {
   /* A CARD DRAWN AGAIN keeps the tool in hand lit -- `padArm_`'s rule, read off PAD_ON and PAD_TOOL, which outlive the markup */
   const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
   const held = !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === t.id);
-  const on = t.panel ? QT_PANEL.get(key) === t.id : t.id === 'grid' ? !!QT_GRID.get(key) : held;
+  const on = t.panel ? QT_PANEL.get(key) === t.id : t.id === 'grid' ? !!qtGridOf_(x) : held;
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
@@ -117,8 +130,10 @@ function qtRow_(x) {
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
   const tools = QT_TOOLS.filter(t => t.id !== 'check').map(t => qtToolTile_(t, x)).join('');
+  const m = markerOf_(x);
   const fold = tile_({ icon: 'tools', label: 'Tools', note: open ? 'fold them away' : 'pen, ruler, calculator …', act: 'qt-fold', cls: 'qt-fold', on: open, pressed: open, data: { key } });
-  return `<div class="tile-row qt-row${open ? ' is-open' : ''}" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${fold}<span class="qt-tools">${tools}</span>${qtCheck_(x)}</div>
+  return `<div class="tile-row qt-row${open ? ' is-open' : ''}" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${fold}<span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>
+    <p class="qt-how">${esc(m.how)}</p>
     <div class="qt-panel" data-key="${esc(key)}"${QT_PANEL.has(key) ? '' : ' hidden'}>${qtPanelHtml_(x)}</div>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
@@ -175,11 +190,13 @@ on('qt-inst', el => {
   qtPenOpen_(el, tool);
 });
 /* THE GRID: squares, then axes, then off -- on the made-up surface it is the surface, on a figure it lies over it. */
+/* the cycle starts from what is shown: a blank surface already shows squares, so its first tap gives axes (Review A) */
 on('qt-grid', el => {
   const key = qtKeyOf_(el), x = qtItem_(key), card = el.closest('.qcard');
   if (!x || !card) return;
-  const was = QT_GRID.get(key) || '';
-  const next = was === '' ? 'grid' : was === 'grid' ? 'coord' : '';
+  let shown = qtGridOf_(x);
+  if (!shown) { try { const src = padSource_(x); if (src && src.from === 'surface' && card.querySelector('.qpad')) shown = src.surface || ''; } catch (e) {} }
+  const next = shown === '' ? 'grid' : shown === 'grid' ? 'coord' : '';
   if (next) QT_GRID.set(key, next); else QT_GRID.delete(key);
   partRecPut_(x, 'grid', next);
   if (next) qtPenSet_(x, true);
@@ -199,7 +216,7 @@ on('qt-panel', el => {
   const card = el.closest('.qcard');
   if (!x || !card) return;
   if (QT_PANEL.get(key) === tool) QT_PANEL.delete(key); else QT_PANEL.set(key, tool);
-  const panel = card.querySelector(`.qt-panel[data-key="${CSS.escape(key)}"]`);
+  const panel = [].find.call(card.querySelectorAll('.qt-panel'), p => p.getAttribute('data-key') === key);
   if (panel) { panel.innerHTML = qtPanelHtml_(x); panel.hidden = !QT_PANEL.has(key); }
   card.querySelectorAll('.qt-row .qt-t[data-do="qt-panel"]').forEach(t => {
     const lit = QT_PANEL.get(key) === t.getAttribute('data-tool');
@@ -297,7 +314,13 @@ const FORMULAE = [
   ['Kinetic energy', 'Eₖ = ½mv²'], ['Weight', 'W = mg'], ['Ohm’s law', 'V = IR'], ['Power', 'P = IV = E/t'],
   ['Moles', 'n = mass ÷ Mᵣ'], ['Wave speed', 'v = fλ'],
 ];
-const formulaHtml_ = () => `<dl class="qt-formula">${FORMULAE.map(f => `<div><dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd></div>`).join('')}</dl>`;
+/* THE SHEET'S WORDS ARE EDITORIAL: the brand tab's `formula_sheet`, a line each as "name: formula"; this list while it is empty */
+function formulaeOf_() {
+  let said = [];
+  try { said = String(brand('formula_sheet', '') || '').split(/\r?\n/).map(l => { const i = l.indexOf(':'); return i > 0 ? [l.slice(0, i).trim(), l.slice(i + 1).trim()] : null; }).filter(f => f && f[0] && f[1]); } catch (e) { said = []; }
+  return said.length ? said : FORMULAE;
+}
+const formulaHtml_ = () => `<dl class="qt-formula">${formulaeOf_().map(f => `<div><dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd></div>`).join('')}</dl>`;
 
 /* ---------- CHECK ON OPTIONS: a tap marks already; Check says the verdict again, or what is missing. */
 on('qp-choice-check', el => {
@@ -311,3 +334,82 @@ on('qp-choice-check', el => {
   if (!picked) { out.textContent = 'Tap an option first'; return; }
   out.textContent = box.classList.contains('is-done') ? 'Correct' : 'Not yet — have another go';
 });
+
+/* ---------- WHAT THE AI SEES (round 3): the pen's drawing as a PNG and the photos of the working, beside the typed answer. */
+/* the server's own ceiling for one picture (`WORKING_PHOTO_CHARS`); a drawing over it is drawn again at half the size */
+const PEN_PNG_EDGE = 1024, PEN_PNG_CHARS = 760000, PEN_PNG_MS = 4000;
+/* THE LOOK EACH LINE HAS ON SCREEN, written onto its copy: an <img> of an SVG never sees style.css, so `currentColor` and classes would draw nothing */
+const PEN_PNG_PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray', 'stroke-linecap',
+  'stroke-linejoin', 'opacity', 'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'visibility', 'display'];
+function penInline_(from, to) {
+  const a = [from].concat([].slice.call(from.querySelectorAll('*'))), b = [to].concat([].slice.call(to.querySelectorAll('*')));
+  a.forEach((el, i) => {
+    if (!b[i]) return;
+    const cs = getComputedStyle(el);
+    b[i].setAttribute('style', PEN_PNG_PROPS.map(p => p + ':' + cs.getPropertyValue(p)).filter(t => !/:\s*$/.test(t)).join(';'));
+    b[i].removeAttribute('class');
+  });
+}
+/* A PAD'S FIGURE AND INK AS ONE PNG data URL, on the card's own ground; '' when there is no ink, no canvas, or it will not draw in time. */
+function penPng_(pad, scale) {
+  return new Promise(done => {
+    let over = false;
+    const end = v => { if (!over) { over = true; done(v || ''); } };
+    try {
+      const art = pad && pad.querySelector('.qpad-art');
+      if (!art || !art.querySelector('.qpad-ink .qpad-g path')) return end('');
+      const box = art.getBoundingClientRect();
+      if (!(box.width > 0 && box.height > 0)) return end('');
+      const k = (scale || 1) * Math.min(2, PEN_PNG_EDGE / Math.max(box.width, box.height));
+      const W = Math.max(1, Math.round(box.width * k)), H = Math.max(1, Math.round(box.height * k));
+      const NS = 'http://www.w3.org/2000/svg';
+      const out = document.createElementNS(NS, 'svg');
+      out.setAttribute('xmlns', NS);
+      out.setAttribute('width', W); out.setAttribute('height', H);
+      out.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
+      [].filter.call(art.querySelectorAll('svg'), s => !(s.parentElement && s.parentElement.closest('svg'))).forEach(s => {
+        const r = s.getBoundingClientRect(), c = s.cloneNode(true);
+        penInline_(s, c);
+        c.setAttribute('x', r.left - box.left); c.setAttribute('y', r.top - box.top);
+        c.setAttribute('width', r.width); c.setAttribute('height', r.height);
+        out.appendChild(c);
+      });
+      const card = pad.closest('.qcard') || pad;
+      const ground = getComputedStyle(card).backgroundColor;
+      const bg = ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(ground) ? ground : '#0b0b0b';
+      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], { type: 'image/svg+xml' }));
+      const img = new Image();
+      const timer = setTimeout(() => { URL.revokeObjectURL(url); end(''); }, PEN_PNG_MS);
+      img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); end(''); };
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = W; cv.height = H;
+          const g = cv.getContext('2d');
+          g.fillStyle = bg; g.fillRect(0, 0, W, H);
+          g.drawImage(img, 0, 0, W, H);
+          const png = cv.toDataURL('image/png');
+          URL.revokeObjectURL(url);
+          if (!/^data:image\/png;base64,/.test(png)) return end('');
+          if (png.length > PEN_PNG_CHARS) return (scale || 1) > 0.3 ? penPng_(pad, (scale || 1) / 2).then(end) : end('');
+          end(png);
+        } catch (e) { URL.revokeObjectURL(url); end(''); }
+      };
+      img.src = url;
+    } catch (e) { end(''); }
+  });
+}
+/* THE PICTURES A PART'S AI MARK IS SENT: its drawing (if it has ink) then up to three photos -- only to a backend that says it reads them */
+function aiImages_(x, card) {
+  let feat = false;
+  try { feat = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { feat = false; }
+  if (!x || !feat) return Promise.resolve([]);
+  const k = ansKey_(x);
+  const pics = ((typeof WORK_PICS !== 'undefined' && WORK_PICS[k]) || []).map(p => p && p.url)
+    .filter(u => /^data:image\/jpeg;base64,/.test(String(u || ''))).slice(0, typeof WORK_MAX === 'number' ? WORK_MAX : 3);
+  const pk = padKey_(x);
+  const pad = card && [].find.call(card.querySelectorAll('.qpad[data-k]'), p => p.getAttribute('data-k') === pk);
+  const inked = padRead_(pk).length > 0;
+  return (inked && pad ? penPng_(pad) : Promise.resolve('')).then(png => (png ? [png] : []).concat(pics)).catch(() => pics);
+}

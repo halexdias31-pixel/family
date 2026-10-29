@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-28-r3-tools";
+const DOGET_VERSION = "2026-10-29-r3-ai-marker";
 
 
 function doGet(e) {
@@ -285,6 +285,8 @@ function doGet(e) {
                  'aiMark',
                  /* And this one says `aiMark` reads the WHOLE answer, up to `AI_ANSWER_MAX` (20,000 characters), and marks an essay on its levels. § */
                  'aiMarkWhole',
+                 /* And this one says `aiMark` reads pictures too: the pen's drawing as a PNG and the photos of the working (round 3). */
+                 'aiMarkImages',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost',

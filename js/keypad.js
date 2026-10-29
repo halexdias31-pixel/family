@@ -9,14 +9,15 @@ const kpMathsy_ = w => {
     .replace(/\s+[a-z]{1,3}(?:[\/\^][a-z0-9]+|[²³])?$/, '');
   return !!s && /[0-9a-z]/.test(s) && !/[a-z]{2,}/.test(s);
 };
-/* THE LAYER THE ONE PAD OPENS ON, read off the part's type (qtypes.js `qType_`, round 3): never a gate on what it can type. */
+/* THE LAYER THE ONE PAD OPENS ON: the accepted ways when the row has any, else its type (qtypes.js `qType_`). Never a gate on what it can type. */
+/* the first way, the scheme's own answer, decides (Review A): 're | re-' is a prefix and 'HHH, HHT' outcomes, whatever their type says */
 function ansMaths_(x) {
   if (!x) return false;
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
-  try { if (QT_MATHS[qType_(workRow_(x))]) return true; } catch (e) { /* the scheme's shape still says */ }
-  /* a scheme every way of which is a number, a root or a band ("34 to 36 ounces") opens on the maths too */
   const ways = String(x.accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
-  return ways.length > 0 && ways.every(kpMathsy_);
+  /* "x < 4 or x > 5" is two inequalities joined by a word: the joining word is not what is typed most */
+  if (ways.length) return kpMathsy_(ways[0].replace(/\s+(or|and)\s+/gi, ' '));
+  try { return !!QT_MATHS[qType_(workRow_(x))]; } catch (e) { return false; }
 }
 
 /* ---------- WHICH ANSWERS ARE ESSAYS § */
@@ -1202,6 +1203,8 @@ on('qp-ai-again', (el) => {
   if (go && !go.disabled) ACTIONS['qp-ai'](go);
 });
 
+const aiMarkSane_ = d => Number.isInteger(Number(d.awarded)) && Number.isInteger(Number(d.available))
+  && Number(d.available) >= 1 && Number(d.awarded) >= 0 && Number(d.awarded) <= Number(d.available) && d.available !== '' && d.awarded !== '';
 on('qp-ai', (el) => {
   const box = el.closest('.qp-ai');
   const card = el.closest('.qcard');
@@ -1215,15 +1218,19 @@ on('qp-ai', (el) => {
   const essayBox = box.classList.contains('qp-essay');
   box.classList.remove('is-right', 'is-near');
   if (why && !essayBox) why.textContent = '';
-  /* NOTHING TYPED IS NOT A WRONG ANSWER, and it is not worth a request either. */
-  if (!inp.value.trim()) {
-    /* THE PART'S ONE RECORD says whether there is working elsewhere: a drawing or photos are working, the box is the answer */
-    const rec = typeof partRec_ === 'function' ? partRec_(ansItem_(inp.getAttribute('data-k')) || {}) : {};
-    out.textContent = (rec.strokes || []).length || rec.photos ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first';
+  /* NOTHING TYPED, DRAWN OR PHOTOGRAPHED IS NOT A WRONG ANSWER, and it is not worth a request either. */
+  const x0 = ansItem_(inp.getAttribute('data-k'));
+  const rec = typeof partRec_ === 'function' && x0 ? partRec_(x0) : {};
+  const seen = (rec.strokes || []).length > 0 || rec.photos > 0;
+  let reads = false;
+  try { reads = (DATA.features || []).indexOf('aiMarkImages') !== -1; } catch (e) { reads = false; }
+  if (!inp.value.trim() && !(seen && reads)) {
+    /* a backend not yet pulled reads only the box: the drawing and photos are working beside it */
+    out.textContent = seen ? 'Write your answer in the box too \u2014 the drawing and photos are your working' : 'Write something first';
     return;
   }
   if (typeof USER !== 'object' || !USER || !USER.token) { out.textContent = 'Sign in to have it marked'; return; }
-  const x = ansItem_(inp.getAttribute('data-k'));
+  const x = x0;
   if (!x) { out.textContent = 'Could not find this question'; return; }
   const sent = inp.value;
   /* TOO LONG IS SAID, NEVER CUT: a mark for part of an essay, shown as a mark for the essay, is the fault
@@ -1250,9 +1257,13 @@ on('qp-ai', (el) => {
   const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); aiStageEnd_(stage, failed); if (letGo) letGo(); };
   /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): § */
   const essay = ansEssay_(x);
-  api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
-        answer: sent, marks: Number(x.marks) || 1, essay: essay })
+  /* THE DRAWING AS A PNG AND THE PHOTOS go with the words (`aiImages_`, qtools.js); drawing it is part of the wait the dots show. Words alone go at once. */
+  const body = { action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
+                 answer: sent, marks: Number(x.marks) || 1, essay: essay };
+  (seen && reads ? aiImages_(x, card).then(images => api(Object.assign(body, images.length ? { images: images } : {}))) : api(body))
     .then(d => {
+      /* BELIEVED ONLY IN THE SHAPE ASKED FOR: whole marks, none below 0 or above what is available */
+      if (d && d.success && !aiMarkSane_(d)) d = { success: false, message: 'Could not mark that just now' };
       /* NO TRY AGAIN WHERE AGAIN CANNOT HELP: switched off, or today's marks used. */
       failed = (!d || !d.success) && !(d && (d.why === 'ai-off' || d.why === 'ai-cap'));
       done();

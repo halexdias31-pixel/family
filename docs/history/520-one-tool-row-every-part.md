@@ -57,6 +57,26 @@ rule, `QT_WORDY_SUBJECT`, `qToolkit_`/`qToolTiles_`, `padSendRow_`/`pad-send`, t
 
 ## Left
 
-- The AI does not yet see the pen's drawing: a drawn part with no `draw_answer` asks for the answer in the box
-  and treats the drawing and photos as working. Sending the drawing needs it rasterised and an image-taking
-  `aiMark` (today only `markWorking` takes images); test against the 162 parts with `draw_answer`.
+- ~~The AI does not yet see the pen's drawing~~ — done in Build B, below.
+
+## Build B (29 Oct): the marker, and what the AI sees
+
+- `markerOf_(x)` (qtools.js) is the one chooser: `qtMarker_`'s order — `choice_right`, `cells`, `draw_answer`
+  (drawMarker_), `accept` (markAnswer_), `mark_words` then AI, else AI from the scheme. It also says `ready` (a key or
+  scheme to mark against) and `how`, the one short line under Check ("Marked against the accepted answers").
+  An AI part with no scheme has an unpressable Check and says "No mark scheme yet" instead of sending a request
+  that can only fail (131 live parts at the time; check-answerable counts them).
+- The AI Check sends `images`: the pen's drawing as a PNG (`penPng_`: the live pad's figure and ink, every line's
+  computed look written onto a copy, drawn on a canvas on the card's ground) and up to three working photos. Only to a
+  backend whose `features` list `aiMarkImages`; an older one is sent words only, as before. `aiMark` validates the
+  pictures (one PNG, three JPEGs, each under `WORKING_PHOTO_CHARS`, refused whole), allows an empty box when there are
+  pictures, keeps the daily cap, and tells Gemini which picture is the drawing. Photos are not kept by `aiMark`;
+  "Mark my working" (`markWorking`) still keeps them for the student, their parents and the admin — never tutors.
+- `tools/ai-draw-accuracy.js`: with `GEMINI_API_KEY`, every part with `draw_answer` drawn right (drawMarker_'s own
+  example) and wrong (moved until drawMarker_ marks it down), rendered by the real `penPng_` in Chromium, marked by
+  the real `aiMark`, agreement printed. Without a key: "skipped — no key". `--render-only --shots=DIR` writes the PNGs.
+- `check-aiimage.js` (fast): the drawing and photo reach the request and Gemini's inlineData; bad pictures refused.
+- Review A: the Grid choice reopens its surface after a reload and the first Grid tap on a blank grid gives axes;
+  the pad's opening layer is the first accepted way's when there is one (`re | re-` opens on letters); the formula
+  sheet is the brand tab's `formula_sheet` ("name: formula" a line) with the old list as fallback; check-answerable
+  asserts each part's Check is its marker's, draws the pen surface for one part in ten (4m19s, from 7m47s).

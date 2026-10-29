@@ -42,6 +42,7 @@
   "finalizePayment",
   "aiMark",
   "aiMarkWhole",
+  "aiMarkImages",
   "checkUploads"
  ],
  "constants": {

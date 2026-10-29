@@ -194,6 +194,8 @@ function boot(opts) {
       'handleSaid: () => HANDLE_SAID,' +
       /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
       'lib: () => LIB,' +
+      /* A RELOAD, AS THE TOOL ROW SEES ONE: the visit's grids, pens and records forgotten, the stores kept (qtools.js) */
+      'qtForget: () => { QT_GRID.clear(); PEN_OPEN.clear(); PART_MEM.clear(); },' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -27554,6 +27556,50 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
     if (latest && latest.v === 'sent') bad.push(id + ': the drawing was recorded as sent, waiting for a person');
     try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
   }
+  host.remove();
+  return bad;
+});
+
+/* ---------- THE TOOL ROW'S GRID, LAYER, LINE AND SHEET (Review A of round 3) ---------- */
+check('a part\'s grid comes back after a reload and its first Grid tap on a blank surface gives axes; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked; the formula sheet is the brand tab\'s', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-GR', kind: 'document' }),
+    R_({ row_id: 'GR-1', question: '1', html: '<p>Work out 3 + 4</p>', answer: '7', accept: '7' }),
+    R_({ row_id: 'GR-2', question: '2', subject: 'English', html: '<p>Which prefix could be added to all three words?</p>', answer: 're', accept: 're | re-' }),
+  ];
+  const pay = payload();
+  pay.brand = Object.assign({}, pay.brand || {}, { formula_sheet: 'Speed: s = d / t\nArea of a rectangle: A = lw' });
+  const { w } = boot({ payload: pay, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['qt-grid'] || !A['qt-pen'] || !A['qt-panel']) return ['questionCard_ or the qt-grid / qt-pen / qt-panel handlers are not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
+  const x1 = item('GR-1');
+  if (!x1) { host.remove(); return ['GR-1 did not reach Find']; }
+  host.innerHTML = w.questionCard_(x1, 0);
+  const how = (host.querySelector('.qt-how') || {}).textContent || '';
+  if (how !== 'Marked against the accepted answers') bad.push('the line under Check says ' + JSON.stringify(how));
+  A['qt-pen'](host.querySelector('[data-do="qt-pen"]'));
+  if (!host.querySelector('.qpad .qsurf, .qpad svg line.grid')) bad.push('the first Pen tap did not lay a grid surface');
+  A['qt-grid'](host.querySelector('[data-do="qt-grid"]'));
+  if (!host.querySelector('.qpad svg line.axis')) bad.push('the first Grid tap on a blank grid surface changed nothing — wanted axes');
+  /* A RELOAD: the visit's own state gone, the part's record kept */
+  t.qtForget();
+  host.innerHTML = w.questionCard_(x1, 0);
+  if (!host.querySelector('.qpad svg line.axis')) bad.push('after a reload the axes chosen are not drawn — the surface did not reopen');
+  const g = host.querySelector('[data-do="qt-grid"]');
+  if (!g || g.getAttribute('aria-pressed') !== 'true') bad.push('after a reload the Grid tile is not lit');
+  A['qt-panel'](host.querySelector('[data-do="qt-panel"][data-tool="formula"]'));
+  const sheet = (host.querySelector('.qt-formula') || {}).textContent || '';
+  if (!/Speed/.test(sheet) || !/s = d \/ t/.test(sheet) || /Pythagoras/.test(sheet)) bad.push('the formula sheet is not the brand tab\'s: ' + JSON.stringify(sheet.slice(0, 80)));
+  const layer = id => { host.innerHTML = w.questionCard_(item(id), 0); const i = host.querySelector('.qp-ans-in'); return i && i.getAttribute('data-kp'); };
+  if (layer('GR-2') !== 'words') bad.push('a prefix answer ("re | re-") opens on ' + layer('GR-2') + ', wanted the letters');
+  if (layer('GR-1') !== 'maths') bad.push('a number answer ("7") opens on ' + layer('GR-1') + ', wanted the maths');
   host.remove();
   return bad;
 });

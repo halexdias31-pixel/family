@@ -36,7 +36,8 @@ function boot(lib) {
   w.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0);
   w.cancelAnimationFrame = id => clearTimeout(id);
   w.confirm = () => true;
-  const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
+  /* AI MARKING ON, as with the key in place: an AI part's Check is then pressable exactly where it has a scheme to mark against */
+  const fixture = Object.assign(JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8')), { aiMarking: true });
   const ok = v => ({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(v)), json: () => Promise.resolve(v) });
   w.fetch = (url, o) => {
     const u = String(url);
@@ -81,7 +82,11 @@ const insText_ = () => {
   try { LIB_FULL.rows('inserts').forEach(r => { INS_TEXT[S(r.insert_id)] = S(r.source_text); }); } catch (e) { INS_TEXT.__error = e.message; }
   return INS_TEXT;
 };
-const WRONG = ['zzqq wvxk', '987654.321'];   // no letter sum or product hides in either ("9x7" was 63)
+const WRONG = ['zzqq wvxk', '987654.321'];
+/* EACH MARKER'S CHECK, written here and not read from the app: a part's Check must be its marker's (Review A) */
+const CHECK_OF = { choice: 'qp-choice-check', order: 'qp-order-send', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-rule', ai: 'qp-ai' };
+const PEN_DRAW_EVERY = 10;
+const byMarker = {}, notReady = {}, notReadyLive = [];   // no letter sum or product hides in either ("9x7" was 63)
 
 /* THE SAMPLE A ROW'S OWN SCHEME GIVES: the first written way of `accept`, else nothing (a rule-only row is tested on its rule's own words, not here). */
 const firstWay = acc => S(acc).split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w)) || '';
@@ -108,7 +113,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   };
   await fresh();
   const need = ['stuffItemsAll_', 'stuffCard', 'questionStemCard_', 'questionPreCard_', 'markAnswer_', 'markWords_', 'markCells_',
-    'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_'];
+    'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_', 'padSource_'];
   const missing = need.filter(n => typeof w[n] !== 'function');
   if (!missing.length && A && !(Array.isArray(A.QT_ORDER) && A.QT_ORDER.join(' ') === TOOL_ORDER.join(' '))) missing.push('QT_ORDER in the owner\'s order (' + TOOL_ORDER.join(' ') + ')');
   if (missing.length || !A || !A.DM) { console.log('FAILED — not reachable in the app: ' + missing.concat(A && A.DM ? [] : ['DRAW_MARK']).join(', ') + ' — NOTHING was checked'); process.exit(1); }
@@ -117,7 +122,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   if (!all.length) { console.log('FAILED — no question parts reached the finder' + (ONLY ? ' with id ' + ONLY : '') + ' — this check cannot see its subject'); process.exit(1); }
 
   const fails = {};                 // invariant -> [row id: why]
-  const count = { lazy: 0, parts: 0, skipped: 0, pages: 0, figures: 0, zoomed: 0, selfTested: 0, rulesOnly: 0, drawn: 0, inserts: 0, reading: 0, readingBlind: 0, accepted: 0, importFlagged: 0 };
+  const count = { lazyDrawn: 0, lazy: 0, parts: 0, skipped: 0, pages: 0, figures: 0, zoomed: 0, selfTested: 0, rulesOnly: 0, drawn: 0, inserts: 0, reading: 0, readingBlind: 0, accepted: 0, importFlagged: 0 };
   const bad = (inv, x, why) => {
     const id = x.row.row_id;
     if (accepted(id, inv)) { count.accepted++; if (process.argv.includes('-v')) console.log('  accepted ' + id + ' ' + inv + ': ' + accepted(id, inv)[2]); return; }
@@ -185,20 +190,42 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (got.join(' ') !== TOOL_ORDER.join(' ')) bad('tools', x, 'its row reads ' + got.join(' '));
       const box = rows[0].closest('.qp-mark');
       if (!box || !box.querySelector('.qp-verdict')) bad('tools', x, 'its row is not in the box\'s mark with a verdict line under it');
+      /* ---------- ITS MARKER (markerOf_), NEVER A PERSON: the Check is that marker's, and the line under it says how ---------- */
+      let m = null;
+      try { m = w.markerOf_(x); } catch (e) { bad('marker', x, 'markerOf_ threw: ' + e.message); }
+      if (m) {
+        const want = CHECK_OF[m.kind];
+        const go = [...rows[0].querySelectorAll('.is-submit')];
+        if (!want) bad('marker', x, 'it is marked by ' + JSON.stringify(m.kind) + ' — only a rule or the AI marks');
+        else {
+          byMarker[m.kind] = (byMarker[m.kind] || 0) + 1;
+          if (!m.ready) { notReady[m.kind] = (notReady[m.kind] || 0) + 1; if (!LIB_FULL.pending(r)) notReadyLive.push(r.row_id); }
+          if (go.length !== 1 || go[0].getAttribute('data-do') !== want) bad('marker', x, 'marked by ' + m.kind + ', its Check is ' + go.map(g => g.getAttribute('data-do')).join(', ') + ', wanted ' + want);
+          else if (m.kind === 'ai' && !m.ready && !go[0].disabled) bad('marker', x, 'no scheme to mark against, and its AI Check can still be pressed');
+          else if (m.kind === 'ai' && m.ready && go[0].disabled) bad('marker', x, 'a scheme to mark against, and its AI Check cannot be pressed');
+        }
+        const how = host.querySelector('.qt-how');
+        if (!how || !S(how.textContent) || S(how.textContent) !== S(m.how)) bad('marker', x, 'the line under Check says ' + JSON.stringify(how ? how.textContent : null) + ', not how it is marked');
+      }
     }
     const boxes = n('.qp-mark .qp-ans-in:not(.kp-in[data-do="qp-multi"])') + n('.qp-multi') + n('.qp-choices') + n('.qp-order') + n('.qp-cells-box');
     if (boxes !== 1) bad('box', x, boxes + ' answer boxes, wanted one');
     if (pen) count.drawn++;
     else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');
     else {
-      /* THE FIRST PEN TAP makes its surface: its figure, its stem's, or a grid */
+      /* THE FIRST PEN TAP makes its surface: its figure, its stem's, or a grid -- asked of padSource_ for every part, the card drawn for one in PEN_DRAW_EVERY (Review A: three draws a part took 7m47s) */
       try {
         w.qtPenSet_(x, true);
-        host.innerHTML = w.stuffCard(x);
-        if (n('.qpad .qpad-art > svg') < 1) bad('surface', x, 'a Pen tap gives it nothing to draw on');
-        else count.lazy++;
+        const src = w.padSource_(x);
+        if (!src || !S(src.svg)) bad('surface', x, 'a Pen tap gives it nothing to draw on');
+        else if (count.parts % PEN_DRAW_EVERY === 0) {
+          host.innerHTML = w.stuffCard(x);
+          count.lazyDrawn++;
+          if (n('.qpad .qpad-art > svg') < 1) bad('surface', x, 'a Pen tap draws nothing to draw on');
+          else count.lazy++;
+        } else count.lazy++;
       } catch (e) { bad('surface', x, 'opening its pen threw: ' + e.message); }
-      finally { w.qtPenSet_(x, false); host.innerHTML = w.stuffCard(x); }
+      finally { w.qtPenSet_(x, false); }
     }
     /* ---------- THE MARKER, ON THE ROW'S OWN ANSWER ---------- */
     try {
@@ -303,10 +330,11 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     }
   }
 
+  if (!ONLY && Object.keys(byMarker).reduce((a, k) => a + byMarker[k], 0) < count.parts * 0.9) (fails.marker = fails.marker || []).push('only ' + JSON.stringify(byMarker) + ' of ' + count.parts + ' parts had a marker read — the row was not reached');
   const inv = Object.keys(fails);
   const total = inv.reduce((s, k) => s + fails[k].length, 0);
   const line = `parts ${count.parts} (pending without words skipped ${count.skipped}), pages ${count.pages}, figures ${count.figures}, `
-    + `cards with a figure under the Magnifier ${count.zoomed}, drawn ${count.drawn}, a surface on the first Pen tap ${count.lazy}, every part with the twelve tools in order and one box, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
+    + `cards with a figure under the Magnifier ${count.zoomed}, drawn ${count.drawn}, a surface on the first Pen tap ${count.lazy} (${count.lazyDrawn} drawn), by marker ${Object.keys(CHECK_OF).map(k => k + ' ' + (byMarker[k] || 0)).join(', ')} (none by a person; nothing yet to mark against: ${Object.keys(notReady).map(k => k + ' ' + notReady[k]).join(', ') || 'none'}, ${notReadyLive.length} of them not waiting on an import), every part with the twelve tools in order and one box, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
   if (!total) { console.log('OK — every question part can be answered: ' + line); process.exit(0); }
   console.log('FAILED — ' + total + ' failure(s) across ' + inv.length + ' invariant(s): ' + line);
   inv.forEach(k => {

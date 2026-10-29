@@ -5051,7 +5051,8 @@ function padSource_(x) {
   if (!x) return null;
   /* a passage to ring words in is the part's own surface; its Pen still opens a grid below it */
   const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
-  const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
+  /* a grid chosen and saved reopens the surface it was chosen on, as saved ink does (Review A) */
+  const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x) || (x.kind === 'question' && typeof qtGridOf_ === 'function' && !!qtGridOf_(x)));
   if (said === 'text' && !opened) return null;
   if (!padDrawn_(x) && !surf && !opened) return null;
   if (said === 'text') return { svg: surfaceSvg_((typeof qtGridOf_ === 'function' && qtGridOf_(x)) || 'grid'), from: 'surface', surface: 'grid' };
