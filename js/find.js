@@ -7284,6 +7284,22 @@ function padForgetOthers_() {
   PAD_DUE = null;
 }
 
+/* ---------- A TOOL TAKEN UP ON A PAD (the tool row's Pen, Ruler, Compass, Protractor): it also gives this pad the pen (368) */
+function padToolPick_(pad, t) {
+  if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
+  if (t === 'protractor') {
+    const st = padProtOf_(k);
+    st.on = !st.on;
+    if (PAD_ON !== k) padTake_(pad, k);
+    padProtSync_(k);
+    return;
+  }
+  PAD_TOOL.set(k, t || 'pen');
+  if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
+}
+
 /* ---------- THE PROTRACTOR (458): a 180° scale lying over the pen's page, moved by its body, turned by its knob ---------- */
 /* where it lies, per pad key for the visit: its centre in % of the picture, its turn in degrees */
 const PAD_PROT = new Map();

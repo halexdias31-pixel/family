@@ -5746,7 +5746,7 @@ top level, before `owners`
          reading an earlier part's marks, which shows that picture again with them. */
 ```
 
-### ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`answerKinds_`)
+### ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`qtDrawn_` and its marker since round 3; was `answerKinds_`)
 
 top level, before `IDS`
 

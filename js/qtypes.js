@@ -269,6 +269,6 @@ function qtMarker_(x) {
   return 'ai';
 }
 /* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
-const qtMachine_ = x => qtMarker_(x) !== 'ai';
+function qtMachine_(x) { return qtMarker_(x) !== 'ai'; }
 /* THE TYPES WHOSE BOX OPENS ON THE MATHS LAYER of the one pad; every other opens on the letters (keypad.js) */
 const QT_MATHS = { value: 1, unit: 1, multi: 1, fraction: 1, coords: 1, expr: 1, measure: 1 };

@@ -87,7 +87,10 @@ function qtToolTile_(t, x) {
   if (t.id === 'photo') {
     return tile_({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } });
   }
-  const on = t.panel ? QT_PANEL.get(key) === t.id : t.id === 'grid' ? !!QT_GRID.get(key) : false;
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit -- `padArm_`'s rule, read off PAD_ON and PAD_TOOL, which outlive the markup */
+  const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
+  const held = !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === t.id);
+  const on = t.panel ? QT_PANEL.get(key) === t.id : t.id === 'grid' ? !!QT_GRID.get(key) : held;
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
 }
@@ -131,26 +134,18 @@ function qtRedraw_(card, x) {
 }
 /* THE PEN: the card's pad, made on the first tap where the part has none -- its figure, else its stem's, else a grid. */
 function qtPenOpen_(el, tool) {
-  const key = qtKeyOf_(el), x = qtItem_(key);
+  const key = qtKeyOf_(el);
   let card = el.closest('.qcard');
-  if (!x || !card) return null;
+  if (!card) return null;
   let pad = card.querySelector('.qpad');
   if (!pad) {
+    const x = qtItem_(key);
+    if (!x) return null;
     qtPenSet_(x, true);
     card = qtRedraw_(card, x);
     pad = card && card.querySelector('.qpad');
   }
-  if (!pad) return null;
-  const k = pad.getAttribute('data-k') || '';
-  if (tool === 'protractor') {
-    const st = padProtOf_(k);
-    st.on = !st.on;
-    if (PAD_ON !== k) padTake_(pad, k);
-    padProtSync_(k);
-    return pad;
-  }
-  PAD_TOOL.set(k, tool || 'pen');
-  if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
+  if (pad) padToolPick_(pad, tool || 'pen');
   return pad;
 }
 on('qt-pen', el => { qtPenOpen_(el, 'pen'); });

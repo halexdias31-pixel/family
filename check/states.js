@@ -514,7 +514,7 @@ const STATES = {
           const marks = [[60, 280, 290, 60], ring];
           try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
           padRepaint_(pad, marks);
-          const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
+          const c = pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]');
           if (c) c.click();
           return true;
         };
@@ -522,9 +522,9 @@ const STATES = {
       },
       expect: () => {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
-        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const lit = pad && [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t.on:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' ');
         return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
-               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !pad.querySelector('.qpad-lock')
+               && !!pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]') && !pad.querySelector('.qpad-lock')
                && pad.querySelectorAll('.qpad-g path').length === 2;
       },
       wants: 'Q4\'s figure under the pen on its card, holding the pen, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
@@ -545,19 +545,19 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         const put = () => {
           const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
-          const r = pad && pad.querySelector('.qpad-tool[data-tool="ruler"]'), p = pad && pad.querySelector('.qpad-tool[data-tool="protractor"]');
+          const r = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]'), p = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]');
           if (!r || !p) return false;
           r.click();
           Object.assign(padProtOf_(window.__protKey), { x: 45, y: 72, a: 50 });
           const again = [...document.querySelectorAll('#s-stuff .qpad')].find(q => q.getAttribute('data-k') === window.__protKey);
-          again.querySelector('.qpad-tool[data-tool="protractor"]').click();
+          again.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]').click();
           return true;
         };
         if (!put()) setTimeout(put, 150);
       },
       expect: () => {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
-        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const lit = pad && [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t.on:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' ');
         const prot = pad && pad.querySelector('.qpad-art > .qpad-prot');
         return !!prot && lit === 'ruler protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
       },

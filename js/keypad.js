@@ -58,7 +58,7 @@ const KP_KEYS = [
   /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the same act -- one mark for "mark it" wherever the child is § */
   { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
 ];
-/* THE SIGNS ROW (`kpSigns_`), in the structures' amber because they are the keys that make an answer
+/* THE SIGNS ROW, on every box, in the structures' amber because they are the keys that make an answer
    mathematical. `t` is drawn as markup, so `<` and `>` are written as entities there and typed as
    themselves through `v`. */
 const KP_SIGN_KEYS = [
@@ -70,7 +70,7 @@ const KP_SIGN_KEYS = [
   { t: '\u00b1', a: 'plus or minus', c: ' kp-op' },
 ];
 
-/* THE VECTOR ROW (385): a column vector, top over bottom in one pair of brackets, and what goes with it. Shown where the question's answer is a vector or a translation (`kpVec_`) */
+/* THE VECTOR ROW (385): a column vector, top over bottom in one pair of brackets, and what goes with it. */
 const KP_VEC_A = '\u27ee', KP_VEC_B = '\u27ef';
 /* ONE PAD TYPES ANYTHING (round 3): this row is on every box, with the units a value needs beside the vector */
 const KP_VEC_KEYS = [
