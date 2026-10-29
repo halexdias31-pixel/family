@@ -9368,18 +9368,23 @@ function stuffFind(items, credits) {
   /* BY NAME, AND ONLY BY NAME. § */
   /* ---------- QUESTIONS SORT WITH THEIR PAPER, AND NUMERICALLY § */
   /* ---------- ONE STRING PER ITEM, BUILT ONCE, COMPARED WITH `<` § */
-  /* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
-  const words = stuffWords_(STUFF.q);
-  if (words.length) {
-    const named = x => x.kind === 'content' && (() => {
-      const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
-      return words.every(w => hay.indexOf(w) !== -1);
-    })();
-    const lead = out.filter(named);
-    if (lead.length) out = lead.concat(out.filter(x => !named(x)));
-  }
-  return out;
+  return stuffLead_(out, stuffWords_(STUFF.q));
 }
+/* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
+function stuffLead_(out, words) {
+  if (!words.length) return out;
+  const named = x => x.kind === 'content' && (() => {
+    const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
+    return words.every(w => hay.indexOf(w) !== -1);
+  })();
+  const lead = out.filter(named);
+  return lead.length ? lead.concat(out.filter(x => !named(x))) : out;
+}
+/* The library's own order, by the key `stuffSorted_` cached on each item. */
+const stuffKeyCmp_ = (a, b) => {
+  const ka = a._sk || (a._sk = sortKey_(a)), kb = b._sk || (b._sk = sortKey_(b));
+  return ka < kb ? -1 : ka > kb ? 1 : 0;
+};
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it already has rather than over the whole library — see the note § */
 /* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
 const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
@@ -9434,10 +9439,7 @@ const SORTED_ITEMS = new WeakMap();
 function stuffSorted_(items) {
   let out = SORTED_ITEMS.get(items);
   if (out) return out;
-  out = items.slice().sort((a, b) => {
-    const ka = a._sk || (a._sk = sortKey_(a)), kb = b._sk || (b._sk = sortKey_(b));
-    return ka < kb ? -1 : ka > kb ? 1 : 0;
-  });
+  out = items.slice().sort(stuffKeyCmp_);
   SORTED_ITEMS.set(items, out);
   return out;
 }
@@ -9487,6 +9489,8 @@ function stuffFiltered() {
     const added = STUFF.filters.slice(prev.filters.length);
     if (same && added.every(f => f.any || !had[f.field])) {
       items = stuffNarrow_(prev.items, added, words, credits);
+      /* THE SAME ORDER AS AFRESH: the list was led by its old words, so back to the library's order and led by these (522). */
+      if (words.length || prev.words.length) items = stuffLead_(items.slice().sort(stuffKeyCmp_), words);
     }
   }
   if (!items) items = stuffFind(all, credits);

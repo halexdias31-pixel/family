@@ -190,8 +190,8 @@ node js/check-practicals.js      # the 41 practicals, and whether their topics j
 node js/check-anims.js           # the content cards' animations: rows, anchoring, and the splash's copy
 node js/check-diagram-png.js     # every library drawing has its PNG twin for the Sunday email, none orphaned
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
-node js/check-funnel.js          # the real funnel over the real library: can each question narrow? Random funnels: counts, Doesn't matter, nothing asked twice (522)
-node js/check-finder.js          # a finder's chips and words set only through finderSet_ (R1, 522)
+node js/check-funnel.js          # the real funnel over the real library: can each question narrow? Random funnels: counts, order, Doesn't matter, nothing asked twice (522); FUNNEL_ONLY=walk for those alone
+node js/check-finder.js          # a finder's chips and words set only through finderSet_ (R1, 522): acorn, aliases followed
 node js/check-library-ledger.js  # the library's words in the Ledger: the copy checked row by row, libItems signed-in and capped (--full: all of it)
 node tools/lib-private.js status # where the library's words are: data/, data-private/ (docs/library.md)
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.

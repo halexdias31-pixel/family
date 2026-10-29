@@ -96,8 +96,8 @@ boot(f => {
     return done();
   }
   const facets = f.facetList();
-  /* `FUNNEL_ONLY=walk` walks the random funnels alone — a minute, where the whole check takes many. */
-  if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done(); }
+  /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
+  if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
   const GONE = { venue: 'booking places', link: 'links' };
@@ -1143,6 +1143,7 @@ boot(f => {
 
   /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
   /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
+let WALKED = 'not walked';
 function walkFunnels_(f, items) {
   if (f.stuffFind && f.stuffFiltered && f.nextFacet && f.stuffNarrow_) {
     let seed = Number(process.env.FUNNEL_SEED || 1);
@@ -1153,7 +1154,6 @@ function walkFunnels_(f, items) {
     const fail = (k, m) => { (fails[k] = fails[k] || []).push(m); };
     const runs = Number(process.env.FUNNEL_RUNS || 80);
     let steps = 0, answered = 0, anys = 0, typed = 0;
-    const reordered = [];
     try {
       for (let r = 0; r < runs; r++) {
         S.filters = []; S.q = '';
@@ -1162,10 +1162,10 @@ function walkFunnels_(f, items) {
         for (let st = 0; st < 14; st++) {
           const list = f.stuffFiltered();
           steps++;
-          /* a. THE MEMO HOLDS WHAT FILTERING AFRESH GIVES. The order may differ once words narrow a narrowed list — a note, not a failure. */
+          /* a. THE MEMO HOLDS WHAT FILTERING AFRESH GIVES, in the same order: the path taken to a question never changes its answer (522). */
           const fresh = f.stuffFind(items, 0), had = new Set(list);
           if (fresh.length !== list.length || fresh.some(x => !had.has(x))) fail('memo', at() + ': the memo holds ' + list.length + ', afresh ' + fresh.length);
-          else if (fresh.some((x, i) => x !== list[i])) reordered.push(at());
+          else if (fresh.some((x, i) => x !== list[i])) { const i = fresh.findIndex((x, j) => x !== list[j]); fail('order', at() + ': at ' + i + ' the memo has "' + list[i].name + '", afresh "' + fresh[i].name + '"'); }
           if (!list.length) break;
           const fac = f.nextFacet(list) || f.overFacet_(list);
           if (!fac) break;
@@ -1210,15 +1210,15 @@ function walkFunnels_(f, items) {
         }
       }
     } finally { S.q = was.q; S.filters = was.filters; }
-    const SAY = { memo: 'the memo is not the list filtered afresh', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item' };
-    if (reordered.length) note.push('random funnels: ' + reordered.length + ' step(s) where the memo holds the same items as filtering afresh in another order — first: ' + reordered.slice(0, 2).join('; '));
+    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item' };
     Object.keys(fails).forEach(k => bad.push(fails[k].length + ' step(s) where ' + SAY[k] + ' — first: ' + fails[k].slice(0, 3).join('; ')));
-    console.log('\nRANDOM FUNNELS: ' + runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter, ' + typed + ' words), ' + Object.keys(fails).length + ' invariant(s) broken');
+    WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter, ' + typed + ' words), ' + Object.keys(fails).length + ' invariant(s) broken';
+    console.log('\nRANDOM FUNNELS: ' + WALKED);
     if (answered < 100 || anys < 20 || typed < 10) bad.push('the random funnels pressed ' + answered + ' answers, ' + anys + ' Doesn\'t matter and typed ' + typed + ' words — too few to prove the invariants, not a pass');
   } else bad.push('`stuffFind`, `stuffFiltered`, `nextFacet` or `stuffNarrow_` is not exported, so the random funnels were NOT walked — not a pass');
 }
 
-function done() {
+function done(only) {
   console.log('');
   if (note.length) {
     console.log('WORTH A LOOK — not failures:');
@@ -1231,6 +1231,7 @@ function done() {
     console.log('');
     process.exit(1);
   }
+  if (only) { console.log('OK — ' + only + ': ' + WALKED + '; nothing else in this check was run.'); process.exit(0); }
   console.log('OK — every facet is asked, sorted, said and coloured by one rule: no question with one '
               + 'answer, no answer spelled twice, and the sitting asked in months.');
   process.exit(0);

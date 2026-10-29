@@ -944,6 +944,13 @@ in `signedOut_`
      or cleared together, through `finderStates_` (find.js) — `typeof`, for the reason `STUFF` is. */
 ```
 
+Since docs/history/522 the clearing itself goes through `finderSet_(F, { paint: false })`, the one
+writer of a finder's question: it clears the `-q` box and a parked typing timer as well as the words
+and chips. "The box is not cleared here" above stopped being true for a switch from one person to
+another, which passes `quiet` and so never reaches `repaint`, and the box went on showing the last
+person's typed words over an empty question. `whose` is still set here by hand: it is not part of
+the question.
+
 ### WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN.
 
 in `signedOut_`
