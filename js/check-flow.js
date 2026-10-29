@@ -30974,6 +30974,90 @@ check('Library → a subject offers only shelves that subject has — never Book
   return bad;
 });
 
+/* ---------- WHAT'S MISSING (525): an admin's card directly above Find's question, fetched for an admin alone ---------- */
+const MISS_LIST_ = [
+  { board: 'Edexcel', level: 'GCSE', subject: 'Maths', label: 'Edexcel GCSE Maths', papers: ['1H', '2H'], series: ['June'], from: 2017, to: 2017 },
+  { board: 'AQA', level: 'GCSE', subject: 'Geography', label: 'AQA GCSE Geography', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'OCR', level: 'GCSE', subject: 'Psychology', label: 'OCR GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+];
+const MISS_ROWS_ = [
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-1H', exam_board: 'Edexcel', level: 'GCSE', subject: 'Maths', year: '2017', month: '6',
+    paper: '1', tier: 'Higher', name: 'Paper 1 — June 2017', active: 'True' },
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+    paper: '1', name: 'Paper 1 — June 2022', active: 'True' },
+  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+    paper: '1', name: 'Q1', active: 'True', lib_pending: 'True' },
+];
+const missServe_ = list => u => (/expected-papers\.json/.test(u) ? list : /data\/questions\.json/.test(u) ? MISS_ROWS_ : undefined);
+const missPages_ = d => [...(d.getElementById('s-stuff') || { querySelectorAll: () => [] }).querySelectorAll(':scope > .page')];
+
+check('What\'s missing (525): an admin sees the card directly above Find\'s question and Find still opens on the question; the gaps, "none yet", "complete" and the papers waiting; a chip and Back to top keep it; Delete takes it off; an empty list says so; a student and a client neither see nor fetch it', async () => {
+  const { w, errs, gets } = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(MISS_LIST_) });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('stuff', false, true); await wait(400);
+  const card = d.querySelector('#s-stuff .miss-card');
+  if (!card) return ['no What’s missing card on Find for an admin — NOT checked'];
+  const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
+  const cardAt = () => missPages_(d).indexOf(d.querySelector('#s-stuff .miss-card')?.closest('.page'));
+  if (cardAt() !== 0 || qAt() !== 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
+  if (t.PAGE().stuff !== qAt()) bad.push('Find opens on page ' + t.PAGE().stuff + ', not on the question (' + qAt() + ')');
+  if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
+  if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
+  const said = () => [...d.querySelectorAll('#s-stuff .miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
+  const s0 = said();
+  if (!/What.s missing/.test(s0)) bad.push('the card has no title: ' + s0.slice(0, 120));
+  if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
+  if (/Paper 1H|Papers 1H/.test(s0)) bad.push('a present paper (1H June 2017) is listed as missing');
+  if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
+  if (!/OCR GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
+  if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
+  if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
+  if (d.querySelector('#s-stuff .miss-card [aria-busy="true"], #s-stuff .miss-card .loading')) bad.push('the card is still waiting after its list came');
+  if (gets.filter(u => /expected-papers\.json/.test(u)).length !== 1) bad.push('the list was fetched ' + gets.filter(u => /expected-papers\.json/.test(u)).length + ' times, not once');
+  /* A CHIP REDRAWS WHAT IS BELOW THE QUESTION, never the card above it. */
+  w.paintFinder_('stuff');
+  await wait(200);
+  if (cardAt() !== 0 || qAt() !== 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
+  if (t.PAGE().stuff !== qAt()) bad.push('a repaint of the funnel left Find on page ' + t.PAGE().stuff);
+  /* BACK TO TOP IS THE QUESTION. */
+  t.goPage('stuff', 1 + qAt(), true); await wait(100);
+  const top = d.createElement('button'); top.setAttribute('data-do', 'find-top'); d.getElementById('stuff-controls').appendChild(top);
+  t.ACTIONS['find-top'](top); await wait(200); top.remove();
+  if (t.PAGE().stuff !== qAt()) bad.push('Back to top lands on page ' + t.PAGE().stuff + ', not the question');
+  /* AN ITEM (487): Delete in two taps, no move or door; gone, the question is page 0 again and Find is on it. */
+  const del = () => d.querySelector('#s-stuff .miss-card [data-do="lay-c-del"]');
+  if (!del()) bad.push('the card has no Delete tile');
+  else {
+    if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
+    t.ACTIONS['lay-c-del'](del()); t.ACTIONS['lay-c-del'](del()); await wait(400);
+    if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
+    if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
+  }
+  if (errs.length) bad.push('errors: ' + errs.join(' | ').slice(0, 300));
+  w.close();
+  /* AN EMPTY OR ABSENT LIST SAYS SO. */
+  const e = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(null) });
+  await wait(400);
+  e.w.__t.go('stuff', false, true); await wait(300);
+  const es = (e.w.document.querySelector('#s-stuff .miss-card') || { textContent: '' }).textContent;
+  if (!/Nothing listed to expect yet/.test(es)) bad.push('an absent list does not say "Nothing listed to expect yet": ' + es.replace(/\s+/g, ' ').slice(0, 120));
+  e.w.close();
+  /* A STUDENT AND A CLIENT: no card, the question is page 0, nothing fetched. */
+  for (const who of [{ name: 'Kit Young', personId: 'P-K', role: 'student', roles: ['student'], rank: 'student', token: 'tk-kit', handle: 'kit_y' }, MEMBER_]) {
+    const s = boot({ before: signedInAs_(who), serve: missServe_(MISS_LIST_) });
+    await wait(400);
+    s.w.__t.go('stuff', false, true); await wait(300);
+    const sd = s.w.document;
+    if (sd.querySelector('.miss-card')) bad.push('a ' + who.rank + ' sees What’s missing');
+    if (missPages_(sd).indexOf(sd.getElementById('stuff-controls')?.closest('.page')) !== 0) bad.push('for a ' + who.rank + ' the question is not page 0');
+    if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
+    s.w.close();
+  }
+  return bad;
+});
+
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
 if (FLOW_PART_) {

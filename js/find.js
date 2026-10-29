@@ -19,11 +19,15 @@ const finder_ = o => Object.assign({
   pages: { from: null, pages: [] },
   chips: { key: null, from: null, out: {} },
   late: 0, typing: null, tried: false,
+  /* THE PAGES ABOVE THE QUESTION (525) and how many: none, but Find's for an admin (What's missing, missing.js). */
+  lead: () => [], leadN: () => 0, leadOn: 0,
 }, o);
 const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
+                   lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
+                   leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
                    empty: FINDER_EMPTY }),
   res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
                    /* A RULE (496), locked: `find-front` — the front pages are Find's alone. */
@@ -78,8 +82,16 @@ function paintFinder_(id, keep) { const F = finderOf_(id); if (F) inFinder_(F, (
    counted in its own binding, so asking for Find's count from inside the second finder's draw cannot
    count the wrong list. */
 function finderPageCount_(id) {
-  return inFinder_(finderOf_(id) || FINDERS.stuff, () => 1 + frontPages_().length + stuffPageCount());
+  return inFinder_(finderOf_(id) || FINDERS.stuff, () => FINDER.leadN() + 1 + frontPages_().length + stuffPageCount());
 }
+/* THE PAGES ABOVE THE QUESTION CAME OR WENT (525: an admin signed in or out): the page you were on moves with them. */
+function finderLeadShift_(F, n) {
+  const was = F.leadOn || 0;
+  F.leadOn = n;
+  if (n !== was) PAGE[F.id] = Math.max(0, (PAGE[F.id] || 0) + n - was);
+}
+/* `is-lead` is what `paintStuff` keeps: it redraws only what is below the question. One tile row per thing, as `pages` draws (489). */
+const finderLeadHtml_ = lead => lead.map(c => `<section class="page is-lead"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -10210,7 +10222,7 @@ const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', 
 on('find-top', el => {
   const F = finderAt_(el);
   if (!F) return;
-  inFinder_(F, () => goPage(F.id, 0));
+  inFinder_(F, () => goPage(F.id, stuffQuestionPage_()));
 });
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
@@ -10604,7 +10616,7 @@ function paintStuff(keepPage) {
   /* ---------- THE QUESTION PAGE IS NOT REDRAWN, AND THAT IS THE WHOLE POINT § */
   /* ---------- THE RESULT PAGES ARE REUSED, AND THIS LINE USED TO DESTROY ALL OF THEM § */
   [].slice.call(host.querySelectorAll(':scope > .page')).forEach(el => {
-    if (el !== first && !el.classList.contains('is-res')) el.remove();
+    if (el !== first && !el.classList.contains('is-res') && !el.classList.contains('is-lead')) el.remove();
   });
 
   /* ---------- ONE INSERT, IN THE ORDER `screen('stuff')` BUILDS § */
@@ -11268,6 +11280,7 @@ function finderMembersCard_(F) {
 }
 function finderMembersOnly_(F) {
   const front = F.id === 'stuff' ? [].concat(bookingPages_(), feedPages_()) : [];
+  finderLeadShift_(F, 0);
   PAGE_KEEP[F.id] = 1 + front.length;
   return pages(F.id, [finderMembersCard_(F)].concat(front));
 }
@@ -11315,8 +11328,11 @@ function finderScreen_() {
   /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER § */
   libPagesFresh_();
   const held = stuffHeld_();
+  /* WHAT'S MISSING (525), above the question for an admin; counted after `held` was read off the page as it stood. */
+  const lead = F.lead();
+  finderLeadShift_(F, lead.length);
   const front = frontPages_();
-  const keep = 1 + front.length;
+  const keep = lead.length + 1 + front.length;
   const want = stuffPageCount();
   stuffBackTo_(held, keep);
   PAGE_KEEP[F.id] = keep;
@@ -11334,7 +11350,7 @@ function finderScreen_() {
   }
   /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than Find 2's `res` id, and nothing to
      do with it: `#s-res .page.is-res` is a result page of Find 2. */
-  return pages(F.id, [controls].concat(front))
+  return finderLeadHtml_(lead) + pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
