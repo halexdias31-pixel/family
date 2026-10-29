@@ -67,3 +67,12 @@ stops glowing, counts 0 and says what each file did; `libImportList` asked once.
 
 `backend/*.gs` (merge, GitHub Assistant ↓, Deploy → New version) and `js/records.js` (push). Drive scope is already in
 `appsscript.json`. Stamps `2026-10-24-h-library-import` (all four); css unchanged.
+
+## Subfolders (2026-10-29)
+
+The owner unzipped a bundle in Drive, so about 144 lib-import-*.json files sat in a subfolder (`lib-import-bundle-2026-10-29`,
+and an older `past-paper-imports`) that the import never looked in. Now each run walks the folder and its subfolders, at any
+depth, except `imported`: a file or zip there is taken like one in the folder itself (our own only, oldest name first) and
+moves to `imported`. One name is imported once a run, the folder's own first, and a subfolder's file whose name is already
+in `imported` is left alone. The walk stops at 20 folders or 2,000 files with a log line; the rest waits for the next run.
+check-library-ledger section 10 proves it, mutation-tested.

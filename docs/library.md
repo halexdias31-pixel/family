@@ -69,6 +69,10 @@ node tools/lib-private.js drive-pack /tmp/x.json --ids Q-1a,Q-1b --private <anot
    `imported` is skipped, never overwritten), moves the zip to `imported`, then imports the files in the same run. A zip
    over 45 MB, holding more than 500 files, or unpacking to more than 45 MB is refused with a log line and stays put; the
    card shows each waiting zip as "zip waiting (n files)" or why it is refused. Nothing in a zip is ever run.
+   **Subfolders count too** (a bundle the owner unzipped in Drive is a folder): every lib-import-*.json or .zip in any
+   subfolder, at any depth, except `imported`, is taken like one in the folder itself, and moves to `imported` when done.
+   One name is imported once a run, the folder's own first; a subfolder's file whose name is already in `imported` is
+   left where it is. A run looks at most 20 folders and 2,000 files, logs it when it stops there, and the rest waits.
 3. **The owner taps** *Import library updates (N)* on the **Library updates** card in Business — it glows while files
    wait — or opens `?run=libImportDrive&name=…&pin=…`.
 

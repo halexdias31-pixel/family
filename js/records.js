@@ -347,7 +347,7 @@ on('rep-open', el => {
 });
 
 /* ---------- LIBRARY UPDATES A SESSION LEFT IN DRIVE (407) ----------
-   `libImportList` counts the lib-import-*.json (and .zip) files in the owner's family-library-imports folder; the tile imports them (`libImportDrive`). */
+   `libImportList` counts the lib-import-*.json (and .zip) files in family-library-imports and its subfolders; the tile imports them (`libImportDrive`). */
 const LIBIMP = { list: null, last: null, auto: null, asking: false, error: '' };
 function libImpCard_() {
   const wait = !LIBIMP.list && !LIBIMP.error && typeof loading_ === 'function';
