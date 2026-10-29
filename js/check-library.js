@@ -1185,10 +1185,10 @@ const withPad = drawQs.filter(r => r.diagram
    that cannot find its subject exits non-zero: "I did not count" is not "there were none". */
 const findSrc_ = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 const { cutFrom } = require('./check-marks-load.js');
-const surfParts_ = ['padDrawn_', 'padSurface_'].map(n => cutFrom(findSrc_, n))
+const surfParts_ = ['padPicked_', 'padDrawn_', 'padSurface_'].map(n => cutFrom(findSrc_, n))
   .concat([cutFrom(fs.readFileSync(path.join(__dirname, 'working.js'), 'utf8'), 'workRow_')]);
 if (surfParts_.some(c => !c)) {
-  fail.push('padSurface_ or padDrawn_ is not in find.js, or workRow_ not in working.js — renamed? The surfaces were NOT counted.');
+  fail.push('padSurface_, padDrawn_ or padPicked_ is not in find.js, or workRow_ not in working.js — renamed? The surfaces were NOT counted.');
 }
 const padSurface_ = surfParts_.some(c => !c) ? (() => '')
   : new Function(fs.readFileSync(path.join(__dirname, 'qtypes.js'), 'utf8') + '\n' + surfParts_.join('\n') + '\nreturn padSurface_;')();
