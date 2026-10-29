@@ -10737,6 +10737,75 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   return bad;
 });
 
+/* ---------- R1 (522): A DOOR INTO FIND FROM A CARD STARTS A NEW QUESTION — the words typed before go with the box ---------- */
+check('a door into Find from a card (Book this, take a seat, Practise) clears the words typed there: the box empty, its own chip on, the list not empty (522)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  /* A TOPIC FIND ANSWERS, read off its own Topic question rather than named here. */
+  const tf = w.facetList().find(f => f.field === 'topic');
+  const topic = tf ? ((w.facetValues(w.stuffItems(), tf)[0] || {}).value || '') : '';
+  /* Book this and take a seat kept the words before 522; Practise already cleared them, and is here so it cannot start keeping them. */
+  const doors = [
+    ['Book this', () => t.ACTIONS['book-with'](d.createElement('button')), [{ field: 'forLabel', value: 'Booking' }]],
+    ['take a seat', () => t.ACTIONS['job-take-seat']({ disabled: false, dataset: { id: 'W-LIST' } }), [{ field: 'forLabel', value: 'Booking' }]],
+    ['Practise ' + topic, () => t.ACTIONS['prog-practise']({ dataset: { topic: String(topic || ''), key: '' } }), [{ field: 'topic', value: topic }]],
+  ];
+  if (!topic) bad.push('Find answers no Topic, so Practise was NOT checked');
+  for (const [say, press, want] of doors) {
+    if (!want[0].value) continue;
+    t.go('stuff', false, true); await wait(120); await woken_();
+    if (!resType_(w, 'stuff', 'fractions')) return bad.concat(['Find drew no search box — NOT checked']);
+    await wait(260);
+    if (t.STUFF().q !== 'fractions') { bad.push('typing into Find left its words ' + JSON.stringify(t.STUFF().q) + ' — ' + say + ' NOT checked'); continue; }
+    try { press(); } catch (e) { bad.push(say + ' threw: ' + e.message); continue; }
+    await wait(LEAVE_MS); await woken_();
+    const box = d.getElementById('stuff-q');
+    if (t.AT() !== 'stuff') bad.push(say + ' left the app on ' + t.AT() + ', wanted Find');
+    if (t.STUFF().q) bad.push(say + ' kept the words ' + JSON.stringify(t.STUFF().q) + ' typed before it');
+    if (!box || box.value) bad.push(say + ' left the box ' + (box ? 'saying ' + JSON.stringify(box.value) : 'undrawn'));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify(want)) bad.push(say + ' left the chips ' + JSON.stringify(t.STUFF().filters) + ', wanted ' + JSON.stringify(want));
+    /* THE LIST IS WHAT FOLLOWS THE QUESTION PAGE: the booking form's pages in front, then the results. */
+    const n = w.finderPageCount_('stuff') - 1;
+    if (n < 1) bad.push(say + ' opened Find on nothing past its question');
+  }
+  t.USER(null);
+  return bad;
+});
+
+/* A SWITCH FROM ONE PERSON TO ANOTHER passes `quiet`, so nothing repaints Find: the boxes must be emptied by the one writer, not left saying the last person's words (522). */
+check('signing in over somebody else empties both finders\' words, chips and search boxes, though nothing repaints them (522)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function' || typeof w.finderStates_ !== 'function') return ['signedIn_ or finderStates_ is not reachable — NOT checked'];
+  const was = t.whoami() || {};
+  if (!was.personId) return ['the setup: nobody is signed in, so a switch from one person to another was NOT asked'];
+  const ids = ['stuff', 'res'];
+  for (const id of ids) {
+    t.go(id, false, true); await wait(120); await woken_();
+    if (!resType_(w, id, 'fractions')) return bad.concat([id + ' drew no search box — NOT checked']);
+    await wait(260);
+  }
+  const before = w.finderStates_().map(st => st.q);
+  if (before.some(q => q !== 'fractions')) return bad.concat(['the setup: typing left the words ' + JSON.stringify(before) + ' — NOT checked']);
+  w.finderStates_().forEach(st => { st.filters = [{ field: 'kindLabel', value: 'Library' }]; });
+  try { w.signedIn_({ success: true, name: 'Sam Student', personId: was.personId + '-other', role: 'student', roles: ['student'], token: 'tk-other' }, 'sam'); }
+  catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
+  if ((t.whoami() || {}).personId !== was.personId + '-other') return bad.concat(['the second person did not sign in: ' + JSON.stringify(t.whoami())]);
+  await wait(300);
+  w.finderStates_().forEach((st, i) => {
+    if (st.q) bad.push('finder ' + i + ' kept the last person\'s words ' + JSON.stringify(st.q));
+    if ((st.filters || []).length) bad.push('finder ' + i + ' kept the last person\'s chips ' + JSON.stringify(st.filters));
+  });
+  ids.forEach(id => {
+    const box = d.getElementById(id + '-q');
+    if (box && box.value) bad.push('the ' + id + ' box still says the last person\'s ' + JSON.stringify(box.value) + ' over an empty question');
+  });
+  t.USER(null);
+  return bad;
+});
+
 /* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT § */
 const joinPage_ = (w, id) => {
   w.__t.ACTIONS['job']({ dataset: { id } });

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
+/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7); FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -55,7 +56,7 @@ function boot(cb) {
       ' answerCmp_, placeChipDead_, NEED_WORDS,' +
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
-      ' stuffFiltered, overFacet_,' +
+      ' stuffFiltered, overFacet_, stuffFind,' +
       ' chipShow_, tagRow_,' +
       /* THE CARD'S ROW AS A LIST -- `tagRow_`'s own markup read back, so this reads what is drawn and
          not a second copy of the rule (docs/history/355). */
@@ -95,6 +96,8 @@ boot(f => {
     return done();
   }
   const facets = f.facetList();
+  /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
+  if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
   const GONE = { venue: 'booking places', link: 'links' };
@@ -1047,6 +1050,8 @@ boot(f => {
     }
   }
 
+  walkFunnels_(f, items);
+
   /* FIND 2, THE SAME FINDER TWICE (docs/history/347). § */
   if (f.inFinder_ && f.finderOf_ && f.finderOf_('res') && f.RES_ST) {
     const RF = f.finderOf_('res');
@@ -1136,7 +1141,84 @@ boot(f => {
   done();
 });
 
-function done() {
+  /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
+  /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
+let WALKED = 'not walked';
+function walkFunnels_(f, items) {
+  if (f.stuffFind && f.stuffFiltered && f.nextFacet && f.stuffNarrow_) {
+    let seed = Number(process.env.FUNNEL_SEED || 1);
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const pick = a => a[Math.floor(rnd() * a.length)];
+    const S = f.STUFF, was = { q: S.q, filters: S.filters };
+    const fails = {};
+    const fail = (k, m) => { (fails[k] = fails[k] || []).push(m); };
+    const runs = Number(process.env.FUNNEL_RUNS || 80);
+    let steps = 0, answered = 0, anys = 0, typed = 0;
+    try {
+      for (let r = 0; r < runs; r++) {
+        S.filters = []; S.q = '';
+        const trail = [];
+        const at = () => trail.join(' > ') || 'the first question';
+        for (let st = 0; st < 14; st++) {
+          const list = f.stuffFiltered();
+          steps++;
+          /* a. THE MEMO HOLDS WHAT FILTERING AFRESH GIVES, in the same order: the path taken to a question never changes its answer (522). */
+          const fresh = f.stuffFind(items, 0), had = new Set(list);
+          if (fresh.length !== list.length || fresh.some(x => !had.has(x))) fail('memo', at() + ': the memo holds ' + list.length + ', afresh ' + fresh.length);
+          else if (fresh.some((x, i) => x !== list[i])) { const i = fresh.findIndex((x, j) => x !== list[j]); fail('order', at() + ': at ' + i + ' the memo has "' + list[i].name + '", afresh "' + fresh[i].name + '"'); }
+          if (!list.length) break;
+          const fac = f.nextFacet(list) || f.overFacet_(list);
+          if (!fac) break;
+          /* b. NO QUESTION IS ASKED TWICE — an answer or a Doesn't matter already given to it. */
+          if (S.filters.some(c => c.field === fac.field)) fail('twice', '`' + fac.field + '` asked again after ' + at());
+          /* c. THE COUNT ON EACH ANSWER IS WHAT PRESSING IT GIVES. */
+          const vals = f.facetValues(list, fac);
+          vals.forEach(v => {
+            const got = f.stuffNarrow_(list, [{ field: fac.field, value: v.value }], [], 0).length;
+            if (got !== v.n) fail('count', '`' + fac.field + '` "' + (v.show || v.value) + '" says ' + v.n + ', gives ' + got + ' after ' + at());
+          });
+          const a = rnd();
+          if (a < 0.6 && vals.length) {
+            const v = pick(vals);
+            S.filters = S.filters.concat([{ field: fac.field, value: v.value }]);
+            trail.push(fac.field + '=' + v.value);
+            answered++;
+            const after = f.stuffFiltered().length;
+            if (after !== v.n) fail('count', '`' + fac.field + '` "' + (v.show || v.value) + '" says ' + v.n + ', pressed gives ' + after + ' after ' + at());
+          } else if (a < 0.8) {
+            /* d. DOESN'T MATTER NEVER CHANGES THE SET. */
+            S.filters = S.filters.concat([{ field: fac.field, any: true }]);
+            trail.push(fac.field + '=any');
+            anys++;
+            const after = f.stuffFiltered();
+            if (after.length !== list.length || after.some((x, i) => x !== list[i])) fail('any', 'Doesn\'t matter on `' + fac.field + '` took ' + list.length + ' to ' + after.length + ' after ' + at());
+          } else if (a < 0.9 && S.filters.length) {
+            S.filters = S.filters.slice(0, -1);
+            trail.push('back');
+          } else {
+            /* e. A WORD TYPED NEVER WIDENS THE LIST, AND KEEPS THE ITEM IT WAS READ OFF. */
+            const x = pick(list);
+            const ws = String(x.name || '').split(/\s+/).filter(t => t.length > 3);
+            if (!ws.length) continue;
+            S.q = (S.q + ' ' + pick(ws)).trim();
+            trail.push('words "' + S.q + '"');
+            typed++;
+            const after = f.stuffFiltered();
+            if (after.length > list.length) fail('typing', '"' + S.q + '" widened ' + list.length + ' to ' + after.length + ' after ' + at());
+            if (after.indexOf(x) < 0) fail('typing', '"' + S.q + '" lost "' + x.name + '", the item the word came from, after ' + at());
+          }
+        }
+      }
+    } finally { S.q = was.q; S.filters = was.filters; }
+    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item' };
+    Object.keys(fails).forEach(k => bad.push(fails[k].length + ' step(s) where ' + SAY[k] + ' — first: ' + fails[k].slice(0, 3).join('; ')));
+    WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter, ' + typed + ' words), ' + Object.keys(fails).length + ' invariant(s) broken';
+    console.log('\nRANDOM FUNNELS: ' + WALKED);
+    if (answered < 100 || anys < 20 || typed < 10) bad.push('the random funnels pressed ' + answered + ' answers, ' + anys + ' Doesn\'t matter and typed ' + typed + ' words — too few to prove the invariants, not a pass');
+  } else bad.push('`stuffFind`, `stuffFiltered`, `nextFacet` or `stuffNarrow_` is not exported, so the random funnels were NOT walked — not a pass');
+}
+
+function done(only) {
   console.log('');
   if (note.length) {
     console.log('WORTH A LOOK — not failures:');
@@ -1149,6 +1231,7 @@ function done() {
     console.log('');
     process.exit(1);
   }
+  if (only) { console.log('OK — ' + only + ': ' + WALKED + '; nothing else in this check was run.'); process.exit(0); }
   console.log('OK — every facet is asked, sorted, said and coloured by one rule: no question with one '
               + 'answer, no answer spelled twice, and the sitting asked in months.');
   process.exit(0);

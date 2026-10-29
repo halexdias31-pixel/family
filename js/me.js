@@ -405,8 +405,12 @@ function signedOut_(opts) {
     states.forEach(st => {
       if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
       else if (opts.ended && was && !wasAdmin) st.whose = String(was.personId || was.name || '');
-      else { st.q = ''; st.filters = []; st.whose = ''; }
+      else st.whose = '';
     });
+    /* Through the one writer, so the box and a parked typing timer go too: a quiet switch never repaints, and the box kept the last person's words (522). */
+    if (!opts.keepFind && !(opts.ended && was && !wasAdmin) && typeof finderSet_ === 'function') {
+      Object.keys(FINDERS).forEach(id => finderSet_(FINDERS[id], { paint: false }));
+    }
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
