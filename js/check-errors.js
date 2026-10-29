@@ -28,12 +28,14 @@ process.on('uncaughtException', e => { if (!/E-timer/.test(e && e.message)) bad.
   const tools = h.SCREENS.tools;
   if (!tools) { console.error('no tools screen to break'); process.exit(2); }
   const keep = tools.draw;
-  tools.draw = () => { throw new Error('E-draw'); };
+  tools.draw = () => { throw new Error('E-draw at "Ada Pupil"'); };   // a parse error quotes what it choked on
   h.paint('tools', true); h.paint('tools', true);
   tools.draw = keep;
   await tick(50);
   one('draw', /E-draw/);
   if (undrawn(w, 'tools') !== 'did not draw') bad.push('draw: the tools column shows no fallback');
+  if (/Ada Pupil/.test((w.document.getElementById('s-tools') || {}).textContent || '')) bad.push('draw: the fallback shows the raw message');
+  if (reports(/Ada Pupil/).length) bad.push('draw: quoted text left the client in a report');
 
   /* 2. AN ACT: a tap that throws says so in a toast. */
   h.on('check-boom', () => { throw new Error('E-act'); });
@@ -44,6 +46,7 @@ process.on('uncaughtException', e => { if (!/E-timer/.test(e && e.message)) bad.
   await tick(50);
   one('act', /E-act/);
   if (!/did not work/.test(toast())) bad.push('act: no friendly toast');
+  if (/reported/i.test(toast())) bad.push('act: the toast says the error was reported');
 
   /* 3. A TIMER and 4. A PROMISE: caught by the window, reported once. */
   w.setTimeout(() => { throw new Error('E-timer'); }, 0);
@@ -53,6 +56,8 @@ process.on('uncaughtException', e => { if (!/E-timer/.test(e && e.message)) bad.
   one('timer', /E-timer/);
   one('promise', /E-promise/);
   if (!/went wrong there/.test(toast())) bad.push('timer/promise: no friendly toast');
+  /* A REPORT CAN BE DROPPED (deduped, capped, no fetch), so no toast may promise one was made. */
+  if (/reported/i.test(toast())) bad.push('timer/promise: the toast says the error was reported');
 
   /* AND THE REST STILL WORKS: every other column draws after all of that. */
   for (const t of h.TABS) {
