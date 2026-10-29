@@ -449,8 +449,12 @@ function libraryInto_(d, rows) {
 
   /* --- the questions ------------------------------------------------------------------------- */
   const qs = [];
+  /* A PAPER'S COVER WITH NO QUESTION UNDER IT IS HIDDEN UNTIL ITS QUESTIONS ARE IMPORTED (O6): one rule here, not a flag per row. */
+  const held = new Set();
+  rows.forEach(r => { if (r && norm(r.kind) === 'question' && libOn(r.active)) held.add(libS(r.paper_id)); });
   rows.forEach(r => {
     if (!libS(r.row_id) || !libOn(r.active)) return;
+    if (norm(r.kind) === 'document' && !held.has(libS(r.paper_id))) return;
     qs.push(libQuestion_(r));
   });
   d.questions = qs;

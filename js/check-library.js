@@ -9,50 +9,9 @@ const path = require('path');
 const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.json');
 
 /* ---------- THE CLOSED VOCABULARY § */
-const VOCAB = {
-  kind:          ['document', 'preamble', 'question'],
-  active:        ['True', 'False'],
-  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
-                  'Physics', 'Religious Studies', 'Driving Theory', 'Statistics',
-                  /* the boards' own past papers (fix-pastpapers), spelled as data/textbooks.json spells them */
-                  'Business', 'Citizenship', 'Computer Science', 'Design and Technology', 'Drama', 'Economics',
-                  'English Literature', 'Food Preparation and Nutrition', 'Further Maths', 'Geography', 'History',
-                  'Media Studies', 'Physical Education', 'Politics', 'Psychology', 'Sociology'],
-  /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the reason it is a value rather than a naming convention: § */
-  document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
-  /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
-     see LIST_COLS below for why a list column is checked per item. */
-  key_stage:     ['KS1', 'KS2', 'KS3', 'KS4', 'KS5'],
-  band_type:     ['grade', 'stage', 'tier', 'year'],
-  /* `Foundation Plus` AND `Higher Plus` ARE CORBETTMATHS' OWN LEVELS, printed on the front of every 5-a-day, and they are not exam tiers — Edexcel and AQA have two. § */
-  tier:          ['A-Level', 'AS', 'Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'],
-  level:         ['AS', 'Alevel', 'GCSE', 'Theory test'],
-  exam_board:    ['AQA', 'Edexcel', 'STA', 'DVSA', 'OCR', 'Eduqas'],
-  exam_wave:     ['First wave', 'Second wave',
-                  '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
-                  '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
-  /* `order` IS AN ORDERING -- items tapped into slots, marked by their order (see the rule for it below
-     and `orderBox_` in find.js). A value of its own because it draws a different box. */
-  answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'order', 'proof', 'short', 'written'],
-  /* WHAT A MARK IS MADE ON -- squared paper, axes, a blank space, or the passage itself. § */
-  surface:       ['blank', 'coord', 'grid', 'text'],
-  month:         ['5', '6', '11'],
-  /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. § */
-  /* 7 IS OCR RELIGIOUS STUDIES' SEVENTH COMPONENT (H573/07), one per religion studied. */
-  paper:         ['1', '2', '3', '4', '5', '6', '7'],
-  /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — one comma-list, not three booleans. § */
-  /* `Periodic table` IS THE SCIENCES' VERSION OF THE SAME FACT and arrived with the first AQA chemistry paper: § */
-  /* `Equation booklet` IS THE PHYSICS ONE, and AQA encloses it with the paper: § */
-  needs:         ['Calculator', 'No calculator', 'Compass', 'Ruler', 'Protractor', 'Tracing paper',
-                  'Periodic table', 'Equation booklet'],
-  needs_print:   ['True', 'False'],
-  printable:     ['True', 'False'],
-  trackable:     ['True', 'False'],
-  print_required:['True', 'False'],
-  pages_checked: ['True', '2026-08-06'],
-  verified:      ['True'],
-  currency:      ['GBP'],
-};
+/* ONE SCHEMA (R4): the lists live in check/schema.js with every card file's columns; their stories stay in docs/notes/js/check-library.js.md. */
+const SCHEMA = require('../check/schema.js');
+const VOCAB = SCHEMA.VOCAB();
 
 /* Columns that must never come back. See the header. */
 const FORBIDDEN = /^ticks?(_\d+)?$/i;
@@ -174,7 +133,7 @@ rows.forEach(r => {
 /* ---------- THE CLOSED VOCABULARY ----------------------------------------------------------------- */
 const strays = [];
 /* ---------- A LIST COLUMN IS CHECKED PER ITEM, NOT PER CELL § */
-const LIST_COLS = new Set(['needs', 'key_stage']);
+const LIST_COLS = SCHEMA.LIST_COLS;
 /* ---------- A VOCABULARY WRITTEN BEFORE ITS COLUMN, ON PURPOSE § */
 const VOCAB_AHEAD = new Set([]);
 

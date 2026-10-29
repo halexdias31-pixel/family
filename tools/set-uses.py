@@ -103,7 +103,7 @@ USES = {
     'Q-1CM-interpreting-histograms-9b': 'a',   # the median, off the histogram (a) completed
     'Q-1CM-interpreting-histograms-9c': 'a',   # the trimmed trees, against the same histogram
     'Q-1CM-interpreting-histograms-10b': 'a',  # the percentage sold, off the histogram (a) completed
-    'Q-1CM-probability-tree-diagrams-13b': 'a',  # the profit, from the tree (a) completed
+    # (Q-1CM-probability-tree-diagrams-13b no more: its tree (a) is filled in as cells, so nothing is drawn to show — 523)
     'Q-1MA1-2306-2H-16b': 'a',      # the total, off the histogram (a) completed
     'Q-1MA1-1806-2H-10b': 'a',      # a + 2b, read off the grid (a) drew -2a on
     'Q-1MA1-1705-1H-1d': 'c',       # Does the scatter graph support ... (c) drew on it

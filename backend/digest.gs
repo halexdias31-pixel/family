@@ -1171,7 +1171,10 @@ function digestLibrary_(site) {
 const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
   ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
   ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'],
-  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['company', 'board']];
+  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['source', 'board']];
+/* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
+const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
+const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
 /* `[data-tag]`'s colours (style.css `--tag-*`), one for every kind `TAG_OF` gives. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
   type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', kind: '#e2cfa6', check: '#9ec5e8', other: '#bdbdbd' };
@@ -1218,7 +1221,7 @@ const digestList_ = v => (Array.isArray(v) ? v : v == null || v === false ? [] :
 function digestTagItem_(q) {
   return { src: q, subject: digestLibS_(q.subject), documentType: digestLibS_(q.document_type), keystage: digestLibS_(q.key_stage),
            bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
-           examBoard: digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
+           examBoard: digestTagSource_(q) ? '' : digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
 }
 /* `levelOf_` and `ksFallback_`. */
 function digestTagLevel_(it) {
@@ -1233,15 +1236,49 @@ function digestTagLevel_(it) {
       own = k ? ({ ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[digestSpell_(k)] || k) : '';
     }
   }
-  if (!own) return '';
-  if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
-  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
-  return own;
+  const l = digestLevelsIn_(own);
+  return l.length > 1 ? l : (l[0] || '');
+}
+/* find.js's `LEVEL_TABLE` and `levelsIn_` (O1), copied: Apps Script cannot load find.js. check-schema asks both copies every
+   level cell in the library and its range fixtures, and fails on any difference. */
+const DIGEST_LEVELS = [
+  { level: 'SATs', rung: 1, says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] }, { level: '11+', rung: 0, says: [] },
+  { level: 'KS3', rung: 2, says: [] }, { level: 'GCSE', rung: 3, says: ['KS4'] }, { level: 'Functional Skills L2', rung: 0, says: [] },
+  { level: 'A-Level', rung: 4, says: ['Alevel', 'A level', 'KS5'] }, { level: 'AS', rung: 0, says: ['AS level', 'AS-level'] },
+  { level: 'Theory test', rung: 0, says: [] },
+];
+function digestLevelsIn_(cell) {
+  const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const find = v => DIGEST_LEVELS.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  const pair = t => {
+    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
+    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
+    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
+      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
+      if (a && b) return [a, b, false];
+    }
+    return null;
+  };
+  String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
+    const t = atom.trim();
+    if (!t) return;
+    const l = find(t);
+    if (l) { add(l.level); return; }
+    const p = pair(t);
+    if (!p) { add(t); return; }
+    const a = p[0], b = p[1];
+    if (p[2] || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
+    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
+    DIGEST_LEVELS.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
+  });
+  return out;
 }
 const digestTagStages_ = it => String(it.keystage || '').split(',').map(s => s.trim()).filter(Boolean);
 /* `satsStagesOf_`, asked only of a SATs row. */
 function digestTagSats_(it) {
-  if (['sats', 'ks1sats', 'ks2sats', 'ks1', 'ks2'].indexOf(digestSpell_(digestTagLevel_(it))) === -1) return [];
+  if (digestList_(digestTagLevel_(it)).indexOf('SATs') === -1) return [];
   const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
   const named = /\bks\s*([12])\b/i.exec(String((it.bandType === 'stage' && it.bandValue) || it.src.level || ''));
@@ -1412,7 +1449,7 @@ function digestCardTags_(q, T) {
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
     paperId: () => pid, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
-    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), company: () => digestLibS_(q.company),
+    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), source: () => digestTagSource_(q),
   };
   const say = { paperId: () => digestTagPaper_(it, T) };
   /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`). */

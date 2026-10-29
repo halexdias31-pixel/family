@@ -67,7 +67,7 @@ function boot(cb) {
       /* A THUNK, NOT THE OBJECT. § */
       /* THE TOPIC TREE, ITS READER AND `topicAtoms_` WERE EXPORTED HERE for rule 8, and went with
          it — see the note where rule 8 was. `levelOf_` stays: the key-stage rule reads it. */
-      ' levelOf: levelOf_,' +
+      ' levelOf: levelOf_, levelsOf: levelsOf_, DATA: () => DATA,' +
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
       ' FACET_TALLY,' +
       /* THE SECOND FINDER (docs/history/329, 347): its binding, its record and its state, so the pass at
@@ -1025,15 +1025,15 @@ boot(f => {
           bad.push('in ' + which + ' Key stage comes before Level (level at ' + at(list, 'level') + ', keystage at ' + at(list, 'keystage') + ')');
       });
       const ksOf = x => String(x.keystage || '').split(',').map(v => v.trim()).filter(Boolean);
-      const noLevel = all.filter(x => ksOf(x).length && !f.levelOf(x));
+      const noLevel = all.filter(x => ksOf(x).length && !f.levelsOf(x).length);
       if (noLevel.length) bad.push(noLevel.length + ' item(s) carry a key stage and no level, e.g. "' + noLevel[0].name + '" (' + noLevel[0].keystage + ')');
-      const bare = all.filter(x => /^KS[1245]$/i.test(String(f.levelOf(x) || '')));
+      const bare = all.filter(x => f.levelsOf(x).some(l => /^KS[1245]$/i.test(l)));
       if (bare.length) bad.push(bare.length + ' item(s) give a bare key stage as their level, e.g. "' + bare[0].name + '" → ' + f.levelOf(bare[0]));
-      const fused = all.filter(x => /\bKS\s*\d\s*SATs\b/i.test(String(f.levelOf(x) || '')));
+      const fused = all.filter(x => f.levelsOf(x).some(l => /\bKS\s*\d\s*SATs\b/i.test(l)));
       if (fused.length) bad.push(fused.length + ' item(s) still give the key stage inside the level, e.g. "' + fused[0].name
         + '" → ' + f.levelOf(fused[0]) + ' — the level is SATs and the key stage is its own question');
       const levels = {};
-      all.forEach(x => { const l = f.levelOf(x); if (l) (levels[l] = levels[l] || []).push(x); });
+      all.forEach(x => f.levelsOf(x).forEach(l => { (levels[l] = levels[l] || []).push(x); }));
       const askedIn = [];
       Object.keys(levels).forEach(l => {
         const vals = f.facetValues(levels[l], ksF).map(v => String(v.value)).sort();
@@ -1051,6 +1051,33 @@ boot(f => {
   }
 
   walkFunnels_(f, items);
+
+  /* ---------- A RANGE IS EVERY LEVEL IT COVERS (O1): one Level answer per level, and the item found under each ---------- */
+  {
+    const lvF = (f.facetList() || []).find(x => x.field === 'level');
+    const multi = f.stuffItems().filter(x => f.levelsOf(x).length > 1);
+    const fused = f.stuffItems().filter(x => f.levelsOf(x).some(l => /[,\u2013\u2014]/.test(l)));
+    if (fused.length) bad.push(fused.length + ' item(s) answer Level with a range or a list as one answer, e.g. "' + fused[0].name + '" → ' + f.levelsOf(fused[0]).join(' | '));
+    if (!lvF || multi.length < 10) bad.push('only ' + multi.length + ' item(s) have more than one level (the practicals have 43) — a range was NOT read as its levels, not a pass');
+    else {
+      const lost = [];
+      multi.forEach(x => f.levelsOf(x).forEach(l => { if (!f.filterHit(x, { field: 'level', value: l })) lost.push(x.name + ' under ' + l); }));
+      if (lost.length) bad.push(lost.length + ' item/level pair(s) where an item is not found under a level it is taught at, e.g. ' + lost.slice(0, 3).join('; '));
+      const gcse = multi.filter(x => x.kind === 'practical' && f.levelsOf(x).indexOf('GCSE') !== -1).length;
+      console.log('Levels as lists: ' + multi.length + ' item(s) under more than one level, ' + gcse + ' practical(s) found under GCSE by a range');
+    }
+  }
+
+  /* ---------- A COVER WITH NO QUESTION IS HIDDEN UNTIL ITS QUESTIONS ARE IMPORTED (O6) ---------- */
+  {
+    const qd = (f.DATA().questions || []);
+    const held = new Set(qd.filter(r => r && r.kind === 'question').map(r => r.paper));
+    const covers = qd.filter(r => r && r.kind === 'document' && !held.has(r.paper));
+    const empty = LIBRARY.filter(r => r && r.kind === 'document' && r.active !== 'False' && !LIBRARY.some(q => q.kind === 'question' && q.paper_id === r.paper_id && q.active !== 'False'));
+    if (covers.length) bad.push(covers.length + ' paper cover(s) with no question reached the app, e.g. ' + covers[0].paper + ' — hidden until its questions are imported (O6)');
+    if (!qd.some(r => r && r.kind === 'document')) bad.push('no paper cover reached the app at all, so hiding the empty ones was NOT checked — not a pass');
+    console.log('Paper covers: ' + empty.length + ' live cover(s) in the file with no question, ' + covers.length + ' of them reaching the app');
+  }
 
   /* FIND 2, THE SAME FINDER TWICE (docs/history/347). § */
   if (f.inFinder_ && f.finderOf_ && f.finderOf_('res') && f.RES_ST) {

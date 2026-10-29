@@ -127,7 +127,7 @@ if (Q) {
 untyped.forEach(u => broken.push('a part with no type: ' + u));
 
 /* ---------- EVERY PART CARRIES BOTH VERIFIED TAGS (388): find.js's own `verifyTags_`, run on every row */
-const tags = { acc: 0, fn: 0 };
+const tags = { acc: 0, fn: 0, waiting: 0 };
 if (Q) {
   const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
@@ -142,8 +142,9 @@ if (Q) {
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
       /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */
-      /* A PENDING CARD WHOSE WORDS THIS MACHINE HAS NOT GOT (docs/library.md) has nothing to hold its flag to. */
-      if (r.function_verified !== undefined && !(LFq.pending(r) && !String(r.html || '').trim())) {
+      /* A PENDING CARD WHOSE WORDS HERE ARE MISSING OR OLDER THAN IT (`waits`, docs/library.md) has nothing to hold its flag to. */
+      if (LFq.waits('questions', r)) { if (r.function_verified !== undefined) tags.waiting++; }
+      else if (r.function_verified !== undefined) {
         const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
         if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
       }
@@ -184,4 +185,4 @@ if (broken.length) {
 }
 console.log('drawn parts by where their figure is: ' + Object.keys(figs).map(k => k + ' ' + figs[k]).join(', '));
 const all = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].n, 0), done = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].complete, 0);
-console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}.`);
+console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}; ${tags.waiting} pending card flag(s) not held, their words here missing or older.`);

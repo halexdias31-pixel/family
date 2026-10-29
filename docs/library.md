@@ -80,13 +80,16 @@ A file that has gone in is not undone by deleting it: send another file with the
 
 A fresh clone rebuilds `data-private/` from `LIB_SOURCE_COMMIT`, so it can never hold the words of a row added after that
 commit, and `check/lib-full.js` would call the row lost ("run pull"). Such a row carries `lib_pending: "True"` on its card
-— public, kept by `split` like any card column. Three things honour it, and nothing else:
+— public, kept by `split` like any card column. These honour it, and nothing else:
 
 - **`check/lib-full.js`**: a pending row with no words here is a card, not lost. With words in `data-private/` it is
   joined whole like any row, and the marker stays on it.
 - **`js/check-textbooks.js`**: a pending chapter with none of its three lists here skips the word and worked-line minimums,
   and an animation under it skips the `about` rule, and the check prints how many it skipped. With the words here,
   everything is checked.
+- **check-schema, check-qtypes and check-flow's fill-in journey**: a pending row whose words here are not the fields its
+  card's `lib_has` names (`waits` in `check/lib-full.js`: missing, or a seed older than the card) has its private-field
+  problems, its `function_verified` and its cells skipped, counted aloud. With current words, everything is checked.
 - **The site**: a pending card the Ledger answers `missing` for says "Coming soon." in place of "This one is not in the
   library yet." (`libSay_`, `pending` on the chapter in `library.js`).
 
@@ -104,6 +107,26 @@ New past papers: `tools/add-past-paper.js <rows.json>` (rows written by a paper 
 figures through `tools/pdf_figure.py`; the script with the words stays outside the repository) puts a paper's rows in
 after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
 (`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
+
+## The schema: a row a tool writes is checked first (523)
+
+`check/schema.js` is the library's one schema: each card file's columns, which column holds each idea (level, key stage,
+tier, board, topics), and the closed vocabularies. Levels come from `LEVEL_TABLE` in js/find.js — store a list of real
+levels (`KS3, GCSE`), never a range. A worksheet maker goes in `company` and is a Source; its sheet carries no
+`exam_board`. `tools/add-past-paper.js` and `tools/lib-private.js split` call it and refuse, writing nothing, any problem
+the same rows did not have at HEAD; `node js/check-schema.js` fails on any problem in the library. The schema asks
+nothing of `lib_pending`: a new card carries it with its words on, and keeps it after (above). A problem in a private
+field of a `lib_pending` row whose words here are older than its card is not counted (a fresh clone before `pull`).
+A changed part's words are newer than the seed too, so a tool that changes them marks the row `lib_pending` (523).
+
+A part whose words ask to fill something in (complete a table, grid, Venn diagram or tree; fill in the missing numbers;
+what goes in box (a); label a figure's parts; match) has `cells` — a table of cells laid out as the paper's, printed
+values filled in, or labelled boxes `(a)`, `(b)` where the boxes are printed in a stem or a figure; never a part per blank.
+"Write the missing numbers" and "a digit in each box" ask too; one missing number or "the box" is the answer box. An
+open pair, which cells cannot mark, is named in `CELLS_EXEMPT` with its reason. A topic is spelled as its label; an
+alias is for an import's spelling, and Find does not fold it. A past-paper part with no marks is right only when a later
+part of its question carries the run's marks and its examiner note says so ("The paper gives N marks for the whole…",
+"The question's N mark is for…"). A board's own paper names the board as `company` and `exam_board` both (523).
 
 ## The checks
 

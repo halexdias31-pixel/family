@@ -99,6 +99,7 @@ function text(name) {
   const rows = JSON.parse(raw);
   const waiting = rows.some(r => r && Object.prototype.hasOwnProperty.call(r, 'lib_has'));
   let out = raw;
+  const behind = new Set();
   if (waiting) {
     let map = readPrivate(name);
     if (!map && seedFromGit(name)) map = readPrivate(name);
@@ -110,6 +111,8 @@ function text(name) {
     rows.forEach(r => {
       if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return;
       const id = idOf(def, r), c = map[id];
+      const here = def.private.filter(f => c && c[f] !== undefined && c[f] !== null && String(c[f]).trim() !== '').join(' ');
+      if (here !== String(r.lib_has || '').trim().split(/\s+/).filter(Boolean).join(' ')) behind.add(id);
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
       else if (String(r.lib_has || '').trim() && !pending(r)) lost.push(id);
       delete r.lib_has;
@@ -120,10 +123,14 @@ function text(name) {
     }
     out = fileText(rows, styleOf(raw));
   }
-  MEMO[name] = { key: key, text: out };
+  MEMO[name] = { key: key, text: out, behind: behind };
   return out;
 }
 const rows = name => JSON.parse(text(name));
+/* WORDS HERE OLDER THAN THEIR CARD: the fields its `lib_has` names are not the ones this machine holds (a fresh clone's
+   seed, before `pull`). On a lib_pending row that is expected, so a check skips what the newer words would answer. */
+function behind(name) { text(name); return MEMO[name].behind; }
+const waits = (name, r) => pending(r) && behind(name).has(idOf(defs().files[name], r));
 
 /* FOR A CHECK'S OWN STATIC SERVER: the whole file in place of the repository's metadata-only copy, so the app under test
    reads the library with its words, as it does once they have arrived. Null for any other path. */
@@ -144,5 +151,5 @@ function pendingTwins(rows, nameOf) {
   const mine = new Set(rows.filter(r => pending(r) && typeof r.diagram === 'string' && /^\s*<svg\b/i.test(r.diagram)).map(r => nameOf(r.diagram)));
   return { blind, listed: new Set(Array.isArray(listed) ? listed : []), mine, file: TWIN_LIST };
 }
-module.exports = { pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
+module.exports = { behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };

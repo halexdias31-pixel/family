@@ -459,7 +459,7 @@ const FACETS = [
   { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : '' },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
-  { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
+  { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
   { field: 'tier',      label: 'Tier',        of: x => x.tier },
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
@@ -481,7 +481,8 @@ const FACETS = [
     tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
   { field: 'marks',     label: 'Marks',
     of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '' },
-  { field: 'company',   label: 'Publisher',   of: x => x.company },
+  /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
+  { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
   /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked. */
   { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
@@ -514,6 +515,7 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  company: 'Publisher was the exam board said twice, or a worksheet maker; a maker is the Source now (O3).',
   libBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
   bibleTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
   bibleTestament: 'a writing\'s private facet; one facet set asks every writing now (520).',
@@ -8865,9 +8867,10 @@ const GCSE_AGE_TOPIC = /\bdrugs?\b|\balcohol\b|abortion|euthanas|\bcrime\b|devia
 const GCSE_AGE_LEVEL = /^(gcse|igcse|as|a-?level|alevel|ks4|ks5)$/i;
 function gcseAgeOf_(x) {
   if (!x || (typeof ruleOn_ === 'function' && !ruleOn_('gcse-sensitive-age'))) return 0;
-  const lv = levelOf_(x);
-  if (x.hdb && !lv) return GCSE_AGE;
-  if (!GCSE_AGE_LEVEL.test(lv)) return 0;
+  const lv = levelsOf_(x);
+  if (x.hdb && !lv.length) return GCSE_AGE;
+  /* GCSE AND ABOVE ONLY: a thing also taught at KS3 (a level list, O1) is not a GCSE topic */
+  if (!lv.length || !lv.every(l => GCSE_AGE_LEVEL.test(l))) return 0;
   const said = [x.name, x.topics, x.row && x.row.topics, x.row && x.row.section].filter(Boolean).join(' ');
   return GCSE_AGE_SUBJECT.test(String(x.subject || '')) || GCSE_AGE_TOPIC.test(said) ? GCSE_AGE : 0;
 }
@@ -9185,18 +9188,77 @@ function topicOf_(x) {
 
 /* ---------- THE TOPIC TREE WAS READ HERE § */
 
-/* WHAT LEVEL A THING IS TAUGHT AT, FROM WHICHEVER OF THE TWO COLUMNS HAS IT. § */
-function levelOf_(x) {
-  const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
-  const own  = band || String((x && x.level) || (x && x.row && x.row.level) || '').trim()
-            || ksFallback_(x);
-  if (!own) return '';
-  /* ---------- ONLY THE ONE THE GENERAL RULE CANNOT DO § */
-  if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
+/* THE LIBRARY'S LEVELS, ONE TABLE (R4): each level's key stages, tiers, other spellings, and rung on the ladder a range is
+   read along (0: never in a range). check/schema.js reads this very literal. */
+const LEVEL_TABLE = [
   /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM § */
-  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
-  return own;
+  { level: 'SATs',        rung: 1, stages: ['KS1', 'KS2'], tiers: [], says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] },
+  { level: '11+',         rung: 0, stages: ['KS2'],        tiers: [], says: [] },
+  { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
+  { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
+  { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
+  { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
+  { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
+  { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
+];
+/* A LEVEL CELL AS REAL LEVELS (O1): a comma is a list and `KS3–GCSE` is every rung from one to the other, so the item is
+   under each. An unknown word passes through as itself. Self-contained: check/schema.js runs this very function. */
+function levelsIn_(cell) {
+  const key = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const find = v => LEVEL_TABLE.find(l => key(l.level) === key(v) || l.says.some(s => key(s) === key(v)));
+  const out = [];
+  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  /* TWO KNOWN LEVELS JOINED: by a dash, `to` or a slash (a list), or a bare hyphen at any point where both sides are levels. */
+  const pair = t => {
+    const e = t.split(/\s*[–—/]\s*|\s+-\s+|\s+to\s+/i);
+    if (e.length === 2 && find(e[0]) && find(e[1])) return [find(e[0]), find(e[1]), t.indexOf('/') !== -1];
+    for (let i = t.indexOf('-'); i > 0; i = t.indexOf('-', i + 1)) {
+      const a = find(t.slice(0, i)), b = find(t.slice(i + 1));
+      if (a && b) return [a, b, false];
+    }
+    return null;
+  };
+  String(Array.isArray(cell) ? cell.join(',') : cell == null ? '' : cell).split(',').forEach(atom => {
+    const t = atom.trim();
+    if (!t) return;
+    const l = find(t);
+    if (l) { add(l.level); return; }
+    const p = pair(t);
+    if (!p) { add(t); return; }
+    const [a, b, list] = p;
+    /* Only two rungs of the ladder span the levels between; a slash, or an end off the ladder (AS, 11+), is just the two. */
+    if (list || !a.rung || !b.rung) { add(a.level); add(b.level); return; }
+    const lo = Math.min(a.rung, b.rung), hi = Math.max(a.rung, b.rung);
+    LEVEL_TABLE.filter(e => e.rung >= lo && e.rung <= hi).forEach(e => add(e.level));
+  });
+  return out;
 }
+/* WHAT LEVEL A THING IS TAUGHT AT, FROM WHICHEVER OF THE TWO COLUMNS HAS IT. § */
+/* Every level, as a list (O1); none in either column, its key stage's (`ksFallback_`). */
+/* The funnel asks this of every item for every list, and a cell holds one of a few dozen spellings: each is read once. */
+const LEVELS_IN = new Map();
+const levelsMemo_ = cell => {
+  const k = Array.isArray(cell) ? cell.join(',') : String(cell == null ? '' : cell);
+  let v = LEVELS_IN.get(k);
+  if (!v) { v = Object.freeze(levelsIn_(k)); LEVELS_IN.set(k, v); }
+  return v;
+};
+function levelsOf_(x) {
+  const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
+  const own = levelsMemo_(band || (x && x.level) || (x && x.row && x.row.level) || '');
+  return own.length ? own : levelsMemo_(ksFallback_(x));
+}
+/* THE LEVEL FACET'S ANSWER: one level as itself, several as a list (a value per level, like a key stage list). */
+function levelOf_(x) {
+  const l = levelsOf_(x);
+  return l.length > 1 ? l : (l[0] || '');
+}
+
+/* WHO MADE A WORKSHEET IS ITS SOURCE, NOT AN EXAM BOARD (O3): a maker's sheet has no board, a board's paper no Source.
+   check/schema.js reads this list; backend/digest.gs keeps a copy that check-funnel compares card by card. */
+const LIB_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
+const sourceOf_ = x => LIB_SOURCES.find(s => spellKey_(s) === spellKey_(x && x.company)) || '';
+const boardOf_ = x => (sourceOf_(x) ? '' : (x && x.examBoard) || '');
 
 /* ---------- WHICH KEY STAGE A SATs ROW IS, AND ONLY A SATs ROW § */
 function satsStagesOf_(x) {
@@ -9214,15 +9276,16 @@ function satsStagesOf_(x) {
 }
 /* THE LEVEL AND, INSIDE SATs, THE KEY STAGE BESIDE IT -- `['SATs', 'KS2']`, `['GCSE']` -- for the places that SAY a level rather than filter by it: § */
 function levelSaid_(x) {
-  const lv = levelOf_(x);
-  if (!lv) return [];
-  return lv === 'SATs' ? [lv].concat(satsStagesOf_(x)) : [lv];
+  const out = [];
+  levelsOf_(x).forEach(l => out.push(...(l === 'SATs' ? [l].concat(satsStagesOf_(x)) : [l])));
+  return out;
 }
 
 /* ---------- A KEY STAGE, SAID AS THE QUALIFICATION AT THE END OF IT § */
+/* Off LEVEL_TABLE: the level on the ladder (a rung) whose stages hold it — KS5 is A-Level, not AS. */
 function ksLevel_(k) {
-  const q = { ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
-  return q || String(k || '');
+  const l = LEVEL_TABLE.find(e => e.rung && e.stages.some(s => spellKey_(s) === spellKey_(k)));
+  return l ? l.level : String(k || '');
 }
 /* The `key_stage` cell as a list — `KS3, KS4` is two key stages, as the facet has always read it. */
 function keyStagesOf_(x) {
@@ -9975,7 +10038,7 @@ function docById_(id) {
 const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + 's';
 
 /* ---------- WHAT THE BUNDLE IS CALLED, BUILT FROM THE CHIPS AND THE DATA § */
-const BUNDLE_TITLE_FIELDS = ['examBoard', 'company', 'subject', 'level', 'keystage', 'yearGroup',
+const BUNDLE_TITLE_FIELDS = ['examBoard', 'source', 'subject', 'level', 'keystage', 'yearGroup',
                              'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
                              'examMonth'];
 /* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the year and then the month — and it is still the right TITLE word: § */
@@ -10425,7 +10488,7 @@ const TAG_OF = {
   examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
   documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type', boutWinner: 'topic', boutEvent: 'board',
   fighter: 'topic', boutMonth: 'sitting', boutYear: 'sitting', boutRound: 'paper',
-  examBoard: 'board', company: 'board',
+  examBoard: 'board', source: 'board',
   tier: 'tier', division: 'tier',
   topic: 'topic',
   needs: 'needs',

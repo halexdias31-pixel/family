@@ -17407,8 +17407,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   const sheet = { kind: 'question', name: 'Q1', qNumber: '1', key: 'q-tags-ws', sub: 'Adding Fractions', subject: 'Maths',
     bandType: 'year', bandValue: '5', keystage: 'KS2', documentType: 'Worksheet', company: '1stclassmaths',
     row: { row_id: 'Q-TAGS-WS', paper_id: 'P-TAGS-WS', name: 'Adding Fractions' }, stems: [], html: '<p>1/4 + 2/4</p>' };
+  /* THE STA'S OWN PAPER, as the library spells its publisher: a maker's name here would make it a worksheet, which has no board (O3). */
   const sta = Object.assign({}, sheet, { key: 'q-tags-sta', bandType: 'stage', bandValue: 'KS2 SATs', documentType: 'Past paper',
-    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1,
+    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1, company: 'Standards & Testing Agency',
     row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
   [['a SATs worksheet', sheet, false], ['an STA paper', sta, true]].forEach(([what, x, board]) => {
     const r = row(w.questionCard_(x));
@@ -17419,6 +17420,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (board && !r.tags.some(y => y.tag === 'board' && y.text === 'STA')) bad.push(what + ' hides its board, STA: ' + say(r.tags));
     if (!r.tags.some(y => y.f === 'qNumber' && y.text === 'Q1')) bad.push(what + ' has no [Q1] tag: ' + say(r.tags));
   });
+  /* A MAKER'S SHEET (O3): its maker is its Source tag, and it says no exam board even where the row names one. */
+  const ws = row(w.questionCard_(Object.assign({}, sheet, { key: 'q-tags-ws2', examBoard: 'Edexcel' })));
+  if (!ws.tags.some(y => y.f === 'source' && y.text === '1st Class Maths') || ws.tags.some(y => y.f === 'examBoard')) bad.push('a 1st Class Maths sheet should say its Source and no exam board: ' + say(ws.tags));
   return bad;
 });
 
@@ -27613,6 +27617,54 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   if (host.querySelector('.qp-cells-box .qp-verdict').textContent !== 'Correct — every cell') bad.push('every cell right is not Correct');
   if (typeof w.qtMachine_ !== 'function' || !w.qtMachine_(x.row)) bad.push('a fill-in table with its cells is not machine-marked, so not Function verified');
   host.remove();
+  return bad;
+});
+
+/* ---------- THE FILL-IN STANDARD ON THE REAL LIBRARY (523): every part asking to fill in is answered in its cells ---------- */
+check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
+  const SC = require('../check/schema.js');
+  const LIB = LIB_FULL.rows('questions');
+  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim()));
+  /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
+  const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
+  if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];
+  const papers = new Set(asks.map(r => r.paper_id));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB.filter(r => papers.has(r.paper_id)) : undefined) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || typeof w.cellsOf_ !== 'function' || !A['qp-cells-check']) return ['questionCard_, cellsOf_ or qp-cells-check not reachable — NOT checked'];
+  w.__t.STUFF().filters = [];
+  const all = w.stuffItemsAll_();
+  const host = d.createElement('div');
+  host.className = 'qcard-host';
+  d.body.appendChild(host);
+  let inTable = 0, boxes = 0;
+  asks.forEach(r => {
+    const x = all.find(i => i.row && i.row.row_id === r.row_id);
+    if (!x) { bad.push(r.row_id + ' did not reach Find'); return; }
+    host.innerHTML = w.questionCard_(x, 0);
+    const want = w.cellsOf_(x).map((c, i) => [c, i]).filter(([c]) => c.ways);
+    const inputs = [...host.querySelectorAll('.qp-cell')];
+    if (!want.length || inputs.length !== want.length) { bad.push(r.row_id + ' shows ' + inputs.length + ' cell(s) for ' + want.length + ' asked'); return; }
+    if (host.querySelector('table[data-cells]')) inTable++; else boxes++;
+    /* A TABLE OF ITS OWN WITH BLANKS IS WHERE ITS CELLS GO: one more or one fewer, and they fall out under it as boxes. */
+    const own = (String(r.html || '').match(/<table[\s\S]*?<\/table>/) || [''])[0];
+    const blanks = (own.match(/<(td|th)([^>]*)>(?:\s|&nbsp;| )*<\/\1>/g) || []).length;
+    if (blanks && !host.querySelector('table[data-cells]')) bad.push(r.row_id + '\'s own table has ' + blanks + ' blank(s) and its cells are ' + w.cellsOf_(x).length + ' — they stand under it, not in it');
+    if (host.querySelector('.qpad')) bad.push(r.row_id + ' is answered in cells and still draws a pen surface — the diagram is never the answer box');
+    want.forEach(([c, i]) => {
+      const el = inputs.find(e => +e.getAttribute('data-n') === i);
+      if (!el) return;
+      el.value = c.ways.split('|')[0].trim();
+      el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    });
+    A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+    const say = (host.querySelector('.qp-cells-box .qp-verdict') || {}).textContent;
+    if (say !== 'Correct — every cell') bad.push(r.row_id + ': its own answers typed into its cells say ' + JSON.stringify(say));
+    try { w.localStorage.removeItem(w.ansKey_(x)); } catch (e) {}
+  });
+  host.remove();
+  console.log('          ' + asks.length + ' fill-in parts: ' + inTable + ' in their own table, ' + boxes + ' as labelled boxes, each marked right by its own answers; ' + waiting + ' waiting for newer words');
   return bad;
 });
 
