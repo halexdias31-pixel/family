@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-29-ios-slide-527";
+  --css-version: "2026-10-30-merge-keypad";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6035,7 +6035,9 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .kp-fr { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; vertical-align: middle; }
 .kp-fr i { display: block; width: 9px; height: 8px; border: 1px solid currentColor; border-radius: 1px; }
 .kp-fr b { display: block; width: 15px; height: 1px; background: currentColor; }
-.kp-pw sup { font-size: .65em; }
+/* THE POWER KEY IS A POWER: x and a raised box for what goes up, drawn as the fraction's boxes are (the owner could not find "to the power of") */
+.kp-pw { display: inline-flex; align-items: flex-start; font: 600 1.3rem/1 var(--font); }
+.kp-pw i { display: block; width: 8px; height: 9px; margin: -2px 0 0 1px; border: 1.5px solid currentColor; border-radius: 1px; }
 
 /* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) § */
 /* THE QUESTION ABOVE THE KEYS (round 4, `kpStrip_`): two lines of what is asked, a tap to see it whole; a phone's alone, a wider screen has room for both */

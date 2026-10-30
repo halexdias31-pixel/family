@@ -57,6 +57,8 @@ const SUITE = [
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
   /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD § */
   { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
+  /* THE @family KEYPAD EVERYWHERE (528): every box the source can draw and every box on every column, bound to the pad and tapped. */
+  { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
