@@ -2492,6 +2492,60 @@ const STATES = {
     /* ---------- THE SHEET THAT MAKES AN ACCOUNT § */
     /* IT OPENS ON ONE QUESTION NOW — "who is the account for?" § */
     /* `offsetHeight`, NOT `getBoundingClientRect`, IN BOTH EXPECTATIONS BELOW. § */
+    /* ---------- A SETTINGS BOX TYPED ON THE @family KEYPAD (526) */
+    { name: 'a settings box, typed on the @family keypad',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        paint('account');
+        (function () {
+          /* TAPPED AS A FINGER TAPS IT, typed on the pad's own keys once its page is in front (526); the state's functions run in the page, so this is written out in each */
+          const sel = '#s-account input[data-me="borough"]', col = 'account', text = ' north';
+          let tries = 0;
+          const go = () => {
+            const b = document.querySelector(sel);
+            const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+            if (!b || moving) { if (++tries < 80) setTimeout(go, 50); return; }
+            const pg = b.closest('.page');
+            if (pg && !pg.classList.contains('on') && tries < 80) {
+              tries++;
+              goPage(col, [...document.querySelectorAll('#s-' + col + ' .page')].indexOf(pg), true);
+              setTimeout(go, 120);
+              return;
+            }
+            b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            b.focus();
+            /* A TAP AFTER THE WORDS ALREADY THERE puts the caret at their end, as the browser does for a finger */
+            try { b.setSelectionRange(b.value.length, b.value.length); } catch (e) {}
+            for (const ch of text) {
+              const k = [...document.querySelectorAll('#kp .kp-key')].find(x => x.getAttribute('data-v') === (ch === '\n' ? '!nl' : ch));
+              if (k) k.click();
+            }
+          };
+          go();
+        })();
+      },
+      expect: function () {
+        const sel = '#s-account input[data-me="borough"]', text = ' north';
+        const pad = document.getElementById('kp'), b = document.querySelector(sel);
+        if (!pad || pad.hidden || !b || document.activeElement !== b) return false;
+        return pad.classList.contains('is-site') && b.getAttribute('inputmode') === 'none' && !b.readOnly && b.value.endsWith(text)
+          && b.getBoundingClientRect().bottom <= pad.getBoundingClientRect().top && pad.getAttribute('data-layer') === 'abc';
+      },
+      wants: 'Where\u2019s borough box tapped and " north" typed on the pad\u2019s letters, the box above the pad',
+      why: function () {
+        const pad = document.getElementById('kp'), b = document.querySelector('#s-account input[data-me="borough"]');
+        return 'pad ' + (pad ? (pad.hidden ? 'hidden' : 'up ' + pad.getAttribute('data-layer')) : 'never made') + '; focus on ' + (document.activeElement && (document.activeElement.getAttribute('data-me') || document.activeElement.tagName))
+          + '; box ' + (b ? JSON.stringify(b.value) + ' bottom ' + Math.round(b.getBoundingClientRect().bottom) + (b.closest('.page.on') ? ' in front' : ' not in front') : 'missing') + (pad ? '; pad top ' + Math.round(pad.getBoundingClientRect().top) : '');
+      },
+      leave: () => {
+        const b = document.querySelector('#s-account input[data-me="borough"]');
+        if (b && document.activeElement === b) b.blur();
+        kpClose_();
+        try { draftDrop_('set', 'borough'); } catch (e) {}
+        /* THE TYPING MADE ITS FORM DIRTY, and a dirty settings form holds the column (`settingsKeep_`): put back unsaved, as Cancel would */
+        document.querySelectorAll('#s-account .me-form[data-dirty]').forEach(f => f.removeAttribute('data-dirty'));
+        paint('account');
+      } },
     { name: 'making an account',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
@@ -5959,6 +6013,56 @@ const STATES = {
                  && document.querySelector('#s-dm .card:not([data-daive]) .msg-text'),
       wants: 'seven bubbles — one a picture, one a file — a day line and a box to reply in' },
     /* ---------- AND AN INBOX, WHICH IS THE STATE THE FAULT WAS IN § */
+    /* ---------- A REPLY TYPED ON THE @family KEYPAD (526): the letters with return, `done` for ✓, the box held above the pad */
+    { name: 'a reply, typed on the @family keypad',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'k1', mine: false, body: 'Just checking Tuesday at 4 still works?', at: '2026-09-16 09:12', read: true,
+          withId: 'P009', withName: 'Ada Tutor', fromName: 'Ada Tutor' }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+        (function () {
+          /* TAPPED AS A FINGER TAPS IT, typed on the pad's own keys once its page is in front (526); the state's functions run in the page, so this is written out in each */
+          const sel = '#s-dm .card:not([data-daive]) .msg-text', col = 'dm', text = 'yes see you then\nthanks';
+          let tries = 0;
+          const go = () => {
+            const b = document.querySelector(sel);
+            const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+            if (!b || moving) { if (++tries < 80) setTimeout(go, 50); return; }
+            const pg = b.closest('.page');
+            if (pg && !pg.classList.contains('on') && tries < 80) {
+              tries++;
+              goPage(col, [...document.querySelectorAll('#s-' + col + ' .page')].indexOf(pg), true);
+              setTimeout(go, 120);
+              return;
+            }
+            b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            b.focus();
+            /* A TAP AFTER THE WORDS ALREADY THERE puts the caret at their end, as the browser does for a finger */
+            try { b.setSelectionRange(b.value.length, b.value.length); } catch (e) {}
+            for (const ch of text) {
+              const k = [...document.querySelectorAll('#kp .kp-key')].find(x => x.getAttribute('data-v') === (ch === '\n' ? '!nl' : ch));
+              if (k) k.click();
+            }
+          };
+          go();
+        })();
+      },
+      expect: function () {
+        const sel = '#s-dm .card:not([data-daive]) .msg-text', text = 'then\nthanks';
+        const pad = document.getElementById('kp'), b = document.querySelector(sel);
+        if (!pad || pad.hidden || !b || document.activeElement !== b) return false;
+        return pad.classList.contains('is-site') && b.getAttribute('inputmode') === 'none' && !b.readOnly && b.value.endsWith(text)
+          && b.getBoundingClientRect().bottom <= pad.getBoundingClientRect().top
+          && !!pad.querySelector('.kp-key.kp-ret') && !!pad.querySelector('.kp-key.kp-done-k');
+      },
+      wants: 'the reply box tapped and "yes see you then", a new line and "thanks" typed on the pad\u2019s letters — return and done on the pad, the box above it',
+      leave: () => {
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        const b = document.querySelector('#s-dm .msg-text');
+        if (b) { b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
+      } },
     { name: 'an inbox',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

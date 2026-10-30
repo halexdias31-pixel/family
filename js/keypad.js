@@ -33,13 +33,15 @@ function kpWordsSay_(n) { return n + (n === 1 ? ' word' : ' words'); }
 
 
 /* ---------- THE KEYS § */
+/* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
+const KP_POW = { v: '!pow', a: 'to the power of', c: ' kp-op kp-pow', t: '<span class="kp-pw" aria-hidden="true">x<i></i></span>' };
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
   { t: '(', a: 'open bracket' }, { t: ')', a: 'close bracket' },
   { t: '4' }, { t: '5' }, { t: '6' }, { t: '\u00d7', a: 'times' },
   { v: '!frac', a: 'fraction', c: ' kp-op',
     t: '<span class="kp-fr"><i></i><b></b><i></i></span>' },
-  { v: '!pow', a: 'power', c: ' kp-op', t: '<span class="kp-pw">x<sup>y</sup></span>' },
+  KP_POW,
   { t: '1' }, { t: '2' }, { t: '3' }, { v: '-', a: 'minus', t: '\u2212' },
   { v: '!sqrt', a: 'square root', c: ' kp-op', t: '\u221a' }, { t: '\u03c0', a: 'pi', c: ' kp-op' },
   { t: '0' }, { t: '.', a: 'point' }, { t: ',', a: 'comma' }, { t: '+', a: 'plus' },
@@ -130,15 +132,29 @@ const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret', spa
   t: '<span class="kp-ret-i" aria-hidden="true">\u21b5</span><span class="kp-ret-k">return</span>' };
 const KP_ABC_ESSAY = KP_ABC.map(k => (k.c === ' kp-space kp-mode' ? Object.assign({}, k, { span: 24 }) : k)).concat([KP_RETURN]);
 
+/* ---------- EVERY OTHER BOX ON THE SITE (526): the same pad, its maths keys made plain characters, and @ . / for an address */
+const KP_MAIL_KEYS = ['@', '.', '/', '_', '-', ':'].map(c => kpCh_(c, { '@': 'at', '.': 'dot', '/': 'slash', '_': 'underscore', '-': 'hyphen', ':': 'colon' }[c], 10));
+const KP_SITE_KEYS = [
+  { t: '@', a: 'at', c: ' kp-op' }, { t: '#', a: 'hash', c: ' kp-op' }, { t: '&amp;', v: '&', a: 'and', c: ' kp-op' },
+  { t: '%', a: 'per cent', c: ' kp-op' }, { t: '\u00a3', a: 'pounds', c: ' kp-op' }, { t: '!', a: 'exclamation mark', c: ' kp-op' },
+];
+const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
+const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
+
 /* A KEY IS A BUTTON AND NOT A TILE, the one place on a question's pages the owner's *"it should all be tiles"* does not reach, and on purpose: § */
 const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="kp-key"
   data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}${
   k.span ? ` style="grid-column:${k.at ? k.at + ' / ' : ''}span ${k.span}"` : ''}>${
   k.icon ? tileIcon_(k.icon) : k.t}</button>`;
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
-function kpPadHtml_(layer, words, signs, essay, vec) {
+/* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
+const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
+/* `site` IS A BOX ELSEWHERE ON THE SITE (526): 'mail' tops the letters with @ . /, any other the 123 face with @ # & and plain keys for the structures */
+function kpPadHtml_(layer, words, signs, essay, vec, site) {
   if (layer === 'sym') return KP_SYM.concat(kpBottom_(words, essay, true)).map(kpKey_).join('');
-  if (layer === 'abc') return (vec ? KP_VEC_KEYS.map(k => Object.assign({}, k, { span: 10 })) : []).concat(essay ? KP_ABC_ESSAY : KP_ABC).concat(kpBottom_(words, essay)).map(kpKey_).join('');
+  const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
+  if (layer === 'abc') return top.concat(essay ? KP_ABC_ESSAY : KP_ABC).concat(kpBottom_(words, essay)).map(kpKey_).join('');
+  if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
   return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
 
@@ -224,6 +240,7 @@ function kpDraw_(v, caret, words, end) {
 }
 
 function kpRender_(inp) {
+  if (kpSite_(inp)) return;
   const show = inp && inp.parentNode && inp.parentNode.querySelector('.kp-show');
   if (!show) return;
   const words = inp.getAttribute('data-kp') === 'words';
@@ -332,18 +349,21 @@ function kpLayout_(inp) {
   const words = !!inp && inp.getAttribute('data-kp') === 'words';
   /* EVERY BOX'S PAD HAS THE SIGNS AND THE VECTOR AND UNIT ROW (round 3); the box's kind only picks the opening layer */
   const signs = true;
-  const essay = !!inp && inp.hasAttribute('data-kp-essay');
+  /* A BOX ELSEWHERE (526): a textarea is an essay's pad (return types a new line, `done` puts it away), an address has @ . / */
+  const site = kpSite_(inp) ? (inp.getAttribute('data-kpb') === 'mail' ? 'mail' : 'site') : '';
+  const essay = !!inp && (inp.hasAttribute('data-kp-essay') || (!!site && kpLines_(inp)));
   const vec = true;
-  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '');
+  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '') + (vec ? ':v' : '') + (site ? ':' + site : '');
   if (pad.getAttribute('data-sig') !== sig) {
-    pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec);
+    pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay, vec, site);
     pad.setAttribute('data-sig', sig);
   }
+  pad.classList.toggle('is-site', !!site);
   kpNextPaint_(pad, inp);
   pad.classList.toggle('is-abc', KP_LAYER === 'abc');
   pad.classList.toggle('is-sym', KP_LAYER === 'sym');
   pad.setAttribute('data-layer', KP_LAYER);
-  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : 'Maths keypad');
+  pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : KP_LAYER === 'sym' ? 'Symbols keypad' : site ? 'Numbers keypad' : 'Maths keypad');
   kpShiftPaint_();
   kpStrip_(pad, inp);
   return pad;
@@ -408,7 +428,8 @@ function kpLayer_(name, inp) {
 }
 
 function kpOpen_(inp) {
-  if (!inp || !inp.classList || !inp.classList.contains('kp-in')) return;
+  if (!kpIs_(inp)) return;
+  const site = kpSite_(inp);
   /* FROM ONE BOX STRAIGHT TO ANOTHER, the one left behind is redrawn without its caret — two blinking
      carets on one screen is two places the next key might go. */
   const was = KP_AT;
@@ -419,13 +440,14 @@ function kpOpen_(inp) {
   /* AND THE SAME BOX FOCUSED AGAIN while the pad is still on it keeps its face and its caret. */
   const same = was === inp;
   if (!back && !same) {
-    KP_LAYER = inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
+    KP_LAYER = site ? (inp.getAttribute('data-kpb') === 'num' ? 'maths' : 'abc') : inp.getAttribute('data-kp') === 'words' ? 'abc' : 'maths';
     KP_SHIFT = 'off';
   }
   const pad = kpLayout_(inp);
   pad.hidden = false;
   document.documentElement.classList.add('kp-up');
-  if (!same) {
+  /* A BOX ELSEWHERE KEEPS THE CARET WHERE THE FINGER PUT IT: it is a real field, and the browser placed it */
+  if (!same && !site) {
     const at = back ? Math.max(0, Math.min(KP_WAS.caret, inp.value.length)) : inp.value.length;
     try { inp.setSelectionRange(at, at); } catch (e) {}
   }
@@ -580,6 +602,7 @@ function kpPartner_(v, i) {
 function kpLineStart_(v, i) { return i <= 0 ? 0 : v.lastIndexOf('\n', i - 1) + 1; }
 function kpLineEnd_(v, i) { const n = v.indexOf('\n', i); return n < 0 ? v.length : n; }
 function kpEdit_(inp, cmd) {
+  if (kpSite_(inp)) return kpSiteEdit_(inp, cmd);
   const v = inp.value;
   const words = inp.getAttribute('data-kp') === 'words';
   let a = inp.selectionStart, b = inp.selectionEnd;
@@ -740,6 +763,7 @@ on('kp-key', (el) => {
 /* ✓ IS CHECK, where the question has a scheme to check against — the same handler the button runs, not a copy of it — and otherwise it is "I have finished" § */
 /* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND § */
 function kpDone_(inp) {
+  if (kpSite_(inp)) return kpSiteDone_(inp);
   const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
   if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
@@ -763,7 +787,7 @@ function kpShiftTap_() {
 }
 function kpAutoShift_(inp) {
   if (KP_SHIFT === 'lock') return;
-  if (!inp || inp.getAttribute('data-kp') !== 'words') { KP_SHIFT = 'off'; return; }
+  if (!inp || (inp.getAttribute('data-kp') !== 'words' && !kpSiteCaps_(inp))) { KP_SHIFT = 'off'; return; }
   const at = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
   const before = inp.value.slice(0, at);
   KP_SHIFT = (!before.trim() || /[.?!]\s+$/.test(before) || /\n\s*$/.test(before)) ? 'once' : 'off';
@@ -829,8 +853,10 @@ function kpSay_(inp) {
   KP_SAY = setTimeout(() => {
     const say = document.getElementById('kp-say');
     if (!say || KP_AT !== inp) return;
-    const v = inp.value;
-    say.textContent = inp.getAttribute('data-kp') === 'words'
+    /* A PIN OR A PASSWORD IS NEVER READ OUT (526) */
+    if (kpSecret_(inp)) { say.textContent = ''; return; }
+    const v = String(kpSite_(inp) ? kpText_(inp) : inp.value);
+    say.textContent = inp.getAttribute('data-kp') === 'words' || kpSite_(inp)
       ? v.split(/[.?!\n]\s*/).filter(s => s.trim()).slice(-1).join('').slice(-160) : kpSpoken_(v);
   }, 600);
 }
@@ -937,12 +963,12 @@ document.addEventListener('focusin', e => {
 });
 document.addEventListener('focusout', e => {
   const t = e.target;
-  if (!t || !t.classList || !t.classList.contains('kp-in')) return;
+  if (!kpIs_(t)) return;
   /* AFTER THE FOCUS HAS LANDED, so a move from one box straight to another hands the pad over
      rather than closing and reopening it. */
   setTimeout(() => {
     const now = document.activeElement;
-    if (now && now.classList && now.classList.contains('kp-in')) return;
+    if (kpIs_(now) && (now.classList.contains('kp-in') || KP_AT === now)) return;
     /* TAKEN AWAY, NOT LEFT: § */
     if (KP_AT === t && !t.isConnected) {
       const again = kpFind_(t.getAttribute('data-k'));
@@ -958,9 +984,165 @@ document.addEventListener('focusout', e => {
   if (t && t.classList && t.classList.contains('kp-in')) kpRender_(t);
 }));
 
+/* ---------- THE PAD IS THE KEYBOARD FOR EVERY BOX ON THE SITE (526) ---------- */
+/* The owner: "make it so the keyboard is the @family keyboard everywhere". Every other box stays a real field (the browser's caret, selection, paste, a laptop's keys); only the phone's keyboard is shut out. */
+const KP_TEXT_TYPE = /^(|text|search|email|url|tel|password|number)$/;
+/* WHAT TAKES TEXT: a textarea, a text-like input, an editable piece of words (words.js). An answer box is kpField_'s, locked in its markup, and never this. */
+function kpTakesText_(el) {
+  if (!el || el.nodeType !== 1 || !el.classList || el.classList.contains('kp-in')) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  if (el.tagName === 'INPUT') return KP_TEXT_TYPE.test(String(el.getAttribute('type') || '').trim().toLowerCase());
+  const ce = el.getAttribute('contenteditable');
+  return ce != null && /^(|true|plaintext-only)$/i.test(ce.trim());
+}
+const kpSite_ = el => !!(el && el.nodeType === 1 && el.hasAttribute('data-kpb') && !el.classList.contains('kp-in'));
+const kpIs_ = el => !!(el && el.classList && (el.classList.contains('kp-in') || kpSite_(el)));
+const kpField2_ = el => el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+const kpLines_ = el => !!el && el.tagName === 'TEXTAREA';
+const kpText_ = el => String((kpField2_(el) ? el.value : el.textContent) || '');
+const kpWritable_ = el => !!el && !el.disabled && !(kpField2_(el) && el.readOnly);
+const kpSecret_ = el => !!el && el.tagName === 'INPUT' && (/^password$/i.test(el.type || '') || el.classList.contains('pin-dots')
+  || /password|one-time-code/i.test(el.getAttribute('autocomplete') || ''));
+/* A CAPITAL BY ITSELF where a phone's keyboard gives one: a box of sentences, never an address, a PIN, or a box that says autocapitalize="off" */
+function kpSiteCaps_(el) {
+  if (!kpSite_(el) || el.getAttribute('data-kpb') !== 'abc' || kpSecret_(el)) return false;
+  if (/^(off|none)$/i.test(el.getAttribute('autocapitalize') || '')) return false;
+  return el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(|text)$/i.test(el.getAttribute('type') || ''));
+}
+/* THE FACE IT OPENS ON, read from what the box says it is: a number, a phone number or digits written as its inputmode → 123; an address → letters with @ . /; else letters */
+function kpSiteLayer_(el) {
+  const ty = String(el.getAttribute('type') || '').toLowerCase(), im = String(el.getAttribute('inputmode') || '').toLowerCase();
+  if (/^(number|tel)$/.test(ty) || /^(numeric|decimal|tel)$/.test(im)) return 'num';
+  if (/^(email|url)$/.test(ty) || /^(email|url)$/.test(im)) return 'mail';
+  return 'abc';
+}
+/* THE ONE BINDING: the face read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
+function kpBind_(el) {
+  if (!kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
+  el.setAttribute('data-kpb', kpSiteLayer_(el));
+  el.setAttribute('inputmode', 'none');
+}
+function kpBindIn_(root) {
+  if (!root || root.nodeType !== 1) return;
+  kpBind_(root);
+  if (root.firstElementChild) root.querySelectorAll('input, textarea, [contenteditable]').forEach(kpBind_);
+}
+/* A BOX TAKEN AWAY WITH THE PAD ON IT (a message sent, its composer drawn again) takes the pad with it, as a phone's keyboard goes; an answer box is found again by its name (kpLive_) */
+const kpGone_ = () => { if (KP_AT && kpSite_(KP_AT) && !KP_AT.isConnected) kpClose_(); };
+/* EVERY BOX AS IT IS DRAWN, before a finger can reach it; and again on the way in (a tap, a focus), for a box drawn and focused in one go */
+try {
+  new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes) kpBindIn_(n); kpGone_(); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+} catch (e) { /* the tap and the focus below still bind */ }
+kpBindIn_(document.documentElement);
+
+/* THE PAD COMES UP WHEN A PERSON PUT THE FOCUS THERE (a tap, Tab), as a phone's keyboard does, and not for a box a screen focused by itself; a tap on it later brings it up */
+const KP_USER_MS = 1500;
+let KP_USER_AT = 0;
+const kpUser_ = () => Date.now() - KP_USER_AT < KP_USER_MS;
+const kpBoxAt_ = t => (t && t.closest ? t.closest('input, textarea, [contenteditable]') : null);
+['pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => {
+  KP_USER_AT = Date.now();
+  kpBind_(kpBoxAt_(e.target));
+}, { capture: true, passive: true }));
+document.addEventListener('keydown', e => { if (e.key === 'Tab') KP_USER_AT = Date.now(); }, true);
+document.addEventListener('focusin', e => {
+  const t = e.target;
+  kpBind_(t);
+  if (kpSite_(t) && kpWritable_(t) && kpUser_()) kpOpen_(t);
+}, true);
+document.addEventListener('click', e => {
+  const t = kpBoxAt_(e.target);
+  if (kpSite_(t) && document.activeElement === t && KP_AT !== t && kpWritable_(t)) kpOpen_(t);
+});
+/* A LAPTOP'S OWN KEYS TYPE STRAIGHT INTO THE FIELD; the box is kept above the pad as it grows */
+document.addEventListener('input', e => { if (KP_AT && e.target === KP_AT && kpSite_(KP_AT)) kpKeepClear_(KP_AT); });
+
+/* A KEY INTO A BOX ELSEWHERE: the browser's own edit where it has one (its `input` event, its undo, maxlength, a number box's rules), else the same splice by hand */
+const KP_PEND = new WeakMap();
+function kpSiteEdit_(el, cmd) {
+  if (!kpWritable_(el)) return;
+  if (cmd === '!left' || cmd === '!right') return kpSiteMove_(el, cmd === '!left' ? -1 : 1);
+  if (/^!(home|end|top|bottom)$/.test(cmd) || (cmd === '\n' && !kpLines_(el))) return;
+  const back = cmd === '!back' || cmd === '!del';
+  const t = back ? '' : cmd;
+  if (document.activeElement === el && typeof document.execCommand === 'function') {
+    let done = false;
+    try { done = document.execCommand(back ? (cmd === '!del' ? 'forwardDelete' : 'delete') : 'insertText', false, t); } catch (e) { done = false; }
+    if (done) { KP_PEND.delete(el); return; }
+  }
+  if (!kpField2_(el)) return kpSiteEditable_(el, t, back);
+  /* A NUMBER BOX HALF TYPED ("1.", "-") reads back empty, so the text so far is held beside it until it is a number again */
+  let pend = KP_PEND.get(el);
+  if (pend != null && el.value !== '') { KP_PEND.delete(el); pend = null; }
+  const v = pend != null ? pend : el.value;
+  let a = pend != null ? null : el.selectionStart, b = pend != null ? null : el.selectionEnd;
+  if (a == null) a = b = v.length;
+  if (back && a === b) {
+    if (cmd === '!del') { if (b >= v.length) return; b++; } else { if (!a) return; a--; }
+  }
+  let put = t;
+  const max = el.maxLength;
+  if (max >= 0 && v.length - (b - a) + put.length > max) put = put.slice(0, Math.max(0, max - (v.length - (b - a))));
+  if (!back && !put) return;
+  const nv = v.slice(0, a) + put + v.slice(b);
+  el.value = nv;
+  if (el.value !== nv) KP_PEND.set(el, nv); else KP_PEND.delete(el);
+  try { el.setSelectionRange(a + put.length, a + put.length); } catch (e) { /* an email or number box has no caret to set */ }
+  kpSiteInput_(el, back ? 'deleteContentBackward' : 'insertText', back ? null : put);
+}
+function kpSiteInput_(el, type, data) {
+  let ev;
+  try { ev = new window.InputEvent('input', { bubbles: true, inputType: type, data: data }); } catch (e) { ev = new Event('input', { bubbles: true }); }
+  el.dispatchEvent(ev);
+}
+/* ← AND →: the field's own caret. An email or number box has none a script can move; its own arrow keys still do */
+function kpSiteMove_(el, dir) {
+  if (!kpField2_(el)) {
+    try { const s = window.getSelection(); if (s && s.modify) s.modify('move', dir < 0 ? 'backward' : 'forward', 'character'); } catch (e) { /* left where it is */ }
+    return;
+  }
+  const a = el.selectionStart, b = el.selectionEnd;
+  if (a == null) return;
+  const c = b > a ? (dir < 0 ? a : b) : Math.max(0, Math.min(el.value.length, a + dir));
+  try { el.setSelectionRange(c, c); } catch (e) { /* left where it is */ }
+}
+/* AN EDITABLE PIECE OF WORDS (words.js), where the browser has no edit of its own to lend: the selection's range, by hand */
+function kpSiteEditable_(el, t, back) {
+  try {
+    const s = window.getSelection();
+    let r = s && s.rangeCount ? s.getRangeAt(0) : null;
+    if (!r || !el.contains(r.commonAncestorContainer)) { r = document.createRange(); r.selectNodeContents(el); r.collapse(false); }
+    if (back && r.collapsed) {
+      let n = r.startContainer, o = r.startOffset;
+      if (n.nodeType === 1 && o > 0 && n.childNodes[o - 1].nodeType === 3) { n = n.childNodes[o - 1]; o = n.length; }
+      if (n.nodeType !== 3 || !o) return;
+      r.setStart(n, o - 1);
+      r.setEnd(n, o);
+    }
+    r.deleteContents();
+    if (t) { const tn = document.createTextNode(t); r.insertNode(tn); r.setStartAfter(tn); r.collapse(true); }
+    s.removeAllRanges();
+    s.addRange(r);
+  } catch (e) { return; }
+  kpSiteInput_(el, back ? 'deleteContentBackward' : 'insertText', back ? null : t);
+}
+/* ✓ ON A BOX ELSEWHERE IS ITS ENTER: whatever Enter does there (sign in, search, add), its form sent if nothing took it, the pad put away. A box of lines says `done`; its Send tile sends */
+function kpSiteDone_(el) {
+  if (!kpLines_(el)) {
+    let go = true;
+    try { go = el.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true })); } catch (e) { go = true; }
+    if (go && el.form && el.isConnected && typeof el.form.requestSubmit === 'function') { try { el.form.requestSubmit(); } catch (e) { /* a form that cannot be sent stays */ } }
+  }
+  if (document.activeElement === el) el.blur();
+  kpClose_();
+}
+
 /* ---------- A LAPTOP'S KEYBOARD, AND AN iPAD'S § */
 function kpKeys_(e) {
   const t = e.target;
+  /* A BOX ELSEWHERE TAKES A LAPTOP'S KEYS AS THEY ARE (526); Escape puts the pad away */
+  if (kpSite_(t)) { if (e.key === 'Escape' && KP_AT === t) kpClose_(); return; }
   if (!t || !t.classList || !t.classList.contains('kp-in') || e.isComposing || e.keyCode === 229) return;
   const words = t.getAttribute('data-kp') === 'words';
   const essay = words && t.hasAttribute('data-kp-essay');

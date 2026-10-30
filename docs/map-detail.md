@@ -183,6 +183,7 @@ node js/check-backend.js         # one Apps Script scope: every name declared ex
 node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
 node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
+node js/check-keyboard.js        # every box the site can draw types on the @family keypad (kpBind_), never the phone's keyboard (526)
 node js/check-posts.js           # posts wait for approval, final once up, no links, a child uploads nothing (413)
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
@@ -262,6 +263,14 @@ Follow it. It is unusual and it is deliberate.
   `!LOADED`** — `LOADED` is true once a failed first load has finished, while the quiet retry is
   still asking. `check-loading.js` fails on a waiting phrase, and on any drawn text that trails off in
   "…", unless it is listed with a reason. See docs/history/306.
+- **EVERY BOX TYPES ON THE @family KEYPAD.** The owner: *"make it so the keyboard is the @family
+  keyboard everywhere."* `kpBind_` (js/keypad.js) binds every `<input>`, `<textarea>` and editable piece
+  as it is drawn: `inputmode="none"` and its face (`data-kpb`) read from the markup — a number, tel or
+  `inputmode="numeric|decimal|tel"` opens on the digits, an email or url on the letters with @ . /,
+  anything else on the letters. So write the box's real `type`, `inputmode`, `autocomplete` and
+  `autocapitalize` and nothing else: never `inputmode="none"` or `data-kpb` by hand, never `readonly` to
+  keep a keyboard away. Selects, pickers, files and ticks are left alone. `check-keyboard.js`. See
+  docs/history/526.
 - Version constants — `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` — are
   compared on the **whole stamp**, so bump all four together or the You screen reports the untouched
   ones as "Not deployed".

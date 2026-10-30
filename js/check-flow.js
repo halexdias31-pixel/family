@@ -15594,8 +15594,15 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   ].join('|'));
   const jsDir = path.join(dir);
   let field = '';
+  /* THE ONE EXCEPTION (526): `kpBind_` shuts the phone's keyboard out of every other box on the site, and may write `inputmode` as "none" and nothing else, never `readonly` */
+  let bind = '';
   fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
     let src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    if (f === 'keypad.js') {
+      const cut = src.match(/function kpBind_\([\s\S]*?\n\}\n/);
+      bind = cut ? cut[0] : '';
+      if (cut) src = src.replace(cut[0], cut[0].replace("el.setAttribute('inputmode', 'none');", ''));
+    }
     const m = src.match(SRC);
     if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
     if (f === 'keypad.js') {
@@ -15606,10 +15613,193 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
     const b = src.match(BOX);
     if (b) bad.push('js/' + f + ' draws an answer box outside kpField_: `' + b[0] + '` -- a box not drawn by kpField_ is a box nobody locked');
   });
+  if (!bind || (bind.match(/inputmode/gi) || []).length !== 1 || !/el\.setAttribute\('inputmode', 'none'\);/.test(bind) || /readonly|readOnly/.test(bind)) {
+    bad.push('kpBind_ in js/keypad.js is missing, or writes something other than inputmode="none" once -- the one script allowed to touch a box\'s keyboard');
+  }
   if (!field || !/data-do="qp-ans"/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
   if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about — the rule was not asked of them all');
   [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- THE PAD IS THE KEYBOARD FOR EVERY BOX ON THE SITE (526) ---------- */
+/* A finger on a box: the press the app hears first, then the focus it gives. `kpTap_` is how a person arrives; a screen's own focus does not bring the pad up. */
+const kpTap_ = (w, el) => { el.dispatchEvent(new w.Event('pointerdown', { bubbles: true })); el.focus(); };
+const kpPadOf_ = w => w.document.getElementById('kp');
+/* EACH CHARACTER ON WHICHEVER FACE HAS IT, turning the pad over as a person would; a character no face has is said */
+function kpTypeOn_(w, s, bad) {
+  const A = w.__t.ACTIONS;
+  const key = v => kpPadOf_(w) && [...kpPadOf_(w).querySelectorAll('.kp-key')].find(b => b.getAttribute('data-v') === v);
+  for (const ch of s) {
+    const v = ch === '\n' ? '!nl' : ch.toLowerCase();
+    let b = key(v);
+    for (const face of ['!abc', '!123', '!sym']) { if (b) break; const f = key(face); if (f) { A['kp-key'](f); b = key(v); } }
+    if (!b) { bad.push('no key for ' + JSON.stringify(ch) + ' on any face of the pad'); return; }
+    if (ch !== v && ch === ch.toUpperCase()) { const sh = key('!shift'); if (sh) A['kp-key'](sh); }
+    A['kp-key'](b);
+  }
+}
+/* THE BOX IS A REAL FIELD THE PAD IS BOUND TO: `inputmode="none"` and its face, never `readonly` (a reader still hears a field), and the pad up on the face wanted */
+function kpBoundSays_(w, el, face, name) {
+  const out = [];
+  if (!el) return [name + ' was not drawn'];
+  if (el.getAttribute('inputmode') !== 'none') out.push(name + ' has inputmode=' + JSON.stringify(el.getAttribute('inputmode')) + ' — the phone\'s keyboard comes up on it');
+  if (el.getAttribute('data-kpb') !== face) out.push(name + ' is bound to the ' + JSON.stringify(el.getAttribute('data-kpb')) + ' face, wanted ' + JSON.stringify(face));
+  if (el.readOnly || el.hasAttribute('readonly')) out.push(name + ' is readonly — the readonly lock is the answer box\'s, and a box elsewhere is a field a screen reader can edit');
+  return out;
+}
+check('a message, the Find box, Find 2\'s box and a settings box type on the @family keypad: tapped, the pad comes up on the right face, its keys type, a laptop and a paste still type, and the phone\'s keyboard has no way in (526)', async () => {
+  const { w, sent } = boot({ reply: b => (b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 }) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['kp-key'] || typeof w.msgForm_ !== 'function' || typeof w.draftRead_ !== 'function') return ['the keypad, the composer or the drafts are not reachable — nothing was checked'];
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '', phone: '07700900000', borough: 'Merton' } });
+  const pad = () => kpPadOf_(w);
+  const up = () => !!pad() && !pad().hidden;
+
+  /* 1. A MESSAGE: a box of lines, so return types a new line and `done` only puts the pad away; the Send tile sends */
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.msgForm_('Tom Tutor', 'P-TOM');
+  await wait(0);
+  const msg = host.querySelector('.msg-text');
+  bad.push(...kpBoundSays_(w, msg, 'abc', 'the message box'));
+  if (msg) {
+    msg.focus();
+    if (up()) bad.push('the message box focused by a screen, with no finger, brought the pad up — a phone\'s keyboard does not');
+    msg.blur();
+    await wait(5);
+    kpTap_(w, msg);
+    if (!up()) bad.push('a tap on the message box did not bring the pad up');
+    else {
+      if (pad().getAttribute('data-layer') !== 'abc') bad.push('the message box opened the pad on ' + pad().getAttribute('data-layer') + ', wanted the letters');
+      if (!pad().querySelector('.kp-key[data-v="!nl"]')) bad.push('the message box\'s pad has no return key — a message of lines cannot be typed');
+      if (!pad().querySelector('.kp-key.kp-done-k')) bad.push('the message box\'s ✓ is not `done` — it would look like Send and only put the pad away');
+      if (pad().querySelector('.kp-q')) bad.push('the question strip rides on the pad over a message box');
+      kpTypeOn_(w, 'see you at 4\nthanks', bad);
+      if (msg.value !== 'see you at 4\nthanks') bad.push('the pad typed ' + JSON.stringify(msg.value) + ' into the message box, wanted "see you at 4\\nthanks"');
+      if (d.activeElement !== msg) bad.push('typing on the pad took the focus off the message box');
+      const kept = w.draftRead_('msg', 'P-TOM');
+      if (!kept || String(kept).indexOf('thanks') === -1) bad.push('what the pad typed was not kept as the composer\'s draft (' + JSON.stringify(kept) + ') — the pad did not send the input event a keyboard sends');
+      /* A LAPTOP'S KEY AND A PASTE are the field's own: nothing cancels them */
+      const kd = new w.KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
+      msg.dispatchEvent(kd);
+      if (kd.defaultPrevented) bad.push('a laptop\'s key in the message box was cancelled — a physical keyboard must type as it always has');
+      const ps = new w.Event('paste', { bubbles: true, cancelable: true });
+      msg.dispatchEvent(ps);
+      if (ps.defaultPrevented) bad.push('a paste into the message box was cancelled');
+      const before = sent.length;
+      A['kp-key'](pad().querySelector('.kp-key.kp-done-k'));
+      if (up()) bad.push('`done` on the message box left the pad up');
+      if (sent.slice(before).some(b => /message|send/i.test(String(b.action || '')))) bad.push('`done` on the message box sent the message — only the Send tile sends');
+      if (msg.value !== 'see you at 4\nthanks') bad.push('`done` changed the message to ' + JSON.stringify(msg.value));
+      /* THE COMPOSER DRAWN AGAIN WITH THE PAD ON IT (a message sent) takes the pad with it: a pad over no box types nowhere. Safari sends no focusout for a box taken away, and nor does jsdom */
+      await wait(5);
+      kpTap_(w, msg);
+      if (!up()) bad.push('a second tap on the message box did not bring the pad back');
+      host.innerHTML = w.msgForm_('Tom Tutor', 'P-TOM');
+      await wait(5);
+      if (up()) bad.push('the message box was drawn again under the pad and the pad stayed up over a box that is gone');
+    }
+  }
+  /* A ONE-LINE BOX IN A FORM (receipt.js's "why"): ✓ is its Enter, so the form is sent as Enter sends it, once */
+  host.innerHTML = '<form class="kp-test-form"><input type="text" name="why"></form>';
+  await wait(0);
+  const fm = host.querySelector('form'), why = fm && fm.querySelector('input');
+  let sentForm = 0;
+  if (fm) fm.addEventListener('submit', e => { e.preventDefault(); sentForm++; });
+  if (why) {
+    kpTap_(w, why);
+    if (!up()) bad.push('a tap on a box in a form did not bring the pad up');
+    else {
+      kpTypeOn_(w, 'late', bad);
+      A['kp-key'](pad().querySelector('.kp-key.kp-done'));
+      if (sentForm !== 1) bad.push('✓ on a one-line box in a form sent it ' + sentForm + ' times — it is the box\'s Enter, which sends its form once');
+      if (up()) bad.push('✓ on a box in a form left the pad up');
+    }
+  }
+  host.remove();
+
+  /* 2. THE FIND BOX AND FIND 2's: one line, letters, and the words reach the finder they belong to */
+  for (const id of ['stuff', 'res']) {
+    try { t.go(id, false, true); w.paint(id); } catch (e) { bad.push('drawing ' + id + ' threw: ' + e.message); continue; }
+    await wait(50);
+    const q = d.getElementById(id + '-q');
+    bad.push(...kpBoundSays_(w, q, 'abc', 'the ' + id + '-q box'));
+    if (!q) continue;
+    kpTap_(w, q);
+    if (!up()) { bad.push('a tap on ' + id + '-q did not bring the pad up'); continue; }
+    if (pad().querySelector('.kp-key[data-v="!nl"]')) bad.push(id + '-q is one line and its pad has a return key');
+    kpTypeOn_(w, 'frac', bad);
+    if (q.value !== 'frac') bad.push('the pad typed ' + JSON.stringify(q.value) + ' into ' + id + '-q');
+    await wait(260);
+    const st = (w.finderStates_ ? w.finderStates_() : [])[id === 'stuff' ? 0 : 1];
+    if (!st || st.q !== 'frac') bad.push('the words typed on the pad did not reach ' + id + '\'s finder (q=' + JSON.stringify(st && st.q) + ')');
+    A['kp-key'](pad().querySelector('.kp-key[data-v="!back"]'));
+    if (q.value !== 'fra') bad.push('⌫ on the pad left ' + JSON.stringify(q.value) + ' in ' + id + '-q');
+    A['kp-key'](pad().querySelector('.kp-key.kp-done'));
+    if (up()) bad.push('✓ on ' + id + '-q left the pad up');
+    try { w.finderSet_(w.finderOf_(id), { q: '' }); } catch (e) { /* the next journey starts its own app */ }
+  }
+
+  /* 3. A SETTINGS BOX: its words typed and kept; the phone number opens on the digits */
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
+  await wait(300);
+  const head = d.querySelector('#s-account input[data-me="borough"]') || d.querySelector('#s-account input[data-me="city"]');
+  const name = head ? head.getAttribute('data-me') : '';
+  bad.push(...kpBoundSays_(w, head, 'abc', 'the settings box'));
+  if (head) {
+    kpTap_(w, head);
+    if (!up() || pad().getAttribute('data-layer') !== 'abc') bad.push('a tap on the settings box did not bring the pad up on its letters');
+    const was = head.value;
+    try { head.setSelectionRange(was.length, was.length); } catch (e) { /* a box with no caret types at its end */ }
+    kpTypeOn_(w, ' and physics', bad);
+    if (head.value !== was + ' and physics') bad.push('the pad typed ' + JSON.stringify(head.value) + ' into the settings box, wanted ' + JSON.stringify(was + ' and physics'));
+    const kept = w.draftRead_('set', name);
+    if (!kept || String(kept).indexOf('physics') === -1) bad.push('the settings box\'s edit was not kept as its draft (' + JSON.stringify(kept) + ')');
+    head.blur();
+    await wait(5);
+    if (up()) bad.push('the pad stayed up after the settings box lost the focus');
+  }
+  const tel = d.querySelector('#s-account [data-me="phone_no"]');
+  bad.push(...kpBoundSays_(w, tel, 'num', 'the phone number box'));
+  if (tel) {
+    kpTap_(w, tel);
+    if (!up() || pad().getAttribute('data-layer') !== 'maths' || !pad().querySelector('.kp-key[data-v="7"]')) bad.push('the phone number box did not open the pad on its digits');
+    if (pad().querySelector('.kp-key[data-v="!frac"], .kp-key[data-v="!vec"]')) bad.push('the digits face on a box elsewhere still has the answer box\'s fraction or vector key');
+    tel.blur();
+  }
+  return bad;
+});
+
+check('signing in types on the @family keypad: the handle on the letters with @ and . on top, the PIN on the digits and never read out, and ✓ signs in (526)', async () => {
+  const reply = b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] });
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  await wait(20);
+  const nm = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  bad.push(...kpBoundSays_(w, nm, 'mail', 'the handle box'), ...kpBoundSays_(w, pin, 'num', 'the PIN box'));
+  if (!nm || !pin) return bad;
+  if (pin.getAttribute('autocomplete') !== 'one-time-code') bad.push('the PIN box lost its autocomplete="one-time-code"');
+  kpTap_(w, nm);
+  const pad = kpPadOf_(w);
+  if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the handle box did not open the pad on its letters with @ on top');
+  kpTypeOn_(w, 'ada_kind7', bad);
+  if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the handle');
+  kpTap_(w, pin);
+  if (pad.hidden || pad.getAttribute('data-layer') !== 'maths') bad.push('the PIN box did not open the pad on its digits');
+  kpTypeOn_(w, '482611119', bad);
+  if (pin.value !== '48261111') bad.push('the PIN box holds ' + JSON.stringify(pin.value) + ' — the pad did not keep to its eight digits');
+  await wait(700);
+  if (/4826/.test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
+  A['kp-key'](pad.querySelector('.kp-key.kp-done'));
+  await wait(300);
+  if (!sent.some(b => b.action === 'verifyLogin')) bad.push('✓ on the PIN box did not sign in — it is the field\'s Enter');
+  if (!pad.hidden) bad.push('✓ on the PIN box left the pad up');
   return bad;
 });
 
@@ -15644,6 +15834,42 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   const mark = h.querySelector('.qp-mark');
   if (!mark || !mark.classList.contains('is-right')) bad.push('"x ≈ 2.6" typed on the pad was not marked right against "x ≈ 2.6": ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
   h.remove();
+  return bad;
+});
+
+/* A POWER TYPED ON THE PAD (the owner, on an A-level question: "there's no to the power of button on keypad"): in sight on 123 and on the letters, ^() with the caret inside, marked as x^2 and x^(n+1) are stored */
+check('the power key is on the maths face and the letters, types x^(n+1) with its caret raised, and a power typed on it is marked right against x^2 and x^(n+1)', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — nothing was checked'];
+  const run = async (key, accept, keys, want) => {
+    const h = d.createElement('div');
+    const x = { kind: 'question', key: key, name: 'Q2', marks: 1, html: '<p>Differentiate.</p>', answer: '<b>' + accept + '</b>',
+      answerType: 'calculation', accept: accept, row: { row_id: key.toUpperCase(), paper_id: 'P-POW', subject: 'Maths', name: 'Powers', level: 'A-level' } };
+    try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+    h.innerHTML = w.questionCard_(x, 0);
+    d.body.appendChild(h);
+    const inp = h.querySelector('.kp-in');
+    if (!inp) { h.remove(); return bad.push('the part drew no keypad box'); }
+    inp.focus();
+    const pad = d.getElementById('kp');
+    if (!pad || pad.hidden) { h.remove(); return bad.push('focusing the box did not open the pad'); }
+    const key_ = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+    if (!key_('!pow')) bad.push('the ' + pad.getAttribute('data-layer') + ' face has no power key in sight');
+    else if (!/power/.test(key_('!pow').getAttribute('aria-label') || '')) bad.push('the power key is not named a power');
+    A['kp-key'](key_('!abc'));
+    if (!key_('!pow')) bad.push('the letters face has no power key — a power is a face away');
+    A['kp-key'](key_('!123'));
+    keys.forEach(v => { const b = key_(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); });
+    if (inp.value !== want) bad.push('typing ' + keys.join(' ') + ' gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(want));
+    A['kp-key'](key_('!done'));
+    const mark = h.querySelector('.qp-mark');
+    if (!mark || !mark.classList.contains('is-right')) bad.push(JSON.stringify(inp.value) + ' typed with the power key was not marked right against ' + JSON.stringify(accept) + ': ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
+    h.remove();
+  };
+  await run('q-pow-1', '3x^2', ['3', 'x', '!pow', '2'], '3x^(2)');
+  await run('q-pow-2', 'x^(n+1)', ['x', '!pow', '!abc', 'n', '!123', '+', '1'], 'x^(n+1)');
   return bad;
 });
 
@@ -25701,10 +25927,13 @@ check('the PIN box is not a password the iPad keeps, and nothing about who signe
   await wait(300);
   const t = w.__t, d = w.document;
   t.USER(null); t.go('account', false, true); w.paint('account');
+  /* THE BINDING IS THE DRAWING'S OBSERVER (526), a microtask after it — before any finger, after this line */
+  await wait(0);
   const pin = d.getElementById('in-pin');
   if (!pin) return ['no PIN box on the account column'];
   if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
-  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  /* THE PAD'S DIGITS, NOT THE PHONE'S (526): the markup's `inputmode="numeric"` picks the pad's face (`data-kpb`), and the phone's keyboard is shut out */
+  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'none', 'data-kpb': 'num' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
