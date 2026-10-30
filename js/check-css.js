@@ -307,6 +307,36 @@ say('A LOADING SCREEN OVER THE APP — gone since 466', splashBad);
 say('A RULE WITH NOTHING IN IT', hollow);
 say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
+/* ---------- 8b. ONE PRESS LOOK, FROM THE TOKENS (536, U9) ---------- */
+/* A press rule's transform, filter or background says `var(--press-*)` (or `none`); a pseudo-element may still translate to sit where it sits. The keypad's `.kp-*` is its own. */
+{
+  const pressBad = [];
+  const isPress = sel => /:active|\.is-pressed/.test(sel) && !/kp-/.test(sel);
+  let pressRules = 0;
+  rules.filter(r => isPress(r.sel)).forEach(r => {
+    pressRules++;
+    const pseudo = /::?(before|after)\b/.test(r.sel);
+    r.decls.forEach(d => {
+      const p = d.prop.toLowerCase(), ok = d.val === 'none' || /var\(--press-/.test(d.val);
+      if (p === 'transform' && !ok && !(pseudo && !/scale/.test(d.val)))
+        pressBad.push('line ' + r.line + '  ' + r.sel + '  →  transform: ' + d.val + ' — a press sinks by `scale(var(--press-small))` or `scale(var(--press-card))`');
+      if (/^(filter|background|background-color|background-image)$/.test(p) && !ok)
+        pressBad.push('line ' + r.line + '  ' + r.sel + '  →  ' + p + ': ' + d.val + ' — a press washes with `var(--press-wash)`, laid over the control\'s own colour');
+    });
+  });
+  if (pressRules < 20) pressBad.push('only ' + pressRules + ' press rules were read — the reader or the stylesheet changed, and the press look was NOT checked');
+  /* A PHONE APPLIES `:hover` ON TAP AND KEEPS IT, so a hover look belongs only to a pointer that can hover. */
+  rules.filter(r => /:hover/.test(r.sel) && !/hover:\s*hover/.test(r.cond))
+    .forEach(r => pressBad.push('line ' + r.line + '  ' + r.sel + '  →  `:hover` outside `@media (hover: hover)` sticks on a phone after a tap'));
+  /* HOLDING A CONTROL SELECTS NOTHING AND PREVIEWS NOTHING (D12): the base rule says so for every control. */
+  const base = rules.find(r => /^:where\(\[data-do\]/.test(r.sel)
+    && r.decls.some(d => d.prop === '-webkit-touch-callout' && d.val === 'none') && r.decls.some(d => d.prop === 'user-select' && d.val === 'none'));
+  if (!base) pressBad.push('no base rule on `:where([data-do], …)` sets `user-select: none` and `-webkit-touch-callout: none` — holding a control selects its words again');
+  if (rules.some(r => /\[disabled\]|:disabled/.test(r.sel) && r.decls.some(d => d.prop === 'pointer-events' && d.val === 'none')))
+    pressBad.push('a disabled rule sets `pointer-events: none` — a tap on the control falls through to whatever is under it');
+  say('A PRESS THAT IS NOT THE ONE LOOK (536) — tokens, hover only where it can hover, no selection, a disabled control keeps its tap', pressBad);
+}
+
 /* ---------- 9. A SPLASH BUILT AS ONE SEAMLESS LOOP STAYS ONE § */
 {
   /* ALL FOUR ARE IN THE TEXTBOOKS — the coin, the sieve, Bayes and How many fit? § */

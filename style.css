@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-30-p0-tokens";
+  --css-version: "2026-10-30-e-press";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -163,6 +163,28 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* ---------- THE PRESS: ONE LOOK, AT ONCE, ON EVERY CONTROL (536, U9) ---------- */
+/* A WASH LAID OVER THE CONTROL'S OWN COLOUR, not in place of it, so gold stays gold. `:is` twice is (0,2,0): it beats a component's `background: none` reset and loses to its own press rule. */
+:where([data-do]:not(input, select, textarea), .tab, button, summary, a[href], label:has(input[type="checkbox"], input[type="radio"]), [role="button"]):not(:where([class^="kp-"], [class*=" kp-"])):is(:active, .is-pressed):is(:active, .is-pressed) {
+  background-image: linear-gradient(var(--press-wash), var(--press-wash));
+}
+/* PRESS-IN IS FRAME ONE: whatever a component eases, the pressed state arrives at once and only the release eases (its own duration). Important, because no component may slow a finger down. */
+:where([data-do], .tab, button, summary, a[href], label, [role="button"]):not(:where([class^="kp-"], [class*=" kp-"])):is(:active, .is-pressed),
+:where([data-do], .tab, button, summary, a[href], label, [role="button"]):not(:where([class^="kp-"], [class*=" kp-"])):is(:active, .is-pressed) * {
+  transition-duration: var(--dur-press) !important;
+}
+/* HOLDING A CONTROL SELECTS NOTHING AND PREVIEWS NOTHING (D12); a field, and anything `.is-held` (later, so it wins), stays selectable. */
+:where([data-do], .tab, button, summary, a[href], label, [role="button"]) {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+:where(input, textarea, [contenteditable]:not([contenteditable="false"])) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+/* ONE DISABLED LOOK for a control that says "not yet". It still takes the tap, so a tap on it never lands on what is under it; a taken board square is not this and keeps its own look. */
+:where(.btn, .tile, .chip, .kt-rung, .imp-step, .cmt-x, .cam-shot, .cam-rec):is([disabled], [aria-disabled="true"]) {
+  opacity: var(--disabled); cursor: default;
+}
+/* PAPER IS LIGHT: a white wash would not show on it, so the wash on paper is dark. */
+.paper, .pin-slip, .stmt, .scr, .scr-tile, .insh-sheet, .tal-page, .widget-full:has(.cal-head) > .card, .qp-slots { --press-wash: var(--press-wash-paper); }
 
 /* THE ONE LINE. 4.1vw between 15 and 17px — so a small phone is legible and a large one uses the
    room, and every rem in the file follows without being told. */
@@ -376,7 +398,7 @@ html.wide body { max-width: none; box-shadow: none; }
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
    and it must SAY something happened the instant it is touched. */
 .card.tap { cursor: pointer; transition: transform var(--quick) ease, background var(--quick) ease; }
-.card.tap:active, .card.tap.is-pressed { transform: scale(.985); background: #221e19; }
+.card.tap:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .9rem .5rem; }
 
@@ -414,7 +436,7 @@ html.wide body { max-width: none; box-shadow: none; }
   cursor: pointer;
   transition: transform var(--quick) ease, filter var(--quick) ease;
 }
-.btn:active, .btn.is-pressed { transform: scale(.97); filter: brightness(.92); }
+.btn:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
 /* ---------- A BUTTON THAT IS WAITING HAS TO LOOK LIKE IT IS § */
 .btn.is-busy::before {
@@ -438,7 +460,8 @@ html.wide body { max-width: none; box-shadow: none; }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
-.btn[disabled] { opacity: .4; pointer-events: none; }
+/* A BUSY BUTTON IS WAITING, NOT REFUSING: its ring says so, so it is not dimmed as well. */
+.btn.is-busy:is([disabled], [aria-disabled="true"]) { opacity: 1; cursor: progress; }
 
 .btn-row { display: flex; gap: .5rem; }
 .btn-row .btn { width: auto; flex: 1; }
@@ -547,9 +570,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-list:empty { display: none; }
 /* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
 .q-subj + .q-subj { border-top: 1px dashed var(--line); }
-/* A PRESS THAT ANSWERS, which is the one signal every `[data-do]` here gets; a line has no plate of
-   its own to light, so it is the faintest wash of the card's ink. */
-.q-line:active, .q-line.is-pressed { background: rgb(255 255 255 / .05); }
 .q-line {
   display: grid; grid-template-columns: min(var(--q-w, 10ch), 42%) minmax(0, 1fr) auto;
   align-items: center; column-gap: .45rem;
@@ -608,7 +628,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-line .q-mark { visibility: hidden; min-width: 6.5rem; }
 .q-mark-b { position: absolute; top: 0; right: 0; min-height: 44px; min-width: 6.5rem; padding: 0 0 0 .4rem;
   background: none; border: 0; text-align: right; font: inherit; cursor: pointer; }
-.q-mark-b:active { background: rgb(255 255 255 / .05); }
 .q-slot.is-cert .q-mark-b, .q-slot[data-new] > .q-mark-b { display: none; }
 /* THE TICK AND THE BIN IN THE ONE LEFT-ALIGNED FLOW (487) -- the owner wants every tile row read like a paragraph. */
 .tile-row.q-tiles { margin-top: .45rem; }
@@ -785,7 +804,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 }
 /* The ghost of the mark, so an empty box says what would go in it. */
 .check .box::after { content: '✓'; font-weight: 700; color: rgb(255 255 255 / .16); }
-.check:active .box { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.check:is(:active, .is-pressed) .box { border-color: var(--gold); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
 .check input:checked + .box::after { color: #1a1409; }
 
@@ -914,6 +933,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   --chess-drop:  rgb(0 0 0 / .5);
   --chess-dim:   rgb(6 5 4 / .74);
   --chess-turn:  .7s;
+  --press-wash: var(--press-wash-paper);
   --chess-ease:  cubic-bezier(.65, 0, .35, 1);
   position: relative;
   transition: rotate var(--chess-turn) var(--chess-ease);
@@ -939,7 +959,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 .chess .last { background-image: linear-gradient(var(--chess-last), var(--chess-last)); }
 /* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
 .chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
-.chess .sq:active, .chess .sq.is-pressed { filter: brightness(.9); }
+.chess .sq:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
 /* THE LANDING SQUARE OF THE LAST MOVE a shade stronger than where it left, so the eye reads which way it went. */
 .chess .last-to { background-image: linear-gradient(var(--chess-last), var(--chess-last)),
                                     linear-gradient(var(--chess-last), var(--chess-last)); }
@@ -1094,7 +1114,8 @@ a { color: inherit; text-decoration: none; }
           background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
           box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--quick) ease, box-shadow var(--quick) ease; }
 /* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
-.mc-btn:active .mc-lab { filter: brightness(.86); box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35); }
+.mc-btn:is(:active, .is-pressed) { background-image: none; }
+.mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35), inset 0 0 0 99px var(--press-wash-paper); }
 .mc-btn:focus-visible { outline: none; }
 .mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
 /* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
@@ -1566,7 +1587,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* The edit control. At the END of the header row, small — a post is looked at a hundred times for every time it is edited, and a control sized for the rare case § */
 .post-edit { margin-left: auto; padding: .3rem .5rem; color: var(--faint);
              font-size: 1.1rem; line-height: 1; cursor: pointer; flex: none; }
-.post-edit:active { color: var(--gold); }
+.post-edit:is(:active, .is-pressed) { color: var(--gold); }
 
 /* ---------- THE SLOT FOR THE FACES, UNDER THE PICTURE § */
 .post-acts { padding: .2rem 0 .1rem; }
@@ -1594,7 +1615,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* `Remove` LOOKS LIKE TEXT AND IS 44px, and the first version of it was 31x13. § */
 .cmt-x { background: none; border: 0; padding: 0 .5rem; min-width: 44px; min-height: 44px;
          font: inherit; color: var(--faint); text-decoration: underline; cursor: pointer; }
-.cmt-x:disabled { opacity: .5; cursor: default; }
 .cmt-when:has(.cmt-x) { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
 @supports not selector(:has(*)) {
   .cmt-when { display: flex; align-items: center; gap: .25rem; min-height: 44px; }
@@ -1692,7 +1712,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   color: var(--ink); font: inherit; font-size: .85rem; text-align: left; cursor: pointer;
   transition: border-color var(--quick) ease, background var(--quick) ease;
 }
-.poll-row:active { background: var(--raised); }
 .poll-row.mine { border-color: var(--gold); }
 
 /* Behind the text, not over it. `z-index: 0` on the bar and `1` on the words, or a long answer
@@ -1715,7 +1734,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. § */
 .reacts, .rx-head {
   --react-mine: color-mix(in srgb, var(--gold) 16%, transparent);
-  --react-mine-down: color-mix(in srgb, var(--gold) 26%, transparent);
 }
 /* ---------- SIX EQUAL COLUMNS, WHATEVER THE COUNTS ARE § */
 .reacts { display: grid; grid-template-columns: repeat(6, minmax(0, 3.75rem)); gap: 0; margin: 0 -2px; }
@@ -1750,9 +1768,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .react.mine::before { border-color: var(--gold); background: var(--react-mine); }
 .react.mine .react-n { color: var(--gold); font-weight: 650; }
 /* PRESSED IS `.is-pressed` AS WELL AS `:active`, as on the chips these pills joined — see the note over `.row.tap.counted:active`. § */
-.react:active, .react.is-pressed { transform: scale(.94); }
-.react:active::before, .react.is-pressed::before { background: rgb(255 255 255 / .1); }
-.react.mine:active::before, .react.mine.is-pressed::before { background: var(--react-mine-down); }
+.react:is(:active, .is-pressed) { transform: scale(var(--press-small)); background-image: none; }
+.react:is(:active, .is-pressed)::before { background: var(--press-wash); }
+.react.mine:is(:active, .is-pressed)::before { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
 /* THE RING GOES ON THE PILL, not on the 44px cell around it, which would draw a box round a pill. */
 .react:focus-visible { outline: 0; }
 .react:focus-visible::before { outline: 2px solid var(--gold); outline-offset: 1px; }
@@ -1808,7 +1826,8 @@ button.text-drop { color: var(--bad); }
 /* The ✕ only when the row is touched or hovered — a column of them down the side turns a list of
    things to do into a list of things to delete. */
 .dock-row .text-drop { opacity: 0; transition: opacity var(--quick) ease; }
-.dock-row:hover .text-drop, .dock-row:active .text-drop { opacity: 1; }
+@media (hover: hover) { .dock-row:hover .text-drop { opacity: 1; } }
+.dock-row:is(:active, .is-pressed) .text-drop { opacity: 1; }
 @media (hover: none) { .dock-row .text-drop { opacity: .5; } }
 
 .dock-new { display: flex; gap: .4rem; align-items: stretch; margin-top: .5rem; }
@@ -1957,7 +1976,7 @@ button.text-drop { color: var(--bad); }
                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
    `prefers-reduced-motion` to take away. */
-.vid-row:active .vid-th { opacity: .82; }
+.vid-row:is(:active, .is-pressed) .vid-th { opacity: .82; }
 .vid-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vid-none { padding: .45rem 0; font-size: .85rem; }
 /* "4 MORE — KEEP TYPING TO NARROW": one faint line under the four, a count rather than a silence (note
@@ -1991,7 +2010,6 @@ button.text-drop { color: var(--bad); }
            background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
            border-radius: var(--r-sm); font: 600 .85rem/1 var(--mono); }
 .kt-rung.on { background: var(--gold); color: #000; border-color: var(--gold); }
-.kt-rung:disabled { opacity: .35; cursor: default; }
 /* A DOT ON A RUNG THAT HAS HELD, the timetable's dot on a day with something in it. */
 .kt-rung.held::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
                        margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
@@ -2073,7 +2091,7 @@ button.text-drop { color: var(--bad); }
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
-.chip:active, .chip.is-pressed { transform: scale(.94); }
+.chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE FUNNEL'S OWN CHIPS ARE 32px, like the answers under them -- *"Make the tags smaller"*, the owner, 6 Oct. § */
 .chip.sm { min-height: 32px; border-radius: 16px; padding: 0 .6rem; position: relative; }
 .chip.sm::before { content: ""; position: absolute; inset: -6px 0; }
@@ -2140,7 +2158,9 @@ button.text-drop { color: var(--bad); }
 .feed-credit { position: absolute; top: .6rem; left: .9rem; right: .9rem; z-index: 1;
                font-size: .58rem; color: rgba(255,255,255,.55);
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.feed:active .feed-art { transform: scale(.99); transition: transform var(--quick) ease; }
+.feed .feed-art, .reel > .feed-art { transition: transform var(--quick) ease; }
+/* A REEL IS ALL PICTURE, so the wash under it cannot show: it sinks as a post's picture does. */
+.feed:is(:active, .is-pressed) .feed-art, .reel:is(:active, .is-pressed) > .feed-art { transform: scale(var(--press-card)); }
 
 /* ---------- TIMES TABLES § */
 .tt input { text-align: center; font-size: 1.4rem; letter-spacing: .1em; }
@@ -2741,7 +2761,7 @@ label.bk-k { cursor: pointer; }
   /* SMALLER THAN THE PAPER, and in `em` so it comes down with the app's scale. § */
   font-size: .66em; letter-spacing: -.02em;
 }
-.hr:active { transform: scale(.9); }
+.hr:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
 /* ---------- AND THE WAITING LIST'S THREE BLOCKS GET A REAL FINGERTIP § */
 /* NAMED THROUGH THE ROW, because a day is a row of the card now and `.bk-row.bk-wk .hr` is three classes deep — a bare `.hr.blk` is two and lost, so the blocks § */
@@ -2792,7 +2812,7 @@ label.bk-k { cursor: pointer; }
 @supports not selector(:has(*)) {
   .hr input:checked { position: static; opacity: 1; width: auto; height: auto; }
 }
-.hr.shut:active { transform: none; }
+.hr.shut:is(:active, .is-pressed) { transform: none; }
 
 /* ---------- A WIDGET THAT IS THE WHOLE PAGE § */
 /* A WIDGET IS AS TALL AS IT NEEDS TO BE. § */
@@ -2887,7 +2907,7 @@ label.bk-k { cursor: pointer; }
   color: var(--dim); font: inherit; cursor: pointer; overflow: hidden;
   transition: border-color var(--quick) ease, transform var(--quick) ease;
 }
-.av-opt:active { transform: scale(.94); }
+.av-opt:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .av-opt.on { border-color: var(--gold); }
 /* NOT YOURS YET. Dimmed rather than removed, and it says what it would take — a wardrobe showing only what you own tells you nothing about what is next, which is § */
 .av-opt.locked > :not(.av-why) { opacity: .4; }
@@ -2903,7 +2923,7 @@ label.bk-k { cursor: pointer; }
 .av-sw { width: 21px; height: 21px; border-radius: 50%;
          border: 2px solid transparent; cursor: pointer;
          transition: border-color var(--quick) ease, transform var(--quick) ease; }
-.av-sw:active { transform: scale(.9); }
+.av-sw:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .av-sw.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--bg); }
 
 /* ---------- WHEN I CAN TEACH, AS A TIDY WEEK § */
@@ -3215,7 +3235,7 @@ label.bk-k { cursor: pointer; }
   border: 1px solid #2b2e34;
   color: #d3b489;
 }
-.widget-full:has(#timer-display) .btn:active { background: #101215; }
+.widget-full:has(#timer-display) .btn:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
 
 /* ---------- THE THINGS THAT KEEP THE FINGER FOR THEMSELVES § */
 /* `select` WAS FIRST IN THIS LIST, beside `[data-noswipe]`, and goes with it in `axisFree` — a swipe that begins on a dropdown moves the column like a swipe § */
@@ -3283,7 +3303,7 @@ span[data-do]:not(.act):not(.chip):not(.react):not(.cal-arrow):not(.qw),
   text-underline-offset: 3px;
   text-decoration-color: rgb(244 241 232 / .35);
 }
-span[data-do]:active { text-decoration-color: var(--gold); }
+span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 
 /* ---------- AND THE ONES THAT ARE ALREADY OBVIOUS § */
 .btn::after, .chip::after, .react::after, button.tap::after { content: none; }
@@ -3297,7 +3317,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413); the tile is quiet until it is wanted. */
 .msg-line { display: flex; align-items: flex-end; gap: .35rem; width: 100%; }
 .msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
-.msg-line .msg-flag:hover, .msg-line .msg-flag:focus-visible { opacity: 1; }
+.msg-line .msg-flag:focus-visible { opacity: 1; }
+@media (hover: hover) { .msg-line .msg-flag:hover { opacity: 1; } }
 /* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
@@ -3488,7 +3509,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .add-card { display: flex; width: 100%; align-items: center; gap: .7rem; min-height: 48px; margin: 0;
   padding: .7rem .85rem; border: 1px dashed var(--line); border-radius: .75rem; background: none;
   color: var(--dim); font: inherit; font-size: .9rem; text-align: left; }
-.add-card:hover, .add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
+.add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
+@media (hover: hover) { .add-card:hover { border-color: var(--gold); color: var(--ink); } }
 .add-card .add-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
   border: 1px solid var(--gold); color: var(--gold); flex: none; }
 /* AN ADMIN'S REELS AND VIDEOS (404): the "+" card, its form, and the list of what can be changed. */
@@ -3715,8 +3737,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   letter-spacing: .08em; text-transform: uppercase;
   color: var(--bg); background: var(--gold); padding: .22rem .5rem; border-radius: 2px;
 }
-.cpn:active { transform: scale(.99); }
-@media (prefers-reduced-motion: reduce) { .cpn:active { transform: none; } }
+.cpn:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
+@media (prefers-reduced-motion: reduce) { .cpn:is(:active, .is-pressed) { transform: none; } }
 
 /* ---------- THE FAVOURITE STAR § */
 .favwrap { position: relative; }
@@ -3769,7 +3791,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
           min-height: 44px; min-width: 44px;
           border: 1px solid var(--line); border-radius: var(--r); padding: .2rem .45rem;
           cursor: pointer; }
-.fm-pre:active { color: var(--gold); border-color: var(--gold); }
+.fm-pre:is(:active, .is-pressed) { color: var(--gold); border-color: var(--gold); }
 
 /* ---------- THE PAPER § */
 /* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
@@ -4606,7 +4628,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
           padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r-sm);
           background: var(--sunk); color: var(--dim);
           font: inherit; font-size: .8rem; line-height: 1.4; cursor: pointer; }
-.qp-opt:active { transform: translateY(1px); }
+.qp-opt:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
 .qp-opt[disabled] { cursor: default; opacity: 1; }
 
 /* ---------- THE QUESTION CARD'S OPTIONS, WHICH TAKE THE VERDICT'S COLOURS § */
@@ -4626,7 +4648,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
                              box-shadow: inset 0 0 0 1px var(--gold); }
 .qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
 .qp-choices.is-done .qp-opt { cursor: default; }
-.qp-choices.is-done .qp-opt:active { transform: none; }
+.qp-choices.is-done .qp-opt:is(:active, .is-pressed) { transform: none; }
 /* `--faint` AND NOT `opacity`: half-transparent ink on this background measures under 4.5:1, and an
    option nobody should press any more is still a sentence somebody may want to read. */
 .qp-choices.is-done .qp-opt:not(.is-picked):not(.is-ans) { color: var(--faint);
@@ -4677,7 +4699,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 /* THE FACE IS ONE ELEMENT (`orderBox_`): as flex items of the button itself, a `<sup>` lost its raise
    and 2² read as "22". One block with an ordinary line inside, and a power sits where it is printed. */
 .qp-face { display: block; }
-.qp-item:not([disabled]):active, .qp-slot.is-full:active { transform: translateY(1px); }
+.qp-item:not([disabled]):is(:active, .is-pressed), .qp-slot.is-full:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE GHOST IS NOT A CONTROL -- `disabled`, so a quick second tap on it does nothing (`orderBox_`). */
 .qp-item.is-placed { border-style: dashed; border-color: var(--faint); color: var(--faint); background: none;
                      cursor: default; }
@@ -4947,14 +4969,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   transition: color var(--quick) ease, background var(--quick) ease,
               border-color var(--quick) ease, transform var(--quick) ease;
 }
-.tile:active, .tile.is-pressed { background: var(--press-wash); border-color: var(--line); }
-/* A DISABLED TILE LOSES THE PLATE ENTIRELY. Dimming a button still reads as a button; taking the
-   surface away is what says there is nothing here to press. */
-.tile:active, .tile.is-pressed { transform: scale(.88); }
+.tile:is(:active, .is-pressed) { background: var(--press-wash); border-color: var(--line); transform: scale(var(--press-small)); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
 .tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
-.tile[disabled] { opacity: .35; cursor: default; }
 /* ---------- THE MARK BESIDE THE WORD § */
 .tile-i { width: var(--tile-i); height: var(--tile-i); flex: 0 0 auto; }
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
@@ -4985,8 +5003,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   background: color-mix(in srgb, var(--admin) 7%, transparent);
   border-color: color-mix(in srgb, var(--admin) 22%, transparent);
 }
-.tile.is-admin:active, .tile.is-admin.is-pressed { background: color-mix(in srgb, var(--admin) 16%, transparent);
-                                                   border-color: color-mix(in srgb, var(--admin) 45%, transparent); }
+.tile.is-admin:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash));
+                                          border-color: color-mix(in srgb, var(--admin) 45%, transparent); }
 .tile.is-admin.on { background: color-mix(in srgb, var(--admin) 20%, transparent);
                     border-color: color-mix(in srgb, var(--admin) 50%, transparent); }
 
@@ -5173,10 +5191,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* PRESSED, AND IT MOVES. `:active` alone is invisible on a phone — the finger is over the row.
    A shift of one pixel is felt rather than seen, which is the point. */
 /* ---------- AND `.is-pressed` IS THE SAME STATE, HELD LONG ENOUGH TO BE SEEN § */
-.row.tap.counted:active, .row.tap.counted.is-pressed {
-  background: rgb(255 255 255 / .08);
+.row.tap.counted:is(:active, .is-pressed) {
+  background: var(--press-wash);
   border-color: var(--gold);
-  transform: scale(.97);
+  transform: scale(var(--press-small));
 }
 
 /* HOVER IS FOR THE DESKTOP AND MUST NOT STICK ON A PHONE. A plain `:hover` is applied on tap by
@@ -5281,7 +5299,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .reel-sound { position: absolute; z-index: 3; top: .6rem; right: .6rem; }
 /* ---------- A TILE ON A PICTURE WEARS THE PICTURE'S WASH § */
 .tile.is-over { background: var(--over-wash); border-color: var(--over-edge); color: var(--over-ink); }
-.tile.is-over:active, .tile.is-over.is-pressed { background: var(--over-wash); border-color: var(--over-ink); }
+.tile.is-over:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); border-color: var(--over-ink); }
 
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */
@@ -5465,7 +5483,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   color: var(--dim); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
-.cam-side:active { transform: scale(.94); }
+.cam-side:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
 /* ---------- THE SHUTTER AND THE RECORD DISC § */
 .cam-shot, .cam-rec {
@@ -5487,9 +5505,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   border: 3px solid var(--cam-white);
   box-shadow: inset 0 0 0 3px var(--raised);
 }
-.cam-shot:active, .cam-rec:active { transform: scale(.92); }
+.cam-shot:is(:active, .is-pressed), .cam-rec:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER § */
-.cam-shot:disabled, .cam-rec:disabled { opacity: .3; cursor: default; }
 .cam-shot:disabled:active, .cam-rec:disabled:active { transform: none; }
 
 /* PHOTOS AND WRITE A POST ARE DISCS TOO (448), outlined so the white shutter and red record stay the loudest; the word under each. */
@@ -5505,7 +5522,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   background: var(--raised); font-size: 1.3rem; line-height: 1;
   transition: transform var(--quick) ease;
 }
-.cam-round:active .cam-disc { transform: scale(.92); }
+.cam-round:is(:active, .is-pressed) .cam-disc { transform: scale(var(--press-small)); }
 .cam-round .cam-word { font-size: .68rem; max-width: 56px; text-align: center; line-height: 1.2; }
 /* A 320px PHONE: the four discs fit one row only a little smaller (check/ui.js measured 4px over). */
 @media (max-width: 359px) { .cam-round .cam-disc { width: 46px; height: 46px; } .cam-bar .cam-shot { width: 58px; height: 58px; } .cam-bar .cam-rec { width: 46px; height: 46px; } }
@@ -5569,7 +5586,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 }
 /* A CELL THAT CANNOT BE PLAYED IS NOT GREYED OUT. § */
 .c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
-.c4-cell:not([disabled]):active, .oth-cell:not([disabled]):active { transform: scale(.9); }
+.c4-cell:not([disabled]):is(:active, .is-pressed), .oth-cell:not([disabled]):is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
 /* TWO PLAYERS MEANS TWO EQUAL COLOURS, AND THAT IS WHY GOLD LEFT BOTH BOARDS § */
 /* AND ON THE TURN DISC under the board, which is outside `.c4` and so would not inherit them —
@@ -5653,7 +5670,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   border-radius: var(--r-sm); font: 600 1rem/1 var(--font); cursor: pointer;
   transition: transform var(--quick) ease, background var(--quick) ease;
 }
-.mz-key:active { transform: scale(.92); background: var(--line); }
+.mz-key:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .mz-key.up    { grid-column: 2; grid-row: 1; }
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
@@ -5837,7 +5854,7 @@ button.scr-sq { cursor: pointer; }
    land where you expect. */
 .scr-tile.used { background: none; border-style: dashed; border-color: var(--line); color: transparent; }
 .scr-tile.used i { display: none; }
-.scr-tile:active { transform: scale(.94); }
+.scr-tile:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
 /* ---------- WHAT THE BLANK STANDS FOR § */
 
@@ -5850,7 +5867,6 @@ button.scr-sq { cursor: pointer; }
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r-sm); font: 600 .82rem/1 var(--font); cursor: pointer;
 }
-.scr-act:active { background: var(--line); }
 .scr-acts .scr-act:first-child { background: var(--gold); color: #111; border-color: var(--gold); }
 
 /* ---------- HERD MENTALITY § */
@@ -6391,7 +6407,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   background: var(--gold); color: #000;
   font: 700 1rem/1 var(--font); cursor: pointer;
 }
-.art-go:active { transform: scale(.97); }
+.art-go:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .art-cat-of { margin: 0; font: 600 .7rem/1 var(--font); letter-spacing: .09em;
               text-transform: uppercase; color: var(--gold); }
 /* `clamp` RATHER THAN A BREAKPOINT, because the longest word here is "skimming a stone" and the
@@ -6410,7 +6426,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   border: 1px solid var(--line); background: transparent; color: var(--ink);
   font: 600 1.3rem/1 var(--font); cursor: pointer;
 }
-.imp-step:disabled { opacity: .35; cursor: default; }
 /* `.imp-pass` IS THE PARTY GAMES' SENTENCE NOW AND NOT IMPOSTER'S. § */
 .imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
 /* ---------- THE BIG LINE AND THE BUTTON STAY WHERE THEY ARE § */
@@ -6648,7 +6663,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .prof-week .hr { min-height: 12px; border-radius: 2px; }
 /* THE ARROW, BY SPECIFICITY AND NOT BY ORDER. § */
 .prof-week .hr:not(.shut), .prof-week .hr.shut { cursor: default; }
-.prof-week .hr:active { transform: none; }
+.prof-week .hr:is(:active, .is-pressed) { transform: none; }
 /* ---------- A TAUGHT HOUR LOOKS TAUGHT, BECAUSE A WHOLE DAY CAN BE KEPT FOR IT § */
 .prof-week .hr.is-busy {
   opacity: 1; border-color: color-mix(in srgb, var(--gold) 55%, var(--line));

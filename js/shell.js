@@ -2425,16 +2425,15 @@ let PRESS_SLIDING = false;
 let PRESSED = null;
 let PRESSED_OFF = 0;
 
+const PRESS_SEL_ = '[data-do], .tab, button, a[href], summary, label, [role="button"]';
 function pressMark_(t) {
   pressClear_();
-  /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
-     card. */
-  const el = t && t.closest && t.closest('[data-do], .tab');
+  /* THE NEAREST CONTROL OF ANY KIND, not the exact target — a word inside a card lights the card; a calculator key, a link tile or a fold's summary carries no `data-do` and is lit too (536). */
+  const el = t && t.closest && t.closest(PRESS_SEL_);
   /* NOT A DISABLED CONTROL. § */
   if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   PRESSED = el;
   el.classList.add('is-pressed');
-  PRESSED_OFF = setTimeout(pressClear_, 1200);
 }
 
 function pressClear_() {
@@ -2445,7 +2444,9 @@ function pressClear_() {
 
 /* TWO FRAMES, NOT ONE. § */
 function pressDone_() {
-  requestAnimationFrame(() => requestAnimationFrame(pressClear_));
+  /* ONLY THE PRESS IT WAS ASKED FOR: a new finger landing inside those two frames keeps its own mark. */
+  const was = PRESSED;
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (PRESSED === was) pressClear_(); }));
 }
 
 addEventListener('pointerdown', e => {
@@ -2459,6 +2460,15 @@ addEventListener('pointerdown', e => {
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
+/* THE MARK LASTS AS LONG AS THE FINGER (536, U9): it goes two frames after the lift, and the orphan timer starts at the lift too, so a held press stays lit. */
+addEventListener('pointerup', e => {
+  if (!e.isPrimary || !PRESSED) return;
+  pressDone_();
+  clearTimeout(PRESSED_OFF);
+  PRESSED_OFF = setTimeout(pressClear_, 1200);
+}, { passive: true, capture: true });
+/* iOS PAINTS `:active` ONLY ON A PAGE WITH A TOUCH LISTENER; this one is the app's own promise of that, not the measuring tool's in find.js. */
+document.addEventListener('touchstart', () => {}, { passive: true });
 /* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see `HOLD_AT`. § */
 document.addEventListener('focusin', e => holdHere_(e.target), true);
 document.addEventListener('change', e => holdHere_(e.target), true);
