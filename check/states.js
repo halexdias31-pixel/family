@@ -372,11 +372,13 @@ const STATES = {
         const art = pad.querySelector('.qpad-art > svg:first-child');
         const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
         const words = [...pad.closest('.qcard').querySelectorAll('[data-face-zoom]')];
-        const gave = words.length && words.every(e => Math.abs(parseFloat(e.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001);
+        /* GIVEN WAY = drawn at a step of the ladder under 1 (533): the words' 11px floor may stop them at .875 rather than the last step. */
+        const gave = words.length && words.every(e => PANE_ZOOM_STEPS.indexOf(parseFloat(e.style.zoom || '1')) > 0);
         return [...pad.querySelectorAll('.qpad-bar [data-do]')].every(e => side(e) >= 43.5)
                && [...pane.children].every(k => !k.style.zoom)
                && art.getBoundingClientRect().width >= FIG_FLOOR - 0.5
-               && (!art.style.width || !!gave);
+               /* NONE GIVEN IS THE 11px FLOOR HOLDING THEM (533): then the picture narrows alone. */
+               && (!art.style.width || !!gave || !words.length);
       },
       wants: 'the four sine grids under the pen, its tiles at 44px, nothing drawn smaller whole, the figure no narrower than the floor and narrowed only once the words have given way',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -4260,7 +4262,9 @@ const STATES = {
               paneReach_([pane]);
               const zoom = Math.min(...[...pane.children].map(k => Number(k.style.zoom || 1)));
               const rows = document.querySelectorAll('#s-tools .mat-list label:not(.off)').length;
-              if (pane.scrollHeight - pane.clientHeight > 2 || zoom < 0.85 || rows > 8) {
+              /* FITS, OR SCROLLS TO ITS FOOT (533, D3): a view the floors hold at full size scrolls rather than being drawn under 11px words. */
+              const over = pane.scrollHeight - pane.clientHeight > 2 && pane.style.overflowY !== 'auto';
+              if (over || PANE_ZOOM_STEPS.indexOf(zoom) < 0 || rows > 8) {
                 miss = `${s} · ${l} · ${g || '(one topic)'}: ${rows} rows, ${pane.scrollHeight}px in `
                      + `${pane.clientHeight}px at zoom ${zoom}`;
               }
@@ -4272,7 +4276,7 @@ const STATES = {
            would pass this with one view measured. */
         return !miss && views > 50;
       },
-      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844 with no scroll and no zoom below 0.85 (window.MAT_FIT_MISS names the first that did not)',
+      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844, or scrolling to its foot, at a zoom on the ladder (window.MAT_FIT_MISS names the first that did not)',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
         MAT_GROUP = ''; if (typeof MAT_KIND !== 'undefined') MAT_KIND = 'cheat';

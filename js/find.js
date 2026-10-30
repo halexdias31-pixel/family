@@ -7717,7 +7717,11 @@ function cardFigFit_(pane) {
     walk(card);
     const hw = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
     if (hw > 0) {
-      const z = Math.max(PANE_ZOOM_MIN, Math.floor((hw - by - 4) / hw * 1000) / 1000);
+      /* ON THE LADDER AND OVER THE WORDS' FLOOR (533): the step that fits, else the smallest the floor allows, and the picture narrows for the rest. */
+      const f = Math.min.apply(null, words.map(e => parseFloat(getComputedStyle(e).fontSize) || 99).concat(99));
+      const ok = PANE_ZOOM_STEPS.filter(s => s < 1 && s >= PANE_FLOOR_TEXT / f - 1e-6);
+      const raw = (hw - by - 4) / hw;
+      const z = ok.length ? (ok.find(s => s <= raw) || ok[ok.length - 1]) : 1;
       if (z < 1) words.forEach(e => { e.style.zoom = String(z); e.setAttribute('data-face-zoom', ''); });
       by = over();
     }
@@ -10719,33 +10723,79 @@ const STUFF_SOON = 1;
 
 /* ---------- A CARD TALLER THAN THE PANE, WHICH USED TO BE RARE § */
 const PANE_REACH = 24;
-/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
-const PANE_ZOOM_MIN = 0.7;
+/* THE ZOOM LADDER (533, U10): a card is drawn at one of these and nothing between, so a title has three sizes and not seven. */
+const PANE_ZOOM_STEPS = [1, 0.875, 0.75];
+/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead: the ladder's last step. See `paneReach_`. */
+const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
+/* NEARLY FITTING IS FULL SIZE (533): above this the card is drawn at 1 in a pane with its spacing tightened (`.pane.is-snug`), not at .97. */
+const PANE_ZOOM_SNUG = 0.95;
+/* THE FLOORS (533, D3): no step that draws body words under 11px, a tile under 36px or a Check under 44px; past them the pane scrolls. */
+const PANE_FLOOR_TEXT = 11, PANE_FLOOR_TILE = 36, PANE_FLOOR_SUBMIT = 44;
+/* WHAT IS ART AND NOT BODY TEXT, so its small print does not stop a card being drawn smaller (the calculator's legends, the console). */
+const PANE_ART = '.calc, .nes-wrap, svg, sup, sub, figure';
 /* ---------- AND AN ESSAY'S CARD, NO SMALLER THAN KEEPS ITS TILES AT 44px § */
 const PANE_ZOOM_ESSAY = 0.92;
 
+/* THE SMALLEST ZOOM THIS PANE'S FLOORS ALLOW: its body words and every tile it shows, read at full size (zoom already cleared). */
+function paneFloor_(p) {
+  let z = 0;
+  const words = [p.firstElementChild].concat([].slice.call(p.querySelectorAll('p, li'), 0, 120));
+  words.forEach(e => {
+    if (!e || !e.offsetHeight || (e.closest && e.closest(PANE_ART))) return;
+    const f = parseFloat(getComputedStyle(e).fontSize) || 0;
+    if (f > 0) z = Math.max(z, PANE_FLOOR_TEXT / f);
+  });
+  p.querySelectorAll('.tile').forEach(t => {
+    const h = t.offsetHeight;
+    if (h) z = Math.max(z, (t.classList.contains('is-submit') ? PANE_FLOOR_SUBMIT : PANE_FLOOR_TILE) / h);
+  });
+  return z;
+}
+/* THE STEP FOR A CARD THAT FITS AT `raw`: the largest step at or under it that keeps the floors, else the smallest that does (and the pane scrolls). */
+function paneStep_(raw, floor) {
+  if (!(raw < 1) || raw > PANE_ZOOM_SNUG) return 1;
+  const ok = PANE_ZOOM_STEPS.filter(s => s >= floor - 1e-6);
+  if (!ok.length) return 1;
+  return ok.find(s => s <= raw) || ok[ok.length - 1];
+}
+/* ON THE GLASS: the page in front of its column, inside the window. A card there is not re-zoomed under the reader (U10). */
+function paneOnGlass_(p) {
+  const pg = p && p.closest && p.closest('.page');
+  if (!pg || !pg.classList.contains('on')) return false;
+  const r = p.getBoundingClientRect();
+  return r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight;
+}
+
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. § */
-function paneReach_(panes) {
+/* `o.hold` (533): the zoom each card has stays, and only whether its pane scrolls is asked again -- a card on the glass that grew. */
+function paneReach_(panes, o) {
   const list = [].slice.call(panes || []);
   if (!list.length) return;
+  const hold = !!(o && o.hold);
   try {
     /* ---------- SHRINK TO FIT FIRST, AND SCROLL ONLY PAST THE FLOOR § */
     const kids = list.map(p => [].slice.call(p.children));
     const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
-    kids.forEach(ks => ks.forEach(k => {
+    if (!hold) kids.forEach(ks => ks.forEach(k => {
       if (k.style.zoom) {
         k.style.zoom = ''; k.style.width = '';
         k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
       }
     }));
+    /* A SNUG PANE IS MEASURED AT ITS OWN SPACING, so it is snug again only if it still nearly fits. */
+    const snugWas = list.map(p => p.classList.contains('is-snug'));
+    if (!hold) list.forEach(p => { if (p.classList.contains('is-snug')) p.classList.remove('is-snug'); });
+    if (!hold) list.forEach(p => { p.PANE_DUE = false; });
+    /* THE CALCULATOR'S KEY ROWS ARE SIZED FROM THE PANE FIRST (533, D4) -- `calcFit_`, so it is drawn at full size. */
+    if (!hold) list.forEach(p => { if (p.querySelector('.calc')) calcFit_(p); });
     /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. § */
-    if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
+    if (!hold && typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the one card whose height follows its width: § */
-    if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
+    if (!hold && typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
     /* A TALMUD SIDE IS FETCHED AND LAID OUT AS ITS PANE IS REACHED (490) -- `talCardsFit_`, talmud.js. */
-    if (typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
+    if (!hold && typeof talCardsFit_ === 'function') list.forEach(p => { if (p.querySelector('.tal-card-page')) talCardsFit_(p); });
     /* AND A CARD WITH A FIGURE IN IT GIVES WAY THE SAME WAY -- `cardFigFit_`, the sheet's answer for a picture (356): § */
-    list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
+    if (!hold) list.forEach(p => { if (cardFigs_(p.querySelector('.qcard')).length) cardFigFit_(p); });
     /* ---------- AND A CARD WITH A FIGURE IN IT IS NEVER DRAWN SMALLER WHOLE § */
     const drawn = list.map(p => !!cardFigs_(p.querySelector('.qcard')).length);
     const pad = p => {
@@ -10761,16 +10811,27 @@ function paneReach_(panes) {
     /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
     /* AND THE CONSOLE (419) THE SAME WAY: drawn smaller its pad keys fell to 31px, and every line it showed or hid re-zoomed the whole console under a thumb. */
     const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box, .nes-wrap'));
+    const snug = list.map(() => false);
+    const t0 = performance.now();
     const want = list.map((p, i) => {
+      if (hold) return parseFloat(was[i][0]) || 1;
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
       if (ticks[i] || forms[i] || drawn[i] || picks[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
-      const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      const raw = (room - 4) / used;
+      snug[i] = raw > PANE_ZOOM_SNUG;
+      /* ON THE LADDER AND ABOVE THE FLOORS (533); the floors are read only for a card that does not fit, which is the few. */
+      let z = paneStep_(raw, snug[i] ? 0 : paneFloor_(p));
       /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
-      return essay[i] && z < PANE_ZOOM_ESSAY ? 1 : z;
+      if (essay[i] && z < PANE_ZOOM_ESSAY) z = 1;
+      /* NO FLIP (533): a change that reverses this pane's last one within three frames is not made -- a card growing and shrinking under its own zoom. */
+      const cur = parseFloat(was[i][0]) || 1, dir = Math.sign(z - cur), last = p.PANE_ZD;
+      if (dir && last && last.dir === -dir && t0 - last.t < 50) return cur;
+      if (dir) p.PANE_ZD = { dir, t: t0 };
+      return z;
     });
     /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider card re-flowed. § */
     /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO § */
@@ -10779,7 +10840,8 @@ function paneReach_(panes) {
       return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
     });
     const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
-    list.forEach((p, i) => {
+    if (!hold) list.forEach((p, i) => {
+      if (snug[i] && want[i] === 1) p.classList.add('is-snug');
       if (want[i] < 1) kids[i].forEach((k, j) => {
         const r = rects[i][j], z = want[i];
         const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
@@ -10791,9 +10853,9 @@ function paneReach_(panes) {
     });
     /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN § */
     const moved = new Set();
-    list.forEach((p, i) => {
+    if (!hold) list.forEach((p, i) => {
       const now = want[i] < 1 ? String(want[i]) : '';
-      if (was[i].some(z => z !== now)) {
+      if (was[i].some(z => z !== now) || snugWas[i] !== p.classList.contains('is-snug')) {
         const scr = p.closest && p.closest('.screen');
         if (scr && scr.id) moved.add(scr.id.replace(/^s-/, ''));
       }
@@ -10802,12 +10864,11 @@ function paneReach_(panes) {
       moved.forEach(id => placeCells('y', true, 0, id));
     }
     /* `overflow-y` AND NOT `touch-action`, WHICH IS THE OPPOSITE OF WHAT `padReach_` DOES AND IS DELIBERATE. § */
-    /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
+    /* READ AFTER THE ZOOM. A step at or under the fit fits by construction; one held up by a floor, the snug rule or `o.hold` may not (533). */
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: § */
     /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them — and
        "Manage your child", whose foot is Ask them. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i] || picks[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] || picks[i] ? 2 : PANE_REACH));
+    const over = list.map((p, i) => p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] || picks[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: § */
     list.forEach((p, i) => {
       const to = over[i] ? 'auto' : '';
@@ -10828,6 +10889,8 @@ function paneReach_(panes) {
 /* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK § */
 let PANE_WATCH = null;
 let PANE_WATCH_DUE = null;
+/* THE PAGE IN FRONT WHEN `paneWatch_` LAST RAN, so it knows an arrival from a re-placement. */
+let PANE_FRONT = '';
 /* THE WINDOW'S SIZE, KEPT UNTIL IT RESIZES: reading `innerWidth` straight after a placement forced a whole-app layout on every release (401). */
 let PANE_VP_NOW = '';
 const paneVp_ = () => PANE_VP_NOW || (PANE_VP_NOW = innerWidth + 'x' + innerHeight);
@@ -10840,8 +10903,13 @@ function paneWatch_(host) {
   const vp = paneVp_();
   const all = host.PANE_VP !== vp;
   host.PANE_VP = vp;
+  /* AN ARRIVAL (533): the page in front is not the one the last call saw, so a card that grew on the glass is zoomed again now, as it comes. */
+  const front = (typeof AT !== 'undefined' ? AT : '') + ':' + (typeof PAGE !== 'undefined' && PAGE ? PAGE[AT] || 0 : 0);
+  const came = PANE_FRONT !== front;
+  PANE_FRONT = front;
   paneReach_(all ? panes : [].filter.call(panes, p =>
-    !(p.PANE_SEEN && p.PANE_SEEN === p.firstElementChild && p.PANE_N === p.children.length)));
+    !(p.PANE_SEEN && p.PANE_SEEN === p.firstElementChild && p.PANE_N === p.children.length)
+    || (p.PANE_DUE && (came || !paneOnGlass_(p)))));
   [].forEach.call(panes, p => { p.PANE_SEEN = p.firstElementChild; p.PANE_N = p.children.length; });
   if (typeof ResizeObserver !== 'function') return;
   try {
@@ -10865,9 +10933,13 @@ function paneWatch_(host) {
         }
       });
       if (first && due.length) requestAnimationFrame(() => {
-        const mine = PANE_WATCH_DUE || [];
+        const mine = (PANE_WATCH_DUE || []).filter(p => p.isConnected);
         PANE_WATCH_DUE = null;
-        paneReach_(mine.filter(p => p.isConnected));
+        /* ON THE GLASS IT KEEPS ITS ZOOM AND MAY SCROLL; it is zoomed again at the next arrival (533, U10). Off the glass, at once. */
+        const glass = mine.filter(paneOnGlass_);
+        glass.forEach(p => { p.PANE_DUE = true; });
+        paneReach_(glass, { hold: true });
+        paneReach_(mine.filter(p => glass.indexOf(p) === -1));
       });
     });
     /* ONLY WHAT CHANGED IS UNOBSERVED OR OBSERVED. § */
