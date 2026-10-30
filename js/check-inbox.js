@@ -156,6 +156,9 @@ function app(pid) {
       let body = {}; try { body = JSON.parse(o.body); } catch (e) {}
       sent.push(body);
       let d; try { d = b.post(body); } catch (e) { d = { error: 'backend threw: ' + e.message }; }
+      /* SIX MORE OLDER THREADS than Gmail's two, so "the last four" has more than four to leave out. */
+      if (body.action === 'inboxList' && d && d.rows) d = Object.assign({}, d, { rows: d.rows.concat([1, 2, 3, 4, 5, 6].map(i => ({ id: 'old' + i + 'xyz', thread: 'to' + i,
+        from: 'Older ' + i, subject: 'Older mail ' + i, snippet: '', at: Date.UTC(2026, 8, 30 - i), unread: false, count: 1 }))) });
       return reply(d);
     }
     const f = /(data\/[a-z0-9_\-\/]+\.json)/.exec(String(url));
@@ -177,14 +180,18 @@ async function screens() {
   if (!A.u.sitePages_().some(h => /inbox-card/.test(h))) return fail('admin', 'an admin\'s Site has no Email card');
   if (A.u.widgetsOf_('tool').some(x => x.id === 'inbox')) fail('admin', 'Email is still a Tools widget; it lives on Site (500)');
   A.u.go('site');
-  if (!(await until(() => A.d.querySelectorAll('#s-site .ib-box .ib-row').length === 2, 20000))) {
-    return fail('admin', 'the list did not draw two rows: ' + ((A.d.querySelector('#s-site .ib-box') || {}).textContent || '(no box)').replace(/\s+/g, ' ').slice(0, 200));
+  /* THE LAST FOUR (owner, 29 Oct): eight threads come back, four are drawn, newest first; no search, chips or More. */
+  if (!(await until(() => A.d.querySelectorAll('#s-site .ib-box .ib-row').length && !A.d.querySelector('#s-site .ib-list[aria-busy]'), 20000))) {
+    return fail('admin', 'the list did not draw: ' + ((A.d.querySelector('#s-site .ib-box') || {}).textContent || '(no box)').replace(/\s+/g, ' ').slice(0, 200));
   }
+  const rowsDrawn = [...A.d.querySelectorAll('#s-site .ib-box .ib-row')];
+  if (rowsDrawn.length !== 4) fail('admin', 'the list drew ' + rowsDrawn.length + ' rows of 8 sent — it shows the last four');
+  if (!rowsDrawn[3] || !/Older mail 2/.test(rowsDrawn[3].textContent)) fail('admin', 'the four drawn are not the newest four: ' + rowsDrawn.map(r => r.querySelector('.ib-subj').textContent).join(' | '));
   const first = A.d.querySelector('#s-site .ib-row');
   if (!first.classList.contains('is-unread') || !/Ada Sample/.test(first.textContent) || !/Thursday lesson/.test(first.textContent)) fail('admin', 'the first row reads "' + first.textContent.replace(/\s+/g, ' ').trim() + '"');
-  if (!A.d.querySelector('#s-site .ib-box .search-pill input.ib-q')) fail('admin', 'no search pill');
-  if (!A.d.querySelector('#s-site .ib-chips [data-k="label:Parents"]')) fail('admin', 'no label chip');
-  if (!A.d.querySelector('#s-site .ib-box [data-do="inbox-more"]')) fail('admin', 'no More');
+  if (A.d.querySelector('#s-site .ib-box .search-pill, #s-site .ib-box .chip, #s-site .ib-box [data-do="inbox-more"]')) fail('admin', 'the widget still has a search pill, chips or More');
+  const asks = A.sent.filter(x => x.action === 'inboxList');
+  if (asks.length !== 1 || asks[0].q !== 'in:inbox' || asks[0].page) fail('admin', 'the inbox was asked for as ' + JSON.stringify(asks));
   /* OPEN ONE */
   A.u.ACTIONS['inbox-open'](first);
   if (!(await until(() => A.d.querySelector('#s-site .ib-body'), 15000))) return fail('open', 'the message never drew');
@@ -201,26 +208,15 @@ async function screens() {
   if (!show) fail('open', 'no Show images tile');
   else { A.u.ACTIONS['inbox-images'](show); const im = A.d.querySelector('#s-site .ib-body img'); if (!im || !/^https:/.test(im.getAttribute('src') || '')) fail('open', 'Show images did not show it'); }
   A.u.ACTIONS['inbox-back'](A.d.querySelector('#s-site [data-do="inbox-back"]'));
-  /* SEARCH */
-  const q = A.d.querySelector('#s-site .ib-q');
-  q.value = 'from:ada';
-  q.dispatchEvent(new A.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  await until(() => A.sent.some(s => s.action === 'inboxList' && /from:ada/.test(s.q)), 10000);
-  const s = A.sent.filter(x => x.action === 'inboxList').pop() || {};
-  if (s.q !== 'in:inbox from:ada') fail('search', 'the search sent q=' + JSON.stringify(s.q));
-  await until(() => A.d.querySelectorAll('#s-site .ib-row').length, 10000);
-  A.u.ACTIONS['inbox-chip'](A.d.querySelector('#s-site [data-k="unread"]'));
-  await until(() => A.sent.filter(x => x.action === 'inboxList').pop().q === 'in:inbox is:unread from:ada', 10000);
-  if (A.sent.filter(x => x.action === 'inboxList').pop().q !== 'in:inbox is:unread from:ada') fail('search', 'the Unread chip did not narrow the query');
   if (A.sent.some(x => /^inbox/.test(x.action) && !/^inbox(List|Read)$/.test(x.action))) fail('read-only', 'the widget sent something else');
-  if (!bad.some(x => /^(admin|open|search)/.test(x))) said.push('screen: admin sees the list, opens a message (images blocked, links safe, Show images, Open in Gmail), search and chips reach q');
+  if (!bad.some(x => /^(admin|open)/.test(x))) said.push('screen: admin sees the last four, opens a message (images blocked, links safe, Show images, Open in Gmail)');
 
   const C = app('I-CLI');
   if (C.err) return fail('the app', C.err);
   await until(() => C.u.LOADED(), 45000);
   C.u.go('site');
   await tick(300);
-  if (C.u.sitePages_().some(h => /inbox-card/.test(h)) || C.d.querySelector('.ib-box .ib-row, .ib-q')) fail('client', 'a client sees the Email widget');
+  if (C.u.sitePages_().some(h => /inbox-card/.test(h)) || C.d.querySelector('.ib-box .ib-row, .ib-box')) fail('client', 'a client sees the Email widget');
   if (C.sent.some(x => /^inbox/.test(x.action))) fail('client', 'a client\'s phone asked for mail');
   if (!bad.some(x => /^client/.test(x))) said.push('screen: a client has no Email widget and sends nothing');
   [A, C].forEach(X => X.errs.length && fail('the app', 'script errors: ' + X.errs.slice(0, 3).join(' | ')));

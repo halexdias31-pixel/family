@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-29-r4-qpage";
+  --css-version: "2026-10-29-owner-notes";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6945,7 +6945,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .seen-row select { min-height: 44px; max-width: 60%; }
 .seen-box .seen-say { margin: .25rem 0 .5rem; }
 /* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent, a message read in place. */
-.ib-chips { margin-top: .5rem; }
 .ib-list { display: flex; flex-direction: column; }
 .ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: .45rem; text-align: left;
   min-height: 48px; padding: .55rem 0; background: none; border: 0; border-bottom: 1px solid var(--line);
@@ -6965,7 +6964,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-body img[data-blocked] { display: inline-block; min-width: 1rem; min-height: 1rem; border: 1px dashed var(--line); }
 .ib-body table { max-width: 100%; }
 .ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
-.ib-chips .chip.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }

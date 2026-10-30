@@ -16,6 +16,8 @@ const QT_TOOLS = [
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
 const QT_ORDER = QT_TOOLS.map(t => t.id);
+/* THE TOOLS THAT DRAW ON THE PART'S FIGURE OR SURFACE: drawn only where it has one (`qtRow_`). */
+const QT_DRAWING = { pen: 1, ruler: 1, protractor: 1, compass: 1 };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
@@ -102,7 +104,7 @@ function qtCheck_(x, m) {
   return ai || checkTile_({ act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
-/* ---------- THE ROW. Always all nine, in QT_ORDER; on a phone the eight tools fold behind one Tools tile, Check stays out. */
+/* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on); on a phone the tools fold behind one Tools tile, Check stays out. */
 const QT_OPEN = new Set();       // parts whose folded row is open, by key, for the visit
 const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
 function qtToolTile_(t, x) {
@@ -129,7 +131,9 @@ function qtRow_(x) {
   const key = x.key, open = QT_OPEN.has(key);
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  const tools = QT_TOOLS.filter(t => t.id !== 'check').map(t => qtToolTile_(t, x)).join('');
+  /* THE DRAWING TOOLS ONLY WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank grid -- "the working paper", which the owner had removed (29 Oct) */
+  const art = typeof padHasArt_ !== 'function' || padHasArt_(x);
+  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id])).map(t => qtToolTile_(t, x)).join('');
   const m = markerOf_(x);
   const fold = tile_({ icon: 'tools', label: 'Tools', note: open ? 'fold them away' : 'pen, ruler, photo …', act: 'qt-fold', cls: 'qt-fold', on: open, pressed: open, data: { key } });
   return `<div class="tile-row qt-row${open ? ' is-open' : ''}" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${fold}<span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>

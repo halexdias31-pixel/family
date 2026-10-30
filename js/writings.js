@@ -37,15 +37,21 @@ const writingFor_ = entry => viewerOfAge_(writingAge_(entry));
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
+/* THE SOURCE TEXT IS A TEXT'S BASE (526: "pick Bible, then original text like LXX or MT, then translation"): what it was made
+   from, by Collection where its testaments came from different originals; an original is its own base. */
+const WRITING_MT = 'Hebrew Masoretic Text', WRITING_LXX = 'Greek Septuagint', WRITING_GNT = 'Greek New Testament';
+const WRITING_BIBLE_BASE = { 'Old Testament': WRITING_MT, 'New Testament': WRITING_GNT, [WRITING_DEUTERO]: WRITING_LXX };
 const WRITING_TEXTS = {
-  KJV: { language: 'English', translator: 'King James Version', year: 1611 },
-  WEB: { language: 'English', translator: 'World English Bible', year: 2000 },
-  HBO: { language: 'Hebrew', translator: 'Masoretic text' },
-  LXX: { language: 'Greek', translator: 'Septuagint' },
-  BRENTON: { language: 'English', translator: 'Brenton', year: 1851 },
-  GNT: { language: 'Greek', translator: 'Robinson–Pierpont', year: 2018 },
-  'Arabic (Tanzil)': { language: 'Arabic', translator: 'Tanzil' },
-  'English (Pickthall)': { language: 'English', translator: 'Pickthall', year: 1930 },
+  KJV: { language: 'English', translator: 'King James Version', year: 1611, base: WRITING_BIBLE_BASE },
+  WEB: { language: 'English', translator: 'World English Bible', year: 2000, base: WRITING_BIBLE_BASE },
+  HBO: { language: 'Hebrew', translator: 'Masoretic text', base: WRITING_MT },
+  LXX: { language: 'Greek', translator: 'Septuagint', base: WRITING_LXX },
+  BRENTON: { language: 'English', translator: 'Brenton', year: 1851, base: WRITING_LXX },
+  GNT: { language: 'Greek', translator: 'Robinson–Pierpont', year: 2018, base: WRITING_GNT },
+  'Arabic (Tanzil)': { language: 'Arabic', translator: 'Tanzil', base: 'Arabic' },
+  'English (Pickthall)': { language: 'English', translator: 'Pickthall', year: 1930, base: 'Arabic' },
+  /* THE TALMUD'S ONE TEXT (talmud.js): the Vilna Bavli; a Yerushalmi would be a Text of its own with its own base. */
+  'Talmud Bavli': { language: 'Hebrew and Aramaic', base: 'Babylonian Talmud (Bavli)' },
   Charles: { language: 'English', translator: 'R. H. Charles' },
   Whiston: { language: 'English', translator: 'Whiston', year: 1737 },
   'De Sola and Raphall': { language: 'English', translator: 'De Sola and Raphall', year: 1843 },
@@ -58,6 +64,14 @@ function writingText_(t) {
   if (!t) return '';
   const who = t.translator && t.translator !== t.language ? t.translator + (t.year ? ' (' + t.year + ')' : '') : '';
   return [t.language || 'English', who].filter(Boolean).join(', ');
+}
+/* A TEXT'S SOURCE, from its key or the Text as built ("English, King James Version (1611)"), and its Collection where the base is by testament. */
+let WRITING_BUILT = null;
+function writingSourceOf_(text, collection) {
+  if (!WRITING_BUILT) { WRITING_BUILT = {}; Object.keys(WRITING_TEXTS).forEach(k => { WRITING_BUILT[writingText_(WRITING_TEXTS[k])] = WRITING_TEXTS[k]; }); }
+  const t = WRITING_TEXTS[text] || WRITING_BUILT[text], b = t && t.base;
+  if (!b) return '';
+  return typeof b === 'string' ? b : b[[].concat(collection)[0]] || '';
 }
 /* A LABEL AS AN INDEX SAYS IT ("Macaulay (1890)", "1818 text", "Greek", "English (Andrews)", a language code) → its fields. */
 function writingTextOf_(label, lang, year) {
@@ -73,7 +87,7 @@ function writingTextOf_(label, lang, year) {
 }
 
 /* ---------- ONE UNIT OF A WRITTEN WORK, whatever loaded it. `o.w` holds the facet set; everything else is the card's own. */
-const WRITING_KEYS = ['work', 'book', 'chapter', 'section', 'unit', 'text', 'tradition', 'collection', 'author', 'form'];
+const WRITING_KEYS = ['work', 'source', 'book', 'chapter', 'section', 'unit', 'text', 'tradition', 'collection', 'author', 'form'];
 /* ONE SPELLING AN ANSWER (520): values equal but for case or apostrophe are one answer, the first spelling kept; a unit is bare. */
 const writingFold_ = v => String(v).toLowerCase().replace(/[’‘`']/g, '').replace(/\s+/g, ' ').trim();
 const WRITING_SPELT = {};
@@ -91,6 +105,7 @@ function writingUnit_(src, reg, o) {
   if (!w.work) w.work = reg.work || '';
   WRITING_TITLES.set(spellKey_(w.work), w.work);
   if (!w.collection || (Array.isArray(w.collection) && !w.collection.length)) w.collection = reg.collection || '';
+  if (!w.source) w.source = writingSourceOf_(w.text, w.collection);
   const subject = reg.topic ? SCRIPTURE_SUBJECT() : (o.subject || SCRIPTURE_SUBJECT());
   return Object.assign({ image: '', row: null, wDate: null }, o, {
     w: w, wSrc: src, shelf: WRITINGS_SHELF, subject: subject, topic: reg.topic || o.topic || '', min_age: writingAge_(reg),
@@ -105,6 +120,7 @@ function bibleW_(x, k) {
     case 'chapter': return x.ch;
     case 'unit': return x.v;
     case 'text': return bb.text || bb.translation;
+    case 'source': return writingSourceOf_(bb.text || bb.translation, bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament);
     case 'section': return bb.group === 'Deuterocanon' ? '' : bb.group;
     case 'collection': {
       const col = bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament;

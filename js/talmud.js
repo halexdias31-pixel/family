@@ -65,7 +65,7 @@ function talmudItems_() {
   const ix = TALMUD.index;
   if (!ix || !talmudFor_()) return [];
   if (TALMUD.items && TALMUD.from === ix) return TALMUD.items;
-  const list = [], reg = writingWork_('talmud'), text = writingText_({ language: 'Hebrew and Aramaic' });
+  const list = [], reg = writingWork_('talmud'), text = writingText_(WRITING_TEXTS['Talmud Bavli']);
   ix.tractates.forEach(t => {
     for (let i = t.first; i <= t.last; i++) {
       const d = talDafOf_(i), c = talChapterAt_(t, i), ch = t.chapters[c], side = talSide_(i);

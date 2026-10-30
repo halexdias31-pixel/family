@@ -173,6 +173,12 @@ if (Q) {
   /* AND WHAT IT READS WHILE A ROW'S WORDS ARE STILL IN THE LEDGER (397): `libWaits_` and the `libS` under it. */
   const waits = ['libS', 'libWaits_'].map(n => (new RegExp('^const ' + n + ' = .*\\n', 'm').exec(lib) || [''])[0]).join('');
   ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "',").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
+  /* ASKED BEFORE THE QUESTIONS THAT PICK ONE QUESTION (owner, 29 Oct; 526): after Paper, Question and Part one question is left, so a tag sorted after them was never asked. */
+  const so = {};
+  JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'facets.json'), 'utf8')).forEach(f => { if (f.active !== false) so[f.field] = Number(f.sort_order); });
+  ['accuracy', 'function'].forEach(f => ['paperId', 'qNumber', 'qPart', 'qSub', 'qPage', 'marks'].forEach(g => {
+    if (!(so[f] < so[g])) broken.push('the facets tab asks ' + g + ' (' + so[g] + ') before ' + f + ' (' + so[f] + ') — by then one question is left and ' + f + ' is never offered');
+  }));
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
   else {
     const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });
