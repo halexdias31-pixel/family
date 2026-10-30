@@ -41,6 +41,14 @@ const TO = { '!abc': 'abc', '!123': 'maths', '!sym': 'sym' };
   }
   FACES.forEach(f => { if (!seen.has(f)) fail.push('the ' + f + ' face cannot be reached from a ' + (words ? 'worded' : 'maths') + ' box'); });
 });
+/* A POWER IS NEVER A FACE AWAY (the owner: "there's no to the power of button on keypad"): a maths box's 123 face and its letters both carry it, named as a power */
+['maths', 'abc'].forEach(f => {
+  const box = w.document.createElement('div');
+  box.innerHTML = w.kpPadHtml_(f, false, true, false, true);
+  const k = box.querySelector('.kp-key[data-v="!pow"]');
+  if (!k) fail.push('the ' + f + ' face of a maths box has no power key — x^2 is a face away');
+  else if (!/power/i.test(k.getAttribute('aria-label') || '')) fail.push('the power key on the ' + f + ' face is not named a power: ' + k.getAttribute('aria-label'));
+});
 /* WHAT A KEY PUTS IN THE BOX: itself, a letter in both cases (⇧), or the structure a command writes */
 const PUTS = { '!frac': '()/()', '!pow': '^()', '!sqrt': '√()', '!vec': '⟮,⟯', '!nl': '\n' };
 const typed = new Set();

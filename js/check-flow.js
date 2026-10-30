@@ -15016,20 +15016,27 @@ check("a swipe settles at the finger's speed, written on the columns and not the
     return ['settleCurve_, settleFrom_ or placeGrid is not reachable, so the settle was NOT checked — not a pass'];
   }
   const bad = [];
-  const slope = tf => { const m = /cubic-bezier\(\s*([^,]+),\s*([^,]+),/.exec(tf || ''); return m ? (+m[2]) / (+m[1]) : NaN; };
-  /* A card D px from where it is going, released at v px/ms. § */
-  [[300, 1.2], [-300, -1.2], [120, 0.3], [200, 4]].forEach(([D, v]) => {
-    const c = w.settleCurve_(D, v);
-    const want = Math.abs(v) * c.dur / Math.abs(D), got = slope(c.tf);
-    if (!(Math.abs(got - want) / want < 0.02)) {
-      bad.push(`a card ${D}px from home released at ${v}px/ms leaves at ${got.toFixed(2)}x its average `
-        + `speed and should leave at ${want.toFixed(2)}x — the finger's own speed`);
-    }
-    if (!(c.dur >= 260 && c.dur <= 420)) bad.push(`a ${Math.abs(D)}px settle takes ${c.dur}ms, outside 260-420`);
+  /* THE SPRING ITSELF (527): `springAt_` sampled at the time `settleCurve_` gives — critically damped, so it starts at the
+     finger's speed (capped where more would sail past), never overshoots, and its time follows distance and speed. */
+  if (typeof w.springAt_ !== 'function' || typeof w.springOf_ !== 'function') return ['springAt_ or springOf_ is not reachable — the spring was NOT checked'];
+  const W = w.SPRING_W || 0.02;
+  [[300, 1.2], [-300, -1.2], [120, 0.3], [200, 4], [335, 0], [40, 0.5]].forEach(([D, v]) => {
+    const c = w.settleCurve_(D, v), s = w.springOf_(D, v), dist = Math.abs(D);
+    const want = Math.min(W, Math.abs(v) / dist), got = (w.springAt_(s.a, 0.01) - w.springAt_(s.a, 0)) / 0.01;
+    if (Math.abs(got - want) * dist > want * dist * 0.03 + 0.005) bad.push(`a card ${D}px from home released at ${v}px/ms leaves at ${(got * dist).toFixed(2)}px/ms, not ${(want * dist).toFixed(2)}`);
+    let top = 0;
+    for (let t = 0; t <= c.dur; t += 4) top = Math.max(top, w.springAt_(s.a, t));
+    if (top * dist > dist + 0.5) bad.push(`a ${dist}px settle at ${v}px/ms sails ${(top * dist - dist).toFixed(1)}px past its card`);
+    if (Math.abs(1 - w.springAt_(s.a, c.dur)) * dist > 0.5) bad.push(`a ${dist}px settle ends ${((1 - w.springAt_(s.a, c.dur)) * dist).toFixed(1)}px short of its card`);
+    if (!(c.dur >= 100 && c.dur <= 900)) bad.push(`a ${dist}px settle takes ${c.dur}ms, outside 100-900`);
+    if (!/^(linear\(0, .*, 1\)|cubic-bezier\()/.test(c.tf)) bad.push(`a settle's curve is ${String(c.tf).slice(0, 40)}`);
   });
-  /* RELEASED STILL, OR PULLING BACK THE OTHER WAY: nothing to carry on, so it eases out of rest. */
-  if (slope(w.settleCurve_(200, 0).tf) !== 0) bad.push('a card released still does not start from rest');
-  if (slope(w.settleCurve_(200, -1).tf) !== 0) bad.push('a card whose finger was pulling the other way starts by leaping toward home');
+  /* LONGER FOR FURTHER, SHORTER FOR FASTER. */
+  if (!(w.settleCurve_(335, 0).dur > w.settleCurve_(60, 0).dur)) bad.push('a whole step settles no slower than a sixth of one');
+  if (!(w.settleCurve_(335, 3).dur < w.settleCurve_(335, 0).dur)) bad.push('a flicked card settles no sooner than one let go still');
+  /* RELEASED STILL, OR PULLING BACK THE OTHER WAY: it starts from rest, or goes out a little and comes back — never leaps home. */
+  if (w.springOf_(200, 0).a !== 0) bad.push('a card released still does not start from rest');
+  if (!(w.springOf_(200, -1).a <= 0)) bad.push('a card whose finger was pulling the other way starts by leaping toward home');
 
   /* ---------- AND WHERE IT IS WRITTEN ------------------------------------------------------------ */
   w.settleFrom_('x', -1);
@@ -15039,7 +15046,7 @@ check("a swipe settles at the finger's speed, written on the columns and not the
   }
   const hosts = [...w.document.querySelectorAll('#screen > .screen')].filter(h => h.style.transform);
   if (!hosts.length) bad.push('no column was placed, so where the settle goes was NOT checked');
-  else if (!hosts.some(h => /cubic-bezier/.test(h.style.transitionTimingFunction || ''))) {
+  else if (!hosts.some(h => /cubic-bezier|linear\(/.test(h.style.transitionTimingFunction || ''))) {
     bad.push('the settle was not written on the columns, so a release has no curve of its own');
   }
   return bad;
@@ -15594,8 +15601,15 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   ].join('|'));
   const jsDir = path.join(dir);
   let field = '';
+  /* THE ONE EXCEPTION (528): `kpBind_` shuts the phone's keyboard out of every other box on the site, and may write `inputmode` as "none" and nothing else, never `readonly` */
+  let bind = '';
   fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
     let src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    if (f === 'keypad.js') {
+      const cut = src.match(/function kpBind_\([\s\S]*?\n\}\n/);
+      bind = cut ? cut[0] : '';
+      if (cut) src = src.replace(cut[0], cut[0].replace("el.setAttribute('inputmode', 'none');", ''));
+    }
     const m = src.match(SRC);
     if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
     if (f === 'keypad.js') {
@@ -15606,10 +15620,193 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
     const b = src.match(BOX);
     if (b) bad.push('js/' + f + ' draws an answer box outside kpField_: `' + b[0] + '` -- a box not drawn by kpField_ is a box nobody locked');
   });
+  if (!bind || (bind.match(/inputmode/gi) || []).length !== 1 || !/el\.setAttribute\('inputmode', 'none'\);/.test(bind) || /readonly|readOnly/.test(bind)) {
+    bad.push('kpBind_ in js/keypad.js is missing, or writes something other than inputmode="none" once -- the one script allowed to touch a box\'s keyboard');
+  }
   if (!field || !/data-do="qp-ans"/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
   if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about — the rule was not asked of them all');
   [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- THE PAD IS THE KEYBOARD FOR EVERY BOX ON THE SITE (528) ---------- */
+/* A finger on a box: the press the app hears first, then the focus it gives. `kpTap_` is how a person arrives; a screen's own focus does not bring the pad up. */
+const kpTap_ = (w, el) => { el.dispatchEvent(new w.Event('pointerdown', { bubbles: true })); el.focus(); };
+const kpPadOf_ = w => w.document.getElementById('kp');
+/* EACH CHARACTER ON WHICHEVER FACE HAS IT, turning the pad over as a person would; a character no face has is said */
+function kpTypeOn_(w, s, bad) {
+  const A = w.__t.ACTIONS;
+  const key = v => kpPadOf_(w) && [...kpPadOf_(w).querySelectorAll('.kp-key')].find(b => b.getAttribute('data-v') === v);
+  for (const ch of s) {
+    const v = ch === '\n' ? '!nl' : ch.toLowerCase();
+    let b = key(v);
+    for (const face of ['!abc', '!123', '!sym']) { if (b) break; const f = key(face); if (f) { A['kp-key'](f); b = key(v); } }
+    if (!b) { bad.push('no key for ' + JSON.stringify(ch) + ' on any face of the pad'); return; }
+    if (ch !== v && ch === ch.toUpperCase()) { const sh = key('!shift'); if (sh) A['kp-key'](sh); }
+    A['kp-key'](b);
+  }
+}
+/* THE BOX IS A REAL FIELD THE PAD IS BOUND TO: `inputmode="none"` and its face, never `readonly` (a reader still hears a field), and the pad up on the face wanted */
+function kpBoundSays_(w, el, face, name) {
+  const out = [];
+  if (!el) return [name + ' was not drawn'];
+  if (el.getAttribute('inputmode') !== 'none') out.push(name + ' has inputmode=' + JSON.stringify(el.getAttribute('inputmode')) + ' — the phone\'s keyboard comes up on it');
+  if (el.getAttribute('data-kpb') !== face) out.push(name + ' is bound to the ' + JSON.stringify(el.getAttribute('data-kpb')) + ' face, wanted ' + JSON.stringify(face));
+  if (el.readOnly || el.hasAttribute('readonly')) out.push(name + ' is readonly — the readonly lock is the answer box\'s, and a box elsewhere is a field a screen reader can edit');
+  return out;
+}
+check('a message, the Find box, Find 2\'s box and a settings box type on the @family keypad: tapped, the pad comes up on the right face, its keys type, a laptop and a paste still type, and the phone\'s keyboard has no way in (528)', async () => {
+  const { w, sent } = boot({ reply: b => (b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 }) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['kp-key'] || typeof w.msgForm_ !== 'function' || typeof w.draftRead_ !== 'function') return ['the keypad, the composer or the drafts are not reachable — nothing was checked'];
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '', phone: '07700900000', borough: 'Merton' } });
+  const pad = () => kpPadOf_(w);
+  const up = () => !!pad() && !pad().hidden;
+
+  /* 1. A MESSAGE: a box of lines, so return types a new line and `done` only puts the pad away; the Send tile sends */
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.msgForm_('Tom Tutor', 'P-TOM');
+  await wait(0);
+  const msg = host.querySelector('.msg-text');
+  bad.push(...kpBoundSays_(w, msg, 'abc', 'the message box'));
+  if (msg) {
+    msg.focus();
+    if (up()) bad.push('the message box focused by a screen, with no finger, brought the pad up — a phone\'s keyboard does not');
+    msg.blur();
+    await wait(5);
+    kpTap_(w, msg);
+    if (!up()) bad.push('a tap on the message box did not bring the pad up');
+    else {
+      if (pad().getAttribute('data-layer') !== 'abc') bad.push('the message box opened the pad on ' + pad().getAttribute('data-layer') + ', wanted the letters');
+      if (!pad().querySelector('.kp-key[data-v="!nl"]')) bad.push('the message box\'s pad has no return key — a message of lines cannot be typed');
+      if (!pad().querySelector('.kp-key.kp-done-k')) bad.push('the message box\'s ✓ is not `done` — it would look like Send and only put the pad away');
+      if (pad().querySelector('.kp-q')) bad.push('the question strip rides on the pad over a message box');
+      kpTypeOn_(w, 'see you at 4\nthanks', bad);
+      if (msg.value !== 'see you at 4\nthanks') bad.push('the pad typed ' + JSON.stringify(msg.value) + ' into the message box, wanted "see you at 4\\nthanks"');
+      if (d.activeElement !== msg) bad.push('typing on the pad took the focus off the message box');
+      const kept = w.draftRead_('msg', 'P-TOM');
+      if (!kept || String(kept).indexOf('thanks') === -1) bad.push('what the pad typed was not kept as the composer\'s draft (' + JSON.stringify(kept) + ') — the pad did not send the input event a keyboard sends');
+      /* A LAPTOP'S KEY AND A PASTE are the field's own: nothing cancels them */
+      const kd = new w.KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
+      msg.dispatchEvent(kd);
+      if (kd.defaultPrevented) bad.push('a laptop\'s key in the message box was cancelled — a physical keyboard must type as it always has');
+      const ps = new w.Event('paste', { bubbles: true, cancelable: true });
+      msg.dispatchEvent(ps);
+      if (ps.defaultPrevented) bad.push('a paste into the message box was cancelled');
+      const before = sent.length;
+      A['kp-key'](pad().querySelector('.kp-key.kp-done-k'));
+      if (up()) bad.push('`done` on the message box left the pad up');
+      if (sent.slice(before).some(b => /message|send/i.test(String(b.action || '')))) bad.push('`done` on the message box sent the message — only the Send tile sends');
+      if (msg.value !== 'see you at 4\nthanks') bad.push('`done` changed the message to ' + JSON.stringify(msg.value));
+      /* THE COMPOSER DRAWN AGAIN WITH THE PAD ON IT (a message sent) takes the pad with it: a pad over no box types nowhere. Safari sends no focusout for a box taken away, and nor does jsdom */
+      await wait(5);
+      kpTap_(w, msg);
+      if (!up()) bad.push('a second tap on the message box did not bring the pad back');
+      host.innerHTML = w.msgForm_('Tom Tutor', 'P-TOM');
+      await wait(5);
+      if (up()) bad.push('the message box was drawn again under the pad and the pad stayed up over a box that is gone');
+    }
+  }
+  /* A ONE-LINE BOX IN A FORM (receipt.js's "why"): ✓ is its Enter, so the form is sent as Enter sends it, once */
+  host.innerHTML = '<form class="kp-test-form"><input type="text" name="why"></form>';
+  await wait(0);
+  const fm = host.querySelector('form'), why = fm && fm.querySelector('input');
+  let sentForm = 0;
+  if (fm) fm.addEventListener('submit', e => { e.preventDefault(); sentForm++; });
+  if (why) {
+    kpTap_(w, why);
+    if (!up()) bad.push('a tap on a box in a form did not bring the pad up');
+    else {
+      kpTypeOn_(w, 'late', bad);
+      A['kp-key'](pad().querySelector('.kp-key.kp-done'));
+      if (sentForm !== 1) bad.push('✓ on a one-line box in a form sent it ' + sentForm + ' times — it is the box\'s Enter, which sends its form once');
+      if (up()) bad.push('✓ on a box in a form left the pad up');
+    }
+  }
+  host.remove();
+
+  /* 2. THE FIND BOX AND FIND 2's: one line, letters, and the words reach the finder they belong to */
+  for (const id of ['stuff', 'res']) {
+    try { t.go(id, false, true); w.paint(id); } catch (e) { bad.push('drawing ' + id + ' threw: ' + e.message); continue; }
+    await wait(50);
+    const q = d.getElementById(id + '-q');
+    bad.push(...kpBoundSays_(w, q, 'abc', 'the ' + id + '-q box'));
+    if (!q) continue;
+    kpTap_(w, q);
+    if (!up()) { bad.push('a tap on ' + id + '-q did not bring the pad up'); continue; }
+    if (pad().querySelector('.kp-key[data-v="!nl"]')) bad.push(id + '-q is one line and its pad has a return key');
+    kpTypeOn_(w, 'frac', bad);
+    if (q.value !== 'frac') bad.push('the pad typed ' + JSON.stringify(q.value) + ' into ' + id + '-q');
+    await wait(260);
+    const st = (w.finderStates_ ? w.finderStates_() : [])[id === 'stuff' ? 0 : 1];
+    if (!st || st.q !== 'frac') bad.push('the words typed on the pad did not reach ' + id + '\'s finder (q=' + JSON.stringify(st && st.q) + ')');
+    A['kp-key'](pad().querySelector('.kp-key[data-v="!back"]'));
+    if (q.value !== 'fra') bad.push('⌫ on the pad left ' + JSON.stringify(q.value) + ' in ' + id + '-q');
+    A['kp-key'](pad().querySelector('.kp-key.kp-done'));
+    if (up()) bad.push('✓ on ' + id + '-q left the pad up');
+    try { w.finderSet_(w.finderOf_(id), { q: '' }); } catch (e) { /* the next journey starts its own app */ }
+  }
+
+  /* 3. A SETTINGS BOX: its words typed and kept; the phone number opens on the digits */
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
+  await wait(300);
+  const head = d.querySelector('#s-account input[data-me="borough"]') || d.querySelector('#s-account input[data-me="city"]');
+  const name = head ? head.getAttribute('data-me') : '';
+  bad.push(...kpBoundSays_(w, head, 'abc', 'the settings box'));
+  if (head) {
+    kpTap_(w, head);
+    if (!up() || pad().getAttribute('data-layer') !== 'abc') bad.push('a tap on the settings box did not bring the pad up on its letters');
+    const was = head.value;
+    try { head.setSelectionRange(was.length, was.length); } catch (e) { /* a box with no caret types at its end */ }
+    kpTypeOn_(w, ' and physics', bad);
+    if (head.value !== was + ' and physics') bad.push('the pad typed ' + JSON.stringify(head.value) + ' into the settings box, wanted ' + JSON.stringify(was + ' and physics'));
+    const kept = w.draftRead_('set', name);
+    if (!kept || String(kept).indexOf('physics') === -1) bad.push('the settings box\'s edit was not kept as its draft (' + JSON.stringify(kept) + ')');
+    head.blur();
+    await wait(5);
+    if (up()) bad.push('the pad stayed up after the settings box lost the focus');
+  }
+  const tel = d.querySelector('#s-account [data-me="phone_no"]');
+  bad.push(...kpBoundSays_(w, tel, 'num', 'the phone number box'));
+  if (tel) {
+    kpTap_(w, tel);
+    if (!up() || pad().getAttribute('data-layer') !== 'maths' || !pad().querySelector('.kp-key[data-v="7"]')) bad.push('the phone number box did not open the pad on its digits');
+    if (pad().querySelector('.kp-key[data-v="!frac"], .kp-key[data-v="!vec"]')) bad.push('the digits face on a box elsewhere still has the answer box\'s fraction or vector key');
+    tel.blur();
+  }
+  return bad;
+});
+
+check('signing in types on the @family keypad: the handle on the letters with @ and . on top, the PIN on the digits and never read out, and ✓ signs in (528)', async () => {
+  const reply = b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] });
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  await wait(20);
+  const nm = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  bad.push(...kpBoundSays_(w, nm, 'mail', 'the handle box'), ...kpBoundSays_(w, pin, 'num', 'the PIN box'));
+  if (!nm || !pin) return bad;
+  if (pin.getAttribute('autocomplete') !== 'one-time-code') bad.push('the PIN box lost its autocomplete="one-time-code"');
+  kpTap_(w, nm);
+  const pad = kpPadOf_(w);
+  if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="@"]')) bad.push('the handle box did not open the pad on its letters with @ on top');
+  kpTypeOn_(w, 'ada_kind7', bad);
+  if (nm.value !== 'ada_kind7') bad.push('the pad typed ' + JSON.stringify(nm.value) + ' as the handle');
+  kpTap_(w, pin);
+  if (pad.hidden || pad.getAttribute('data-layer') !== 'maths') bad.push('the PIN box did not open the pad on its digits');
+  kpTypeOn_(w, '482611119', bad);
+  if (pin.value !== '48261111') bad.push('the PIN box holds ' + JSON.stringify(pin.value) + ' — the pad did not keep to its eight digits');
+  await wait(700);
+  if (/4826/.test(String((d.getElementById('kp-say') || {}).textContent || ''))) bad.push('the PIN was read out by the pad\'s screen-reader line');
+  A['kp-key'](pad.querySelector('.kp-key.kp-done'));
+  await wait(300);
+  if (!sent.some(b => b.action === 'verifyLogin')) bad.push('✓ on the PIN box did not sign in — it is the field\'s Enter');
+  if (!pad.hidden) bad.push('✓ on the PIN box left the pad up');
   return bad;
 });
 
@@ -15644,6 +15841,42 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   const mark = h.querySelector('.qp-mark');
   if (!mark || !mark.classList.contains('is-right')) bad.push('"x ≈ 2.6" typed on the pad was not marked right against "x ≈ 2.6": ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
   h.remove();
+  return bad;
+});
+
+/* A POWER TYPED ON THE PAD (the owner, on an A-level question: "there's no to the power of button on keypad"): in sight on 123 and on the letters, ^() with the caret inside, marked as x^2 and x^(n+1) are stored */
+check('the power key is on the maths face and the letters, types x^(n+1) with its caret raised, and a power typed on it is marked right against x^2 and x^(n+1)', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — nothing was checked'];
+  const run = async (key, accept, keys, want) => {
+    const h = d.createElement('div');
+    const x = { kind: 'question', key: key, name: 'Q2', marks: 1, html: '<p>Differentiate.</p>', answer: '<b>' + accept + '</b>',
+      answerType: 'calculation', accept: accept, row: { row_id: key.toUpperCase(), paper_id: 'P-POW', subject: 'Maths', name: 'Powers', level: 'A-level' } };
+    try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+    h.innerHTML = w.questionCard_(x, 0);
+    d.body.appendChild(h);
+    const inp = h.querySelector('.kp-in');
+    if (!inp) { h.remove(); return bad.push('the part drew no keypad box'); }
+    inp.focus();
+    const pad = d.getElementById('kp');
+    if (!pad || pad.hidden) { h.remove(); return bad.push('focusing the box did not open the pad'); }
+    const key_ = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+    if (!key_('!pow')) bad.push('the ' + pad.getAttribute('data-layer') + ' face has no power key in sight');
+    else if (!/power/.test(key_('!pow').getAttribute('aria-label') || '')) bad.push('the power key is not named a power');
+    A['kp-key'](key_('!abc'));
+    if (!key_('!pow')) bad.push('the letters face has no power key — a power is a face away');
+    A['kp-key'](key_('!123'));
+    keys.forEach(v => { const b = key_(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); });
+    if (inp.value !== want) bad.push('typing ' + keys.join(' ') + ' gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(want));
+    A['kp-key'](key_('!done'));
+    const mark = h.querySelector('.qp-mark');
+    if (!mark || !mark.classList.contains('is-right')) bad.push(JSON.stringify(inp.value) + ' typed with the power key was not marked right against ' + JSON.stringify(accept) + ': ' + (mark ? mark.textContent.trim().slice(0, 120) : 'no mark'));
+    h.remove();
+  };
+  await run('q-pow-1', '3x^2', ['3', 'x', '!pow', '2'], '3x^(2)');
+  await run('q-pow-2', 'x^(n+1)', ['x', '!pow', '!abc', 'n', '!123', '+', '1'], 'x^(n+1)');
   return bad;
 });
 
@@ -25701,10 +25934,13 @@ check('the PIN box is not a password the iPad keeps, and nothing about who signe
   await wait(300);
   const t = w.__t, d = w.document;
   t.USER(null); t.go('account', false, true); w.paint('account');
+  /* THE BINDING IS THE DRAWING'S OBSERVER (528), a microtask after it — before any finger, after this line */
+  await wait(0);
   const pin = d.getElementById('in-pin');
   if (!pin) return ['no PIN box on the account column'];
   if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
-  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  /* THE PAD'S DIGITS, NOT THE PHONE'S (528): the markup's `inputmode="numeric"` picks the pad's face (`data-kpb`), and the phone's keyboard is shut out */
+  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'none', 'data-kpb': 'num' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
@@ -31089,6 +31325,90 @@ check('Library → a subject offers only shelves that subject has — never Book
   const spans = sh => new Set(w.stuffFiltered().filter(x => String(x.shelf || '') === sh).map(x => String(x.subject || ''))).size;
   if (nx && nx.field === 'shelf' && w.facetValues(w.stuffFiltered(), nx).every(v => spans(v.value) <= 1)) bad.push('Library → Any subject asks Shelf (' + w.facetValues(w.stuffFiltered(), nx).map(v => v.value).join(', ') + ') — the subject question again');
   S.filters = [];
+  return bad;
+});
+
+/* ---------- WHAT'S MISSING (526): an admin's card directly above Find's question, fetched for an admin alone ---------- */
+const MISS_LIST_ = [
+  { board: 'Edexcel', level: 'GCSE', subject: 'Maths', label: 'Edexcel GCSE Maths', papers: ['1H', '2H'], series: ['June'], from: 2017, to: 2017 },
+  { board: 'AQA', level: 'GCSE', subject: 'Geography', label: 'AQA GCSE Geography', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'OCR', level: 'GCSE', subject: 'Psychology', label: 'OCR GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+];
+const MISS_ROWS_ = [
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-1H', exam_board: 'Edexcel', level: 'GCSE', subject: 'Maths', year: '2017', month: '6',
+    paper: '1', tier: 'Higher', name: 'Paper 1 — June 2017', active: 'True' },
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+    paper: '1', name: 'Paper 1 — June 2022', active: 'True' },
+  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+    paper: '1', name: 'Q1', active: 'True', lib_pending: 'True' },
+];
+const missServe_ = list => u => (/expected-papers\.json/.test(u) ? list : /data\/questions\.json/.test(u) ? MISS_ROWS_ : undefined);
+const missPages_ = d => [...(d.getElementById('s-stuff') || { querySelectorAll: () => [] }).querySelectorAll(':scope > .page')];
+
+check('What\'s missing (526): an admin sees the card directly above Find\'s question and Find still opens on the question; the gaps, "none yet", "complete" and the papers waiting; a chip and Back to top keep it; Delete takes it off; an empty list says so; a student and a client neither see nor fetch it', async () => {
+  const { w, errs, gets } = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(MISS_LIST_) });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('stuff', false, true); await wait(400);
+  const card = d.querySelector('#s-stuff .miss-card');
+  if (!card) return ['no What’s missing card on Find for an admin — NOT checked'];
+  const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
+  const cardAt = () => missPages_(d).indexOf(d.querySelector('#s-stuff .miss-card')?.closest('.page'));
+  if (cardAt() !== 0 || qAt() !== 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
+  if (t.PAGE().stuff !== qAt()) bad.push('Find opens on page ' + t.PAGE().stuff + ', not on the question (' + qAt() + ')');
+  if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
+  if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
+  const said = () => [...d.querySelectorAll('#s-stuff .miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
+  const s0 = said();
+  if (!/What.s missing/.test(s0)) bad.push('the card has no title: ' + s0.slice(0, 120));
+  if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
+  if (/Paper 1H|Papers 1H/.test(s0)) bad.push('a present paper (1H June 2017) is listed as missing');
+  if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
+  if (!/OCR GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
+  if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
+  if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
+  if (d.querySelector('#s-stuff .miss-card [aria-busy="true"], #s-stuff .miss-card .loading')) bad.push('the card is still waiting after its list came');
+  if (gets.filter(u => /expected-papers\.json/.test(u)).length !== 1) bad.push('the list was fetched ' + gets.filter(u => /expected-papers\.json/.test(u)).length + ' times, not once');
+  /* A CHIP REDRAWS WHAT IS BELOW THE QUESTION, never the card above it. */
+  w.paintFinder_('stuff');
+  await wait(200);
+  if (cardAt() !== 0 || qAt() !== 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
+  if (t.PAGE().stuff !== qAt()) bad.push('a repaint of the funnel left Find on page ' + t.PAGE().stuff);
+  /* BACK TO TOP IS THE QUESTION. */
+  t.goPage('stuff', 1 + qAt(), true); await wait(100);
+  const top = d.createElement('button'); top.setAttribute('data-do', 'find-top'); d.getElementById('stuff-controls').appendChild(top);
+  t.ACTIONS['find-top'](top); await wait(200); top.remove();
+  if (t.PAGE().stuff !== qAt()) bad.push('Back to top lands on page ' + t.PAGE().stuff + ', not the question');
+  /* AN ITEM (487): Delete in two taps, no move or door; gone, the question is page 0 again and Find is on it. */
+  const del = () => d.querySelector('#s-stuff .miss-card [data-do="lay-c-del"]');
+  if (!del()) bad.push('the card has no Delete tile');
+  else {
+    if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
+    t.ACTIONS['lay-c-del'](del()); t.ACTIONS['lay-c-del'](del()); await wait(400);
+    if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
+    if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
+  }
+  if (errs.length) bad.push('errors: ' + errs.join(' | ').slice(0, 300));
+  w.close();
+  /* AN EMPTY OR ABSENT LIST SAYS SO. */
+  const e = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(null) });
+  await wait(400);
+  e.w.__t.go('stuff', false, true); await wait(300);
+  const es = (e.w.document.querySelector('#s-stuff .miss-card') || { textContent: '' }).textContent;
+  if (!/Nothing listed to expect yet/.test(es)) bad.push('an absent list does not say "Nothing listed to expect yet": ' + es.replace(/\s+/g, ' ').slice(0, 120));
+  e.w.close();
+  /* A STUDENT AND A CLIENT: no card, the question is page 0, nothing fetched. */
+  for (const who of [{ name: 'Kit Young', personId: 'P-K', role: 'student', roles: ['student'], rank: 'student', token: 'tk-kit', handle: 'kit_y' }, MEMBER_]) {
+    const s = boot({ before: signedInAs_(who), serve: missServe_(MISS_LIST_) });
+    await wait(400);
+    s.w.__t.go('stuff', false, true); await wait(300);
+    const sd = s.w.document;
+    if (sd.querySelector('.miss-card')) bad.push('a ' + who.rank + ' sees What’s missing');
+    if (missPages_(sd).indexOf(sd.getElementById('stuff-controls')?.closest('.page')) !== 0) bad.push('for a ' + who.rank + ' the question is not page 0');
+    if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
+    s.w.close();
+  }
   return bad;
 });
 

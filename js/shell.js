@@ -836,16 +836,42 @@ let SETTLE_ON = null;
 function settleFrom_(axis, v) {
   SETTLE_FROM = axis ? { axis: axis, v: Number(v) || 0, at: performance.now() } : null;
 }
-function settleCurve_(D, v) {
+/* THE SETTLE IS A CRITICALLY DAMPED SPRING (527), iOS's: done within half a pixel, so its time follows distance and speed. */
+/* WRITTEN AS A CSS `linear()` sampled from it, so the compositor runs it; without `linear()`, the old bezier at the spring's time. */
+const SPRING_W = 0.02;         // natural frequency, per ms: nine tenths of the way in about 195ms from rest
+const SPRING_MAX = 900;        // ms, the longest a settle may take
+const SPRING_LINEAR = (() => {
+  try { return !!(window.CSS && CSS.supports && CSS.supports('transition-timing-function', 'linear(0, 1)')); } catch (e) { return false; }
+})();
+/* THE SHARE OF THE WAY AT TIME t, released at `a` shares per ms: x(t) = 1 − (1 + (ω − a)t)·e^(−ωt). */
+function springAt_(a, t) { return 1 - (1 + (SPRING_W - a) * t) * Math.exp(-SPRING_W * t); }
+/* THE RELEASE SPEED AS A SHARE OF THE WAY, capped at ω (more would sail past the target) and at −ω/2 the other way. */
+function springOf_(D, v) {
   const dist = Math.abs(D);
-  const dur = Math.round(Math.max(260, Math.min(420, 220 + 0.45 * dist)));
-  const toward = v * Math.sign(D);                  // px/ms in the direction the card is going
-  if (!(toward > 0.02) || dist < 1) return { dur: dur, tf: 'cubic-bezier(.3, 0, .2, 1)' };
-  const s = toward * dur / dist;
-  let x1 = 0.3, y1 = 0.3 * s;
-  if (y1 > 1) { x1 = 1 / s; y1 = 1; }
-  return { dur: dur, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
+  const a = dist >= 1 ? Math.max(-SPRING_W / 2, Math.min(SPRING_W, (Number(v) || 0) * Math.sign(D) / dist)) : 0;
+  const eps = 0.5 / Math.max(1, dist);
+  let T = 16;
+  while (T < SPRING_MAX && Math.abs(1 - springAt_(a, T)) > eps) T += 8;
+  return { a: a, dur: T };
 }
+function settleCurve_(D, v) {
+  const s = springOf_(D, v), dur = s.dur;
+  if (SPRING_LINEAR) {
+    const n = Math.max(12, Math.min(48, Math.round(dur / 12))), pts = [0];
+    for (let i = 1; i < n; i++) pts.push(+springAt_(s.a, dur * i / n).toFixed(4));
+    pts.push(1);
+    return { dur: dur, a: s.a, tf: 'linear(' + pts.join(', ') + ')' };
+  }
+  /* THE FALLBACK: a bezier whose first slope is the release speed — the curve before 527. */
+  const k = s.a * dur;
+  if (!(k > 0.02)) return { dur: dur, a: s.a, tf: 'cubic-bezier(.3, 0, .2, 1)' };
+  let x1 = 0.3, y1 = 0.3 * k;
+  if (y1 > 1) { x1 = 1 / k; y1 = 1; }
+  return { dur: dur, a: s.a, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
+}
+/* LESS MOTION ASKED FOR: every placement lands at once — a release snaps, a tab jumps (527). */
+const MOTION_LESS = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { return null; } })();
+const motionLess_ = () => { try { return !!(MOTION_LESS && MOTION_LESS.matches); } catch (e) { return false; } };
 
 /* ---------- EACH AXIS HAS ITS OWN CLOCK § */
 const SPLIT_AXES = (() => {
@@ -931,6 +957,58 @@ function settleLeft_(axis) {
     const off = axis === 'x' ? now[0] - placed[0] : now[1] - placed[1];
     return Math.abs(off) < 0.5 ? 0 : off;
   } catch (e) { return 0; }
+}
+
+/* A FINGER LANDING ON THE ROW WHILE IT SLIDES HOLDS IT THERE (527), as on iOS. A sideways drag picks it up (`grabTake_`); */
+/* anything else, or a plain lift, lets the spring go on from where it was held (`grabLet_`). Never left half-way. */
+let GRAB = null;               // { hosts: [{ host, rest, now }], off } — the row held, and where each column was going
+function grabRow_() {
+  /* A HOLD WHOSE LIFT NEVER CAME is let go first, so no row is left frozen where a finger once held it. */
+  if (GRAB) grabLet_(0);
+  GRAB = null;
+  /* ONE TRANSFORM FOR BOTH AXES (no `translate`): holding the row would stop a page slide with it, so the catch at the lock does it. */
+  if (!SPLIT_AXES || motionLess_()) return 0;
+  try {
+    const front = $('s-' + AT);
+    if (!slideRunning_(front, 'transform')) return 0;
+    const hosts = [];
+    TABS.forEach(t => {
+      const host = $('s-' + t.id), at = host && colPlaced_(host);
+      if (at) hosts.push({ host: host, rest: at[0], now: colNow_(host)[0] });
+    });
+    const f = hosts.find(h => h.host === front);
+    if (!f || Math.abs(f.now - f.rest) < 0.5) return 0;
+    hosts.forEach(h => {
+      colTransition_(h.host, SLIDE_NONE, null);
+      h.host.REST_X = h.rest;
+      h.host.style.transform = `translateX(${h.now.toFixed(1)}px)`;
+    });
+    GRAB = { hosts: hosts, off: f.now - f.rest };
+    SETTLE_ON = null;
+    return GRAB.off;
+  } catch (e) { GRAB = null; return 0; }
+}
+/* THE DRAG TAKES IT: the offset becomes the drag's catch, and the columns' rests stay in `REST_X` for `dragPlan_`. */
+function grabTake_() {
+  const g = GRAB;
+  GRAB = null;
+  return g ? g.off : 0;
+}
+/* NOBODY TOOK IT: the spring goes on from where it was held to where it was going, unless a placement has been since. */
+function grabLet_(v) {
+  const g = GRAB;
+  GRAB = null;
+  if (!g || g.hosts.some(h => h.host.REST_X !== h.rest)) return;
+  const c = settleCurve_(-g.off, v || 0), run = { d: c.dur + 'ms', tf: c.tf, delay: '0s' };
+  g.hosts.forEach(h => {
+    h.host.REST_X = null;
+    if (!h.host.isConnected) return;
+    colTransition_(h.host, run, null);
+    h.host.style.transform = `translateX(${h.rest.toFixed(1)}px)`;
+  });
+  SETTLE_ON = { axis: 'x', dur: c.dur, tf: c.tf, until: performance.now() + c.dur };
+  SLIDE_UNTIL = Math.max(SLIDE_UNTIL, SETTLE_ON.until);
+  TRAIL_X.until = Math.max(TRAIL_X.until, SETTLE_ON.until + 50);
 }
 
 /* ---------- THE CARDS NOT IN FRONT ARE SLIGHTLY OUT OF FOCUS § */
@@ -1035,7 +1113,8 @@ function dragPlan_(drag) {
     if (!host) continue;
     const at = colPlaced_(host);
     if (!at || !host._slide) return null;
-    cols.push({ host: host, x: at[0], y: at[1], front: t.id === AT });
+    /* A ROW HELD MID-SLIDE (`grabRow_`) is drawn where it was held; the drag is placed from where it was going, as every drag is. */
+    cols.push({ host: host, x: host.REST_X != null ? host.REST_X : at[0], y: at[1], front: t.id === AT });
   }
   if (!cols.some(c => c.front)) return null;
   cols.forEach(c => {
@@ -1124,6 +1203,7 @@ function placeGrid(instant, drag) {
   /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED § */
   /* ---------- AN INSTANT PLACEMENT DOES NOT CANCEL A SLIDE THAT IS STILL RUNNING § */
   if (instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until) instant = false;
+  if (!drag && motionLess_()) { instant = true; SETTLE_FROM = null; SETTLE_ON = null; }
   const hosts = [];
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
@@ -1219,6 +1299,7 @@ function placeGrid(instant, drag) {
       instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
       instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
     colWrite_(host, x, shift);
+    host.REST_X = null;
     /* WHICH PAGE THIS SHIFT WAS WORKED OUT FOR — read by `holdColumn_`, which corrects a column only
        for the page it was sent to. */
     host.PLACED_P = at;

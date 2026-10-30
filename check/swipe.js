@@ -632,7 +632,7 @@ async function gesture(env, o) {
     if (want('hold')) {
       const a = await page.evaluate(async () => {
         await window.__sw.place('stuff', 0);
-        STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0, true);
+        STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_(), true);
         await window.__sw.still('stuff');
         const q = document.getElementById('stuff-q');
         const pg = document.querySelector('#s-stuff > .page.on');
@@ -666,7 +666,7 @@ async function gesture(env, o) {
         const c = await page.evaluate(async () => {
           if (AXES.y.count('stuff') < 2) return null;
           goPage('stuff', 1); await window.__sw.still('stuff');
-          goPage('stuff', 0); await window.__sw.still('stuff');
+          goPage('stuff', stuffQuestionPage_()); await window.__sw.still('stuff');
           const pg = document.querySelector('#s-stuff > .page.on'), sr = document.getElementById('screen').getBoundingClientRect();
           const r = pg.getBoundingClientRect();
           return { dy: (r.top + r.height / 2) - (sr.top + sr.height / 2), h: r.height, H: sr.height };
@@ -676,7 +676,7 @@ async function gesture(env, o) {
           note(`${at} held card let go: back on the funnel ${c.dy.toFixed(1)}px off the middle`);
           if (c.h < c.H && Math.abs(c.dy) > 1) fail('HELD WHILE USED', `${at} stuff/0`, `a page away and back, the funnel is ${c.dy.toFixed(1)}px off the middle — the hold was never let go`);
         }
-        await page.evaluate(() => { STUFF.filters = []; paintStuff(); goPage('stuff', 0, true); });
+        await page.evaluate(() => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); });
       }
     }
 
@@ -864,7 +864,7 @@ async function gesture(env, o) {
         }
         await page.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} }, wbox.k);
       }
-      await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', 0, true); });
+      await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', stuffQuestionPage_(), true); });
     }
 
     /* ---------- 8d. A CARD ABOVE THAT CHANGES HEIGHT DOES NOT MOVE THE ONE IN FRONT § */

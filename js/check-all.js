@@ -57,6 +57,8 @@ const SUITE = [
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
   /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD § */
   { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
+  /* THE @family KEYPAD EVERYWHERE (528): every box the source can draw and every box on every column, bound to the pad and tapped. */
+  { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
@@ -154,6 +156,7 @@ const SUITE = [
   { file: 'check-film-shares.js', what: 'a film reaches only the people its Drive file is shared with, a revoked share goes within ten minutes, the admin sees who' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-favlinks.js', what: 'Favourite links (509): signed in only, ten at most, http(s) only, own links alone in the payload' },
+  { file: 'check-missing.js', what: 'What\'s missing (526): the gaps between data/settings/expected-papers.json and the covers, a present paper never listed, the list spelled as the library' },
   { file: 'check-rewrite.js', what: 'the Rewrite coach (509, 519): admin only, its own cap, the text fenced as data, the AI narrowed to one fact per answer with a real quote, never a rewrite; the phone\'s substance scanner and copying check' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
@@ -203,6 +206,7 @@ const SUITE = [
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
+  { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
   /* ---------- AND EVERY INTERACTION TYPE ANSWERED WRONG, CHANGED, AND RIGHT (385) ---------- */
