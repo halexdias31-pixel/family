@@ -2168,9 +2168,9 @@ Object.keys(MOTION_FALL_).forEach(k => Object.defineProperty(MOTION_, k, { enume
 const PRESS_AGAIN_MS = 350;
 /* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a maze step, a month flipped): `data-repeat` on the control, or its action named here. */
 const PRESS_REPEAT_ = new Set(['kp-key', 'maze-go', 'cal-back', 'cal-fwd', 'eink-step', 'tal-size', 'imp-count', 'c4-drop',
-                               'pad-undo', 'chess-undo', 'sp-ctl']);
+                               'pad-undo', 'chess-undo', 'sp-ctl', 'feed-tap', 'rw-next', 'rw-back', 'speed-back']);
 const PRESS_LAST_ = new Map();   /* press key -> { t, el }: when it last acted, and which element */
-const PRESS_OUT_ = new Map();    /* press key -> requests it started that are still out */
+const PRESS_OUT_ = new Map();    /* press key -> Map(element -> requests it started that are still out) */
 let PRESS_ACTING_ = null;        /* { key, el } while a handler runs, so `api()` knows whose request it is */
 /* THE SAME CONTROL, EVEN REDRAWN: its kind (first class), action and data, less the arming marks — a star drawn afresh is still the star; an ordering's item and slot are two. */
 function pressKey_(el) {
@@ -2182,7 +2182,9 @@ function pressKey_(el) {
 function pressAgain_(el) {
   if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
   const key = pressKey_(el), now = performance.now();
-  if (PRESS_OUT_.get(key)) return true;
+  /* HELD BY ELEMENT: another live copy (a Send in another sheet) still works; the one redrawn from a held control is still held. */
+  const out = PRESS_OUT_.get(key);
+  if (out) for (const o of out.keys()) if (o === el || !o.isConnected) return true;
   /* THE SAME ELEMENT, or the one it was redrawn from; two live copies of a control (a card drawn twice) are two controls. */
   const last = PRESS_LAST_.get(key);
   if (last && now - last.t < PRESS_AGAIN_MS && (last.el === el || !last.el.isConnected)) return true;
@@ -2190,16 +2192,23 @@ function pressAgain_(el) {
   PRESS_LAST_.set(key, { t: now, el });
   return false;
 }
-/* A REQUEST OR A PROMISE A PRESS STARTED: the control says aria-busy and takes no press until it settles (api()'s deadline sees that it does). */
-function pressOut_(key, el, p) {
-  PRESS_OUT_.set(key, (PRESS_OUT_.get(key) || 0) + 1);
+/* A REQUEST OR A PROMISE A PRESS STARTED: the control says aria-busy and takes no press until it settles, or `ms` passes — a fetch with no deadline of its own (Spotify, Tasks) cannot hold it for ever. */
+function pressOut_(key, el, p, ms) {
+  const out = PRESS_OUT_.get(key) || new Map();
+  PRESS_OUT_.set(key, out);
+  out.set(el, (out.get(el) || 0) + 1);
   if (el && !el.hasAttribute('aria-busy')) { el.setAttribute('aria-busy', 'true'); el.PRESS_BUSY = true; }
+  let bell = 0, gone = false;
   const done = () => {
-    const n = (PRESS_OUT_.get(key) || 1) - 1;
-    if (n > 0) { PRESS_OUT_.set(key, n); return; }
-    PRESS_OUT_.delete(key);
+    if (gone) return;
+    gone = true; clearTimeout(bell);
+    const n = (out.get(el) || 1) - 1;
+    if (n > 0) { out.set(el, n); return; }
+    out.delete(el);
+    if (!out.size && PRESS_OUT_.get(key) === out) PRESS_OUT_.delete(key);
     if (el && el.PRESS_BUSY) { el.PRESS_BUSY = false; el.removeAttribute('aria-busy'); }
   };
+  bell = setTimeout(done, (ms || API_DEADLINE_MS) + 1000);
   Promise.resolve(p).then(done, done);
 }
 
@@ -2210,6 +2219,11 @@ function pressFree_() { PRESS_ACTING_ = null; }
 /* ONE REQUEST, BUILT IN ONE PLACE. § */
 /* A MINUTE, AS load() HAS (534): a POST that never answers left its control spinning for ever; past this it rejects into the caller's why_(). */
 const API_DEADLINE_MS = 60000;
+/* ACTIONS THE BACKEND IS BUILT TO RUN FOR MINUTES wait for Apps Script's own six-minute ceiling instead; check-api-deadline.js finds them by their budgets. */
+const API_LONG_ = {
+  raceBuild: 6 * 60000,        /* Overpass [timeout:150], then heights until t0 + 280 s (buildRaceMap_) */
+  libImportDrive: 6 * 60000,   /* starts files until LIB_DRIVE_MS, four minutes (libImportDrive_) */
+};
 /* WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED. § */
 function why_(err) {
   const msg = String((err && err.message) || err || '').trim();
@@ -2231,15 +2245,17 @@ function api(body, opts) {
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
   const keep = !!(opts && opts.keepalive);
+  const wait = API_LONG_[b.action] || API_DEADLINE_MS;
   let stop = null, bell = 0;
   try { if (!keep && typeof AbortController === 'function') stop = new AbortController(); } catch (e) { stop = null; }
   /* THE WHOLE REPLY, headers and body, under the one deadline; a keepalive flush outlives the page and is not cut. */
   const late = keep ? null : new Promise((u, no) => { bell = setTimeout(() => {
-    const e = new Error('The server did not answer within a minute. It may still have been saved — look before trying again.');
+    const e = new Error('The server did not answer within ' + (wait > API_DEADLINE_MS ? Math.round(wait / 60000) + ' minutes' : 'a minute')
+      + '. It may still have been saved — look before trying again.');
     e.name = 'TimeoutError';
     try { if (stop) stop.abort(); } catch (err) { /* already settled */ }
     no(e);
-  }, API_DEADLINE_MS); });
+  }, wait); });
   const asked = fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
                                          keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY § */
@@ -2281,7 +2297,7 @@ function api(body, opts) {
   if (keep) return asked;
   asked.catch(() => { /* the deadline answered first; this rejection is the abort it caused */ });
   const p = Promise.race([asked, late]).finally(() => clearTimeout(bell));
-  if (PRESS_ACTING_) pressOut_(PRESS_ACTING_.key, PRESS_ACTING_.el, p);
+  if (PRESS_ACTING_) pressOut_(PRESS_ACTING_.key, PRESS_ACTING_.el, p, wait);
   return p;
 }
 

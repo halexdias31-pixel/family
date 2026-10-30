@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* @family. — check/press-twice.js ONE PRESS, ONE ACTION (534): two real taps 110 ms apart on every control on the glass, in every states.js state, with every POST held 1.5 s. */
 /* double-tap: no action is posted twice. arm: a control that asks first is still asking, with 0 POSTs, after a yes at ~375 ms (under sure_'s 400), and a yes at 1 s posts exactly once. */
-/* Visitors student and admin at 390. --as=<visitor> --screen=<id,id> -v. Port: TWICE_PORT. */
+/* Visitors student and admin at 390 only: not 320 or 1280 (the dispatcher reads no width), not signed out. A student's member-only Find states never arrive (notes). */
+/* --as=<visitor> --screen=<id,id> -v. Port: TWICE_PORT. */
 'use strict';
 require('./quiet');
 const glass = require('./glass.js');

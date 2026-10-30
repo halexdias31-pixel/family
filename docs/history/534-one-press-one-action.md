@@ -67,3 +67,24 @@ twice inside 350 ms on purpose now waits as a person would (the reel's Sound, th
 ordering's second Send, the E-ink Sync, a second Check after typing, check-bundle's second Send). The sound
 journeys and the real-1F-Q4 ordering are about what a press does, not when: their press helpers call
 `__t.pressForget()` first, which clears the dispatcher's memory, and check/press-twice.js owns the timing.
+
+## After review: what the first cut got wrong
+
+- **The minute cut long admin actions.** `raceBuild` (Overpass `[timeout:150]`, heights until t0 + 280 s) and
+  `libImportDrive` (starts files until `LIB_DRIVE_MS`, four minutes) are built to run for minutes; at 60 s the admin
+  was told the map was not built, the race screen fetched a map still being built, and the import's report was lost.
+  `API_LONG_` in shell.js now names them with Apps Script's six minutes. `js/check-api-deadline.js` finds such
+  actions itself — every doPost action, the functions it reaches, and any budget written as `now() - t0 > X`,
+  `budgetMs || X` or `t0 + N * 1000` over the deadline — and runs api()'s own source to see the wait it sets.
+  Proven: raceBuild taken out of the list, libImportDrive at two minutes, a stale name, the race budget at 330 s,
+  and api() ignoring the list each went red.
+- **Steppers pressed fast on purpose were dropped**: the feed's "One more thing" (`feed-tap`, one element that is
+  never redrawn), the rewrite's steps (`rw-next`, `rw-back`) and the speed reader's sentence back (`speed-back`).
+  They are in `PRESS_REPEAT_`. The party games' Got it / Pass and the next-question buttons stay held: a double tap
+  there scores twice or skips a card unseen.
+- **A request held every control with the same key**, so a Send in one sheet held a Send in another, and a handler's
+  own promise (Spotify search, Tasks sync: fetches with no deadline) could hold its control until reload. The hold is
+  now per element (or the one redrawn from it), and any hold lets go after its request's deadline plus a second.
+  `js/check-press-hold.js` runs the press block in a vm; proven by holding by key again (red: the other Send held) and
+  by taking the let-go timer out (red: still held ten minutes later).
+- press-twice runs at 390 for a student and an admin only; its header now says so.
