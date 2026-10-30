@@ -1,14 +1,9 @@
 /* @family. — inbox.js — THE EMAIL WIDGET (493): the owner's Gmail, read-only, admin only. backend/inbox.gs; docs/history/493. */
 
 /* ONE STATE, the list as last asked. Never stored: an inbox is not kept on a phone or in a sheet. */
-const INBOX_ = { q: '', chip: 'inbox', rows: [], next: '', labels: [], open: null, images: false, said: '', busy: false };
-
-const INBOX_CHIPS_ = [['inbox', 'Inbox', 'in:inbox'], ['unread', 'Unread', 'in:inbox is:unread']];
-function inboxQuery_() {
-  const base = (INBOX_CHIPS_.find(c => c[0] === INBOX_.chip) || [])[2]
-    || (INBOX_.chip.indexOf('label:') === 0 ? 'label:"' + INBOX_.chip.slice(6).replace(/"/g, '') + '"' : 'in:inbox');
-  return (base + ' ' + INBOX_.q).trim();
-}
+const INBOX_ = { rows: [], open: null, images: false, said: '', busy: false };
+/* THE LAST FOUR (owner, 29 Oct): "the gmail viewer should just display your last 4 emails" -- no search, chips or More; a row still opens. */
+const INBOX_SHOWN = 4;
 
 function inboxWhen_(ms) {
   if (!ms) return '';
@@ -68,15 +63,10 @@ function inboxMsgHtml_(m) {
 function inboxHtml_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   if (INBOX_.open) return inboxMsgHtml_(INBOX_.open);
-  const chips = INBOX_CHIPS_.map(c => [c[0], c[1]]).concat(INBOX_.labels.map(l => ['label:' + l, l]))
-    .map(([k, label]) => `<button type="button" class="chip sm${INBOX_.chip === k ? ' on' : ''}" aria-pressed="${INBOX_.chip === k}" data-do="inbox-chip" data-k="${esc(k)}">${esc(label)}</button>`).join('');
-  const list = INBOX_.rows.length ? INBOX_.rows.map(inboxRowHtml_).join('')
+  const list = INBOX_.rows.length ? INBOX_.rows.slice(0, INBOX_SHOWN).map(inboxRowHtml_).join('')
     : (INBOX_.busy ? '' : `<p class="sub">${esc(INBOX_.said || 'Nothing here.')}</p>`);
-  return `${searchPill_(`class="ib-q" placeholder="Search mail" aria-label="Search mail" data-nodraft value="${esc(INBOX_.q)}"`, 'ib-search')}
-    <div class="chips ib-chips">${chips}</div>
-    ${INBOX_.rows.length && INBOX_.said ? `<p class="sub">${esc(INBOX_.said)}</p>` : ''}
-    <div class="ib-list"${INBOX_.busy ? ' aria-busy="true"' : ''}>${list}${INBOX_.busy ? loading_() : ''}</div>
-    ${INBOX_.next && !INBOX_.busy ? `<div class="tile-row">${tile_({ icon: 'down', label: 'More', note: 'the next 20', act: 'inbox-more' })}</div>` : ''}`;
+  return `${INBOX_.rows.length && INBOX_.said ? `<p class="sub">${esc(INBOX_.said)}</p>` : ''}
+    <div class="ib-list"${INBOX_.busy ? ' aria-busy="true"' : ''}>${list}${INBOX_.busy ? loading_() : ''}</div>`;
 }
 
 /* THE CARD ON SITE (500): the owner asked for it there, beside the weekly email, not in Tools. Drawn with what is already known; initInbox asks. */
@@ -92,8 +82,8 @@ function inboxPaint_() {
   document.querySelectorAll('.ib-box').forEach(b => { b.innerHTML = inboxHtml_(); });
 }
 
-/* ---------- ASKING. `more` keeps what is shown and adds the next page. Read-only: nothing here writes to Gmail. */
-function inboxFetch_(more) {
+/* ---------- ASKING: the inbox's newest threads, the first four kept. Read-only: nothing here writes to Gmail. */
+function inboxFetch_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || INBOX_.busy) return;
   const f = (typeof DATA !== 'undefined' && DATA && DATA.features) || [];
   if (f.length && f.indexOf('inboxList') < 0) {
@@ -101,18 +91,16 @@ function inboxFetch_(more) {
     inboxPaint_(); return;
   }
   INBOX_.busy = true;
-  if (!more) { INBOX_.rows = []; INBOX_.next = ''; }
+  INBOX_.rows = [];
   INBOX_.said = '';
   inboxPaint_();
-  send_({ action: 'inboxList', q: inboxQuery_(), page: more ? INBOX_.next : '', name: USER.name, personId: USER.personId }, {})
+  send_({ action: 'inboxList', q: 'in:inbox', page: '', name: USER.name, personId: USER.personId }, {})
     .then(d => {
       INBOX_.busy = false;
       if (!d || d.error) { INBOX_.said = (d && d.error) || 'Gmail did not answer.'; }
       else {
-        INBOX_.rows = (more ? INBOX_.rows : []).concat(d.rows || []);
-        INBOX_.next = d.next || '';
-        if (d.labels) INBOX_.labels = d.labels;
-        if (!INBOX_.rows.length) INBOX_.said = 'Nothing matches.';
+        INBOX_.rows = (d.rows || []).slice(0, INBOX_SHOWN);
+        if (!INBOX_.rows.length) INBOX_.said = 'Nothing in the inbox.';
       }
       inboxPaint_();
     })
@@ -122,21 +110,9 @@ function inboxFetch_(more) {
 function initInbox() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
   inboxPaint_();
-  if (!INBOX_.rows.length && !INBOX_.busy) inboxFetch_(false);
+  if (!INBOX_.rows.length && !INBOX_.busy) inboxFetch_();
 }
 
-/* SEARCH ON ENTER, one listener for every box this widget is drawn in. */
-document.addEventListener('keydown', e => {
-  const el = e.target;
-  if (e.key !== 'Enter' || !el || !el.classList || !el.classList.contains('ib-q')) return;
-  e.preventDefault();
-  INBOX_.q = String(el.value || '').trim();
-  INBOX_.open = null;
-  inboxFetch_(false);
-});
-
-on('inbox-chip', el => { INBOX_.chip = el.dataset.k || 'inbox'; INBOX_.open = null; inboxFetch_(false); });
-on('inbox-more', () => inboxFetch_(true));
 on('inbox-back', () => { INBOX_.open = null; INBOX_.images = false; inboxPaint_(); });
 on('inbox-images', () => { INBOX_.images = true; inboxPaint_(); });
 on('inbox-open', el => {

@@ -2065,10 +2065,10 @@ const STATES = {
       }),
       expect: () => {
         const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
-        return a.length === 1 && a[0].dataset.field === 'wText' && a[0].dataset.value === 'English, King James Version (1611)'
+        return a.length >= 1 && a.every(b => b.dataset.field === 'wSource') && a.some(b => b.dataset.value === 'Hebrew Masoretic Text')
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
-      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Source text, the Masoretic among its answers' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {

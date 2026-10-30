@@ -350,7 +350,7 @@ const handler = act => {
 
 /* ---------- THE SIX QUESTIONS, AS DECLARED § */
 /* THE ONE WRITING SET (520) the Bible answers, in the order it is asked: no question is the Bible's alone. */
-const SIX = ['wWork', 'wText', 'wCollection', 'wSection', 'wBook', 'wChapter', 'wUnit'];
+const SIX = ['wWork', 'wSource', 'wText', 'wCollection', 'wSection', 'wBook', 'wChapter', 'wUnit'];
 const facetsSrc = (() => { const i = findSrc.indexOf('const FACETS = ['); const j = findSrc.indexOf('\n];', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
 const declared = [...facetsSrc.matchAll(/\{ field: '(w[A-Z]\w*)',([^\n]*)/g)].map(m => ({ field: m[1], line: m[2] })).filter(d => SIX.indexOf(d.field) >= 0);
 if (declared.map(d => d.field).join(',') !== SIX.join(',')) {

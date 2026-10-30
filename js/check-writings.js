@@ -28,7 +28,7 @@ try {
   const line = re => { const m = find.match(re); if (!m) throw new Error('find.js has no ' + re); return m[0]; };
   vm.runInContext([line(/const SCRIPTURE_MIN_AGE = \d+;/), line(/const scriptureMinAge_ = [^\n]+/), line(/const WRITINGS_SHELF = [^\n]+/),
     src('js/writings.js'), ...LOADERS.map(l => src('js/' + l[0] + '.js'))].join('\n;\n')
-    + '\n;this.WR = { writingFold_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingAge_, writingOf_, bibleW_ };', ctx);
+    + '\n;this.WR = { writingFold_, writingSourceOf_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingAge_, writingOf_, bibleW_ };', ctx);
   WR = ctx.WR;
   LOADERS.forEach(([file, store, fn, ix]) => {
     vm.runInContext(store + '.index = ' + JSON.stringify(json(ix)) + ';', ctx);
@@ -103,6 +103,38 @@ if (WR && items.length) {
     lone += [...count.values()].filter(n => n === 1).length;
   });
   said.push(Object.keys(bySrc).map(s => s + ' ' + bySrc[s]).join(', ') + '; ' + lone + ' answers name a single card');
+}
+
+/* THE SOURCE TEXT (529): every scripture card names the original its Text was made from, read off the Text's base (writingSourceOf_),
+   never set by a loader; asked Work → Source → Translation → Book. */
+if (WR && items.length) {
+  const srcOf = w => [].concat(w.source).join('/');
+  const want = { 'King James Version': { 'Old Testament': 'Hebrew Masoretic Text', 'New Testament': 'Greek New Testament' },
+    'World English Bible': { 'Old Testament': 'Hebrew Masoretic Text', 'New Testament': 'Greek New Testament' } };
+  const bibleW = bible.map(x => { const o = { tr: x.bb.translation, testament: x.bb.testament, group: x.bb.group }; WR.WRITING_KEYS.forEach(k => { o[k] = WR.bibleW_(x, k) || ''; }); return o; });
+  const fixed = { HBO: 'Hebrew Masoretic Text', LXX: 'Greek Septuagint', BRENTON: 'Greek Septuagint', GNT: 'Greek New Testament' };
+  bibleW.forEach(o => {
+    const by = { KJV: 'King James Version', WEB: 'World English Bible' }[o.tr];
+    const w = fixed[o.tr] || (by && o.group !== 'Deuterocanon' ? want[by][o.testament] : by ? 'Greek Septuagint' : '');
+    if (!w) bad.push('the Bible text ' + o.tr + ' has no expected source in this check — add it');
+    else if (srcOf(o) !== w) bad.push(o.book + ' (' + o.tr + ') has the Source text "' + srcOf(o) + '", not its base "' + w + '"');
+  });
+  const scripture = { Quran: 'Arabic', Talmud: 'Babylonian Talmud (Bavli)' };
+  items.forEach(x => {
+    const w = x.w || {};
+    if (scripture[w.work] && srcOf(w) !== scripture[w.work]) bad.push(x.key + ' (' + w.work + ', ' + w.text + ') has the Source text "' + srcOf(w) + '", not "' + scripture[w.work] + '"');
+    if (w.work === 'Bible' && srcOf(w) !== 'Greek Septuagint') bad.push(x.key + ' (a Deuterocanon book, ' + w.text + ') has the Source text "' + srcOf(w) + '"');
+  });
+  const bibleSources = new Set(bibleW.map(srcOf));
+  if (bibleSources.size < 3) bad.push('the Bible offers ' + bibleSources.size + ' Source texts (' + [...bibleSources].join(', ') + ') — wanted the Masoretic, the Septuagint and the Greek NT');
+  /* NO LOADER SETS ITS OWN: the Source comes from the Text's base in writings.js, so one rule decides it for every writing. */
+  LOADERS.forEach(l => { if (/\bsource:\s/.test((src('js/' + l[0] + '.js').match(/w: \{[^}]*\}/g) || []).join(' '))) bad.push('js/' + l[0] + '.js sets a Source text itself — it is the Text\'s base (writingSourceOf_)'); });
+  /* THE ORDER ASKED: Work, Source text, Translation, then the groups above Book, Book, Chapter, Unit (facets tab sort_order). */
+  const so = {};
+  json('data/settings/facets.json').forEach(f => { so[f.field] = Number(f.sort_order); });
+  const order = ['wWork', 'wSource', 'wText', 'wBook', 'wChapter', 'wUnit'];
+  for (let i = 1; i < order.length; i++) if (!(so[order[i - 1]] < so[order[i]])) bad.push('the facets tab asks ' + order[i] + ' (' + so[order[i]] + ') before ' + order[i - 1] + ' (' + so[order[i - 1]] + ') — wanted ' + order.join(' → '));
+  said.push('source text: ' + [...bibleSources].sort().join(', ') + ' for the Bible; asked ' + order.join(' → '));
 }
 
 /* A WRITING IS ITS PAGES (520): no work is both a profile row (data/writings.json) and unit cards; a row may stand only for a
