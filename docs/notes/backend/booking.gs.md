@@ -1530,3 +1530,12 @@ top level, before `authMoveKey_`
 ================================================================================================== */
 ```
 
+### THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "the current academic interval too, which is October half term"):
+
+in `operatingWindow`
+
+```
+/* THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "the current academic interval too, which is October half term"): it opens on
+     this week's Monday and, in its last week, runs to its last day. The phone books from today on (`computeSessionDates`). */
+```
+

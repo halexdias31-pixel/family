@@ -8819,105 +8819,188 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   return bad;
 });
 
-check('picking several answers is one open, a list of checkboxes under its row, in the card', async () => {
-  /* ---------- FIVE SHAPES OF ONE CONTROL, FOUR OF THEM REPORTED § */
+/* ---------- EVERY DROPDOWN ON THE BOOKING CARD IS THE SAME CONTROL (owner, 29 Oct; docs/history/528) § */
+check('every several-answer question on the booking card is the same dropdown as the ones above: a pick adds, a ticked one taken off', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
-  const A = w.__t.ACTIONS || {};
-  if (!A['book-many'] || !A['book-many-pick']) {
-    return ['book-many / book-many-pick are not registered — cannot check the list'];
-  }
-  if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
-  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  if (!w.__t.control) return ['stepControl_ is not exported — NOTHING was checked'];
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'], children: ['Amy Parent', 'Al Parent'] });
+  const D = w.__t.DATA();
+  D.intervals = (D.intervals || []).concat([{ term: 'Second term', label: 'Second term', kind: 'term', startDate: '01/01/2030', endDate: '01/03/2030', weeks: 8 }]);
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
-  /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and the booking column was drawn at boot while nobody was signed in § */
-  try { w.__t.repaint(true); } catch (e) { return ['repaint() threw: ' + e.message]; }
-  try { w.__t.go('booking', false, true); } catch (e) { return ['go("booking") threw: ' + e.message]; }
+  B.how = 'Instant class'; B.n = '3';
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
-  const step = (w.__t.STEPS || []).filter(x => x.multi && !x.grid)
-    .filter(x => { try { return x.options().filter(Boolean).length >= 2; } catch (e) { return false; } })[0];
-  if (!step) return ['no multiple-answer question offers two options — cannot check the list'];
-  const opts = step.options().filter(Boolean);
   const bad = [];
+  const shape = html => {
+    const box = d.createElement('div'); box.innerHTML = html;
+    const s = box.querySelector('select');
+    return s ? [s.tagName, s.multiple, s.className, s.dataset.do, !!box.querySelector('button')].join('|') : 'no select: ' + html.slice(0, 60);
+  };
+  const level = (w.__t.STEPS || []).find(x => x.id === 'level');
+  const want = level ? shape(w.__t.control(level)) : '';
+  if (!/^SELECT\|false\|bk-sel\|book-set\|false$/.test(want)) return ['Level\'s control is ' + JSON.stringify(want) + ', so there is nothing to compare with — NOTHING was checked'];
+  const ids = ['subjects', 'interval', 'kids'];
+  const phone = q => ({ matches: /coarse/.test(String(q)), media: String(q), addEventListener() {}, removeEventListener() {} });
+  const wasMM = w.matchMedia;
+  ids.forEach(id => {
+    const st = (w.__t.STEPS || []).find(x => x.id === id);
+    if (!st) { bad.push('no "' + id + '" question'); return; }
+    const opts = st.options().filter(Boolean);
+    if (opts.length < 2) { bad.push('"' + id + '" offers ' + opts.length + ' answers — the pick was NOT checked'); return; }
+    /* THE SAME CONTROL AS LEVEL, on a computer and on a phone. */
+    [['a computer', wasMM], ['a phone', phone]].forEach(([on, mm]) => {
+      w.matchMedia = mm;
+      const got = shape(w.__t.control(st));
+      if (got !== want) bad.push('on ' + on + ' the "' + id + '" control is ' + JSON.stringify(got) + ', not Level\'s ' + JSON.stringify(want));
+    });
+    w.matchMedia = wasMM;
+    /* PICKED THROUGH THE REAL SELECT ON THE CARD: two picks are two answers, a third of a ticked one takes it off. */
+    const pick = v => {
+      const s = d.querySelector('#bookr select[data-step="' + id + '"]');
+      if (!s) { bad.push('the "' + id + '" row has no select on the card'); return false; }
+      s.value = v;
+      s.dispatchEvent(new w.Event('change', { bubbles: true }));
+      return true;
+    };
+    if (!pick(opts[0]) || !pick(opts[1])) return;
+    if ((B[id] || []).length !== 2) bad.push('two picks on "' + id + '" left ' + JSON.stringify(B[id]));
+    const s = d.querySelector('#bookr select[data-step="' + id + '"]');
+    const row = s && s.closest('.bk-row');
+    const face = ((row && row.querySelector('.bk-said')) || {}).textContent || '';
+    if (opts.slice(0, 2).some(o => face.indexOf(o) === -1)) bad.push('the "' + id + '" row reads ' + JSON.stringify(face) + ', not both answers');
+    const ticked = s ? [...s.options].filter(o => /^✓ /.test(o.textContent)).map(o => o.value) : [];
+    if (ticked.join('|') !== opts.slice(0, 2).join('|')) bad.push('the "' + id + '" list ticks ' + JSON.stringify(ticked) + ', not the two chosen');
+    if (s && s.value !== '') bad.push('the "' + id + '" select is left on an answer, so picking it again would not reach the handler');
+    pick(opts[0]);
+    if ((B[id] || []).join('|') !== opts[1]) bad.push('picking a ticked "' + id + '" answer again left ' + JSON.stringify(B[id]) + ', wanted it taken off');
+  });
+  if (d.querySelector('#bookr [data-do="book-many"], #bookr [data-do="book-many-pick"], #bookr select[multiple], #bookr .bk-many-list')) bad.push('the card still draws the old ticked list');
+  return bad;
+});
 
-  const list = () => d.getElementById('bk-many-' + step.id);
-  const boxes = () => [...((list() || d).querySelectorAll('input[type="checkbox"][data-do="book-many-pick"]'))];
-  const sheetOpen = () => !d.getElementById('sheet').classList.contains('hidden');
-  const formUp = () => String(w.__t.bookerCard() || '').indexOf('id="bookr"') !== -1;
-  /* A TICK THE WAY A FINGER MAKES ONE: the box flips, then `change` bubbles to the dispatcher. */
-  const tick = v => {
-    const b = boxes().find(x => x.value === v);
-    if (!b) return false;
-    b.checked = !b.checked;
-    b.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+/* ---------- AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS (owner, 29 Oct; docs/history/528) § */
+check('with the client\'s house as the venue the Space row cannot be filled in, and says Yes', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const D = w.__t.DATA();
+  D.venues = (D.venues || []).concat([{ title: 'Client House', bestRate: 0 }]);
+  const B = w.__t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = 'Instant class'; B.subjects = ['Maths']; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const bad = [];
+  const spaceSel = () => d.querySelector('#bookr select[data-step="hosting"]');
+  const spaceRow = () => [...d.querySelectorAll('#bookr .bk-row')].find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Space');
+  const setLoc = v => {
+    const s = d.querySelector('#bookr select[data-step="loc"]');
+    if (!s) { bad.push('no Venue select on the card'); return false; }
+    if (![...s.options].some(o => o.value === v)) { bad.push('the Venue list does not offer ' + JSON.stringify(v)); return false; }
+    s.value = v; s.dispatchEvent(new w.Event('change', { bubbles: true }));
     return true;
   };
+  /* A PAID ROOM ASKS IT: the select is there, and No is an answer. */
+  if (!spaceSel()) return bad.concat('at a library the Space row has no select, so the rule was NOT checked');
+  B.hosting = 'No';
+  ['At home', 'Client House'].forEach(home => {
+    B.hosting = 'No';
+    if (!setLoc(home)) return;
+    const row = spaceRow();
+    if (spaceSel()) bad.push('with "' + home + '" as the venue the Space row can still be filled in');
+    if (!row || !/Yes/.test(row.textContent)) bad.push('with "' + home + '" the Space row reads ' + JSON.stringify(row && row.textContent.replace(/\s+/g, ' ').trim()) + ', wanted Yes');
+    if (B.hosting) bad.push('an earlier "No" still stands under "' + home + '": ' + JSON.stringify(B.hosting));
+    const sp = w.__t.spec();
+    if (!sp || sp.hosting !== true) bad.push('with "' + home + '" the booking is not hosted by the client: ' + JSON.stringify(sp && sp.hosting));
+  });
+  setLoc('Colliers Wood Library');
+  if (!spaceSel()) bad.push('back at the library the Space row is not asked again');
+  return bad;
+});
 
-  A['book-many']({ dataset: { step: step.id } });
-  const l = list();
-  if (!l) bad.push('pressing the "' + step.id + '" row does not open its list');
-  else {
-    /* IN THE CARD, UNDER ITS ROW — not a sibling of the screens, not over anything. */
-    if (!l.closest('#bookr .bk')) bad.push('the list is not inside the booking card');
-    let prev = l.previousElementSibling;
-    while (prev && prev.classList.contains('bk-say')) prev = prev.previousElementSibling;
-    if (!prev || !prev.querySelector('[data-do="book-many"][data-step="' + step.id + '"]')) {
-      bad.push('the list is not directly under the row that opened it');
-    }
-    if (l.getAttribute('role') !== 'group' || !l.getAttribute('aria-label')) {
-      bad.push('the list is not a named group, so a screen reader hears loose checkboxes');
-    }
-    if (boxes().length !== opts.length) bad.push('the list draws ' + boxes().length + ' boxes for a question with ' + opts.length);
-    if (!boxes().every(b => b.closest('label.check'))) bad.push('a box is not the app\'s own `.check` row, the label the target');
+/* ---------- ANOTHER CLIENT, ANOTHER FAMILY (owner, 29 Oct; docs/history/528) ----------
+   "2 different clients' children are showing up in the children field. It's because I changed the client on the booking." */
+check('changing the client on a booking leaves only that client\'s children on it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  const D = w.__t.DATA();
+  D.clients = [{ name: 'Ann Client', children: ['Amy Client', 'Abe Client'] }, { name: 'Bob Client', children: ['Ben Client'] }];
+  const B = w.__t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = 'Instant class'; B.n = '3';
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const bad = [];
+  const set = (id, v) => {
+    const s = d.querySelector('#bookr select[data-step="' + id + '"]');
+    if (!s || ![...s.options].some(o => o.value === v)) { bad.push('the "' + id + '" list does not offer ' + JSON.stringify(v)); return false; }
+    s.value = v; s.dispatchEvent(new w.Event('change', { bubbles: true }));
+    return true;
+  };
+  if (!set('client', 'Ann Client') || !set('kids', 'Amy Client')) return bad.concat('Ann\'s child could not be picked — NOTHING was checked');
+  if ((B.kids || []).join() !== 'Amy Client') return bad.concat('picking Amy left ' + JSON.stringify(B.kids) + ' — NOTHING was checked');
+  set('client', 'Bob Client');
+  if ((B.kids || []).some(k => /Amy|Abe/.test(k))) bad.push('after changing the client to Bob the booking still has Ann\'s child: ' + JSON.stringify(B.kids));
+  const ks = d.querySelector('#bookr select[data-step="kids"]');
+  const row = ks && ks.closest('.bk-row');
+  if (row && /Amy|Abe/.test(row.textContent)) bad.push('the Child row still shows Ann\'s children under Bob: ' + JSON.stringify(row.textContent.replace(/\s+/g, ' ').trim()));
+  set('kids', 'Ben Client');
+  if ((B.kids || []).join() !== 'Ben Client') bad.push('Bob\'s child is not the one on the booking: ' + JSON.stringify(B.kids));
+  return bad;
+});
+
+/* ---------- WHAT THE CARD HELD GOES WITH A SUGGESTION ABOUT IT (owner, 29 Oct; docs/history/528) § */
+check('Suggest a change on the Booking widget sends the filled-in fields, people as initials', async () => {
+  const reply = b => b.action === 'suggest' ? { success: true, serious: true, notes: [] } : { success: true };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Hal Admin', personId: 'PA', role: 'admin', roles: ['admin'], token: 'tok-PA', handle: 'ha2026' });
+  const D = t.DATA();
+  D.clients = [{ name: 'Ann Client', children: ['Amy Client'] }];
+  const B = t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  Object.assign(B, { client: 'Ann Client', how: 'Instant class', subjects: ['Maths'], level: 'GCSE', kids: ['Amy Client'], n: '1',
+    split: ['someone@example.org'], discValue: '30', note: 'secret words about my child' });
+  const host = d.createElement('div');
+  host.className = 'pane';
+  host.innerHTML = '<div class="card"><h3>Booking</h3><div class="tile-row">' + w.suggestTile_('widget', 'booking', 'Booking') + '</div></div>';
+  d.body.appendChild(host);
+  const tile = host.querySelector('[data-do="rep-box"]');
+  if (!tile) return ['the Booking widget has no Suggest a change tile — NOTHING was checked'];
+  t.ACTIONS['rep-box'](tile);
+  const box = d.querySelector('.rep-box[data-rk="widget"][data-ri="booking"]');
+  if (!box) return ['the suggestion box did not open — NOTHING was checked'];
+  box.querySelector('textarea').value = 'make the term list bigger';
+  t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
+  for (let i = 0; i < 50 && !sent.some(b => b.action === 'suggest'); i++) await wait(50);
+  const got = sent.find(b => b.action === 'suggest');
+  if (!got) return bad.concat('no suggestion was sent');
+  const note = String(got.note || '');
+  if (note.indexOf('make the term list bigger') !== 0) bad.push('the owner\'s words are not first in the note: ' + JSON.stringify(note.slice(0, 80)));
+  ['Fields:', 'For: A.C.', 'Kind: Instant class', 'Subject: Maths', 'Level: GCSE', 'Child: A.C.', 'Split: 1 address', 'Discount: 30%'].forEach(x => {
+    if (note.indexOf(x) === -1) bad.push('the note does not say ' + JSON.stringify(x) + ': ' + JSON.stringify(note));
+  });
+  ['Ann', 'Amy', 'someone@example.org', 'secret words'].forEach(x => { if (note.indexOf(x) !== -1) bad.push('the note carries ' + JSON.stringify(x) + ' — a public repository reads these'); });
+  /* AND ONLY THE BOOKING WIDGET'S: a suggestion about anything else is the words alone. */
+  host.innerHTML = '<div class="card"><h3>Other</h3><div class="tile-row">' + w.suggestTile_('widget', 'other', 'Other') + '</div></div>';
+  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
+  const box2 = d.querySelector('.rep-box[data-ri="other"]');
+  if (box2) {
+    box2.querySelector('textarea').value = 'plain';
+    t.ACTIONS['rep-send'](box2.querySelector('[data-do="rep-send"]'));
+    for (let i = 0; i < 50 && sent.filter(b => b.action === 'suggest').length < 2; i++) await wait(50);
+    const two = sent.filter(b => b.action === 'suggest')[1];
+    if (two && two.note !== 'plain') bad.push('a suggestion about another widget carried the booking\'s fields: ' + JSON.stringify(two.note));
   }
-  if (d.getElementById('drop') || d.getElementById('drop-back')) bad.push('#drop is back in the document — a panel outside the card');
-  if (sheetOpen()) bad.push('the "' + step.id + '" row opens a sheet over the app');
-  if (!formUp()) bad.push('opening the list takes the form off its page');
-
-  /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
-  if (!tick(opts[0])) bad.push('no box for ' + JSON.stringify(opts[0]));
-  if (!list()) bad.push('ticking an answer closes the list, so the next one is another open');
-  if (!tick(opts[1])) bad.push('no box for ' + JSON.stringify(opts[1]));
-  if (!list()) bad.push('ticking a second answer closes the list');
-  if (!formUp()) bad.push('ticking an answer takes the form off its page');
-  if ((B[step.id] || []).length !== 2) {
-    bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
-  }
-  const ticked = boxes().filter(b => b.checked).map(b => b.value);
-  if (ticked.length !== 2) bad.push('the redrawn list shows ' + ticked.length + ' boxes ticked, not the two that are chosen');
-  /* A SECOND `change` FOR ONE TICK — a redraw between the tap and the handler, a doubled event — is
-     the box saying the same thing twice, and must not take the answer off again. */
-  const again = boxes().find(x => x.value === opts[1]);
-  if (again) again.dispatchEvent(new w.Event('change', { bubbles: true }));
-  if ((B[step.id] || []).length !== 2) bad.push('a second change for one tick turned it into ' + JSON.stringify(B[step.id]));
-
-  /* AND UNTICKING TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
-  tick(opts[0]);
-  if ((B[step.id] || []).length !== 1) {
-    bad.push('unticking a chosen answer does not take it off: ' + JSON.stringify(B[step.id]));
-  }
-
-  /* ---------- AND THE ROW ITSELF, WHICH THE REST OF THIS CANNOT SAY § */
-  const row = String(w.__t.control ? w.__t.control(step) : '');
-  if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
-  else {
-    if (row.indexOf('data-do="book-many"') === -1) {
-      bad.push('the "' + step.id + '" row does not open the list — it draws ' + JSON.stringify(row.slice(0, 80)));
-    }
-    if (row.indexOf(opts[1]) === -1) bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
-    if (row.indexOf('aria-expanded="true"') === -1) bad.push('the row does not say its list is open');
-    if (row.indexOf('aria-controls="bk-many-' + step.id + '"') === -1) bad.push('the row does not name the list it opens (aria-controls)');
-  }
-
-  /* PRESSING THE ROW AGAIN SHUTS IT — the one way out, and the one a disclosure has. */
-  A['book-many']({ dataset: { step: step.id } });
-  if (list()) bad.push('pressing the open row again does not shut the list');
-  if (B.picking) bad.push('a shut list leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
-  if ((B[step.id] || []).length !== 1) bad.push('shutting the list changed the answer: ' + JSON.stringify(B[step.id]));
-  /* AND THE FORM IS STILL ON ITS PAGE AFTERWARDS — asked while the panel stood, and lost with it. */
-  if (!formUp()) bad.push('shutting the list takes the form off its page');
+  host.remove();
   return bad;
 });
 
@@ -10638,11 +10721,8 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   const dashes = (html, where) => {
     /* READ OFF THE APP, SO A STAGE ADDED NEEDS NOTHING HERE. § */
     if (!STAGES.length) bad.push('JOB_STAGES has no rows, so the stage ticks cannot be checked');
-    const v = cellOf(html, 'Status');
-    if (v === null) bad.push(`the ${where} booking form has no "Status" row`);
-    else if (v !== '—') {
-      bad.push(`"Status" on the ${where} form reads ${JSON.stringify(v)}, not a dash`);
-    }
+    /* NO `Status` ROW (owner, 29 Oct: "What is status for?") — the five ticks are where a booking is. */
+    if (cellOf(html, 'Status') !== null) bad.push(`the ${where} booking form still has a "Status" row under the five ticks`);
     STAGES.forEach(label => {
       const cell = cellOf(html, label, true);
       if (cell === null) bad.push(`the ${where} booking form has no "${label}" row`);
@@ -10663,6 +10743,11 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   P.slots = ['m16']; P.interval = ['Autumn 1'];
   const priced = formPage();
   if (!w.__t.paper || w.__t.paper()) dashes(priced, 'priced');
+  /* AND NOT ON A SAVED SESSION'S RECEIPT EITHER — one spine, one rule. */
+  if (!w.__t.jobRows) bad.push('jobRows is not exported — the receipt\'s Status row was not checked');
+  else if (w.__t.jobRows({ id: 'J-ST', subject: 'Maths', slots: [{ n: 1, client: 'Pat Parent', status: 'Booked' }] }).some(r => r.k === 'Status')) {
+    bad.push('a session\'s receipt still has a "Status" row under the five ticks');
+  }
 
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
@@ -11818,34 +11903,24 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
-  /* AND THE FORM: an admin pricing a booking sees the Money block (docs/history/353); nobody else does. § */
+  /* AND THE FORM: an admin's figure is "Client pays" and nothing under it (owner, 29 Oct: "Forget the charged, discount, venue, tutor payout and card fees … also delete net profit"). */
   if (typeof w.__t.formMoney === 'function' && typeof w.bookMoney_ === 'function') {
     const earn = w.bookMoney_({ tutorPay: 90, profit: 12, venue: 0 });
     const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, earn };
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
-    const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
-    const wantRows = [/^Charged £102\.00/, /^Tutor payout − £90\.00/,
-                      /^Card fees £0\.00/, /^Net profit · 11\.8% £12\.00$/];
-    if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
-      bad.push('an admin pricing a booking is not shown the Money block as summed: ' + said);
-    }
-    /* A NEGATIVE NET IS RED AND SAYS SO: a £20 business-absorbed discount on the same booking. */
-    const lossEarn = w.bookMoney_({ tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
-    const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, earn: lossEarn });
-    const netRow = loss.more.find(m => m.k.indexOf('Net profit') === 0) || {};
-    if (!/is-bad/.test(netRow.cls || '') || loss.say !== 'This booking costs you £20.00.') {
-      bad.push('a booking that loses money does not say so in red: ' + JSON.stringify([netRow, loss.say]));
+    if (fa.label !== 'Client pays' || (fa.more || []).length || fa.say) {
+      bad.push('an admin pricing a booking is shown ' + JSON.stringify(fa) + ', wanted "Client pays" and nothing under it');
     }
     w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     const fp = w.__t.formMoney(L);
-    if (fp.more.length || fp.say) bad.push('a client pricing the form is shown the Money block');
-  } else bad.push('formMoney_ or bookMoney_ is not reachable, so the Money block was not checked');
+    if (fp.label || (fp.more || []).length || fp.say) bad.push('a client pricing the form is shown an admin\'s figure: ' + JSON.stringify(fp));
+  } else bad.push('formMoney_ or bookMoney_ is not reachable, so the admin\'s figure was not checked');
   return bad;
 });
 
-check('the booking form shows an admin what a booking earns, and a parent nothing of it', async () => {
-  /* ---------- THE MONEY BLOCK, THE DISCOUNT LINE AND THE FORMAT, ON THE REAL FORM (docs/history/353) § */
+check('an admin\'s booking form ends on Discount, one percentage, and Client pays, lines like the ones above, and a parent sees neither', async () => {
+  /* ---------- THE OWNER'S NOTES OF 29 OCT ON THE BOOKING WIDGET (docs/history/528) § */
   const { w, sent } = boot();
   await wait(300);
   if (!w.__t.paper || !w.__t.DATA) return ['bookBreakdown or DATA is not exported — cannot check the form'];
@@ -11859,50 +11934,69 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     Object.assign(B, { how: 'Instant class', level: 'GCSE', loc: 'Colliers Wood Library', subjects: ['Maths'],
       n: '2', hosting: 'No', slots: ['m16', 'm17'],
-      /* A TERM OF ITS OWN, a week from today for three weeks: the fixture's ends on a fixed date, and a term
-         that has ended has no Mondays left to price, so a journey run next month would price nothing. */
-      interval: ['Money test term'],
-      discType: '£', discValue: '5', discBy: 'Business' }, extra || {});
+      /* A TERM OF ITS OWN, a week from today for three weeks, so a journey run next month still has Mondays to price. */
+      interval: ['Money test term'], discValue: '30' }, extra || {});
   };
   const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+  const rowsOf = d => [...d.querySelectorAll('.bk > .bk-row')];
+  const kOf = r => ((r.querySelector('.bk-k') || {}).textContent || '').trim();
+  const tOf = r => ((r.querySelector('.bk-t') || {}).textContent || '').trim();
+  const gbp = n => '£' + (Number(n) || 0).toFixed(2);
 
   w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  seed({ discValue: '' });
+  const full = (w.__t.price() || {}).total;
   seed();
+  const off = (w.__t.price() || {}).total;
+  if (!(full > 0)) return bad.concat('the admin\'s booking did not price, so NOTHING was checked: ' + JSON.stringify(full));
+  if (Math.round(off * 100) !== Math.round(full * 70)) bad.push('30 in Discount took ' + full + ' to ' + off + ', wanted 30% off: ' + Math.round(full * 70) / 100);
   const a = doc(w.__t.paper());
-  const keys = [...a.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
-  if (!a.querySelector('.bk-row.rc-disc .bk-v select[data-field="discType"]')) bad.push('an admin is not given the discount line');
-  /* ONE LINE PER THING (421): Discount, then How much, Code or reason, Absorbed by — each its own row with its control as the value. */
-  ['discValue', 'discCode', 'discBy'].forEach(f => {
-    if (!a.querySelector('.bk-row.rc-disc-more .bk-v [data-do="book-disc"][data-field="' + f + '"]')) bad.push('the discount\'s ' + f + ' is not its own row');
-  });
-  const discRows = [...a.querySelectorAll('.bk-row.rc-disc, .bk-row.rc-disc-more')].map(r => r.querySelector('.bk-k').textContent.trim());
-  if (discRows.join('|') !== 'Discount|How much|Code or reason|Absorbed by') bad.push('the discount rows read ' + JSON.stringify(discRows));
-  if (a.querySelector('.rc-disc-ctl')) bad.push('the discount\'s controls are boxed under its row again (421)');
-  const lastDisc = [...a.querySelectorAll('.rc-disc, .rc-disc-more')].pop(), cost = lastDisc && lastDisc.nextElementSibling;
-  if (!cost || !cost.classList.contains('rc-total') || cost.classList.contains('rc-more')) bad.push('the discount line is not directly above COST');
-  const costSays = cost ? ((cost.querySelector('.bk-k') || {}).textContent || '') + ' ' + ((cost.querySelector('.bk-t') || {}).textContent || '') : '';
-  if (!/£[\d.]+ − £5\.00 = £[\d.]+$/.test(costSays)) bad.push('COST does not read £X − £5.00 = £Y: ' + JSON.stringify(costSays));
-  ['Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
-    if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a booking has no "' + k + '" row: ' + keys.join(', '));
+  const rows = rowsOf(a), keys = rows.map(kOf);
+  /* ONE DISCOUNT LINE: a number box and nothing else — no type, no "How much", no code, no "Absorbed by". */
+  const disc = rows.filter(r => r.matches('.rc-disc, .rc-disc-more') || kOf(r) === 'Discount');
+  if (disc.length !== 1) bad.push('the discount is ' + disc.length + ' lines: ' + JSON.stringify(disc.map(kOf)));
+  const box = disc[0] && disc[0].querySelector('.bk-v input[data-do="book-disc"][data-field="discValue"]');
+  if (!box || box.type !== 'number' || disc[0].querySelectorAll('select, input').length !== 1) bad.push('the Discount line is not one number box');
+  else if (box.value !== '30') bad.push('the Discount box reads ' + JSON.stringify(box.value) + ', wanted 30');
+  ['How much', 'Code or reason', 'Absorbed by'].forEach(k => { if (keys.indexOf(k) !== -1) bad.push('the form still has a "' + k + '" line'); });
+  /* CLIENT PAYS IS THE NEXT LINE, an ordinary row like the ones above — not the total bar, and nothing under it. */
+  const pays = disc[0] && disc[0].nextElementSibling;
+  if (!pays || kOf(pays) !== 'Client pays') bad.push('the line under Discount is ' + JSON.stringify(pays && kOf(pays)) + ', wanted Client pays');
+  else {
+    if (pays.classList.contains('rc-total') || pays.classList.contains('rc-more')) bad.push('Client pays is still drawn as the total bar, not as a line like the ones above');
+    if (['bk-n', 'bk-k', 'bk-v', 'bk-m', 'bk-r', 'bk-t'].some(c => !pays.querySelector('.' + c))) bad.push('Client pays does not have the six cells every line above has');
+    if (tOf(pays) !== gbp(off)) bad.push('Client pays reads ' + JSON.stringify(tOf(pays)) + ', wanted ' + gbp(off));
+    if (tOf(disc[0]) !== '− ' + gbp(full - off)) bad.push('the Discount line\'s figure reads ' + JSON.stringify(tOf(disc[0])) + ', wanted − ' + gbp(full - off));
+    if (pays.nextElementSibling && pays.nextElementSibling.matches('.bk-row, .bk-say')) bad.push('something is still drawn under Client pays: ' + JSON.stringify(kOf(pays.nextElementSibling) || pays.nextElementSibling.textContent));
+  }
+  if (a.querySelector('.rc-total, .rc-more, .rc-money, .rc-money-say')) bad.push('the admin\'s form still draws a total bar or the money block under it');
+  ['Charged', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
+    if (keys.some(x => x === k || x.indexOf(k + ' ') === 0)) bad.push('the admin\'s form still has a "' + k + '" line');
   });
   /* NO FORMAT, PRACTICAL OR TRIP LINE (463): trips and practicals are shop items. */
   ['Format', 'Practical', 'Trip', 'Materials', 'Tickets', 'Travel'].forEach(k => {
     if (keys.indexOf(k) !== -1) bad.push('the form still has a "' + k + '" row (463)');
   });
-  /* NO DISCOUNT CHOSEN, NO DISCOUNT DETAIL: the three rows under Discount come only with a type (421). */
-  seed({ discType: '', discValue: '', discBy: '' });
-  const none = doc(w.__t.paper());
-  if (!none.querySelector('.bk-row.rc-disc select[data-field="discType"]') || none.querySelector('.rc-disc-more')) {
-    bad.push('with no discount chosen the form should show the Discount row alone');
+  /* WHAT GOES ON THE WIRE: the price the client pays after the discount, the discount as a percentage the business absorbs. */
+  try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('the admin sending threw: ' + e.message); }
+  await wait(250);
+  const aj = sent.find(x => x.action === 'createJob');
+  if (!aj) bad.push('the admin\'s booking was never sent');
+  else {
+    if (Math.round(Number(aj.price) * 100) !== Math.round(off * 100)) bad.push('the admin\'s booking sent price ' + aj.price + ', wanted what the client pays, ' + off);
+    if (aj.discountType !== '%' || aj.discountValue !== '30' || aj.discountAbsorbedBy !== 'Business' || aj.discountCode) {
+      bad.push('the admin\'s booking sent the discount as ' + JSON.stringify([aj.discountType, aj.discountValue, aj.discountAbsorbedBy, aj.discountCode]));
+    }
   }
+  sent.length = 0;
 
   /* THE PARENT, WITH THE ADMIN'S DISCOUNT STILL IN THE DRAFT. */
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   seed();
   const p = doc(w.__t.paper());
-  if (p.querySelector('.rc-money, .rc-disc, .rc-disc-more, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
+  if (p.querySelector('.rc-disc, .rc-pays, .rc-money, .rc-money-say')) bad.push('a parent is shown the discount or the admin\'s Client pays line');
   const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
-  if (pCost.some(t => /−/.test(t))) bad.push('a parent\'s COST carries the admin\'s discount: ' + pCost.join(' | '));
+  if (pCost.length !== 1 || /\u2212/.test(pCost[0]) || pCost[0] === gbp(off)) bad.push('a parent\'s COST is ' + JSON.stringify(pCost) + ', which carries the admin\'s discount');
   try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('sending threw: ' + e.message); }
   await wait(250);
   const job = sent.find(x => x.action === 'createJob');
@@ -11913,7 +12007,6 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
       if (k in job) bad.push('the job still sends ' + k + ' (463)');
     });
   }
-
   return bad;
 });
 

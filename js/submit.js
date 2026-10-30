@@ -877,11 +877,13 @@ on('rep-send', el => {
   const note = String((box && box.value) || '').trim().slice(0, SUGGEST_NOTE_MAX);
   const hasFiles = (REP_FILES.get(form) || []).length > 0;
   if (!note && !hasFiles && !suggestPeople_(kind)) { if (said) said.textContent = 'Write what should change first.'; return; }
+  /* THE BOOKING WIDGET'S FIELDS GO WITH IT (29 Oct), so the note says what was filled in — `bookFieldsSaid_`, book.js. */
+  const fields = kind === 'widget' && id === 'booking' && typeof bookFieldsSaid_ === 'function' ? bookFieldsSaid_() : '';
   form.classList.add('is-sending');
   (hasFiles ? repFilesSend_(form) : Promise.resolve(undefined)).catch(() => null).then(files => {
   form.classList.remove('is-sending');
   if (files === null) { const bad = (REP_FILES.get(form) || []).find(x => x.state === 'failed'); if (said) said.textContent = 'A file did not go' + (bad && bad.error ? ': ' + bad.error : '') + '. Press Send to try the rest again.'; return; }
-  return send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note,
+  return send_({ action: 'suggest', personId: USER.personId || '', kind, itemId: id, label: form.dataset.rl || '', note: [note, fields].filter(Boolean).join('\n\n'),
           finder: form.dataset.finder || '', path: form.dataset.path || '', image: REP_PIC.get(form) || '', device: reportDevice_(), ...(files ? { files } : {}) },
         { button: el, where: said })
     .then(d => {

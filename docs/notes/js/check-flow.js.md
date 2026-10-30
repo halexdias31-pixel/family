@@ -8307,3 +8307,42 @@ top level, before `FLOW_PART_`
    sets it. */
 ```
 
+### ---------- EVERY DROPDOWN ON THE BOOKING CARD IS THE SAME CONTROL (owner, 29 Oct; docs/history/528)
+
+top level, before `w`
+
+```
+/* ---------- EVERY DROPDOWN ON THE BOOKING CARD IS THE SAME CONTROL (owner, 29 Oct; docs/history/528) ----------
+   "The term drop down needs to work like the drop downs above. As does every drop down here." and "Again child drop down should behave
+   like the above drop downs." Subject, Term and Child opened ticks under the row (a list box on a phone); each is Level's select now. */
+```
+
+### ---------- AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS (owner, 29 Oct; docs/history/528)
+
+top level, before `w`
+
+```
+/* ---------- AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS (owner, 29 Oct; docs/history/528) ----------
+   "If the client picks client house then the space field is redundant and shouldn't really be fill-outable." One rule, `atClientHome_`. */
+```
+
+### ---------- WHAT THE CARD HELD GOES WITH A SUGGESTION ABOUT IT (owner, 29 Oct; docs/history/528)
+
+top level, before `reply`
+
+```
+/* ---------- WHAT THE CARD HELD GOES WITH A SUGGESTION ABOUT IT (owner, 29 Oct; docs/history/528) ----------
+   "Hope you can see the filled-out fields" — in the note's text, people as initials, nothing about payment, the note itself not copied. */
+```
+
+### ---------- THE OWNER'S NOTES OF 29 OCT ON THE BOOKING WIDGET (docs/history/528)
+
+top level, before `w`
+
+```
+/* ---------- THE OWNER'S NOTES OF 29 OCT ON THE BOOKING WIDGET (docs/history/528) ----------
+     "should just be 1 line which says discount. If I put 30 in that field then it's just 30 percent off"; "Code or reason … delete that
+     line. Same with absorbed by"; "Client pays line should be treated like the stuff above"; "Forget the charged, discount, venue, tutor
+     payout and card fees … Also delete net profit." */
+```
+

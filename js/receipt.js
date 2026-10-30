@@ -246,7 +246,7 @@ on('book-share', el => {
 
 /* THE BOOKER IS NOT A SHEET ANY MORE. § */
 /* The one entry point. § */
-/* THE LIST OF CHECKBOXES UNDER A SEVERAL-OF-A-LIST ROW IS PART OF THE CARD — see `stepManyList_` — so this one redraw is what keeps the tick, the row's own § */
+/* EVERY ANSWER ON THE CARD COMES THROUGH THIS ONE REDRAW. */
 function drawBooker() {
   redrawBooker_(paintBook_);
   /* EVERY ANSWER COMES THROUGH HERE, so here is where the form is kept for a reload (`bookKeep_`, book.js). */
