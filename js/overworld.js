@@ -162,6 +162,8 @@ const SWIPE = {
      and the measurements held still. Once per gesture, not once per frame. */
   held: false,
   lock: 0,             // the drag's dead zone, put back on every touch: NOT the padlock (`PADLOCK` below)
+  band: false,         // pulled past the first or last card, on the rubber band (527)
+  span: 0,             // the step the band is measured against, once a drag
 };
 
 /* THE PADLOCK (457, 461): a game widget's (`game`, 'id@column:page') or a question page's (`q`, 'column:page') holds the column still. Its own name, as `SWIPE.lock` is zeroed on every touch. */
@@ -254,9 +256,16 @@ function scrollHost_(target, axis, dir) {
 /* ---------- WHAT COUNTS AS TURNING THE PAGE § */
 /* ---------- AND "MOST OF THE WAY" HAD BECOME FIFTY-SIX PIXELS § */
 const THROW_PX = 56;          // far enough, in pixels, at the least
-const THROW_FRACTION = 0.3;   // ...a third of the way to the next card
-const THROW_MAX = 120;        // ...and never more than this, whichever card it is
+/* HALFWAY, AS ON iOS (527): where the card would coast to (`PROJECT_MS` of the release speed) past half the step turns the page. */
+const THROW_FRACTION = 0.5;   // ...half the way to the next card
+const THROW_MAX = 180;        // ...and never more than this, whichever card it is
 const FLICK = 0.4;            // fast enough, in pixels per millisecond
+const PROJECT_MS = 100;       // how far a release coasts, in ms of its speed: iOS's "fast" deceleration
+/* PAST THE FIRST OR LAST, THE CARD GIVES LESS AND LESS (527): iOS's rubber band, b(x) = (1 − 1/(x·c/d + 1))·d. */
+const BAND_C = 0.55;
+const band_ = (x, d) => { const k = Math.abs(x) * BAND_C / Math.max(1, d) + 1; return Math.sign(x) * (1 - 1 / k) * Math.max(1, d); };
+/* AND HOW FAST THE CARD MOVES THERE FOR A FINGER MOVING AT 1 — the band's slope, so the spring back starts at the card's speed. */
+const bandSlope_ = (x, d) => { const k = Math.abs(x) * BAND_C / Math.max(1, d) + 1; return 1 / (k * k); };
 
 /* Far enough, for this axis. § */
 /* ---------- THE RELEASE SPEED, FITTED RATHER THAN SUBTRACTED § */
@@ -278,6 +287,12 @@ const THROW = axis => {
   return Math.min(THROW_MAX, Math.max(THROW_PX, (step || 0) * THROW_FRACTION));
 };
 
+/* THE GRID WILL NOT TAKE THIS GESTURE: let it go, and a row held at touch-down with it (`grabLet_`, 527). */
+function swipeDrop_() {
+  SWIPE.live = false;
+  if (typeof GRAB !== 'undefined' && GRAB) grabLet_(0);
+}
+
 /* POINTER EVENTS, NOT TOUCH EVENTS. § */
 addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;                            // a second finger is a pinch, not a swipe
@@ -291,7 +306,7 @@ addEventListener('pointerdown', e => {
   SWIPE.frame = 0;
   SWIPE.held = false;
   SWIPE.vAt = Date.now(); SWIPE.vD = 0; SWIPE.v = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.last = null;
+  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.last = null; SWIPE.band = false; SWIPE.span = 0;
   SWIPE.trail = [[e.timeStamp, e.clientX, e.clientY]];
   /* A FINGER ON A CARD STILL GLIDING STOPS IT WHERE IT IS — see `glide_` below — and a new finger
      is a new drag, which measures its own columns rather than inheriting the last one's (`DRAG_PLAN`
@@ -301,6 +316,8 @@ addEventListener('pointerdown', e => {
   /* A RELEASE NOBODY PLACED YET IS NOT THIS GESTURE'S. Cleared so a later tap cannot inherit the
      last swipe's speed — see `settleFrom_` in shell.js. */
   if (typeof settleFrom_ === 'function') settleFrom_(null);
+  /* A ROW STILL SLIDING STOPS UNDER THE FINGER (527) — `grabRow_` in shell.js; let go again below unless a sideways drag takes it. */
+  if (typeof grabRow_ === 'function') grabRow_();
   SWIPE.id = e.pointerId;
   /* A NEW GESTURE HAS NOT MOVED YET — see `PRESS_MOVED` in shell.js. Cleared here as well as
      by the click it swallows, so a drag that ends without one cannot eat the next tap. */
@@ -334,13 +351,13 @@ addEventListener('pointermove', e => {
   if (!SWIPE.axis) {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
     /* ---------- NOT WHILE A FINGER IS ON THE ARMED DRAWING § */
-    if (typeof padBusy_ === 'function' && padBusy_()) { SWIPE.live = false; return; }
+    if (typeof padBusy_ === 'function' && padBusy_()) { swipeDrop_(); return; }
     /* NOR WHILE A FINGER IS MOVING A CARET OR A SELECTION IN A BOX (385, `kpBusy_`) */
-    if (typeof kpBusy_ === 'function' && kpBusy_()) { SWIPE.live = false; return; }
+    if (typeof kpBusy_ === 'function' && kpBusy_()) { swipeDrop_(); return; }
     /* NOR WHILE THE MAGNIFIER IS HELD OVER A QUESTION (463, `magBusy_`) */
-    if (typeof magBusy_ === 'function' && magBusy_()) { SWIPE.live = false; return; }
+    if (typeof magBusy_ === 'function' && magBusy_()) { swipeDrop_(); return; }
     /* A LOCKED GAME KEEPS EVERY DRAG: no column turn and no scroll of the page under it (461). */
-    if (PADLOCK.game) { SWIPE.live = false; return; }
+    if (PADLOCK.game) { swipeDrop_(); return; }
     /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. § */
     countHold_(true);
     try {
@@ -357,7 +374,7 @@ addEventListener('pointermove', e => {
         const host = axis === 'y' && $('sheet').classList.contains('hidden')
           && !SWIPE.target.closest?.('[data-noswipe]')
           ? scrollHost_(SWIPE.target, axis, dir) : null;
-        if (!host) { SWIPE.live = false; return; }
+        if (!host) { swipeDrop_(); return; }
         SWIPE.scroll = host;
         /* FROM WHERE THE FINGER IS NOW, not where it started — the grid's own dead-zone pop, in the
            box that scrolls instead. */
@@ -370,9 +387,11 @@ addEventListener('pointermove', e => {
         SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
         SWIPE.last = AXES[axis].count() - 1;
         /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS § */
-        SWIPE.catch = settleLeft_(axis);
+        SWIPE.catch = axis === 'x' && GRAB ? grabTake_() : settleLeft_(axis);
       }
     } finally { countHold_(false); }
+    /* NOT A SIDEWAYS DRAG OF THE ROW: a row held at touch-down goes on to where it was going. */
+    if (GRAB) grabLet_(0);
   }
 
   /* SCROLLING THAT BOX AND NOTHING ELSE. No cells, no velocity, no placement -- the grid is not
@@ -402,7 +421,10 @@ addEventListener('pointermove', e => {
 
   /* ONE PLACEMENT PER FRAME THAT IS ACTUALLY DRAWN. § */
   /* ---------- AT THE END OF THE RUN, NOTHING MOVES § */
-  SWIPE.px = (end ? 0 : travelled - SWIPE.lock) + SWIPE.catch;
+  /* ...UNTIL 527: the owner asked for iOS, so past the end is iOS's rubber band (`band_`), the step measured once a drag (`SWIPE.span`). */
+  if (end && !SWIPE.span) SWIPE.span = (SWIPE.axis === 'x' ? stepX_() : stepY_()) || 1;
+  SWIPE.band = end;
+  SWIPE.px = (end ? band_(travelled - SWIPE.lock, SWIPE.span) : travelled - SWIPE.lock) + SWIPE.catch;
   /* THE CATCH IS IN WHAT IS PLACED AND NEVER IN WHAT IS DECIDED. § */
   SWIPE.d = travelled;
   if (SWIPE.frame) return;
@@ -419,9 +441,13 @@ addEventListener('pointermove', e => {
 
 addEventListener('pointerup', e => {
   /* AND THE SAME FINGER LETTING GO. § */
+  /* A ROW HELD AT TOUCH-DOWN AND NEVER DRAGGED GOES ON (527) — before the early return, as a gesture not the grid's ends here too. */
+  if (GRAB) grabLet_(0);
   if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
   const v = releaseV_(SWIPE.trail, SWIPE.axis, e && e.timeStamp !== undefined ? e.timeStamp : performance.now());
   const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells, scrolled = SWIPE.scroll;
+  const banded = SWIPE.band, span = SWIPE.span, lock = SWIPE.lock;
+  SWIPE.band = false; SWIPE.span = 0;
   /* EVERYTHING A DRAG SET, PUT BACK — in one line, so a field added later is added here rather than left to be noticed. § */
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
@@ -443,19 +469,23 @@ addEventListener('pointerup', e => {
     /* FAR ENOUGH, OR FAST ENOUGH — and the flick has to be going the SAME WAY as the drag. § */
     /* ---------- AND FAR ENOUGH IS NOT ENOUGH IF THE FINGER IS ON ITS WAY BACK § */
     const backing = Math.abs(v) >= 0.2 && (v < 0) !== (d < 0);
-    const far = Math.abs(d) >= THROW(axis) && !backing;
+    const coast = d + v * PROJECT_MS;
+    const far = Math.abs(coast) >= THROW(axis) && (coast < 0) === (d < 0) && !backing;
     const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
     const going = far || fast;
 
     /* ---------- THE SETTLE CARRIES ON AT THE SPEED THE FINGER WAS GOING § */
-    settleFrom_(axis, v);
+    /* PULLED PAST THE END, the card was moving at the band's slope of the finger's speed. */
+    settleFrom_(axis, banded ? v * bandSlope_(d - lock, span) : v);
 
     /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
        There is no pane-watching any more: sizes are fixed, so nothing can change size. */
     /* PAST THE END IS A SETTLE, NOT A TURN. § */
     const to = ax.at() + (d < 0 ? 1 : -1);
-    if (going && to >= 0 && to < ax.count()) ax.go(to);
-    else placeCells(axis);          // not far enough: it settles back, and is seen to
+    /* LESS MOTION ASKED FOR: the turn, or the way back, lands at once (527). */
+    const now = typeof motionLess_ === 'function' && motionLess_();
+    if (going && to >= 0 && to < ax.count()) ax.go(to, now);
+    else placeCells(axis, now);     // not far enough: it settles back, and is seen to
   } finally { countHold_(false); }
 }, { passive: true });
 
@@ -539,13 +569,14 @@ addEventListener('wheel', e => {
    dragged is put back, on whichever axis it was. */
 /* A CANCELLED POINTER. § */
 addEventListener('pointercancel', e => {
+  if (GRAB) grabLet_(0);
   if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
   const axis = SWIPE.axis;
   /* The same reset as `pointerup`, because a cancelled gesture has to leave exactly as little
      behind as a finished one. */
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
-  SWIPE.lock = 0; SWIPE.catch = 0;
+  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.band = false; SWIPE.span = 0;
   SWIPE.id = null;
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   if (axis) placeCells(axis);
@@ -572,6 +603,7 @@ if (window.visualViewport) {
 /* ---------- COMING BACK TO A TAB THAT WAS LEFT MID-GESTURE § */
 addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') return;
+  if (GRAB) grabLet_(0);
   if (!SWIPE.live) return;
   const axis = SWIPE.axis;
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0;

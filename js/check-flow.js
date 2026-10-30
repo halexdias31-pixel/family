@@ -15016,20 +15016,27 @@ check("a swipe settles at the finger's speed, written on the columns and not the
     return ['settleCurve_, settleFrom_ or placeGrid is not reachable, so the settle was NOT checked — not a pass'];
   }
   const bad = [];
-  const slope = tf => { const m = /cubic-bezier\(\s*([^,]+),\s*([^,]+),/.exec(tf || ''); return m ? (+m[2]) / (+m[1]) : NaN; };
-  /* A card D px from where it is going, released at v px/ms. § */
-  [[300, 1.2], [-300, -1.2], [120, 0.3], [200, 4]].forEach(([D, v]) => {
-    const c = w.settleCurve_(D, v);
-    const want = Math.abs(v) * c.dur / Math.abs(D), got = slope(c.tf);
-    if (!(Math.abs(got - want) / want < 0.02)) {
-      bad.push(`a card ${D}px from home released at ${v}px/ms leaves at ${got.toFixed(2)}x its average `
-        + `speed and should leave at ${want.toFixed(2)}x — the finger's own speed`);
-    }
-    if (!(c.dur >= 260 && c.dur <= 420)) bad.push(`a ${Math.abs(D)}px settle takes ${c.dur}ms, outside 260-420`);
+  /* THE SPRING ITSELF (527): `springAt_` sampled at the time `settleCurve_` gives — critically damped, so it starts at the
+     finger's speed (capped where more would sail past), never overshoots, and its time follows distance and speed. */
+  if (typeof w.springAt_ !== 'function' || typeof w.springOf_ !== 'function') return ['springAt_ or springOf_ is not reachable — the spring was NOT checked'];
+  const W = w.SPRING_W || 0.02;
+  [[300, 1.2], [-300, -1.2], [120, 0.3], [200, 4], [335, 0], [40, 0.5]].forEach(([D, v]) => {
+    const c = w.settleCurve_(D, v), s = w.springOf_(D, v), dist = Math.abs(D);
+    const want = Math.min(W, Math.abs(v) / dist), got = (w.springAt_(s.a, 0.01) - w.springAt_(s.a, 0)) / 0.01;
+    if (Math.abs(got - want) * dist > want * dist * 0.03 + 0.005) bad.push(`a card ${D}px from home released at ${v}px/ms leaves at ${(got * dist).toFixed(2)}px/ms, not ${(want * dist).toFixed(2)}`);
+    let top = 0;
+    for (let t = 0; t <= c.dur; t += 4) top = Math.max(top, w.springAt_(s.a, t));
+    if (top * dist > dist + 0.5) bad.push(`a ${dist}px settle at ${v}px/ms sails ${(top * dist - dist).toFixed(1)}px past its card`);
+    if (Math.abs(1 - w.springAt_(s.a, c.dur)) * dist > 0.5) bad.push(`a ${dist}px settle ends ${((1 - w.springAt_(s.a, c.dur)) * dist).toFixed(1)}px short of its card`);
+    if (!(c.dur >= 100 && c.dur <= 900)) bad.push(`a ${dist}px settle takes ${c.dur}ms, outside 100-900`);
+    if (!/^(linear\(0, .*, 1\)|cubic-bezier\()/.test(c.tf)) bad.push(`a settle's curve is ${String(c.tf).slice(0, 40)}`);
   });
-  /* RELEASED STILL, OR PULLING BACK THE OTHER WAY: nothing to carry on, so it eases out of rest. */
-  if (slope(w.settleCurve_(200, 0).tf) !== 0) bad.push('a card released still does not start from rest');
-  if (slope(w.settleCurve_(200, -1).tf) !== 0) bad.push('a card whose finger was pulling the other way starts by leaping toward home');
+  /* LONGER FOR FURTHER, SHORTER FOR FASTER. */
+  if (!(w.settleCurve_(335, 0).dur > w.settleCurve_(60, 0).dur)) bad.push('a whole step settles no slower than a sixth of one');
+  if (!(w.settleCurve_(335, 3).dur < w.settleCurve_(335, 0).dur)) bad.push('a flicked card settles no sooner than one let go still');
+  /* RELEASED STILL, OR PULLING BACK THE OTHER WAY: it starts from rest, or goes out a little and comes back — never leaps home. */
+  if (w.springOf_(200, 0).a !== 0) bad.push('a card released still does not start from rest');
+  if (!(w.springOf_(200, -1).a <= 0)) bad.push('a card whose finger was pulling the other way starts by leaping toward home');
 
   /* ---------- AND WHERE IT IS WRITTEN ------------------------------------------------------------ */
   w.settleFrom_('x', -1);
@@ -15039,7 +15046,7 @@ check("a swipe settles at the finger's speed, written on the columns and not the
   }
   const hosts = [...w.document.querySelectorAll('#screen > .screen')].filter(h => h.style.transform);
   if (!hosts.length) bad.push('no column was placed, so where the settle goes was NOT checked');
-  else if (!hosts.some(h => /cubic-bezier/.test(h.style.transitionTimingFunction || ''))) {
+  else if (!hosts.some(h => /cubic-bezier|linear\(/.test(h.style.transitionTimingFunction || ''))) {
     bad.push('the settle was not written on the columns, so a release has no curve of its own');
   }
   return bad;
