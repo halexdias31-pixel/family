@@ -164,6 +164,8 @@ function subApply_(who, items, d) {
   subAllKeep_(who, all);
 }
 function subPush_(now, keepalive) {
+  /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
+  if (typeof pressFree_ === 'function') pressFree_();
   if (!(typeof answersCan_ === 'function' && answersCan_('submitAnswer')) || typeof api !== 'function') return Promise.resolve(false);
   if (SUB_BUSY) { SUB_AGAIN = true; return SUB_BUSY; }
   const pid = String(USER.personId), who = 'u:' + pid;

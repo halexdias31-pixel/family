@@ -2163,8 +2163,53 @@ function motionRead_() {
 const MOTION_ = {};
 Object.keys(MOTION_FALL_).forEach(k => Object.defineProperty(MOTION_, k, { enumerable: true, get: () => motionRead_()[k] }));
 
+/* ---------- ONE PRESS, ONE ACTION (534) ---------- */
+/* A double tap deleted a post and starred twice: the same control again within PRESS_AGAIN_MS, or while the request it started is out, is dropped. */
+const PRESS_AGAIN_MS = 350;
+/* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a maze step, a month flipped): `data-repeat` on the control, or its action named here. */
+const PRESS_REPEAT_ = new Set(['kp-key', 'maze-go', 'cal-back', 'cal-fwd', 'eink-step', 'tal-size', 'imp-count', 'c4-drop',
+                               'pad-undo', 'chess-undo', 'sp-ctl']);
+const PRESS_LAST_ = new Map();   /* press key -> { t, el }: when it last acted, and which element */
+const PRESS_OUT_ = new Map();    /* press key -> requests it started that are still out */
+let PRESS_ACTING_ = null;        /* { key, el } while a handler runs, so `api()` knows whose request it is */
+/* THE SAME CONTROL, EVEN REDRAWN: its kind (first class), action and data, less the arming marks — a star drawn afresh is still the star; an ordering's item and slot are two. */
+function pressKey_(el) {
+  let k = (String(el.getAttribute('class') || '').trim().split(/\s+/)[0] || el.tagName) + ':' + (el.getAttribute('data-do') || '');
+  for (const a of el.attributes) if (/^data-/.test(a.name) && !/^data-(do|sure|armed|repeat)$/.test(a.name)) k += '|' + a.name + '=' + a.value;
+  return k;
+}
+/* TRUE WHEN THIS PRESS IS THE SAME ONE AGAIN; otherwise it is recorded as the last. */
+function pressAgain_(el) {
+  if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
+  const key = pressKey_(el), now = performance.now();
+  if (PRESS_OUT_.get(key)) return true;
+  /* THE SAME ELEMENT, or the one it was redrawn from; two live copies of a control (a card drawn twice) are two controls. */
+  const last = PRESS_LAST_.get(key);
+  if (last && now - last.t < PRESS_AGAIN_MS && (last.el === el || !last.el.isConnected)) return true;
+  if (PRESS_LAST_.size > 64) PRESS_LAST_.forEach((v, k) => { if (now - v.t >= PRESS_AGAIN_MS) PRESS_LAST_.delete(k); });
+  PRESS_LAST_.set(key, { t: now, el });
+  return false;
+}
+/* A REQUEST OR A PROMISE A PRESS STARTED: the control says aria-busy and takes no press until it settles (api()'s deadline sees that it does). */
+function pressOut_(key, el, p) {
+  PRESS_OUT_.set(key, (PRESS_OUT_.get(key) || 0) + 1);
+  if (el && !el.hasAttribute('aria-busy')) { el.setAttribute('aria-busy', 'true'); el.PRESS_BUSY = true; }
+  const done = () => {
+    const n = (PRESS_OUT_.get(key) || 1) - 1;
+    if (n > 0) { PRESS_OUT_.set(key, n); return; }
+    PRESS_OUT_.delete(key);
+    if (el && el.PRESS_BUSY) { el.PRESS_BUSY = false; el.removeAttribute('aria-busy'); }
+  };
+  Promise.resolve(p).then(done, done);
+}
+
+/* A PRESS WHOSE SCREEN HAS ALREADY CHANGED (a star, a face) saves in the background: its request does not hold the control, so it can be taken back at once. */
+function pressFree_() { PRESS_ACTING_ = null; }
+
 /* ---------- ONE WAY TO POST § */
 /* ONE REQUEST, BUILT IN ONE PLACE. § */
+/* A MINUTE, AS load() HAS (534): a POST that never answers left its control spinning for ever; past this it rejects into the caller's why_(). */
+const API_DEADLINE_MS = 60000;
 /* WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED. § */
 function why_(err) {
   const msg = String((err && err.message) || err || '').trim();
@@ -2185,8 +2230,18 @@ function api(body, opts) {
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
-  return fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
-                                  opts && opts.keepalive ? { keepalive: true } : {}))
+  const keep = !!(opts && opts.keepalive);
+  let stop = null, bell = 0;
+  try { if (!keep && typeof AbortController === 'function') stop = new AbortController(); } catch (e) { stop = null; }
+  /* THE WHOLE REPLY, headers and body, under the one deadline; a keepalive flush outlives the page and is not cut. */
+  const late = keep ? null : new Promise((u, no) => { bell = setTimeout(() => {
+    const e = new Error('The server did not answer within a minute. It may still have been saved — look before trying again.');
+    e.name = 'TimeoutError';
+    try { if (stop) stop.abort(); } catch (err) { /* already settled */ }
+    no(e);
+  }, API_DEADLINE_MS); });
+  const asked = fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
+                                         keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY § */
     .then(r => r.text().then(txt => {
       try { return JSON.parse(txt); } catch (e) {}
@@ -2223,6 +2278,11 @@ function api(body, opts) {
       }
       return d || {};
     });
+  if (keep) return asked;
+  asked.catch(() => { /* the deadline answered first; this rejection is the abort it caused */ });
+  const p = Promise.race([asked, late]).finally(() => clearTimeout(bell));
+  if (PRESS_ACTING_) pressOut_(PRESS_ACTING_.key, PRESS_ACTING_.el, p);
+  return p;
 }
 
 /** The same request, refusing to resolve on a refusal — for callers that would rather catch. */
@@ -2576,13 +2636,20 @@ document.addEventListener('click', e => {
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
   if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
   if (doer && ACTIONS[doer.dataset.do]) {
+    /* ONE PRESS, ONE ACTION — see `pressAgain_`. */
+    if (pressAgain_(doer)) {
+      if (CLICK_LOG) console.log('[click] dropped — the same control again, or its request is still out');
+      return;
+    }
+    const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
     /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
     try {
-      ACTIONS[doer.dataset.do](doer, e);
+      const got = ACTIONS[doer.dataset.do](doer, e);
+      if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
     } catch (err) {
       oops_(err, 'act:' + doer.dataset.do);
       toast('That did not work. Everything else still works.');
-    }
+    } finally { PRESS_ACTING_ = null; }
   }
 });
 
@@ -3271,5 +3338,5 @@ try {
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) {}
 
-/* A DOUBLE TAP DOES NOTHING BUT TWO TAPS (466): iPad Safari zooms on it whatever the viewport says, and the column jumped. Nothing in the app listens for dblclick. */
+/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
 document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) {} }, { passive: false });

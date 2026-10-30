@@ -284,24 +284,23 @@ on('lay-w-col', el => {
   D.widgets[to] = D.widgets[to].concat(all);
   layMoveShow_('w', id, col, () => layoutSave_(D), to);
 });
+/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
+function layArm_(el, say, rest, word) {
+  return sure_(el, say, { ms: 3000,
+    face: x => {
+      x.classList.add('is-armed'); tileSet_(x, { label: say });
+      const k = x.querySelector('.tile-i');
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+    },
+    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
+}
 /* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-w');
   const all = mergeAll_(id, layoutNow_());
   if (all.some(basketKept_)) return;
-  if (el.getAttribute('data-armed') !== '1') {
-    const say = all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
-    el.setAttribute('data-armed', '1');
-    el.classList.add('is-armed');
-    tileSet_(el, { label: say });
-    const k = el.querySelector('.tile-i');
-    if (k && !el.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed');
-      tileSet_(el, { label: 'Delete' }); el.querySelector('.lay-again')?.remove(); } }, 3000);
-    return;
-  }
+  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
   const D = layoutDraftOf_(layoutNow_());
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
   all.forEach(x => { if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
@@ -825,19 +824,9 @@ on('lay-c-del', el => {
   const id = el.getAttribute('data-lc');
   if (!cardIs_(id)) return;
   const all = mergeAll_(id, layoutNow_());
-  if (el.getAttribute('data-armed') !== '1') {
-    const only = all.map(cardOnly_).filter(Boolean).join(', ');
-    const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
-    el.setAttribute('data-armed', '1');
-    el.classList.add('is-armed');
-    tileSet_(el, { label: say });
-    const k = el.querySelector('.tile-i');
-    if (k && !el.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed');
-      tileSet_(el, { label: 'Delete' }); el.querySelector('.lay-again')?.remove(); } }, 3000);
-    return;
-  }
+  const only = all.map(cardOnly_).filter(Boolean).join(', ');
+  const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
+  if (!layArm_(el, say, 'Delete', true)) return;
   const D = layoutDraftOf_(layoutNow_());
   all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
   layoutSave_(D);
@@ -925,12 +914,7 @@ on('lay-col-del', el => {
   if (!layoutIsAdmin_()) return;
   const col = el.getAttribute('data-col'), D = layoutDraftOf_(layoutNow_());
   if (!(D.custom || []).some(x => x.id === col)) return;
-  if (el.getAttribute('data-armed') !== '1') {
-    el.setAttribute('data-armed', '1'); el.classList.add('is-armed'); tileSet_(el, { label: 'Tap again to delete this column' });
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed'); tileSet_(el, { label: 'Delete column' }); } }, 3000);
-    return;
-  }
+  if (!layArm_(el, 'Tap again to delete this column', 'Delete column', false)) return;
   if (D.cards) delete D.cards[col];
   D.custom = D.custom.filter(x => x.id !== col);
   layoutSave_(D);

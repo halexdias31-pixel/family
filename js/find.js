@@ -10247,6 +10247,8 @@ function toggleFav(k, kind) {
   /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
      still right on this device, which is the part that matters in the moment. */
   if (USER) {
+    /* THE STAR HAS ALREADY MOVED and a refusal puts it back, so its save does not hold the tile (534). */
+    if (typeof pressFree_ === 'function') pressFree_();
     /* ---------- `saveProfile` DOES NOT EXIST, AND NEVER HAS § */
     /* THE KEY IS NOT SPLITTABLE, so it is not split. § */
     /* ---------- AND IT WAS STILL CALLING `send` WITH TWO ARGUMENTS § */

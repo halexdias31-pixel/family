@@ -198,6 +198,9 @@ const SUITE = [
   { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
+  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true },
+  { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },

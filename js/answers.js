@@ -172,6 +172,8 @@ let ANS_BUSY = null;          // the request in flight, so a second flush joins 
 let ANS_AGAIN = false;
 let ANS_RETRY = 0, ANS_BACKOFF = 0;
 function answersPush_(now, keepalive) {
+  /* THE DEVICE'S OWN QUEUE, not the press that woke it: the card has already changed, so this request holds no control (534). */
+  if (typeof pressFree_ === 'function') pressFree_();
   clearTimeout(ANS_TIMER);
   ANS_TIMER = 0;
   if (!now) { ANS_TIMER = setTimeout(() => answersPush_(true), ANS_WAIT); return Promise.resolve(false); }
