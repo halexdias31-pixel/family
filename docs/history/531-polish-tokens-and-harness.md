@@ -41,7 +41,7 @@ until then the fallbacks are the same numbers). Under reduced motion the CSS zer
   yet proven starts. A package adds a file in the folder and edits nothing shared.
 - **check/steady.js** (STEADY_PORT) — layout shifts, a frame clock and every box's scroll offset. Scenarios:
   `idle` (a settled app untouched for 1.5 s shifts nothing, scrolls nothing, the card in front stays), `toast`
-  (a message comes and goes and nothing moves), `landing` (report: shift in the 3 s after the payload lands).
+  (a message comes and goes and nothing moves), `landing` (report: shift from the payload until the app went quiet).
 - **check/jank.js** (JANK_PORT) — long tasks and event timing. `quiet` gates a settled app at 500 ms; `quiet-50`
   reports the U4 50 ms figure until package H gates it.
 - **check/touch.js** (TOUCH_PORT) — every control on the card in front and in the chrome, by kind, with the
@@ -65,9 +65,19 @@ The settled app is clean when measured from 3 s after the payload lands. Inside 
 moves (shift 0.002 at 320, 0.019 at 1280, `#s-reel .page.soft`): that is `landing`'s report, package A's to gate.
 At 1x a settled app still runs tasks over 50 ms (up to 244 ms, admin at 320) — `quiet-50`'s report, package H's.
 
+## Settled means quiet, not three seconds
+
+The review ran steady red 2 times in 4 at admin @1280: `#s-reel`, the reel neighbour, shifted 0.2-6.8 s after the
+payload. Traced: the landing's `loadMessages` (shell.js `loadOnce_`) repaints the reel, whose YouTube poster
+(`img.feed-poster`, i.ytimg.com, real network) lands seconds later and resizes its card. A fixed 3 s settle was a
+coin toss. `open()` in check/glass.js now waits, after the settle, for 1.5 s with no layout shift, no `fetch` in
+flight and every eager picture complete; a page that never gets there within 15 s of the payload fails. Twelve
+runs of admin @1280 in a row green. The late reel shift itself is package A's (U1, U5): `landing` reports it.
+
 ## Proof
 
 Each gate made red by a mutation and green again on the real files: a busy loop in the settled app (`jank
 quiet`), a box that grows under the card in front after landing (`steady idle`), a tap flash on `.tile` (`touch
-flash`), a viewport that allows zoom (`touch delay`), and a new `transition: width .37s ease-in-out` rule
+flash`), a viewport that allows zoom (`touch delay`), a box shifting every second (the quiet wait: never quiet, red), a box
+shifting every 2 s (`steady idle` red behind the quiet wait), a new rule reusing `.2s ease` (`motion`'s use counts), and a new `transition: width .37s ease-in-out` rule
 (`motion`).

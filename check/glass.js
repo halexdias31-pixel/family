@@ -52,7 +52,22 @@ function modules(dir) {
     .filter(m => !only || m.name === only);
 }
 
-/* THE APP OPENED AS ONE VISITOR AT ONE SIZE, settled: payload and library in, then `settle` ms of quiet. */
+/* QUIET MEANS NO LAYOUT SHIFT AND NO REQUEST FOR THIS LONG, none in flight; a landing that never goes quiet by `QUIET_CAP` after the payload fails. */
+const QUIET_MS = 1500, QUIET_CAP = 15000;
+/* THE LAST SHIFT AND THE LAST REQUEST, in every page: the landing's `loadMessages` answer paints the admin reel a thumbnail that lands up to 7 s after the payload (531), so a fixed settle was a coin toss. */
+function lastShift() {
+  const Q = window.__quiet = { shift: 0, net: 0, inflight: 0 };
+  try { new PerformanceObserver(l => l.getEntries().forEach(e => { if (!e.hadRecentInput) Q.shift = Math.max(Q.shift, e.startTime); }))
+    .observe({ type: 'layout-shift', buffered: true }); } catch (e) { Q.shift = -1; }
+  const f = window.fetch;
+  if (typeof f === 'function') window.fetch = function () {
+    Q.inflight++; Q.net = performance.now();
+    const done = () => { Q.inflight--; Q.net = performance.now(); };
+    return f.apply(this, arguments).then(r => { done(); return r; }, e => { done(); throw e; });
+  };
+}
+
+/* THE APP OPENED AS ONE VISITOR AT ONE SIZE, settled: payload and library in, `settle` ms, then a quiet window. */
 async function open(browser, port, v, w, h, opts) {
   const o = opts || {};
   const phone = w < 768;
@@ -62,6 +77,7 @@ async function open(browser, port, v, w, h, opts) {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e.message).slice(0, 160)));
   if (v.user) await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, v.user);
+  await page.addInitScript(lastShift);
   if (o.init) await page.addInitScript(o.init);
   const admin = v.user && (v.user.roles || []).indexOf('admin') !== -1;
   await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json',
@@ -72,7 +88,14 @@ async function open(browser, port, v, w, h, opts) {
   /* WHEN IT ARRIVED, in the page's clock, so a scenario can read what happened in the landing it did not watch. */
   const readyAt = ready ? await page.evaluate(() => performance.now()) : 0;
   await page.waitForTimeout(o.settle == null ? 1500 : o.settle);
-  return { page, ctx, errors, ready, readyAt };
+  /* THEN QUIET_MS WITH NO SHIFT AND NO REQUEST, so a scenario's window starts after the landing's last arrival, not inside it. */
+  const quietAt = !ready ? 0 : await page.waitForFunction(([q, cap, t0]) => {
+    const now = performance.now(), Q = window.__quiet;
+    /* A PICTURE STILL COMING counts as a request: the reel's thumbnail lands seconds later and resizes its card. */
+    const pics = [...document.images].every(i => i.complete || i.loading === 'lazy');
+    return Q && Q.shift >= 0 && !Q.inflight && pics && now - Math.max(Q.shift, Q.net) >= q ? now : now - t0 > cap ? -now : false;
+  }, [QUIET_MS, QUIET_CAP, readyAt], { polling: 100, timeout: QUIET_CAP + 5000 }).then(h => h.jsonValue(), () => -1);
+  return { page, ctx, errors, ready, readyAt, quiet: quietAt > 0, quietAt: Math.abs(quietAt) };
 }
 
 /* THE RUN: one browser, every size and visitor, every module that asks for them. Exits 0, 1 (a finding) or 2 (no subject). */
@@ -98,9 +121,10 @@ async function run(o) {
         const s = await open(browser, port, v, w, h, { init: o.init, settle: o.settle });
         try {
           if (!s.ready) { fail.push(`${where}: the payload or the library never arrived — nothing here was measured`); continue; }
+          if (!s.quiet) { fail.push(`${where}: the app never went ${QUIET_MS} ms without a shift or a request within ${QUIET_CAP / 1000} s of the payload — nothing here was measured`); continue; }
           for (const m of mine) {
             let got;
-            try { got = await m.run(s.page, { as: v.as, user: v.user, width: w, height: h, where, errors: s.errors, readyAt: s.readyAt }); }
+            try { got = await m.run(s.page, { as: v.as, user: v.user, width: w, height: h, where, errors: s.errors, readyAt: s.readyAt, quietAt: s.quietAt }); }
             catch (e) { got = null; fail.push(`${where} ${m.name}: threw — ${String(e.message).split('\n')[0]}`); continue; }
             ran++;
             if (got === null) { fail.push(`${where} ${m.name}: could not reach its subject`); continue; }
@@ -120,4 +144,4 @@ async function run(o) {
   console.log(`${tag}: ${o.green} — ${ran} scenario run(s), ${mods.length} module(s), ${combos} visitor/width pair(s)`);
 }
 
-module.exports = { VIEWERS, SIZES, FIXTURE, FIXTURE_ANON, serve, modules, open, run, arg };
+module.exports = { QUIET_MS, QUIET_CAP, VIEWERS, SIZES, FIXTURE, FIXTURE_ANON, serve, modules, open, run, arg };
