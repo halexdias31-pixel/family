@@ -233,6 +233,7 @@ async function statesPass(browser, port) {
   if (!measured) { console.error('tiles: no tile was measured — the check cannot see its subject'); process.exit(1); }
   if (!NO_STATES && !floor.n) { console.error('tiles: no tile was measured as drawn in any state — the floor reached nothing'); process.exit(1); }
   if (bad.length) { console.error(`tiles: ${bad.length} tile(s) off the spec`); bad.forEach(b => console.error('  ' + b)); process.exit(1); }
-  console.log(`tiles: ${measured} tiles at ${SIZES.join('/')}px — one size, one mark, left-aligned, no overlap or spill`
-    + (NO_STATES ? '' : `; ${floor.n} drawn in ${floor.states} states (student and admin, 320/390) and none under a fingertip (${floor.missed} not reached, -v names them)`));
+  /* SHORT ENOUGH FOR check/quiet.js's ONE LINE, which cuts at 200 characters: the floor's counts are the part worth reading. */
+  console.log('tiles: ' + (NO_STATES ? '' : `none under a fingertip — ${floor.n} drawn in ${floor.states} states, student and admin, 320/390 (${floor.missed} not reached, -v); `)
+    + `${measured} at ${SIZES.join('/')}px to spec, left-aligned, no overlap or spill`);
 })();

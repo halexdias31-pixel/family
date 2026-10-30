@@ -110,13 +110,14 @@ const ACCEPTED_TAP = [
   + 'one chip\'s reach is under the next line\'s, and `elementFromPoint` down a chip\'s middle gives it 36-38px (43 on a '
   + 'lone line). A 12px line gap would make it 44 and push a long answer list a line further down the card; the owner\'s '
   + 'density is kept, and the run is held to 36, a tile\'s floor.' },
-  { cls: /^qw\b/, run: 35, why:
+  { cls: /^qw\b/, run: 32, why:
     'A WORD IN A PASSAGE IS THE SIZE OF A WORD, and on a "circle the three adjectives" question the '
   + 'words ARE the controls -- *"some questions require answers on diagram"*, and for KS2 grammar the '
   + 'passage is the diagram. A 44px word would be a passage with one word a line. What was done '
   + 'instead: the passage opens to 2.4 line height and each word carries a 9px reach above and '
-  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area to about 35px '
-  + "tall without moving a line; the width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
+  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area without moving a line -- '
+  + '32-33px tall at 320 as `elementFromPoint` measures it down a word\'s middle (533; it said "about 35"), held to 32 here. '
+  + "The width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
   + 'cell liveable: a wrong tap costs nothing -- the same tap takes the ring straight back off, and '
   + 'nothing is sent anywhere.' },
   { cls: /^hr\b/, why:

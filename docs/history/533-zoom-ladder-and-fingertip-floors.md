@@ -59,7 +59,8 @@ says what is true and is held to 36, a tile's floor.
   its number; a whole run that measured none fails.
 - **check/tiles.js** — a second pass: every tile in every state of check/states.js, as student and admin, at 320
   and 390, measured with `getBoundingClientRect` (zoom included) and failing under 35.5px (43.5 for a Check).
-  `--no-states` skips it.
+  `--no-states` skips it. A state this pass cannot reach (some ask for check/ui.js's visitor or payload) is counted
+  and named under -v, not failed: reaching states is ui.js's rule; measuring no tile at all fails.
 - **check/steady/zoom-stable.js** — the library is held back and given back with Find in front; every card in
   every pane, every frame for 105 frames: none reverses its zoom within three frames, none is off the ladder.
 - check/states.js: the cheat sheet maker's walk accepts a view that scrolls to its foot (the floors hold it at
@@ -78,5 +79,15 @@ Each new rule made red on purpose and green again on the real files:
 - `paneStep_` put back to the old `max(0.7, room / used)` and `calcFit_` switched off: steady `zoom-stable` red
   (`s-tutors .card at 0.835`, `s-tools .card at 0.826` …), ui.js `A ZOOM OFF THE LADDER` and `A TOOL DRAWN
   SMALLER` red at 390 (`.card at 0.941`), tiles.js red at 320 (3126 tiles drawn 25.2px, under a fingertip).
-- The run rule was red on the real files before its entry was corrected: 101 `counted.row`/`chip.sm` findings at
-  390 against the old claim of 44.
+- The run rule was red on the real files before its entries were corrected: 101 `counted.row`/`chip.sm` findings
+  at 390 against the old claim of 44, and 20 `.qw` words at 320 (32-33px) against the old "about 35px". The
+  passage's words now say 32, which is what they have.
+
+## Left as found
+
+- check/ui.js `--screen=tools` is red before and after this package with the same 23 `TAP TARGET` findings (36px
+  tiles, the 467 spec against ui.js's 44) and the same unreached states; nothing here adds to them.
+- steady `idle` at admin @1280 shifts `section.page.soft` by 0.013-0.019 about one run in two, on the base (P0)
+  as well as here — the 1280 neighbour re-centre the plan lists as NEEDS PROOF; package A or G's.
+- The figure states in check/states.js still ask for 43.5px pen tiles, which round 4 made 36px tiles; they are not
+  reached on the base either.
