@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-30-merge-notes";
+  --css-version: "2026-10-31-merge-booking";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -402,7 +402,7 @@ input, select, textarea, .many-sum {
   transition: border-color var(--quick) ease;
 }
 /* ---------- A DROPDOWN LOOKS LIKE A DROPDOWN, AND THE OPEN LIST IS THE PLATFORM'S § */
-select, .bk-many, .many-sum {
+select, .many-sum {
   --sel-arrow: var(--dim);
   --sel-tri: 5px;      /* half the arrow's width, and all of its height */
   --sel-at: calc(.55rem + var(--sel-tri));   /* the arrow's middle, from the box's right edge */
@@ -415,7 +415,7 @@ select, .bk-many, .many-sum {
   text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
   cursor: pointer;
 }
-.bk-many[aria-expanded="true"], details[open] > .many-sum {
+details[open] > .many-sum {
   background-image: linear-gradient(135deg, transparent 50%, var(--sel-arrow) 50%),
                     linear-gradient(45deg, var(--sel-arrow) 50%, transparent 50%);
 }
@@ -2416,12 +2416,7 @@ button.text-drop { color: var(--bad); }
 .rc-total .bk-t { font-weight: 700; color: var(--ink); }
 /* ---------- AN ADMIN'S TWO MORE MONEY ROWS, UNDER THE FIRST AND PART OF IT § */
 .rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
-/* ---------- THE MONEY BLOCK: AN ADMIN'S SUM, READ AS A SUM (docs/history/353) § */
-.rc-total.rc-money .bk-k { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--dim); }
-.rc-total.rc-money .bk-t { font-weight: 400; color: var(--dim); }
-.rc-total.rc-money.rc-net .bk-k, .rc-total.rc-money.rc-net .bk-t { font-weight: 700; color: var(--ink); }
-.rc-total.rc-money.rc-net.is-bad .bk-k, .rc-total.rc-money.rc-net.is-bad .bk-t { color: var(--bad); }
-.bk > .bk-say.rc-money-say { color: var(--bad); text-align: right; }
+/* THE MONEY BLOCK UNDER AN ADMIN'S FORM WENT (owner, 29 Oct): Discount and Client pays are ordinary rows, `discountRow_` and `payRow_`. */
 /* THE DISCOUNT'S CONTROLS ARE ORDINARY ROWS NOW, one line per thing (421) — `discountRow_` draws them with `receiptRow`. */
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN § */
 .rc-total .bk-k { grid-column: 1 / -2; }
@@ -2538,9 +2533,8 @@ label.bk-k { cursor: pointer; }
   position: absolute; inset: 0; height: 100%;
   -webkit-text-fill-color: transparent;
 }
-.bk-face:has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--faint); }
-/* A PHONE'S OWN TICKED LIST (498): the listbox itself unseen, the words under it, the tap opening the device's picker. */
-.bk-face > .bk-sel-many { opacity: 0; min-height: 44px; }
+/* A SEVERAL-ANSWER ROW (`stepPick_`) ALWAYS SITS ON ITS BLANK OPTION, so `is-set` says when its words are answers. */
+.bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--faint); }
 .bk-face:has(> .bk-sel:focus-visible) > .bk-said { color: var(--ink); }
 .bk-face:has(> .bk-sel:disabled) > .bk-said { color: var(--dim); padding-right: 0; }
 
@@ -2559,13 +2553,7 @@ label.bk-k { cursor: pointer; }
 /* UNANSWERED IS QUIETER, so a card half filled in reads as half filled in at a glance rather than
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
-/* ---------- AND THE SAME, SAID BY A CLASS, FOR THE CONTROL THAT IS NOT A SELECT § */
-.bk-sel.is-unset { color: var(--faint); }
-/* ---------- THE TICKS UNDER THAT ROW § */
-.bk > .bk-many-list { grid-column: 1 / -1; }
-.bk-many-list { margin: .1rem 0 .35rem; padding: 0 .1rem;
-  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
-  font-size: .86rem; text-align: left; }
+/* THE TICKS UNDER A SEVERAL-ANSWER ROW WENT: it is the same select as the rest (`stepPick_`, 29 Oct). */
 /* `#drop`, THE PANEL THAT HUNG OFF A FIELD, WAS HERE — its place, its z-order over a sheet, its two-column `.pick-list` of `.pick-opt` buttons, and § */
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is

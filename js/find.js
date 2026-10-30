@@ -10786,7 +10786,7 @@ function paneReach_(panes) {
     };
     const essay = list.map(p => !!p.querySelector('.qp-essay'));
     /* ---------- AND A LIST OF TICKS THAT IS OPEN IS NEVER DRAWN SMALLER § */
-    const ticks = list.map(p => !!p.querySelector('.bk-many-list, details.many-d[open]'));
+    const ticks = list.map(p => !!p.querySelector('details.many-d[open]'));
     /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) § */
     /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
     const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
