@@ -4,6 +4,21 @@
 const STATES = {
   stuff: [
     { name: 'the question' },
+    /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
+    { name: 'the library failed',
+      enter: () => inFinder_(finderOf_('stuff'), () => {
+        window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
+        LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
+        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        paintStuff();
+      }),
+      leave: () => inFinder_(finderOf_('stuff'), () => {
+        const h = window.__LIB_FAIL || {};
+        LIBRARY_ROWS = h.rows || null; LIBRARY_FAILED = h.f || '';
+        stuffForget_(); paintStuff();
+      }),
+      expect: () => document.querySelectorAll('#s-stuff > .page').length && !document.querySelector('#s-stuff .loading') ? 1 : 0,
+      wants: 'the column drawn with the question file failed, and no loader waiting for it' },
     /* A WORD THAT IS IN THOUSANDS OF QUESTIONS, so the results are real cards rather than a lucky one. § */
     /* ---------- AND THE SECONDS BEFORE THE LIBRARY LANDS § */
     { name: 'the library still coming',
@@ -1894,6 +1909,21 @@ const STATES = {
   /* FIND 2, RIGHT OF FIND (docs/history/329, 347) § */
   res: [
     { name: 'the question' },
+    /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
+    { name: 'the library failed',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
+        LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
+        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        paintStuff();
+      }),
+      leave: () => inFinder_(finderOf_('res'), () => {
+        const h = window.__LIB_FAIL || {};
+        LIBRARY_ROWS = h.rows || null; LIBRARY_FAILED = h.f || '';
+        stuffForget_(); paintStuff();
+      }),
+      expect: () => document.querySelectorAll('#s-res > .page').length && !document.querySelector('#s-res .loading') ? 1 : 0,
+      wants: 'the column drawn with the question file failed, and no loader waiting for it' },
     /* ---------- A CONTENT CARD, REACHED BY WHAT KIND · CONTENT AND ITS SUBJECT § */
     { name: 'a content card',
       enter: () => inFinder_(finderOf_('res'), () => {
@@ -5179,6 +5209,20 @@ const STATES = {
   /* THE CAMERA IS A PAGE OF THE FEED NOW, directly above the newest post — the `make` column is gone. § */
   feed: [
     { name: '' },
+    /* ---------- OFFLINE (531): the payload asked for again and failing. What was drawn stays drawn (U8) and no raw error is printed (U13); D6 adds the way forward. */
+    { name: 'offline',
+      enter: () => {
+        window.__OFF = { f: LOAD_FAILED, t: RECONNECT.tries, n: document.querySelectorAll('#s-feed > .page').length };
+        LOAD_FAILED = 'Failed to fetch'; RECONNECT.tries = 1;
+        paint('feed');
+      },
+      leave: () => { const o = window.__OFF || {}; LOAD_FAILED = o.f || ''; RECONNECT.tries = o.t || 0; paint('feed'); },
+      expect: () => {
+        const col = document.getElementById('s-feed');
+        return col && col.querySelectorAll(':scope > .page').length >= ((window.__OFF || {}).n || 1)
+          && !col.querySelector('.loading') && !/Failed to fetch|TypeError/.test(col.textContent) ? 1 : 0;
+      },
+      wants: 'the feed still showing what it had, no loader over it and no raw error text' },
     { name: 'a photograph taken',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -6092,6 +6136,19 @@ const STATES = {
         if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
+  /* THE SETTINGS AND PROFILE COLUMNS, KEYED HERE (531) so a package adds a state without editing another's lines; the `col:` states below still land on them. */
+  ...Object.fromEntries(['family', 'staff', 'tutors', 'students', 'parents'].map(id => [id, [
+    { name: '' },
+    /* THE LAST CARD, turned to through the pager as a swipe would: the column's far end measured, not only its first card. */
+    { name: 'the last card',
+      enter: new Function(`const n = document.querySelectorAll('#s-${id} > .page').length;
+        if (!n) throw new Error('the ${id} column drew no card');
+        goPage('${id}', n - 1, true);`),
+      expect: new Function(`const ps = [...document.querySelectorAll('#s-${id} > .page')];
+        return ps.length && ps[ps.length - 1].classList.contains('on') ? 1 : 0;`),
+      leave: new Function(`goPage('${id}', 0, true);`),
+      wants: 'the column turned to its last card' },
+  ]])),
 };
 
 /* ---------- NOTIFICATIONS, AS EACH ROLE IS SENT THEM — `notifyCard_` in js/me.js § */
