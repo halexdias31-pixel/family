@@ -5637,8 +5637,9 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
-          .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 2; } catch (e) { return false; } })[0];
-        if (!st) throw new Error('no several-answers question offers two answers');
+          .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
+        if (!st) throw new Error('no several-answers question offers an answer');
+        window.STATE_MANY_N = Math.min(2, st.options().filter(Boolean).length);
         window.STATE_MANY_STEP = st.id;
         st.options().filter(Boolean).slice(0, 2).forEach(v => {
           const s = document.querySelector('#bookr select[data-step="' + st.id + '"]');
@@ -5649,10 +5650,10 @@ const STATES = {
         const id = window.STATE_MANY_STEP;
         const s = id && document.querySelector('#s-booking #bookr select.bk-sel[data-step="' + id + '"]');
         return !!s && !s.multiple && !document.querySelector('#bookr .bk-many-list, #bookr [data-do="book-many"]')
-          && (BOOKING[id] || []).length === 2 ? 1 : 0;
+          && (BOOKING[id] || []).length === window.STATE_MANY_N ? 1 : 0;
       },
-      wants: 'a several-answers row picked twice through the same select as Level, both answers on the booking',
-      leave: () => { delete window.STATE_MANY_STEP;
+      wants: 'a several-answers row picked (twice where it offers two) through the same select as Level, the answers on the booking',
+      leave: () => { delete window.STATE_MANY_STEP; delete window.STATE_MANY_N;
         if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     /* ---------- AND A SINGLE ANSWER, CHOSEN § */
