@@ -31462,7 +31462,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
     s.w.close();
   }
-
+  return bad;
+});
 
 /* ---------- THE OWNER'S NOTES OF 29 OCT, ON EDEXCEL A-LEVEL MATHS 2021 IN FIND 2 ---------- */
 check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel › 2021 (owner, 29 Oct): every page of a question has Suggest a change, a part with nothing to draw on has no Pen (no blank working paper), and Function is offered once a paper is picked', async () => {
