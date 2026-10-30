@@ -195,6 +195,8 @@ function boot(opts) {
       'handleSaid: () => HANDLE_SAID,' +
       /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
       'lib: () => LIB,' +
+      /* A PART'S WORKING PHOTOS (`WORK_PICS`, working.js) — a `const`, so a function (529). */
+      'workPics: () => WORK_PICS,' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -17879,7 +17881,8 @@ check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the 
     if (!f) break;
     asked.push(f.field);
     papersAt.push([f.field, new Set(list.map(x => x.row && x.row.paper_id).filter(Boolean)).size]);
-    const v = w.facetValues(list, f)[0];
+    /* THE BIGGEST ANSWER, so the walk keeps a list to go on asking: Function is asked before Paper since 529, and its first answer is the two unverified parts */
+    const v = w.facetValues(list, f).slice().sort((a, b) => (b.n || 0) - (a.n || 0))[0];
     if (!v) break;
     S.filters.push({ field: f.field, value: v.value });
   }
@@ -22233,7 +22236,8 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
-  const route = [['wText', 'English, King James Version (1611)'], ['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
+  /* THE SOURCE TEXT FIRST (owner, 29 Oct): the Greek New Testament answers the testament, so Collection is not asked again after it. */
+  const route = [['wSource', 'Greek New Testament'], ['wText', 'English, King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }
@@ -28115,12 +28119,13 @@ check('a drawn answer is never sent to a person: a made-up surface and a figure 
 });
 
 /* ---------- THE TOOL ROW, THE LAYER AND THE LINE (Review A of round 3; round 4: the owner's nine, no Calculator, Grid, Table or Formula sheet) ---------- */
-check('a part\'s tool row is the owner\'s nine in order with one padlock; its first Pen tap lays a grid to draw on; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
+check('a part\'s tool row is the owner\'s nine in order with one padlock, the drawing tools only where there is something to draw on (owner, 29 Oct); a named grid\'s first Pen tap lays it; the pad opens on the layer of the scheme\'s own answer; the line under Check says how it is marked', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS3', pages_checked: 'True', kind: 'question', name: 'Tools', paper_id: 'GR', marks: '1', answer_type: 'calculation' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
     R_({ row_id: 'D-GR', kind: 'document' }),
     R_({ row_id: 'GR-1', question: '1', html: '<p>Work out 3 + 4</p>', answer: '7', accept: '7' }),
+    R_({ row_id: 'GR-3', question: '3', html: '<p>Plot the points.</p>', answer: 'A plotted', accept: 'A plotted', surface: 'grid' }),
     R_({ row_id: 'GR-2', question: '2', subject: 'English', html: '<p>Which prefix could be added to all three words?</p>', answer: 're', accept: 're | re-' }),
   ];
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
@@ -28139,7 +28144,13 @@ check('a part\'s tool row is the owner\'s nine in order with one padlock; its fi
   /* THE OWNER'S ROW, by the tiles' own names: "get rid of that calculator button … and grid button … table … formula sheet … still two lock buttons" */
   const row = host.querySelector('.qt-row');
   const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
-  if (names.join(' | ') !== 'Pen | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('the tool row reads ' + names.join(' | '));
+  /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
+  if (names.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  const x3 = item('GR-3');
+  host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
+  const row3 = host.querySelector('.qt-row');
+  const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
+  if (names3.join(' | ') !== 'Pen | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const locks = host.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
   if (locks !== 1) bad.push('the part has ' + locks + ' padlocks, wanted one');
@@ -28464,6 +28475,48 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   if (later && !later.hidden) bad.push('full marks by rule still offers the AI');
   const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
   if (latest && latest.v !== 'rule:2/2') bad.push('the mark was recorded as ' + JSON.stringify(latest.v) + ', wanted rule:2/2 — which way it was made is lost');
+  host.remove();
+  return bad;
+});
+
+/* ---------- A PHOTO IS NEVER MARKED BY KEY WORDS (owner, 29 Oct): a show-that proof photographed went to the key words, which read only the typed box ---------- */
+check('a part with photos of its working: Check sends the photos to the AI marker (markWorking), never key words on the typed box', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS5', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-PF', paper_id: 'PF', kind: 'document', name: 'Proof' }),
+    Object.assign({}, base, { row_id: 'PF-1', paper_id: 'PF', kind: 'question', name: 'Proof', question: '1', marks: '3', answer_type: 'proof',
+                              html: '<p>Show that (n+1)^2 - (n-1)^2 is a multiple of 4.</p>', answer: 'Expands to 4n', mark_words: '4n ; multiple' }),
+  ];
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'markWorking' ? { success: true, awarded: 3, available: 3, feedback: 'Read from the photo' } : undefined) });
+  await wait(300);
+  const w = one.w, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'PF-1');
+  if (!x || !A['qp-rule']) return ['the fixture row or the qp-rule handler is not reachable — nothing was checked'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-rule"]');
+  if (!go) return ['the proof row has no Check by its key words — the fixture no longer exercises the rule'];
+  const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
+  const k = inp.getAttribute('data-k');
+  inp.value = 'see photo, multiple';
+  t.workPics()[k] = [{ url: 'data:image/jpeg;base64,/9j/AAAA' }];
+  w.workPaint_(k);
+  A['qp-rule'](go);
+  await wait(120);
+  const went = one.sent.filter(b => b.action === 'markWorking');
+  if (went.length !== 1) bad.push('Check with a photo sent ' + went.length + ' markWorking requests — the photo was not given to the AI marker');
+  else if (!(went[0].photos || []).length || went[0].answer !== 'see photo, multiple') bad.push('markWorking went without the photo or the typed words: ' + JSON.stringify(went[0]).slice(0, 160));
+  if (/by key words/.test(out.textContent)) bad.push('a photographed part was marked by key words: ' + JSON.stringify(out.textContent));
+  const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(k) : null;
+  if (latest && /^rule:/.test(String(latest.v))) bad.push('a key-word mark was recorded for a photographed part: ' + latest.v);
+  /* AND WITH NO PHOTO, THE KEY WORDS STILL MARK THE TYPED BOX */
+  t.workPics()[k] = [];
+  w.workPaint_(k);
+  inp.value = 'it is 4n so a multiple of 4';
+  A['qp-rule'](go);
+  if (!/by key words/.test(out.textContent)) bad.push('with no photo the key words did not mark: ' + JSON.stringify(out.textContent));
   host.remove();
   return bad;
 });
@@ -31409,6 +31462,59 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
     s.w.close();
   }
+
+
+/* ---------- THE OWNER'S NOTES OF 29 OCT, ON EDEXCEL A-LEVEL MATHS 2021 IN FIND 2 ---------- */
+check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel › 2021 (owner, 29 Oct): every page of a question has Suggest a change, a part with nothing to draw on has no Pen (no blank working paper), and Function is offered once a paper is picked', async () => {
+  const full = LIB_FULL.rows('questions');
+  const one = await resBoot_({ serve: url => (/data\/questions\.json/.test(url) ? full : undefined), before: signedInAs_(LAY_ADMIN_) });
+  if (!one) return ['the app did not boot — NOT checked'];
+  const W = one.w, T = W.__t, d = W.document, bad = [];
+  for (let i = 0; i < 100 && !(W.stuffItemsAll_().some(x => x.row && x.row.paper_id === 'RS1786302107764-506')); i++) await wait(50);
+  T.go('res'); await wait(80);
+  const path = [{ field: 'kindLabel', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
+    { field: 'level', value: 'A-Level' }, { field: 'examBoard', value: 'Edexcel' }, { field: 'examYear', value: '2021' }];
+  const R = resView_(W);
+  T.RES().filters = path.map(f => Object.assign({}, f));
+  W.paintFinder_('res');
+  if (R.stuffFiltered().length < 50) return ['the path holds ' + R.stuffFiltered().length + ' questions — the 2021 papers are not in the library, NOT checked'];
+  /* FUNCTION, ONCE A PAPER IS PICKED: Paper 2 holds one part that is not machine-marked, so Function splits it and is asked before Question. */
+  T.RES().filters.push({ field: 'paperId', value: 'RS1786302107764-506' });
+  const next = R.nextFacet(R.stuffFiltered());
+  if (!next || next.field !== 'function') bad.push('after Paper 2 the funnel asks ' + (next ? next.field : 'nothing') + ', not Function — the verified tags are sorted after the questions that pick one question');
+  else if (R.facetValues(R.stuffFiltered(), next).map(v => v.value).sort().join() !== 'Function unverified,Function verified') bad.push('Function offers ' + R.facetValues(R.stuffFiltered(), next).map(v => v.value).join(', '));
+  W.paintFinder_('res');
+  /* EVERY PAGE: a stem's page and a long part's first pages carried no Suggest a change (486). */
+  const pages = R.stuffPages_(), first = R.stuffFirstResult_();
+  let seen = 0, stems = 0, bare = 0, drawn = 0;
+  for (let at = 0; at < Math.min(pages.length, 24); at += 3) {
+    T.goPage('res', first + at, true);
+    await wait(120);
+    const host = d.getElementById('s-res');
+    [...host.querySelectorAll(':scope > .page')].forEach(pg => {
+      const q = pg.querySelector('.qcard');
+      if (!q) return;
+      seen++;
+      if (q.classList.contains('qstem') || q.classList.contains('qpre')) stems++;
+      if (!pg.querySelector('[data-do="rep-box"]')) bad.push('a ' + (q.classList.contains('qstem') ? 'stem' : q.classList.contains('qpre') ? 'first' : 'part') + ' page has no Suggest a change: ' + pg.textContent.replace(/\s+/g, ' ').trim().slice(0, 60));
+      const row = pg.querySelector('.qt-row');
+      if (!row) return;
+      const it = W.stuffItemsAll_().find(y => y.key === row.getAttribute('data-key'));
+      const art = !!it && W.padHasArt_(it);
+      const pens = row.querySelectorAll('[data-do="qt-pen"], [data-do="qt-inst"]').length;
+      if (art) drawn++; else bare++;
+      if (!art && pens) bad.push(row.getAttribute('data-key') + ': nothing to draw on, and ' + pens + ' drawing tools — the Pen opens a blank working paper');
+      if (!art && pg.querySelector('.qsheet figure svg')) bad.push(row.getAttribute('data-key') + ' has a figure and padHasArt_ says it has nothing to draw on');
+      if (art && !pens) bad.push(row.getAttribute('data-key') + ' has something to draw on and no Pen');
+    });
+  }
+  if (seen < 8 || !stems || !bare) bad.push('only ' + seen + ' question pages (' + stems + ' stem or first pages, ' + bare + ' with nothing to draw on) were seen, so the rule was NOT checked');
+  /* AND THE PEN ITSELF: a bare part's pen opens nothing; one with a figure still draws on it. */
+  const parts = R.stuffFiltered().filter(x => x.kind === 'question');
+  const plain = parts.find(x => !x.diagram && !(x.stems || []).some(p => p && p.diagram) && !W.padHasArt_(x));
+  if (plain) { W.qtPenSet_(plain, true); if (W.padSource_(plain)) bad.push(plain.key + ': a Pen tap on a part with no figure still lays a blank grid'); W.qtPenSet_(plain, false); }
+  const fig = W.stuffItemsAll_().find(x => x.kind === 'question' && x.diagram);
+  if (fig && !/data-do="qt-pen"/.test(W.qtRow_(fig))) bad.push(fig.key + ' has a figure and no Pen');
   return bad;
 });
 

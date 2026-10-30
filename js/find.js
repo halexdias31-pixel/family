@@ -416,7 +416,8 @@ const FACETS = [
   /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
   { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
-  { field: 'wText',      label: 'Text',       of: x => writingAt_(x, 'text') },
+  { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
+  { field: 'wText',      label: 'Translation', of: x => writingAt_(x, 'text') },
   { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
   { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
   { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
@@ -476,6 +477,9 @@ const FACETS = [
   /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
   { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
   { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) },
+  /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked -- asked before Paper (529). */
+  { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
+  { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
   /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id) },
@@ -496,9 +500,6 @@ const FACETS = [
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
-  /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked. */
-  { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
-  { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
   /* HOW YOU DID (463): the viewer's own latest press on a question; signed out it is blank everywhere, so it is never asked. */
   { field: 'myResult',  label: 'Your result', of: x => myResultOf_(x) },
 ];
@@ -2335,6 +2336,8 @@ on('bible-go', el => {
   const F = finderAt_(el);
   const f = [{ field: 'shelf', value: WRITINGS_SHELF }, { field: 'wWork', value: 'Bible' },
     { field: 'wText', value: x ? x.bb.text : writingText_(writingTextOf_(BIBLE.index.translation)) }];
+  /* ITS SOURCE TEXT TOO, asked before the Translation: a verse's is its Text's base for its testament (writingSourceOf_) */
+  if (x) f.splice(2, 0, { field: 'wSource', value: writingAt_(x, 'source') });
   if (x) f.push({ field: 'wBook', value: x.bb.book }, { field: 'wChapter', value: x.ch });
   inFinder_(F, () => {
     finderSet_(F, { filters: f });
@@ -5035,6 +5038,16 @@ on('qp-rule', (el) => {
   const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out) return;
+  /* A PHOTO IS READ BY THE AI MARKER, NEVER KEY WORDS (owner, 29 Oct): key words read only the typed box, so a part with photos goes to `markWorking` with them */
+  const k = inp.getAttribute('data-k');
+  const send = typeof WORK_PICS !== 'undefined' && (WORK_PICS[k] || []).length
+    ? [].find.call(document.querySelectorAll('.qp-work-send'), b => b.getAttribute('data-k') === k) : null;
+  if (send && ACTIONS['qp-work-send']) {
+    box.classList.remove('is-right', 'is-near');
+    out.textContent = 'Your photos go to the AI marker — key words cannot read a photo';
+    ACTIONS['qp-work-send'](send);
+    return;
+  }
   const m = markWords_(inp.value, box.getAttribute('data-rule'));
   box.classList.remove('is-right', 'is-near');
   if (!m) { out.textContent = 'Write something first'; return; }
@@ -5103,13 +5116,20 @@ function padAdopt_(k, bare) {
   } catch (e) {}
 }
 
-/* THE PICTURE IT DRAWS ON: its own figure, else its stem's, else a grid -- for a drawn part (qType_) at once, for any
+/* THE PICTURE IT DRAWS ON: its figure, else its stem's, else its own surface (a drawn part's a grid) -- for a drawn part (qType_) at once, for any
    other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
 /* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
 const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
 const padDrawn_ = x => !!x && typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && qtDrawn_(workRow_(x)) && !padPicked_(x);
+/* SOMETHING TO DRAW ON: a drawn answer, a surface the row names, its own figure or its stem's one. Nothing else opens a pen -- no blank working paper (owner, 29 Oct). */
+function padHasArt_(x) {
+  if (!x) return false;
+  /* A SURFACE THE ROW NAMES counts though its answer is options or cells (a times-table grid to annotate): its Pen lays it */
+  if (padDrawn_(x) || x.diagram || padSurface_(x)) return true;
+  return (x.stems || []).filter(p => p && p.diagram).length === 1;
+}
 function padSource_(x) {
-  if (!x) return null;
+  if (!x || !padHasArt_(x)) return null;
   /* a passage to ring words in is the part's own surface; its Pen still opens a grid below it */
   const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
   const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
@@ -8320,8 +8340,8 @@ function ansHide_(x) { ansSet_(x, false); }
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
 /* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
 function questionTiles_(x) { return ''; }
-/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words. */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
+/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words -- and Suggest a change, as every page of a thing has (486; owner, 29 Oct). */
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}${typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
@@ -10395,7 +10415,7 @@ const TAG_OF = {
   /* YOUR OWN RESULT (463), its own colour. */
   myResult: 'mine',
   /* EVERY WRITING'S (520), in kinds that already have colours. */
-  wWork: 'topic', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
+  wWork: 'topic', wSource: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };

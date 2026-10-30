@@ -68,6 +68,7 @@ const S = v => (v == null ? '' : String(v)).trim();
 /* THE OWNER'S ORDER, written here and not read from the app, so an app that reorders its tools fails */
 /* round 4: no Calculator, Grid, Table or Formula sheet (a question brings its own), and the padlock once, in the row */
 const TOOL_ORDER = ['pen', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
+const DRAWING_TOOLS = new Set(['pen', 'ruler', 'protractor', 'compass']);
 const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
@@ -138,7 +139,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   };
   await fresh();
   const need = ['stuffItemsAll_', 'stuffCard', 'questionStemCard_', 'questionPreCard_', 'markAnswer_', 'markWords_', 'markCells_',
-    'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_', 'padSource_'];
+    'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_', 'padSource_', 'padHasArt_'];
   const missing = need.filter(n => typeof w[n] !== 'function');
   if (!missing.length && A && !(Array.isArray(A.QT_ORDER) && A.QT_ORDER.join(' ') === TOOL_ORDER.join(' '))) missing.push('QT_ORDER in the owner\'s order (' + TOOL_ORDER.join(' ') + ')');
   if (missing.length || !A || !A.DM) { console.log('FAILED — not reachable in the app: ' + missing.concat(A && A.DM ? [] : ['DRAW_MARK']).join(', ') + ' — NOTHING was checked'); process.exit(1); }
@@ -213,7 +214,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
       const got = toolsOf(rows[0]);
-      if (got.join(' ') !== TOOL_ORDER.join(' ')) bad('tools', x, 'its row reads ' + got.join(' '));
+      /* THE DRAWING TOOLS WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank working paper (owner, 29 Oct) */
+      const wantRow = w.padHasArt_(x) ? TOOL_ORDER : TOOL_ORDER.filter(t => !DRAWING_TOOLS.has(t));
+      if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (w.padHasArt_(x) ? '' : ' — nothing to draw on, so no drawing tools'));
       const box = rows[0].closest('.qp-mark');
       if (!box || !box.querySelector('.qp-verdict')) bad('tools', x, 'its row is not in the box\'s mark with a verdict line under it');
       /* ---------- ITS MARKER (markerOf_), NEVER A PERSON: the Check is that marker's, and the line under it says how ---------- */
@@ -255,11 +258,13 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (pen) count.drawn++;
     else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');
     else {
-      /* THE FIRST PEN TAP makes its surface: its figure, its stem's, or a grid -- asked of padSource_ for every part, the card drawn for one in PEN_DRAW_EVERY (Review A: three draws a part took 7m47s) */
+      /* THE FIRST PEN TAP makes its surface: its figure, its stem's, or the surface it names -- asked of padSource_ for every part, the card drawn for one in PEN_DRAW_EVERY (Review A: three draws a part took 7m47s) */
       try {
         w.qtPenSet_(x, true);
         const src = w.padSource_(x);
-        if (!src || !S(src.svg)) bad('surface', x, 'a Pen tap gives it nothing to draw on');
+        /* NOTHING TO DRAW ON IS NO PEN, AND NO BLANK GRID IN ITS PLACE (owner, 29 Oct: "a button which opens the working paper") */
+        if (!w.padHasArt_(x)) { if (src) bad('surface', x, 'nothing to draw on, and a Pen tap still lays a blank ' + (src.surface || 'surface')); }
+        else if (!src || !S(src.svg)) bad('surface', x, 'a Pen tap gives it nothing to draw on');
         else if (count.parts % PEN_DRAW_EVERY === 0) {
           host.innerHTML = w.stuffCard(x);
           count.lazyDrawn++;
