@@ -275,8 +275,7 @@ let CHESS_FX = null;
 /* THE BOARD TURNS TO FACE WHOEVER IS TO MOVE, if asked; per device, a convenience (`chess-turns`). Off, White stays at the foot as it always did. */
 let CHESS_TURNS = (() => { try { return localStorage.getItem('chess-turns') === '1'; } catch (e) { return false; } })();
 let CHESS_FACE_T = 0;
-/* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. */
-const chessMotion_ = () => { try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; } };
+/* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. Asked through the app's one `motionOK_` (537). */
 /* A GLIDE TAKES LONGER THE FURTHER IT GOES, but never long enough to wait for: a rook across the board is 380ms. */
 const chessGlideMs_ = (a, b) => Math.min(380, 170 + 32 * Math.hypot(file(a) - file(b), rank(a) - rank(b)));
 const CH_ROOK = { K: [63, 61], Q: [56, 59], k: [7, 5], q: [0, 3] };
@@ -325,7 +324,7 @@ const chessTurnSaid_ = () => CHESS_TURNS ? 'The board turns to face each player'
 function drawChess(note) {
   if (!CHESS) return;
   const fx = CHESS_FX; CHESS_FX = null;
-  const moving = !!fx && chessMotion_();
+  const moving = !!fx && motionOK_();
   const end = chessEnd_(CHESS);
   const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
   const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
@@ -396,8 +395,11 @@ function chessFace_(wait) {
       if (b.classList.contains('is-flipped') === flip || (end && CHESS_TURNS)) return;
       b.classList.toggle('is-flipped', flip);
       /* DRAWN BACK AS IT TURNS, exactly as far as keeps a turned square inside its own footprint, so no corner covers the words or leaves the screen. */
-      if (chessMotion_() && typeof b.animate === 'function') {
-        b.animate(CHESS_TURN_KEYS, { duration: 700, easing: 'cubic-bezier(.65, 0, .35, 1)' });
+      /* ITS TIME AND CURVE ARE THE BOARD'S OWN `--chess-turn`/`--chess-ease`, the ones its rotate transition uses, so the two never part (537). */
+      if (motionOK_() && typeof b.animate === 'function') {
+        const cs = getComputedStyle(b), sec = parseFloat(cs.getPropertyValue('--chess-turn'));
+        b.animate(CHESS_TURN_KEYS, { duration: isFinite(sec) ? sec * 1000 : MOTION_.move,
+                                     easing: cs.getPropertyValue('--chess-ease').trim() || MOTION_.spring });
       }
     });
   };
@@ -423,7 +425,7 @@ function chessShow_(b, fx) {
     const an = pc.animate([
       { transform: `translate(${dx}px, ${dy}px)` },
       { transform: `translate(${dx / 2}px, ${dy / 2}px) scale(1.14)`, offset: 0.5 },
-      { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.3, .7, .25, 1)' });
+      { transform: 'none' }], { duration: ms, easing: MOTION_.spring });
     const done = () => to.classList.remove('mv');
     an.onfinish = done; an.oncancel = done;
   });
@@ -436,30 +438,30 @@ function chessShow_(b, fx) {
       g.setAttribute('aria-hidden', 'true');
       g.textContent = GLYPH[fx.gone];
       at.prepend(g);
-      const hit = land ? Math.max(0.5, (land - 40) / (land + 240)) : 0;
+      const knock = MOTION_.enter, hit = land ? Math.max(0.5, (land - 40) / (land + knock)) : 0;
       const an = g.animate([
         { opacity: 1, transform: 'none' },
         { opacity: 1, transform: 'none', offset: hit },
-        { opacity: 0, transform: 'scale(.5) rotate(-18deg)' }], { duration: land + 240, easing: 'ease-in', fill: 'forwards' });
+        { opacity: 0, transform: 'scale(.5) rotate(-18deg)' }], { duration: land + knock, easing: MOTION_.in, fill: 'forwards' });
       const gone = () => g.remove();
       an.onfinish = gone; an.oncancel = gone;
       b.animate([
         { transform: 'none' }, { transform: 'translate(-3px, 1px)' }, { transform: 'translate(3px, -1px)' },
-        { transform: 'translate(-1px, 0)' }, { transform: 'none' }], { duration: 220, delay: Math.max(0, land - 30) });
+        { transform: 'translate(-1px, 0)' }, { transform: 'none' }], { duration: knock, delay: Math.max(0, land - 30) });
     }
   }
   /* AN UNDONE CAPTURE COMES BACK, faded up where it stood. */
   if (fx.back && fx.took >= 0) {
     const pc = sq(fx.took)?.querySelector('.pc');
     if (pc) pc.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }],
-                       { duration: 260, delay: land * 0.5, easing: 'ease-out', fill: 'backwards' });
+                       { duration: MOTION_.move, delay: land * 0.5, easing: MOTION_.out, fill: 'backwards' });
   }
   /* CHECK: the king flinches as the threat lands; the ring that pulses round it is the stylesheet's (`.chk.is-new`). */
   if (fx.check) {
     const k = b.querySelector('.chk .pc');
     if (k) k.animate([
       { transform: 'none' }, { transform: 'translateX(-.06em) rotate(-6deg)' }, { transform: 'translateX(.06em) rotate(5deg)' },
-      { transform: 'translateX(-.03em) rotate(-2deg)' }, { transform: 'none' }], { duration: 420, delay: land });
+      { transform: 'translateX(-.03em) rotate(-2deg)' }, { transform: 'none' }], { duration: MOTION_.move * 1.5, delay: land });
   }
 }
 
@@ -515,7 +517,7 @@ function chessPlay_(m) {
   CHESS_FX = Object.assign({}, fx, { end: end, check: check });
   drawChess();
   /* HEARD AS THE PIECE LANDS, not as the finger lifts. */
-  const land = chessMotion_() ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) : 0;
+  const land = motionOK_() ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) : 0;
   chessSound_(end === 'mate' ? 'mate' : check ? 'check' : took >= 0 ? 'take' : 'move', land);
 }
 

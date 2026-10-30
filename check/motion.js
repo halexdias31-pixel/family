@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-/* @family. — check/motion.js MOTION IS ONE SYSTEM (531, U12), read not run: durations, curves and moved properties in style.css and js/, counted against check/motion-baseline.json. */
-/* A RATCHET: a count may fall, never grow. One that fell is said, so the baseline is lowered with --update and cannot creep back. -v lists every hit. */
+/* @family. — check/motion.js MOTION IS ONE SYSTEM (531, 537; U12), read not run: every duration and curve in style.css and js/ is a token or a named exception, only the compositor moves things, and less motion is asked one way. */
+/* HARD: a duration or curve written out (not ACCEPTED), a layout property transitioned or keyframed, `transition: all`, */
+/* reduced motion asked outside shell.js, a script writing its own duration or curve, and an ACCEPTED entry that matches nothing. */
+/* A RATCHET as well, against check/motion-baseline.json: the counts may fall, never grow; one that fell is said and lowered with --update. -v lists every hit; MOTION_CSS/MOTION_JS read a copy. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -8,76 +10,134 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const BASE = path.join(__dirname, 'motion-baseline.json');
-const VERBOSE = process.argv.includes('--verbose') || process.env.VERBOSE === '1';
+const VERBOSE = process.argv.includes('--verbose') || process.argv.includes('-v') || process.env.VERBOSE === '1';
+const CSS_FILE = process.env.MOTION_CSS || path.join(ROOT, 'style.css');
+const JS_DIR = process.env.MOTION_JS || path.join(ROOT, 'js');
 
-/* THE PROPERTIES A COMPOSITOR MOVES WITHOUT LAYOUT OR PAINT; anything else animated costs a frame (U12). */
-const COMPOSITED = new Set(['transform', 'opacity', 'filter', 'translate', 'scale', 'rotate', 'visibility', 'backdrop-filter']);
+/* THE PROPERTIES A COMPOSITOR MOVES WITHOUT LAYOUT OR PAINT. */
+const COMPOSITED = new Set(['transform', 'opacity', 'filter', 'translate', 'scale', 'rotate', 'visibility', 'backdrop-filter', 'clip-path']);
+/* REPAINTED BUT NEVER LAID OUT: a release fading its wash back is allowed this (package E's press look), and counted. */
+const PAINTED = new Set(['color', 'background', 'background-color', 'border-color', 'box-shadow', 'outline-color', 'fill', 'stroke',
+  'text-decoration-color', 'caret-color', 'border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color']);
 const EASE_WORD = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)$/;
 
-const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+/* THE NAMED EXCEPTIONS, each with its reason. `css` is matched against the rule's selector (inside its @media/@keyframes);
+   `js` is a file and a pattern on the line. Everything else is a token: --dur-*, --ease-*, MOTION_. */
+const ACCEPTED = [
+  { css: /^\.screen$/, why: 'the slide between columns (527) owns its own spring and timing' },
+  { css: /^\.btn\.is-busy::before$|^\.tile\.is-busy::before$/, why: 'the busy ring is a loop, one turn in .7 s, not a movement from here to there' },
+  { css: /^\.loading > span/, why: 'the three dots are a loop; their rhythm is the loader (306), not a movement' },
+  { css: /^\.mc-caret$/, why: 'a caret blinks in steps(1); the keypad\'s and the calculator\'s are the system caret\'s rhythm' },
+  { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },
+  { css: /^\.chess /, why: 'the chess ending is a cinematic of its own (429): a ring three times, the dark, the fall, the word' },
+  { css: /^\.chess\.is-fresh/, why: 'the chess ending is a cinematic of its own (429): a ring three times, the dark, the fall, the word' },
+  { css: /@keyframes chess-fall/, why: 'the beaten king\'s fall is physics: a lean, a drop, a bounce, each with its own curve' },
+  { css: /^\.c4-cell\.c4-new::after$|@keyframes c4-drop/, why: 'a counter falls a height that depends on its row: game physics, gravity then a bounce' },
+  /* PACKAGE E (U9) REWRITES THESE PRESS RULES onto --dur-press / --dur-quick; until it lands they keep `var(--quick) ease`. */
+  { css: /^\.card\.tap$/, why: 'press rule, package E (U9)' },
+  { css: /^\.btn$|^\.btn, /, why: 'press rule, package E (U9)' },
+  { css: /^\.chip\b/, why: 'press rule, package E (U9)' },
+  { css: /^\.feed:active \.feed-art$/, why: 'press rule, package E (U9)' },
+  { css: /^\.dock-row \.text-drop$/, why: 'press rule, package E (U9)' },
+  { css: /^\.av-sw$/, why: 'press rule, package E (U9)' },
+  { css: /^\.tile$|^\.tile, /, why: 'press rule, package E (U9)' },
+  { css: /^\.cam-round \.cam-disc$/, why: 'press rule, package E (U9)' },
+  { css: /^\.hr$/, why: 'press rule, package E (U9)' },
+  { css: /^\.row\.tap\.counted$/, why: 'press rule, package E (U9)' },
+];
+
+const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+const css = strip(fs.readFileSync(CSS_FILE, 'utf8'));
 const lineOf = i => css.slice(0, i).split('\n').length;
-const hits = { durations: new Map(), easings: new Map(), moved: [], all: [], frames: [], jsDurations: [], jsReduce: [] };
-const note = (m, k, where) => { if (!m.has(k)) m.set(k, []); m.get(k).push(where); };
 const ms = s => (/ms$/.test(s) ? parseFloat(s) : parseFloat(s) * 1000);
 
-/* EVERY transition/animation DECLARATION outside :root, split into its comma parts. */
-const rootEnd = css.indexOf('}', css.indexOf(':root'));
-const DECL = /(?:^|[;{\s])((?:transition|animation)(?:-duration|-timing-function|-property|-delay)?)\s*:\s*([^;{}]+)/g;
-for (let m; (m = DECL.exec(css));) {
-  if (m.index < rootEnd) continue;
-  const prop = m[1], val = m[2].replace(/!important/, '').trim(), where = 'style.css:' + lineOf(m.index);
-  const parts = val.replace(/\([^)]*\)/g, x => x.replace(/,/g, '\u0001')).split(',').map(p => p.replace(/\u0001/g, ',').trim());
-  parts.forEach(p => {
-    const bare = p.replace(/var\([^)]*\)/g, ' ');
-    (bare.match(/(?:^|\s)(\d*\.?\d+m?s)(?=\s|$)/g) || []).map(x => x.trim()).filter(x => ms(x) > 0)
-      .forEach(x => note(hits.durations, ms(x) + 'ms', where));
-    (bare.match(/cubic-bezier\([^)]*\)|steps\([^)]*\)|linear\([^)]*\)|\b(?:ease-in-out|ease-in|ease-out|ease|linear|step-start|step-end)\b/g) || [])
-      .forEach(x => note(hits.easings, x.replace(/\s+/g, ''), where));
-    if (/^transition(-property)?$/.test(prop)) {
-      const first = bare.trim().split(/\s+/)[0];
-      if (first === 'all') hits.all.push(where);
-      else if (/^[a-z-]+$/.test(first) && !/^(none|initial|inherit|unset)$/.test(first) && !EASE_WORD.test(first) && !COMPOSITED.has(first))
-        hits.moved.push(where + ' ' + first);
+/* EVERY DECLARATION WITH THE RULE IT SITS IN, by walking the braces: `owner` is the innermost selector, `outer` the @media or @keyframes round it. */
+function declarations() {
+  const out = [];
+  const stack = [];
+  let start = 0;
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+    if (ch === '{') { stack.push(css.slice(start, i).trim().replace(/\s+/g, ' ')); start = i + 1; }
+    else if (ch === '}' || ch === ';') {
+      const text = css.slice(start, i);
+      const m = /^\s*([a-z-]+)\s*:\s*([\s\S]+)$/.exec(text);
+      if (m && stack.length) out.push({ prop: m[1], val: m[2].trim(), at: start + text.search(/\S/), owner: stack[stack.length - 1], outer: stack.slice(0, -1) });
+      if (ch === '}') stack.pop();
+      start = i + 1;
     }
-  });
-}
-/* KEYFRAMES THAT MOVE A PROPERTY THE COMPOSITOR CANNOT. */
-const KF = /@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)\s*\}/g;
-for (let m; (m = KF.exec(css));) {
-  const props = new Set((m[2].match(/[{;]\s*([a-z-]+)\s*:/g) || []).map(x => x.replace(/[{;:\s]/g, '')));
-  const slow = [...props].filter(p => !COMPOSITED.has(p) && !/^--/.test(p) && p !== 'offset');
-  if (slow.length) hits.frames.push('style.css:' + lineOf(m.index) + ' @keyframes ' + m[1] + ' (' + slow.join(', ') + ')');
+  }
+  return out;
 }
 
-/* THE SCRIPTS: a duration written into a transition or an animate() call, and every reduced-motion question not asked through motionOK_. */
-const jsDir = path.join(ROOT, 'js');
-fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
-  const src = fs.readFileSync(path.join(jsDir, f), 'utf8');
-  src.split('\n').forEach((l, i) => {
-    const where = 'js/' + f + ':' + (i + 1);
-    if (/^\s*(\/\/|\/?\*)/.test(l)) return;
-    if (/transition\s*[=:(]|\.animate\(/.test(l) && /['"`][^'"`]*\b\d*\.?\d+m?s\b/.test(l)) hits.jsDurations.push(where);
-    else if (/\.animate\(/.test(l) && /duration\s*:\s*\d/.test(l)) hits.jsDurations.push(where);
-    if (/prefers-reduced-motion/.test(l) && !/function motionOK_/.test(src.split('\n')[i - 1] || '')) hits.jsReduce.push(where);
+const hits = { literals: [], layout: [], painted: [], all: [], frames: [], js: [], jsReduce: [] };
+const distinct = { durations: new Map(), easings: new Map() };
+const used = new Set();
+const accepted = (owner, outer) => {
+  const names = [owner].concat(outer.filter(o => /^@keyframes/.test(o)));
+  const a = ACCEPTED.find(x => x.css && names.some(n => x.css.test(n)));
+  if (a) used.add(a);
+  return a;
+};
+
+/* THE STYLESHEET. */
+declarations().forEach(d => {
+  if (d.owner === ':root' || /^--/.test(d.prop)) return;
+  const kf = d.outer.find(o => /^@keyframes/.test(o));
+  const where = 'style.css:' + lineOf(d.at);
+  const who = (kf ? kf + ' ' : '') + d.owner;
+  /* A KEYFRAME MOVING A PROPERTY THE COMPOSITOR CANNOT, and cannot even paint without layout. */
+  if (kf && !/^(animation-timing-function|offset)$/.test(d.prop) && !COMPOSITED.has(d.prop) && !PAINTED.has(d.prop)) {
+    hits.frames.push(`${where} ${kf} moves ${d.prop}`);
+  }
+  if (!/^(transition|animation)(-duration|-timing-function|-property|-delay)?$/.test(d.prop)) return;
+  const val = d.val.replace(/!important/, '').trim();
+  const parts = val.replace(/\([^)]*\)/g, x => x.replace(/,/g, '\u0001')).split(',').map(p => p.replace(/\u0001/g, ',').trim());
+  parts.forEach(p => {
+    const bare = p.replace(/var\([^)]*\)/g, ' ').replace(/calc\([^)]*\)/g, m => /var\(/.test(p) && !/\d+m?s/.test(m) ? ' ' : m);
+    const durs = (bare.match(/(?:^|[\s(*+])(\d*\.?\d+m?s)(?=[\s)]|$)/g) || []).map(x => x.replace(/^[\s(*+]/, '')).filter(x => ms(x) > 0);
+    const curves = (bare.match(/cubic-bezier\([^)]*\)|steps\([^)]*\)|linear\([^)]*\)|\b(?:ease-in-out|ease-in|ease-out|ease|linear|step-start|step-end)\b/g) || [])
+      .map(x => x.replace(/\s+/g, ''));
+    durs.forEach(x => { (distinct.durations.get(ms(x)) || distinct.durations.set(ms(x), []).get(ms(x))).push(where); });
+    curves.forEach(x => { (distinct.easings.get(x) || distinct.easings.set(x, []).get(x)).push(where); });
+    if ((durs.length || curves.length) && !accepted(d.owner, d.outer)) hits.literals.push(`${where} ${who}: ${d.prop}: ${p}`);
+    if (/^transition(-property)?$/.test(d.prop)) {
+      const first = bare.trim().split(/\s+/)[0];
+      if (first === 'all') hits.all.push(`${where} ${who}`);
+      else if (/^[a-z-]+$/.test(first) && !/^(none|initial|inherit|unset)$/.test(first) && !EASE_WORD.test(first) && !COMPOSITED.has(first)) {
+        (PAINTED.has(first) ? hits.painted : hits.layout).push(`${where} ${who} transitions ${first}`);
+      }
+    }
   });
 });
 
+/* THE SCRIPTS: a duration or curve written into animate()/a style, and reduced motion asked anywhere but shell.js (`motionOK_`, MOTION_). */
+fs.readdirSync(JS_DIR).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+  const src = strip(fs.readFileSync(path.join(JS_DIR, f), 'utf8'));
+  src.split('\n').forEach((l, i) => {
+    const where = 'js/' + f + ':' + (i + 1);
+    const code = l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1');
+    const lit = /\bduration\s*:\s*\d/.test(code) || /\beasing\s*:\s*['"`]/.test(code)
+      || (/\.style\.(transition|animation)\w*\s*=|transition\s*:\s*['"`]/.test(code) && /\d*\.?\d+m?s\b|cubic-bezier|\bease\b/.test(code.replace(/var\([^)]*\)/g, '')));
+    if (lit) {
+      const a = ACCEPTED.find(x => x.js === 'js/' + f && x.re.test(code));
+      if (a) used.add(a); else hits.js.push(where + ': ' + code.trim().slice(0, 120));
+    }
+    if (/prefers-reduced-motion/.test(code) && f !== 'shell.js') hits.jsReduce.push(where);
+  });
+});
+
+const stale = ACCEPTED.filter(a => !used.has(a)).map(a => (a.css ? 'css ' + a.css : a.js + ' ' + a.re) + ' — ' + a.why);
+
 const counts = {
-  durations: hits.durations.size,            /* distinct duration literals in the stylesheet */
-  easings: hits.easings.size,                /* distinct timing functions written out */
-  /* AND EVERY USE: a new rule reusing an old literal grows these, so moving onto the tokens is seen and a new literal use fails. */
-  durationUses: [...hits.durations.values()].reduce((a, w) => a + w.length, 0),
-  easingUses: [...hits.easings.values()].reduce((a, w) => a + w.length, 0),
-  moved: hits.moved.length,                  /* transitions of a property the compositor cannot move */
-  transitionAll: hits.all.length,            /* `transition: all` */
-  keyframes: hits.frames.length,             /* keyframes moving a non-composited property */
-  jsDurations: hits.jsDurations.length,      /* a script writing its own duration */
-  jsReduce: hits.jsReduce.length,            /* reduced motion asked outside motionOK_ */
+  durations: distinct.durations.size,
+  easings: distinct.easings.size,
+  durationUses: [...distinct.durations.values()].reduce((a, w) => a + w.length, 0),
+  easingUses: [...distinct.easings.values()].reduce((a, w) => a + w.length, 0),
+  painted: hits.painted.length,
 };
-const SAY = { durations: 'distinct duration literals', easings: 'distinct curves written out',
-  durationUses: 'duration literals written', easingUses: 'curves written out', moved: 'transitions of a non-composited property',
-  transitionAll: '`transition: all`', keyframes: 'keyframes moving a non-composited property', jsDurations: 'scripts writing their own duration',
-  jsReduce: 'reduced-motion questions outside motionOK_' };
+const SAY = { durations: 'distinct duration literals', easings: 'distinct curves written out', durationUses: 'duration literals written',
+  easingUses: 'curves written out', painted: 'transitions of a painted (not composited) property' };
 
 if (process.argv.includes('--update')) {
   fs.writeFileSync(BASE, JSON.stringify(counts, null, 2) + '\n');
@@ -85,21 +145,35 @@ if (process.argv.includes('--update')) {
   process.exit(0);
 }
 let base = null;
-try { base = JSON.parse(fs.readFileSync(BASE, 'utf8')); } catch (e) {}
+try { base = JSON.parse(fs.readFileSync(BASE, 'utf8')); } catch (e) { /* said below */ }
 if (!base) { console.error('motion: no check/motion-baseline.json — run `node check/motion.js --update` once'); process.exit(2); }
-if (!counts.durations && !counts.easings) { console.error('motion: no transition or animation read in style.css — the parse cannot see its subject'); process.exit(2); }
+const seen = declarations().filter(d => /^(transition|animation)/.test(d.prop)).length;
+if (!seen) { console.error('motion: no transition or animation read in ' + CSS_FILE + ' — the parse cannot see its subject'); process.exit(2); }
 
 if (VERBOSE) {
-  [...hits.durations].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([k, w]) => console.log(`  duration ${k}: ${w.length}× (${w.slice(0, 3).join(', ')})`));
-  [...hits.easings].forEach(([k, w]) => console.log(`  curve ${k}: ${w.length}× (${w.slice(0, 3).join(', ')})`));
-  hits.moved.concat(hits.all, hits.frames, hits.jsDurations, hits.jsReduce.map(x => x + ' reduced motion')).forEach(x => console.log('  ' + x));
+  [...distinct.durations].sort((a, b) => a[0] - b[0]).forEach(([k, w]) => console.log(`  duration ${k}ms: ${w.length}× (${w.slice(0, 3).join(', ')})`));
+  [...distinct.easings].forEach(([k, w]) => console.log(`  curve ${k}: ${w.length}× (${w.slice(0, 3).join(', ')})`));
+  hits.painted.forEach(x => console.log('  painted: ' + x));
 }
+const HARD = [
+  ['literals', 'a duration or curve written out — use --dur-*/--ease-* (or name it in ACCEPTED with its reason)'],
+  ['layout', 'a transition of a property that lays the page out — move it by transform/opacity/clip-path'],
+  ['frames', 'keyframes moving a property that lays the page out'],
+  ['all', '`transition: all`'],
+  ['js', 'a script writing its own duration or curve — use MOTION_'],
+  ['jsReduce', 'reduced motion asked outside shell.js — ask motionOK_()'],
+];
+const fail = [];
+HARD.forEach(([k, say]) => hits[k].forEach(h => fail.push(`${say}: ${h}`)));
+stale.forEach(s => fail.push('an ACCEPTED exception matches nothing any more — take it out: ' + s));
 const grew = Object.keys(counts).filter(k => counts[k] > (base[k] || 0));
-const fell = Object.keys(counts).filter(k => counts[k] < (base[k] || 0));
-if (grew.length) {
-  console.error('motion: ' + grew.length + ' count(s) grew — use the tokens (--dur-*, --ease-*, MOTION_, motionOK_) instead');
-  grew.forEach(k => console.error(`  ! ${SAY[k]}: ${counts[k]}, was ${base[k] || 0}`));
+grew.forEach(k => fail.push(`${SAY[k]} grew: ${counts[k]}, was ${base[k] || 0}`));
+if (fail.length) {
+  console.error('motion: ' + fail.length + ' finding(s)');
+  fail.forEach(f => console.error('  ! ' + f));
   process.exit(1);
 }
+const fell = Object.keys(counts).filter(k => counts[k] < (base[k] || 0));
 if (fell.length) console.log('motion: fell, lower the baseline with --update — ' + fell.map(k => `${SAY[k]} ${base[k]} -> ${counts[k]}`).join('; '));
-console.log('motion: no count grew — ' + Object.keys(counts).map(k => k + ' ' + counts[k]).join(', '));
+console.log(`motion: every duration and curve is a token or one of ${ACCEPTED.length} named exceptions, only the compositor moves things — `
+  + Object.keys(counts).map(k => k + ' ' + counts[k]).join(', '));

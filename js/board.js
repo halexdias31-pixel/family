@@ -20,7 +20,8 @@ const NB_IDLE_MS = 400;                   // a pause this long after a stroke is
 const NB_KEEP = 0.3;                      // a fresh or tapped caret sits this far into the pad
 /* THE PAD MOVES ON ONLY WHEN LITTLE ROOM IS LEFT (under 28% of it, or a stroke reaching 90%), and then just far enough to leave 60% free: the 40% behind keeps the last word, as a ghost. */
 const NB_ROOM_LOW = 0.28, NB_ROOM = 0.6, NB_EDGE_NOW = 0.9;
-const NB_GLIDE_MS = 340;                  // every move of the pad or the page is a glide this long, eased out; a dropped frame slows it, never skips it
+/* EVERY MOVE OF THE PAD OR THE PAGE IS A GLIDE of the app's one `--dur-move`, eased out; a dropped frame slows it, never skips it (537). */
+const nbGlideMs_ = () => MOTION_.move;
 /* A CARRIAGE RETURN: a quick, long, level stroke from right to left. No sign in maths is written that way, so it cannot be writing. */
 const NB_RETURN_PX = 100, NB_RETURN_W = 0.35, NB_RETURN_MS = 400;
 const NB_SUPER_K = 0.62;
@@ -800,7 +801,7 @@ function nbRefresh_(st) {
     nbGlide_(b);
   });
 }
-/* THE PAD AND THE PAGE GLIDE TO WHERE THEY ARE GOING, eased out over NB_GLIDE_MS, so the eye keeps its place in the working. */
+/* THE PAD AND THE PAGE GLIDE TO WHERE THEY ARE GOING, eased out over `nbGlideMs_()`, so the eye keeps its place in the working; with less motion asked for, they are simply there. */
 function nbGlide_(b) {
   const st = nbState_(b.k), v = nbView_(b, st);
   const same = (p, q) => ['px', 'ny', 'py'].every(n => (p[n] === null) === (q[n] === null) && Math.abs((p[n] || 0) - (q[n] || 0)) < 0.01);
@@ -810,13 +811,16 @@ function nbGlide_(b) {
     const w = b.tw;
     w.t += Math.max(0, Math.min(24, now - b.last));
     b.last = now;
-    const k = Math.min(1, w.t / NB_GLIDE_MS), e = 1 - (1 - k) * (1 - k);
+    const ms = nbGlideMs_(), k = ms > 0 ? Math.min(1, w.t / ms) : 1, e = 1 - (1 - k) * (1 - k);
     ['px', 'ny', 'py'].forEach(n => { v[n] = w.F[n] === null || w.T[n] === null ? w.T[n] : w.F[n] + (w.T[n] - w.F[n]) * e; });
     b.gk = e;
     nbDrawAll_(b);
     if (k < 1) b.glide = requestAnimationFrame(step); else { b.glide = 0; b.tw = null; }
   };
-  if (typeof requestAnimationFrame !== 'function' || !b.book.ctx) { Object.assign(v, nbTarget_(st)); b.gk = 1; nbDrawAll_(b); return; }
+  if (typeof requestAnimationFrame !== 'function' || !b.book.ctx || !motionOK_() || nbGlideMs_() <= 0) {
+    if (b.glide) nbStopGlide_(b);
+    Object.assign(v, nbTarget_(st)); b.gk = 1; nbDrawAll_(b); return;
+  }
   if (b.glide) return;
   if (same(v, nbTarget_(st))) { nbDrawAll_(b); return; }
   b.last = performance.now();
