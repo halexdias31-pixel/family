@@ -169,7 +169,8 @@ const KINDS = {
   writing: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
   event: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
-  timeline: { group: 'Learning', label: 'Library', card: x => histTimelineCard_(x) },
+  /* A TIMELINE IS ITS OWN KIND OF ITEM (531): the owner, "timelines should have a tag called timeline". */
+  timeline: { group: 'Learning', label: 'Timeline', card: x => histTimelineCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
   boxer: { group: 'Learning', label: 'Library', card: x => boxerCard_(x) },
@@ -461,7 +462,8 @@ const FACETS = [
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  { field: 'documentType', label: 'Type',     of: x => x.documentType },
+  /* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH (531): the owner, "specimen paper should be in past paper", "5 a day should be in worksheet". */
+  { field: 'documentType', label: 'Type',     of: x => docTypeAnswers_(x.documentType) },
   /* A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY, each read off its paper id. */
   { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '' },
   { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; } },
@@ -978,6 +980,9 @@ const FACET_MIN_MINORITY = 0.02;
 function facetSplit_(items, facet) {
   return facetTally_(items, facet).split;
 }
+
+const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
+function docTypeAnswers_(t) { const up = DOC_TYPE_UNDER[t]; return up ? [up, t] : t; }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {

@@ -134,7 +134,7 @@ Object.keys(SCHEMA).forEach(f => {
 });
 ['manuscript', 'figure', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => histCard_\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by histCard_'); });
 
-if (!/\n  timeline: \{ group: 'Learning', label: 'Library', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
+if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
 const n = Object.keys(T).map(f => T[f].length + ' ' + f).join(', ');
 if (bad.length) { bad.forEach(b => console.log('FAIL ' + b)); console.log(bad.length + ' problem(s) in the history database (' + n + ')'); process.exit(1); }
 console.log('history database: ' + n + ' — schema, ids, links both ways, years and sources all sound');
