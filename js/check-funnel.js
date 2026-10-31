@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
-/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7); FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
+/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -97,6 +97,7 @@ boot(f => {
   }
   const facets = f.facetList();
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
+  if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -904,6 +905,7 @@ boot(f => {
     });
     console.log('  Card tags: ' + cards + ' paper(s) read, ' + fives + ' of them 5-a-day');
     if (!fives) bad.push('no 5-a-day card was read, so the Day tag rule proves nothing');
+    underTypes_(f, items);
     if (!skipped) bad.push('no SATs Paper answer was reached with the Year skipped, so that route proves nothing');
   } else {
     bad.push('`chipShow_` or `tagRow_` is not declared, so the SATs tags cannot be checked — not a pass');
@@ -1171,6 +1173,27 @@ boot(f => {
   /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
   /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
 let WALKED = 'not walked';
+/* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (545). FUNNEL_ONLY=under runs it alone. */
+function underTypes_(f, items) {
+  const byField = fl => f.facetList().find(x => x.field === fl);
+  const typeF = byField('documentType'), kindF = byField('kindLabel');
+  const under = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' }, seenUnder = {};
+  items.forEach(x => {
+    const t = x.kind === 'question' && String(x.documentType || '');
+    if (!t || !under[t] || !typeF) return;
+    seenUnder[t] = (seenUnder[t] || 0) + 1;
+    const said = f.asList_(typeF.of(x)).map(String);
+    if (said.indexOf(under[t]) === -1 || said.indexOf(t) === -1) {
+      bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Type ' + JSON.stringify(said) + ', not both ' + JSON.stringify([under[t], t]));
+    }
+  });
+  Object.keys(under).forEach(t => { if (!seenUnder[t]) bad.push('no ' + t + ' question was read, so "' + t + ' is under ' + under[t] + '" proves nothing'); });
+  /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */
+  const tls = items.filter(x => x.kind === 'timeline').concat([{ kind: 'timeline', hdb: true, name: 'a bare timeline' }]);
+  tls.forEach(x => { if (!kindF || f.asList_(kindF.of(x)).indexOf('Timeline') === -1) bad.push(x.name + ': a timeline does not answer What kind "Timeline"'); });
+  console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length);
+}
+
 function walkFunnels_(f, items) {
   if (f.stuffFind && f.stuffFiltered && f.nextFacet && f.stuffNarrow_) {
     let seed = Number(process.env.FUNNEL_SEED || 1);

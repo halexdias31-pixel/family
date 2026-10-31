@@ -21840,7 +21840,7 @@ check('the history database: a manuscript and a historical figure are each found
 });
 
 /* ---------- THE TIMELINE (461): EVENTS FOUND AS A FOURTH KIND, THE WORLD WAR 2 CARD LISTS THEM IN DATE ORDER, EVERY TILE LANDS IN PLACE ---------- */
-check('the history timeline: events are found under Learning, Content, History, Events; the World War 2 timeline card lists every event in date order as a tile to its card, an event links to its figure and back, and the Animation tile opens the chapter with the drawing', async () => {
+check('the history timeline: events are found under Learning, Content, History, Events, the timeline under Learning, Timeline (545); the World War 2 timeline card lists every event in date order as a tile to its card, an event links to its figure and back, and the Animation tile opens the chapter with the drawing', async () => {
   const p = await resPayload_();
   if (!p) return ['the app did not load — NOT checked'];
   const one = boot();
@@ -21860,7 +21860,10 @@ check('the history timeline: events are found under Learning, Content, History, 
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                        { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
   const found = w.stuffFiltered();
-  if (found.indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Content, History, Events');
+  /* A TIMELINE IS ITS OWN KIND (545): found by Learning, Timeline, and not among the Library's events. */
+  if (found.indexOf(tl) >= 0) bad.push('the timeline is still under Library, History, Events rather than What kind "Timeline"');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Timeline' }];
+  if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Timeline');
   const lost = evs.filter(e => found.indexOf(get(e.id)) < 0).map(e => e.id);
   if (lost.length) bad.push(lost.length + ' event(s) not found by History, Events: ' + lost.slice(0, 5).join(', '));
   if (found.some(y => !y.hdb)) bad.push('History, Events keeps a thing that is not in the history database');
