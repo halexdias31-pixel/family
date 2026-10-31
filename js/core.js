@@ -375,8 +375,9 @@ function bookMoney_(m) {
   const d = m.discount || {};
   const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
   const discountValue = discountType ? pos(d.value) : 0;
+  /* `%` IS OFF WHAT THE CLIENT PAYS (owner, 29 Oct: "If I put 30 in that field then it's just 30 percent off"), the room included. */
   const discount = !discountValue ? 0
-    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : discountType === '%' ? gross * Math.min(discountValue, 100) / 100
     : Math.min(discountValue, gross);
   const shared = /^shared/i.test(String(d.by || ''));
   const scale = shared && teaching > 0 ? 1 - Math.min(discount, teaching) / teaching : 1;

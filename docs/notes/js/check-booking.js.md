@@ -255,3 +255,12 @@ top level, before `coreJs`
 ================================================================================================== */
 ```
 
+### THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "I should be able to select the current academic interval too, which is October half term"):
+
+in `RULES`
+
+```
+/* THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "I should be able to select the current academic interval too, which is
+     October half term"): mid-week in a holiday week no whole week was left, so `operatingWindow` dropped it. Every day of a year. */
+```
+

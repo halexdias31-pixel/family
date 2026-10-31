@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-29-import-subfolders";
+const BOOKING_VERSION = "2026-10-31-merge-booking";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -22,8 +22,14 @@ function operatingWindow(startCell, endCell) {
   first.setDate(first.getDate() + ((8 - first.getDay()) % 7));
 
   // And back to the last Sunday. 0 if the end already IS a Sunday.
-  const last = new Date(rawEnd);
+  let last = new Date(rawEnd);
   last.setDate(last.getDate() - (last.getDay() % 7));
+
+  /* THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "the current academic interval too, which is October half term"): § */
+  if (!useStart && rawEnd >= today) {
+    if (first > from) first.setDate(first.getDate() - 7);
+    if (last < first) last = new Date(rawEnd);
+  }
 
   if (last < first) return null;              // no whole week fits
   return { first, last, weeks: Math.round((last - first) / (7 * 864e5)) + 1, dateFault };

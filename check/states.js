@@ -5686,41 +5686,29 @@ const STATES = {
       /* PUT BACK, because states run in order down one page and the receipt state after this one would otherwise be measuring a waiting list's form. § */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- A SEVERAL-ANSWERS ROW, OPEN UNDER ITSELF, WITH A BOX TICKED § */
-    { name: 'a list of answers open',
+    /* ---------- SEVERAL ANSWERS, PICKED IN THE SAME DROPDOWN AS ONE (29 Oct, docs/history/530): `stepPick_`, the words over the select */
+    { name: 'several answers picked',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
           .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
-        if (!st) throw new Error('no several-answers question offers anything to tick');
+        if (!st) throw new Error('no several-answers question offers an answer');
+        window.STATE_MANY_N = Math.min(2, st.options().filter(Boolean).length);
         window.STATE_MANY_STEP = st.id;
-        BOOKING.picking = st.id; drawBooker();
-        /* THE BOX IS TICKED ONCE IT IS DRAWN, asked again for up to two seconds. § */
-        return new Promise(ok => {
-          const t0 = Date.now();
-          const tick = () => {
-            if (BOOKING.picking !== st.id) { BOOKING.picking = st.id; drawBooker(); }
-            const box = document.querySelector('#bookr #bk-many-' + st.id + ' input[type="checkbox"]');
-            if (box) { box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); return ok(); }
-            if (Date.now() - t0 > 2000) return ok();
-            setTimeout(tick, 50);
-          };
-          tick();
+        st.options().filter(Boolean).slice(0, 2).forEach(v => {
+          const s = document.querySelector('#bookr select[data-step="' + st.id + '"]');
+          if (s) { s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }
         });
       },
       expect: () => {
         const id = window.STATE_MANY_STEP;
-        const list = id && document.querySelector('#s-booking #bookr #bk-many-' + id);
-        return !!list && !document.getElementById('drop')
-          && list.querySelectorAll('label.check input[type="checkbox"]').length >= 1
-          && list.querySelectorAll('input[type="checkbox"]:checked').length >= 1
-          && (BOOKING[id] || []).length >= 1 ? 1 : 0;
+        const s = id && document.querySelector('#s-booking #bookr select.bk-sel[data-step="' + id + '"]');
+        return !!s && !s.multiple && !document.querySelector('#bookr .bk-many-list, #bookr [data-do="book-many"]')
+          && (BOOKING[id] || []).length === window.STATE_MANY_N ? 1 : 0;
       },
-      wants: 'a several-answers row open under itself in the card, with a box ticked into the booking',
-      /* PUT BACK, because states run in order down one page and the receipt state after this one would
-         otherwise be measuring a half-answered form with a list open on it. */
-      leave: () => { delete window.STATE_MANY_STEP;
-        if (typeof resetBooking_ === 'function') resetBooking_(); BOOKING.picking = ''; drawBooker(); } },
+      wants: 'a several-answers row picked (twice where it offers two) through the same select as Level, the answers on the booking',
+      leave: () => { delete window.STATE_MANY_STEP; delete window.STATE_MANY_N;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     /* ---------- AND A SINGLE ANSWER, CHOSEN § */
     { name: 'a single answer chosen',
@@ -5795,13 +5783,13 @@ const STATES = {
       wants: 'Ada\'s four days (Mon, Tue, Wed, Sat) and no other, with her Tuesday 10 and 11 ticked',
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- ONE LINE PER THING (421): AN ADMIN'S DISCOUNT IS FOUR ROWS, NOT FOUR BOXES IN A GRID */
+    /* ---------- ONE LINE PER THING (421): AN ADMIN'S DISCOUNT IS ONE ROW, A PERCENTAGE (29 Oct, 530) */
     { name: 'an admin\'s discount chosen, one line per thing',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         /* NO TERM, SO NO MONEY BLOCK: this asks the rule, and the money block's own figures are 353's to measure. */
         Object.assign(BOOKING, { how: 'Instant class', level: 'GCSE', subjects: ['Maths'], n: '2', hosting: 'No',
-          slots: ['m16', 'm17'], discType: '£', discValue: '5', discCode: 'Sibling', discBy: 'Business' });
+          slots: ['m16', 'm17'], discValue: '30' });
         drawBooker();
       },
       expect: () => (window.oneLineFaults_ = (() => {
@@ -5809,10 +5797,10 @@ const STATES = {
         if (!bk) return ['no booking card'];
         const out = [];
         const keys = [...bk.querySelectorAll('.bk-row.rc-disc, .bk-row.rc-disc-more')].map(r => r.querySelector('.bk-k').textContent.trim());
-        if (keys.join('|') !== 'Discount|How much|Code or reason|Absorbed by') out.push('discount rows: ' + keys.join('|'));
+        if (keys.join('|') !== 'Discount') out.push('discount rows: ' + keys.join('|'));
         [...bk.children].forEach(c => {
           const what = (c.className || c.tagName) + ' "' + ((c.querySelector('.bk-k') || c).textContent || '').trim().slice(0, 24) + '"';
-          if (!c.matches('.bk-row, p.bk-say, .bk-many-list')) { out.push('a box that is not a row: ' + what); return; }
+          if (!c.matches('.bk-row, p.bk-say')) { out.push('a box that is not a row: ' + what); return; }
           if (!c.matches('.bk-row')) return;
           const ctls = c.querySelectorAll('select, input:not([type="hidden"]), textarea');
           if (ctls.length > 1) out.push(ctls.length + ' controls on one line: ' + what);
@@ -5822,7 +5810,7 @@ const STATES = {
         return out;
       })()).length === 0 ? 1 : 0,
       why: () => (window.oneLineFaults_ || []).join('; '),
-      wants: 'the admin\'s discount as four one-line rows and every control row of the card one line',
+      wants: 'the admin\'s discount as one one-line row and every control row of the card one line',
       leave: () => { delete window.oneLineFaults_; if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',

@@ -231,7 +231,7 @@ const BOOKING = {
      `note` is: a redraw rebuilds the page, and state kept in the markup is state a redraw loses. */
   picking: '',
   /* AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked: § */
-  discType: '', discValue: '', discCode: '', discBy: '',
+  discValue: '',
 };
 
 /* ---------- THE ONE YOU JUST ASKED FOR § */
@@ -559,8 +559,10 @@ const BOOK_STEPS = [
   /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
   { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
+    /* AT THE CLIENT'S OWN HOUSE THE CLIENT IS THE SPACE (owner, 29 Oct: "the space field is redundant"): no options, so the row is text, `Yes`. */
+    fallback: () => atClientHome_(BOOKING.loc) ? 'Yes' : '',
     options: () => {
-      if (isWaiting_()) return [];
+      if (isWaiting_() || atClientHome_(BOOKING.loc)) return [];
       const rate = venueRate_();
       /* Nothing to charge means nothing to decide: hosting is already true and asking would be
          the app consulting somebody about a fact. */
@@ -726,7 +728,7 @@ function bookSpec() {
     loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,
     /* The answer, or the rule when it has not been given: a venue that charges nothing is hosted
        whether or not anybody said so. */
-    hosting: BOOKING.hosting ? BOOKING.hosting === 'Yes'
+    hosting: atClientHome_(BOOKING.loc) ? true : BOOKING.hosting ? BOOKING.hosting === 'Yes'
                              : (BOOKING.loc === 'At home' || isHome(BOOKING.loc)),
     /* HOW MANY OTHERS, counted from the addresses given rather than picked separately. */
     splitOthers: (BOOKING.split || []).filter(x => String(x).trim()).length,
@@ -746,8 +748,8 @@ function bookSpec() {
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
-    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && BOOKING.discType)
-      ? { type: BOOKING.discType, value: BOOKING.discValue, code: BOOKING.discCode, by: BOOKING.discBy || 'Business' }
+    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && Number(BOOKING.discValue) > 0)
+      ? { type: '%', value: BOOKING.discValue, by: 'Business' }
       : null,
   });
 }
@@ -788,7 +790,7 @@ function resetBooking_(keepDraft) {
   /* THE ONE THAT IS NOT AN ANSWER: § */
   BOOKING.done = [];
   BOOKING.note = '';
-  BOOKING.discType = BOOKING.discValue = BOOKING.discCode = BOOKING.discBy = '';
+  BOOKING.discValue = '';
   /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
@@ -955,6 +957,15 @@ on('book-block', el => {
 /* Answering one. A multi toggles, everything else replaces and moves on. */
 /* ---------- A DROPDOWN ANSWERED § */
 /* ---------- TICKING ONE ANSWER OF SEVERAL § */
+/* ONLY THE CHOSEN CLIENT'S CHILDREN STAY TICKED — read off the Child question's own list, so the two cannot disagree. */
+function bookKidsFor_() {
+  const st = bookStep_('kids');
+  let offered = [];
+  try { offered = (st && st.options() || []).map(norm); } catch (e) {}
+  BOOKING.kids = (BOOKING.kids || []).filter(k => offered.indexOf(norm(k)) !== -1);
+  if (!BOOKING.kids.length) BOOKING.done = (BOOKING.done || []).filter(id => id !== 'kids');
+}
+
 function bookToggle_(step, v) {
   if (v) {
     const list = BOOKING[step.id] || [];
@@ -981,8 +992,12 @@ document.addEventListener('change', e => {
   const step = bookStep_(el.dataset.step);
   if (!step) return;
 
-  /* A SEVERAL-OF-A-LIST QUESTION IS NEVER A SELECT — it is checkboxes, answered by `book-many-pick`. § */
-  if (step.multi) return;
+  /* SEVERAL ANSWERS, ONE DROPDOWN LIKE THE REST (29 Oct): a pick adds the answer, a pick of a ticked one takes it off — `stepPick_`. */
+  if (step.multi) {
+    if (el.value && !stepLocked_(step)) bookToggle_(step, el.value);
+    drawBooker();
+    return;
+  }
   /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old browser
      that lets a disabled option through, a hand-built event. Said, and the row redrawn on what it
      held. */
@@ -993,6 +1008,10 @@ document.addEventListener('change', e => {
 
   /* ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN § */
   if (step.id === 'how') BOOKING.tutor = '';
+  /* ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
+  if (step.id === 'client') bookKidsFor_();
+  /* AND AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS — an earlier `No` must not stand under a row that cannot be answered. */
+  if (step.id === 'loc' && atClientHome_(BOOKING.loc)) BOOKING.hosting = '';
 
   /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS § */
   if (step.id === 'joining') {
@@ -1158,7 +1177,6 @@ function breakdownRows(L) {
 
   /* ---------- WHERE THIS ONE IS, TOO § */
   stageRows_(null).forEach(r => rows.push(r));
-  push('Status', '—', '', '', '', { free: true });
   /* ---------- THREE ROWS SAYING THE SAME NOTHING § */
   return rows;
 }
@@ -1229,58 +1247,19 @@ function stepInput_(st) {
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
-/* ---------- PICKING SEVERAL ANSWERS WAS FOUR TAPS FOR TWO SUBJECTS § */
-/* THE DEVICE'S OWN LIST ON A PHONE (498): the owner, "it should be device list" -- a `<select multiple>` is iOS's and Android's ticked picker. */
-const bkNativeMany_ = st => { try { return !st.grid && matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } };
-function stepNativeMany_(st) {
+/* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE § */
+function stepPick_(st) {
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
   const chosen = BOOKING[st.id] || [], on = o => chosen.some(c => norm(c) === norm(o));
+  const said = o => String(st.label_ ? st.label_(o) : o);
   const fb = st.fallback ? String(st.fallback() || '') : '';
-  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${esc(chosen.join(', ') || fb || '\u2014')}</span><select multiple class="bk-sel bk-sel-many" id="${bkCtl_(st.id)}"
-    data-do="book-many-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">${
-    opts.map(o => `<option value="${esc(o)}"${on(o) ? ' selected' : ''}>${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}</select></span>`;
-}
-document.addEventListener('change', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="book-many-set"]');
-  const st = el && bookStep_(el.dataset.step);
-  if (!st || !st.multi || stepLocked_(st)) return;
-  const want = [...el.selectedOptions].map(o => o.value), had = BOOKING[st.id] || [];
-  had.filter(x => want.every(w => norm(w) !== norm(x))).concat(want.filter(w => had.every(x => norm(x) !== norm(w)))).forEach(v => bookToggle_(st, v));
-  drawBooker();
-});
-function stepMulti_(st) {
-  if (bkNativeMany_(st)) return stepNativeMany_(st);
-  const chosen = BOOKING[st.id] || [];
-  const fb = st.fallback ? String(st.fallback() || '') : '';
-  const said = chosen.join(', ') || fb;
-  /* `aria-expanded` AND `aria-controls`, which is the disclosure pattern every screen reader knows:
-     the button says whether its list is open and which element that list is. */
-  return `<button type="button" class="bk-sel bk-many${said ? '' : ' is-unset'}" id="${bkCtl_(st.id)}"
-    data-do="book-many" data-step="${esc(st.id)}" aria-controls="bk-many-${esc(st.id)}"
-    aria-expanded="${manyOpen_(st) ? 'true' : 'false'}"
-    aria-label="${esc(st.label)}">${esc(said || '—')}</button>`;
-}
-
-/* WHICH QUESTION'S LIST IS OPEN. § */
-function manyOpen_(st) {
-  if (!st || BOOKING.picking !== st.id) return false;
-  if (stepLocked_(st)) { BOOKING.picking = ''; return false; }
-  return true;
-}
-
-/* ---------- THE LIST, UNDER ITS ROW § */
-function stepManyList_(st) {
-  if (!manyOpen_(st) || bkNativeMany_(st)) return '';
-  let opts = [];
-  try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
-  const chosen = BOOKING[st.id] || [];
-  const on = o => chosen.some(c => norm(c) === norm(o));
-  return `<div class="bk-many-list many-list" id="bk-many-${esc(st.id)}" role="group"
-      aria-label="${esc(st.label)}">${opts.length ? opts.map(o => `<label class="check many-opt">
-        <input type="checkbox" data-do="book-many-pick" data-step="${esc(st.id)}" value="${esc(o)}"${
-        on(o) ? ' checked' : ''}><span class="box"></span><span>${esc(st.label_ ? st.label_(o) : o)}</span></label>`).join('')
-      : '<p class="muted">Nothing to choose here yet.</p>'}</div>`;
+  const face = chosen.map(said).join(', ') || fb || '—';
+  return `<span class="bk-face${chosen.length ? ' is-set' : ''}"><span class="bk-said" aria-hidden="true">${esc(face)}</span><select class="bk-sel"
+    id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}" aria-label="${esc(st.label)}">
+    <option value="" selected>${esc(face)}</option>
+    ${opts.map(o => `<option value="${esc(o)}">${on(o) ? '✓ ' : ''}${esc(said(o))}</option>`).join('')}
+  </select></span>`;
 }
 
 /* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. § */
@@ -1308,16 +1287,6 @@ document.addEventListener('click', e => {
   try { sel.showPicker(); } catch (err) { /* not rendered, or no activation: the label's focus stands */ }
 });
 
-on('book-many', el => {
-  const st = bookStep_(el.dataset.step);
-  if (!st || stepLocked_(st)) return;
-  /* PRESSING THE OPEN ONE SHUTS IT, which is what every disclosure does; pressing another moves the
-     one open list there, so the card never carries two. */
-  BOOKING.picking = BOOKING.picking === st.id ? '' : st.id;
-  drawBooker();
-  if (BOOKING.picking) bookManyShow_(st.id);
-});
-
 /* ---------- AND THE LIST JUST OPENED IS BROUGHT ONTO THE SCREEN § */
 function tickListShow_(find, still) {
   const fit = () => {
@@ -1332,23 +1301,6 @@ function tickListShow_(find, still) {
   setTimeout(fit, 120);
   setTimeout(fit, 420);
 }
-function bookManyShow_(id) {
-  tickListShow_(() => {
-    const ctl = document.getElementById(bkCtl_(id));
-    return { list: $('bk-many-' + id), head: ctl && ctl.closest('.bk-row') };
-  }, () => BOOKING.picking === id);
-}
-
-/* A BOX TICKED OR UNTICKED. § */
-on('book-many-pick', el => {
-  const st = bookStep_(el.dataset.step);
-  if (!st || stepLocked_(st)) return;
-  const v = el.value;
-  const has = (BOOKING[st.id] || []).some(x => norm(x) === norm(v));
-  if (has !== !!el.checked) bookToggle_(st, v);
-  drawBooker();
-});
-
 /* EVERY `<select>` IS THE PLATFORM'S OWN AGAIN THE OWNER, 9 OCTOBER: § */
 
 /* ---------- ELEVEN HOURS, SAID ONCE § */
@@ -1481,10 +1433,9 @@ function stepLocked_(st) {
 function stepControl_(st) {
   if (st.grid) return '';
   if (st.emails) return stepInput_(st);
-  /* A QUESTION TAKING SEVERAL ANSWERS OPENS A LIST OF CHECKBOXES UNDER ITS ROW — see `stepMulti_`. A
-     locked one has nothing to open, so it falls through to the text `stepSelect_` draws for a
-     settled answer. */
-  if (st.multi && !stepLocked_(st)) return stepMulti_(st);
+  /* A QUESTION TAKING SEVERAL ANSWERS IS THE SAME DROPDOWN — see `stepPick_`. A locked one falls through to the text
+     `stepSelect_` draws for a settled answer. */
+  if (st.multi && !stepLocked_(st)) return stepPick_(st);
   return stepSelect_(st);
 }
 
@@ -1529,9 +1480,6 @@ function stepRows_() {
                /* THE CONTROL THE ROW'S LABEL IS FOR — see `bkCtl_`. Only when one was drawn: a locked
                   row is text and a grid row has none, and a `for` naming nothing is a label that lies. */
                ctl: st.grid ? '' : st.emails || !stepLocked_(st) ? bkCtl_(st.id) : '',
-               /* THE LIST OF CHECKBOXES UNDER A SEVERAL-OF-A-LIST ROW, when it is the one open —
-                  see `stepManyList_`. Markup, like `sel`, and drawn by `receiptRow` after the row. */
-               many: st.multi && !st.grid ? stepManyList_(st) : '',
                /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE § */
                /* ---------- AND THE ASIDES ARE GONE, WHICH IS THE THIRD TIME OF ASKING § */
                say: (() => {
@@ -1626,7 +1574,7 @@ const SPINE_EXTRA = [
   { after: '',        row: 'Shared by', only: 'book, wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
-  { after: '',        row: 'Status' },
+  /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the five ticks are it. */
 ];
 
 const SPINE = (() => {
@@ -1788,6 +1736,7 @@ function bookBreakdown(L, foot) {
   rows.forEach(r => { if (r.n !== '') r.n = String(++seq).padStart(3, '0'); });
 
   const out = rows.map(receiptRow);
+  const pays = kid ? '' : payRow_(L);
 
   return receiptHtml({
     /* ---------- THE HEAD SAID WHAT THE ROWS SAY § */
@@ -1798,16 +1747,12 @@ function bookBreakdown(L, foot) {
     /* DRAW THE COLUMN HEADER. § */
     cols: !kid,
     rows: out,
-    noTotal: kid,
+    /* AN ADMIN'S PRICED FORM ENDS ON TWO ORDINARY LINES, Discount and Client pays (`payRow_`), and so has no total bar. */
+    noTotal: kid || !!pays,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE § */
     total: (L && L.total > 0) ? money(L.total) : '—',
-    /* AN ADMIN'S DISCOUNT LINE, DIRECTLY ABOVE COST — `discountRow_`; nothing for anybody else. */
-    before: discountRow_(L),
-    /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
-    totalLabel: costLabel_(L) || undefined,
-    more: formMoney_(L).more,
-    /* THE ONE SENTENCE UNDER A NEGATIVE NET — an admin's, from the same `formMoney_`. */
-    moreSay: formMoney_(L).say || '',
+    /* AN ADMIN'S DISCOUNT LINE, then what the client pays — `discountRow_`, `payRow_`; nothing for anybody else. */
+    before: discountRow_(L) + pays,
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
@@ -1984,9 +1929,7 @@ function receiptRow(r) {
     ${/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT § */
           ''}
     ${r.open || ''}
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}${
-    /* THE CHECKBOXES OF A SEVERAL-OF-A-LIST ROW THAT IS OPEN, under the row and the full width of the card — see `stepManyList_`. § */
-    r.many || ''}`;
+  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
 }
 
 /* A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR. § */
@@ -2058,7 +2001,6 @@ function jobRows(j) {
 
   /* ---------- WHERE IT IS, AND WHERE IT IS GOING § */
   stageRows_(j).forEach(r => rows.push(r));
-  push('Status', jobStatusSaid_(j), '', { free: true });
   /* THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in — and NOT a dash for every question this job cannot answer. § */
   return spineRows_(rows, { fill: false });
 }
@@ -2093,15 +2035,7 @@ const seatsOf_ = j => Math.max(0, Number((j && (j.maxKids || j.maxStudents)) || 
 
 /* ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FIVE TICKS NOW § */
 
-/* AND WHAT THE SEATS SAY, which is the machine's own record rather than a summary of it. A session
-   where one family has paid and another has not is one line here and could not be one tick above. */
-function jobStatusSaid_(j) {
-  const seats = (j.slots || []).map(sl => String(sl.status || '').trim()).filter(Boolean);
-  if (!seats.length) return 'nobody in it yet';
-  const by = {};
-  seats.forEach(s => { by[s] = (by[s] || 0) + 1; });
-  return Object.keys(by).map(s => (by[s] > 1 ? by[s] + ' × ' : '') + s).join(', ');
-}
+/* `jobStatusSaid_` AND THE `Status` ROW WENT (owner, 29 Oct): the five ticks above it already say where a booking is. */
 
 function jobStage_(j) {
   const paid = (j.slots || []).filter(sl => /^booked$/i.test(String(sl.status || '')));
@@ -2163,81 +2097,67 @@ function bookMoneySend_(L) {
   return out;
 }
 
-/* ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM § */
-function costLabel_(L) {
-  const base = formMoney_(L).label;
-  const e = L && L.earn;
-  if (!e || !(e.discount > 0) || !(L.total > 0)) return base;
-  const k = L.splitShares || 1;
-  return (base || 'Cost') + ' · ' + money((e.charged + e.discount) / k) + ' \u2212 ' + money(e.discount / k) + ' =';
-}
-/* ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353) § */
+/* ---------- AN ADMIN'S DISCOUNT IS ONE LINE, A PERCENTAGE § */
 function discountRow_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin()) || isWaiting_() || !L || !L.earn) return '';
   const e = L.earn;
-  const opt = (v, label, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(label)}</option>`;
-  const at = f => `class="bk-${f === 'discType' || f === 'discBy' ? 'sel' : 'in'}" id="${bkCtl_(f)}" data-do="book-disc" data-field="${f}"`;
-  /* ONE LINE PER THING (421): each control is its own row, label left, value right, like Level or Venue. */
-  const row = (cls, k, f, sel, total) => receiptRow({ n: '', k, v: '', mul: '', rate: '', total: total || '',
-    cls, ctl: bkCtl_(f), sel });
-  const out = [row('rc-disc', 'Discount', 'discType',
-    `<select ${at('discType')} aria-label="Discount">${opt('', 'No discount', !BOOKING.discType)}${
-      opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>`,
-    e.discount > 0 ? '− ' + money(e.discount / (L.splitShares || 1)) : '—')];
-  if (!BOOKING.discType) return out.join('');
-  out.push(row('rc-disc-more', 'How much', 'discValue', `<input ${at('discValue')} type="number" inputmode="decimal" min="0"
-      step="0.01" value="${esc(BOOKING.discValue)}" placeholder="—" aria-label="How much">`));
-  out.push(row('rc-disc-more', 'Code or reason', 'discCode', `<input ${at('discCode')} type="text"
-      value="${esc(BOOKING.discCode)}" placeholder="—" aria-label="Code or reason">`));
-  out.push(row('rc-disc-more', 'Absorbed by', 'discBy', `<select ${at('discBy')} aria-label="Absorbed by">${
-    opt('Business', 'Business', BOOKING.discBy !== 'Shared with tutor')}${
-    opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>`));
-  return out.join('');
+  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
+    total: e.discount > 0 ? '− ' + money(e.discount / (L.splitShares || 1)) : '—',
+    sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
+      inputmode="decimal" min="0" max="100" step="1" value="${esc(BOOKING.discValue)}" placeholder="% off"
+      aria-label="Discount, per cent off">` });
 }
 /* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. § */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('input[data-do="book-disc"]');
-  if (!el || ['discValue', 'discCode'].indexOf(el.dataset.field) === -1) return;
-  BOOKING[el.dataset.field] = String(el.value || ''); bookKeep_();
+  if (!el || el.dataset.field !== 'discValue') return;
+  BOOKING.discValue = String(el.value || ''); bookKeep_();
 });
-/* A CODE FROM THE TAB BRINGS ITS OWN TERMS. */
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="book-disc"]');
-  if (!el || !(typeof isAdmin === 'function' && isAdmin())) return;
-  const f = el.dataset.field;
-  if (['discType', 'discValue', 'discCode', 'discBy'].indexOf(f) === -1) return;
-  BOOKING[f] = String(el.value || '').trim();
-  if (f === 'discCode') {
-    const c = (DATA.promoCodes || []).find(x => norm(x.code) === norm(BOOKING.discCode));
-    if (c) Object.assign(BOOKING, { discCode: c.code, discType: c.type, discValue: String(c.value), discBy: c.absorbedBy });
-  }
+  if (!el || el.dataset.field !== 'discValue' || !(typeof isAdmin === 'function' && isAdmin())) return;
+  BOOKING.discValue = String(el.value || '').trim();
   drawBooker();
 });
 
+/* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT § */
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
   if (!L || !(L.total > 0) || !isFinite(Number(L.tutorPay))) return { label: null, more: [] };
-  const e = L.earn;
-  if (!e) return { label: 'Client pays', more: [] };
-  const more = [{ k: 'Charged', t: money(e.charged), cls: 'rc-money' }];
-  if (e.discount > 0) {
-    /* NO MINUS: `Charged` above is already the figure after it, so this says what was given and who
-       gave it rather than being taken off a second time. */
-    more.push({ k: 'Discount · ' + (e.absorbedBy === 'Shared with tutor' ? 'shared with tutor' : 'business'),
-                t: money(e.discount), cls: 'rc-money' });
-  }
-  if (e.venue > 0) more.push({ k: 'Venue', t: '\u2212 ' + money(e.venue), cls: 'rc-money' });
-  more.push({ k: 'Tutor payout', t: '\u2212 ' + money(e.tutorPayout), cls: 'rc-money' });
-  more.push({ k: 'Card fees', t: e.cardFees > 0 ? '\u2212 ' + money(e.cardFees) : money(0), cls: 'rc-money' });
-  /* ROUNDED TO THE PENNY BEFORE THE SIGN IS ASKED, so a net of −0.000000001 (floating point on a one-child
-     session) is £0.00 in ink rather than "−£0.00" in red with a sentence saying it costs you nothing. */
-  const net = Math.round(e.net * 100) / 100;
-  const pct = e.charged > 0 ? Math.round(net / e.charged * 1000) / 10 : 0;
-  /* THE PERCENTAGE IN THE LABEL, THE MONEY IN THE FIGURE: one figure per figure column (421) — both at 390 ran past the card. */
-  more.push({ k: 'Net profit · ' + pct + '%', t: (net < 0 ? '\u2212 ' : '') + money(Math.abs(net)),
-              cls: 'rc-money rc-net' + (net < 0 ? ' is-bad' : '') });
-  return { label: 'Client pays', more,
-           say: net < 0 ? 'This booking costs you ' + money(-net) + '.' : '' };
+  return { label: 'Client pays', more: [] };
+}
+function payRow_(L) {
+  const label = formMoney_(L).label;
+  if (!label || isWaiting_()) return '';
+  return receiptRow({ n: '', k: label, v: '', mul: '', rate: '', total: money(L.total), cls: 'rc-pays' });
+}
+
+/* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
+function bookFieldsSaid_() {
+  try {
+    const ini = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase() + '.').join('');
+    const person = v => (v === NOBODY || v === UNNAMED) ? v : ini(v);
+    const fb = st => st.fallback ? String(st.fallback() || '') : '';
+    const on = bookOn_();
+    const out = BOOK_STEPS.filter(st => st.short && onlyHas_(st.only, on)).map(st => {
+      const v = BOOKING[st.id];
+      const list = [].concat(v == null ? [] : v).filter(x => String(x).trim());
+      const said = st.id === 'client' ? person(v || fb(st))
+        : st.id === 'kids' ? list.map(person).join(', ')
+        : st.emails ? (list.length ? list.length + (list.length === 1 ? ' address' : ' addresses') : '')
+        : st.grid === 'blocks' ? blockSay_(v)
+        : st.grid ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00\u2013' + (r.hour + r.hours) + ':00').join(', ')
+        : st.multi ? (list.join(', ') || fb(st))
+        : (st.label_ && v ? st.label_(v) : (v || fb(st)));
+      return st.short + ': ' + (String(said || '').trim() || '\u2014');
+    });
+    const admin = typeof isAdmin === 'function' && isAdmin();
+    if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : '\u2014'));
+    const L = bookPrice();
+    if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money(L.total));
+    if (String(BOOKING.note || '').trim()) out.push('Note: written (not copied)');
+    return 'Fields: ' + out.join(' · ');
+  } catch (e) { return ''; }
 }
 
 function jobReceipt(j, foot) {

@@ -129,6 +129,24 @@ try {
       .replace(/computed\.forEach\($/, ''),
     "  return computed.filter(c => c.kind === 'term');",
     '};',
+    /* EVERY INTERVAL OF THE TWO YEARS, holidays included, so a day can be asked which one it is in. */
+    'module.exports.all = function (at) {',
+    '  setNOW(at);',
+    '  const yNow = (new Date()).getMonth() >= 7',
+    '    ? (new Date()).getFullYear() : (new Date()).getFullYear() - 1;',
+    '  return termsFor(yNow).concat(termsFor(yNow + 1));',
+    '};',
+    /* AND WHICH OF THEM `doGet` OFFERS: the same list through the real `operatingWindow` (the forEach below the block). */
+    fn(core, 'sheetDate'),
+    fn(booking, 'operatingWindow'),
+    'module.exports.offered = function (at) {',
+    '  setNOW(at);',
+    '  const yNow = (new Date()).getMonth() >= 7',
+    '    ? (new Date()).getFullYear() : (new Date()).getFullYear() - 1;',
+    block(doget, 'const nowMs = Date.now();', 'computed.forEach(')
+      .replace(/computed\.forEach\($/, ''),
+    '  return computed.filter(c => operatingWindow(c.start, c.end)).map(c => c.name);',
+    '};',
   ].join('\n');
 
   const m = { exports: {} };
@@ -249,6 +267,24 @@ const RULES = [
       /* AND IT MUST OFFER SOMETHING, or a list that is always empty passes this for ever. */
       const now = termList(Date.UTC(2026, 8, 25));
       if (!now.length) bad.push('no terms at all are offered — the list cannot be checked');
+      return bad;
+    } },
+
+  /* THE INTERVAL WE ARE IN IS OFFERED (owner, 29 Oct: "I should be able to select the current academic interval too, which is October half term"): § */
+  { what: 'the interval we are in is always offered, a holiday week included, from its first day to its last',
+    check: () => {
+      const bad = [];
+      for (let i = 0; i < 365; i++) {
+        const at = Date.UTC(2026, 8, 1, 12) + i * 864e5;
+        const day = new Date(at); day.setHours(0, 0, 0, 0);
+        let all, offered;
+        try { all = termList.all(at); offered = termList.offered(at); } catch (err) { bad.push('threw: ' + err.message); break; }
+        const now = all.find(t => t.start <= day && t.end >= day);
+        if (!now) continue;
+        if (offered.indexOf(now.name) === -1) bad.push(new Date(at).toISOString().slice(0, 10) + ' is in ' + now.name + ', which is not offered');
+      }
+      const oct = termList.offered(Date.UTC(2026, 9, 29, 12));
+      if (oct.indexOf('October Half Term') === -1) bad.push('29 Oct 2026 does not offer October Half Term: ' + oct.join(', '));
       return bad;
     } },
 
@@ -475,6 +511,11 @@ if (money_) {
       want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
         discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
       want('£20 off one child, business absorbs: a loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 60, -20);
+      /* "IF I PUT 30 IN THAT FIELD THEN IT'S JUST 30 PERCENT OFF" (owner, 29 Oct): off what the client pays, the room included. */
+      const full = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere' });
+      const off30 = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere', discount: { type: '%', value: 30 } });
+      if (!(full.earn.venue > 0)) bad.push('the 30% example has no room in it, so it proves nothing about the room: ' + JSON.stringify(full.earn));
+      if (r2(off30.total) !== r2(full.total * 0.7)) bad.push('30% off ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + r2(full.total * 0.7));
       const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
       if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
         bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');

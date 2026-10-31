@@ -6019,3 +6019,45 @@ top level, before `column`
 ================================================================================================== */
 ```
 
+### ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE
+
+top level, before `stepPick_`
+
+```
+/* ---------- SEVERAL ANSWERS, THE SAME DROPDOWN AS ONE ----------
+   The owner, 29 Oct: "the term drop down needs to work like the drop downs above. As does every drop down here." Subject, Term and
+   Child were a button opening ticks under the row (a list box on a phone); each is now the platform's own select, like Level: a pick
+   adds the answer and a pick of a ticked one (✓) takes it off, in the `book-set` handler. The answers are the words over it. */
+```
+
+### ---------- AN ADMIN'S DISCOUNT IS ONE LINE, A PERCENTAGE
+
+top level, before `discountRow_`
+
+```
+/* ---------- AN ADMIN'S DISCOUNT IS ONE LINE, A PERCENTAGE ----------
+   The owner, 29 Oct: "If I put 30 in that field then it's just 30 percent off". No type, code or who absorbs it: `bookSpec` sends `%`,
+   the business absorbs it, and `bookMoney_` takes it off what the client pays. Its figure is in the column every line above uses. */
+```
+
+### ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT
+
+top level, before `formMoney_`
+
+```
+/* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT ----------
+   The owner, 29 Oct: "Client pays line should be treated like the stuff above" — so an admin's figure is an ordinary row under Discount,
+   not the total bar; and "forget the charged, discount, venue, tutor payout and card fees … also delete net profit": nothing under it.
+   The job row still keeps what `bookMoneySend_` sends; only this card stopped showing it. */
+```
+
+### ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT
+
+top level, before `bookFieldsSaid_`
+
+```
+/* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT ----------
+   The owner, 29 Oct: "Hope you can see the filled-out fields" — Suggest a change on the Booking widget sends them in the note
+   (`rep-send`, submit.js). A public repository reads these notes: people as initials, the addresses as a count, the note not copied. */
+```
+
