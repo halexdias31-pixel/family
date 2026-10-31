@@ -1,4 +1,4 @@
-# 531 — A type that is a kind of another answers both; a timeline is a Timeline
+# 545 — A type that is a kind of another answers both; a timeline is a Timeline
 
 **Reported** through Suggest a change on Find › Questions › Maths and the History shelf, 31 Oct.
 

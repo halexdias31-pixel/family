@@ -97,7 +97,7 @@ boot(f => {
   }
   const facets = f.facetList();
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
-  if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (531)'); }
+  if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1173,7 +1173,7 @@ boot(f => {
   /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
   /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
 let WALKED = 'not walked';
-/* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (531). FUNNEL_ONLY=under runs it alone. */
+/* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (545). FUNNEL_ONLY=under runs it alone. */
 function underTypes_(f, items) {
   const byField = fl => f.facetList().find(x => x.field === fl);
   const typeF = byField('documentType'), kindF = byField('kindLabel');
