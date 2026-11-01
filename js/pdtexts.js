@@ -3,7 +3,7 @@
 
 const PDTEXTS = { index: null, asking: null, failed: false, files: {}, loading: {}, missed: {}, items: null, from: null };
 const pdtextsGet_ = file => {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   return Promise.resolve()
     .then(() => fetch('data/pdtexts/' + file + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null)
@@ -31,8 +31,10 @@ function pdtextsItems_() {
   const ix = PDTEXTS.index;
   if (!ix) return [];
   if (PDTEXTS.items && PDTEXTS.from === ix) return PDTEXTS.items;
-  const list = [], reg = writingWork_('pdtexts');
+  const list = [];
   ix.texts.forEach(w => {
+    /* ITS OWN REGISTRY ENTRY (520): a religious text (Ancient Egypt's, 546) is that religion's, in Religious Studies. */
+    const reg = writingWork_('pdtexts', w.id);
     w.texts.forEach((label, t) => {
       const text = writingText_(writingTextOf_(label, '', w.year));
       w.cards.forEach((at, i) => {

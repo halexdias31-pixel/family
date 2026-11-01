@@ -21702,9 +21702,15 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   if (!w.bibleItems_().length) return ['the Bible never came for an adult client — fetched: ' + b.gets.filter(u => /bible/.test(u)).join(', ')];
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'shelf', value: 'Writings' }];
   const items = w.stuffFiltered(), facet = w.nextFacet(items);
-  if (!facet || facet.field !== 'wWork') return bad.concat(['under Writings the next question is ' + (facet && facet.field) + ', not Which writing']);
-  if (facet.label !== 'Work') bad.push('the question is labelled ' + facet.label);
-  const vals = w.facetValues(items, facet).map(v => String(v.value));
+  /* RELIGION FIRST (546): "why is religion not coming up" — then Which writing, under Christianity. */
+  if (!facet || facet.field !== 'wReligion') return bad.concat(['under Writings the next question is ' + (facet && facet.field) + ', not Religion']);
+  t.STUFF().filters.push({ field: 'wReligion', value: 'Christianity' });
+  const vR = w.facetValues(items, facet).map(v => String(v.value));
+  ['Christianity', 'Islam', 'Judaism'].forEach(k => { if (vR.indexOf(k) < 0) bad.push('Religion does not offer ' + k + ': ' + vR.join(', ')); });
+  t.STUFF().filters.pop();
+  if (facet.label !== 'Religion') bad.push('the question is labelled ' + facet.label);
+  const work = w.facetList().find(f => f.field === 'wWork'), vals = w.facetValues(items, work).map(v => String(v.value));
+  if (work.label !== 'Work') bad.push('Which writing is labelled ' + work.label);
   ['Bible', 'Quran', 'Talmud', 'Hadith'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
   if (w.scriptureWait_(items) !== '') bad.push('with every index in, the dots under Which writing still stand: ' + w.scriptureWait_(items));
   const k = w.stuffItemsAll_().find(y => y.key === 'bible:kjv:1:1:1'), e = w.stuffItemsAll_().find(y => y.key === 'bible:web:1:1:1');
@@ -21990,7 +21996,9 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   await wait(200); await woken_();
   if (t.AT() !== 'stuff') bad.push('the reload opened on ' + t.AT() + ', not Find — the place was NOT brought back');
   const fl = t.STUFF().filters || [];
-  if (JSON.stringify(fl) !== JSON.stringify(chips)) bad.push('an admin\'s Find came back with ' + JSON.stringify(fl) + ' — wanted every chip, the Bible\'s too: Find holds the Bible for an admin');
+  /* THE OLD SPELLING KEPT (before 546) COMES BACK AS ITS TRANSLATION: "English, King James Version (1611)" is King James Version (1611). */
+  const wantBack = chips.map(f => (f.field === 'wText' ? Object.assign({}, f, { value: 'King James Version (1611)' }) : f));
+  if (JSON.stringify(fl) !== JSON.stringify(wantBack)) bad.push('an admin\'s Find came back with ' + JSON.stringify(fl) + ' — wanted every chip, the Bible\'s too, its translation in today\'s words: ' + JSON.stringify(wantBack));
   /* EVERY VERSE A CARD (499): the place is Genesis 1's 31 verse cards on the everyday list, not a cover's inside. */
   const g1 = w.stuffFiltered();
   if (g1.length !== 31 || !g1.every(x => x.kind === 'bible' && x.bb && x.bb.book === 'Genesis' && x.ch === '1')) bad.push('an admin\'s Find is not on Genesis 1\'s 31 verses after the reload: ' + g1.length + ' item(s)');
@@ -22333,7 +22341,8 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
   /* THE SOURCE TEXT FIRST (owner, 29 Oct): the Greek New Testament answers the testament, so Collection is not asked again after it. */
-  const route = [['wSource', 'Greek New Testament'], ['wText', 'English, King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
+  /* THE LANGUAGE, THEN WHOSE TRANSLATION (546): "Greek should be a tag not merged with the version". */
+  const route = [['wSource', 'Greek New Testament'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }
@@ -23975,7 +23984,8 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   const lib = mpLibrary_(w, mpBank_());
   try {
     const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
-    if (chips[0] !== 'Questions' || chips[1] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Questions then Answers');
+    /* PRACTICE ABOVE THEM (546, `KIND_UNDER`), then Questions and Answers. */
+    if (chips[0] !== 'Practice' || chips[1] !== 'Questions' || chips[2] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Practice, then Questions, then Answers');
   } finally { lib.put(); }
   return bad;
 });

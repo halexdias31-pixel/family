@@ -407,18 +407,22 @@ const FACETS = [
   { field: 'kindLabel', label: 'What kind',
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
-      return x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k;
+      return kindUnder_(x, x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k);
     },
-    tagOf: (x, page) => page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label) },
+    tagOf: (x, page) => kindUnder_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
   /* ONE FACET SET FOR EVERY WRITTEN WORK (520): the Bible, the Quran, the Talmud, the Hadith, the hymns and every other text
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
+  /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
+  { field: 'wReligion',  label: 'Religion',   of: x => writingAt_(x, 'religion') },
   { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
   { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
-  { field: 'wText',      label: 'Translation', of: x => writingAt_(x, 'text') },
+  /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
+  { field: 'wLanguage',  label: 'Language',   of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
+  { field: 'wText',      label: 'Translation', of: x => writingVersionOf_(writingAt_(x, 'text')) },
   { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
   { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
   { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
@@ -442,7 +446,6 @@ const FACETS = [
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   { field: 'histKind',  label: 'Manuscripts, figures, works or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
-  { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
   { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
@@ -530,6 +533,7 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  histLanguage: 'a manuscript\'s language is the one Language question every written thing answers (`wLanguage`, 546).',
   company: 'Publisher was the exam board said twice, or a worksheet maker; a maker is the Source now (O3).',
   libBook: 'a writing\'s private facet; one facet set asks every writing now (520).',
   bibleTranslation: 'a writing\'s private facet; one facet set asks every writing now (520).',
@@ -798,7 +802,11 @@ const dateKey_ = v => {
 /* THE KINDS TAB'S ORDER, for answers that are all kinds (What kind) or all groups of them (What for). */
 function kindRank_() {
   const m = kindMap_(), labels = new Map();
-  Object.keys(m).sort((a, b) => m[a].at - m[b].at).forEach(k => { if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size); });
+  /* AN ANSWER ABOVE KINDS (`KIND_UNDER`) STANDS JUST BEFORE THE FIRST OF THEM. */
+  Object.keys(m).sort((a, b) => m[a].at - m[b].at).forEach(k => {
+    if (KIND_UNDER[k] && !labels.has(KIND_UNDER[k])) labels.set(KIND_UNDER[k], labels.size);
+    if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size);
+  });
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
   return { labels, groups };
 }
@@ -982,6 +990,10 @@ function facetSplit_(items, facet) {
 }
 
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
+/* THE SAME RULE FOR KINDS (546): "questions and answers should both go into a new practice tag. practicals should also go into practice tag". */
+/* A kind under another answers both What kind answers, its own and the one above it, on every page it has. */
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice' };
+function kindUnder_(x, labels) { const up = x && KIND_UNDER[x.kind]; return up ? [up].concat(labels) : labels; }
 function docTypeAnswers_(t) { const up = DOC_TYPE_UNDER[t]; return up ? [up, t] : t; }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
@@ -2008,11 +2020,10 @@ function scriptureWait_(items) {
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache hands back a fresh copy after one — `videosAsk_`'s reasoning § */
 function bibleGet_(file) {
   if (!bibleFor_()) return Promise.resolve(null);
-  return scriptureFetch_(o => fetch('data/bible/' + file + scriptureStamp_(), o));
+  return scriptureFetch_(o => fetch('data/bible/' + file + deployStamp_(), o));
 }
 /* SCRIPTURE'S FETCHES END (504): a request that hangs is given up after this long and said as a miss, so no wait lasts for ever. */
 const SCRIPTURE_WAIT_MS = 20000;
-const scriptureStamp_ = () => (window.LOAD ? '?t=' + window.LOAD : '');
 function scriptureFetch_(ask) {
   return new Promise(done => {
     let over = false, ab = null;
@@ -2130,8 +2141,12 @@ function bibleChosen_() {
 /* THE CHOSEN TRANSLATION'S FOLDER: '' for the KJV, or when none is chosen yet. */
 function bibleChosenDir_() {
   const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
-  const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null);
-  const t = f && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => writingText_(writingTextOf_(t.tr)) === f.value) : null;
+  /* BY THE LANGUAGE AND THE TRANSLATION CHOSEN (546), either or both: an original text (the Septuagint) is its language alone. */
+  const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null), l = (st.filters || []).find(x => x.field === 'wLanguage' && x.value != null);
+  const t = (f || l) && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => {
+    const said = writingText_(writingTextOf_(t.tr));
+    return (!f || writingVersionOf_(said) === f.value) && (!l || writingLanguageOf_(said) === l.value);
+  }) : null;
   return t ? t.dir : '';
 }
 function bibleAhead_() {
@@ -2339,8 +2354,9 @@ on('bible-go', el => {
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
   const F = finderAt_(el);
-  const f = [{ field: 'shelf', value: WRITINGS_SHELF }, { field: 'wWork', value: 'Bible' },
-    { field: 'wText', value: x ? x.bb.text : writingText_(writingTextOf_(BIBLE.index.translation)) }];
+  const text = x ? writingAt_(x, 'text') : writingText_(writingTextOf_(BIBLE.index.translation));
+  const f = [{ field: 'shelf', value: WRITINGS_SHELF }, { field: 'wWork', value: 'Bible' }, { field: 'wLanguage', value: writingLanguageOf_(text) }]
+    .concat(writingVersionOf_(text) ? [{ field: 'wText', value: writingVersionOf_(text) }] : []);
   /* ITS SOURCE TEXT TOO, asked before the Translation: a verse's is its Text's base for its testament (writingSourceOf_) */
   if (x) f.splice(2, 0, { field: 'wSource', value: writingAt_(x, 'source') });
   if (x) f.push({ field: 'wBook', value: x.bb.book }, { field: 'wChapter', value: x.ch });
@@ -8876,7 +8892,13 @@ const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons'
 /* AN ANSWER THAT WAS RENAMED (504): the `Books` shelf is `Writings`, so a kept place on it stands on Writings. */
 const MOVED_ANSWERS = { shelf: { Books: BIBLE_SHELF } };
 const placeChipMoved_ = f => (f && MOVED_ANSWERS[f.field] && MOVED_ANSWERS[f.field][f.value]
-  ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f);
+  ? Object.assign({}, f, { value: MOVED_ANSWERS[f.field][f.value] }) : f && f.field === 'wText' && !f.any ? placeTextMoved_(f) : f);
+/* A TRANSLATION KEPT AS "English, King James Version (1611)" (before 546) is its translation now, or its language for an original. */
+function placeTextMoved_(f) {
+  const lang = writingLanguageOf_(f.value), v = writingVersionOf_(f.value);
+  if (WRITING_LANGUAGES.indexOf(lang) < 0 || (!v && lang !== f.value)) return f;
+  return v ? Object.assign({}, f, { value: v }) : { field: 'wLanguage', value: lang };
+}
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (f.field === 'shelf' && f.value === BIBLE_SHELF) return !viewerOfAge_(scriptureMinAge_());
@@ -10413,14 +10435,14 @@ const TAG_OF = {
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
   forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
-  histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
+  histKind: 'type', histEra: 'sitting', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
   /* YOUR OWN RESULT (463), its own colour. */
   myResult: 'mine',
   /* EVERY WRITING'S (520), in kinds that already have colours. */
-  wWork: 'topic', wSource: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
+  wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
@@ -11217,8 +11239,38 @@ function startWidget_(wgt) {
 /* ---------- CARRY ON WAS HERE, AND IT WAS AN ANSWER TO A QUESTION NOBODY ASKED § */
 
 
+/* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
+const finderSettled_ = () => {
+  try {
+    if (typeof awaiting_ === 'function' && awaiting_()) return false;
+    if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
+    return !writingAsking_();
+  } catch (e) { return true; }
+};
+/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: the Bible or not, and the oldest age line in the file they pass — the build's own `ages`. */
+function finderTagsView_() {
+  const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
+  if (!T || !T.views) return null;
+  let cap = 0;
+  try { cap = typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0; } catch (e) { cap = 0; }
+  const band = (T.ages || []).filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
+  return T.views[(typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '') + '@' + band] || null;
+}
+/* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter; words have no key. */
+const finderStateKey_ = () => (String(STUFF.q || '').trim() ? null
+  : (STUFF.filters || []).map(f => f.field + '=' + (f.any ? '*' : f.value)).join('&'));
+/* A FRESH START ONLY (no answer pressed, R4): once pressed, the funnel answers over what had come, as it always did. */
+function finderTagsAt_() {
+  if (STUFF.admit != null || finderSettled_()) return null;
+  const key = finderStateKey_(), view = key === null ? null : finderTagsView_();
+  const at = view && view[key], facet = at && facetBy(at[0]);
+  return facet ? { facet: facet, values: at[1].map(v => ({ value: v[0], show: v.length > 1 ? v[1] : v[0] })) } : null;
+}
+
 function stuffQuestion() {
   const items = stuffFiltered();
+  const pre = finderTagsAt_();
+  if (pre) return facetAnswersHtml_(pre.facet, pre.values, '');
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `<p class="empty">No friends yet.<br>
@@ -11250,6 +11302,12 @@ function stuffQuestion() {
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
   /* ---------- NOTHING IS TRIMMED HERE ANY MORE, BECAUSE NOTHING ARRIVES OVERSIZED § */
   const values = facetValues(items, facet);
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
+  const sw = scriptureWait_(items);
+  return facetAnswersHtml_(facet, values, sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '');
+}
+/* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
+function facetAnswersHtml_(facet, values, more) {
   /* THE HEADING IS GONE — it read `> WHAT FOR 5` above five rows that were about to say the same thing. § */
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
@@ -11265,9 +11323,6 @@ function stuffQuestion() {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
-  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
-  const sw = scriptureWait_(items);
-  const more = sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>

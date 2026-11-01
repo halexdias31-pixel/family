@@ -4899,7 +4899,7 @@ function vidPaint_() {
 function videosAsk_() {
   if (VIDEOS_LIST !== null) return Promise.resolve(VIDEOS_LIST);
   if (VIDEOS_ASKED) return VIDEOS_ASKED;
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   VIDEOS_ASKED = Promise.resolve()
     .then(() => fetch('data/videos.json' + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : [])

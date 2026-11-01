@@ -12,7 +12,7 @@ const TALMUD_ORDER_SEDARIM = [], TALMUD_ORDER_TRACTATES = [];
 ANSWER_ORDERS.push(TALMUD_ORDER_SEDARIM, TALMUD_ORDER_TRACTATES);
 
 function talmudGet_(file) {
-  return scriptureFetch_(o => fetch('data/talmud/' + file + scriptureStamp_(), o));
+  return scriptureFetch_(o => fetch('data/talmud/' + file + deployStamp_(), o));
 }
 
 /* THE LIST OF TRACTATES, asked for the first time a finder is painted (`paintStuff`); ~34 KB, never part of the boot payload. */

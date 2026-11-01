@@ -11,7 +11,7 @@ const HADITH_WORDS = 'Hadith hadeeth sunnah Kutub al-Sittah six books Arabic';
 const hadithFor_ = () => writingFor_(writingWork_('hadith'));
 
 function hadithGet_(file) {
-  return scriptureFetch_(o => fetch('data/hadith/' + file + scriptureStamp_(), o));
+  return scriptureFetch_(o => fetch('data/hadith/' + file + deployStamp_(), o));
 }
 
 function hadithIndex_() {

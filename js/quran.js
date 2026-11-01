@@ -13,7 +13,7 @@ ANSWER_ORDERS.push(QURAN_ORDER);
 const quranFor_ = () => writingFor_(writingWork_('quran'));
 
 function quranGet_(file) {
-  return scriptureFetch_(o => fetch('data/quran/' + file + scriptureStamp_(), o));
+  return scriptureFetch_(o => fetch('data/quran/' + file + deployStamp_(), o));
 }
 
 function quranIndex_() {

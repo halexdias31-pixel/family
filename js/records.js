@@ -431,7 +431,7 @@ const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ 
 function einkLoad_() {
   if (EINK.asked) return;
   EINK.asked = true;
-  const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const get = f => fetch('data/' + f + deployStamp_(), { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
   Promise.all([get('eink-verses.json'), get('icons.json'), get('eink-fonts.json').catch(() => null)])
     .then(([v, i, f]) => { EINK.fonts = f; EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.image); })
     .catch(() => { EINK.failed = true; })
@@ -682,8 +682,8 @@ on('eink-install', async () => {
     const transport = new Transport(port, false);
     const loader = new ESPLoader({ transport, baudrate: 460800, romBaudrate: 115200, terminal: quiet });
     await loader.main();
-    const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin')).arrayBuffer());
-    const md5 = (await (await fetch('tools/epaper-verse/epaper-verse.md5')).text()).trim();
+    const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin' + deployStamp_())).arrayBuffer());
+    const md5 = (await (await fetch('tools/epaper-verse/epaper-verse.md5' + deployStamp_())).text()).trim();
     if (!/^[0-9a-f]{32}$/.test(md5)) throw new Error('no md5');
     /* calculateMD5Hash makes esptool-js read the flash back and throw on a mismatch: Installed is said only after that (485). */
     await loader.writeFlash({ fileArray: [{ data, address: 0 }], flashMode: 'keep', flashFreq: 'keep', flashSize: 'keep', eraseAll: false, compress: true,
