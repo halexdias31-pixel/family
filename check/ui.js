@@ -563,6 +563,7 @@ function inspect(opts) {
     const under = el.scrollHeight - el.clientHeight;
     if (under <= 2 || el.clientHeight <= 0) continue;
     const box = el.getBoundingClientRect();
+    /* A FULL-SIZE CARD IS NEVER CLIPPED "ON PURPOSE" (533 review): past the floors its pane scrolls, so only a card drawn smaller may claim `PANE_REACH`. */
     let paintedBottom = null;
     for (const kid of el.children) {
       const k = kid.getBoundingClientRect();
@@ -572,7 +573,7 @@ function inspect(opts) {
     found.hidden.push({ tag: el.tagName.toLowerCase(),
       cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
              .slice(0, 40),
-      by: under, height: el.clientHeight, tol: under <= paneFloor, floor: paneFloor });
+      by: under, height: el.clientHeight, tol: under <= paneFloor && zk > 0 && zk < 1, floor: paneFloor });
   }
 
   /* ---------- AND THE PANE ITSELF CAN BE OFF THE SCREEN, WHICH THE RULE ABOVE CANNOT SEE § */

@@ -17,11 +17,11 @@ a card under the reader's thumb whenever it grew.
 
 - A card is drawn at **1, .875 or .75** and nothing between (`paneStep_`). `PANE_ZOOM_MIN` is the last step.
 - **Nearly fitting is full size**: above `PANE_ZOOM_SNUG` (.95) the card is drawn at 1 and its pane gets
-  `.is-snug`, a tighter top and bottom (`--s1`/`--s2`); what still does not fit is the usual `PANE_REACH` rule.
+  `.is-snug`, a tighter top and bottom (`--s1`/`--s2`); if it still does not fit, its pane scrolls (see the review below).
 - **The floors** (`paneFloor_`): no step that draws the card's body words (`p`, `li` and the card's own size; art
   in `PANE_ART` excepted) under 11px, a tile under 36px or a Check under 44px. A tile is 36px at full size, so in
   practice **a card with a tile on it is never drawn smaller**: it scrolls. That is most cards; the ladder is for
-  the tile-less ones. Above a floor the pane scrolls past `PANE_REACH` (24px) as before.
+  the tile-less ones. A card held above its fit by a floor scrolls from 2px over (see the review below).
 - `cardFigFit_`'s words (the figure card) take the same ladder and the 11px floor; the picture narrows for the rest.
 - **On the glass, no re-zoom**: the ResizeObserver no longer zooms a card on the page in front (`paneOnGlass_`). It
   keeps its zoom, may start to scroll (`paneReach_(…, { hold: true })`), and is marked `PANE_DUE`; `paneWatch_`
@@ -82,6 +82,19 @@ Each new rule made red on purpose and green again on the real files:
 - The run rule was red on the real files before its entries were corrected: 101 `counted.row`/`chip.sm` findings
   at 390 against the old claim of 44, and 20 `.qw` words at 320 (32-33px) against the old "about 35px". The
   passage's words now say 32, which is what they have.
+
+## The review: a full-size card's foot cut off
+
+The first build kept `PANE_REACH`'s 24px allowance for a card held at full size by the snug rule or a floor. The
+old code never met that case, since any card more than 2px over was zoomed until it fitted. Here it did: at 320
+a student's booking page 0 was snug but 16px over, with its Share/Message tile row cut in half and `overflow:
+hidden`, and admin biz page 6 was 24px over (10px of it painted) and did not scroll. Both had fitted at .96/.95 on
+the base. Now `paneReach_` marks a card **held** when the zoom it is drawn at is above its fit (snug, a floor, an
+essay's 1, the no-flip rule, or `o.hold`), and a held card's pane scrolls from 2px over, as ticks, forms, picks and
+figures already did. check/ui.js no longer files a full-size card's clipped foot under "OUT OF REACH, INSIDE THE
+APP'S OWN FLOOR (known)": only a card drawn smaller may claim `PANE_REACH`, so any other is plain `OUT OF REACH`.
+Proof: the `held` term taken out of the `over` line turned ui.js red at 320 (booking "a single answer chosen" 22px,
+biz 24px in four states); put back, neither screen has any OUT OF REACH finding.
 
 ## Left as found
 
