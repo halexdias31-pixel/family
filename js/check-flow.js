@@ -23612,6 +23612,33 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
   return bad;
 });
 
+/* ---------- A TUTOR'S RATE IS SHOWN AS A RANGE, ONE SEAT TO A FULL CLASS (549) ---------- */
+check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile card, the shared picture and booking\'s tutor choice; one seat is one rate', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.rateRange_ !== 'function' || typeof w.findCard !== 'function' || !t.STEPS) return ['rateRange_ / findCard / BOOK_STEPS not reachable — NOT checked'];
+  const D = t.DATA();
+  D.constants = D.constants || {};
+  D.constants.vars = Object.assign({}, D.constants.vars || {}, { c: 0.2, B: 0.1 });
+  const base = (D.tutors || []).find(x => x && x.personId) || {};
+  const mk = (title, more) => Object.assign({}, base, { title, personId: 'P-' + title.replace(/\W/g, ''), listed: true, rate: 10, extraSeat: 0.2, extraSeatCut: 0.1, maxStudents: 4 }, more);
+  const rows = { four: mk('Range Four', {}), one: mk('Range One', { maxStudents: 1 }), none: mk('Range None', { maxStudents: '' }), free: mk('Range Free', { rate: '' }) };
+  const bad = [];
+  const WANT = { four: '£10–19/hour', one: '£10/hour', none: '£10/hour', free: '' };
+  Object.keys(WANT).forEach(k => { const g = w.rateRange_(rows[k]); if (g !== WANT[k]) bad.push(k + ': rateRange_ says "' + g + '", wanted "' + WANT[k] + '"'); });
+  const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row: rows.four });
+  const card = ((box.querySelector('.prof-rate') || {}).textContent || '').trim();
+  if (card !== '£10–19/hour') bad.push('the profile card draws "' + card + '", wanted "£10–19/hour"');
+  if (typeof w.tpngRate_ === 'function' && w.tpngRate_(rows.four) !== '£10–19/hour') bad.push('the shared picture says "' + w.tpngRate_(rows.four) + '"');
+  D.tutors = [rows.four, rows.one].concat(D.tutors || []);
+  const st = t.STEPS.find(s => s.id === 'tutor');
+  const said = st && st.label_ ? st.label_('Range Four') : '';
+  if (said.indexOf('£10–19/hour') === -1) bad.push('booking\'s tutor choice says "' + said + '", wanted the range');
+  if (st && st.label_('Range One').indexOf('£10/hour') === -1) bad.push('booking\'s one-seat tutor says "' + st.label_('Range One') + '"');
+  return bad;
+});
+
 /* ---------- A PLAIN CALENDAR (466): NO TERM, SESSION, EXAM OR HOLIDAY IS LAID ON IT ---------- */
 check('466: the calendar is a plain month — the days and today, with no term, half term, session, exam, closure or event on it, and no key', async () => {
   const { w } = boot();
