@@ -316,6 +316,22 @@ const WIDGETS = [
     <h3>Rewrite coach</h3>
     <div id="rw-box"></div>
   </div>` },
+  /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
+  { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true,
+    start: () => initPoster_?.(),
+    into: 'pst-box', what: 'The poster planner',
+    html: `<div class="card">
+    <h3>Poster planner</h3>
+    <div id="pst-box"></div>
+  </div>` },
+  /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
+  { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true,
+    start: () => initPixel_?.(),
+    into: 'pxe-box', what: 'The pixel editor',
+    html: `<div class="card">
+    <h3>Pixel editor</h3>
+    <div id="pxe-box"></div>
+  </div>` },
   { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
     pure: true,
     draw: () => paintEink_?.(),
