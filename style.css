@@ -62,7 +62,7 @@
   --paper:       #f4f1e8;   /* the page itself */
   --paper-ink:   #2b2620;   /* what is printed on it */
   --paper-dim:   #6a6259;   /* a second voice — labels, rules, quiet numbers */
-  --paper-faint: #8a8175;   /* a third — captions, disabled, the small print */
+  --paper-faint: #6a635a;   /* a third — captions, disabled, the small print */
   --paper-strip: #e7e2d5;   /* the punched binding strip at the top of the calendar */
   --paper-rule:  #cfc7b5;   /* a hairline drawn on paper */
   --pad:    1rem;
@@ -261,7 +261,7 @@ html.wide body { max-width: none; box-shadow: none; }
 #banner {
   top: calc(var(--top) + var(--safe-top)); z-index: 29;
   padding: .62rem var(--pad);
-  background: var(--warn); color: #1a1209;
+  background: var(--warn); color: var(--on-gold);
   font-size: .82rem; line-height: 1.4;
   max-height: 40dvh; overflow: auto;
 }
@@ -431,7 +431,7 @@ html.wide body { max-width: none; box-shadow: none; }
      minimum. */
   min-height: max(44px, 2.9rem); padding: 0 1.1rem; width: 100%;
   border: 0; border-radius: var(--r-sm);
-  background: var(--gold); color: #000;
+  background: var(--gold); color: var(--on-gold);
   font: 600 .93rem/1 var(--font);
   cursor: pointer;
   transition: transform var(--quick) ease, filter var(--quick) ease;
@@ -516,7 +516,7 @@ input:disabled, select:disabled, textarea:disabled {
 }
 /* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
    the pair reads as a rendering fault rather than as a state. */
-.is-sending .field > span { opacity: .62; }
+.is-sending .field > span { color: var(--faint); }
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
   outline: 0; border-color: var(--gold); }
@@ -798,7 +798,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   background: rgb(255 255 255 / .04);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
   display: flex; align-items: center; justify-content: center;
-  font-size: .82rem; color: #1a1409;
+  font-size: .82rem; color: var(--on-gold);
   transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out),
               box-shadow var(--dur-quick) var(--ease-out);
 }
@@ -806,7 +806,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check .box::after { content: '✓'; font-weight: 700; color: rgb(255 255 255 / .16); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
-.check input:checked + .box::after { color: #1a1409; }
+.check input:checked + .box::after { color: var(--on-gold); }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
 .notify-card .role-pick { align-items: flex-start; }
@@ -1194,7 +1194,7 @@ a { color: inherit; text-decoration: none; }
 .cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
 /* The padding is set once, below, where the room for the dots under a date is decided. */
 .cal .cal-d { font-size: .85rem; border-radius: .4rem; }
-.cal .cal-d.cal-today { background: var(--gold); color: #000; font-weight: 700; }
+.cal .cal-d.cal-today { background: var(--gold); color: var(--on-gold); font-weight: 700; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
@@ -1463,7 +1463,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 /* ---------- WHAT THE LAWS PAINT § */
 .w-green     { color: var(--green); }                 /* a subject */
 .w-blue      { color: #58a6ff; }                      /* #tag */
-.w-blue-soft { color: #79c0ff; opacity: .85; }        /* @name — the same idea, said quieter */
+.w-blue-soft { color: color-mix(in srgb, #79c0ff 85%, var(--bg)); }        /* @name — the same idea, said quieter */
 .w-purple    { color: var(--purple); }                 /* a venue */
 /* A TUTOR. Deliberately NOT `--bad` — that red means something is wrong, and a person's name in the identical colour to an error message is the one collision § */
 .w-red       { color: var(--coral); }                 /* a tutor */
@@ -1514,7 +1514,12 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* NOBODY HAS PRICED IT. § */
 
 /* Something an admin has switched off — a tutor, a resource, a post. § */
-.card.is-off, .post.is-off { opacity: .45; }
+/* RECEDED IN COLOUR, NOT OPACITY (541): ink falls to --dim and the accent with it, so every word stays ≥4.5:1. `:where` lets a part's own colour win. */
+:where(.card.is-off, .post.is-off),
+:where(.is-locked > :not(.card-lock, h3, .card-say)),
+:where(.prac.is-off > :not(h3, .prac-no)) { --ink: var(--dim); --gold: var(--dim); color: var(--ink); }
+:where(.msg.is-sending .msg-bub) { --ink: var(--dim); --gold: var(--dim); }
+:where(.card.is-off, .post.is-off, .is-locked > :not(.card-lock, h3, .card-say)) :is(img, video, canvas) { opacity: .6; }
 
 /* ---------- POSTS § */
 .post { padding: 0 0 1.2rem; border-bottom: 1px solid var(--line-soft); margin-bottom: 1.2rem; }
@@ -1734,7 +1739,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* Two answers, two buttons — a dropdown for two options is a dropdown nobody opens. The chosen one
    is filled rather than outlined, so which is active is readable without a tick. */
-.btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
+.btn-row .btn.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* ON WHITE (466) the faint word inside a chosen button reads as the button does. */
 .btn-row .btn.on * { color: inherit; }
 
@@ -1856,7 +1861,7 @@ button.text-drop { color: var(--bad); }
 .tmt-day { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
           background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
           border-radius: var(--r-sm); font: 600 .78rem/1 var(--font); }
-.tmt-day.on { background: var(--gold); color: #000; border-color: var(--gold); }
+.tmt-day.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* A DOT ON A DAY THAT HAS SOMETHING ON IT, so the week reads at a glance without opening each day. */
 .tmt-day.has::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
                      margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
@@ -1993,7 +1998,7 @@ button.text-drop { color: var(--bad); }
 /* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
    still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
 .vid-row.is-off { cursor: default; }
-.vid-row.is-off .vid-th { opacity: .5; }
+.vid-row.is-off .vid-th > :is(img, .vid-poster) { opacity: .5; }
 .vid-row.is-off .vid-t { color: var(--dim); }
 
 /* THE ADMIN'S SYNC ROW: § */
@@ -2017,7 +2022,7 @@ button.text-drop { color: var(--bad); }
 .kt-rung { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
            background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
            border-radius: var(--r-sm); font: 600 .85rem/1 var(--mono); }
-.kt-rung.on { background: var(--gold); color: #000; border-color: var(--gold); }
+.kt-rung.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* A DOT ON A RUNG THAT HAS HELD, the timetable's dot on a day with something in it. */
 .kt-rung.held::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
                        margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
@@ -2028,9 +2033,9 @@ button.text-drop { color: var(--bad); }
            border-radius: var(--r-sm); font: 500 1.02rem/1.6 var(--mono);
            white-space: pre-wrap; overflow-wrap: anywhere; }
 .kt-box.typing .kt-line { border-color: var(--gold); }
-.kt-done { color: var(--good); opacity: .75; }
+.kt-done { color: color-mix(in srgb, var(--good) 75%, var(--bg)); }
 .kt-cur { border-bottom: 2px solid var(--gold); }
-.kt-box.typing .kt-cur { background: var(--gold); color: #000; border-bottom-color: transparent; }
+.kt-box.typing .kt-cur { background: var(--gold); color: var(--on-gold); border-bottom-color: transparent; }
 .kt-box.typing .kt-cur.miss { background: var(--bad); }
 .kt-hint { margin: .3rem 0 0; font-size: .74rem; color: var(--dim); }
 .kt-hint .kt-on, .kt-box.typing .kt-hint .kt-go { display: none; }
@@ -2151,7 +2156,7 @@ button.text-drop { color: var(--bad); }
 .feed-text { position: relative; z-index: 1; }
 .feed-subject { font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
                 color: var(--c); }
-.feed-art.has-photo .feed-subject { color: #fff; opacity: .8; }
+.feed-art.has-photo .feed-subject { color: color-mix(in srgb, var(--over-ink) 80%, transparent); }
 /* A FACT ABOUT THE LONGEST WORD IN THE DICTIONARY CONTAINS IT, which is the one thing a slide's own text can do that its box cannot survive: § */
 .feed-head { margin: .3rem 0 .45rem; font-size: 1.25rem; line-height: 1.2; font-weight: 640;
              overflow-wrap: anywhere; }
@@ -2299,7 +2304,7 @@ button.text-drop { color: var(--bad); }
   border-radius: 1.05rem;
   background: var(--raised); border: 1px solid var(--line); color: var(--ink);
 }
-.msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: #000; }
+.msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
 .msg.run-end .msg-bub { border-bottom-left-radius: .35rem; }
 .msg.mine.run-end .msg-bub { border-bottom-left-radius: 1.05rem;
                              border-bottom-right-radius: .35rem; }
@@ -2361,9 +2366,8 @@ button.text-drop { color: var(--bad); }
 .dm-av.has-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* "2 new" AS A BADGE, gold on black like every other count this app wears — it was gold text at the size of a timestamp beside a heading, which read as a § */
 .dm-new { display: inline-block; margin-left: .4rem; padding: .12rem .45rem; border-radius: 999px;
-          background: var(--gold); color: #000; vertical-align: .15em;
+          background: var(--gold); color: var(--on-gold); vertical-align: .15em;
           font-size: .62rem; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
-.msg.is-sending .msg-bub { opacity: .6; }
 /* `.mine.is-failed` AS WELL, because a refusal is only ever on your side and `.msg.mine .msg-bub` sets the gold border at the same (0,3,0) — so which won was § */
 .msg.is-failed .msg-bub, .msg.mine.is-failed .msg-bub { border-color: var(--bad); }
 /* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED § */
@@ -2466,19 +2470,19 @@ button.text-drop { color: var(--bad); }
 
 /* ---------- THE ROSTER § */
 /* ---------- THE ROSTER, TIGHTENED § */
-.rost { display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
+.rost { --rost-tutor: #8a7a4a; display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
 .rost-slot { display: flex; flex-direction: column; align-items: center; gap: .05rem;
-             padding: .18rem .1rem; border: 1px solid #cfc6b4; border-radius: 3px;
-             background: #eeeadd; min-width: 0; }
+             padding: .18rem .1rem; border: 1px solid var(--paper-rule); border-radius: 3px;
+             background: color-mix(in srgb, var(--paper) 50%, var(--paper-strip)); min-width: 0; }
 /* An open slot is dashed and pale — the same language every lobby uses for a space you could take,
    and unmistakably different from a filled one at a glance. */
 /* ---------- `background: transparent` WAS A PAPER RULE DRAWN ON BLACK § */
-.rost-slot:not(.on) { border-style: dashed; opacity: .6; }
+.rost-slot:not(.on) { border-style: dashed; background: var(--paper); }
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
-.rost-slot.tut { border-top: 2px solid #8a7a4a; }
+.rost-slot.tut { border-top: 2px solid var(--rost-tutor); }
 .rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
 .rost-pic svg { width: 100%; height: 100%; border-radius: 50%; }
-.rost-plus { font-size: 1.1rem; color: #a99f8f; line-height: 1; }
+.rost-plus { font-size: 1.1rem; color: var(--paper-faint); line-height: 1; }
 .rost-name { font-size: .6rem; font-weight: 700; color: var(--paper-ink); max-width: 100%;
              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* `--paper-dim` RATHER THAN `--paper-faint`, MEASURED AT 3.19:1 AGAINST THE SLOT'S OWN FILL. § */
@@ -2671,7 +2675,7 @@ label.bk-k { cursor: pointer; }
      so an empty box says what would go in it rather than sitting there as an empty square. */
   color: rgb(255 255 255 / .16);
 }
-.bk-tick.on { background: var(--gold); border-color: var(--gold); box-shadow: none; color: #1a1409; }
+.bk-tick.on { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
 /* THE DATE BESIDE `Requested`, and it is the only stage that has one — see `JOB_STAGES`. Set like
    `.bk-dates`, because it is the same kind of thing: a date, subordinate to the row it is on. */
 .bk-when { font-size: .72rem; color: var(--dim); }
@@ -2720,7 +2724,8 @@ label.bk-k { cursor: pointer; }
 .bk-row.bk-wk.is-shut .hr { min-height: 11px; }
 /* AND A WEEK THAT CANNOT BE ANSWERED RECEDES RATHER THAN VANISHING — a joined class's hours are
    somebody else's decision, and greying them still says which ones they were. */
-.bk-row.bk-wk.is-off .slot-hours, .bk-row.bk-wk.is-off .wk-hh { opacity: .45; }
+.bk-row.bk-wk.is-off .slot-hours { opacity: .45; }
+.bk-row.bk-wk.is-off .wk-hh { color: var(--faint); }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
@@ -2773,7 +2778,7 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- A ROW THAT SAYS NOTHING TAKES THE ROOM OF ONE THAT DOES § */
 .bk-row.is-blank { padding-top: 0; padding-bottom: 0; }
-.bk-row.is-blank .bk-v { opacity: .45; }
+.bk-row.is-blank .bk-v { color: var(--faint); }
 /* ---------- AND TWO OF THEM COST TWICE WHAT A BLANK ROW COSTS § */
 .bk-row.is-blank .bk-k, .bk-row.is-blank .bk-v { line-height: 1.1; }
 /* ---------- AND A STAGE ROW TAKES THE SAME LEADING, FOR THE SAME REASON § */
@@ -2784,7 +2789,7 @@ label.bk-k { cursor: pointer; }
 .bk-row.is-blank .bk-k { color: var(--faint); }
 /* Ticked. Filled rather than outlined, because a run of them has to read as one block at a glance
    — which is exactly what it is. */
-.hr.on { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 650; }
+.hr.on { background: var(--gold); border-color: var(--gold); color: var(--on-gold); font-weight: 650; }
 /* ---------- TWO HOURS IN A ROW ARE ONE SESSION, SO THEY ARE ONE BAR § */
 .hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 /* ---------- THE LEFT CELL'S CORNERS ARE SQUARED BY THE BRIDGE, NOT BY A `:has()` § */
@@ -2801,7 +2806,7 @@ label.bk-k { cursor: pointer; }
 /* ---------- IT SAID `width: 0; height: 0` AND THE ELEMENT MEASURED 24 × 44 § */
 .hr input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; pointer-events: none;
             min-height: 0; padding: 0; border: 0; }
-.hr:has(input:checked) { background: var(--gold); border-color: var(--gold); color: #000;
+.hr:has(input:checked) { background: var(--gold); border-color: var(--gold); color: var(--on-gold);
                          font-weight: 650; }
 /* `:has` is recent. Without it the class set when the sheet is drawn still marks the ticked hours —
    they just do not change colour until the sheet is redrawn, which is a lesser failure than a grid
@@ -2951,7 +2956,7 @@ label.bk-k { cursor: pointer; }
 
 /* A WIDGET IS AN OBJECT, AND AN OBJECT HAS AN EDGE § */
 .widget-full > .card {
-  background: var(--raised, #1a1815);
+  background: var(--raised);
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: .9rem;
@@ -3074,7 +3079,7 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- MESSAGES IS A CARD, ON A SCREEN OF ROWS § */
 .card:has(> .msg-body) {
-  background: var(--raised, #1a1815);
+  background: var(--raised);
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: .9rem;
@@ -3149,7 +3154,7 @@ label.bk-k { cursor: pointer; }
 .widget-full:has(#docket-body) .sub { color: #5b4a31; }
 /* THE PAPER under the clip. */
 .widget-full:has(#docket-body) #docket-body {
-  background: #fbfaf5;
+  background: color-mix(in srgb, var(--paper) 30%, white);
   border: 0;
   border-radius: 2px;
   padding: .7rem .6rem;
@@ -3159,7 +3164,7 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- THE NOTEPAD IS A NOTEPAD § */
 .widget-full:has(#notepad) > .card {
-  background: #f7f4e9;
+  background: color-mix(in srgb, var(--paper) 80%, white);
   border: 0;
   border-radius: 2px;
   padding: 1.5rem .7rem .9rem;
@@ -3180,7 +3185,7 @@ label.bk-k { cursor: pointer; }
     /* the red margin */
     linear-gradient(90deg, transparent 0 2.1rem, rgb(200 60 50 / .5) 2.1rem 2.15rem, transparent 2.15rem),
     /* and the blue rules */
-    repeating-linear-gradient(#fbf9f1 0 1.55rem, rgb(90 130 180 / .35) 1.55rem 1.6rem);
+    repeating-linear-gradient(color-mix(in srgb, var(--paper) 45%, white) 0 1.55rem, rgb(90 130 180 / .35) 1.55rem 1.6rem);
   border: 0;
   border-radius: 0;
   color: var(--paper-ink);
@@ -3278,7 +3283,7 @@ textarea { touch-action: none; }
   position: absolute; right: .7rem; top: 50%;
   transform: translateY(-50%);
   font-size: 1.15rem; line-height: 1;
-  color: rgb(244 241 232 / .28);
+  color: color-mix(in srgb, var(--ink) 28%, transparent);
   transition: color var(--dur-quick) var(--ease-out), transform var(--dur-quick) var(--ease-out);
   pointer-events: none;
 }
@@ -3298,7 +3303,7 @@ span[data-do]:not(.act):not(.chip):not(.react):not(.cal-arrow):not(.qw),
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
-  text-decoration-color: rgb(244 241 232 / .35);
+  text-decoration-color: color-mix(in srgb, var(--ink) 35%, transparent);
 }
 span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 
@@ -3340,7 +3345,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
    reads as a profile awaiting a photograph, which is what it is. */
 .prof-none {
   display: grid; place-items: center;
-  font-size: 1.3rem; font-weight: 700; color: rgb(244 241 232 / .3);
+  font-size: 1.3rem; font-weight: 700; color: var(--faint);
 }
 .prof-who { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
 /* WRAPS. `.pass-name` was one line with `text-overflow: ellipsis` on the lines under it, because a pass is a fixed object and a name that does not fit gets cut. § */
@@ -3384,7 +3389,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
    words carry the line. */
 .prof-words { margin: .6rem 0 0; font-size: .95rem; line-height: 1.3; color: var(--ink); }
 .prof-words b { font-weight: 800; }
-.prof-words i { font-style: normal; color: var(--gold); opacity: .7; margin: 0 .4em; }
+.prof-words i { font-style: normal; color: color-mix(in srgb, var(--gold) 70%, var(--bg)); margin: 0 .4em; }
 /* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as § */
 .is-prof .row { padding: .26rem 0; font-size: .8rem; }
 .is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
@@ -3569,13 +3574,12 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .own-sec > .tile-row.ce-tiles { position: static; padding: 0; margin-top: .5rem; background: none; box-shadow: none; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
-/* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
+/* SWITCHED OFF. The whole card dims (in colour: see `.card.is-off`) and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
-.card.is-widget.is-off { opacity: .6; }
 /* A LOCKED GAME (461, `gameLockTile_`): the card ringed in gold, and while it holds nothing on the page pans or overscrolls. */
 .card.is-widget.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
 /* HELD BY ITS PADLOCK (498): not dimmed, and its words selectable for copy and paste. */
-.card.is-widget.is-locked > * { opacity: 1; }
+.card.is-widget.is-locked > * { --ink: inherit; --gold: inherit; }
 .is-held, .is-held * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 .favwrap.is-held { box-shadow: inset 0 0 0 2px var(--gold); border-radius: var(--r-sm); }
 html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
@@ -3608,7 +3612,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* THE SIGNATURE UNDER A BOOK'S DRAWING ON THE SPLASH. § */
 .sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
-          color: rgb(240 236 224 / .38); text-align: center; }
+          color: var(--faint); text-align: center; }
 
 /* ---------- WHEN THE FAMILIES ON A WAITING LIST CAN COME § */
 /* ---------- IT IS THE ANSWER CELL OF A RECEIPT ROW NOW, NOT A BLOCK UNDER THE RECEIPT § */
@@ -3709,7 +3713,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .cpn-l { flex: 1; min-width: 0; padding: .7rem .8rem .7rem 1rem; }
 .cpn-kind {
   display: inline-block; font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--bg); background: var(--gold); padding: .12rem .38rem; border-radius: 2px;
+  color: var(--on-gold); background: var(--gold); padding: .12rem .38rem; border-radius: 2px;
   font-weight: 700;
 }
 .cpn-l h3 { margin: .4rem 0 .15rem; font-size: .92rem; font-weight: 700; color: var(--ink); }
@@ -3732,7 +3736,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .cpn-r i {
   margin-top: .4rem; font-style: normal; font-size: .62rem; font-weight: 700;
   letter-spacing: .08em; text-transform: uppercase;
-  color: var(--bg); background: var(--gold); padding: .22rem .5rem; border-radius: 2px;
+  color: var(--on-gold); background: var(--gold); padding: .22rem .5rem; border-radius: 2px;
 }
 .cpn:is(:active, .is-pressed) { transform: scale(var(--press-card)); }
 @media (prefers-reduced-motion: reduce) { .cpn:is(:active, .is-pressed) { transform: none; } }
@@ -4270,25 +4274,25 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-tk-surd { flex: 1; display: flex; align-items: stretch; }
 .mat-tk-rad { position: relative; width: 3.4mm; align-self: stretch; }
 .mat-tk-rad::before { content: ""; position: absolute; left: 1.6mm; top: 0; bottom: 1.2mm;
-                      border-left: .5mm solid #14140f; transform: skewX(-11deg); }
+                      border-left: .5mm solid var(--pa-ink); transform: skewX(-11deg); }
 .mat-tk-rad::after { content: ""; position: absolute; left: 0; bottom: 2.6mm; width: 2mm;
-                     border-top: .45mm solid #14140f; transform: rotate(52deg);
+                     border-top: .45mm solid var(--pa-ink); transform: rotate(52deg);
                      transform-origin: left; }
 .mat-tk-row:first-child .mat-tk-rad::before,
 .mat-tk-row:first-child .mat-tk-rad::after { display: none; }
 .mat-tk-nums { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr);
-               border-top: .4mm solid #14140f; padding-top: .8mm; }
+               border-top: .4mm solid var(--pa-ink); padding-top: .8mm; }
 .mat-tk-row:first-child .mat-tk-nums { border-top: 0; }
 .mat-tk-nums i { text-align: center; font-style: normal; font-weight: 700; font-size: 4.2mm; line-height: 1.1; font-style: normal; }
 .mat-tk-nums em { text-align: center; font: 400 2.6mm/1.1 var(--mono); font-style: normal;
-                  color: #77776c; }
+                  color: var(--pa-mid); }
 .mat-tk-nums u { text-align: center; font: 400 2.7mm/1.1 var(--mono); text-decoration: none;
-                 color: #66665c; }
+                 color: var(--pa-label); }
 .mat-tk-simp { display: flex; gap: 1.5mm; margin: .4mm 0 1.5mm; }
 .mat-tk-simp > b { width: 7mm; }
 .mat-tk-simp .mat-tk-nums { border-top: 0; padding-top: 0; }
-.mat-tk-say { margin: .5mm 0 0; font-style: normal; font-weight: 400; font-size: 2.6mm; line-height: 1.4; color: #77776c; }
-.mat-tk-say b { color: #14140f; }
+.mat-tk-say { margin: .5mm 0 0; font-style: normal; font-weight: 400; font-size: 2.6mm; line-height: 1.4; color: var(--pa-mid); }
+.mat-tk-say b { color: var(--pa-ink); }
 
 /* ---------- PRINTING FROM INSIDE THE APP § */
 /* THE PAPER IS A COPY AT THE END OF THE BODY, not the sheet inside the card. § */
@@ -4387,18 +4391,18 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ol.levels { margin: .2rem 0 .6rem; padding-left: 1.6rem; }
 .qsheet ol.levels li { margin: .15rem 0; }
 
-.qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
+.qsheet-stem { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 /* ---------- A STEM ON ITS OWN PAGE IS THE PAGE, NOT A PREFACE TO IT § */
-.qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.qstem .qsheet-stem { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
 /* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge all the way round"), so on its own page it keeps the § */
 .qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
-.qsheet-stem.is-over { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
+.qsheet-stem.is-over { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
 .qsheet-lines { margin: 0 0 .35rem; font-size: .74rem; letter-spacing: .06em;
-                text-transform: uppercase; color: var(--gold); opacity: .9; }
-.qsheet-lead { opacity: .9; margin-bottom: .6rem; }
+                text-transform: uppercase; color: color-mix(in srgb, var(--gold) 90%, var(--bg)); }
+.qsheet-lead { color: color-mix(in srgb, var(--ink) 90%, var(--bg)); margin-bottom: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text under a hanging (a) is what makes a multi-part question § */
 .qsheet-part { display: flex; gap: .6rem; }
@@ -4515,14 +4519,13 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
             border: 1px solid currentColor; border-radius: var(--r-sm);
             font-size: .66rem; color: var(--faint); }
 .prac-haz.haz-medium { color: var(--warn); }
-.prac-haz.haz-high   { color: var(--red, #ff6b6b); }
+.prac-haz.haz-high   { color: var(--bad); }
 
 /* ---------- AND THE ONES THAT ARE NOT RUN § */
-.prac.is-off { opacity: .72; }
-.prac.is-off h3, .prac.is-off .prac-no { opacity: 1; }
-.prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--red, #ff6b6b);
+/* Their other lines recede in colour beside `.card.is-off` (541); the reason stays at full ink. */
+.prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--bad);
            font-size: .8rem; line-height: 1.5; color: var(--ink); }
-.prac-no b { color: var(--red, #ff6b6b); font-weight: 600; }
+.prac-no b { color: var(--bad); font-weight: 600; }
 /* WORTH ANOTHER LOOK AT FOURTEEN is a different sentence from "no", so it reads as its own clause
    rather than running on from the reason. */
 .prac-again { display: block; margin-top: .2rem; color: var(--dim); }
@@ -5771,7 +5774,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r-sm); font: 500 .9rem/1 var(--font); cursor: pointer;
 }
-.ss-chip.used { opacity: .35; border-style: dashed; }
+.ss-chip.used { color: var(--faint); border-style: dashed; }
 .ss-chip:disabled { cursor: default; }
 /* CHECK AND NEW SENTENCE SIDE BY SIDE, the correction `.btn-row .btn` already makes to `.btn`'s
    full width. */
@@ -5873,7 +5876,7 @@ button.scr-sq { cursor: pointer; }
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r-sm); font: 600 .82rem/1 var(--font); cursor: pointer;
 }
-.scr-acts .scr-act:first-child { background: var(--gold); color: #111; border-color: var(--gold); }
+.scr-acts .scr-act:first-child { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 
 /* ---------- HERD MENTALITY § */
 .herd-card .herd-q {
@@ -6057,7 +6060,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .meas-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .meas-tick { stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; fill: none; }
 .meas-num { fill: var(--gold); text-anchor: middle; dominant-baseline: middle; font-family: var(--font); }
-.meas-num.meas-in { opacity: .75; }
+.meas-num.meas-in { fill: color-mix(in srgb, var(--gold) 75%, transparent); }
 .meas-turn { fill: color-mix(in srgb, var(--gold) 30%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: alias; }
 .meas-turn-i { fill: none; stroke: var(--gold); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 /* EDITING LIKE iOS (385): the loupe over a held finger, and a selection's two ends as handles to drag */
@@ -6286,7 +6289,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- THE BAR IS A ROW OF TILES § */
 .tile.is-lead { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
-.tile.is-lead.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.tile.is-lead.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
 /* TWO GROUPS, AND THE ROW BREAKS BETWEEN THEM: § */
 .qpad-group { display: inline-flex; gap: .3rem; }
 /* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
@@ -6412,7 +6415,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .art-go {
   min-height: 52px; padding: 0 2rem;
   border: 1px solid var(--gold); border-radius: 999px;
-  background: var(--gold); color: #000;
+  background: var(--gold); color: var(--on-gold);
   font: 700 1rem/1 var(--font); cursor: pointer;
 }
 .art-go:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
@@ -6450,7 +6453,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .imp-sym.is-imp::after {
   content: '?'; position: absolute; right: .3rem; top: 2.2rem;
   width: 1.6rem; height: 1.6rem; border-radius: 50%;
-  background: var(--gold); color: var(--bg);
+  background: var(--gold); color: var(--on-gold);
   font: 700 1.15rem/1.6rem var(--font); text-align: center;
 }
 /* SHOW AND HIDE CARRY A MARK, an open eye and a shut one from `TILE_ICONS`, for the children who know the button by picture. § */
@@ -6659,7 +6662,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js § */
 .prof-heat { position: relative; height: 200px; margin: .15rem 0 .6rem; overflow: hidden;
-             border-radius: 10px; background: var(--sunk, #111); border: 1px solid var(--line); }
+             border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); }
 /* TWO LAYERS, because the tiles are filtered and the glows must not be. § */
 .prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
 .prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
@@ -6762,7 +6765,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-series .row .v, .prog-sessions .row .v, .miss-q > summary .v, .miss-done .v { flex: 0 0 auto; }
 
 /* DAIVE (449, 461): a conversation drawn as any other; only the disc is filled gold, and the composer greys while it waits. */
-.dm-av.daive-av { background: var(--gold); color: var(--bg); }
+.dm-av.daive-av { background: var(--gold); color: var(--on-gold); }
 .daive .msg-text:disabled, .daive .msg-go:disabled { opacity: .5; }
 
 /* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
@@ -6834,8 +6837,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
-.is-locked > *:not(.card-lock):not(h3):not(.card-say) { opacity: .55; }
-.card-lock { position: absolute; top: .7rem; right: .8rem; color: var(--ink); opacity: .8; pointer-events: none; }
+/* Its other children recede in colour beside `.card.is-off` (541): opacity took the field labels to 2.3:1. */
+.card-lock { position: absolute; top: .7rem; right: .8rem; color: color-mix(in srgb, var(--ink) 80%, var(--bg)); pointer-events: none; }
 .card-lock svg { width: 18px; height: 18px; display: block; }
 .is-locked > h3 { padding-right: 1.6rem; }
 /* WHAT A CARD IS FOR, one faint line under its title. */
@@ -7078,7 +7081,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-kept { margin: 0; font-weight: 600; font-size: .82rem; }
 .rw-qs { margin: .2rem 0 0 1.1rem; padding: 0; font-size: .85rem; }
 .rw-marked { white-space: pre-wrap; font-size: .85rem; }
-.rw-copied { background: var(--gold); color: var(--bg); }
+.rw-copied { background: var(--gold); color: var(--on-gold); }
 .rw-facts, .rw-verdicts, .rw-tips { margin: .2rem 0 .4rem 1.1rem; padding: 0; font-size: .85rem; }
 .rw-terms { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
 .rw-term { font-weight: 600; border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; font-size: .78rem; }

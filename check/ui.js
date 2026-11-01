@@ -69,7 +69,11 @@ const VISITORS = [
                                   lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
                                   lib3_name: 'Wandsworth Town and Putney',
                                   lib3_no: '2000000000002', lib3_pin: '0000' } } },
-];
+  /* AND A STUDENT (541 review), ON ASKING: the lowest rank sees the most locked cards, but most states in states.js
+     are drawn for an admin and have no `only`, so by default it would report ~50 unreachable states. */
+  { as: 'student', ask: true, user: { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' } },
+].filter(v => arg('as') ? arg('as').split(',').indexOf(v.as) !== -1 : !v.ask);   // `--as=out,in,student` picks
+const whoSay_ = as => as === 'in' ? ' signed in' : as === 'out' ? '' : ' as ' + as;
 
 /* THE ZOOM LADDER, as the owner agreed it (533, D3) -- written here and not read from the app, so the app cannot move it and pass. */
 const ZOOM_LADDER = [1, 0.875, 0.75];
@@ -850,6 +854,18 @@ function inspect(opts) {
     const s = getComputedStyle(el);
     const fg = parse(s.color);
     if (!fg) continue;
+    /* ---------- AND THE OPACITY ABOVE IT (541, U18): a faded parent fades the words. The slide
+       dims what is not in front, and `.soft` a parked pane, on purpose, so the walk stops there. Disabled is exempt (WCAG). */
+    let quiet = false;
+    const dims = [];
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.matches('.page, .screen, .page.soft > .pane')) break;
+      if (n.matches(':disabled, [aria-disabled="true"]')) { quiet = true; break; }
+      const o = parseFloat(getComputedStyle(n).opacity);
+      if (o < 1) { fg.a *= o || 0; dims.push(n.tagName.toLowerCase() + (typeof n.className === 'string' && n.className.trim() ? '.' + n.className.trim().split(/\s+/).join('.') : '') + ' ' + o); }
+    }
+    /* A TEACHING ANIMATION (`.an-<id>`) is art that fades its own frames; a word faded to nothing is not on the glass. */
+    if (quiet || fg.a < .05 || el.closest('[class^="an-"], [class*=" an-"]')) continue;
     let bg = null, ratio = Infinity;
     grounds(el).forEach(g => {
       const solidFg = fg.a < 1 ? over(fg, g) : fg;
@@ -866,7 +882,7 @@ function inspect(opts) {
     if (ratio < need) {
       found.lowContrast.push({ text: el.textContent.trim().slice(0, 30),
         ratio: +ratio.toFixed(2), need, px: Math.round(px),
-        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})` });
+        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})`, dims: dims.join(' < ') });
     }
   }
 
@@ -1422,7 +1438,7 @@ function inspect(opts) {
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
-            + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+            + `-${width}${who.as === 'out' ? '' : '-' + who.as}.png`) });
 
         /* ---------- AND WHEN WHAT IT WAITED FOR LANDS, THE CARD DOES NOT MOVE § */
         if (state.release && loaders.length) {
@@ -1544,9 +1560,9 @@ function inspect(opts) {
   /* WHERE A FAULT WAS SEEN NOW SAYS WHO WAS LOOKING. § */
   for (const r of rows) {
     if (r.skipped) continue;
-    const at = `${r.id}@${r.width}${r.as === 'in' ? ' signed in' : ''}`;
+    const at = `${r.id}@${r.width}${whoSay_(r.as)}`;
     (r.jsErrors || []).forEach(e => add('JS ERROR', e,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`));
+      `${r.width}px${whoSay_(r.as)}`));
     /* NOT GROUPED UNDER A SCREEN NAME, because it is not about one: the place is the width and the
        visitor, and the finding names the two columns furthest apart so there is something to look
        at rather than a number. */
@@ -1555,11 +1571,11 @@ function inspect(opts) {
       `the page is ${r.docScroll.h}px tall inside a ${r.docScroll.vh}px viewport, so the whole app `
       + `can be scrolled by ${r.docScroll.over}px — body padding ${r.docScroll.pad}, `
       + `children ${r.docScroll.kids}`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
       `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
       + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
@@ -1630,7 +1646,7 @@ function inspect(opts) {
       `${e.sel} ${JSON.stringify(e.name)} ${e.ratio}:1 against what is behind it (needs 3) — face ${e.face}, `
       + `edge ${e.line}, on ${e.bg}`, at));
     (r.lowContrast || []).forEach(c => add('CONTRAST',
-      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}`, at));
+      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}${c.dims ? ', faded by opacity: ' + c.dims : ''}`, at));
     (r.noName || []).forEach(n => add('NO NAME',
       `<${n.tag}>${n.cls ? '.' + n.cls : ''}${n.act ? ` [${n.act}]` : ''} has no text, label, `
       + `aria-label, title or placeholder — a screen reader has nothing to say about it`, at));
@@ -1640,7 +1656,7 @@ function inspect(opts) {
   console.log(`\nchecked ${checked} screen/width/visitor combinations `
             + `(${screens.reduce((n, id) => n + statesOf(id).length, 0)} screen states x `
             + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
-            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
+            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as !== 'out' ? whoSay_(v.as).trim()
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
   console.log(`accepted small targets whose run down the middle was measured against their reason: ${runsMeasured}\n`);

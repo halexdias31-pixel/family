@@ -209,8 +209,28 @@ const tapBad = [];
 const hollow = rules.filter(r => !r.decls.length)
   .map(r => 'line ' + r.line + '  ' + r.sel + '  is empty — delete it rather than leave it');
 
-/* ---------- 7b. A TILE'S COLOUR WRITTEN OUT BY HAND § */
+/* ---------- 7b. A TOKEN'S COLOUR WRITTEN OUT BY HAND (541 widened it from tiles to every rule) § */
 const handTone = [];
+/* THE DRAWINGS' OWN PALETTES: a picture of a thing keeps that thing's colours, so these may write a literal
+   (541, U18). Each with its reason. A press, hover or disabled rule's colour is package E's. */
+const ART_TONE = [
+  [/\.(nes|emu|ds)-|\.nes-canvas/, 'the game consoles are drawn in their own plastics and black glass'],
+  [/\.calc\b|\.mc-/, 'the calculator is drawn in its own case and keys'],
+  [/\.chess\b/, 'a chess board is wood and stone'],
+  [/\.scr\b|\.scr-/, 'a Scrabble board is its own tiles and squares'],
+  [/#tt-idle/, 'the times-table game is a neon arcade cabinet'],
+  [/#timer-display/, 'the timer is an amber LED clock'],
+  [/\.fm-|\.fly-/, 'the printed flyer wears the colours the owner picked for it'],
+  [/\.wc-/, 'the word counter is its own small chart'],
+  [/\.feed-mark/, 'a watermark letter behind the subject, decoration rather than reading'],
+  [/\.qpad-|\.qprot-|\.pad-loupe/, 'the pad\'s geometry tools are drawn instruments'],
+  [/\.hdb-|\.mfr-/, 'a manuscript is ink on papyrus'],
+  [/\.boxer-|\.bf-/, 'the boxer is a drawing'],
+  [/#kp\b|\.kp-/, 'the keypad is its own drawn instrument, owned by its own work (528)'],
+  [/^#toast$/, 'package F (537) moves the toast onto --toast-bg; this line goes when that merges'],
+];
+const PRESS_TONE = /:active|\.is-pressed|:hover|:disabled|\[disabled\]|\.is-busy/;
+const artOf_ = sel => (ART_TONE.find(a => a[0].test(sel)) || [])[1];
 {
   const root = rules.find(r => r.sel === ':root' && !r.cond);
   const tok = {};
@@ -218,7 +238,12 @@ const handTone = [];
     const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})\b/i.exec(d.val);
     if (m && !/^(000000|ffffff)$/i.test(m[1])) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
   });
-  if (!Object.keys(tok).length) handTone.push(':root holds no hex colour tokens this check can read — the tiles were NOT checked');
+  /* AND A COMPONENT'S OWN TOKENS: `.mat-sheet`'s `--pa-ink` written out three rules later is the same mistake. */
+  rules.filter(r => r !== root && !r.cond && !artOf_(r.sel)).forEach(r => r.decls.forEach(d => {
+    const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})$/i.exec(d.val);
+    if (m && !/^(000000|ffffff)$/i.test(m[1])) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
+  }));
+  if (!Object.keys(tok).length) handTone.push(':root holds no hex colour tokens this check can read — the colours were NOT checked');
   /* ---------- AND A WASH WITH A NAME IS A TOKEN TOO § */
   const rgbKey = s => {
     const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[\/,]\s*([\d.]+)(%?))?\s*\)$/.exec(String(s).trim());
@@ -232,21 +257,92 @@ const handTone = [];
     if (k && !/^(0 0 0|255 255 255) 1$/.test(k)) (wash[k] = wash[k] || []).push(d.prop);
   });
   const hex = (a, b, c) => [a, b, c].map(n => (+n).toString(16).padStart(2, '0')).join('');
-  rules.filter(r => /\.tile(?![\w-])/.test(r.sel)).forEach(r => r.decls.forEach(d => {
+  const long = h => h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  rules.filter(r => r !== root && !/^@keyframes/.test(r.cond) && !PRESS_TONE.test(r.sel) && !artOf_(r.sel)).forEach(r => r.decls.forEach(d => {
     if (/^--/.test(d.prop)) return;
     const seen = [];
     for (const m of d.val.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/g)) seen.push([m[0], hex(m[1], m[2], m[3])]);
-    for (const m of d.val.matchAll(/#([0-9a-f]{6})\b/gi)) seen.push([m[0], m[1].toLowerCase()]);
+    for (const m of d.val.matchAll(/#([0-9a-f]{6}|[0-9a-f]{3})\b/gi)) seen.push([m[0], long(m[1].toLowerCase())]);
     seen.forEach(([lit, h]) => {
       if (tok[h]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit + '…` is '
-        + tok[h].join(' / ') + ' written out — say `color-mix(in srgb, var(' + tok[h][0] + ') N%, transparent)`');
+        + tok[h].join(' / ') + ' written out — say `var(' + tok[h][0] + ')`, or `color-mix(in srgb, var(' + tok[h][0] + ') N%, transparent)`');
     });
+    /* THE NAMED WASHES STAY A TILE'S RULE: `rgb(0 0 0 / .55)` in a shadow is a shadow, not `--over-wash`. */
+    if (!/\.tile(?![\w-])/.test(r.sel)) return;
     for (const m of d.val.matchAll(/rgba?\([^)]*\)/g)) {
       const k = rgbKey(m[0]);
       if (k && wash[k]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + m[0] + '` is '
         + wash[k].join(' / ') + ' written out — say `var(' + wash[k][0] + ')`');
     }
   }));
+}
+
+/* ---------- 7d's ALLOWED FADES: no words under them, or a state the slide owns. One reason each; a line nothing matches fails. */
+const DIM_OK = [
+  [/^\.page\.soft/, 'a parked pane behind the one in front — the slide\'s, never read while dimmed (ui.js stops there too)'],
+  [/^\.loading\b/, 'the three waiting dots are dots, not words'],
+  [/\.pfp-opt$/, 'a face picture to choose; pictures only'],
+  [/\.av-opt\.locked/, 'a wardrobe picture not yet earned; its words (`.av-why`) are left out of the fade'],
+  [/\.text-drop$/, 'the one-glyph ✕ that removes a row, half strength until a touch screen shows it'],
+  [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],
+  [/\.qsheet span\.box$/, 'the empty box a paper leaves for an answer — an outline, no words'],
+  [/\.slot-hours$/, 'the hour cells of a week that cannot be answered: disabled buttons with no text'],
+  [/\.vid-th > :is\(img, \.vid-poster\)$/, 'a film not in the Drive: its picture and play icon fade, its duration badge keeps full ink'],
+  [/^\.hr\.shut$/, 'an hour nobody can book: a disabled button with no text'],
+];
+const dimSeen = new Set();
+
+/* ---------- 7d. PAPER IS NEVER A LITERAL, INK ON THE ACCENT IS ONE TOKEN, CONTRAST COUNTS OPACITY (541, U18) § */
+const paperTone = [], goldInk = [], pairLow = [], dimText = [];
+{
+  const rgbOf = s => {
+    s = String(s).trim();
+    let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+    if (m) { const h = m[1].length === 3 ? m[1].split('').map(c => c + c).join('') : m[1];
+      return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }; }
+    m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(s);
+    return m ? { r: +m[1], g: +m[2], b: +m[3] } : null;
+  };
+  /* PAPER-LIKE: light and warm (red over blue). The screen is black and white, so a cream is a paper colour. */
+  const warmLight = c => c && (Math.max(c.r, c.g, c.b) + Math.min(c.r, c.g, c.b)) / 510 >= .8 && c.r >= c.g && c.g >= c.b && c.r - c.b >= 8;
+  const lits = v => [...String(v).matchAll(/#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/gi)].map(m => m[0]);
+  rules.filter(r => r.sel !== ':root' && !/^@keyframes/.test(r.cond) && !artOf_(r.sel)).forEach(r => {
+    const onPaper = r.decls.some(d => /var\(--paper/.test(d.val));
+    r.decls.forEach(d => lits(d.val).forEach(lit => {
+      if (warmLight(rgbOf(lit))) paperTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit
+        + '` is a paper colour written out — say `var(--paper…)`, or a component token built from one');
+      else if (onPaper && /^#/.test(lit)) paperTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit
+        + '` is a hex inside a paper rule — a paper object draws in `--paper*` only');
+    }));
+    /* INK ON THE ACCENT: one token, so the four spellings (#000, #111, #1a1409…) cannot drift apart again. */
+    const bg = r.decls.find(d => /^background(-color)?$/.test(d.prop) && /^var\(--gold\)$/.test(d.val));
+    const ink = r.decls.find(d => d.prop === 'color');
+    if (bg && ink && ink.val !== 'var(--on-gold)' && !PRESS_TONE.test(r.sel))
+      goldInk.push('line ' + r.line + '  ' + r.sel + '  color: ' + ink.val + ' on `background: var(--gold)` — say `var(--on-gold)`');
+    /* ANY OPACITY BELOW 1 (541 review): a rule that sets only opacity still fades the words under it. A picture, a
+       disabled control, a pseudo-element or a frame is not words; anything else is fixed or written into DIM_OK. */
+    const op = r.decls.find(d => d.prop === 'opacity');
+    const v = op ? parseFloat(op.val) : 1;
+    const notWords = /:disabled|\[disabled\]|::?(before|after|placeholder|marker)\b|(^|[\s>(,])(img|svg|video|canvas|picture)\b[^\s]*\)?$/.test(r.sel);
+    const ok = DIM_OK.find(a => a[0].test(r.sel));
+    if (ok && v > 0 && v < 1) dimSeen.add(ok);
+    if (v > 0 && v < 1 && !notWords && !ok && !artOf_(r.sel) && !PRESS_TONE.test(r.sel) && !/^(from|to|[\d.]+%)/.test(r.sel))
+      dimText.push('line ' + r.line + '  ' + r.sel + '  opacity: ' + op.val + ' fades whatever words are under it — dim with a colour token (`--dim`, `--faint`, a mix), or add a DIM_OK line with its reason');
+  });
+  /* ---------- THE TOKEN PAIRS THAT CARRY WORDS, 4.5:1 EACH (D8 darkened --paper-faint) § */
+  const root = rules.find(r => r.sel === ':root' && !r.cond);
+  const val = n => { const d = root && root.decls.find(x => x.prop === n); return d ? rgbOf(d.val) : null; };
+  const lum = c => [c.r, c.g, c.b].map(v => v / 255).map(v => v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4))
+    .reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
+  const PAIRS = [['--ink', '--bg'], ['--dim', '--bg'], ['--faint', '--bg'], ['--ink', '--raised'], ['--dim', '--raised'],
+    ['--faint', '--raised'], ['--on-gold', '--gold'], ['--bg', '--toast-bg'], ['--paper-ink', '--paper'], ['--paper-dim', '--paper'],
+    ['--paper-faint', '--paper'], ['--paper-ink', '--paper-strip'], ['--paper-dim', '--paper-strip'], ['--paper-faint', '--paper-strip']];
+  PAIRS.forEach(([f, b]) => {
+    const p = val(f), q = val(b);
+    if (!p || !q) { pairLow.push(f + ' on ' + b + ': ' + (p ? b : f) + ' is not a plain colour in :root — NOT checked'); return; }
+    const a = lum(p), c = lum(q), r = (Math.max(a, c) + .05) / (Math.min(a, c) + .05);
+    if (r < 4.5) pairLow.push(f + ' on ' + b + ' is ' + r.toFixed(2) + ':1 — words need 4.5');
+  });
 }
 
 /* ---------- 7c. THE PICTURES' COLOURS ARE THE PICTURES' OWN § */
@@ -297,7 +393,12 @@ say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
-say('A TILE THAT WRITES A TOKEN\'S COLOUR OUT BY HAND — a literal cannot say which token it meant', handTone);
+say('A COLOUR THAT WRITES A TOKEN OUT BY HAND — a literal cannot say which token it meant', handTone);
+say('A PAPER COLOUR WRITTEN AS A LITERAL — paper draws in --paper* only', paperTone);
+say('INK ON THE ACCENT THAT IS NOT --on-gold — one token, never four spellings', goldInk);
+say('A TOKEN PAIR THAT CARRIES WORDS UNDER 4.5:1', pairLow);
+DIM_OK.filter(a => !dimSeen.has(a)).forEach(a => dimText.push('DIM_OK ' + a[0] + ' matches no rule — delete the line'));
+say('TEXT DIMMED BY OPACITY — its contrast is then a sum nobody did', dimText);
 say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT — the ten are their own', pfpTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
