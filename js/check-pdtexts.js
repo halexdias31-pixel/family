@@ -12,7 +12,7 @@ try { index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
 catch (e) { console.error('check-pdtexts: data/pdtexts/index.json did not load — NOTHING was checked: ' + e.message); process.exit(1); }
 if (!index || !Array.isArray(index.texts) || !index.texts.length) { console.error('check-pdtexts: the index names no texts — NOTHING was checked'); process.exit(1); }
 
-const SUBJECTS = ['History', 'English Literature'];
+const SUBJECTS = ['History', 'English Literature', 'Religious Studies'];   /* Religious Studies: Ancient Egypt's texts (546) */
 const seen = {}, lines = [];
 let cards = 0, bytes = 0;
 if (!fs.existsSync(path.join(dir, 'LICENSE'))) fail.push('data/pdtexts/LICENSE is missing');
@@ -22,7 +22,7 @@ index.texts.forEach(w => {
   if (!/^TX-\d{4}$/.test(w.id) || w.file !== w.id + '.json') return fail.push(at + ': id and file must be TX-NNNN and TX-NNNN.json');
   if (seen[w.title]) fail.push(at + ': the title ' + w.title + ' is also ' + seen[w.title] + ' — the Writing tag would join them');
   seen[w.title] = w.id;
-  if (SUBJECTS.indexOf(w.subject) < 0) fail.push(at + ': subject ' + w.subject + ' is not History or English Literature');
+  if (SUBJECTS.indexOf(w.subject) < 0) fail.push(at + ': subject ' + w.subject + ' is not ' + SUBJECTS.join(', '));
   if (!Array.isArray(w.texts) || !w.texts.length) fail.push(at + ': names no text');
   if (!Array.isArray(w.cards) || !w.cards.length) return fail.push(at + ': has no cards');
   if (licence.indexOf(w.id + '  ' + w.title) < 0) fail.push(at + ': not listed in data/pdtexts/LICENSE');

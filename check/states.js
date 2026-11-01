@@ -590,7 +590,7 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         const put = () => {
           const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
-          const r = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]'), p = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]');
+          const r = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="line"]'), p = pad && pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="protractor"]');
           if (!r || !p) return false;
           r.click();
           Object.assign(padProtOf_(window.__protKey), { x: 45, y: 72, a: 50 });
@@ -604,7 +604,7 @@ const STATES = {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
         const lit = pad && [...pad.closest('.qcard').querySelectorAll('.qt-row .qt-t.on:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' ');
         const prot = pad && pad.querySelector('.qpad-art > .qpad-prot');
-        return !!prot && lit === 'ruler protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
+        return !!prot && lit === 'line protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
       },
       wants: 'Q4\'s figure under the pen with the protractor lying on it, turned 50°, its numbers readable, the Ruler and the Protractor both lit',
       leave: () => {

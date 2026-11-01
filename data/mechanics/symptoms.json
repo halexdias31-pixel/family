@@ -1,0 +1,239 @@
+{
+"symptoms": [
+{
+"id": "MS-001",
+"name": "Squealing when braking",
+"system": "Brakes",
+"causes": [
+"Brake pads",
+"Brake discs",
+"Brake calipers"
+],
+"check": "Look at the pad thickness through the wheel and for a lip on the disc.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-002",
+"name": "Grinding when braking",
+"system": "Brakes",
+"causes": [
+"Brake pads",
+"Brake discs"
+],
+"check": "Stop driving: pads may be down to the metal.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-003",
+"name": "Car pulls to one side",
+"system": "Steering",
+"causes": [
+"Brake calipers",
+"Tyres",
+"Wheel alignment",
+"Track rod ends"
+],
+"check": "Check tyre pressures first, then whether one wheel is hot after a drive.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-004",
+"name": "Knock over bumps",
+"system": "Suspension",
+"causes": [
+"Anti-roll bar links",
+"Ball joints",
+"Top mounts",
+"Wishbones (control arms) and bushes",
+"Shock absorbers (dampers)"
+],
+"check": "Rock each wheel and lever each joint to find the play.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-005",
+"name": "Hum that rises with speed",
+"system": "Suspension",
+"causes": [
+"Wheel bearings",
+"Tyres"
+],
+"check": "Note whether it changes when turning left or right.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-006",
+"name": "Overheating",
+"system": "Cooling",
+"causes": [
+"Thermostat",
+"Water pump",
+"Radiator",
+"Radiator cooling fan",
+"Cylinder head gasket",
+"Coolant (antifreeze)"
+],
+"check": "With the engine cold, check the coolant level and look for leaks.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-007",
+"name": "White smoke and coolant loss",
+"system": "Engine",
+"causes": [
+"Cylinder head gasket"
+],
+"check": "A garage block test for combustion gas in the coolant.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-008",
+"name": "Blue smoke",
+"system": "Engine",
+"causes": [
+"Turbocharger",
+"Rocker cover gasket"
+],
+"check": "Check the oil level often and look for oil in the intake pipes.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-009",
+"name": "Misfire or rough idle",
+"system": "Ignition",
+"causes": [
+"Spark plugs",
+"Ignition coil (coil pack)",
+"HT leads",
+"Fuel injectors",
+"Throttle body"
+],
+"check": "Read the fault codes; they usually name the cylinder.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-010",
+"name": "Slow cranking or clicking on start",
+"system": "Electrical",
+"causes": [
+"Battery",
+"Starter motor",
+"Alternator"
+],
+"check": "Measure the battery: about 12.6 V at rest, 13.8–14.6 V running.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-011",
+"name": "Battery light on while driving",
+"system": "Electrical",
+"causes": [
+"Alternator",
+"Auxiliary (drive) belt",
+"Battery"
+],
+"check": "Check the belt is there and tight.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-012",
+"name": "Squeal from the engine at start-up",
+"system": "Engine",
+"causes": [
+"Auxiliary (drive) belt",
+"Belt tensioner and idler pulleys"
+],
+"check": "Look at the belt's ribs and spin the pulleys by hand.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-013",
+"name": "Clutch slips or bites high",
+"system": "Transmission/Clutch",
+"causes": [
+"Clutch kit",
+"Clutch cable or hydraulics"
+],
+"check": "Try pulling away in third gear gently: a healthy clutch stalls the engine.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-014",
+"name": "Clicking on full lock",
+"system": "Transmission/Clutch",
+"causes": [
+"CV joints and boots"
+],
+"check": "Look for a split boot and grease on the inside of the wheel.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-015",
+"name": "Rattle at idle that stops with the clutch down",
+"system": "Transmission/Clutch",
+"causes": [
+"Dual-mass flywheel",
+"Clutch kit"
+],
+"check": "Common on diesels with a dual-mass flywheel.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-016",
+"name": "Rattle after a cold start",
+"system": "Engine",
+"causes": [
+"Timing chain",
+"Belt tensioner and idler pulleys"
+],
+"check": "If it lasts more than a few seconds, have the timing checked soon.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-017",
+"name": "Heater fan works only on top speed",
+"system": "HVAC",
+"causes": [
+"Heater blower motor and resistor"
+],
+"check": "The resistor is the usual cause.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-018",
+"name": "Steamy windows and damp carpets",
+"system": "HVAC",
+"causes": [
+"Heater matrix",
+"Cabin (pollen) filter"
+],
+"check": "A sweet smell inside points to the heater matrix.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-019",
+"name": "Hard starting on a cold diesel",
+"system": "Fuel",
+"causes": [
+"Glow plugs",
+"Fuel filter",
+"Battery"
+],
+"check": "Test the glow plugs' resistance.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+},
+{
+"id": "MS-020",
+"name": "Engine warning light",
+"system": "Exhaust",
+"causes": [
+"Lambda (oxygen) sensor",
+"EGR valve",
+"Catalytic converter",
+"Ignition coil (coil pack)"
+],
+"check": "Read the code before buying any part.",
+"source": "Written for @family. from general workshop diagnosis practice; a guide to where to look, not a diagnosis."
+}
+]
+}

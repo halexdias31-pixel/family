@@ -1,4 +1,4 @@
-/* @family. — inbox.gs — THE EMAIL WIDGET (493): the owner's own Gmail, read-only, for an admin. docs/history/493-an-email-widget.md */
+/* @family. — inbox.gs — THE EMAIL WIDGET (493): the owner's own Gmail, read-only, headers and snippets only (547), for an admin. docs/history/493-an-email-widget.md */
 
 /* WHY THE GMAIL REST API AND NOT GmailApp: GmailApp asks for the full mail.google.com scope (send, delete);
    the REST API with the script's own token works on gmail.readonly, so this file cannot change a thing. */
@@ -40,34 +40,6 @@ function inboxSender_(from) {
   return m ? (m[1].trim() || m[2].trim()) : String(from || '').trim();
 }
 
-function inboxDecode_(data) {
-  try {
-    const bytes = Utilities.base64Decode(String(data || '').replace(/-/g, '+').replace(/_/g, '/'));
-    return Utilities.newBlob(bytes).getDataAsString('UTF-8');
-  } catch (e) { return ''; }
-}
-
-/* THE FIRST text/html AND text/plain PARTS, wherever the multipart tree put them. */
-function inboxBodies_(part, out) {
-  out = out || { html: '', text: '' };
-  if (!part) return out;
-  const type = String(part.mimeType || '').toLowerCase();
-  if (part.body && part.body.data && !(part.filename)) {
-    if (type === 'text/html' && !out.html) out.html = inboxDecode_(part.body.data);
-    if (type === 'text/plain' && !out.text) out.text = inboxDecode_(part.body.data);
-  }
-  (part.parts || []).forEach(p => inboxBodies_(p, out));
-  return out;
-}
-
-/* A FIRST PASS ON THE SERVER; the phone sanitises again with a real parser (`inboxClean_`, js/inbox.js). */
-function inboxStrip_(html) {
-  return String(html || '')
-    .replace(/<(script|style|iframe|object|embed|noscript|template)[\s\S]*?<\/\1\s*>/gi, '')
-    .replace(/<(script|style|iframe|object|embed|link|meta|base)\b[^>]*>/gi, '')
-    .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-}
-
 function inboxLabels_() {
   try {
     return (inboxGet_('labels').labels || []).filter(l => l.type === 'user')
@@ -104,18 +76,7 @@ function inboxList_(body) {
   } catch (err) { return { error: String((err && err.message) || err) }; }
 }
 
-/* ---------- inboxRead {id}: one message, format=full, which does not mark it read (only a modify call would). */
-function inboxRead_(body) {
-  const id = String(body.id || '');
-  if (!/^[A-Za-z0-9_-]{6,40}$/.test(id)) return { error: 'No such message.' };
-  try {
-    const m = inboxGet_('messages/' + id + '?format=full');
-    const b = inboxBodies_(m.payload);
-    return { success: true, id: id, thread: String(m.threadId || ''),
-      from: inboxHeader_(m, 'From'), to: inboxHeader_(m, 'To'), subject: inboxHeader_(m, 'Subject'),
-      at: Number(m.internalDate) || 0, html: inboxStrip_(b.html), text: b.text || String(m.snippet || '') };
-  } catch (err) { return { error: String((err && err.message) || err) }; }
-}
+/* `inboxRead` WAS HERE: a message body reached the phone. The owner asked for "just static overview" (547), so no action returns a body. */
 
 /* ---------- RUN ONCE FROM THE EDITOR, after syncing and BEFORE a new version — a version with an unapproved scope breaks the site for everyone. */
 function authoriseGmail() {

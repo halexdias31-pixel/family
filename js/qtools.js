@@ -6,7 +6,9 @@
 /* THE OWNER'S ROW (round 4): no Calculator, Grid, Table or Formula sheet -- a question brings its own grid, table or insert -- and the one padlock */
 const QT_TOOLS = [
   { id: 'pen',        icon: 'pen',        label: 'Pen',             note: 'draw on the figure',       act: 'qt-pen' },
-  { id: 'ruler',      icon: 'ruler',      label: 'Ruler',           note: 'measure or rule a line',   act: 'qt-inst' },
+  /* TWO TILES WHERE ONE DID TWO THINGS (owner, 1 Nov): "sometimes the ruler ... displays a ruler and sometimes ... draw straight lines" -- Straight line is the pen's, Ruler always measures. */
+  { id: 'line',       icon: 'line',       label: 'Straight line',   note: 'draw a straight line',     act: 'qt-pen' },
+  { id: 'ruler',      icon: 'ruler',      label: 'Ruler',           note: 'measure a length',         act: 'qt-inst' },
   { id: 'protractor', icon: 'protractor', label: 'Protractor',      note: 'measure an angle',         act: 'qt-inst' },
   { id: 'compass',    icon: 'compass',    label: 'Compass',         note: 'press the centre, drag',   act: 'qt-inst' },
   { id: 'photo',      icon: 'photo',      label: 'Photo of working', note: 'up to 3 pages',           act: 'qp-work' },
@@ -17,7 +19,9 @@ const QT_TOOLS = [
 ];
 const QT_ORDER = QT_TOOLS.map(t => t.id);
 /* THE TOOLS THAT DRAW ON THE PART'S FIGURE OR SURFACE: drawn only where it has one (`qtRow_`). */
-const QT_DRAWING = { pen: 1, ruler: 1, protractor: 1, compass: 1 };
+const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
+/* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
+const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
@@ -121,7 +125,8 @@ function qtToolTile_(t, x) {
   }
   /* A CARD DRAWN AGAIN keeps the tool in hand lit -- `padArm_`'s rule, read off PAD_ON and PAD_TOOL, which outlive the markup */
   const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-  const held = !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === t.id);
+  const held = t.id === 'ruler' ? !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler')
+    : !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === QT_PAD_TOOL[t.id]);
   const on = held;
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
@@ -183,13 +188,21 @@ function qtPenOpen_(el, tool) {
   if (pad) padToolPick_(pad, tool || 'pen');
   return pad;
 }
-on('qt-pen', el => { qtPenOpen_(el, 'pen'); });
-/* RULER AND PROTRACTOR lie on the figure when there is one and no pen; under a pen they are the pen's; with neither, they open the pen. */
+on('qt-pen', el => { qtPenOpen_(el, QT_PAD_TOOL[el.getAttribute('data-tool')] || 'pen'); });
+/* THE RULER ALWAYS MEASURES: laid on the figure, or on the pen's page -- made first where the part has only a surface. */
+/* THE PROTRACTOR lies on the figure when there is one and no pen; under a pen it is the pen's; with neither, it opens the pen. */
 on('qt-inst', el => {
   const tool = el.getAttribute('data-tool') || 'ruler';
   const card = el.closest('.qcard');
   const pad = card && card.querySelector('.qpad');
-  if (!pad && (tool === 'ruler' || tool === 'protractor') && card && card.querySelector('figure svg')) return measOpen_(el);
+  if (tool === 'ruler') {
+    if (card && card.querySelector('figure svg, .qpad-art > svg')) return measOpen_(el);
+    const key = qtKeyOf_(el), made = qtPenOpen_(el, 'pen'), host = made && made.closest('.qcard');
+    const t = host && [...host.querySelectorAll('.q-meast')].find(e => e.getAttribute('data-tool') === 'ruler' && e.getAttribute('data-key') === key);
+    if (t) measOpen_(t);
+    return;
+  }
+  if (!pad && tool === 'protractor' && card && card.querySelector('figure svg')) return measOpen_(el);
   qtPenOpen_(el, tool);
 });
 /* ---------- CHECK ON OPTIONS: a tap marks already; Check says the verdict again, or what is missing. */

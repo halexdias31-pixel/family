@@ -501,7 +501,8 @@ const BOOK_STEPS = [
       (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
     label_: v => {
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      return t && t.listed === false ? v + ' · not listed' : v;
+      const r = t && !childView_() ? rateRange_(t) : '';
+      return (r ? v + ' · ' + r : v) + (t && t.listed === false ? ' · not listed' : '');
     },
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
     fallback: () => isWaiting_() ? 'No preference' : '',

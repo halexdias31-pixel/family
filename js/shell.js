@@ -2081,7 +2081,11 @@ const pages = (id, cards) =>
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
-const emptyCard_ = title => `<div class="card is-empty"><h3>${esc(String(title || ''))}</h3></div>`;
+/* AND ITS ONE TILE, Suggest a change (486): the owner, of an empty Saved, "why is there no buttons on 'saved' widget" (1 Nov). */
+const emptyCard_ = title => {
+  const t = String(title || ''), s = typeof suggestTile_ === 'function' ? suggestTile_('widget', 'empty:' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-'), t) : '';
+  return `<div class="card is-empty"><h3>${esc(t)}</h3>${s ? `<div class="tile-row rep-row">${s}</div>` : ''}</div>`;
+};
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>

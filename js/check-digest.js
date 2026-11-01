@@ -324,14 +324,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
     if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
-        || said(bo.html).indexOf('Maths Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right THEIR ANSWER an answer') === -1)
+        || said(bo.html).indexOf('Maths Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. THEIR ANSWER an answer ✓ Right') === -1)
       bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / ') + ' — HTML: ' + said(bo.html).slice(0, 900));
     if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
     if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
-        || said(bo.html).indexOf('Maths Equations Q2 ✓ Right THEIR ANSWER an answer Maths Equations Q3 ✓ Right THEIR') === -1)
+        || said(bo.html).indexOf('Maths Equations Q2 THEIR ANSWER an answer ✓ Right Maths Equations Q3 THEIR ANSWER an answer ✓ Right') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -457,13 +457,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   const times = t => t.split(STEM).length - 1;
   if (times(m.text) !== 1 || times(m.html) !== 1
-      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not right THEIR ANSWER an answer Maths Paper 7 Q5b Find P(blue). Not marked yet THEIR ANSWER an answer'
-        + ' Maths Paper 7 Q5c Two beads are taken. Find P(both red). 2 of 3 marks THEIR ANSWER an answer') === -1)
+      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). THEIR ANSWER an answer ✗ Not right Maths Paper 7 Q5b Find P(blue). THEIR ANSWER an answer Not marked yet'
+        + ' Maths Paper 7 Q5c Two beads are taken. Find P(both red). THEIR ANSWER an answer 2 of 3 marks') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
   /* A QUESTION FIRST SENT BEFORE THE WEEK IS STILL A QUESTION DONE THIS WEEK, in the one list, with this
      week's mark — and no "(again)", the site's word and not a parent's (12 Oct). */
-  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right THEIR ANSWER') === -1 || /\(again\)/.test(m.text + m.html))
+  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). THEIR ANSWER an answer ✓ Right') === -1 || /\(again\)/.test(m.text + m.html))
     bad.push('a question first sent before the week is not "Q9 ✓: <its words>" in the one list, with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
   if (m.html.indexOf('>Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.<') === -1 || /x < 7 &|"y"/.test(m.html))
@@ -1002,6 +1002,34 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     const d = b.post({ action: 'digestPreview', token: t });
     if (d.success || d.emails || !d.error) bad.push(who + ' asked for digestPreview and was answered ' + JSON.stringify(d).slice(0, 160) + ' — it is an admin’s, it carries every address');
   });
+  /* THE CARD SHOWS THE EMAIL AS IS (547): `shown` is this week's first email, and the same bytes go out when the run sends -- one renderer, never a look-alike. */
+  asked++;
+  const sh = pv.shown || {};
+  const same = (pv.emails || []).find(m => m.html === sh.html && m.subject === sh.subject);
+  if (!sh.html || sh.sample !== false || !same) bad.push('the Preview\'s shown email is not this week\'s first email: ' + JSON.stringify(sh).slice(0, 160));
+  else {
+    run(b, SUN);
+    const out = mail.sent.find(m => m.to === same.to);
+    if (!out || out.htmlBody !== sh.html || out.subject !== sh.subject) bad.push('the email sent to ' + same.to + ' is not the one the Preview showed, byte for byte');
+  }
+  /* AND THE ADMIN'S UNSAVED WORDS reach the same renderer: the subject typed is the subject shown, the sheet unchanged. */
+  asked++;
+  const typed = b.post({ action: 'digestPreview', token: tok['a1@example.org'], words: { digest_subject: 'Typed {child} subject', digest_greeting: '' } });
+  if (!typed.shown || !/^Typed \S+ subject$/.test(typed.shown.subject) || !/Hi /.test(typed.shown.html) || rowsOf(b, 'config').some(r => /Typed/.test(String(r.value))))
+    bad.push('the Preview with typed words did not render them, or wrote them: ' + JSON.stringify(typed.shown && typed.shown.subject));
+}
+/* NO FAMILY THIS WEEK: the Preview still shows the email, a made-up child drawn by `digestRender_` itself, never a hand-made copy (547). */
+{
+  const { b, setClock } = seeded();
+  setClock(at(SUN));
+  b.tabs.submissions.splice(1);
+  asked++;
+  const tok = b.post({ action: 'verifyLogin', email: 'a1@example.org', pin: '0000' }).token;
+  const pv = b.post({ action: 'digestPreview', token: tok });
+  const sh = (pv && pv.shown) || {};
+  const want = b.ev('(function(){ clearCache(); const w = digestWeek_(new Date(' + at(SUN) + ')); return digestRender_(DIGEST_SAMPLE_CHILD, { first: "Alex" }, w, digestLook_(new Date(' + at(SUN) + '), w)).html; })()');
+  if ((pv.emails || []).length || sh.sample !== true || !sh.html || sh.html !== want || !/<!DOCTYPE html>/.test(sh.html))
+    bad.push('with no family this week the Preview did not show the made-up child through digestRender_: ' + JSON.stringify({ emails: (pv.emails || []).length, sample: sh.sample }).slice(0, 160));
 }
 
 /* THE STUBBED WORLD OF THE SUNDAY OF 18 OCT (written for the marking pass of 12 Oct, kept for the email's checks): § */
@@ -1153,8 +1181,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     const H = said(sent.htmlBody);
     /* EACH CARD'S TAGS FIRST (380, 20 Oct) — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
     /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Accuracy tag after the marks. */
-    ['Learning Questions PX-1 Q7 1 mark Accuracy unverified Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
-     'Learning Questions PX-1 Q11 3 marks Accuracy unverified Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Learning Questions PX-1 Q6 1 mark Accuracy unverified Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
+    ['Learning Practice Questions Accuracy unverified PX-1 Q7 1 mark Work out 4 × 4. THEIR ANSWER 16 ✓ Right ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? THEIR ANSWER £1.10 ✗ Not right',
+     'Learning Practice Questions Accuracy unverified PX-1 Q11 3 marks Read the source about the river. Explain the trend. THEIR ANSWER It rises. 2 of 3 marks ANSWER It rises.', 'Learning Practice Questions Accuracy unverified PX-1 Q6 1 mark Read the source about the river. Say anything. THEIR ANSWER hello Not marked yet',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1312,7 +1340,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       + ' (wanted only p, br, b, strong, i, em, sup, sub, ul, ol, li, table, thead, tbody, tr, th, td, span, div; no attribute but colspan/rowspan and its own styles)');
   /* A KEY THE LIBRARY DOES NOT HAVE — a question it dropped, a practical's box — goes as its words cell, as before. */
   asked++;
-  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || said(html).indexOf('Q4 Work out 12 × 3. ✓ Right') === -1
+  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || !/Q4 Work out 12 × 3\.( THEIR ANSWER [^✓✗]*)? ✓ Right/.test(said(html))
       || text.indexOf('Worksheet not marked: What is the independent variable?') === -1)
     bad.push('a key missing from the library does not fall back to its words line ("Q4 ✓: <its words>"): ' + JSON.stringify(text.split('\n').filter(l => /Q4|Worksheet/.test(l))));
   /* AND STILL NO LINK A PARENT COULD PRESS: the only address in it is each picture's, on the site's own folder. */
@@ -1379,8 +1407,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
   /* no "Printed sheet" since 385: Q7 is drawn and marked on screen */
-  if (said7 !== 'Learning Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator Accuracy verified'
-      || saidC !== 'Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1 Accuracy unverified Corbettmaths')
+  if (said7 !== 'Learning Practice Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Accuracy verified Paper 1 Q7 4 marks Non-calculator'
+      || saidC !== 'Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1 Corbettmaths')
     bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
   G.__LIB = lib;
   G.__L = { id: 'P-S1', first: 'Kit', fresh: [
@@ -1391,7 +1419,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
       || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">4 marks') === -1
-      || said(r.html).indexOf('Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
+      || said(r.html).indexOf('Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
     bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;
@@ -1557,6 +1585,22 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const N = sum([{ key: 'q:Q-Z-1', label: '', hidden: true, verdict: 'right' }], null);
   if (M.lines.indexOf('Topics: Perimeter and Types of Angle.') === -1 || N.lines.indexOf('Topics: not recorded.') === -1)
     bad.push('a mixed week is not "Topics: Perimeter and Types of Angle", or a week nothing names has no topics line: ' + JSON.stringify([M.lines, N.lines]));
+}
+
+/* ---------- THE EMAIL'S TAG ORDER IS THE CARD'S, ONE SOURCE (546): data/settings/facets.json, read by the backend as the phone reads it ---------- */
+{
+  asked++;
+  const { b } = world();
+  const file = fs.readFileSync(path.join(REPO, 'data', 'settings', 'facets.json'), 'utf8');
+  const fromFile = b.ev('digestTagFacets_(' + file + ').map(f => f[0]).join(" ")');
+  const fallback = b.ev('DIGEST_TAG_FACETS.map(f => f[0]).join(" ")');
+  const rows = JSON.parse(file), at = {};
+  rows.forEach(r => { at[r.field] = Number(r.sort_order); });
+  const want = fallback.split(' ').filter(f => at[f] !== undefined).sort((x, y) => at[x] - at[y]).join(' ');
+  if (fromFile !== want) bad.push('the email\'s tags are not in the facets file\'s order: ' + fromFile + ' — the file says ' + want);
+  if (fallback !== fromFile) bad.push('the email\'s fallback order (DIGEST_TAG_FACETS, used when the facets file cannot be fetched) has drifted from the file: ' + fallback + ' — the file says ' + fromFile);
+  const T = b.ev('Object.keys(digestTagIndex_("", [], ' + file + ')).indexOf("facets") >= 0');
+  if (!T) bad.push('digestTagIndex_ does not carry the facets file\'s order, so the cards in the email ignore it');
 }
 
 console.log('rules asked: ' + asked);

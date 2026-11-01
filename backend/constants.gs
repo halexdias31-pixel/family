@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-31-merge-booking";
+const BACKEND_VERSION = "2026-11-01-integrate-abc";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1682,7 +1682,7 @@ const ACTION_ACCESS = {
   /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
   getProfile: 'admin',
   /* THE EMAIL WIDGET (493): the owner's own Gmail, read-only — inbox.gs. */
-  inboxList: 'admin', inboxRead: 'admin',
+  inboxList: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
   editPost: 'self', deletePost: 'self',

@@ -74,6 +74,7 @@ const SUITE = [
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ § */
   /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
   { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
+  { file: 'check-mechanics.js', what: 'the mechanics cards: system, source, no part numbers (548)' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
   { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate' },
@@ -184,6 +185,10 @@ const SUITE = [
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
   /* R1 (522): a finder's chips and words are written by `finderSet_` alone — read, not run, so it stays in --fast. */
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
+  /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
+  { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
+  { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
+  { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */
@@ -218,6 +223,7 @@ const SUITE = [
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
   /* ---------- AND EVERY INTERACTION TYPE ANSWERED WRONG, CHANGED, AND RIGHT (385) ---------- */
   { file: 'check/ruler.js',   what: 'two touch points move, turn and cross over the ruler and protractor exactly; every figure question has both (502)', slow: true },
+  { file: 'check/boxes.js',   what: 'a question\'s pages: every foot last and alike (Help, star, Suggest, Back to top), answer boxes one a line and one width (553)', slow: true },
   { file: 'check/types.js',   what: 'every interaction type answered wrong, changed and right by touch and mouse; boxes edit like iOS', slow: true },
   /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
   { file: 'check/whiteboard.js', what: 'the whiteboard notebook: written big it lands small, the pad moves on, gestures undo, rub out, straighten and move', slow: true },

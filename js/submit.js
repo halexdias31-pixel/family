@@ -446,10 +446,12 @@ function markKind_(v) {
 const MARK_CHIME = [{ f: 783.99, at: 0, len: 0.16 }, { f: 1046.5, at: 0.09, len: 0.23 }];
 const MARK_CHIME_PEAK = 0.03, MARK_BUZZ_PEAK = 0.06, MARK_BUZZ_LEN = 0.4;
 const MARK_BUZZ = [['sawtooth', 164.81], ['square', 174.61]], MARK_BUZZ_LP = 1600;
+/* A HAND UP (455) RINGS A BELL: two short notes, a fourth apart, at the chime's level -- "clicking help ... should make a noise" (owner, 1 Nov). */
+const HELP_BELL = [{ f: 659.25, at: 0, len: 0.14 }, { f: 880, at: 0.12, len: 0.26 }];
 function markTone_(ac, t0, kind, out) {
-  if (kind === 'right') {
+  if (kind === 'right' || kind === 'help') {
     let end = t0;
-    MARK_CHIME.forEach(n => {
+    (kind === 'help' ? HELP_BELL : MARK_CHIME).forEach(n => {
       const a = t0 + n.at, z = a + n.len;
       const g = ac.createGain();
       g.gain.setValueAtTime(0, a);
@@ -565,7 +567,10 @@ function markHush_() {
   } catch (e) {}
 }
 function markPlay_(v, late) {
-  const kind = markKind_(v);
+  markSound_(markKind_(v), late);
+}
+/* ONE SOUND BY NAME -- 'right', 'wrong' or 'help' -- through the one context, so a bell and a verdict never play over each other. */
+function markSound_(kind, late) {
   if (!kind) return;
   const ac = late ? MARK_AC : markHear_();
   if (!ac) return;
@@ -699,7 +704,7 @@ function reportBoxHtml_(kind, id, label, finder, path) {
       placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
     <input type="file" accept="image/*" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
     <img class="rep-pic-show" alt="The picture going with it" hidden>${files ? `
-    <input type="file" multiple accept="${REP_FILE_ACCEPT}" class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
+    <input type="file" multiple class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
     <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
     <ol class="faint rep-file-list" hidden></ol><p class="faint rep-file-total" aria-live="polite" hidden></p>
     ${repNoDir_() ? '<p class="faint rep-no-dir">On iPhone, Safari cannot choose a folder: use Add files and pick several at once.</p>' : ''}` : ''}
@@ -765,7 +770,7 @@ document.addEventListener('change', e => {
   }).catch(err => { if (said) said.textContent = String((err && err.message) || 'That picture could not be read.'); });
 });
 /* ---------- FILES AND FOLDERS FOR CLAUDE (515), the admin's alone: each file sent in parts to Drive "Claude inbox", one at a time, then the note names them. */
-const REP_FILE_ACCEPT = '.pdf,application/pdf,image/*,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.zip,application/zip';
+/* ANY KIND OF FILE (owner, 1 Nov: "python is what I was trying to add but can't"): no `accept` list, only the size limit (547). */
 /* 8 MiB a part, a multiple of Drive's 256 KiB, about 11 MB once base64 — well under Apps Script's 50 MB a request. */
 const REP_PART = 8 * 1048576, REP_FILE_MAX = 500 * 1048576, REP_TRIES = 3;
 /* IPHONE AND IPAD SAFARI CANNOT PICK A FOLDER (the input opens as plain files), so the tile is not drawn and the box says so. */

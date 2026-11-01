@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Public-domain history and literature texts for the Library (docs/history/514).
 
-Usage:  python3 -I tools/pd-texts.py <download dir> <repo root>
+Usage:  python3 -I tools/pd-texts.py <download dir> <repo root> [--add egypt]
+
+--add <part>: build that part alone and append its texts to the index as it stands, the others untouched, ids continuing
+(a new part needs only its own etexts downloaded). A full run builds every part, in main()'s order, so the ids agree.
 
 <download dir> holds the downloaded etexts, untouched: pg/<n>.txt (gutenberg.org cache files),
 av/bor.html (Avalon Project, English Bill of Rights 1689). Writes data/pdtexts/index.json, one
@@ -880,7 +883,92 @@ def gcse_more():
     TEXTS[-1]['title'] = 'Unseen Poetry Practice'
 
 
+# ---------------------------------------------------------------- ANCIENT EGYPT (546): the owner, "add ancient primary source texts involving Horus"
+# Budge, Legends of the Gods (1912): his translations only (the book's second half), a card a legend; his introductions are left out.
+EGYPT_LEGENDS = [
+    (r'^THE HISTORY OF CREATION--A\.$', 'The History of Creation (A)'),
+    (r'^THE HISTORY OF CREATION--B\.$', 'The History of Creation (B)'),
+    (r'^THE LEGEND OF THE DESTRUCTION OF MANKIND\.$', 'The Destruction of Mankind'),
+    (r'^THE LEGEND OF RA AND ISIS\.$', 'Ra and Isis'),
+    (r'^THE LEGEND OF HORUS OF BEHUTET AND THE WINGED DISK\.$', 'Horus of Behutet and the Winged Disk'),
+    (r'^A HYMN TO OSIRIS AND A LEGEND OF THE ORIGIN OF HORUS\.$', 'A Hymn to Osiris and the Origin of Horus'),
+    (r'^A LEGEND OF PTAH NEFER-HETEP AND THE PRINCESS OF BEKHTEN\.$', 'Ptah Nefer-hetep and the Princess of Bekhten'),
+    (r'^A LEGEND OF THE GOD KHNEMU AND OF A SEVEN YEARS\' FAMINE\.$', 'Khnemu and the Seven Years\u2019 Famine'),
+    (r'^THE LEGEND OF THE DEATH OF HORUS THROUGH THE STING OF A SCORPION AND OF$', 'The Death and Resurrection of Horus (the Metternich Stela)'),
+    (r'^THE HISTORY OF ISIS AND OSIRIS,$', None),
+]
+
+
+def unfoot(t):
+    """Budge's footnotes are his own notes, not the text: each [FN#n] paragraph and marker goes."""
+    t = re.sub(r'\n\[FN#\d+\].*?(?=\n\s*\n)', '', t, flags=re.S)
+    return re.sub(r'\[FN#\d+\]', '', t)
+
+
+def egypt():
+    t = etext(9411)
+    t = t[re.search(EGYPT_LEGENDS[0][0], t, re.M).start():]
+    rx = '|'.join('(?:%s)' % r for r, _ in EGYPT_LEGENDS)
+    cards, plutarch = [], ''
+    for m, body in split_at(t, rx):
+        name = next(n for r, n in EGYPT_LEGENDS if re.match(r, m.group(0)))
+        if name is None:
+            plutarch = body
+            break
+        body = unfoot(body)
+        parts = split_at(body, r'^CHAPTER ([IVX]+)\.$')
+        if parts:
+            for pm, words in parts:
+                cards.append(card('', name, 'Chapter %d' % roman(pm.group(1)), clean_end(prose(words))))
+        else:
+            cards.append(card('', name, '', clean_end(prose(re.sub(r'^.*?\n\s*\n', '', body, count=1, flags=re.S) if name.startswith('The Death') else body))))
+    add(title='Legends of the Gods', author='Ancient Egyptian texts', subject='Religious Studies', form='Myth', year='1912',
+        texts=['Budge (1912)'], sources=[src('Legends of the Gods: The Egyptian Texts, edited with Translations, E. A. Wallis Budge (1912)', 9411)],
+        cards=cards)
+    # Plutarch's Isis and Osiris, in the same book: a card a numbered section, the book's end matter cut.
+    p = unfoot(plutarch)
+    cards = []
+    for m, words in split_at(p, r'^(?P<n>[IVXL]+)\.  (?P<lead>)'):
+        cards.append(card('', '', 'Section %d' % roman(m.group('n')), clean_end(prose(words))))
+    add(title='Isis and Osiris', author='Plutarch', subject='Religious Studies', form='Treatise', year='c. AD 100',
+        texts=['Budge (1912)'], sources=[src('Legends of the Gods: The Egyptian Texts, edited with Translations, E. A. Wallis Budge (1912): '
+                                              'The History of Isis and Osiris, collected by Plutarch', 9411)], cards=cards)
+
+
+PARTS = {'egypt': egypt}
+
+
+def add_only(part):
+    """--add: the part's texts appended to the index on disk, ids continuing from it; nothing already there is rewritten."""
+    PARTS[part]()
+    ix = json.load(open(os.path.join(OUT, 'index.json'), encoding='utf-8'))
+    have = {w['title'] for w in ix['texts']}
+    new = [w for w in TEXTS if w['title'] not in have]
+    n = len(ix['texts'])
+    lic = open(os.path.join(OUT, 'LICENSE'), encoding='utf-8').read().rstrip('\n').split('\n')
+    for i, w in enumerate(new):
+        tid = 'TX-%04d' % (n + i + 1)
+        body = {'id': tid, 'title': w['title'], 'texts': w['texts'], 'sources': w['sources'], 'cards': [c['t'] for c in w['cards']]}
+        raw = json.dumps(body, ensure_ascii=False, separators=(',', ':'))
+        assert len(raw.encode()) < 2_000_000, (w['title'], len(raw))
+        assert not re.search(r'(?i)project gutenberg|gutenberg\\.org', raw.replace(w['sources'][0]['url'], '')), w['title']
+        open(os.path.join(OUT, tid + '.json'), 'w', encoding='utf-8').write(raw + '\n')
+        w['id'], w['bytes'] = tid, len(raw.encode()) + 1
+        ix['texts'].append({'id': tid, 'file': tid + '.json', 'title': w['title'], 'author': w['author'], 'subject': w['subject'],
+                            'form': w['form'], 'year': w['year'], 'texts': w['texts'], 'anthology': w.get('anthology', ''),
+                            'cards': [[c['b'], c['c'], c['s']] for c in w['cards']]})
+        lic.append('%s  %s — %s (%s)' % (tid, w['title'], w['author'], ', '.join(w['texts'])))
+        for s_ in w['sources']:
+            lic += ['    %s' % s_['text'], '    %s · %s' % (s_['url'], s_['licence'])]
+        print('%s %-45s %5d cards %9d bytes' % (tid, w['title'][:45], len(w['cards']), w['bytes']))
+    open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8').write(json.dumps(ix, ensure_ascii=False, separators=(',', ':')) + '\n')
+    open(os.path.join(OUT, 'LICENSE'), 'w', encoding='utf-8').write('\n'.join(lic) + '\n')
+
+
 def main():
+    if '--add' in sys.argv:
+        add_only(sys.argv[sys.argv.index('--add') + 1])
+        return
     novels()
     shakespeare()
     history()
@@ -891,6 +979,7 @@ def main():
     poetry()
     anthology()
     gcse_more()
+    egypt()
     write()
     report()
 

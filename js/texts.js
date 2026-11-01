@@ -4,7 +4,7 @@
 
 const TEXTS = { index: null, asking: null, failed: false, words: {}, loading: {}, missed: {}, items: null, from: null, adult: null };
 const textsGet_ = file => {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   return Promise.resolve()
     .then(() => fetch('data/texts/' + file + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null)

@@ -1,0 +1,335 @@
+{
+"jobs": [
+{
+"id": "MJ-001",
+"name": "Clio III oil and filter change",
+"system": "Lubrication",
+"engine": "",
+"difficulty": "Easy",
+"time": "45–60 minutes",
+"tools": "Ramps or axle stands, sump plug spanner, filter wrench, drip tray, funnel",
+"steps": [
+"Run the engine for a few minutes so the oil flows, then switch off.",
+"Raise the front safely on ramps or axle stands; never work under a car held only by a jack.",
+"Put a drip tray under the sump, undo the drain plug and let the oil drain fully.",
+"Fit a new washer to the plug and tighten it to the manual's torque.",
+"Remove the old filter, oil the new filter's seal, and fit it hand-tight plus the turn the manual gives.",
+"Fill with the specified oil to just below the dipstick's maximum.",
+"Start, check for leaks, switch off, wait, and top up to the mark.",
+"Reset the service reminder and dispose of the old oil at a recycling centre."
+],
+"parts": [
+"Engine oil",
+"Oil filter",
+"Sump and drain plug"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-002",
+"name": "Clio III front brake pads and discs",
+"system": "Brakes",
+"engine": "",
+"difficulty": "Moderate",
+"time": "1.5–2.5 hours",
+"tools": "Jack, axle stands, socket set, torque wrench, piston tool, brake cleaner",
+"steps": [
+"Loosen the wheel bolts, raise the car on axle stands and remove the wheel.",
+"Undo the caliper guide bolts and lift the caliper off; hang it so the hose is not stretched.",
+"Remove the old pads and, for discs, the carrier and disc retaining screw.",
+"Measure the disc thickness against the minimum stamped on it; replace if under or lipped.",
+"Clean the carrier, fit new discs and pads, and push the piston back slowly.",
+"Refit with the bolts at the manual's torque, pump the pedal until firm, and check the fluid level.",
+"Bed in the pads with several gentle stops before any hard braking."
+],
+"parts": [
+"Brake pads",
+"Brake discs",
+"Brake calipers"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-003",
+"name": "Clio III timing belt",
+"system": "Engine",
+"engine": "",
+"difficulty": "Garage",
+"time": "3–5 hours",
+"tools": "Engine locking kit for the engine, torque wrench, socket set, engine support",
+"steps": [
+"Support the engine and remove the right-hand engine mount and the auxiliary belt.",
+"Turn the engine to its timing position and fit the locking pins for that engine.",
+"Release the tensioner and take off the old belt and pulleys, and the water pump if it is belt-driven.",
+"Fit the new pump, pulleys and belt in the maker's order, set the tensioner to its mark.",
+"Remove the pins, turn the engine two full turns by hand and check the marks and tension again.",
+"Refit the mount and belt, and record the date and mileage."
+],
+"parts": [
+"Timing belt",
+"Belt tensioner and idler pulleys",
+"Water pump",
+"Auxiliary (drive) belt"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-004",
+"name": "Clio III spark plugs",
+"system": "Ignition",
+"engine": "1.2 16V (D4F)",
+"difficulty": "Easy",
+"time": "30–45 minutes",
+"tools": "Spark plug socket, extension, torque wrench, gap gauge, code reader",
+"steps": [
+"Let the engine cool and remove the engine cover.",
+"Unplug and lift out each coil pack in turn.",
+"Undo the plug, check the new plug's gap, and thread it in by hand first.",
+"Tighten to the manual's torque and refit the coil.",
+"Start and check for a smooth idle and no warning light."
+],
+"parts": [
+"Spark plugs",
+"Ignition coil (coil pack)"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-005",
+"name": "Clio III glow plugs",
+"system": "Fuel",
+"engine": "1.5 dCi (K9K)",
+"difficulty": "Moderate",
+"time": "1–2 hours",
+"tools": "Deep socket, torque wrench, multimeter, copper grease",
+"steps": [
+"Test each plug's resistance with a multimeter to find the failed ones.",
+"Disconnect the battery and the plug feeds.",
+"Undo each plug gently; stop and soak with penetrating oil if it binds, as they can snap.",
+"Fit new plugs with a light anti-seize on the threads, at the manual's torque.",
+"Reconnect and check the glow light goes out as it should."
+],
+"parts": [
+"Glow plugs"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-006",
+"name": "Clio III coolant flush",
+"system": "Cooling",
+"engine": "",
+"difficulty": "Moderate",
+"time": "1–1.5 hours",
+"tools": "Drip tray, hose clip pliers, funnel, refractometer",
+"steps": [
+"Work only on a cold engine: a hot cooling system can scald.",
+"Drain the old coolant from the radiator drain or bottom hose into a tray.",
+"Flush with clean water until it runs clear.",
+"Refill with the specified coolant mix through the expansion tank.",
+"Open the bleed screws and run the engine with the heater on hot until the air is out.",
+"Check the level again when cold and top up."
+],
+"parts": [
+"Coolant (antifreeze)",
+"Coolant hoses",
+"Expansion tank and cap"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-007",
+"name": "Clio III headlamp bulb",
+"system": "Lighting",
+"engine": "",
+"difficulty": "Easy",
+"time": "15–30 minutes",
+"tools": "Gloves; a torch helps",
+"steps": [
+"Open the bonnet and remove the cover or cap behind the headlamp.",
+"Unclip the connector and the retaining spring.",
+"Fit the new bulb without touching its glass, refit the spring, connector and cover.",
+"Check both dipped and main beams work and the aim looks right on a wall."
+],
+"parts": [
+"Headlamp bulbs"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MJ-008",
+"name": "E30 oil and filter change",
+"system": "Lubrication",
+"engine": "",
+"difficulty": "Easy",
+"time": "45–60 minutes",
+"tools": "Ramps or axle stands, sump plug spanner, drip tray, funnel",
+"steps": [
+"Run the engine for a few minutes so the oil flows, then switch off.",
+"Raise the front safely on ramps or axle stands; never work under a car held only by a jack.",
+"Put a drip tray under the sump, undo the drain plug and let the oil drain fully.",
+"Fit a new washer to the plug and tighten it to the manual's torque.",
+"Undo the filter housing on top of the engine, swap the paper element and its seals.",
+"Fill with the specified oil to just below the dipstick's maximum.",
+"Start, check for leaks, switch off, wait, and top up to the mark.",
+"Reset the service reminder and dispose of the old oil at a recycling centre."
+],
+"parts": [
+"Engine oil",
+"Oil filter",
+"Sump and drain plug"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MJ-009",
+"name": "E30 front brake pads and discs",
+"system": "Brakes",
+"engine": "",
+"difficulty": "Moderate",
+"time": "1.5–2.5 hours",
+"tools": "Jack, axle stands, socket and hex set, torque wrench, piston tool",
+"steps": [
+"Loosen the wheel bolts, raise the car on axle stands and remove the wheel.",
+"Undo the caliper guide bolts and lift the caliper off; hang it so the hose is not stretched.",
+"Remove the old pads and, for discs, the carrier and disc retaining screw.",
+"Measure the disc thickness against the minimum stamped on it; replace if under or lipped.",
+"Clean the carrier, fit new discs and pads, and push the piston back slowly.",
+"Refit with the bolts at the manual's torque, pump the pedal until firm, and check the fluid level.",
+"Bed in the pads with several gentle stops before any hard braking."
+],
+"parts": [
+"Brake pads",
+"Brake discs",
+"Brake calipers"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MJ-010",
+"name": "E30 timing belt",
+"system": "Engine",
+"engine": "",
+"difficulty": "Garage",
+"time": "3–4 hours",
+"tools": "Socket set, torque wrench, fan clutch spanner, timing marks on crank and cam",
+"steps": [
+"Remove the viscous fan, the auxiliary belts and the upper timing cover.",
+"Turn the crank to top dead centre on cylinder 1 and line up the cam sprocket mark.",
+"Release the tensioner and remove the old belt.",
+"Fit the new tensioner and belt with the marks aligned, set the tension.",
+"Turn the engine two full turns by hand and check the marks again.",
+"Refit the covers, belts and fan; record the date and mileage."
+],
+"parts": [
+"Timing belt",
+"Belt tensioner and idler pulleys",
+"Water pump"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MJ-011",
+"name": "E30 spark plugs, cap and rotor",
+"system": "Ignition",
+"engine": "",
+"difficulty": "Easy",
+"time": "45 minutes",
+"tools": "Spark plug socket, extension, torque wrench, gap gauge, screwdriver",
+"steps": [
+"Label the HT leads, then pull them off by the boots, not the wire.",
+"Undo each plug, gap the new one, thread it in by hand and torque it.",
+"Unclip the distributor cap, pull off the rotor arm, fit the new rotor and cap.",
+"Refit the leads in the same order and check for a clean start and idle."
+],
+"parts": [
+"Spark plugs",
+"HT leads",
+"Distributor cap and rotor arm"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MJ-012",
+"name": "E30 coolant flush",
+"system": "Cooling",
+"engine": "",
+"difficulty": "Moderate",
+"time": "1–1.5 hours",
+"tools": "Drip tray, screwdriver, funnel, hydrometer",
+"steps": [
+"Work only on a cold engine: a hot cooling system can scald.",
+"Drain the old coolant from the radiator drain or bottom hose into a tray.",
+"Flush with clean water until it runs clear.",
+"Refill with the specified coolant mix through the expansion tank.",
+"Open the bleed screws and run the engine with the heater on hot until the air is out.",
+"Check the level again when cold and top up."
+],
+"parts": [
+"Coolant (antifreeze)",
+"Coolant hoses",
+"Expansion tank and cap",
+"Thermostat"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MJ-013",
+"name": "E30 headlamp bulb",
+"system": "Lighting",
+"engine": "",
+"difficulty": "Easy",
+"time": "15–30 minutes",
+"tools": "Gloves; a torch helps",
+"steps": [
+"Open the bonnet and remove the cover or cap behind the headlamp.",
+"Unclip the connector and the retaining spring.",
+"Fit the new bulb without touching its glass, refit the spring, connector and cover.",
+"Check both dipped and main beams work and the aim looks right on a wall."
+],
+"parts": [
+"Headlamp bulbs"
+],
+"source": "Written for @family. in our own words from general workshop practice; torque figures, capacities and specifications come from the car's own manual.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+}
+]
+}

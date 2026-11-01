@@ -287,6 +287,15 @@ function profSeat_(t) {
   return Math.round(Number(t.rate) * (s.cUsed + s.bUsed) * 100) / 100;
 }
 
+/* A TUTOR'S RATE AS SHOWN: £first-seat–£full-class/hour, or one rate when they take one seat (549). Display only; priceFrom charges. */
+function rateRange_(t) {
+  const r = Number(t && t.rate);
+  if (!(r > 0)) return '';
+  const say = n => '£' + (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+  const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
+  return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
+}
+
 function findCard(x) {
   const t = x.row;
   /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE § */
@@ -323,7 +332,7 @@ function findCard(x) {
           ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
           ${/* ---------- THE RATE, UP HERE AND BIGGER § */
                 ''}
-          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>${
+          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span>${
               profSeat_(t) ? `<span class="prof-seat">+${esc(money(profSeat_(t)))}/h a seat</span>` : ''}</span>` : ''}
           ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
                 ''}

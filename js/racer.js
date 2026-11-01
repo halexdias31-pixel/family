@@ -61,7 +61,7 @@ function raceFetch_() {
 
 /* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
 function raceShipped_() {
-  return fetch(RACE_SHIPPED, { cache: 'no-cache' }).then(r => r.json()).then(m => {
+  return fetch(RACE_SHIPPED + deployStamp_(), { cache: 'no-cache' }).then(r => r.json()).then(m => {
     if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
   });
 }

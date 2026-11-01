@@ -33,7 +33,7 @@ const missingLeadN_ = () => (missingFor_() ? 1 : 0);
 function missingAsk_() {
   if (MISSING.list || MISSING.asking || typeof fetch !== 'function') return;
   MISSING.asking = true;
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   Promise.resolve()
     .then(() => fetch('data/settings/expected-papers.json' + stamp, { cache: 'default' }))
     .then(res => (res && res.ok ? res.json() : null))

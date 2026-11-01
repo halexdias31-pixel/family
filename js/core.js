@@ -6,6 +6,10 @@
 
 const norm = s => String(s || '').toLowerCase().trim();
 
+/* EVERY FILE OF OUR OWN IS ASKED FOR WITH THE DEPLOY'S STAMP (546): sw.js hands back an exact URL it holds for ever, */
+/* so an unstamped one would never refresh after a deploy. `check-cache.js` holds every fetch to it. */
+const deployStamp_ = () => (window.LOAD ? '?t=' + window.LOAD : '');
+
 
 const esc = s  => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 

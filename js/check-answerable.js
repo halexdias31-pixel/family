@@ -67,8 +67,8 @@ const S = v => (v == null ? '' : String(v)).trim();
 /* THE TOOL ROW AS ITS TOOLS' NAMES, left to right, Check last: read off the tiles' own acts, never off a list in the app */
 /* THE OWNER'S ORDER, written here and not read from the app, so an app that reorders its tools fails */
 /* round 4: no Calculator, Grid, Table or Formula sheet (a question brings its own), and the padlock once, in the row */
-const TOOL_ORDER = ['pen', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
-const DRAWING_TOOLS = new Set(['pen', 'ruler', 'protractor', 'compass']);
+const TOOL_ORDER = ['pen', 'line', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
+const DRAWING_TOOLS = new Set(['pen', 'line', 'ruler', 'protractor', 'compass']);
 const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
@@ -84,7 +84,7 @@ const twiceOn = root => {
 const toolsOf = row => [...row.querySelectorAll('.tile')].filter(t => !t.classList.contains('qt-fold')).map(t => {
   if (t.classList.contains('is-submit')) return 'check';
   const act = t.getAttribute('data-do') || '';
-  return TOOL_OF[act] || (act === 'qt-inst' ? t.getAttribute('data-tool') : act || '?');
+  return act === 'qt-pen' ? (t.getAttribute('data-tool') || 'pen') : TOOL_OF[act] || (act === 'qt-inst' ? t.getAttribute('data-tool') : act || '?');
 });
 const DRAWN = new Set(['label', 'points', 'line', 'shape', 'shade', 'hand', 'graph', 'construct', 'numline']);
 const TYPED = new Set(['value', 'unit', 'multi', 'fraction', 'coords', 'expr', 'words', 'reason', 'measure']);

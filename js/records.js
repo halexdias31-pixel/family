@@ -431,7 +431,7 @@ const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ 
 function einkLoad_() {
   if (EINK.asked) return;
   EINK.asked = true;
-  const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const get = f => fetch('data/' + f + deployStamp_(), { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
   Promise.all([get('eink-verses.json'), get('icons.json'), get('eink-fonts.json').catch(() => null)])
     .then(([v, i, f]) => { EINK.fonts = f; EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.image); })
     .catch(() => { EINK.failed = true; })
@@ -682,8 +682,8 @@ on('eink-install', async () => {
     const transport = new Transport(port, false);
     const loader = new ESPLoader({ transport, baudrate: 460800, romBaudrate: 115200, terminal: quiet });
     await loader.main();
-    const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin')).arrayBuffer());
-    const md5 = (await (await fetch('tools/epaper-verse/epaper-verse.md5')).text()).trim();
+    const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin' + deployStamp_())).arrayBuffer());
+    const md5 = (await (await fetch('tools/epaper-verse/epaper-verse.md5' + deployStamp_())).text()).trim();
     if (!/^[0-9a-f]{32}$/.test(md5)) throw new Error('no md5');
     /* calculateMD5Hash makes esptool-js read the flash back and throw on a mismatch: Installed is said only after that (485). */
     await loader.writeFlash({ fileArray: [{ data, address: 0 }], flashMode: 'keep', flashFreq: 'keep', flashSize: 'keep', eraseAll: false, compress: true,
@@ -996,46 +996,72 @@ screen('biz', () => {
 screen('site', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { if (!REPS.list) reportsStart_(); } catch (e) {}
     try { if (!LIBIMP.list) libImpStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {}
-    try { if (typeof initInbox === 'function') initInbox(); } catch (e) {} }, 0);
+    try { if (typeof initInbox === 'function') initInbox(); } catch (e) {} try { digestShownStart_(); } catch (e) {} }, 0);
   return pages('site', typeof cardsOf_ === 'function' ? cardsOf_('site') : sitePages_());
 });
 
-/* ---------- THE WEEKLY EMAIL, SEEN AND WORDED HERE (491): digestRender_'s frame (backend/digest.gs) with a made-up child; its four lines are config rows. ---------- */
+/* ---------- THE WEEKLY EMAIL, SEEN AND WORDED HERE (491, 547): the email itself, as the backend renders and sends it (`digestPreview`); its four lines are config rows. ---------- */
 const DIGEST_WORDS_ = [
   ['digest_subject', 'Subject', '{child}’s week: {count}'],
   ['digest_greeting', 'Greeting', 'Hi {parent},'],
   ['digest_intro', 'First line', 'Here’s what {child} worked on this week: {count} ({span}).'],
   ['digest_footer', 'Last line', 'Don’t want these any more? Just reply and say so.'],
 ];
-const DIGEST_SAMPLE_ = { child: 'Sam', parent: 'Alex', count: '3 questions', span: 'Mon 19 Oct – Sun 25 Oct, up to 6pm on Sunday' };
 const digestVars_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.constants && DATA.constants.vars) || {});
-const digestFillJs_ = (t, v) => String(t).replace(/\{(child|parent|count|span)\}/g, (m, k) => v[k] == null ? '' : String(v[k])).replace(/ +([,.!?])/g, '$1').replace(/ {2,}/g, ' ');
-/* THE EMAIL'S OWN COLOURS (`digestInk_`): black page, grey pane, the verdicts green and red. */
-function digestPreviewHtml_(w) {
-  const f = k => esc(digestFillJs_(w[k], DIGEST_SAMPLE_));
-  const q = (ok, t, sub) => `<div class="dp-q"><span class="dp-v ${ok ? 'is-right' : 'is-wrong'}">${ok ? '✓ right' : '✗ not right'}</span><b>${esc(t)}</b><span class="dp-sub">${esc(sub)}</span></div>`;
-  return `<div class="dp" aria-label="How the email looks"><p class="dp-subj"><span>Subject</span> ${f('digest_subject')}</p>
-    <div class="dp-body"><p>${f('digest_greeting')}</p><p>${f('digest_intro')}</p>
-    <p class="dp-sum">2 right, 1 not yet · Fractions, Ratio</p>
-    ${q(true, 'Add 2/3 and 1/4', 'Fractions · Foundation')}${q(false, 'Simplify 18/24', 'Fractions · Foundation')}
-    <p class="dp-foot">${f('digest_footer')}</p></div></div>`;
+/* WHAT THE BACKEND LAST SHOWED: { subject, html, sample, learner } or { said }; `seq` drops a reply overtaken by a later ask. */
+const DIGEST_SHOWN_ = { got: null, busy: false, seq: 0, timer: 0 };
+/* AS IS (owner, 1 Nov: "show how the emails will look AS IS. PERFECTLY SYNCED"): the HTML the backend sends, in a sandboxed frame -- never a copy drawn here (547). */
+function digestShownHtml_() {
+  const g = DIGEST_SHOWN_.got;
+  if (!g) return `<div class="dw-frame-box" aria-busy="true">${loading_()}</div>`;
+  if (!g.html) return `<p class="sub">${esc(g.said || 'The email could not be shown.')}</p>`;
+  return `<p class="dp-subj"><span>Subject</span> ${esc(g.subject || '')}</p>
+    <p class="faint dp-who">${g.sample ? 'No family has an email this week, so this is the same email for a made-up child.' : 'This week’s email to ' + esc(g.parent || 'a parent') + ' about ' + esc(g.learner || 'their child') + ', exactly as it will go.'}</p>
+    <div class="dw-frame-box"${DIGEST_SHOWN_.busy ? ' aria-busy="true"' : ''}><iframe class="dw-frame" title="The weekly email" sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(g.html)}"></iframe>${DIGEST_SHOWN_.busy ? loading_() : ''}</div>`;
+}
+function digestShownPaint_() { document.querySelectorAll('.digest-look .dw-preview').forEach(box => { box.innerHTML = digestShownHtml_(); }); }
+/* ONE ASK OF THE BACKEND'S OWN RENDERER, with the words being typed when there are any; nothing is written or sent by it. */
+function digestShownAsk_(words) {
+  if (!USER || !(typeof isAdmin === 'function' && isAdmin())) return;
+  const seq = ++DIGEST_SHOWN_.seq;
+  DIGEST_SHOWN_.busy = true;
+  digestShownPaint_();
+  const body = { action: 'digestPreview', name: USER.name, personId: USER.personId || '' };
+  if (words) body.words = words;
+  send_(body, {}).then(d => {
+    if (seq !== DIGEST_SHOWN_.seq) return;
+    DIGEST_SHOWN_.busy = false;
+    /* AN OLDER BACKEND sends the week's emails but no `shown`: the first of them is still the email as is. */
+    const m = d && (d.shown || (d.emails || [])[0]);
+    DIGEST_SHOWN_.got = m && m.html ? m : { said: (d && d.error) || 'No family has an email this week, and this backend cannot show a made-up one yet: sync backend/ and Deploy → New version.' };
+    digestShownPaint_();
+  }).catch(err => {
+    if (seq !== DIGEST_SHOWN_.seq) return;
+    DIGEST_SHOWN_.busy = false;
+    DIGEST_SHOWN_.got = { said: String((err && err.message) || err) };
+    digestShownPaint_();
+  });
 }
 function digestWordsCard_() {
   const v = digestVars_(), w = {};
   DIGEST_WORDS_.forEach(([k, , d]) => { w[k] = String(v[k] || '').trim() || d; });
   const rows = DIGEST_WORDS_.map(([k, label, d]) => `<label class="field dw-row"><span>${esc(label)}</span><input data-dw="${k}" value="${esc(w[k])}" placeholder="${esc(d)}" maxlength="300" aria-label="${esc(label)}"></label>`).join('');
   /* TWO CARDS, the look and the words: together they are taller than a pane, and the look follows the typing either way. */
-  return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestPreviewHtml_(w)}</div></div>`,
+  return [`<div class="card biz digest-look"><h3>Weekly email</h3><div class="dw-preview">${digestShownHtml_()}</div></div>`,
     `<div class="card biz digest-words"><h3>Weekly email's words</h3>
     ${rows}<p class="faint">{child}, {parent}, {count} and {span} are filled in for each family.</p>
     <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'the email\'s words', act: 'digest-words-save', tone: 'admin' })}</div>
     <p class="faint dw-said" aria-live="polite"></p></div>`];
 }
+/* THE FIRST LOOK, when Site is opened by an admin; after that a typed word or a Save asks again. */
+function digestShownStart_() { if (!DIGEST_SHOWN_.got && !DIGEST_SHOWN_.busy) digestShownAsk_(null); }
 const digestWordsNow_ = card => { const w = {}; DIGEST_WORDS_.forEach(([k, , d]) => { const el = card.querySelector('[data-dw="' + k + '"]'); w[k] = (el && String(el.value).trim()) || d; }); return w; };
 document.addEventListener('input', e => {
   const el = e.target, card = el && el.closest && el.dataset && el.dataset.dw ? el.closest('.digest-words') : null;
   if (!card) return;
-  document.querySelectorAll('.digest-look .dw-preview').forEach(box => { box.innerHTML = digestPreviewHtml_(digestWordsNow_(card)); });
+  /* A PAUSE IN THE TYPING, not every key: each ask renders the whole week on the backend. */
+  clearTimeout(DIGEST_SHOWN_.timer);
+  DIGEST_SHOWN_.timer = setTimeout(() => digestShownAsk_(digestWordsNow_(card)), 1200);
 });
 on('digest-words-save', el => {
   const card = el.closest('.digest-words');
@@ -1045,8 +1071,9 @@ on('digest-words-save', el => {
   send_({ action: 'digestWordsSave', name: USER.name, personId: USER.personId || '', words }, { button: el, where: card.querySelector('.dw-said') || undefined, busy: 'Saving…' })
     .then(d => {
       if (!d || !d.success) return;
-      try { Object.assign(digestVars_(), d.words || words); } catch (x) {}
+      try { Object.assign(digestVars_(), d.words || words); } catch (x) { /* no vars yet: the next payload carries them */ }
       toast('The email\'s words are saved');
+      digestShownAsk_(null);
     });
 });
 

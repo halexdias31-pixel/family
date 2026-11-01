@@ -3,7 +3,7 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 /* @family. — check-catches.js EMPTY CATCH BLOCKS MAY ONLY GET FEWER (R6): a new one needs a reason in it or an `oops_` call. */
 const fs = require('fs'), path = require('path');
 /* LOWER THIS when the count falls; never raise it. */
-const CEILING = 530;
+const CEILING = 526;
 const dir = __dirname;
 const EMPTY = /catch\s*(\([^)]*\))?\s*\{\s*\}/g;
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !/^check/.test(f));
