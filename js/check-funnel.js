@@ -1150,7 +1150,9 @@ boot(f => {
     const b = require('./check-gas-load.js').backend();
     const qs = f.stuffItems().filter(x => x && x.kind === 'question' && x.row);
     const pids = [...new Set(qs.map(x => String(x.row.paper_id || '')).filter(Boolean))];
-    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(require('../check/lib-full.js').text('questions')) + ', ' + JSON.stringify(pids) + ')');
+    /* WITH THE FACETS FILE, as the backend fetches it (`digestFacetOrder_`, 546): the email's order is the file's, which is the card's. */
+    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(require('../check/lib-full.js').text('questions')) + ', ' + JSON.stringify(pids) + ', '
+      + fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'facets.json'), 'utf8') + ')');
     const differ = [];
     qs.forEach(x => {
       /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. And no
@@ -1191,7 +1193,17 @@ function underTypes_(f, items) {
   /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */
   const tls = items.filter(x => x.kind === 'timeline').concat([{ kind: 'timeline', hdb: true, name: 'a bare timeline' }]);
   tls.forEach(x => { if (!kindF || f.asList_(kindF.of(x)).indexOf('Timeline') === -1) bad.push(x.name + ': a timeline does not answer What kind "Timeline"'); });
-  console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length);
+  /* PRACTICE ABOVE QUESTIONS, ANSWERS AND PRACTICALS (546): each answers What kind "Practice" beside its own, and so does every page it has. */
+  const practice = { question: 0, practical: 0 };
+  items.forEach(x => {
+    if (!(x.kind in practice) || !kindF) return;
+    practice[x.kind]++;
+    const said = f.asList_(kindF.of(x)).map(String), pages = kindF.tagOf ? [null, 'ans'].map(p => f.asList_(kindF.tagOf(x, p)).map(String)) : [];
+    if (said.indexOf('Practice') === -1) bad.push(x.name + ': a ' + x.kind + ' answers What kind ' + JSON.stringify(said) + ', without "Practice"');
+    pages.forEach(t => { if (t.indexOf('Practice') === -1) bad.push(x.name + ': a page of a ' + x.kind + ' wears ' + JSON.stringify(t) + ', without "Practice"'); });
+  });
+  Object.keys(practice).forEach(k => { if (!practice[k]) bad.push('no ' + k + ' was read, so "a ' + k + ' is Practice" proves nothing'); });
+  console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
 }
 
 function walkFunnels_(f, items) {

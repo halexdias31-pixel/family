@@ -28,7 +28,8 @@ try {
   const line = re => { const m = find.match(re); if (!m) throw new Error('find.js has no ' + re); return m[0]; };
   vm.runInContext([line(/const SCRIPTURE_MIN_AGE = \d+;/), line(/const scriptureMinAge_ = [^\n]+/), line(/const WRITINGS_SHELF = [^\n]+/),
     src('js/writings.js'), ...LOADERS.map(l => src('js/' + l[0] + '.js'))].join('\n;\n')
-    + '\n;this.WR = { writingFold_, writingSourceOf_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingAge_, writingOf_, bibleW_ };', ctx);
+    + '\n;this.WR = { writingFold_, writingSourceOf_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingAge_, writingOf_, bibleW_,'
+    + ' writingLanguageOf_, writingVersionOf_, WRITING_LANGUAGES, WRITING_TEXTS, writingText_, writingAt_ };', ctx);
   WR = ctx.WR;
   LOADERS.forEach(([file, store, fn, ix]) => {
     vm.runInContext(store + '.index = ' + JSON.stringify(json(ix)) + ';', ctx);
@@ -119,7 +120,7 @@ if (WR && items.length) {
     if (!w) bad.push('the Bible text ' + o.tr + ' has no expected source in this check — add it');
     else if (srcOf(o) !== w) bad.push(o.book + ' (' + o.tr + ') has the Source text "' + srcOf(o) + '", not its base "' + w + '"');
   });
-  const scripture = { Quran: 'Arabic', Talmud: 'Babylonian Talmud (Bavli)' };
+  const scripture = { Quran: 'Arabic Quran', Talmud: 'Babylonian Talmud (Bavli)' };
   items.forEach(x => {
     const w = x.w || {};
     if (scripture[w.work] && srcOf(w) !== scripture[w.work]) bad.push(x.key + ' (' + w.work + ', ' + w.text + ') has the Source text "' + srcOf(w) + '", not "' + scripture[w.work] + '"');
@@ -177,6 +178,50 @@ Object.keys(byLabel).forEach(l => {
   const msg = 'the label "' + l + '" asks two questions: ' + byLabel[l].join(', ');
   if (byLabel[l].some(f => /^w[A-Z]/.test(f))) bad.push(msg); else said.push('note: ' + msg);
 });
+
+/* ONE KIND OF VALUE A FACET (546): "why are there languages in same menu as books ..."; "Greek should be a tag not merged with the version". */
+/* Language holds languages only; Translation and Source text never a language, nor a language glued to a name. */
+if (WR && items.length) {
+  const langs = new Set(WR.WRITING_LANGUAGES), isLang = v => langs.has(v), glued = v => [...langs].some(l => v.indexOf(l + ', ') === 0);
+  const texts = items.map(x => x.w.text).concat(Object.keys(WR.WRITING_TEXTS).map(k => WR.writingText_(WR.WRITING_TEXTS[k])));
+  const kinds = { Language: new Set(), Translation: new Set(), 'Source text': new Set() };
+  texts.forEach(t => { kinds.Language.add(WR.writingLanguageOf_(t)); const v = WR.writingVersionOf_(t); if (v) kinds.Translation.add(v); });
+  items.forEach(x => { if (x.w.source) kinds['Source text'].add(x.w.source); });
+  Object.keys(WR.WRITING_TEXTS).forEach(k => { const b = WR.WRITING_TEXTS[k].base; [].concat(typeof b === 'string' ? b : Object.values(b || {})).forEach(v => v && kinds['Source text'].add(v)); });
+  kinds.Language.forEach(v => { if (!isLang(v)) bad.push('the Language facet would offer "' + v + '", which is not a language (WRITING_LANGUAGES)'); });
+  ['Translation', 'Source text'].forEach(k => kinds[k].forEach(v => {
+    if (isLang(v) || glued(v)) bad.push('the ' + k + ' facet would offer "' + v + '" — a language belongs to the Language facet alone');
+  }));
+  /* AND THE FACETS READ IT SO: Language and Translation are two readers of one built label, never the label whole. */
+  if (!/field: 'wLanguage',[^\n]*writingLanguageOf_\(writingAt_\(x, 'text'\)\)/.test(find)) bad.push("FACETS' wLanguage does not read writingLanguageOf_ of the text");
+  if (!/field: 'wText',[^\n]*writingVersionOf_\(writingAt_\(x, 'text'\)\)/.test(find)) bad.push("FACETS' wText (Translation) does not read writingVersionOf_ of the text — it would hold the language too");
+  said.push('one kind a facet: ' + kinds.Language.size + ' languages, ' + kinds.Translation.size + ' translations, ' + kinds['Source text'].size + ' source texts');
+  /* RELIGION IS ASKED IN RELIGIOUS STUDIES (546): every religious writing answers Religion with its registry topic, asked before Work. */
+  let rel = 0;
+  items.forEach(x => {
+    if (!x.topic) return;
+    rel++;
+    if (WR.writingAt_(x, 'religion') !== x.topic) bad.push(x.key + ' (' + x.w.work + ') is ' + x.topic + ' but answers Religion "' + WR.writingAt_(x, 'religion') + '"');
+    if (x.subject !== 'Religious Studies') bad.push(x.key + ' (' + x.w.work + ') is ' + x.topic + ' and not in Religious Studies');
+  });
+  if (!rel) bad.push('no religious writing was read, so "Religion is asked" proves nothing');
+  const so2 = {};
+  json('data/settings/facets.json').forEach(f => { so2[f.field] = f; });
+  if (!so2.wReligion || so2.wReligion.active === false || !(Number(so2.wReligion.sort_order) < Number((so2.wWork || {}).sort_order)))
+    bad.push('the facets tab does not ask Religion (wReligion), switched on, before Work');
+  if (!/field: 'wReligion',[^\n]*writingAt_\(x, 'religion'\)/.test(find)) bad.push("FACETS has no wReligion reading writingAt_(x, 'religion')");
+  /* AND THE REAL FUNNEL ASKS IT THERE: tools/finder-tags.js walks Library › Religious Studies over every file (kept current by its --check). */
+  try {
+    const T = vm.runInNewContext(src('js/finder-tags.js') + ';FINDER_TAGS');
+    /* ONLY WHERE THE WRITINGS ARE: a viewer under the writings' age (`@14`) has none, and is asked what their list holds. */
+    const age = Number((find.match(/const SCRIPTURE_MIN_AGE = (\d+);/) || [])[1]);
+    const at = Object.keys(T.views).filter(v => /^bible@/.test(v) || Number(v.split('@')[1]) >= age)
+      .map(v => [v, T.views[v]['kindLabel=Library&subject=Religious Studies']]).filter(p => p[1]);
+    if (!at.length) bad.push('js/finder-tags.js holds no Library › Religious Studies, so "Religion is asked there" proves nothing');
+    at.forEach(([v, q]) => { if (q[0] !== 'wReligion') bad.push('Library › Religious Studies asks ' + q[0] + ', not Religion, for the view ' + v); });
+    said.push('Library › Religious Studies asks ' + at.map(p => p[0] + ' ' + p[1][0] + ' (' + p[1][1].map(a => a[0]).join(', ') + ')').join('; '));
+  } catch (e) { bad.push('js/finder-tags.js could not be read: ' + e.message); }
+}
 
 /* R2: histKind NEVER NAMES A SHELF — the history database's own word for a writing is Works. */
 const hk = (find.match(/histKind: kind === 'manuscript' \? [^\n]+/) || [''])[0];

@@ -4,7 +4,7 @@
 
 const HYMNS = { index: null, asking: null, failed: false, chunks: {}, loading: {}, missed: {}, items: null, from: null };
 const hymnsGet_ = file => {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   return Promise.resolve()
     .then(() => fetch('data/hymns/' + file + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null)

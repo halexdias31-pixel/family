@@ -26,6 +26,8 @@ const WRITING_WORKS = {
   'works:WR-0001': { topic: 'Christianity', collection: 'Apostolic Fathers' },
   'works:WR-0002': { topic: 'Judaism' },
   orthodox: { topic: 'Christianity' },
+  /* ANCIENT EGYPT (546): Budge's translations of the Egyptian legends of Horus, Isis and Osiris, and Plutarch's Isis and Osiris. */
+  'pdtexts:TX-0085': { topic: 'Ancient Egyptian religion' }, 'pdtexts:TX-0086': { topic: 'Ancient Egyptian religion' },
   hymns: { topic: 'Christianity', collection: 'Hymns' },
 };
 const writingWork_ = (src, id) => WRITING_WORKS[src + ':' + id] || WRITING_WORKS[src] || {};
@@ -40,16 +42,18 @@ const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek',
 /* THE SOURCE TEXT IS A TEXT'S BASE (529: "pick Bible, then original text like LXX or MT, then translation"): what it was made
    from, by Collection where its testaments came from different originals; an original is its own base. */
 const WRITING_MT = 'Hebrew Masoretic Text', WRITING_LXX = 'Greek Septuagint', WRITING_GNT = 'Greek New Testament';
+/* A SOURCE TEXT IS A TEXT, NEVER A BARE LANGUAGE (546): the Quran's original is the Arabic Quran, as the Bible's is the Masoretic Text. */
+const WRITING_QURAN = 'Arabic Quran';
 const WRITING_BIBLE_BASE = { 'Old Testament': WRITING_MT, 'New Testament': WRITING_GNT, [WRITING_DEUTERO]: WRITING_LXX };
 const WRITING_TEXTS = {
   KJV: { language: 'English', translator: 'King James Version', year: 1611, base: WRITING_BIBLE_BASE },
   WEB: { language: 'English', translator: 'World English Bible', year: 2000, base: WRITING_BIBLE_BASE },
-  HBO: { language: 'Hebrew', translator: 'Masoretic text', base: WRITING_MT },
-  LXX: { language: 'Greek', translator: 'Septuagint', base: WRITING_LXX },
+  HBO: { language: 'Hebrew', base: WRITING_MT },
+  LXX: { language: 'Greek', base: WRITING_LXX },
   BRENTON: { language: 'English', translator: 'Brenton', year: 1851, base: WRITING_LXX },
   GNT: { language: 'Greek', translator: 'Robinson–Pierpont', year: 2018, base: WRITING_GNT },
-  'Arabic (Tanzil)': { language: 'Arabic', translator: 'Tanzil', base: 'Arabic' },
-  'English (Pickthall)': { language: 'English', translator: 'Pickthall', year: 1930, base: 'Arabic' },
+  'Arabic (Tanzil)': { language: 'Arabic', translator: 'Tanzil', base: WRITING_QURAN },
+  'English (Pickthall)': { language: 'English', translator: 'Pickthall', year: 1930, base: WRITING_QURAN },
   /* THE TALMUD'S ONE TEXT (talmud.js): the Vilna Bavli; a Yerushalmi would be a Text of its own with its own base. */
   'Talmud Bavli': { language: 'Hebrew and Aramaic', base: 'Babylonian Talmud (Bavli)' },
   Charles: { language: 'English', translator: 'R. H. Charles' },
@@ -60,6 +64,12 @@ const WRITING_TEXTS = {
   Pusey: { language: 'English', translator: 'Pusey', year: 1838 },
   'Jastrow and Clay': { language: 'English', translator: 'Jastrow and Clay', year: 1920 },
 };
+/* A TEXT AS TWO ANSWERS (546): "Greek should be a tag not merged with the version" — its language, and whose translation it is. */
+/* An original has no translation ('', its language alone). Read off the one built label, so every loader splits the same way. */
+const writingLanguageOf_ = s => { const t = String(s || ''), i = t.indexOf(', '); return i > 0 ? t.slice(0, i) : t; };
+const writingVersionOf_ = s => { const t = String(s || ''), i = t.indexOf(', '); return i > 0 ? t.slice(i + 2) : ''; };
+/* THE LANGUAGES A TEXT IS WRITTEN IN, as `writingText_` says them — what the Language facet may hold and nothing else may. */
+const WRITING_LANGUAGES = Object.values(WRITING_LANG).concat(['Hebrew and Aramaic', 'Syriac', 'Coptic', 'Egyptian', 'Old English', 'Middle English']);
 function writingText_(t) {
   if (!t) return '';
   const who = t.translator && t.translator !== t.language ? t.translator + (t.year ? ' (' + t.year + ')' : '') : '';
@@ -136,7 +146,9 @@ function writingLinkOf_(x) {
   if (!x || x.kind !== 'content') return '';
   return WRITING_TITLES.get(spellKey_(String(x.name || '').split(':')[0].trim())) || '';
 }
-const writingAt_ = (x, k) => (!x ? '' : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
+/* A WRITING'S RELIGION (546) is its registry topic (Christianity, Judaism, Islam): "why is religion not coming up" — Topic holds hundreds of answers. */
+const writingAt_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
+  : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
 function writingOf_(x) {
   if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;
@@ -162,3 +174,5 @@ function writingAdmit_() {
   return STUFF.admit == null ? writingNow_() : STUFF.admit;
 }
 const writingAdmitted_ = (x, admit) => !x.wSrc || (',' + admit + ',').indexOf(',' + x.wSrc + ',') >= 0;
+/* WHETHER ANY SOURCE'S INDEX IS STILL ON ITS WAY (546) — every loader keeps `asking` on its own state, read here as one list. */
+const writingAsking_ = () => [BIBLE, TALMUD, QURAN, HADITH, WORKS, TEXTS, PDTEXTS, ORTHO, HYMNS].some(S => S && S.asking);

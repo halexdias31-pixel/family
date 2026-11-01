@@ -4,7 +4,7 @@
 
 const ORTHO = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
 const orthoGet_ = file => {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   return Promise.resolve()
     .then(() => fetch('data/orthodox/' + file + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null)

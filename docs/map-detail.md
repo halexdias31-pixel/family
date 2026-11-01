@@ -193,6 +193,9 @@ node js/check-diagram-png.js     # every library drawing has its PNG twin for th
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow? Random funnels: counts, order, Doesn't matter, nothing asked twice (522); FUNNEL_ONLY=walk for those alone
 node js/check-finder.js          # a finder's chips and words set only through finderSet_ (R1, 522): acorn, aliases followed
+node tools/finder-tags.js --check # js/finder-tags.js (the finder's first questions, counted at build time) is current; without --check it rewrites it (546)
+node js/check-cache.js           # every fetch of our own files carries deployStamp_(), or the service worker keeps the first copy for ever (546)
+node check/firstpaint.js         # cold load at 390px, 4x CPU: the finder's first answers are drawn once and never change (546); FIRSTPAINT_PORT
 node js/check-missing.js         # What's missing (525): expected-papers.json against the covers, a present paper never listed; -v prints today's gaps
 node js/check-library-ledger.js  # the library's words in the Ledger: the copy checked row by row, libItems signed-in and capped (--full: all of it)
 node tools/lib-private.js status # where the library's words are: data/, data-private/ (docs/library.md)

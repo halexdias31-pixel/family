@@ -339,6 +339,7 @@
 {"topic_id": "rs-judaism", "label": "Judaism", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
 {"topic_id": "rs-islam", "label": "Islam", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
 {"topic_id": "rs-mesopotamian", "label": "Mesopotamian religion", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Religious Studies"},
+{"topic_id": "rs-egyptian", "label": "Ancient Egyptian religion", "parent_id": "", "aliases": "Egyptian religion", "active": "True", "only_subject": "Religious Studies"},
 {"topic_id": "english-lit", "label": "English Literature", "parent_id": "", "aliases": "", "active": "True", "only_subject": "English Literature"},
 {"topic_id": "lit-the-tempest", "label": "The Tempest", "parent_id": "english-lit", "aliases": "", "active": "True"},
 {"topic_id": "lit-macbeth", "label": "Macbeth", "parent_id": "english-lit", "aliases": "", "active": "True"},

@@ -184,6 +184,10 @@ const SUITE = [
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
   /* R1 (522): a finder's chips and words are written by `finderSet_` alone — read, not run, so it stays in --fast. */
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
+  /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
+  { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
+  { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
+  { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */

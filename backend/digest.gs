@@ -1166,12 +1166,38 @@ function digestLibrary_(site) {
 }
 
 /* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
-/* THE TAG FACETS A QUESTION ANSWERS, IN `facetList()`'s ORDER (the facets tab's sort_order), with their `TAG_OF` colour kind; check-funnel holds this to the app's own row (396). */
+/* THE TAG FACETS A QUESTION ANSWERS, with their `TAG_OF` colour kind. The ORDER is data/settings/facets.json's (`digestFacetOrder_`, 546). */
+/* This list's own order is only the fallback when that file cannot be fetched; check-digest holds it to the file. */
 /* `function` is not here: Function verified is read off the question type's protocol by qtypes.js, in the browser, and the email says no Function tag. */
 const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
   ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
-  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'],
-  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['source', 'board']];
+  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['accuracy', 'check'], ['paperId', 'paper'], ['qNumber', 'paper'],
+  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
+/* `DOC_TYPE_UNDER` (find.js, 545): a type that is a kind of another answers both, on the card and so in the email. */
+const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
+const DIGEST_FACETS_PATH = 'data/settings/facets.json';
+/* THE FACETS FILE THE PHONE ORDERS ITS TAGS BY (546): the site's copy first, then raw.githubusercontent.com; null when neither answers. */
+function digestFacetOrder_(site) {
+  const urls = [S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_FACETS_PATH];
+  try { urls.push(RAW + DIGEST_FACETS_PATH); } catch (err) { /* sync.gs is not in this scope */ }
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
+      if (res.getResponseCode() !== 200) continue;
+      const rows = JSON.parse(String(res.getContentText('UTF-8')));
+      if (Array.isArray(rows) && rows.some(r => r && r.field)) return rows;
+    } catch (err) { /* the next URL, then the fallback order */ }
+  }
+  return null;
+}
+/* THE EMAIL'S TAG FACETS IN THE FILE'S ORDER — one order, the card's: a facet the file switches off is not said; one it does not list keeps its place. */
+function digestTagFacets_(rows) {
+  if (!Array.isArray(rows)) return DIGEST_TAG_FACETS;
+  const at = {}, off = {};
+  rows.forEach(r => { if (r && r.field) { if (r.active === false) off[r.field] = 1; else if (isFinite(Number(r.sort_order)) && S(r.sort_order) !== '') at[r.field] = Number(r.sort_order); } });
+  return DIGEST_TAG_FACETS.map((f, i) => ({ f: f, i: i, at: at[f[0]] })).filter(o => !off[o.f[0]])
+    .sort((a, b) => (a.at === undefined || b.at === undefined ? a.i - b.i : a.at - b.at || a.i - b.i)).map(o => o.f);
+}
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
 const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
@@ -1182,8 +1208,8 @@ const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', '
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
 /* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: § */
-function digestTagIndex_(text, pids) {
-  const out = { docs: {}, heads: {}, rows: {} }, want = {};
+function digestTagIndex_(text, pids, facets) {
+  const out = { docs: {}, heads: {}, rows: {}, facets: digestTagFacets_(facets) }, want = {};
   (pids || []).forEach(p => { want[S(p)] = 1; });
   const parse = line => { try { return JSON.parse(line.replace(/,?\s*$/, '')); } catch (err) { return null; } };
   const live = q => q && q.kind !== 'preamble' && q.kind !== 'document' && digestLibOn_(q.active);
@@ -1439,8 +1465,9 @@ function digestCardTags_(q, T) {
   const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
   /* EACH FACET'S ANSWERS (`facetOwn_`, `tagOf` for the card's own page), in the words the value is. */
   const of = {
-    forLabel: () => 'Learning', kindLabel: () => 'Questions',
-    subject: () => it.subject, documentType: () => it.documentType,
+    /* `KIND_UNDER` (find.js, 546): a question is Practice as well as Questions. */
+    forLabel: () => 'Learning', kindLabel: () => ['Practice', 'Questions'],
+    subject: () => it.subject, documentType: () => (DIGEST_DOC_TYPE_UNDER[it.documentType] ? [DIGEST_DOC_TYPE_UNDER[it.documentType], it.documentType] : it.documentType),
     fiveLevel: () => (five ? it.tier : ''), fiveMonth: () => (five ? five.month : ''), fiveDay: () => (five ? five.day + ' ' + five.month : ''),
     level: () => lv, keystage: () => digestTagKeystage_(it),
     yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
@@ -1459,7 +1486,7 @@ function digestCardTags_(q, T) {
     return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
   };
   const out = [], words = Object.create(null), ids = Object.create(null), said = [];
-  DIGEST_TAG_FACETS.forEach(f => {
+  (T.facets || DIGEST_TAG_FACETS).forEach(f => {
     let vals;
     try { vals = digestList_(of[f[0]]()); } catch (err) { vals = []; }
     vals.forEach(raw => {
@@ -1507,7 +1534,7 @@ function digestLibraryFind_(text, ids) {
   /* AND EACH ROW'S TAGS, AS ITS CARD WEARS THEM (`digestCardTags_`); a failure costs the tags, never the email. */
   const worn = {};
   try {
-    const T = digestTagIndex_(text, papers);
+    const T = digestTagIndex_(text, papers, digestFacetOrder_());
     Object.keys(rows).forEach(id => { worn[id] = digestCardTags_(rows[id], T); });
   } catch (err) { /* the cards fall back to what their labels say */ }
   return { rows: rows, pre: pre, tags: worn };

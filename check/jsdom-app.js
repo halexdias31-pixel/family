@@ -41,7 +41,8 @@ async function app(payload, rows) {
   const rej = r => { const ev = new w.Event('unhandledrejection'); ev.reason = r; w.dispatchEvent(ev); };
   process.on('unhandledRejection', rej);
   const src = order().map(n => read('js/' + n + '.js')).join('\n');
-  w.eval(src + '\n;window.__h={TABS,paint,go,SCREENS,on};');
+  /* `__ev` READS THE APP'S OWN SCOPE: its `let`s and `const`s live inside this one eval, out of reach of another. */
+  w.eval(src + '\n;window.__h={TABS,paint,go,SCREENS,on};window.__ev=function(s){return eval(s);};');
   await tick(1500);
   return { w, h: w.__h, posts, close: () => { process.off('unhandledRejection', rej); w.close(); } };
 }

@@ -5,7 +5,7 @@
 const WORKS = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
 /* A RELIGIOUS WORK IS FOR A VIEWER OF AGE (490), as scripture is; a work's own `min_age` in the index says so. */
 const worksGet_ = file => {
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   return Promise.resolve()
     .then(() => fetch('data/works/' + file + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null)
