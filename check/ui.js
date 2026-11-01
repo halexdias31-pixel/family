@@ -74,6 +74,8 @@ const VISITORS = [
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.
    The smaller number is used so this reports what is indefensible rather than what is imperfect. */
 const MIN_TAP = 44;
+/* AN iPHONE'S SAFE AREA (542): 47 under the notch and 34 over the home bar upright; turned, 47 each side and 21 below. */
+const SAFE_AT = (w, h) => (w < h ? { top: 47, bottom: 34 } : { left: 47, right: 47, bottom: 21 });
 
 /* ---------- KNOWN, WITH A WRITTEN REASON EACH, AND STILL PRINTED § */
 const ACCEPTED_TAP = [
@@ -474,6 +476,24 @@ function inspect(opts) {
     return r.width > 0 && r.height > 0;
   };
 
+  /* ---------- A CONTROL'S REACH (542): its box, grown by an empty, unpainted ::before/::after it positions, the way .biz-dot and .kp-handle reach 44px */
+  const reach_ = el => {
+    const b = el.getBoundingClientRect();
+    let L = b.left, T = b.top, R = b.right, B = b.bottom;
+    if (getComputedStyle(el).position === 'static') return b;
+    for (const which of ['::before', '::after']) {
+      const ps = getComputedStyle(el, which);
+      if (ps.content === 'none' || ps.content === 'normal' || ps.position !== 'absolute' || ps.pointerEvents === 'none') continue;
+      if (!/^["']{2}$/.test(ps.content) || ps.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(ps.backgroundColor)) continue;
+      const px = v => (/px$/.test(v) ? parseFloat(v) : NaN);
+      const ox = b.left + el.clientLeft, oy = b.top + el.clientTop;
+      const l = px(ps.left), t = px(ps.top), w = px(ps.width), h = px(ps.height);
+      if ([l, t, w, h].some(isNaN)) continue;
+      L = Math.min(L, ox + l); T = Math.min(T, oy + t); R = Math.max(R, ox + l + w); B = Math.max(B, oy + t + h);
+    }
+    return { left: L, top: T, right: R, bottom: B, width: R - L, height: B - T };
+  };
+
   /* ---------- AND THE SHEET, WHEN ONE IS OPEN § */
   const sheet = document.getElementById('sheet');
   const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
@@ -482,7 +502,12 @@ function inspect(opts) {
   /* ---------- AND THE MATHS KEYPAD, FOR THE SAME REASON AGAIN § */
   const kp = document.getElementById('kp');
   const onPad = kp && !kp.hidden && vis(kp) ? [kp, ...kp.querySelectorAll('*')] : [];
-  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onPad].filter(vis);
+  /* ---------- AND THE CHROME OUTSIDE #screen (542, U19): the Business dot, the banner, the toast obey the same tap and press rules */
+  const screenEl = document.getElementById('screen');
+  const chrome = [...document.body.children]
+    .filter(e => e !== screenEl && e !== sheet && e !== kp && !/^(SCRIPT|STYLE|TEMPLATE|LINK|svg)$/i.test(e.tagName))
+    .flatMap(e => [e, ...e.querySelectorAll('*')]);
+  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onPad, ...chrome].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR § */
   const roots = [document.scrollingElement, live, ...inside];
@@ -519,6 +544,8 @@ function inspect(opts) {
       /* 2px of slack, which is the rounding a fractional scale leaves behind — `0.3533` on 794px
          does not land on a whole pixel and neither does the box. */
       if (paintedRight !== null && paintedRight - box.right <= 2) continue;
+      /* A FINGERTIP'S REACH IS NOT CONTENT (542): an empty, unpainted ::before that grows a small control is overflow nobody sees or scrolls. */
+      if ((paintedRight === null || paintedRight - box.right <= 2) && reach_(el).right - box.right >= over - 1) continue;
       found.overflow.push({ tag: el.tagName.toLowerCase(),
         cls: String(el.className || '').slice(0, 40),
         by: over, width: el.clientWidth });
@@ -672,7 +699,7 @@ function inspect(opts) {
       const zv = parseFloat(e.style && e.style.zoom);
       if (zv > 0 && zv < 1) ez *= zv;
     }
-    const r0 = el.getBoundingClientRect();
+    const r0 = reach_(el);
     const r = { width: r0.width / ez, height: r0.height / ez };
     if (r.height < MIN_TAP - 0.5 || r.width < MIN_TAP - 0.5) {
       /* THE CLASS COMES BACK WITH IT, because a finding has to be identifiable to be accepted. § */
@@ -876,6 +903,42 @@ function inspect(opts) {
   const sh = document.getElementById('sheet');
   if (sh && getComputedStyle(sh).position !== 'static') found.floating.push('#sheet is position: ' + getComputedStyle(sh).position + ' — the sheet is a page in the flow (420)');
 
+  /* ---------- NOTHING TO PRESS IN THE PHONE'S OWN BANDS (542, U19): the notch, the status bar and the home bar forced
+     to an iPhone's insets for one layout; a fixed control's reach must stay clear of every band */
+  found.inBand = [];
+  if (opts.safe) {
+    const fixedHere = [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).position === 'fixed' && vis(el));
+    const kill = document.createElement('style');
+    kill.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; }';
+    const force = document.createElement('style');
+    force.textContent = ':root { ' + Object.keys(opts.safe).map(k => '--safe-' + k + ': ' + opts.safe[k] + 'px !important;').join(' ') + ' }';
+    document.head.append(kill, force);
+    try {
+      const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, S = opts.safe;
+      fixedHere.flatMap(f => [f, ...f.querySelectorAll('*')]).forEach(el => {
+        const tag = el.tagName;
+        const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY)$/.test(tag)
+          || el.getAttribute('role') === 'button' || el.hasAttribute('onclick') || el.hasAttribute('data-do');
+        if (!tappable || !vis(el) || el.closest('[hidden]')) return;
+        if (getComputedStyle(el).pointerEvents === 'none') return;
+        const r = reach_(el);
+        const hit = [];
+        if (S.top && r.top < S.top - 0.5 && r.bottom > 0) hit.push('top ' + S.top);
+        if (S.bottom && r.bottom > H - S.bottom + 0.5 && r.top < H) hit.push('bottom ' + S.bottom);
+        if (S.left && r.left < S.left - 0.5 && r.right > 0) hit.push('left ' + S.left);
+        if (S.right && r.right > W - S.right + 0.5 && r.left < W) hit.push('right ' + S.right);
+        if (hit.length) found.inBand.push((el.id ? '#' + el.id : tag.toLowerCase())
+          + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '')
+          + ' reaches into the ' + hit.join(', ') + 'px band (' + [r.left, r.top, r.right, r.bottom].map(Math.round).join(',') + ')');
+      });
+      found.bandAsked = fixedHere.length;
+    } finally {
+      force.remove();
+      void document.body.offsetHeight;   // lay out again with transitions still off, so nothing glides back into the next measurement
+      kill.remove();
+    }
+  }
+
   return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
            counted: inside.length };
@@ -890,6 +953,7 @@ function inspect(opts) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
   let failures = 0;
+  let bandFixed = 0;   // fixed boxes measured against the forced safe area, printed so a run that met none says so
   /* HOW MANY BOARDS THE RULE ABOVE `BOARDS` ACTUALLY MEASURED, printed with the summary — a count
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
@@ -1169,7 +1233,8 @@ function inspect(opts) {
         if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
         if ((veil.off || []).length) rows.push({ width, id: label, as: who.as, offGlass: veil.off });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
-          { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
+          { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id, safe: SAFE_AT(width, height) });
+        bandFixed += found.bandAsked || 0;
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
                                 + `which pane is in front, so this row may be measuring the wrong thing.`);
 
@@ -1563,6 +1628,7 @@ function inspect(opts) {
       + `taller than its pane, down to PANE_ZOOM_MIN, and only scrolls past that. Its controls shrink `
       + `with it — the trade the owner chose — so each is judged above at its own size, and this line `
       + `is how many cards pay it and by how much.`));
+    (r.inBand || []).forEach(f => add('A CONTROL IN THE PHONE\'S OWN BAND (542)', f, at));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || '') && (!a.onCardEdit || t.onCardEdit));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',
@@ -1589,6 +1655,7 @@ function inspect(opts) {
   console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `
               + `${soundHit} of them in view and hit-tested at their centre (the top thing there is the tile)\n`);
   console.log(`drawn pictures photographed for a cut edge: ${facesMeasured}\n`);
+  console.log(`fixed boxes measured with an iPhone's safe area forced (47/34 upright, 47/47/21 turned): ${bandFixed}\n`);
   /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
   Object.keys(loaderSizes).forEach(wd => {
     const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];

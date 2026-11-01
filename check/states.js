@@ -4019,6 +4019,17 @@ const STATES = {
       },
       wants: 'the Business column: Insurance, Tax, Legal and data, Safeguarding, Money and company, each with its Save' },
 
+    /* THE BUSINESS DOT (542): drawn on the body, outside every column, so its size and its distance from the notch are measured here. */
+    { name: 'the Business dot',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => { bizNeed_('check-542', 3, 'three things'); bizNeedsPaint_(); },
+      leave: () => { delete BIZ_NEEDS['check-542']; bizNeedsPaint_(); },
+      expect: () => {
+        const d = document.getElementById('biz-dot');
+        return d && d.textContent === String(bizNeedsTotal_()) && d.getBoundingClientRect().width > 0 ? 1 : 0;
+      },
+      wants: 'the Business dot drawn on the body with the count of what needs the admin' },
+
     /* THE INSURANCE CARD WITH SOMETHING RECORDED. § */
     { name: 'the business records (insurance)',
       only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
