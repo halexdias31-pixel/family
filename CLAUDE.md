@@ -5,8 +5,6 @@ spreadsheets as the database. No build step, no framework — `index.html` lists
 the browser concatenates them into one global scope. This file is loaded into every session, so it holds
 the rules only; the reasons and figures behind them are in `docs/map-detail.md` and `docs/history/`.
 
-**When the owner asks for a sweep, "check my notes" or similar:** follow `docs/sweep.md` exactly.
-
 ## Reading this repo cheaply
 
 - Grep first, then Read a line range. Never Read a whole big file (`js/find.js`, `style.css`, `js/check-flow.js`).
