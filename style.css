@@ -2165,7 +2165,7 @@ button.text-drop { color: var(--bad); }
 .feed-credit { position: absolute; top: .6rem; left: .9rem; right: .9rem; z-index: 1;
                font-size: .58rem; color: rgba(255,255,255,.55);
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.feed .feed-art, .reel > .feed-art { transition: transform var(--quick) ease; }
+.feed .feed-art, .reel > .feed-art { transition: transform var(--dur-quick) var(--ease-out); }
 /* A REEL IS ALL PICTURE, so the wash under it cannot show: it sinks as a post's picture does. */
 .feed:is(:active, .is-pressed) .feed-art, .reel:is(:active, .is-pressed) > .feed-art { transform: scale(var(--press-card)); }
 
