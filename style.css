@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-31-merge-booking";
+  --css-version: "2026-11-01-sweep-b-questions";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4366,6 +4366,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .frac-n, .frac-d { display: block; padding: 0 .3em; line-height: 1.25; }
 .frac-n { border-bottom: 1px solid currentColor; }
 .frac-mixed { white-space: nowrap; }
+/* A FRACTIONAL INDEX (owner, 1 Nov: "look more like a half"): a raised small top and a small bottom either side of a slant, ½'s shape at any number. */
+.frac-ix { white-space: nowrap; }
+.frac-ix-n, .frac-ix-d { font-size: .8em; }
+.frac-ix-n { vertical-align: .4em; }
+.frac-ix-d { vertical-align: -.1em; }
 .frac-mixed .frac { white-space: normal; }
 .frac-s { position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%);
           white-space: nowrap; pointer-events: none; }
@@ -6602,8 +6607,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qp-cell.is-right { box-shadow: 0 0 0 3px var(--good); }
 .qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
 td.qp-cell-at, th.qp-cell-at { padding: 2px; }
-.qp-cells { display: flex; flex-wrap: wrap; gap: .5rem; }
-.qp-cell-l { display: flex; align-items: center; gap: .3rem; flex: 0 1 6rem; font: 600 .8rem/1 var(--font); color: var(--dim); }
+/* ONE LINE PER BOX (421; owner, 1 Nov: "looks messy when the answer boxes are like this"): its name in one column, the boxes in the next, every box one width. */
+.qp-cells { display: grid; grid-template-columns: fit-content(55%) minmax(44px, 8rem); gap: .45rem .7rem; align-items: center; }
+.qp-cell-l { display: contents; font: 600 .8rem/1.2 var(--font); color: var(--dim); }
+.qp-cell-l > span { font: 600 .8rem/1.2 var(--font); color: var(--dim); }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
@@ -6679,6 +6686,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
 .qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
 .qhelp-tiles { margin-top: .5rem; align-items: center; }
+/* EVERY QUESTION PAGE'S FOOT ON A LINE OF ITS OWN (owner, 1 Nov: "buttons to all appear in the same place"): Help, the star, Suggest, Back to top, under the page's own tiles. */
+.tile-row > .tile-group.qtool-tiles::after, .tile-row > .tile-group.qans-tiles::after { content: ""; flex-basis: 100%; height: 0; margin-top: calc(-1 * var(--tile-gap)); }
 .qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: 1rem;
              padding: .35rem .7rem; border-radius: var(--r); }
 .qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }

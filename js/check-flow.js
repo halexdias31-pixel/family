@@ -2698,8 +2698,8 @@ check('486: every top-level card and widget in every column has the one Report t
       await wait(30);
       const sec = a.d.getElementById('s-' + tab);
       if (!sec) continue;
-      /* TOP-LEVEL: a card inside no other card; empty, locked and the padlock line have nothing to press (467). */
-      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-empty, .is-locked, .rank-off, .col-lock, .add-card, .people-none, .set-none'));
+      /* TOP-LEVEL: a card inside no other card; locked and the padlock line have nothing to press (467). An EMPTY card has its Suggest too (owner, 1 Nov: "no buttons on 'saved'"). */
+      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-locked, .rank-off, .col-lock, .add-card, .people-none, .set-none'));
       cards.forEach(c => {
         seen++;
         /* A PERSON'S CARD HAS ITS ROW RIGHT AFTER IT (`withTiles_`, find.js). */
@@ -4891,8 +4891,9 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   /* ==================== A PIN HELD ON A COMPASS'S CENTRE OR A RULER'S END ==================== */
   const tq = { kind: 'question', answerType: 'drawing', html: '<p>Use a ruler and compasses to construct the bisector of angle ABC.</p>', key: 'q:Q-FINGER-6' };
   fresh(tq);
-  const tool = name => host.querySelector('.qt-row .qt-t[data-tool="' + name + '"]');
-  if (!tool('compass') || !tool('ruler')) bad.push('setup: the construction question has no Ruler and Compass tiles — the held pin was NOT checked');
+  /* THE PEN'S STRAIGHT EDGE is the Straight line tile (553); inside the pad it is still the `ruler` mode. */
+  const tool = name => host.querySelector('.qt-row .qt-t[data-tool="' + (name === 'ruler' ? 'line' : name) + '"]');
+  if (!tool('compass') || !tool('ruler')) bad.push('setup: the construction question has no Straight line and Compass tiles — the held pin was NOT checked');
   else {
     for (const name of ['compass', 'ruler']) {
       fresh();
@@ -5560,7 +5561,7 @@ check('a placement snaps to the grid the picture draws and a line never does: Q7
   if (line.length !== 22 || line[0] !== first[0] || line[1] !== first[1]) bad.push('a line was stored as ' + JSON.stringify(line) + ' — wanted 11 raw points from ' + JSON.stringify(first) + ': a line never snaps');
   /* THE RULER: both ends land on their intersections. */
   fresh();
-  const tool = host.querySelector('.qt-row .qt-t[data-tool="ruler"]');
+  const tool = host.querySelector('.qt-row .qt-t[data-tool="line"]');
   if (tool) t.ACTIONS[tool.getAttribute('data-do')](tool);
   host.innerHTML = t.padCard(x, q7.diagram, '');
   host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: Wd, height: Hd, right: L + Wd, bottom: T + Hd, x: L, y: T });
@@ -9982,7 +9983,7 @@ const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { 
   html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
 const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
   d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
-check('455: Help on a question turns its card red, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
+check('455: Help on a question turns that page red and no other (owner, 1 Nov: "just current widget"), rings the bell, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
   const bad = [];
   const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });
   await wait(300);
@@ -9990,10 +9991,17 @@ check('455: Help on a question turns its card red, says Waiting for help, tells 
   const tile = box.querySelector('.qcard .tile[data-do="help-hand"]');
   if (!tile || !/Help/.test(tile.getAttribute('aria-label'))) { bad.push('a question card has no Help tile'); return bad; }
   if (box.querySelectorAll('.qcard .tile[data-do="help-hand"]').length < 2) bad.push('the answer page has no Help tile');
+  const rung = [];
+  const heldSound = r.w.markSound_;
+  r.w.markSound_ = k => rung.push(k);
   r.w.__t.ACTIONS['help-hand'](tile);
   await wait(50);
+  r.w.markSound_ = heldSound;
   const cards = [...box.querySelectorAll('.qcard')];
-  if (!cards.length || !cards.every(c => c.classList.contains('is-help'))) bad.push('Help did not turn every question card red');
+  if (!cards[0] || !cards[0].classList.contains('is-help')) bad.push('Help did not turn the page it was pressed on red');
+  if (cards.slice(1).some(c => c.classList.contains('is-help'))) bad.push('Help turned another page of the same question red -- only the page pressed is the child\'s');
+  if (rung.join() !== 'help') bad.push('Help rang ' + (rung.length ? JSON.stringify(rung) : 'nothing') + ' -- wanted the one bell, markSound_(\'help\')');
+  if (cards.slice(1).some(c => /I’m OK now/.test((c.querySelector('.tile[data-do="help-hand"]') || {}).getAttribute ? c.querySelector('.tile[data-do="help-hand"]').getAttribute('aria-label') : ''))) bad.push('another page\'s Help tile says I’m OK now');
   if (!/Waiting for help/.test(box.textContent)) bad.push('the card does not say Waiting for help');
   const t2 = box.querySelector('.tile[data-do="help-hand"]');
   if (!t2 || !/I’m OK now/.test(t2.getAttribute('aria-label'))) bad.push('the tile did not become "I’m OK now"');
@@ -10007,7 +10015,7 @@ check('455: Help on a question turns its card red, says Waiting for help, tells 
     reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1' } } : { success: true } });
   await wait(300);
   const box2 = helpDraw_(r2.w);
-  if (!box2.querySelector('.qcard.is-help')) bad.push('after a reload the card is not red');
+  if (box2.querySelectorAll('.qcard.is-help').length !== 1) bad.push('after a reload ' + box2.querySelectorAll('.qcard.is-help').length + ' pages are red, wanted the one');
   r2.w.__t.ACTIONS['help-hand'](box2.querySelector('.tile[data-do="help-hand"]'));
   await wait(50);
   if (box2.querySelector('.qcard.is-help') || /Waiting for help/.test(box2.textContent)) bad.push('I’m OK now did not clear the red');
@@ -11376,17 +11384,20 @@ check('an admin adds a person from the "+" on Students (453), edits one and dele
 });
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) */
-check('an empty Spotlight, Saved, shop and basket draw their title alone, for a visitor and an admin alike', async () => {
+check('an empty Spotlight, Saved, shop and basket draw their title and, for a signed-in viewer, the one Suggest a change (owner, 1 Nov), for a visitor and an admin alike', async () => {
   const { w } = boot();
   await wait(400);
   const t = w.__t, d = w.document, bad = [];
   const only = (html, title, who) => {
     const box = d.createElement('div'); box.innerHTML = html;
     const card = box.firstElementChild;
-    const kids = card ? [...card.querySelectorAll('*')] : [];
-    if (!card || kids.length !== 1 || kids[0].tagName !== 'H3' || kids[0].textContent.trim() !== title || card.textContent.trim() !== title) {
+    const kids = card ? [...card.children] : [];
+    const row = card && card.querySelector(':scope > .tile-row');
+    const acts = row ? [...row.querySelectorAll('[data-do]')].map(e => e.getAttribute('data-do')) : [];
+    if (!card || !kids[0] || kids[0].tagName !== 'H3' || kids[0].textContent.trim() !== title || kids.length > 2 || (kids[1] && kids[1] !== row)) {
       bad.push(who + '’s empty ' + title + ' draws more than its title: ' + JSON.stringify(box.textContent.replace(/\s+/g, ' ').trim().slice(0, 100)));
     }
+    if (acts.join() !== (who === 'a visitor' ? '' : 'rep-box')) bad.push(who + '’s empty ' + title + ' has the tiles ' + JSON.stringify(acts) + ', wanted ' + (who === 'a visitor' ? 'none (signed out)' : 'Suggest a change alone'));
   };
   for (const who of [null, { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' }]) {
     t.USER(who);
@@ -11394,7 +11405,9 @@ check('an empty Spotlight, Saved, shop and basket draw their title alone, for a 
     if (w.spotPages().length) return bad.concat(['the fixture has something spotlit, so the empty Spotlight was NOT checked']);
     const sp = w.spotlightCards_();
     if (sp.length !== 1) bad.push(name + '’s empty Spotlight is ' + sp.length + ' cards'); else only(sp[0], 'Spotlight', name);
-    if (!who) only(w.savedCards_()[0], 'Saved', name);
+    const sv = w.savedCards_();
+    if (!who || (sv.length === 1 && /is-empty/.test(sv[0]))) only(sv[0], 'Saved', name);
+    else if (who) bad.push('an admin’s Saved is not empty in the fixture (' + sv.length + ' cards), so it was NOT checked');
   }
   if (w.cartCard_ && t.setCart) { t.setCart([]); if (String(w.cartCard_()).trim()) bad.push('an empty basket draws words under its title: ' + w.cartCard_()); }
   t.USER(null);
@@ -12929,7 +12942,7 @@ check('461: the Progress column is dissolved into Student settings — no `progr
     if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the progress widgets on Student settings read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
     if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push(as + ': the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
     cards.forEach((c, k) => {
-      if (!c.classList.contains('is-empty') || [...c.children].filter(x => !x.classList.contains('wgt-admin')).length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
+      if (!c.classList.contains('is-empty') || [...c.children].filter(x => !x.classList.contains('tile-row')).length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
     });
     if (d.querySelectorAll('.card.prog-w').length !== cards.length) bad.push(as + ': a progress widget is drawn somewhere else too');
   }
@@ -13125,9 +13138,10 @@ check('progress, empty: a signed-in learner with nothing answered sees each widg
   for (const title of ['Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions']) {
     const c = progCard_(d, title);
     if (!c) bad.push('nothing answered, and Progress has no ' + title + ' widget');
-    else if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(title + ' is not its title alone with nothing answered: ' + progTxt_(c).slice(0, 80));
+    else if (!c.classList.contains('is-empty') || [...c.children].filter(x => !x.classList.contains('tile-row')).length !== 1) bad.push(title + ' is not its title alone with nothing answered: ' + progTxt_(c).slice(0, 80));
   }
-  if (d.querySelector('#s-account .prog-w [data-do]')) bad.push('the empty Progress has a control on it');
+  /* ITS ONE ROW IS EVERY CARD'S (Suggest a change, the padlock), nothing of its own (1 Nov). */
+  if (d.querySelector('#s-account .prog-w [data-do]:not([data-do="rep-box"]):not([data-do="game-lock"])')) bad.push('the empty Progress has a control on it');
   if (d.querySelector('#s-account .prog-w .loading')) bad.push('the empty Progress is still waiting with the payload in');
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
@@ -14948,7 +14962,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 340"></svg>', '');
     return [...h.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' '); };
   /* WHATEVER THE WORDS ASK FOR, the row is the same four (the tool registry, qtools.js) */
-  const ALL4 = 'pen ruler protractor compass';
+  const ALL4 = 'pen line ruler protractor compass';
   const offered = [[q('Use a ruler.', { key: 'q:T-R' }), ALL4], [q('Construct the bisector.', { key: 'q:T-C' }), ALL4],
     [q('Draw the graph.', { key: 'q:T-N' }), ALL4], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), ALL4]];
   offered.forEach(([x, want]) => {
@@ -14974,13 +14988,13 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
   const tool = name => pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="' + name + '"]');
-  if (!tool('ruler') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Ruler and Compass, so the drawing was NOT checked']);
+  if (!tool('line') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Straight line and Compass, so the drawing was NOT checked']);
 
   /* RULER */
-  (e => A[e.getAttribute('data-do')](e))(tool('ruler'));
-  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not give this pad the pen');
-  if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
-  if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
+  (e => A[e.getAttribute('data-do')](e))(tool('line'));
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Straight line did not give this pad the pen');
+  if (!tool('line').classList.contains('on') || tool('line').getAttribute('aria-pressed') !== 'true') bad.push('the Straight line tile is not lit and pressed once chosen');
+  if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside Straight line');
   /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
   drag([[150, 100], [180, 60], [260, 160], [300, 140]]);
   let s = stored();
@@ -14989,11 +15003,11 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   pad = mount();
   const redrawn = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
   if (redrawn.join('|') !== 'M50 100L200 180') bad.push('the card drawn again shows ' + JSON.stringify(redrawn) + ', wanted the ruler\'s one line M50 100L200 180');
-  if (!pad.classList.contains('is-drawing') || !tool('ruler').classList.contains('on')) bad.push('a card drawn again lost the pen or the Ruler in hand');
+  if (!pad.classList.contains('is-drawing') || !tool('line').classList.contains('on')) bad.push('a card drawn again lost the pen or Straight line in hand');
 
   /* COMPASS: centre (270,135)px = units (170,170); out to (330,135)px, a radius of 60px. */
   (e => A[e.getAttribute('data-do')](e))(tool('compass'));
-  if (!tool('compass').classList.contains('on') || tool('ruler').classList.contains('on')) bad.push('pressing Compass did not move the light from Ruler to Compass');
+  if (!tool('compass').classList.contains('on') || tool('line').classList.contains('on')) bad.push('pressing Compass did not move the light from Straight line to Compass');
   fire('pointerdown', 270, 135);
   fire('pointermove', 300, 135);
   fire('pointermove', 330, 135);
@@ -28246,7 +28260,7 @@ check('a part\'s tool row is the owner\'s nine in order with one padlock, the dr
   host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
-  if (names3.join(' | ') !== 'Pen | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const locks = host.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
   if (locks !== 1) bad.push('the part has ' + locks + ' padlocks, wanted one');
@@ -29820,7 +29834,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = w.stuffCard(pick.drawn);
   const tools = [...host.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(e => e.getAttribute('data-tool'));
-  if (tools.join() !== 'pen,ruler,protractor,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, protractor, compass');
+  if (tools.join() !== 'pen,line,ruler,protractor,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, straight line, ruler, protractor, compass');
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
   host.innerHTML = w.stuffCard(pick.typed);
   const meas = [...host.querySelectorAll('.q-meast')].map(e => e.getAttribute('data-tool'));

@@ -617,7 +617,9 @@ function cardsOf_(col) {
       if (start && ((g.id && start === g.id && i === 0) || (pid && start === 'person:' + pid))) CARD_START_AT[col] = at;
       let page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* THE CARD'S ROW FIRST, then the person's one Start here: appended after, the card row was spliced INSIDE the start row (467). */
-      if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row);
+      /* AN EMPTY CARD CARRIES ITS OWN Suggest a change (`emptyCard_`), so the admin's row does not add a second. */
+      const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
+      if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
       if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`);
       out.push(page);
     });
@@ -663,8 +665,8 @@ function cardAdminRow_(id, col, mergeable) {
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
 function cardReportRow_(id, page) {
-  /* NOT ON A LOCKED CARD (467: nothing pressable) NOR AN EMPTY ONE (its title alone). */
-  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\b(is-empty|is-locked)\b/.test(page)) return '';
+  /* NOT ON A LOCKED CARD (467: nothing pressable) NOR ONE CARRYING ITS OWN (an empty card's, `emptyCard_`). */
+  if (/^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-locked\b/.test(page) || /data-do="rep-box"/.test(page)) return '';
   const t = typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || ((/<h3[^>]*>([^<]{1,80})<\/h3>/.exec(page) || [])[1] || id).trim()) : '';
   return t ? `<div class="tile-row card-rep">${typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${t}</div>` : '';
 }
