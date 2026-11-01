@@ -3136,7 +3136,6 @@ check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card 
 /* ---------- THE PARTS OF A SEAT ADD UP TO THE SEAT, AND A NOUGHT IN THE TUTOR'S PART IS THE USUAL (the review of 345) -- § */
 const seatParts_ = (c, f) => { const b = c.form() && c.form().querySelector('[data-pound="' + f + '"]'); return b ? String(b.value).trim() : null; };
 const seatNote_ = c => String(((c.form() && c.form().querySelector('.ce-seat-note')) || {}).textContent || '').replace(/\s+/g, ' ').trim();
-const seatSum_ = s => { const m = /\+£(\d+\.\d\d)\/h a seat/.exec(s); return m ? Number(m[1]) : NaN; };
 check('the read-only cut a tutor cannot change says who sets it (345)', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
   const c = await cardOpen_(W, 'tutor@example.org');
@@ -23590,8 +23589,10 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
     const seat = w.profSeat_(rows[k]);
     if (!near(seat, 30 * share)) bad.push(k + ': the card\'s seat is £' + seat + '/h, wanted £' + (30 * share).toFixed(2) + ' (30 × (' + c + ' + ' + b + '))');
     const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row: rows[k] });
-    const said = ((box.querySelector('.prof-seat') || {}).textContent || '').trim();
-    if (said !== '+£' + (30 * share).toFixed(2) + '/h a seat') bad.push(k + ': the card draws "' + said + '", wanted "+£' + (30 * share).toFixed(2) + '/h a seat"');
+    /* THE RANGE REPLACED THE "+£x/h a seat" NOTE (549): the card draws rateRange_, and no note beside it. */
+    const said = ((box.querySelector('.prof-rate') || {}).textContent || '').trim();
+    if (said !== w.rateRange_(rows[k])) bad.push(k + ': the card draws "' + said + '", wanted "' + w.rateRange_(rows[k]) + '"');
+    if (box.querySelector('.prof-seat')) bad.push(k + ': the card still draws the "+£x/h a seat" note beside the range');
     /* THE QUOTE: one extra seat adds `share` of the hourly figure. */
     if (!near(L.fChildrenAll, 1 + share)) bad.push(k + ': the quote\'s seat multiplier is ' + L.fChildrenAll + ', wanted ' + (1 + share));
     /* THE SPLIT: the seat money goes c : b, and the two add to what is paid (no venue, nobody sharing). */

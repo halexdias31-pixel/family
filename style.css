@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-01-integrate-abc";
+  --css-version: "2026-11-01-share-profile";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3419,13 +3419,11 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
 .prof-rate {
   font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--gold);
-  line-height: 1.1; margin-top: .1rem;
+  line-height: 1.1; margin-top: .1rem; white-space: nowrap;
 }
 .prof-rate small { font-size: .62rem; font-weight: 400; color: var(--dim); margin-left: .1rem; }
-/* WHAT AN EXTRA SEAT ADDS, beside the rate and a step quieter: it is read after the rate, never
-   instead of it. Wraps under it on a narrow card rather than pushing the name. */
-.prof-price { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .45rem; }
-.prof-seat { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
+/* THE RANGE ON ONE LINE (549): it replaced the "+£x a seat" note, so the box holds the rate alone. */
+.prof-price { display: flex; align-items: baseline; }
 /* A CAPTION OVER EACH ROW OF CHIPS — "Teaches", "Qualifications", "Tutors at" — because two rows of identical pills could not be told apart: § */
 .prof-cap {
   margin: .55rem 0 .2rem; font: 400 .56rem/1 var(--mono); letter-spacing: .12em;
@@ -3537,7 +3535,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .pf-go { display: flex; gap: .5rem; flex-wrap: wrap; }
 /* WHAT AN EXTRA SEAT ADDS, UNDER ITS TWO PARTS — `cardRateHtml_` in me.js (docs/history/345). § */
 .ce-seat { margin: -.35rem 0 0; font: 400 .7rem/1.35 var(--mono); color: var(--dim); }
-.ce-seat .prof-seat { font-size: inherit; line-height: inherit; }
+.ce-seat .prof-seat { font-family: var(--mono); font-size: inherit; line-height: inherit; }
 .ce-seat + .ce-seat-note { margin: .2rem 0 .75rem; }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
@@ -7078,6 +7076,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- A PROFILE SHARED AS A PICTURE (412, 547): the card itself, drawn off the screen at a phone column's width for the snapshot (`tutorPng_`). */
 .tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
+/* THE PICTURE'S CARD STANDS IN THE SITE CARD'S OWN SLOT, at its width; its margin is the column's, not the picture's. */
+.tpng-host > .card { margin: 0; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }
