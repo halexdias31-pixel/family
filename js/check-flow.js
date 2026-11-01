@@ -8778,7 +8778,8 @@ check('an unlisted tutor is offered to an admin, marked, with its value untouche
   }
   const shown = step.label_ ? step.label_('Switched Off') : 'Switched Off';
   if (shown === 'Switched Off') bad.push('the unlisted tutor is offered with nothing saying so');
-  if (step.label_ && step.label_('Sasha Matola') !== 'Sasha Matola') {
+  /* SINCE 549 A TUTOR'S LABEL CARRIES THEIR RATE; only "not listed" is the mark. */
+  if (step.label_ && /not listed/.test(step.label_('Sasha Matola'))) {
     bad.push('a listed tutor is marked too: ' + step.label_('Sasha Matola'));
   }
   D.tutors = held;
