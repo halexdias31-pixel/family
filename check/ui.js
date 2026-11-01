@@ -808,6 +808,18 @@ function inspect(opts) {
     const s = getComputedStyle(el);
     const fg = parse(s.color);
     if (!fg) continue;
+    /* ---------- AND THE OPACITY ABOVE IT (541, U18): a faded parent fades the words. The slide
+       dims what is not in front, and `.soft` a parked pane, on purpose, so the walk stops there. Disabled is exempt (WCAG). */
+    let quiet = false;
+    const dims = [];
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.matches('.page, .screen, .page.soft > .pane')) break;
+      if (n.matches(':disabled, [aria-disabled="true"]')) { quiet = true; break; }
+      const o = parseFloat(getComputedStyle(n).opacity);
+      if (o < 1) { fg.a *= o || 0; dims.push(n.tagName.toLowerCase() + (typeof n.className === 'string' && n.className.trim() ? '.' + n.className.trim().split(/\s+/).join('.') : '') + ' ' + o); }
+    }
+    /* A TEACHING ANIMATION (`.an-<id>`) is art that fades its own frames; a word faded to nothing is not on the glass. */
+    if (quiet || fg.a < .05 || el.closest('[class^="an-"], [class*=" an-"]')) continue;
     let bg = null, ratio = Infinity;
     grounds(el).forEach(g => {
       const solidFg = fg.a < 1 ? over(fg, g) : fg;
@@ -824,7 +836,7 @@ function inspect(opts) {
     if (ratio < need) {
       found.lowContrast.push({ text: el.textContent.trim().slice(0, 30),
         ratio: +ratio.toFixed(2), need, px: Math.round(px),
-        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})` });
+        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})`, dims: dims.join(' < ') });
     }
   }
 
@@ -1573,7 +1585,7 @@ function inspect(opts) {
       `${e.sel} ${JSON.stringify(e.name)} ${e.ratio}:1 against what is behind it (needs 3) — face ${e.face}, `
       + `edge ${e.line}, on ${e.bg}`, at));
     (r.lowContrast || []).forEach(c => add('CONTRAST',
-      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}`, at));
+      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}${c.dims ? ', faded by opacity: ' + c.dims : ''}`, at));
     (r.noName || []).forEach(n => add('NO NAME',
       `<${n.tag}>${n.cls ? '.' + n.cls : ''}${n.act ? ` [${n.act}]` : ''} has no text, label, `
       + `aria-label, title or placeholder — a screen reader has nothing to say about it`, at));
