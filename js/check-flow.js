@@ -31551,7 +31551,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!del()) bad.push('the card has no Delete tile');
   else {
     if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
-    t.ACTIONS['lay-c-del'](del()); t.ACTIONS['lay-c-del'](del()); await wait(400);
+    t.ACTIONS['lay-c-del'](del()); await wait(450); t.ACTIONS['lay-c-del'](del()); await wait(400);   /* sure_'s 400 ms between the two taps (534) */
     if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
     if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
   }
