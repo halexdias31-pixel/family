@@ -167,6 +167,7 @@ function boot(opts) {
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
+      'pressForget: () => PRESS_LAST_.clear(),' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_` below. § */
       'quiet: () => !PLACE_FRAME && !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
       '  && !(typeof aheadBusy_ === "function" && aheadBusy_()),' +
@@ -588,6 +589,8 @@ check('the reels\' Sound is a tile: one per reel, drawn muted, a press on its ma
     bad.push('a press on the Sound tile paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
   soundTileSays_(snd(), true, 'a <video> reel turned aloud').forEach(x => bad.push(x));
 
+  /* A PERSON'S SECOND PRESS, not a double tap's second half, which the dispatcher drops (534). */
+  await wait(360);
   press();
   looked.push(drawn());
   if (looked[1] === looked[0]) bad.push('turning the <video> aloud left the same picture on the Sound tile');
@@ -11361,6 +11364,11 @@ check('an admin adds a person from the "+" on Students (453), edits one and dele
   if (sent.some(b => b.action === 'personDelete')) bad.push('Delete deleted before asking');
   if (!d.getElementById('sheet').classList.contains('hidden')) bad.push('Delete opened the sheet: ' + JSON.stringify((d.getElementById('sheet-title') || {}).textContent));
   if (!del.dataset.sure || !/Tap again to confirm/.test(del.textContent) || !del.classList.contains('is-sure')) bad.push('the first press did not arm the tile with "Tap again to confirm": ' + JSON.stringify(del.textContent.trim()));
+  /* A YES UNDER 400 MS IS A DOUBLE TAP'S SECOND HALF (534): ignored, and the tile stays armed. */
+  t.ACTIONS['person-del'](del);
+  await wait(50);
+  if (sent.some(b => b.action === 'personDelete') || !del.dataset.sure) bad.push('a second press 150 ms after arming deleted, or disarmed the tile');
+  await wait(300);
   hold = true;
   t.ACTIONS['person-del'](del);
   await wait(300);
@@ -12278,7 +12286,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
 
   const box = form.querySelector('.cmt-text');
   sent.length = 0;
-  tile.click(); await wait(50);
+  tile.click(); await wait(400);   // past the dispatcher's 350 ms (534): typing takes longer than that
   if (sent.some(b => b.action === 'addComment')) bad.push('an empty comment box posted addComment');
 
   box.value = 'Lovely to see this.';
@@ -12293,6 +12301,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
 
   refuse = false;
   sent.length = 0;
+  await wait(100);   // 400 ms after the refused press: a person's second go (534)
   tile.click(); await wait(300);
   const c = sent.find(b => b.action === 'addComment');
   if (!c) bad.push('pressing Post with words in the box posted ' + JSON.stringify(sent.map(b => b.action)) + ', not addComment');
@@ -12404,6 +12413,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   /* FOCUSED AGAIN: the plain `repaint` above stands for a payload landing, which is not a press and
      hands nobody their focus back. */
   face('😂').focus();
+  await wait(200);   // a second press, not a double tap's second half (534)
   face('😂').click(); await wait(50);
   shape('after taking it back');
   if (d.querySelector('#s-feed .react.mine')) bad.push('after taking it back, a face is still `.mine`');
@@ -12603,7 +12613,7 @@ check('a post with no date: its first face and its last taken back keep the post
   };
 
   sent.length = 0;
-  face('👍').click(); await wait(120);
+  face('👍').click(); await wait(400);   // past the dispatcher's 350 ms (534)
   let now = same('after the first face');
   const said = now.line ? now.line.textContent.replace(/\s+/g, ' ').trim() : '';
   if (said !== '1 reaction') bad.push(`after the first face, the line says ${JSON.stringify(said)}, not "1 reaction"`);
@@ -12681,7 +12691,8 @@ check('two quick taps on a post: one save at a time, a refusal puts back what th
       bad.push(`${when}: the page shows ${JSON.stringify(shown) || 'nothing'} as yours, the server holds ${JSON.stringify(held.now[k])} (and ${JSON.stringify(held.old[k])} on a backend from before \`want\`) — a reload would show something else`);
     }
   };
-  const twice = async (a, b2) => { a().click(); await wait(80); b2().click(); };
+  /* TWO PRESSES WHILE THE FIRST SAVE IS OUT, 360 ms apart: closer than 350 ms the dispatcher counts them as one double tap (534). */
+  const twice = async (a, b2) => { a().click(); await wait(360); b2().click(); };
 
   /* ---------- 🎉 TWICE, BOTH REFUSED ------------------------------------------------------------ */
   await twice(() => face('🎉'), () => face('🎉'));
@@ -13411,22 +13422,22 @@ check('470, 482, 499: the E-ink screen on Tools is the real 200x200 panel — To
   let asked = 0;
   const serial = f => { try { Object.defineProperty(w.navigator, 'serial', { value: { requestPort: o => { asked++; return f(o); } }, configurable: true }); } catch (e) {} };
   serial(() => Promise.reject(new Error('none')));
-  await press(tile('eink-sync')); await wait(100);
+  await wait(360); await press(tile('eink-sync')); await wait(100);
   if (!/press ⏻/.test(say())) bad.push('a screen not in the list does not say "press ⏻ once": ' + JSON.stringify(say()));
   serial(() => Promise.resolve(fakePort('new'))); asked = 0; SIG.length = 0;
-  await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
+  await wait(360); await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
   if (!/Done — the screen is updating/.test(say())) bad.push('a screen that answers READY then OK does not say Done: ' + JSON.stringify(say()));
   if (!SIG.some(o => o.dataTerminalReady === true && o.requestToSend === false)) bad.push('Sync does not set DTR on and RTS off after opening: ' + JSON.stringify(SIG));
   if (!/303a:1001/.test(details()) || !/READY/.test(details())) bad.push('the Details line does not show the USB id and what came back: ' + JSON.stringify(details()));
-  await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
+  await wait(360); await press(tile('eink-sync')); for (let i = 0; i < 60 && !/Done/.test(say()); i++) await wait(100);
   if (asked !== 2) bad.push('Sync reused a port instead of asking Chrome each time: asked ' + asked);
   serial(() => Promise.resolve(fakePort('')));
-  await press(tile('eink-sync')); for (let i = 0; i < 150 && !/didn’t answer/.test(say()); i++) await wait(100);
+  await wait(360); await press(tile('eink-sync')); for (let i = 0; i < 150 && !/didn’t answer/.test(say()); i++) await wait(100);
   if (!/The screen didn’t answer — unplug it, plug it back in/.test(say())) bad.push('a silent screen does not say it did not answer, with one step: ' + JSON.stringify(say()));
   if (/old software/.test(say())) bad.push('a silent screen is called old software');
   if (!/heard nothing/.test(details())) bad.push('a silent screen has no "heard nothing" Details line: ' + JSON.stringify(details()));
   serial(() => Promise.resolve(fakePort('old')));
-  await press(tile('eink-sync')); for (let i = 0; i < 150 && !/old software/.test(say()); i++) await wait(100);
+  await wait(360); await press(tile('eink-sync')); for (let i = 0; i < 150 && !/old software/.test(say()); i++) await wait(100);
   if (!/old software — tap Install/.test(say()) || !tile('eink-install')) bad.push('a screen that answers but not READY does not say old software and offer Install: ' + JSON.stringify(say()));
   const steps = [...box.querySelectorAll('.eink-steps li')].map(li => li.textContent);
   if (steps.length < 4 || !steps.some(t => /Hold ☀/.test(t)) || !steps.some(t => /unplug the screen and plug it back in/.test(t))) bad.push('the install steps do not say hold ☀, and after installing unplug and plug back in (⏻ does not restart it, 485): ' + JSON.stringify(steps));
@@ -18350,12 +18361,14 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   await wait(30);
   if (of('q:Q-SUB-ORD').length) bad.push('Send on an ordering with a place still empty sent a submission — it is not an answer yet');
   box().querySelector('.qp-item[data-n="1"]').click();
+  await wait(360);   // a second Send, not a double tap's second half (534)
   box().querySelector('.qp-order-send').click();
   await wait(40);
   const o = of('q:Q-SUB-ORD');
   if (o.length !== 1 || o[0].answer !== '2,3,1' || o[0].verdict !== 'right') bad.push('Send on the full ordering went up as ' + JSON.stringify(o) + ' — wanted one event, 2,3,1, right');
   if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
   /* DRAWN AGAIN AFTER A MOVE AND BACK: the verdict is the latest press's, drawn while the row is that row. */
+  await wait(360);
   box().querySelector('.qp-slot.is-full[data-n="1"]').click();
   if ((box().querySelector('.qp-verdict') || {}).textContent) bad.push('moving an item left the verdict on a row that changed');
   box().querySelector('.qp-item[data-n="1"]').click();
@@ -18419,6 +18432,7 @@ check('submission: kept on the device until the backend can take them, sent agai
   /* A BACKEND FROM BEFORE: kept, not sent, and the card shows it all the same. */
   ansType_(w, card.querySelector('.qp-ans-in'), '15');
   card.querySelector('.qp-check').click();
+  await wait(360);   // typing 16 takes longer than the dispatcher's 350 ms (534)
   ansType_(w, card.querySelector('.qp-ans-in'), '16');
   card.querySelector('.qp-check').click();
   await wait(40);
@@ -19236,7 +19250,8 @@ const earHeard_ = rec => rec.outs.map(out => {
   return oscs.map((o, i) => o.type + '@' + hz[i]).join('+');
 });
 /* A PRESS, AS A FINGER MAKES ONE: through the real dispatcher (`click()`), inside a tap. */
-const earTap_ = (rec, el) => { rec.inPress = true; try { el.click(); } finally { rec.inPress = false; } };
+/* THESE JOURNEYS ARE ABOUT SOUND, pressed at machine speed: the dispatcher's 350 ms memory (534) is forgotten first, as a person's seconds between presses would. check/press-twice.js owns the timing. */
+const earTap_ = (rec, el) => { try { el.ownerDocument.defaultView.__t.pressForget(); } catch (e) {} rec.inPress = true; try { el.click(); } finally { rec.inPress = false; } };
 const earIn_ = (rec, fn) => { rec.inPress = true; try { fn(); } finally { rec.inPress = false; } };
 /* AT REST: every context the app made is suspended -- asked again every 100ms for up to `ms`, because a
    timer only ever fires late on a loaded machine, never early. */
@@ -26623,7 +26638,8 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   const stored = () => w.localStorage.getItem(k) || '';
   const verdict = () => (box().querySelector('.qp-mark > .qp-verdict') || {}).textContent;
   const marked = () => ['is-right', 'is-near'].filter(c => box().classList.contains(c)).join(' ');
-  const press = el => { if (!el) { bad.push('a control to press is missing'); return; } el.click(); };
+  /* TAPS AT MACHINE SPEED: the dispatcher's 350 ms memory (534) is forgotten first; this journey is about the ordering, not timing. */
+  const press = el => { if (!el) { bad.push('a control to press is missing'); return; } try { w.__t.pressForget(); } catch (e) {} el.click(); };
   const tap = n => press(box().querySelector('.qp-item[data-n="' + n + '"]'));
   const back = n => press(box().querySelector('.qp-slot.is-full[data-n="' + n + '"]'));
   const clear = () => press(box().querySelector('.qp-order-clear'));
@@ -29763,6 +29779,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
     if (ob().querySelectorAll('.qp-slot.is-full').length !== 2) bad.push(when + ': taking a place back after a wrong Send did nothing');
     const clr = ob().querySelector('[data-do="qp-order-clear"]');
     if (clr) { clr.click(); if (ob().querySelectorAll('.qp-slot.is-full').length) bad.push(when + ': Clear after a wrong Send left items placed'); }
+    await wait(360);   // a person's second go, not a double tap's second half (534)
     [2, 3, 1].forEach(n => ob().querySelector('.qp-item[data-n="' + n + '"]').click());
     ob().querySelector('.qp-order-send').click();
     await wait(20);
@@ -30048,7 +30065,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (sent.some(x => x.action === 'layoutSave') || layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('one tap deleted');
   if (!/Tap again to delete/.test(tile().getAttribute('aria-label') || '')) bad.push('the first tap did not say "Tap again to delete"');
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
-  A['lay-w-del'](tile()); await wait(300);
+  await wait(450); A['lay-w-del'](tile()); await wait(300);
   if (layIds_(t, 'game').indexOf('wordgames') !== -1 || d.querySelector('#wgt-wordgames')) bad.push('the second tap did not delete');
   if (t.pageCount('games') !== layIds_(t, 'game').length) bad.push('the pager counts ' + t.pageCount('games') + ' pages for ' + layIds_(t, 'game').length + ' widgets');
   const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
@@ -30084,7 +30101,7 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   t.go('tools', false, true); await wait(300);
   const x = layTile_(d, 'whiteboard', 'lay-w-del');
   if (!x) return bad.concat(['the whiteboard has no Delete tile — NOT checked']);
-  A['lay-w-del'](x); A['lay-w-del'](x); await wait(300);
+  A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
   if (layIds_(t, 'tool').indexOf('whiteboard') !== -1) return bad.concat(['the whiteboard was not deleted — NOT checked']);
   t.go('biz', false, true); await wait(300);
   const row = card() && card().querySelector('[data-deleted="whiteboard"]');
@@ -30103,7 +30120,7 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   const no = layBoot_({ reply: b => b.action === 'layoutSave' && (b.layout.deleted || []).indexOf('whiteboard') === -1 ? { success: false, error: 'No.' } : undefined }); await wait(300);
   no.w.__t.go('tools', false, true); await wait(300);
   const y = layTile_(no.w.document, 'whiteboard', 'lay-w-del');
-  no.w.__t.ACTIONS['lay-w-del'](y); no.w.__t.ACTIONS['lay-w-del'](y); await wait(300);
+  no.w.__t.ACTIONS['lay-w-del'](y); await wait(450); no.w.__t.ACTIONS['lay-w-del'](y); await wait(300);
   no.w.__t.go('biz', false, true); await wait(300);
   const p2 = no.w.document.querySelector('#s-biz [data-deleted="whiteboard"] [data-do="lay-putback"]');
   if (!p2) bad.push('refusal: no Put back tile');
@@ -30119,7 +30136,7 @@ check('no undo (477): a deleted widget stays gone for everyone after a reload an
   t.go('games', false, true); await wait(300);
   const x = layTile_(d, 'wordgames', 'lay-w-del');
   if (!x) return ['Word games has no Delete tile — NOT checked'];
-  A['lay-w-del'](x); A['lay-w-del'](x); await wait(300);
+  A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
   t.go('tools', false, true); await wait(300);
   /* TIMER DOWN, past docket: both seen by a client (some tools are role-gated). */
   const tools0 = layIds_(t, 'tool'), a = tools0.indexOf('timer') !== -1 ? 'timer' : tools0[1], f = tools0[tools0.indexOf(a) + 1];
@@ -30323,7 +30340,7 @@ check('merge with the card above (480): a profiles card merges with the one abov
   if (!del()) return bad.concat(['the re-merged card has no Delete']);
   A['lay-c-del'](del());
   if (!/Tap again/.test(del().getAttribute('aria-label') || '')) bad.push('the first tap did not ask again');
-  A['lay-c-del'](del()); await wait(250); await layPaintAll_(w);
+  await wait(450); A['lay-c-del'](del()); await wait(250); await layPaintAll_(w);
   L = layLast_(sent);
   if ([search, manage].some(x => (L.deleted || []).indexOf(x) === -1) || L.merged) bad.push('Delete did not delete both parts: ' + JSON.stringify(L));
   return bad;
@@ -30461,7 +30478,7 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-c-del']) return ['no lay-c-del handler — NOT checked'];
   await layPaintAll_(w);
-  const del = async id => { const x = layCardTile_(d, id, 'lay-c-del'); if (!x) { bad.push(id + ' has no Delete'); return null; } A['lay-c-del'](x); const say = x.getAttribute('aria-label'); A['lay-c-del'](x); await wait(250); await layPaintAll_(w); return say; };
+  const del = async id => { const x = layCardTile_(d, id, 'lay-c-del'); if (!x) { bad.push(id + ' has no Delete'); return null; } A['lay-c-del'](x); const say = x.getAttribute('aria-label'); await wait(450); A['lay-c-del'](x); await wait(250); await layPaintAll_(w); return say; };
   /* ONE TAP IS NOT A DELETE, and a settings group says it is the only place. */
   const grp = laySeen_(w, 'account').find(x => /^set:account:/.test(x));
   const tile = layCardTile_(d, grp, 'lay-c-del');
@@ -30469,7 +30486,7 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   if (sent.some(x => x.action === 'layoutSave')) bad.push('one tap deleted');
   if (!/^Tap again — this removes the only place to edit /.test(tile.getAttribute('aria-label') || '')) bad.push('the only editor\'s second step reads ' + tile.getAttribute('aria-label'));
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
-  A['lay-c-del'](tile); await wait(250); await layPaintAll_(w);
+  await wait(450); A['lay-c-del'](tile); await wait(250); await layPaintAll_(w);
   if (laySeen_(w, 'account').indexOf(grp) !== -1 || d.querySelector(`[data-lay-card="${grp}"], [data-split="${grp}"]`)) bad.push(grp + ' was not deleted');
   const says = {};
   for (const id of ['biz:build', 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
@@ -30576,7 +30593,7 @@ check('layout engine (466): a split card\'s pieces are cards of their own — ea
   A['lay-start'](layCardTile_(d, p1, 'lay-start')); await wait(250); await layPaintAll_(w);
   if (((layLast_(sent) || {}).start || {}).staff !== p1) bad.push('Start here on a piece was not stored: ' + JSON.stringify((layLast_(sent) || {}).start));
   const del = layCardTile_(d, p2, 'lay-c-del');
-  A['lay-c-del'](del); A['lay-c-del'](del); await wait(250); await layPaintAll_(w);
+  A['lay-c-del'](del); await wait(450); A['lay-c-del'](del); await wait(250); await layPaintAll_(w);
   if (laySeen_(w, 'account').indexOf(p2) !== -1 || d.querySelector(`[data-lay-card="${p2}"]`)) bad.push(p2 + ' was not deleted alone');
   if (!d.querySelector(`[data-lay-card="${p1}"]`)) bad.push('deleting one piece took ' + p1 + ' with it');
   /* A RELOAD KEEPS EACH PIECE WHERE IT IS — and another account sees the same. */
@@ -30674,7 +30691,7 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   await wait(100);
   const dc = d.querySelector('#s-custom-1 [data-do="lay-col-del"]');
   if (!dc) bad.push('no Delete column');
-  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); A['lay-col-del'](dc); await wait(300); }
+  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); await wait(450); A['lay-col-del'](dc); await wait(300); }
   if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
   await layPaintAll_(w);
   if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
@@ -30712,7 +30729,7 @@ check('layout engine (466): every card deletes — a paper series (past papers, 
   for (const id of ['prog:series:religious-studies', 'acct:prog-sessions']) {
     const x = layCardTile_(d, id, 'lay-c-del');
     if (!x) continue;
-    A['lay-c-del'](x); A['lay-c-del'](x); await wait(250); await layPaintAll_(w);
+    A['lay-c-del'](x); await wait(450); A['lay-c-del'](x); await wait(250); await layPaintAll_(w);
   }
   const s1 = laySeen_(w, 'account');
   if (s1.indexOf('prog:series:religious-studies') !== -1 || s1.indexOf('acct:prog-sessions') !== -1) bad.push('Religious Studies or Sessions was not deleted: ' + s1.join());
@@ -30731,7 +30748,7 @@ check('layout engine (466): every card deletes — a paper series (past papers, 
   /* SITE-WIDE: an admin's delete is gone for a client on reload. */
   const kill = layCardTile_(d, 'acct:voice', 'lay-c-del') || layCardTile_(d, 'acct:notify', 'lay-c-del');
   const kid = kill && kill.dataset.lc;
-  if (kill) { A['lay-c-del'](kill); A['lay-c-del'](kill); await wait(250); }
+  if (kill) { A['lay-c-del'](kill); await wait(450); A['lay-c-del'](kill); await wait(250); }
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const base = boot({ before: signedInAs_(CL) }); await wait(300); await layPaintAll_(base.w);
   const p = payload(); p.layout = layLast_(sent);
