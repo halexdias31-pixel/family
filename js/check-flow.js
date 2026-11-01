@@ -16940,7 +16940,7 @@ check('a question\'s pages follow the paper: its stem first and once with its fi
   const s = el(w.questionStemCard_(a, 0));
   const sHead = pageHead(s);
   if (!s.querySelector('.qcard.qstem[data-of="S-ORD-3"] .qsheet-stem')) bad.push('the stem page does not draw the stem or name its row');
-  if (sHead !== 'Questions Q3a') bad.push('the stem page is tagged "' + sHead + '", wanted the part\'s own row, Questions Q3a');
+  if (sHead !== 'Practice Questions Q3a') bad.push('the stem page is tagged "' + sHead + '", wanted the part\'s own row, Practice Questions Q3a (546)');
   if (rowSay(s) !== rowSay(q)) bad.push('the stem page\'s tags [' + rowSay(s) + '] are not its part\'s [' + rowSay(q) + '] -- one item, one row');
   if (!s.querySelector('.qsheet-stem figure svg circle')) bad.push('the stem page does not draw its figure among its words');
   if (!/Figure 3 shows[\s\S]*$/.test(s.querySelector('.qsheet-stem').textContent) || s.querySelector('.qsheet-stem').lastElementChild.tagName !== 'FIGURE') bad.push('a stem with no marker does not draw its figure after its words (digest.gs\'s rule)');
@@ -17831,7 +17831,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (!r.first || !r.first.classList.contains('qcard-tags')) bad.push('the ' + k + ' page\'s first block is ' + (r.first ? '.' + r.first.className : 'nothing') + ', not the tag row');
     ['.qcard-top', '.qcard-sub', '.qcard-needs', '.qcard-sat'].forEach(c => { if (r.card.querySelector(c)) bad.push('the ' + k + ' page still draws ' + c); });
     /* EVERY FACET A TAG (396): What for, then What kind — this page's own kind. */
-    const kt = r.tags.find(x => x.f === 'kindLabel');
+    /* PRACTICE ABOVE IT (546, `KIND_UNDER`): the page's What kind tags are Practice, then its own kind. */
+    const kts = r.tags.filter(x => x.f === 'kindLabel'), kt = kts[kts.length - 1];
+    if (kts.length !== 2 || kts[0].text !== 'Practice') bad.push('the ' + k + ' page\'s What kind tags are ' + say(kts) + ', wanted Practice and then ' + kind[k]);
     if (!r.tags.length || r.tags[0].f !== 'forLabel' || !kt || kt.text !== kind[k]) bad.push('the ' + k + ' page\'s row starts ' + say(r.tags.slice(0, 2)) + ', wanted What for and then the What kind answer ' + kind[k]);
     /* ONE ITEM, ONE ROW: everything but What kind and the page's own number reads the same on every page. */
     const facts = say(r.tags.filter(x => ['kindLabel', 'qPage', 'qPages'].indexOf(x.f) < 0));
@@ -21663,7 +21665,7 @@ check('the Quran (490): Al-Baqara 2:255 is a card of its own under Learning, Lib
   /* AN OLD STAR (504): `qr:2:255` was the two-language card; it is the Arabic one now. */
   if (x.w.text !== 'Arabic, Tanzil') bad.push('the old key qr:2:255 is the ' + x.w.text + ' card, not the Arabic');
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'Writings' }, { field: 'wWork', value: 'Quran' },
-    { field: 'wText', value: 'Arabic, Tanzil' }, { field: 'wChapter', value: '2 · Al-Baqara' }, { field: 'wUnit', value: '255' }];
+    { field: 'wLanguage', value: 'Arabic' }, { field: 'wText', value: 'Tanzil' }, { field: 'wChapter', value: '2 · Al-Baqara' }, { field: 'wUnit', value: '255' }];
   const got = w.stuffFiltered();
   if (got.length !== 1 || got[0] !== x) bad.push('the six answers keep ' + got.length + ' thing(s), not 2:255 alone');
   const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); d.body.appendChild(el);
@@ -27958,7 +27960,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
   if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
   t.RES().q = '';
-  t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wText', value: 'English, King James Version (1611)' },
+  t.RES().filters = [{ field: 'shelf', value: 'Writings' }, { field: 'wLanguage', value: 'English' }, { field: 'wText', value: 'King James Version (1611)' },
     { field: 'wCollection', value: 'Old Testament' }, { field: 'wSection', value: 'Torah' }, { field: 'wBook', value: 'Leviticus' }];
   t.PAGE().res = 0;
   /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a
