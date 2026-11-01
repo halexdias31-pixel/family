@@ -2915,7 +2915,7 @@ check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor
   const p = a.w.priceFrom({ tutorRow: Object.assign({}, ada, { rate: 20, extraSeat: 0.5 }), n: 3, slots: 1, hoursPerWeek: 1, loc: 'Merton Hall' }).earn;
   if (say(3).indexOf('family pays ' + '£' + p.charged.toFixed(2)) === -1 || say(3).indexOf('@family. £' + p.net.toFixed(2)) === -1) bad.push('three students are not what priceFrom says (' + p.charged + ', ' + p.net + '): ' + say(3));
   const slider = S.querySelector('input[type="range"][data-pv="rate"]');
-  const seg = () => row(3).querySelector('.pb-seg.is-tutor').style.width;
+  const seg = () => row(3).querySelector('.pb-seg.is-tutor').style.getPropertyValue('--x');
   const was = seg();
   a.type(slider, '30'); await wait(100);
   if (S.querySelector('input[type="range"][data-pv="rate"]') !== slider) bad.push('moving the rate redrew the slider out from under the thumb');

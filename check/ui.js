@@ -350,7 +350,11 @@ async function settled(page) {
       const t0 = performance.now();
       for (;;) {
         const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
-          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'))
+          /* AND A FOLD OR THE SHEET STILL OPENING OR CLOSING (537): a finite animation inside the screen; a loop (dots, a busy ring) never ends, so it is not waited for. */
+          || (typeof document.getAnimations === 'function' && document.getAnimations().some(a => a.playState === 'running'
+            && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#screen')
+            && isFinite(a.effect.getComputedTiming().endTime)));
         /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341): a column or a widget slot it is still drawing
            in the quiet is a screen still changing under the measurement. Bounded by the same four seconds. */
         const booked = (typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME)
@@ -900,7 +904,7 @@ function inspect(opts) {
   /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
      top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
   found.floating = [];
-  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #boot-slow, .biz-dot, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
+  const NOT_MENUS = '#kp, #banner, #toasts, #toast, #reconnect, #boot-slow, .biz-dot, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
   [...document.querySelectorAll('body *')].forEach(el => {
     const s = getComputedStyle(el);
     let top = false;

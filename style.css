@@ -246,11 +246,11 @@ html.wide body { max-width: none; box-shadow: none; }
   transform: none;
 }
 
-/* The toast still follows the column — content, not furniture. */
-#toast {
+/* The toast still follows the column — content, not furniture: its box is the app's width less a margin, on any window (537). */
+#toasts {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  left: max(var(--s4), calc(50% - var(--app) / 2 + var(--s4)));
+  right: max(var(--s4), calc(50% - var(--app) / 2 + var(--s4)));
 }
 
 /* And inside a full-width bar, the row stays the width of the app. So the tabs sit under the
@@ -479,7 +479,7 @@ input, select, textarea, .many-sum {
      fixed pixel value is the correct answer. */
   font: 16px/1.3 var(--font);
   -webkit-appearance: none; appearance: none;
-  transition: border-color var(--quick) ease;
+  transition: border-color var(--dur-quick) var(--ease-out);
 }
 /* ---------- A DROPDOWN LOOKS LIKE A DROPDOWN, AND THE OPEN LIST IS THE PLATFORM'S § */
 select, .many-sum {
@@ -799,8 +799,8 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
   display: flex; align-items: center; justify-content: center;
   font-size: .82rem; color: #1a1409;
-  transition: background var(--quick) ease, border-color var(--quick) ease,
-              box-shadow var(--quick) ease;
+  transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out),
+              box-shadow var(--dur-quick) var(--ease-out);
 }
 /* The ghost of the mark, so an empty box says what would go in it. */
 .check .box::after { content: '✓'; font-weight: 700; color: rgb(255 255 255 / .16); }
@@ -846,6 +846,8 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* ---------- THE SHEET OPENS IN PLACE (453) ------------------------------------------------------ */
 /* Inside the card that was pressed, under its tile row; an editor (`.sheet-swap`) replaces the card's own content. */
 #sheet.hidden { display: none !important; }
+/* CLOSING (537): drawn while its fade plays, already shut, so nothing in it can be pressed. */
+#sheet.is-leaving { pointer-events: none; }
 #sheet { position: static; width: 100%; display: flex; flex-direction: column;
   margin: .6rem 0 0; border-top: 1px solid var(--line-soft); background: transparent; }
 .sheet-swap > :not(#sheet) { display: none !important; }
@@ -863,17 +865,20 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
 /* ---------- THE TOAST § */
-#toast {
+/* A STACK, NEWEST AT THE FOOT (537): each message keeps its own time; an older one is lifted by `translate` (shell.js `toastStack_`), so nothing is laid out again. */
+#toasts {
   pointer-events: none;
   bottom: calc(var(--bar) + var(--safe-bottom) + .85rem); z-index: 50;
-  width: auto; max-width: calc(var(--app) - 2.5rem);
+  height: 0;
+}
+.toast {
+  position: absolute; left: 0; right: 0; bottom: 0;
   padding: .62rem 1rem; border-radius: 2px;
-  background: #e6e6e6; color: #000;
+  background: var(--toast-bg); color: var(--bg);
   font-size: .88rem; font-weight: 550; text-align: center;
   box-shadow: 0 .35rem 1.4rem rgba(0,0,0,.45);
-  animation: toast-in .2s ease-out;
+  transition: translate var(--dur-move) var(--ease-spring);
 }
-@keyframes toast-in { from { opacity: 0; transform: translate(-50%, .5rem); } }
 
 /* ---------- THE LINE WHILE THE APP ASKS AGAIN § */
 #reconnect {
@@ -887,10 +892,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 }
 #reconnect:empty { padding: 0; border: 0; }
 
-/* Somebody who has asked their phone to stop animating things means it. */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
+/* LESS MOTION is the tokens' answer (`--dur-*` are 0 under it, top of this file) and each loop's own rule, not a blanket .01 ms: that took the "here it is" ring with it (537, D14). */
 
 /* THE SCREENS. Only what the seven need — every rule here belongs to something you can point at. § */
 
@@ -1115,7 +1117,7 @@ a { color: inherit; text-decoration: none; }
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
 .mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1; box-sizing: border-box;
           background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
-          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--quick) ease, box-shadow var(--quick) ease; }
+          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
 /* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
 .mc-btn:is(:active, .is-pressed) { background-image: none; }
 .mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35), inset 0 0 0 99px var(--press-wash-paper); }
@@ -1645,7 +1647,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* A post arrived at from a shared link. Marked briefly so it is obvious which one was meant —
    landing in a feed with no idea which photograph somebody sent you is the failure a deep link
    exists to prevent. */
-.post-lit { animation: lit 2.6s ease-out; }
+.post-lit { animation: lit var(--dur-mark) var(--ease-out); }
 @keyframes lit {
   0%, 60% { box-shadow: 0 0 0 2px var(--gold); }
   100%    { box-shadow: 0 0 0 2px transparent; }
@@ -1659,7 +1661,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   display: flex; flex-direction: column; gap: .2rem;
   padding: 0; border: 1px solid var(--line-soft); border-radius: 2px;
   background: var(--sunk); color: var(--dim); font: inherit; cursor: pointer;
-  transition: border-color var(--quick) ease;
+  transition: border-color var(--dur-quick) var(--ease-out);
 }
 .picker img { width: 100%; height: 4.4rem; object-fit: cover; display: block; background: var(--raised); }
 .picker span { font-size: .58rem; line-height: 1.25; padding: 0 .2rem .2rem;
@@ -1715,14 +1717,15 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   width: 100%; min-height: max(44px, 2.7rem); padding: 0 .7rem;
   background: none; border: 1px solid var(--line); border-radius: 2px;
   color: var(--ink); font: inherit; font-size: .85rem; text-align: left; cursor: pointer;
-  transition: border-color var(--quick) ease, background var(--quick) ease;
+  transition: border-color var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out);
 }
 .poll-row.mine { border-color: var(--gold); }
 
 /* Behind the text, not over it. `z-index: 0` on the bar and `1` on the words, or a long answer
    becomes unreadable the moment it wins. */
-.poll-bar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0;
-            background: var(--line); transition: width .35s cubic-bezier(.2,.8,.3,1); }
+.poll-bar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; width: 100%;
+            transform: scaleX(var(--f, 0)); transform-origin: left;
+            background: var(--line); transition: transform var(--dur-move) var(--ease-spring); }
 .poll-row.mine .poll-bar { background: color-mix(in srgb, var(--gold) 22%, transparent); }
 .poll-text, .poll-n { position: relative; z-index: 1; }
 .poll-n { font-size: .78rem; color: var(--dim); font-variant-numeric: tabular-nums; }
@@ -1752,14 +1755,14 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   background: none; border: 0; color: var(--dim);
   font: inherit; line-height: 1; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform var(--quick) ease;
+  transition: transform var(--dur-quick) var(--ease-out);
 }
 /* THE PLATE IS VISIBLE ON A CARD. § */
 .react::before {
   content: ''; position: absolute; inset: 6px 2px;
   border: 1px solid var(--chip-line); border-radius: 16px;
   background: rgb(255 255 255 / .04);
-  transition: background var(--quick) ease, border-color var(--quick) ease;
+  transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out);
 }
 .react > span { position: relative; }
 .react-e { font-size: 1.05rem; line-height: 1; }
@@ -1780,7 +1783,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .react:focus-visible { outline: 0; }
 .react:focus-visible::before { outline: 2px solid var(--gold); outline-offset: 1px; }
 /* THE FACE YOU JUST PRESSED LANDS, ONCE. § */
-.react.is-pop { animation: react-land .24s cubic-bezier(.2, .9, .3, 1.35); }
+.react.is-pop { animation: react-land var(--dur-enter) var(--ease-spring); }
 @keyframes react-land { from { transform: scale(.82); } }
 @media (prefers-reduced-motion: reduce) {
   .react.is-pop { animation: none; }
@@ -2132,12 +2135,11 @@ button.text-drop { color: var(--bad); }
 .feed-art { position: absolute; inset: 0; display: flex; flex-direction: column;
             justify-content: flex-end; padding: 1rem;
             background: linear-gradient(160deg, var(--a), var(--b));
-            background-size: cover; background-position: center;
-            transition: background-image .3s ease; }
+            background-size: cover; background-position: center; }
 /* The subject's initial, enormous and barely there. § */
 .feed-mark { position: absolute; top: -.5rem; right: .2rem; line-height: 1;
              font-size: 7rem; font-weight: 700; color: var(--c); opacity: .13;
-             transition: opacity .3s ease; }
+             transition: opacity var(--dur-enter) var(--ease-out); }
 .feed-art.has-photo .feed-mark { opacity: 0; }
 
 /* WORDS OVER A PHOTOGRAPH NEED A FLOOR. § */
@@ -2900,7 +2902,7 @@ label.bk-k { cursor: pointer; }
   width: 29px; height: 29px; padding: 0;
   background: var(--sunk); border: 1px solid var(--line-soft); border-radius: 2px;
   color: var(--dim); font: inherit; cursor: pointer; overflow: hidden;
-  transition: border-color var(--quick) ease, transform var(--quick) ease;
+  transition: border-color var(--dur-quick) var(--ease-out), transform var(--dur-quick) var(--ease-out);
 }
 .av-opt:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .av-opt.on { border-color: var(--gold); }
@@ -3277,7 +3279,7 @@ textarea { touch-action: none; }
   transform: translateY(-50%);
   font-size: 1.15rem; line-height: 1;
   color: rgb(244 241 232 / .28);
-  transition: color var(--quick) ease, transform var(--quick) ease;
+  transition: color var(--dur-quick) var(--ease-out), transform var(--dur-quick) var(--ease-out);
   pointer-events: none;
 }
 .card.tap:active::after, .row.tap:active::after, .rc-stub.tap:active::after,
@@ -3960,7 +3962,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
    ignore, and then ignore when it matters. */
 .mat-gauge { height: .45rem; background: var(--sunk); border-radius: 3px; overflow: hidden; }
-.mat-gauge i { display: block; height: 100%; background: var(--good); transition: width .15s; }
+/* THE BAR GROWS BY SCALE (537): a width change lays the card out again every frame, a scale is the compositor's alone. */
+.mat-gauge i { display: block; width: 100%; height: 100%; background: var(--good);
+               transform: scaleX(var(--f, 0)); transform-origin: left; transition: transform var(--dur-quick) var(--ease-out); }
 .mat-gauge.over i { background: var(--bad); }
 .mat-said { margin: .3rem 0 .45rem; font-size: .72rem; color: var(--dim); }
 .mat-said b { color: var(--ink); }
@@ -4628,7 +4632,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
 /* ---------- THE QUESTION CARD'S OPTIONS, WHICH TAKE THE VERDICT'S COLOURS § */
 .qp-opt { position: relative; padding-left: 2.2rem;
-                   transition: border-color var(--quick) ease, color var(--quick) ease; }
+                   transition: border-color var(--dur-quick) var(--ease-out), color var(--dur-quick) var(--ease-out); }
 /* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: § */
 .qcard .qp-choices .qp-opt { color: var(--ink); }
 @media (hover: hover) {
@@ -5251,7 +5255,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .feed-yt-frame {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: 100%; height: 100%;
-  border: 0; opacity: 0; transition: opacity .3s ease;
+  border: 0; opacity: 0; transition: opacity var(--dur-enter) var(--ease-out);
   /* THE VEIL TAKES THE TOUCH; this makes sure the frame cannot, even where a browser hit-tests an
      iframe ahead of an empty span over it. */
   pointer-events: none;
@@ -5476,7 +5480,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid var(--line); border-radius: var(--r-sm);
   color: var(--dim); font: inherit; font-size: .72rem; cursor: pointer;
-  transition: transform var(--quick) ease, border-color var(--quick) ease;
+  transition: transform var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out);
 }
 .cam-side:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
@@ -5486,7 +5490,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   display: grid; place-items: center;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform var(--quick) ease, border-radius var(--quick) ease, opacity var(--quick) ease;
+  transition: transform var(--dur-quick) var(--ease-out), opacity var(--dur-quick) var(--ease-out);
 }
 .cam-shot {
   width: 64px; height: 64px;
@@ -5494,12 +5498,18 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   border: 3px solid var(--cam-white);
   box-shadow: inset 0 0 0 3px var(--raised);
 }
+/* THE RECORD DISC IS A RING WITH A RED DOT IN IT, and recording turns the dot into a square (537): two layers trading
+   scale and opacity, so the ring keeps its shape and nothing is laid out or repainted as it changes. */
 .cam-rec {
+  position: relative;
   width: 52px; height: 52px;
-  background: var(--cam-red);
+  background: var(--raised);
   border: 3px solid var(--cam-white);
-  box-shadow: inset 0 0 0 3px var(--raised);
 }
+.cam-rec::before, .cam-rec::after { content: ''; position: absolute; background: var(--cam-red); pointer-events: none;
+  transition: transform var(--dur-move) var(--ease-spring), opacity var(--dur-quick) var(--ease-out); }
+.cam-rec::before { inset: 3px; border-radius: 50%; }
+.cam-rec::after { inset: 27%; border-radius: 4px; opacity: 0; transform: scale(.6); }
 .cam-shot:is(:active, .is-pressed), .cam-rec:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER § */
 .cam-shot:disabled:active, .cam-rec:disabled:active { transform: none; }
@@ -5528,7 +5538,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .post-compose .btn-row .btn { min-height: 44px; }
 
 /* RECORDING IS A SQUARE. § */
-.cam-rec.is-rec { border-radius: .9rem; box-shadow: none; }
+.cam-rec.is-rec::before { opacity: 0; transform: scale(.5); }
+.cam-rec.is-rec::after { opacity: 1; transform: none; }
 
 .cam-card #cam-said:empty { display: none; }
 
@@ -5577,7 +5588,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .c4-cell, .oth-cell {
   min-width: 0; min-height: 0; width: 100%; height: 100%; padding: 0;
   border: 0; border-radius: 50%; background: var(--sunk);
-  cursor: pointer; transition: transform var(--quick) ease, background var(--quick) ease;
+  cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out);
 }
 /* A CELL THAT CANNOT BE PLAYED IS NOT GREYED OUT. § */
 .c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
@@ -5663,7 +5674,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-width: 44px; min-height: 44px; padding: 0;
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r-sm); font: 600 1rem/1 var(--font); cursor: pointer;
-  transition: transform var(--quick) ease, background var(--quick) ease;
+  transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out);
 }
 .mz-key:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 .mz-key.up    { grid-column: 2; grid-row: 1; }
@@ -5837,7 +5848,7 @@ button.scr-sq { cursor: pointer; }
   background: var(--scr-tile, #e3c98f); color: #2b2417;
   border: 1px solid #00000033; border-radius: var(--r-sm);
   font: 700 1.05rem/1 var(--font); cursor: pointer;
-  transition: transform var(--quick) ease, box-shadow var(--quick) ease;
+  transition: transform var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
 }
 .scr-tile i { position: absolute; right: 3px; bottom: 1px; font-size: .55rem; font-style: normal; opacity: .75; }
 .scr-tile.on { box-shadow: 0 0 0 2px var(--gold); transform: translateY(-3px); }
@@ -6580,16 +6591,17 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .hub-terms .check { margin-top: .6rem; border-top: 1px solid var(--line); }
 .hub-warn { margin: .6rem 0 0; font-size: .78rem; color: var(--alert); line-height: 1.4; }
 .hub-room { display: block; margin: .3rem 0 .7rem; }
-/* THE BARS: four parts of one hour's booking, sliding as a value moves — the width is the only thing that changes. */
+/* THE BARS: four parts of one hour's booking, sliding as a value moves. Each part is drawn from the bar's start to its own end (`--x`) and the earlier ones lie on top, so only a scale moves (537). */
 .pb { display: grid; gap: .7rem; margin: 0 0 .7rem; }
 .pb-cap { margin: 0 0 .25rem; font-size: .78rem; color: var(--ink); display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 .pb-paid { color: var(--dim); font-variant-numeric: tabular-nums; }
-.pb-bar { display: flex; height: 1.1rem; border-radius: .3rem; overflow: hidden; background: var(--line-soft); }
-.pb-seg { display: block; height: 100%; transition: width .35s ease; }
-.pb-seg.is-tutor { background: var(--pb-tutor); }
-.pb-seg.is-room { background: var(--pb-room); }
-.pb-seg.is-fees { background: var(--pb-fees); }
-.pb-seg.is-business { background: var(--pb-business); }
+.pb-bar { position: relative; height: 1.1rem; border-radius: .3rem; overflow: hidden; background: var(--line-soft); }
+.pb-seg { position: absolute; inset: 0; transform: scaleX(var(--x, 0)); transform-origin: left;
+          transition: transform var(--dur-move) var(--ease-spring); }
+.pb-seg.is-tutor { background: var(--pb-tutor); z-index: 4; }
+.pb-seg.is-room { background: var(--pb-room); z-index: 3; }
+.pb-seg.is-fees { background: var(--pb-fees); z-index: 2; }
+.pb-seg.is-business { background: var(--pb-business); z-index: 1; }
 .pb-say { margin: .3rem 0 0; display: flex; flex-wrap: wrap; gap: .15rem .7rem; font-size: .68rem; color: var(--dim); }
 .pb-k::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: .25rem; vertical-align: baseline; }
 .pb-k.is-tutor::before { background: var(--pb-tutor); }
@@ -6598,7 +6610,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pb-k.is-business::before { background: var(--pb-business); }
 .pb-k b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .pb-note { margin: 0; font-size: .7rem; }
-@media (prefers-reduced-motion: reduce) { .pb-seg { transition: none; } }
 /* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */
 .stmt-out { margin: .5rem 0 .6rem; }
 .stmt { background: var(--paper); color: var(--paper-ink); border-radius: .4rem; padding: .9rem .8rem; }
@@ -6963,7 +6974,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   text-transform: uppercase; letter-spacing: .04em; color: var(--dim); margin: 0 0 .35rem; }
 
 /* A MOVED THING LIT A MOMENT (498), so the eye finds where it went; still with reduced motion, as a ring, not a movement. */
-.lay-moved { animation: lay-moved 1.3s ease-out; }
+.lay-moved { animation: lay-moved var(--dur-mark) var(--ease-out); }
 @keyframes lay-moved { 0%, 40% { box-shadow: 0 0 0 3px var(--gold); } 100% { box-shadow: 0 0 0 0 transparent; } }
 /* A SUGGESTION'S PICTURE (498), shown small in the box before it is sent. */
 .rep-pic-show { display: block; max-width: 100%; max-height: 8rem; margin: .4rem 0; border-radius: var(--r-sm); }

@@ -60,7 +60,7 @@ function stripComments(src) {
 }
 
 /* AND IN THE STYLESHEET: only these may be position: fixed, and none of them is a menu. */
-const FIXED_OK = ['#banner', '#toast', '#reconnect', '#boot-slow', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
+const FIXED_OK = ['#banner', '#toasts', '#reconnect', '#boot-slow', '#kp', '.kp-loupe', '.pad-sizes', '.pad-loupe', '.biz-dot',
   '.vid-watch.on.is-fs'];
 
 const files = fs.readdirSync(DIR)
@@ -140,7 +140,7 @@ css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
   const sh = stripComments(fs.readFileSync(path.join(DIR, 'shell.js'), 'utf8'));
   const body = (sh.match(/function openSheet\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1];
   if (!body) { console.log('FAILED — openSheet could not be found in js/shell.js, so where it opens was not checked.'); process.exit(1); }
-  if (!/sheetPlace_\(\)/.test(body)) popups.push({ short: 'js/shell.js', line: 0, name: 'openSheet does not move the sheet into the card pressed', use: 'sheetPlace_() (453)' });
+  if (!/sheetPlace_\(/.test(body)) popups.push({ short: 'js/shell.js', line: 0, name: 'openSheet does not move the sheet into the card pressed', use: 'sheetPlace_() (453)' });
   const posts = stripComments(fs.readFileSync(path.join(DIR, 'posts.js'), 'utf8'));
   [['who-reacted', /sheetHere_\(el\)/], ['post-edit', /sheetHere_\(el,\s*true\)/]].forEach(([act, re]) => {
     const h = (posts.match(new RegExp("on\\('" + act + "'[\\s\\S]*?\\n\\}\\);")) || [''])[0];

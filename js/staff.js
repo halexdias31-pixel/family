@@ -189,11 +189,12 @@ const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], [
 function priceBarsHtml_() {
   const rows = [1, 2, 3].map(priceSplit_);
   const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
-  const w = x => (Math.max(0, x) / full * 100).toFixed(2) + '%';
+  /* EACH PART ENDS WHERE THE SUM SO FAR ENDS: the bars are drawn on top of each other and scaled, not laid side by side (537). */
+  const x = (r, i) => (PRICE_SEGS.slice(0, i + 1).reduce((a, [k]) => a + Math.max(0, r[k]), 0) / full).toFixed(4);
   return rows.map(r => `<div class="pb-row" data-n="${r.n}">
       <p class="pb-cap"><b>${r.n} ${r.n === 1 ? 'student' : 'students'}</b> <span class="pb-paid">family pays ${esc(money(r.charged))} an hour</span></p>
       <div class="pb-bar" role="img" aria-label="${esc(PRICE_SEGS.map(([k, l]) => l + ' ' + money(r[k])).join(', '))}">${
-        PRICE_SEGS.map(([k]) => `<span class="pb-seg is-${k}" style="width:${w(r[k])}"></span>`).join('')}</div>
+        PRICE_SEGS.map(([k], i) => `<span class="pb-seg is-${k}" style="--x:${x(r, i)}"></span>`).join('')}</div>
       <p class="pb-say">${PRICE_SEGS.map(([k, l]) => `<span class="pb-k is-${k}">${esc(l)} <b>${esc((r[k] < 0 ? '−' : '') + money(Math.abs(r[k])))}</b></span>`).join('')}</p>
     </div>`).join('') + (rows[0].business < 0
       ? `<p class="faint pb-note">With one student @family. keeps no share and pays the card fee itself.</p>` : '');
@@ -236,9 +237,11 @@ function priceRedraw_() {
   rows.forEach(r => {
     const row = box.querySelector('.pb-row[data-n="' + r.n + '"]');
     if (!row) return;
+    let sum = 0;
     PRICE_SEGS.forEach(([k, l], i) => {
       const seg = row.querySelector('.pb-seg.is-' + k);
-      if (seg) seg.style.width = (Math.max(0, r[k]) / full * 100).toFixed(2) + '%';
+      sum += Math.max(0, r[k]);
+      if (seg) seg.style.setProperty('--x', (sum / full).toFixed(4));
       const say = row.querySelectorAll('.pb-k b')[i];
       if (say) say.textContent = (r[k] < 0 ? '−' : '') + money(Math.abs(r[k]));
     });

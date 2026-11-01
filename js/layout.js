@@ -214,7 +214,8 @@ function layoutTiles_(w) {
 
 /* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
    Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
-const layCalm_ = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
+const layCalm_ = () => !motionOK_();
 function layThing_(kind, id, col) {
   const host = col ? document.getElementById('s-' + col) : document;
   if (!host || !id) return null;
@@ -227,7 +228,11 @@ function layLight_(el) {
   el.classList.remove('lay-moved');
   void el.offsetWidth;
   el.classList.add('lay-moved');
-  setTimeout(() => el.classList.remove('lay-moved'), 1400);
+  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
+  clearTimeout(el.layLitT);
+  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
+  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
+  el.layLitT = setTimeout(off, MOTION_.mark + 200);
 }
 /* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
 function layMoveShow_(kind, id, col, save, to) {
@@ -242,20 +247,19 @@ function layMoveShow_(kind, id, col, save, to) {
         const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
         if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) {} }
         layLight_(el);
-      }, layCalm_() ? 0 : 420);
+      }, layCalm_() ? 0 : MOTION_.move + 140);
       return;
     }
     const el = layThing_(kind, id, col);
     if (!el) return;
     if (!r0 || layCalm_()) { layLight_(el); return; }
+    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
+    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
     const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) { layLight_(el); return; }
-    el.style.transition = 'none';
-    el.style.transform = `translate(${dx}px, ${dy}px)`;
-    void el.offsetWidth;
-    el.style.transition = 'transform 320ms cubic-bezier(.2,.7,.2,1)';
-    el.style.transform = '';
-    setTimeout(() => { el.style.transition = ''; }, 360);
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
+    const z = el.currentCSSZoom || 1;
+    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
+                             { duration: MOTION_.move, easing: MOTION_.spring });
     layLight_(el);
   };
   try { requestAnimationFrame(after); } catch (e) { after(); }
