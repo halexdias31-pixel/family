@@ -195,6 +195,8 @@ const KINDS = {
   orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
   /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
   hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
+  /* MECHANICS (548): parts, models, jobs and symptoms, Library like the rest; `mKind` says which, js/mechanics.js. */
+  mech: { group: 'Learning', label: 'Library', card: x => mechCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -431,6 +433,13 @@ const FACETS = [
   { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
   { field: 'wAuthor',    label: 'Author',     of: x => writingAt_(x, 'author') },
   { field: 'wForm',      label: 'Kind of writing', of: x => writingAt_(x, 'form') },
+  /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
+  { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
+  { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
+  { field: 'mMake',     label: 'Make',        of: x => x.mMake || '' },
+  { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
+  { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
+  { field: 'mDifficulty', label: 'Difficulty', of: x => x.mDifficulty || '' },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
@@ -9127,6 +9136,7 @@ function stuffItemsRaw_() {
     ...(typeof pdtextsItems_ === 'function' ? pdtextsItems_() : []),
     ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
     ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
+    ...(typeof mechItems_ === 'function' ? mechItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10471,6 +10481,7 @@ const TAG_OF = {
   /* EVERY WRITING'S (520), in kinds that already have colours. */
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
+  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level', mDifficulty: 'tier',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10648,6 +10659,7 @@ function paintStuff(keepPage) {
   if (typeof pdtextsIndex_ === 'function') pdtextsIndex_();
   if (typeof orthoIndex_ === 'function') orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
+  if (typeof mechIndex_ === 'function') mechIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

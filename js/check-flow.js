@@ -31462,6 +31462,36 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 });
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
+/* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
+check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Job and Symptom; Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+  const serveAll = url => {
+    const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
+  };
+  const { w } = boot({ serve: serveAll });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  if (!w.__t) return ['the app did not boot — NOT checked'];
+  const t = w.__t;
+  try { t.go('stuff'); w.paintStuff(); } catch (e) {}
+  for (let i = 0; i < 160 && !w.mechItems_().length; i++) await wait(50);
+  const all = w.mechItems_(), bad = [];
+  if (!all.length) return ['the mechanics files did not load — NOT checked'];
+  const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
+  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
+  if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
+  S.filters.push({ field: 'subject', value: 'Mechanics' });
+  const kinds = vals('mKind').sort().join(',');
+  if (kinds !== 'Job,Model,Part,Parts list,Symptom') bad.push('Mechanics → Card type offers ' + kinds);
+  S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
+  if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
+  if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  const part = all.find(x => x.mKind === 'Part');
+  const html = w.mechCard_(part);
+  if (!/What it does/.test(html) || html.indexOf('general workshop knowledge') < 0 || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
+  return bad;
+});
+
 check('Library → a subject offers only shelves that subject has — never Books, Boxing and History everywhere (499)', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);

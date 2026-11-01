@@ -74,6 +74,7 @@ const SUITE = [
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ § */
   /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
   { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
+  { file: 'check-mechanics.js', what: 'the mechanics cards: system, source, no part numbers (548)' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
   { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate' },
