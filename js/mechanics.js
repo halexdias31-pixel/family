@@ -15,7 +15,9 @@ function mechIndex_() {
   MECH.asking = Promise.all(names.map(get)).then(all => {
     MECH.asking = null;
     const d = {};
-    names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n] : []; });
+    /* A ROW IS A CARD ONLY WITH AN ID AND A SYSTEM (check-mechanics): any other `jobs` or `parts` list, the payload's, is not ours. */
+    const ours = r => r && r.id && r.system;
+    names.forEach((n, i) => { d[n] = all[i] && Array.isArray(all[i][n]) ? all[i][n].filter(ours) : []; });
     if (!names.some(n => d[n].length)) { MECH.failed = true; return null; }
     MECH.data = d;
     /* A SOURCE THAT CAME LATE joins the list at the next paint, as the writings' do (520). */
