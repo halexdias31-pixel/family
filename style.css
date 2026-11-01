@@ -6971,7 +6971,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .pxe-c { box-shadow: inset 0 0 0 .5px var(--paper-rule); }
 
 /* ---------- A PROFILE SHARED AS A PICTURE (412, 547): the card itself, drawn off the screen at a phone column's width for the snapshot (`tutorPng_`). */
-.tpng-host { position: fixed; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
+.tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }

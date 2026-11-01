@@ -317,7 +317,7 @@ const WIDGETS = [
     <div id="rw-box"></div>
   </div>` },
   /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
-  { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true,
+  { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
     start: () => initPoster_?.(),
     into: 'pst-box', what: 'The poster planner',
     html: `<div class="card">
@@ -325,7 +325,7 @@ const WIDGETS = [
     <div id="pst-box"></div>
   </div>` },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
-  { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true,
+  { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
     start: () => initPixel_?.(),
     into: 'pxe-box', what: 'The pixel editor',
     html: `<div class="card">
