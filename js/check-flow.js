@@ -31670,6 +31670,35 @@ check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Jo
   return bad;
 });
 
+/* ---------- CHEMISTRY (550): Library → Chemistry → Card type → Chemical type → Group → State, ON THE REAL FILES ---------- */
+check('Chemistry (550): Library → Chemistry offers Element, Substance and Reaction; Element → Halogen → Group 17 narrows to the halogens; a reaction card draws its examples and source', async () => {
+  const serveAll = url => {
+    const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
+  };
+  const { w } = boot({ serve: serveAll });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  if (!w.__t) return ['the app did not boot — NOT checked'];
+  const t = w.__t;
+  try { t.go('stuff'); w.paintStuff(); } catch (e) {}
+  for (let i = 0; i < 160 && !w.chemItems_().length; i++) await wait(50);
+  const all = w.chemItems_(), bad = [];
+  if (!all.length) return ['the chemistry files did not load — NOT checked'];
+  const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
+  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
+  if (vals('subject').indexOf('Chemistry') < 0) bad.push('Library offers no Chemistry subject');
+  S.filters.push({ field: 'subject', value: 'Chemistry' });
+  ['Element', 'Reaction', 'Substance'].forEach(k => { if (vals('mKind').indexOf(k) < 0) bad.push('Chemistry → Card type lacks ' + k); });
+  S.filters.push({ field: 'mKind', value: 'Element' }, { field: 'cCategory', value: 'Halogen' });
+  if (vals('cGroup').join() !== 'Group 17') bad.push('Element → Halogen offers groups ' + vals('cGroup').join(', '));
+  if (vals('cState').sort().join() !== 'Gas,Liquid,Solid,Unknown') bad.push('halogens offer states ' + vals('cState').join(', '));
+  const rx = all.find(x => x.mKind === 'Reaction');
+  const html = w.chemCard_(rx);
+  if (!/Observations/.test(html) || !/<ol>/.test(html) || html.indexOf('chemistry knowledge') < 0 || !/qtag/.test(html)) bad.push('a reaction card does not draw its words, examples, tags and source');
+  return bad;
+});
+
 check('Library → a subject offers only shelves that subject has — never Books, Boxing and History everywhere (499)', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
