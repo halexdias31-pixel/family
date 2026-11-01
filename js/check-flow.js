@@ -23181,7 +23181,7 @@ check('daive: pinned first in Messages as a conversation — the DM head, bubble
   return bad;
 });
 
-check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the slogan and placeholders stay out of the facts; shut at 0', async () => {
+check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the facts are a site map with nothing of the business (547); shut at 0', async () => {
   const bad = [];
   let n = 0;
   const { w, sent } = boot({ reply: b => {
@@ -23211,9 +23211,12 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
   const a = sent.filter(b => b.action === 'askAssistant').pop();
   if (!a) return bad.concat(['Send sent no askAssistant']);
   const facts = String(a.facts || '');
-  if (/say why/i.test(facts)) bad.push('the slogan went into the facts: ' + facts.slice(0, 200));
-  if (/\{\{|TODO/.test(facts)) bad.push('a placeholder went into the facts: ' + facts.slice(0, 200));
-  if (!/business name: @family\./.test(facts) || !/Merton/.test(facts)) bad.push('the real brand facts are missing: ' + facts.slice(0, 200));
+  /* SITE HELP ONLY (547): the facts are a map of the site -- no brand value, no config number -- whatever the brand tab holds. */
+  const brandVals = Object.values(w.__t.DATA().brand || {}).map(v => String(v == null ? '' : v).trim()).filter(v => v.length > 3);
+  const leaked = brandVals.filter(v => facts.indexOf(v) >= 0);
+  if (leaked.length) bad.push('the business went into Daive\'s facts: ' + leaked.slice(0, 3).join(' | '));
+  if (/hours per session|most students|business name/i.test(facts)) bad.push('a business number went into the facts: ' + facts.slice(0, 200));
+  if (!/column "Find"/.test(facts) || !/column "Messages"/.test(facts)) bad.push('the site map is missing from the facts: ' + facts.slice(0, 200));
   if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
   if (card().querySelectorAll('.msg-bub').length !== 2) bad.push('the question and answer are not two DM bubbles');
   if (!card().querySelector('.msg.mine .msg-bub')) bad.push('the question is not drawn as the person\'s own bubble');
@@ -28914,7 +28917,7 @@ check('Suggest a change takes files and a folder from an admin and not a student
   const reply = b => {
     if (b.action === 'suggestUpload') {
       ups.push(b);
-      if (failOnce && /b\.pdf$/.test(b.rel)) { failOnce = false; return { error: 'Drive refused that part (500).' }; }
+      if (failOnce && /b\.py$/.test(b.rel)) { failOnce = false; return { error: 'Drive refused that part (500).' }; }
       const end = b.start + Math.floor(b.data.length * 3 / 4) - (b.data.match(/=*$/)[0].length);
       return end >= b.size ? { success: true, done: true, id: 'F' + ups.length } : { success: true, next: end };
     }
@@ -28948,11 +28951,13 @@ check('Suggest a change takes files and a folder from an admin and not a student
   const box = o.box;
   if (!box) return bad.concat('an admin has no box');
   const inF = box.querySelector('input.rep-files-in[type=file][multiple]'), inD = box.querySelector('input.rep-dir-in[type=file]');
-  if (!box.querySelector('[data-do="rep-files"]') || !inF || !/pdf/.test(inF.accept) || !/docx/.test(inF.accept) || !/zip/.test(inF.accept)) bad.push('an admin has no Add files for PDFs, docx and zip');
+  /* ANY KIND OF FILE (547): no `accept` list on either picker, so a .py goes as a PDF does. */
+  if (!box.querySelector('[data-do="rep-files"]') || !inF) bad.push('an admin has no Add files');
+  else if (inF.getAttribute('accept') || inD && inD.getAttribute('accept')) bad.push('Add files only takes some kinds of file: accept="' + (inF.getAttribute('accept') || inD.getAttribute('accept')) + '"');
   if (!box.querySelector('[data-do="rep-dir"]') || !inD || !inD.hasAttribute('webkitdirectory')) bad.push('an admin has no Add a folder');
   const BIG = 9 * 1048576;
-  const mk = (name, size, rel) => { const f = new w.File([new Uint8Array(size)], name, { type: 'application/pdf' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
-  const files = [mk('a.pdf', 1000, 'Edexcel 2023/June/a.pdf'), mk('b.pdf', 2000, 'Edexcel 2023/June/b.pdf'), mk('big.pdf', BIG, 'Edexcel 2023/Nov/big.pdf')];
+  const mk = (name, size, rel, type) => { const f = new w.File([new Uint8Array(size)], name, { type: type || 'application/pdf' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
+  const files = [mk('a.pdf', 1000, 'Edexcel 2023/June/a.pdf'), mk('b.py', 2000, 'Edexcel 2023/June/b.py', 'text/x-python'), mk('big.pdf', BIG, 'Edexcel 2023/Nov/big.pdf')];
   Object.defineProperty(inD, 'files', { value: files, configurable: true });
   inD.dispatchEvent(new w.Event('change', { bubbles: true }));
   if (box.querySelectorAll('.rep-file').length !== 3) bad.push('the chosen folder lists ' + box.querySelectorAll('.rep-file').length + ' files, wanted 3');
@@ -28960,13 +28965,14 @@ check('Suggest a change takes files and a folder from an admin and not a student
   t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
   for (let i = 0; i < 100 && !sent.some(b => b.action === 'suggest'); i++) await wait(100);
   const order = ups.map(u => u.rel + '@' + u.start);
-  const want = ['June/a.pdf@0', 'June/b.pdf@0', 'June/b.pdf@0', 'Nov/big.pdf@0', 'Nov/big.pdf@' + 8 * 1048576];
+  const want = ['June/a.pdf@0', 'June/b.py@0', 'June/b.py@0', 'Nov/big.pdf@0', 'Nov/big.pdf@' + 8 * 1048576];
+  if (!ups.some(u => u.rel === 'June/b.py' && u.mime === 'text/x-python')) bad.push('the .py file did not go with its own type');
   if (order.join() !== want.join()) bad.push('the parts went ' + JSON.stringify(order) + ', wanted ' + JSON.stringify(want));
   if (ups.some(u => u.batch !== 'Edexcel 2023' || u.action !== 'suggestUpload')) bad.push('a part was not in the batch named after the folder');
   if (ups.some(u => u.data.length > 11300000)) bad.push('a part is larger than the backend takes');
   const note = sent.find(b => b.action === 'suggest');
   if (!note) bad.push('no note was sent after the files');
-  else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.pdf,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
+  else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.py,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
   o.host.remove();
   return bad;
 });
@@ -31368,6 +31374,35 @@ check('library cards (489): the widget holds one card — no Add another, the on
   if (box.querySelectorAll('.lib-card').length !== 1) bad.push(box.querySelectorAll('.lib-card').length + ' card slots, not one');
   if (box.querySelector('[data-do="shelf-more"]')) bad.push('there is still an Add another');
   if (!box.querySelector('[name="lib2_name"], [data-me="lib2_name"], [data-f="lib2_name"]') && h.indexOf('Town library') === -1) bad.push('the filled card is not the one shown');
+  return bad;
+});
+
+/* ---------- THE WEEKLY EMAIL CARD SHOWS THE EMAIL AS IS (547): the backend's own HTML in a frame, and typed words re-render it there ---------- */
+check('the Weekly email card (547) shows the very HTML the backend sends, in a sandboxed frame, never a copy drawn on the phone; a typed subject is asked of the same renderer', async () => {
+  const W = cardWorld_(), bad = [];
+  const reply = b => (b.action === 'digestPreview' ? W.real.post(b) : W.reply(b));
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return [a.err];
+  a.t.go('site', false, true); a.w.paint('site');
+  let fr = null;
+  for (let i = 0; i < 60 && !(fr = a.d.querySelector('#s-site .digest-look iframe.dw-frame')); i++) await wait(100);
+  if (!fr) return ['the Weekly email card drew no frame: ' + ((a.d.querySelector('#s-site .digest-look') || {}).textContent || '(no card)').replace(/\s+/g, ' ').slice(0, 200)];
+  const want = W.real.post({ action: 'digestPreview', personId: a.u.personId, token: a.u.token });
+  if (!want || !want.shown || fr.getAttribute('srcdoc') !== want.shown.html) bad.push('the frame does not hold the backend\'s shown email byte for byte');
+  if (fr.getAttribute('sandbox') !== '') bad.push('the frame is not fully sandboxed: sandbox="' + fr.getAttribute('sandbox') + '"');
+  if (a.d.querySelector('#s-site .digest-look .dp-q, #s-site .digest-look .dp-body')) bad.push('a hand-drawn imitation of the email is still on the card');
+  const subj = a.d.querySelector('#s-site .digest-look .dp-subj');
+  if (!subj || subj.textContent.indexOf(want.shown.subject) < 0) bad.push('the subject line is not the backend\'s: ' + (subj && subj.textContent));
+  const box = a.d.querySelector('#s-site .digest-words [data-dw="digest_subject"]');
+  if (!box) return bad.concat(['no Subject box on the words card']);
+  box.value = 'Typed for {child}';
+  box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  let asked = null;
+  for (let i = 0; i < 40 && !(asked = a.sent.filter(x => x.action === 'digestPreview' && x.words).pop()); i++) await wait(100);
+  if (!asked || asked.words.digest_subject !== 'Typed for {child}') bad.push('typing the subject did not ask the backend\'s renderer with it: ' + JSON.stringify(asked && asked.words));
+  await wait(400);
+  const subj2 = a.d.querySelector('#s-site .digest-look .dp-subj');
+  if (!subj2 || !/Typed for \S/.test(subj2.textContent)) bad.push('after typing, the subject shown is "' + (subj2 && subj2.textContent) + '"');
   return bad;
 });
 

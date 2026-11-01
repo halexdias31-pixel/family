@@ -103,13 +103,15 @@ const writesBefore = JSON.stringify(b.tabs);
   as('I-ADM', { action: 'inboxList', q: 'from:ada', page: 'PAGE2' });
   const t = asked.find(a => a.path === 'threads') || {};
   if (t.q !== 'from:ada' || t.page !== 'PAGE2') fail('inboxList', 'q and page did not reach Gmail: ' + JSON.stringify(t));
+  /* STATIC (547): "just static overview" -- no action hands a message body to anybody, an admin included. */
+  asked.length = 0;
   const r = as('I-ADM', { action: 'inboxRead', id: 'm001aaa' });
-  if (!r.success || !/Hello/.test(r.html || '') || /<script|onclick|<style/i.test(r.html)) fail('inboxRead', 'the message: ' + JSON.stringify(r).slice(0, 240));
-  if (as('I-ADM', { action: 'inboxRead', id: '../labels' }).success) fail('inboxRead', 'an id that is a path was fetched');
+  if (r.success || /Hello/.test(JSON.stringify(r)) || asked.some(a => /^messages\//.test(a.path))) fail('static', 'a message body was served: ' + JSON.stringify(r).slice(0, 200));
+  if (/format=full|inboxBodies_|text\/html/.test(fs.readFileSync(path.join(ROOT, 'backend', 'inbox.gs'), 'utf8'))) fail('static', 'backend/inbox.gs still asks Gmail for message bodies');
   ['I-CLI', 'I-TUT'].forEach(pid => {
     asked.length = 0;
-    const x = as(pid, { action: 'inboxList', q: '' }), y = as(pid, { action: 'inboxRead', id: 'm001aaa' });
-    if (x.success || y.success || !x.error || !y.error || asked.length) fail('refused', pid + ' was answered: ' + JSON.stringify([x, y]).slice(0, 200));
+    const x = as(pid, { action: 'inboxList', q: '' });
+    if (x.success || !x.error || asked.length) fail('refused', pid + ' was answered: ' + JSON.stringify(x).slice(0, 200));
   });
   const anon = b.post({ action: 'inboxList', q: '' });
   if (anon.success) fail('refused', 'a request with no token was answered');
@@ -123,7 +125,7 @@ const writesBefore = JSON.stringify(b.tabs);
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'backend', 'appsscript.json'), 'utf8'));
   if ((manifest.oauthScopes || []).indexOf('https://www.googleapis.com/auth/gmail.readonly') < 0) fail('manifest', 'gmail.readonly is not listed');
   if ((manifest.oauthScopes || []).some(s => /mail\.google\.com|gmail\.(modify|send|compose)/.test(s))) fail('manifest', 'a Gmail scope wider than read-only is listed');
-  if (!bad.length) said.push('backend: admin lists (newest first, unread, labels, page token), reads one sanitised; client and tutor refused before Gmail is asked; nothing in doGet or a sheet');
+  if (!bad.length) said.push('backend: admin lists (newest first, unread, labels, page token), serves no message body; client and tutor refused before Gmail is asked; nothing in doGet or a sheet');
 }
 
 /* ---------- THE SCREEN: the real app, every post answered by the real backend ---------- */
@@ -192,24 +194,14 @@ async function screens() {
   if (A.d.querySelector('#s-site .ib-box .search-pill, #s-site .ib-box .chip, #s-site .ib-box [data-do="inbox-more"]')) fail('admin', 'the widget still has a search pill, chips or More');
   const asks = A.sent.filter(x => x.action === 'inboxList');
   if (asks.length !== 1 || asks[0].q !== 'in:inbox' || asks[0].page) fail('admin', 'the inbox was asked for as ' + JSON.stringify(asks));
-  /* OPEN ONE */
-  A.u.ACTIONS['inbox-open'](first);
-  if (!(await until(() => A.d.querySelector('#s-site .ib-body'), 15000))) return fail('open', 'the message never drew');
-  const body = A.d.querySelector('#s-site .ib-body');
-  if (!/Hello/.test(body.textContent)) fail('open', 'the body reads "' + body.textContent.slice(0, 80) + '"');
-  if (body.querySelector('script,style,[onclick],[onmouseover],[style]') || A.w.__pwned) fail('open', 'something live survived: ' + body.innerHTML.slice(0, 200));
-  const img = body.querySelector('img');
-  if (!img || img.getAttribute('src')) fail('open', 'a remote image was not blocked by default: ' + (img ? img.outerHTML : 'no img'));
-  const links = [...body.querySelectorAll('a')];
-  if (links.some(a => /^javascript/i.test(a.getAttribute('href') || '')) || links.some(a => a.getAttribute('href') && (a.target !== '_blank' || !/noopener/.test(a.rel)))) fail('open', 'a link is unsafe: ' + links.map(a => a.outerHTML).join(' '));
-  const gm = A.d.querySelector('#s-site .ib-msg a.tile[href^="https://mail.google.com/"]');
-  if (!gm) fail('open', 'no Open in Gmail tile');
-  const show = A.d.querySelector('#s-site [data-do="inbox-images"]');
-  if (!show) fail('open', 'no Show images tile');
-  else { A.u.ACTIONS['inbox-images'](show); const im = A.d.querySelector('#s-site .ib-body img'); if (!im || !/^https:/.test(im.getAttribute('src') || '')) fail('open', 'Show images did not show it'); }
-  A.u.ACTIONS['inbox-back'](A.d.querySelector('#s-site [data-do="inbox-back"]'));
-  if (A.sent.some(x => /^inbox/.test(x.action) && !/^inbox(List|Read)$/.test(x.action))) fail('read-only', 'the widget sent something else');
-  if (!bad.some(x => /^(admin|open)/.test(x))) said.push('screen: admin sees the last four, opens a message (images blocked, links safe, Show images, Open in Gmail)');
+  /* NOTHING OPENS (547): no control anywhere in the widget, no open action registered, so the four rows are the whole of it. */
+  const live = A.d.querySelectorAll('#s-site .ib-box button, #s-site .ib-box a, #s-site .ib-box [data-do], #s-site .ib-box [tabindex], #s-site .ib-box input');
+  if (live.length) fail('static', 'the Email widget has ' + live.length + ' control(s): ' + [...live].map(x => x.outerHTML.slice(0, 80)).join(' | '));
+  const opens = Object.keys(A.u.ACTIONS).filter(k => /^inbox-/.test(k));
+  if (opens.length) fail('static', 'the app still registers ' + opens.join(', '));
+  ['from', 'subj', 'at', 'snip'].forEach(k => { if (!first.querySelector('.ib-' + k)) fail('static', 'a row has no ' + k); });
+  if (A.sent.some(x => /^inbox/.test(x.action) && !/^inboxList$/.test(x.action))) fail('read-only', 'the widget sent something else');
+  if (!bad.some(x => /^(admin|static)/.test(x))) said.push('screen: admin sees the last four as a static list (sender, subject, time, snippet), nothing opens');
 
   const C = app('I-CLI');
   if (C.err) return fail('the app', C.err);

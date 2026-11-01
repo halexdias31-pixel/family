@@ -2671,27 +2671,21 @@ function asstGet_() {
   return { day: today, left: Math.max(0, left), msgs: msgs.slice(-ASST_KEEP) };
 }
 function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
-/* A SLOGAN OR A PLACEHOLDER IS NOT A FACT: the model greeted with the slogan glued to the name (461). */
-const ASST_FACT_SKIP = /logo|colou?r|^ink$|accent|ground|font|phone|email|^site$|url|slogan|tagline|motto|strap|hero|headline/i;
-const asstPlaceholder_ = t => /^(todo|tbc|tbd|n\/?a|none|x+|-+|…|\.\.\.|lorem\b.*|placeholder.*|example.*)$/i.test(t)
-  || /\{\{|\}\}|\[[^\]]*\]|<[^>]+>|lorem ipsum/i.test(t);
-/* WHAT DAIVE IS TOLD ABOUT THE BUSINESS: the brand tab's plain facts and a few config numbers, all public already. */
+/* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
+const ASST_NAV = {
+  spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
+  dm: 'messages, one conversation per page; Daive is the first', tools: 'the widgets: whiteboard, calculator, planners and more',
+  stuff: 'pick answers to narrow down questions, papers and lessons', res: 'a second finder that keeps its own place',
+  saved: 'what you starred', booking: 'book a session', shop: 'the shop', games: 'games',
+  family: 'a parent account\'s settings', staff: 'a tutor account\'s settings', account: 'a student account\'s settings: sign in, PIN, progress',
+  tutors: 'a card per tutor', students: 'a card per student', parents: 'a card per parent',
+};
+/* WHAT DAIVE IS TOLD: the columns this viewer has, left to right, and the Tools widgets' names -- a map of the site and nothing else (547). */
 function asstFacts_() {
-  const out = [];
-  const b = (DATA && DATA.brand) || {};
-  Object.keys(b).forEach(k => {
-    const v = b[k];
-    if (typeof v !== 'string' && typeof v !== 'number') return;
-    const t = String(v).trim();
-    if (!t || t.length > 300 || ASST_FACT_SKIP.test(k) || asstPlaceholder_(t)) return;
-    if (/^#|^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(t)) return;
-    out.push((k === 'name' ? 'business name' : k.replace(/_/g, ' ')) + ': ' + t);
-  });
-  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
-  if (v.h) out.push('hours per session: ' + v.h);
-  if (v.max_students_per_job) out.push('most students in one session: ' + v.max_students_per_job);
-  try { out.push('screens in the app: ' + TABS.map(t => t.title).join(', ')); } catch (e) {}
-  out.push('to book: the Booking screen; to message a tutor: the Message tile on their card');
+  const out = ['swipe left and right to move between columns; the bar at the bottom jumps to one'];
+  try { TABS.forEach(t => out.push('column "' + t.title + '": ' + (ASST_NAV[t.id] || t.title))); } catch (e) { /* no columns yet: the map is shorter, not broken */ }
+  try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools widgets: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
+  out.push('to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }
 /* THE SAME SHAPE `messagesHtml_` DRAWS FOR A PERSON, so Daive's bubbles are a conversation's bubbles. */
