@@ -277,6 +277,21 @@ const artOf_ = sel => (ART_TONE.find(a => a[0].test(sel)) || [])[1];
   }));
 }
 
+/* ---------- 7d's ALLOWED FADES: no words under them, or a state the slide owns. One reason each; a line nothing matches fails. */
+const DIM_OK = [
+  [/^\.page\.soft/, 'a parked pane behind the one in front — the slide\'s, never read while dimmed (ui.js stops there too)'],
+  [/^\.loading\b/, 'the three waiting dots are dots, not words'],
+  [/\.pfp-opt$/, 'a face picture to choose; pictures only'],
+  [/\.av-opt\.locked/, 'a wardrobe picture not yet earned; its words (`.av-why`) are left out of the fade'],
+  [/\.text-drop$/, 'the one-glyph ✕ that removes a row, half strength until a touch screen shows it'],
+  [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],
+  [/\.qsheet span\.box$/, 'the empty box a paper leaves for an answer — an outline, no words'],
+  [/\.slot-hours$/, 'the hour cells of a week that cannot be answered: disabled buttons with no text'],
+  [/\.vid-th > :is\(img, \.vid-poster\)$/, 'a film not in the Drive: its picture and play icon fade, its duration badge keeps full ink'],
+  [/^\.hr\.shut$/, 'an hour nobody can book: a disabled button with no text'],
+];
+const dimSeen = new Set();
+
 /* ---------- 7d. PAPER IS NEVER A LITERAL, INK ON THE ACCENT IS ONE TOKEN, CONTRAST COUNTS OPACITY (541, U18) § */
 const paperTone = [], goldInk = [], pairLow = [], dimText = [];
 {
@@ -304,14 +319,15 @@ const paperTone = [], goldInk = [], pairLow = [], dimText = [];
     const ink = r.decls.find(d => d.prop === 'color');
     if (bg && ink && ink.val !== 'var(--on-gold)' && !PRESS_TONE.test(r.sel))
       goldInk.push('line ' + r.line + '  ' + r.sel + '  color: ' + ink.val + ' on `background: var(--gold)` — say `var(--on-gold)`');
-    /* TEXT DIMMED BY OPACITY: its contrast is then a sum nobody did. Dim with a colour token (`--dim`, `--faint`, a mix). */
+    /* ANY OPACITY BELOW 1 (541 review): a rule that sets only opacity still fades the words under it. A picture, a
+       disabled control, a pseudo-element or a frame is not words; anything else is fixed or written into DIM_OK. */
     const op = r.decls.find(d => d.prop === 'opacity');
     const v = op ? parseFloat(op.val) : 1;
-    const texty = r.decls.some(d => /^(color|font|font-(size|style|weight)|letter-spacing|text-transform)$/.test(d.prop))
-      && !r.decls.some(d => /^(fill|stroke)$/.test(d.prop));
-    const quiet = /:disabled|\[disabled\]|\.is-off\b|\.is-locked|\.locked\b|\.shut\b|\.is-sending|\.soft\b/.test(r.sel);
-    if (v > 0 && v < 1 && texty && !quiet && !/^(from|to|[\d.]+%)/.test(r.sel))
-      dimText.push('line ' + r.line + '  ' + r.sel + '  opacity: ' + op.val + ' on text — dim it with a colour token instead');
+    const notWords = /:disabled|\[disabled\]|::?(before|after|placeholder|marker)\b|(^|[\s>(,])(img|svg|video|canvas|picture)\b[^\s]*\)?$/.test(r.sel);
+    const ok = DIM_OK.find(a => a[0].test(r.sel));
+    if (ok && v > 0 && v < 1) dimSeen.add(ok);
+    if (v > 0 && v < 1 && !notWords && !ok && !artOf_(r.sel) && !PRESS_TONE.test(r.sel) && !/^(from|to|[\d.]+%)/.test(r.sel))
+      dimText.push('line ' + r.line + '  ' + r.sel + '  opacity: ' + op.val + ' fades whatever words are under it — dim with a colour token (`--dim`, `--faint`, a mix), or add a DIM_OK line with its reason');
   });
   /* ---------- THE TOKEN PAIRS THAT CARRY WORDS, 4.5:1 EACH (D8 darkened --paper-faint) § */
   const root = rules.find(r => r.sel === ':root' && !r.cond);
@@ -381,6 +397,7 @@ say('A COLOUR THAT WRITES A TOKEN OUT BY HAND — a literal cannot say which tok
 say('A PAPER COLOUR WRITTEN AS A LITERAL — paper draws in --paper* only', paperTone);
 say('INK ON THE ACCENT THAT IS NOT --on-gold — one token, never four spellings', goldInk);
 say('A TOKEN PAIR THAT CARRIES WORDS UNDER 4.5:1', pairLow);
+DIM_OK.filter(a => !dimSeen.has(a)).forEach(a => dimText.push('DIM_OK ' + a[0] + ' matches no rule — delete the line'));
 say('TEXT DIMMED BY OPACITY — its contrast is then a sum nobody did', dimText);
 say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT — the ten are their own', pfpTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */

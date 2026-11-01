@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-01-j-colour";
+  --css-version: "2026-11-01-j-colour-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -493,7 +493,7 @@ input:disabled, select:disabled, textarea:disabled {
 }
 /* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
    the pair reads as a rendering fault rather than as a state. */
-.is-sending .field > span { opacity: .62; }
+.is-sending .field > span { color: var(--faint); }
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
   outline: 0; border-color: var(--gold); }
@@ -1486,7 +1486,12 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* NOBODY HAS PRICED IT. § */
 
 /* Something an admin has switched off — a tutor, a resource, a post. § */
-.card.is-off, .post.is-off { opacity: .45; }
+/* RECEDED IN COLOUR, NOT OPACITY (541): ink falls to --dim and the accent with it, so every word stays ≥4.5:1. `:where` lets a part's own colour win. */
+:where(.card.is-off, .post.is-off),
+:where(.is-locked > :not(.card-lock, h3, .card-say)),
+:where(.prac.is-off > :not(h3, .prac-no)) { --ink: var(--dim); --gold: var(--dim); color: var(--ink); }
+:where(.msg.is-sending .msg-bub) { --ink: var(--dim); --gold: var(--dim); }
+:where(.card.is-off, .post.is-off, .is-locked > :not(.card-lock, h3, .card-say)) :is(img, video, canvas) { opacity: .6; }
 
 /* ---------- POSTS § */
 .post { padding: 0 0 1.2rem; border-bottom: 1px solid var(--line-soft); margin-bottom: 1.2rem; }
@@ -1966,7 +1971,7 @@ button.text-drop { color: var(--bad); }
 /* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
    still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
 .vid-row.is-off { cursor: default; }
-.vid-row.is-off .vid-th { opacity: .5; }
+.vid-row.is-off .vid-th > :is(img, .vid-poster) { opacity: .5; }
 .vid-row.is-off .vid-t { color: var(--dim); }
 
 /* THE ADMIN'S SYNC ROW: § */
@@ -2334,7 +2339,6 @@ button.text-drop { color: var(--bad); }
 .dm-new { display: inline-block; margin-left: .4rem; padding: .12rem .45rem; border-radius: 999px;
           background: var(--gold); color: var(--on-gold); vertical-align: .15em;
           font-size: .62rem; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
-.msg.is-sending .msg-bub { opacity: .6; }
 /* `.mine.is-failed` AS WELL, because a refusal is only ever on your side and `.msg.mine .msg-bub` sets the gold border at the same (0,3,0) — so which won was § */
 .msg.is-failed .msg-bub, .msg.mine.is-failed .msg-bub { border-color: var(--bad); }
 /* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED § */
@@ -2444,7 +2448,7 @@ button.text-drop { color: var(--bad); }
 /* An open slot is dashed and pale — the same language every lobby uses for a space you could take,
    and unmistakably different from a filled one at a glance. */
 /* ---------- `background: transparent` WAS A PAPER RULE DRAWN ON BLACK § */
-.rost-slot:not(.on) { border-style: dashed; opacity: .6; }
+.rost-slot:not(.on) { border-style: dashed; background: var(--paper); }
 /* The tutor is not a seat. A line above the slot says so without needing a different shape. */
 .rost-slot.tut { border-top: 2px solid var(--rost-tutor); }
 .rost-pic { width: 18px; height: 18px; display: grid; place-items: center; }
@@ -2703,7 +2707,8 @@ label.bk-k { cursor: pointer; }
 .bk-row.bk-wk.is-shut .hr { min-height: 11px; }
 /* AND A WEEK THAT CANNOT BE ANSWERED RECEDES RATHER THAN VANISHING — a joined class's hours are
    somebody else's decision, and greying them still says which ones they were. */
-.bk-row.bk-wk.is-off .slot-hours, .bk-row.bk-wk.is-off .wk-hh { opacity: .45; }
+.bk-row.bk-wk.is-off .slot-hours { opacity: .45; }
+.bk-row.bk-wk.is-off .wk-hh { color: var(--faint); }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
@@ -3550,13 +3555,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .own-sec > .tile-row.ce-tiles { position: static; padding: 0; margin-top: .5rem; background: none; box-shadow: none; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
-/* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
+/* SWITCHED OFF. The whole card dims (in colour: see `.card.is-off`) and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
-.card.is-widget.is-off { opacity: .6; }
 /* A LOCKED GAME (461, `gameLockTile_`): the card ringed in gold, and while it holds nothing on the page pans or overscrolls. */
 .card.is-widget.is-locked { box-shadow: inset 0 0 0 2px var(--gold); }
 /* HELD BY ITS PADLOCK (498): not dimmed, and its words selectable for copy and paste. */
-.card.is-widget.is-locked > * { opacity: 1; }
+.card.is-widget.is-locked > * { --ink: inherit; --gold: inherit; }
 .is-held, .is-held * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 .favwrap.is-held { box-shadow: inset 0 0 0 2px var(--gold); border-radius: var(--r-sm); }
 html.padlocked, html.padlocked * { touch-action: none !important; overscroll-behavior: none !important; }
@@ -4366,18 +4370,18 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet ol.levels { margin: .2rem 0 .6rem; padding-left: 1.6rem; }
 .qsheet ol.levels li { margin: .15rem 0; }
 
-.qsheet-stem { opacity: .82; border-bottom: 1px dashed var(--line);
+.qsheet-stem { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
 /* ---------- A STEM ON ITS OWN PAGE IS THE PAGE, NOT A PREFACE TO IT § */
-.qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.qstem .qsheet-stem { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
 /* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge all the way round"), so on its own page it keeps the § */
 .qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
-.qsheet-stem.is-over { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
+.qsheet-stem.is-over { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
 .qsheet-lines { margin: 0 0 .35rem; font-size: .74rem; letter-spacing: .06em;
                 text-transform: uppercase; color: color-mix(in srgb, var(--gold) 90%, var(--bg)); }
-.qsheet-lead { opacity: .9; margin-bottom: .6rem; }
+.qsheet-lead { color: color-mix(in srgb, var(--ink) 90%, var(--bg)); margin-bottom: .6rem; }
 .qsheet-pn { font-weight: 700; color: var(--gold); }
 /* THE PART LETTER SITS OUTSIDE THE TEXT, in the margin, the way it is printed — indented body text under a hanging (a) is what makes a multi-part question § */
 .qsheet-part { display: flex; gap: .6rem; }
@@ -4497,8 +4501,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .prac-haz.haz-high   { color: var(--bad); }
 
 /* ---------- AND THE ONES THAT ARE NOT RUN § */
-.prac.is-off { opacity: .72; }
-.prac.is-off h3, .prac.is-off .prac-no { opacity: 1; }
+/* Their other lines recede in colour beside `.card.is-off` (541); the reason stays at full ink. */
 .prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--bad);
            font-size: .8rem; line-height: 1.5; color: var(--ink); }
 .prac-no b { color: var(--bad); font-weight: 600; }
@@ -5748,7 +5751,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
   border-radius: var(--r-sm); font: 500 .9rem/1 var(--font); cursor: pointer;
 }
-.ss-chip.used { opacity: .35; border-style: dashed; }
+.ss-chip.used { color: var(--faint); border-style: dashed; }
 .ss-chip:disabled { cursor: default; }
 /* CHECK AND NEW SENTENCE SIDE BY SIDE, the correction `.btn-row .btn` already makes to `.btn`'s
    full width. */
@@ -6035,7 +6038,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .meas-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .meas-tick { stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; fill: none; }
 .meas-num { fill: var(--gold); text-anchor: middle; dominant-baseline: middle; font-family: var(--font); }
-.meas-num.meas-in { opacity: .75; }
+.meas-num.meas-in { fill: color-mix(in srgb, var(--gold) 75%, transparent); }
 .meas-turn { fill: color-mix(in srgb, var(--gold) 30%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: alias; }
 .meas-turn-i { fill: none; stroke: var(--gold); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 /* EDITING LIKE iOS (385): the loupe over a held finger, and a selection's two ends as handles to drag */
@@ -6809,7 +6812,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
 .is-locked { position: relative; }
-.is-locked > *:not(.card-lock):not(h3):not(.card-say) { opacity: .55; }
+/* Its other children recede in colour beside `.card.is-off` (541): opacity took the field labels to 2.3:1. */
 .card-lock { position: absolute; top: .7rem; right: .8rem; color: color-mix(in srgb, var(--ink) 80%, var(--bg)); pointer-events: none; }
 .card-lock svg { width: 18px; height: 18px; display: block; }
 .is-locked > h3 { padding-right: 1.6rem; }

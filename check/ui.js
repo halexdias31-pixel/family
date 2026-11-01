@@ -69,7 +69,11 @@ const VISITORS = [
                                   lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
                                   lib3_name: 'Wandsworth Town and Putney',
                                   lib3_no: '2000000000002', lib3_pin: '0000' } } },
-];
+  /* AND A STUDENT (541 review), ON ASKING: the lowest rank sees the most locked cards, but most states in states.js
+     are drawn for an admin and have no `only`, so by default it would report ~50 unreachable states. */
+  { as: 'student', ask: true, user: { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' } },
+].filter(v => arg('as') ? arg('as').split(',').indexOf(v.as) !== -1 : !v.ask);   // `--as=out,in,student` picks
+const whoSay_ = as => as === 'in' ? ' signed in' : as === 'out' ? '' : ' as ' + as;
 
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.
    The smaller number is used so this reports what is indefensible rather than what is imperfect. */
@@ -1389,7 +1393,7 @@ function inspect(opts) {
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
-            + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+            + `-${width}${who.as === 'out' ? '' : '-' + who.as}.png`) });
 
         /* ---------- AND WHEN WHAT IT WAITED FOR LANDS, THE CARD DOES NOT MOVE § */
         if (state.release && loaders.length) {
@@ -1511,9 +1515,9 @@ function inspect(opts) {
   /* WHERE A FAULT WAS SEEN NOW SAYS WHO WAS LOOKING. § */
   for (const r of rows) {
     if (r.skipped) continue;
-    const at = `${r.id}@${r.width}${r.as === 'in' ? ' signed in' : ''}`;
+    const at = `${r.id}@${r.width}${whoSay_(r.as)}`;
     (r.jsErrors || []).forEach(e => add('JS ERROR', e,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`));
+      `${r.width}px${whoSay_(r.as)}`));
     /* NOT GROUPED UNDER A SCREEN NAME, because it is not about one: the place is the width and the
        visitor, and the finding names the two columns furthest apart so there is something to look
        at rather than a number. */
@@ -1522,11 +1526,11 @@ function inspect(opts) {
       `the page is ${r.docScroll.h}px tall inside a ${r.docScroll.vh}px viewport, so the whole app `
       + `can be scrolled by ${r.docScroll.over}px — body padding ${r.docScroll.pad}, `
       + `children ${r.docScroll.kids}`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
       `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
       + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
@@ -1595,7 +1599,7 @@ function inspect(opts) {
   console.log(`\nchecked ${checked} screen/width/visitor combinations `
             + `(${screens.reduce((n, id) => n + statesOf(id).length, 0)} screen states x `
             + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
-            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
+            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as !== 'out' ? whoSay_(v.as).trim()
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
   console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `

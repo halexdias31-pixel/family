@@ -52,3 +52,36 @@ belong to package E (536); the toast's colour to package F (537); the keypad's t
 Each was proven by a mutation: an ink of `#000` on the accent, the notepad's `#f7f4e9`, the old `--paper-faint`,
 `.kt-done`'s opacity and a hand-written `--pa-ink` each turned check-css red in its own section, and the real
 file went green again.
+
+## The review's round (1 Nov)
+
+The review measured head's ui.js at 320 for every visitor, with a student added, and found 65 CONTRAST findings,
+all "faded by opacity": the switched-off tutor card (`.card.is-widget.is-off` .6, its "not listed" warning at
+2.48:1), a locked settings card (`.is-locked > *` .55, field labels at 2.31:1), the sentence builder's used chips
+(.35), the sign-in caption while sending (.62), a week's "9 – 18" rule (.45) and a film's thumbnail (.5). The first
+report's "adds no contrast findings" was measured at 390 on tools and res only, and was wrong. The static 7d check
+exempted `.is-off`, `.is-locked` and `.is-sending` as quiet while the browser counted them, so the two disagreed.
+
+What changed:
+- **Receded in colour.** One rule (beside `.card.is-off`) gives a switched-off card or post, a locked card's
+  children and a refused practical's other lines `--ink: var(--dim); --gold: var(--dim); color: var(--ink)`, inside
+  `:where` so a part's own colour still wins. Every word stays at --dim or --faint, 5.7:1 or better on black; only
+  pictures keep an opacity. A sending message bubble gets the same two tokens. `.card.is-widget.is-locked > *` (a
+  game held by its padlock, 498) hands the real tokens back with `inherit`. `.prac.is-off h3 { opacity: 1 }`, which
+  could never undo its parent's .72, is gone with it.
+- The sending caption, the used chip and the week's hours rule are `--faint`; the stem and lead of a question are
+  colour mixes of --ink (.82 and .9 of it, as the opacity was); the measuring tool's inner number is a mix of its fill;
+  an open roster slot is paler paper rather than see-through.
+- **7d now asks every opacity under 1**, not only one in a rule that also sets a colour or a font: `.qsheet-stem`
+  set only opacity and margin and passed. Pictures, disabled controls, pseudo-elements and frames are not words;
+  everything else is fixed or written into `DIM_OK` with its reason (the parked pane, the waiting dots, face and
+  wardrobe pictures, the one-glyph ✕, the message flag icon, the answer box outline, a film's picture, the disabled
+  hour cells). A `DIM_OK` line that matches no fading rule fails.
+- **ui.js can measure a student**: `--as=student` (or `--as=out,in,student`). Not by default: most states in states.js are drawn for an admin with no `only`, and a student run reports ~50 of them unreachable — a states.js job, not this one.
+
+Proven: `.qsheet-lead { opacity: .9 }` and `.ss-chip.used { opacity: .35 }` each turned 7d red, `.hr.shut`
+at full opacity turned its stale `DIM_OK` line red, and the real file went green again.
+In the browser, `.ss-chip.used { opacity: .35 }` put back gave 7 CONTRAST findings on games@320 (2.68:1); the real
+file gives none. Measured afterwards: ui.js at 320 and 390 for signed out, admin and student, and at 1280 for
+all three: no CONTRAST findings (the run still exits 1 on the tap-target, sideways and edge findings that were
+there before, package B's).
