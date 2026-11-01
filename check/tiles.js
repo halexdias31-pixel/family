@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 36px plate with a 16px mark (Check/Send 44px, 508), flowing left like words, one row per thing, no spill. Flags: --width=390. Port: TILES_PORT. */
+/* AND AS DRAWN (533): every tile in every state of check/states.js, student and admin, at 320 and 390, is 36px on the glass (44 a Check) after any zoom. --no-states skips it. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -10,6 +11,13 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
+const STUDENT = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' };
+/* A STUDENT IS SENT WHAT doGet SENDS A STUDENT, as check/ui.js does: no admin-only films. */
+const FIXTURE_ANON = (() => { try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); } catch (e) { return FIXTURE; } })();
+const { statesOf } = require('./states.js');
+const NO_STATES = process.argv.includes('--no-states');
+/* THE FINGERTIP FLOOR ON THE GLASS (533, U10): half a pixel under 36 and 44, because a rectangle is a sum and not a size. */
+const FLOOR = 35.5, FLOOR_SUBMIT = 43.5;
 const WIDTH = Number((process.argv.find(a => a.startsWith('--width=')) || '').split('=')[1] || 0);
 const SIZES = [320, 390, 768, 1280].filter(w => !WIDTH || w === WIDTH);
 const bad = [];
@@ -113,12 +121,76 @@ function measure(id) {
   return { out, tiles };
 }
 
+/* ---------- IN THE PAGE: every tile of one screen as drawn, zoom and all -- what a finger meets. */
+function drawn([id, floor, floorSubmit]) {
+  const sec = document.getElementById('s-' + id);
+  if (!sec) return { n: 0, out: [] };
+  const out = [];
+  let n = 0;
+  sec.querySelectorAll('.tile').forEach(t => {
+    const b = t.getBoundingClientRect();
+    if (!b.width || !b.height || t.closest('[hidden]')) return;
+    n++;
+    const want = t.classList.contains('is-submit') ? floorSubmit : floor;
+    if (b.width < want || b.height < want) out.push(`"${t.getAttribute('aria-label') || '?'}" is drawn ${Math.round(b.width * 10) / 10}x${Math.round(b.height * 10) / 10}`);
+  });
+  return { n, out };
+}
+
+/* ---------- EVERY STATE, AS EACH VISITOR SEES IT: entered, arrived (asked up to 2.5s), measured, put back. */
+async function statesPass(browser, port) {
+  let n = 0, states = 0;
+  /* A STATE THIS PASS COULD NOT REACH IS PRINTED AND COUNTED, NOT FAILED: reaching states is check/ui.js's rule, and some ask for its visitor and its payload. */
+  const missed = [];
+  const run = (page, src) => page.evaluate(x => { try { (0, eval)('(' + x + ')')(); return true; } catch (e) { return String(e && e.message || e); } }, String(src));
+  for (const w of [320, 390].filter(x => !WIDTH || x === WIDTH)) {
+    for (const who of [{ as: 'student', user: STUDENT, body: FIXTURE_ANON }, { as: 'admin', user: USER, body: FIXTURE }]) {
+      const page = await browser.newPage({ viewport: { width: w, height: w === 320 ? 568 : 844 }, hasTouch: true, isMobile: true });
+      await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, who.user);
+      await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: who.body }));
+      await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 30000 }).catch(() => {});
+      await page.waitForTimeout(800);
+      const ids = await page.evaluate(() => { try { columnsFor_(); } catch (e) {} return TABS.map(t => t.id || t); });
+      for (const id of ids) {
+        for (const st of statesOf(id)) {
+          const where = `${w}px ${who.as} #s-${id}${st.name ? ' · ' + st.name : ''}`;
+          await page.evaluate(i => { try { closeSheet(); } catch (e) {} try { go(i, false, true); } catch (e) {} }, id);
+          await page.waitForTimeout(250);
+          if (st.only && !(await page.evaluate(x => { try { return !!(0, eval)('(' + x + ')')(); } catch (e) { return false; } }, String(st.only)))) continue;
+          if (st.enter) {
+            const ok = await run(page, st.enter);
+            if (ok !== true) { missed.push(`${where}: could not be entered (${ok})`); if (st.leave) await run(page, st.leave); continue; }
+            await page.waitForTimeout(300);
+          }
+          if (st.expect) {
+            const got = await page.evaluate(async x => {
+              const t0 = performance.now();
+              for (;;) { let ok = 0; try { ok = (0, eval)('(' + x + ')')(); } catch (e) {} if (ok || performance.now() - t0 > 2500) return ok; await new Promise(r => setTimeout(r, 100)); }
+            }, String(st.expect));
+            if (!got) { missed.push(`${where}: entered and never arrived`); if (st.leave) await run(page, st.leave); continue; }
+          }
+          /* AFTER THE PANES ARE REACHED: `paneReach_` runs a frame after a placement. */
+          await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const r = await page.evaluate(drawn, [id, FLOOR, FLOOR_SUBMIT]);
+          n += r.n; states++;
+          r.out.forEach(x => bad.push(`${where}: ${x}, under a fingertip`));
+          if (st.leave) { await run(page, st.leave); await page.waitForTimeout(150); }
+        }
+      }
+      await page.close();
+    }
+  }
+  missed.forEach(m => console.log('  not reached, its tiles not measured: ' + m));
+  return { n, states, missed: missed.length };
+}
+
 (async () => {
   const server = await serve();
   const port = server.address().port;
   let browser;
   try { browser = await chromium.launch(); } catch (e) { console.error('tiles: no browser — ' + e.message); process.exit(2); }
-  let measured = 0;
+  let measured = 0, floor = { n: 0, states: 0 };
   try {
     for (const w of SIZES) {
       const page = await browser.newPage({ viewport: { width: w, height: 844 } });
@@ -156,8 +228,12 @@ function measure(id) {
       }
       await page.close();
     }
+    if (!NO_STATES) floor = await statesPass(browser, port);
   } finally { await browser.close(); server.close(); }
   if (!measured) { console.error('tiles: no tile was measured — the check cannot see its subject'); process.exit(1); }
+  if (!NO_STATES && !floor.n) { console.error('tiles: no tile was measured as drawn in any state — the floor reached nothing'); process.exit(1); }
   if (bad.length) { console.error(`tiles: ${bad.length} tile(s) off the spec`); bad.forEach(b => console.error('  ' + b)); process.exit(1); }
-  console.log(`tiles: ${measured} tiles at ${SIZES.join('/')}px — one size, one mark, left-aligned, no overlap or spill`);
+  /* SHORT ENOUGH FOR check/quiet.js's ONE LINE, which cuts at 200 characters: the floor's counts are the part worth reading. */
+  console.log('tiles: ' + (NO_STATES ? '' : `none under a fingertip — ${floor.n} drawn in ${floor.states} states, student and admin, 320/390 (${floor.missed} not reached, -v); `)
+    + `${measured} at ${SIZES.join('/')}px to spec, left-aligned, no overlap or spill`);
 })();

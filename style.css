@@ -1071,6 +1071,8 @@ a { color: inherit; text-decoration: none; }
 .calc { --calc-body: #2a2b2e; --calc-edge: #141517; --calc-bezel: #1d1e20; --calc-lcd: #cddbd3; --calc-lcd-ink: #17201b;
         --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
         --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
+        /* ONE KEY ROW'S HEIGHT, set from the pane by `calcFit_` (games.js) so the device fits at full size (533, D4); nine rows of it. */
+        --calc-row: 52px;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
         max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
         border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
@@ -1106,8 +1108,9 @@ a { color: inherit; text-decoration: none; }
 .calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); row-gap: var(--calc-gut); }
 .calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: var(--calc-gut); }
 .calc-fn { margin-block: var(--calc-gut); }
+.calc-fn, .calc-num { grid-auto-rows: var(--calc-row); }
 /* The whole cell is the key, so the tap target is the column, never the drawn cap alone. */
-.mc-btn { position: relative; min-height: 44px; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
+.mc-btn { position: relative; min-height: 0; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
           display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
 .mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1; box-sizing: border-box;
@@ -1128,12 +1131,14 @@ a { color: inherit; text-decoration: none; }
 .mc-alt sup { vertical-align: baseline; position: relative; top: -.45em; line-height: 1; }
 /* Oval function keys, round number keys — the device's two shapes. */
 .calc-fn .mc-lab, .calc-top .lt .mc-lab { width: 82%; height: 30px; font-size: .95rem; }
-.calc-num .mc-lab { width: 80%; aspect-ratio: 1.1; height: auto; max-height: 54px; font-size: 1.45rem; font-weight: 500; }
+/* A FACE NO TALLER THAN ITS ROW LESS ITS LEGEND: a short row draws a flatter key, never a taller device. */
+.calc-fn .mc-lab { height: min(30px, calc(var(--calc-row) - .8rem - 3px)); }
+.calc-num .mc-lab { width: 80%; aspect-ratio: 1.1; height: auto; max-height: min(54px, calc(var(--calc-row) - .8rem - 3px)); font-size: 1.45rem; font-weight: 500; }
 .mc-k-C .mc-lab, .mc-k-sd .mc-lab, [data-mc="="] .mc-lab { font-size: 1.2rem; font-weight: 700; }
 .calc-num .mk-fmt { font-size: .6rem; font-weight: 800; font-style: normal; letter-spacing: -.02em; }
 .calc-fn .mk { height: 1.1em; width: auto; }
 /* The top block on a grid of half-rows: the captioned keys take three, the D-pad's keys two, so the pad sits clear. */
-.calc-top { grid-template-rows: repeat(6, auto) auto; row-gap: 0; margin-bottom: 0; }
+.calc-top { grid-template-rows: repeat(6, calc(var(--calc-row) / 2)) auto; row-gap: 0; margin-bottom: 0; }
 .calc-top .mc-alt { color: var(--calc-print); font-size: .55rem; letter-spacing: .02em; }
 .calc-top .mc-lab { width: 36px; height: 36px; color: var(--calc-print); font-size: .95rem;
                     background: radial-gradient(100% 100% at 50% 20%, #3a3b3f, var(--calc-key-dark) 70%); border: 1px solid #0c0c0d; }
@@ -2218,6 +2223,8 @@ button.text-drop { color: var(--bad); }
   border: 1px solid rgb(255 255 255 / .16);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
 }
+/* A CARD THAT NEARLY FITS IS DRAWN AT FULL SIZE IN A TIGHTER PANE, not at .97 (533, `paneReach_`'s `PANE_ZOOM_SNUG`). */
+.pane.is-snug { padding-block: var(--s1) var(--s2); }
 /* ---------- THE BLUR, ON THE ONE PANE BEING LOOKED AT § */
 /* ---------- AND THEN THE BLUR WENT, BECAUSE IT WAS BLURRING NOTHING § */
 /* The fallback is no longer load-bearing — `.pane` has a real fill of its own above — but it stays, because a browser with no backdrop-filter should get the § */
