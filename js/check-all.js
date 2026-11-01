@@ -241,7 +241,7 @@ const SUITE = [
   /* THE POLISH HARNESS (531): three visitors at 320, 390 and 1280, one browser each, scenarios in check/steady|jank|touch/. */
   { file: 'check/steady.js',  what: 'nothing moves that was not asked to: layout shift, the card in front, scroll offsets', slow: true },
   { file: 'check/jank.js',    what: 'no long task while nothing is touched', slow: true },
-  { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once', slow: true },
+  { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once, one press look at once on every control, held as long as the finger (536)', slow: true },
 ];
 
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */
