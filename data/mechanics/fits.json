@@ -1,0 +1,486 @@
+{
+"fits": [
+{
+"id": "MF-001",
+"name": "Clio III parts list: Engine — 1.2 16V (D4F)",
+"system": "Engine",
+"engine": "1.2 16V (D4F)",
+"parts": [
+"Timing belt",
+"Belt tensioner and idler pulleys",
+"Auxiliary (drive) belt",
+"Engine mounts",
+"Rocker cover gasket",
+"Air filter",
+"Cylinder head gasket"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-002",
+"name": "Clio III parts list: Engine — 1.5 dCi (K9K)",
+"system": "Engine",
+"engine": "1.5 dCi (K9K)",
+"parts": [
+"Timing belt",
+"Belt tensioner and idler pulleys",
+"Auxiliary (drive) belt",
+"Turbocharger",
+"EGR valve",
+"Engine mounts",
+"Air filter"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-003",
+"name": "Clio III parts list: Fuel — 1.2 16V (D4F)",
+"system": "Fuel",
+"engine": "1.2 16V (D4F)",
+"parts": [
+"Fuel pump",
+"Fuel injectors",
+"Throttle body"
+],
+"check": "The petrol filter sits with the pump in the tank.",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-004",
+"name": "Clio III parts list: Fuel — 1.5 dCi (K9K)",
+"system": "Fuel",
+"engine": "1.5 dCi (K9K)",
+"parts": [
+"Fuel filter",
+"Fuel injectors",
+"Glow plugs",
+"Fuel pump"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-005",
+"name": "Clio III parts list: Ignition — 1.2 16V (D4F)",
+"system": "Ignition",
+"engine": "1.2 16V (D4F)",
+"parts": [
+"Spark plugs",
+"Ignition coil (coil pack)",
+"Crankshaft position sensor"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-006",
+"name": "Clio III parts list: Cooling",
+"system": "Cooling",
+"engine": "",
+"parts": [
+"Radiator",
+"Water pump",
+"Thermostat",
+"Coolant hoses",
+"Expansion tank and cap",
+"Radiator cooling fan",
+"Coolant (antifreeze)"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-007",
+"name": "Clio III parts list: Lubrication",
+"system": "Lubrication",
+"engine": "",
+"parts": [
+"Engine oil",
+"Oil filter",
+"Sump and drain plug",
+"Oil pressure switch"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-008",
+"name": "Clio III parts list: Exhaust",
+"system": "Exhaust",
+"engine": "",
+"parts": [
+"Catalytic converter",
+"Lambda (oxygen) sensor",
+"Silencer and exhaust pipes",
+"Exhaust mounting rubbers"
+],
+"check": "The later 1.5 dCi adds a diesel particulate filter.",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-009",
+"name": "Clio III parts list: Transmission/Clutch",
+"system": "Transmission/Clutch",
+"engine": "",
+"parts": [
+"Clutch kit",
+"Clutch cable or hydraulics",
+"CV joints and boots",
+"Gearbox oil"
+],
+"check": "Some 1.5 dCi cars have a dual-mass flywheel.",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-010",
+"name": "Clio III parts list: Brakes",
+"system": "Brakes",
+"engine": "",
+"parts": [
+"Brake pads",
+"Brake discs",
+"Brake calipers",
+"Brake shoes and drums",
+"Handbrake cable",
+"Brake hoses and pipes",
+"Brake fluid"
+],
+"check": "Most have rear drums; sportier trims have rear discs.",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-011",
+"name": "Clio III parts list: Suspension",
+"system": "Suspension",
+"engine": "",
+"parts": [
+"Shock absorbers (dampers)",
+"Coil springs",
+"Anti-roll bar links",
+"Wishbones (control arms) and bushes",
+"Ball joints",
+"Top mounts",
+"Wheel bearings"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-012",
+"name": "Clio III parts list: Steering",
+"system": "Steering",
+"engine": "",
+"parts": [
+"Electric power steering motor",
+"Steering rack",
+"Track rod ends"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-013",
+"name": "Clio III parts list: Electrical",
+"system": "Electrical",
+"engine": "",
+"parts": [
+"Battery",
+"Alternator",
+"Starter motor",
+"Fuses and relays",
+"Engine control unit (ECU)"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-014",
+"name": "Clio III parts list: Lighting",
+"system": "Lighting",
+"engine": "",
+"parts": [
+"Headlamp bulbs",
+"Indicator and brake bulbs",
+"Number plate and interior bulbs"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-015",
+"name": "Clio III parts list: HVAC",
+"system": "HVAC",
+"engine": "",
+"parts": [
+"Cabin (pollen) filter",
+"Heater blower motor and resistor",
+"Heater matrix",
+"Air-con compressor and gas"
+],
+"check": "",
+"source": "Generic part names checked against UK parts retailers' vehicle look-ups (e.g. Euro Car Parts, GSF) by model and engine; no maker part numbers given.",
+"make": "Renault",
+"model": "Clio III",
+"years": "2009–2012 (phase 2, UK)"
+},
+{
+"id": "MF-016",
+"name": "3 Series (E30) parts list: Engine",
+"system": "Engine",
+"engine": "",
+"parts": [
+"Timing belt",
+"Belt tensioner and idler pulleys",
+"Auxiliary (drive) belt",
+"Engine mounts",
+"Rocker cover gasket",
+"Air filter",
+"Cylinder head gasket"
+],
+"check": "Four-cylinder M40 and six-cylinder M20 take different belts.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-017",
+"name": "3 Series (E30) parts list: Fuel",
+"system": "Fuel",
+"engine": "",
+"parts": [
+"Fuel filter",
+"Fuel pump",
+"Fuel injectors",
+"Throttle body"
+],
+"check": "The petrol filter is an inline canister under the car.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-018",
+"name": "3 Series (E30) parts list: Ignition",
+"system": "Ignition",
+"engine": "",
+"parts": [
+"Spark plugs",
+"HT leads",
+"Distributor cap and rotor arm",
+"Crankshaft position sensor"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-019",
+"name": "3 Series (E30) parts list: Cooling",
+"system": "Cooling",
+"engine": "",
+"parts": [
+"Radiator",
+"Water pump",
+"Thermostat",
+"Coolant hoses",
+"Expansion tank and cap",
+"Radiator cooling fan",
+"Coolant (antifreeze)"
+],
+"check": "The main fan is engine-driven through a viscous clutch.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-020",
+"name": "3 Series (E30) parts list: Lubrication",
+"system": "Lubrication",
+"engine": "",
+"parts": [
+"Engine oil",
+"Oil filter",
+"Sump and drain plug",
+"Oil pressure switch"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-021",
+"name": "3 Series (E30) parts list: Exhaust",
+"system": "Exhaust",
+"engine": "",
+"parts": [
+"Silencer and exhaust pipes",
+"Exhaust mounting rubbers",
+"Catalytic converter",
+"Lambda (oxygen) sensor"
+],
+"check": "Only catalyst-equipped cars have the converter and lambda sensor.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-022",
+"name": "3 Series (E30) parts list: Transmission/Clutch",
+"system": "Transmission/Clutch",
+"engine": "",
+"parts": [
+"Clutch kit",
+"Clutch cable or hydraulics",
+"Gearbox oil",
+"Propshaft and centre bearing"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-023",
+"name": "3 Series (E30) parts list: Brakes",
+"system": "Brakes",
+"engine": "",
+"parts": [
+"Brake pads",
+"Brake discs",
+"Brake calipers",
+"Brake shoes and drums",
+"Handbrake cable",
+"Brake hoses and pipes",
+"Brake fluid"
+],
+"check": "316i and 318i usually have rear drums; the 325i has rear discs.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-024",
+"name": "3 Series (E30) parts list: Suspension",
+"system": "Suspension",
+"engine": "",
+"parts": [
+"Shock absorbers (dampers)",
+"Coil springs",
+"Anti-roll bar links",
+"Wishbones (control arms) and bushes",
+"Ball joints",
+"Top mounts",
+"Wheel bearings"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-025",
+"name": "3 Series (E30) parts list: Steering",
+"system": "Steering",
+"engine": "",
+"parts": [
+"Power steering pump and fluid",
+"Track rod ends"
+],
+"check": "A recirculating-ball steering box, not a rack.",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-026",
+"name": "3 Series (E30) parts list: Electrical",
+"system": "Electrical",
+"engine": "",
+"parts": [
+"Battery",
+"Alternator",
+"Starter motor",
+"Fuses and relays",
+"Engine control unit (ECU)"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+},
+{
+"id": "MF-027",
+"name": "3 Series (E30) parts list: Body",
+"system": "Body",
+"engine": "",
+"parts": [
+"Sills and wheel arches",
+"Window regulator",
+"Door locks and central locking",
+"Wiper blades"
+],
+"check": "",
+"source": "Generic part names checked against UK classic BMW specialists' catalogues by model and engine (e.g. BMW Car Club GB guides); no maker part numbers given.",
+"make": "BMW",
+"model": "3 Series (E30)",
+"years": "1987–1991 (facelift; four-door saloon)"
+}
+]
+}
