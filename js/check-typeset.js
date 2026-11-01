@@ -23,6 +23,7 @@ const fail = [];
 const F = (n, d) => '<span class="frac"><span class="frac-n">' + n + '</span><span class="frac-s">/</span>'
   + '<span class="frac-d">' + d + '</span></span>';
 const M = (w, n, d) => '<span class="frac-mixed">' + w + F(n, d) + '</span>';
+const IX = (n, d) => '<span class="frac-ix"><span class="frac-ix-n">' + n + '</span>&#x2044;<span class="frac-ix-d">' + d + '</span></span>';
 const CASES = [
   ['<sup>4</sup>&frasl;<sub>5</sub>', F(4, 5), 'the stored shape, 442 rows of it'],
   ['5\u20449 and 5&#8260;9', F(5, 9) + ' and ' + F(5, 9), 'the same slash written two other ways'],
@@ -38,7 +39,10 @@ const CASES = [
    F('3<i>x</i>', '(<i>x</i> + 2)(<i>x</i> &minus; 4)'), 'and two pairs stay'],
   ['sin <i>B</i> &frasl; 6.5', F('sin <i>B</i>', '6.5'), 'a function name goes with its argument'],
   ['(<i>x</i> + 1)&frasl;<sub>3</sub>', F('<i>x</i> + 1', 3), 'a bracketed numerator with no <sup>'],
-  ['1.3<sup>1&frasl;6</sup>', '1.3<sup>1&frasl;6</sup>', 'a fractional index stays on its line'],
+  ['1.3<sup>1&frasl;6</sup>', '1.3<sup>' + IX(1, 6) + '</sup>', 'a fractional index stays on its line, a small 1 over a small 6 like \u00bd (owner, 1 Nov)'],
+  ['<p>&int; <sup><i>x</i><sup>1&frasl;2</sup>(2<i>x</i> &minus; 5)</sup>&frasl;<sub>3</sub> d<i>x</i></p>',
+   '<p>&int; ' + F('<i>x</i><sup>' + IX(1, 2) + '</sup>(2<i>x</i> &minus; 5)', 3) + ' d<i>x</i></p>', 'Q1, June 2023 A-level 9MA0/01: a half as an index inside a fraction\'s top'],
+  ['<i>x</i><sup>&minus;3&frasl;2</sup>', '<i>x</i><sup>&minus;' + IX(3, 2) + '</sup>', 'a negative fractional index keeps its minus in front'],
   ['6x^3 - 23x^2', '6x<sup>3</sup> - 23x<sup>2</sup>', 'Q14, June 2024 Higher 1, as the answer column has it'],
   ['e^(4x^2) - 1', 'e<sup>4x<sup>2</sup></sup> - 1', 'a power with a power in it'],
   ['4^-2', '4<sup>&minus;2</sup>', 'a hyphen in an index is a minus sign'],
@@ -161,7 +165,7 @@ console.log('the library as drawn: ' + n.fields + ' fields read, ' + n.stacked +
   + n.mixed + ' of them mixed numbers), ' + n.raised + ' carets raised');
 console.log('left as written, on purpose:');
 console.log('  ' + String(n.decimal).padStart(5) + '  a decimal either side of a slash — a division in working');
-console.log('  ' + String(n.index).padStart(5) + '  a slash inside a superscript — a fractional index');
+console.log('  ' + String(n.index).padStart(5) + '  a slash inside a superscript — a fractional index, on its line and drawn like ½ (`.frac-ix`)');
 console.log('  ' + String(n.units).padStart(5) + '  a slash in a unit in a maths row — m/s, g/cm³, km/h');
 console.log('  ' + String(n.keep).padStart(5) + '  named on tools/data/typeset-keep.json, one reason each');
 console.log('  ' + String(n.backlogHits).padStart(5) + '  lost powers in ' + n.backlogRows.size

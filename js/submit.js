@@ -446,10 +446,12 @@ function markKind_(v) {
 const MARK_CHIME = [{ f: 783.99, at: 0, len: 0.16 }, { f: 1046.5, at: 0.09, len: 0.23 }];
 const MARK_CHIME_PEAK = 0.03, MARK_BUZZ_PEAK = 0.06, MARK_BUZZ_LEN = 0.4;
 const MARK_BUZZ = [['sawtooth', 164.81], ['square', 174.61]], MARK_BUZZ_LP = 1600;
+/* A HAND UP (455) RINGS A BELL: two short notes, a fourth apart, at the chime's level -- "clicking help ... should make a noise" (owner, 1 Nov). */
+const HELP_BELL = [{ f: 659.25, at: 0, len: 0.14 }, { f: 880, at: 0.12, len: 0.26 }];
 function markTone_(ac, t0, kind, out) {
-  if (kind === 'right') {
+  if (kind === 'right' || kind === 'help') {
     let end = t0;
-    MARK_CHIME.forEach(n => {
+    (kind === 'help' ? HELP_BELL : MARK_CHIME).forEach(n => {
       const a = t0 + n.at, z = a + n.len;
       const g = ac.createGain();
       g.gain.setValueAtTime(0, a);
@@ -565,7 +567,10 @@ function markHush_() {
   } catch (e) {}
 }
 function markPlay_(v, late) {
-  const kind = markKind_(v);
+  markSound_(markKind_(v), late);
+}
+/* ONE SOUND BY NAME -- 'right', 'wrong' or 'help' -- through the one context, so a bell and a verdict never play over each other. */
+function markSound_(kind, late) {
   if (!kind) return;
   const ac = late ? MARK_AC : markHear_();
   if (!ac) return;

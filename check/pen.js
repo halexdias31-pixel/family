@@ -1045,7 +1045,7 @@ const unmoved = (sec, where, r, b) => {
     const toolBox = () => env.page.evaluate(() => {
       const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
       const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
-      return pad ? { compass: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]')), ruler: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="ruler"]')),
+      return pad ? { compass: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="compass"]')), ruler: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="line"]')),
                      pen: box(pad.closest('.qcard').querySelector('.qt-row .qt-t[data-tool="pen"]')), tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
     });
     let c = k ? await cardBox(env) : null;

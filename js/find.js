@@ -2528,17 +2528,19 @@ function keptPages_(items, credits) {
   try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
   finally { KEPT_DRAW = was; }
 }
+/* EVERY PAGE OF A QUESTION ENDS IN ONE FOOT, in one order: Help (its own last row), then the card's row -- the star, Suggest a change, an admin's -- as the part's card has (`stuffCard`). */
+const qFoot_ = (x, page) => (page ? page + cardTiles_(x) : page);
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
-  if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
+  if (x && x.kind === 'question' && part === 'ans') return qFoot_(x, questionAnsCard_(x));
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
-    return questionStemCard_(x, +m[1], +(m[2] || 0));
+    return qFoot_(x, questionStemCard_(x, +m[1], +(m[2] || 0)));
   }
-  if (x && x.kind === 'question' && /^pre\d+$/.test(part)) return questionPreCard_(x, +part.slice(3));
+  if (x && x.kind === 'question' && /^pre\d+$/.test(part)) return qFoot_(x, questionPreCard_(x, +part.slice(3)));
   /* A PART THE QUESTION NO LONGER HAS (a figure page kept in a place from before 356) IS ITS CARD. */
   if (x && x.kind === 'question') return stuffCard(x);
   return practicalPart_(x, part);
@@ -3213,7 +3215,16 @@ function typeset_(html) {
     const p = m.index, q = p + m[0].length;
     from = q;
     const w = where(p);
-    if (w.tag || w.raw || w.deep) continue;
+    if (w.tag || w.raw) continue;
+    /* A FRACTIONAL INDEX LOOKS LIKE A HALF (owner, 1 Nov: "make it look more like a half. universal rule"): x<sup>1/2</sup> is a small 1 over a small 2 on a slant, like ½ -- on its line, not stacked (241). */
+    if (w.deep) {
+      const a = /\d+$/.exec(s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(s.slice(q, q + 12));
+      if (!a || !b) continue;
+      const ix = '<span class="frac-ix"><span class="frac-ix-n">' + a[0] + '</span>&#x2044;<span class="frac-ix-d">' + b[0] + '</span></span>';
+      s = s.slice(0, p - a[0].length) + ix + s.slice(q + b[0].length);
+      from = p - a[0].length + ix.length;
+      continue;
+    }
     /* THE TOP. */
     const le = gapBack(p);
     let ls = termBack(le), whole = '', num;
@@ -6045,8 +6056,9 @@ function padArm_(pad, on) {
   /* the tool in hand lit in the card's tool row; the protractor is lit while it lies on the page (458) */
   const card = pad.closest('.qcard'), k = pad.getAttribute('data-k');
   if (card) card.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
+    /* the Straight line tile is the pad's \`ruler\` mode; the Ruler tile is the measuring one, lit by \`measOpen_\` (553) */
     const id = t.getAttribute('data-tool');
-    const lit = !!on && (id === 'protractor' ? padProtOn_(k) : id === tool);
+    const lit = !!on && (id === 'protractor' ? padProtOn_(k) : id === 'ruler' ? !!(MEAS && MEAS.k === t.getAttribute('data-key') && MEAS.tool === 'ruler') : (id === 'line' ? 'ruler' : id) === tool);
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
@@ -7909,7 +7921,7 @@ function qWordsOr_(x, html) {
   return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
 }
 function questionCard_(x) {
-  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_() : ''}">
+  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
           see `questionTiles_`. */''}
@@ -7924,8 +7936,8 @@ function questionCard_(x) {
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
     ${ansArea_(x)}
-    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls. */
-          typeof helpRow_ === 'function' ? helpRow_(x) : ''}
+    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls -- the first of every page's foot (`qFoot_`). */
+          typeof helpRow_ === 'function' ? helpRow_(x, '') : ''}
   </div>`;
 }
 
@@ -7934,6 +7946,13 @@ const stemId_ = p => (p && (p.id || (p.row && p.row.row_id) || p.html || p.diagr
 const stemHasFig_ = p => !!(p && (p.diagram || figImgs_(p.images).length));
 const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
   : String(x.name || '').replace(/^Q(\d+).*$/, '$1'));
+function stemFigOwed_(x, p) {
+  if (!p || stemHasFig_(p)) return false;
+  const own = q => !!(q && (q.diagram || figImgs_(q.images).length));
+  const k = qId_(x);
+  const figured = (x.stems || []).some(stemHasFig_) || (!!k && ((questionParts_()[k]) || []).some(own));
+  return figWanted_(String(p.html || ''), figured);
+}
 function questionStemCard_(x, i, j) {
   const p = (x.stems || [])[i];
   if (!p) return '';
@@ -7951,14 +7970,16 @@ function questionStemCard_(x, i, j) {
     html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   });
   flush();
-  return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
+  /* A STEM THAT NAMES A FIGURE NOBODY HAS DRAWN SAYS SO, as a part does (`figGap_`) -- "Where is the sketch?" (owner, 1 Nov) was a stem saying "Figure 1 shows a sketch" over nothing. */
+  if (last && stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
+  return `<div class="qcard qstem${typeof helpCls_ === 'function' ? helpCls_(x, 'stem' + i + (j ? '-' + j : '')) : ''}" data-of="${esc(stemId_(p))}">
     ${tagRow_(x, 'stem' + i)}
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>${
       !last ? '<p class="qsheet-more">Continued on the next page &rarr;</p>' : ''}
     </div>
-    ${qPageTools_(x)}
+    ${qPageTools_(x)}${typeof helpRow_ === 'function' ? helpRow_(x, 'stem' + i + (j ? '-' + j : '')) : ''}
   </div>`;
 }
 
@@ -7966,13 +7987,13 @@ function questionStemCard_(x, i, j) {
 function questionPreCard_(x, j) {
   const chunks = partChunks_(x);
   if (j >= chunks.length - 1) return '';
-  return `<div class="qcard qpre" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
+  return `<div class="qcard qpre${typeof helpCls_ === 'function' ? helpCls_(x, 'pre' + j) : ''}" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
     ${tagRow_(x, 'pre' + j)}
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x), x)}
       <p class="qsheet-more">Continued on the next page &rarr;</p>
     </div>
-    ${qPageTools_(x)}
+    ${qPageTools_(x)}${typeof helpRow_ === 'function' ? helpRow_(x, 'pre' + j) : ''}
   </div>`;
 }
 
@@ -8323,7 +8344,7 @@ function questionAnsCard_(x) {
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_() : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
+  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${tagRow_(x, 'ans')}
     <div class="tile-row qans-tiles">${open
       ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
@@ -8331,7 +8352,7 @@ function questionAnsCard_(x) {
       /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
       open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
     ${open ? answerBlock_(x) : ''}
-    ${typeof helpRow_ === 'function' ? helpRow_(x) : ''}
+    ${typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : ''}
   </div>`;
 }
 
@@ -8365,8 +8386,8 @@ function ansHide_(x) { ansSet_(x, false); }
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
 /* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
 function questionTiles_(x) { return ''; }
-/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words -- and Suggest a change, as every page of a thing has (486; owner, 29 Oct). */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}${typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''}</div>`;
+/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words; Suggest a change is in its foot (`qFoot_`), as on every page. */
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
@@ -11834,7 +11855,9 @@ function measDraw_(fig) {
 }
 function measFig_(k) {
   const card = [...document.querySelectorAll('#screen .page.on .qcard, .qcard')].find(c => c.querySelector(`[data-k="${CSS.escape(k)}"]`) || c.querySelector(`.q-meast[data-key="${CSS.escape(k)}"]`));
-  const pick = c => c && [...c.querySelectorAll('figure svg')].find(s => !s.classList.contains('meas') && !s.closest('svg.meas') && s.parentNode.closest('figure'));
+  /* THE FIGURE, else the pen's page (a made-up surface has no <figure>): the Ruler measures on either. */
+  const pick = c => c && ([...c.querySelectorAll('figure svg')].find(s => !s.classList.contains('meas') && !s.closest('svg.meas') && s.parentNode.closest('figure'))
+    || c.querySelector('.qpad-art > svg:first-child'));
   let svg = pick(card);
   /* A PART WHOSE WORDS RAN ON TO A SECOND PAGE has its figure on the page before: the tool goes there */
   if (!svg && card) {

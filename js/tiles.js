@@ -115,6 +115,8 @@ const TILE_ICONS = {
        + '<path d="M9 15.2c1.6-1.2 2.6.6 4 0s1.8-1 2.6-1"/>',
   ruler: '<g transform="rotate(-38 9 8.5)"><rect x="1.5" y="5.8" width="15" height="5.4" rx="1"/>'
        + '<path d="M4.5 5.8v2.2M7.5 5.8v1.4M10.5 5.8v2.2M13.5 5.8v1.4"/></g>',
+  /* A STRAIGHT LINE IS A LINE BETWEEN TWO DOTS -- the pen's mode, apart from the Ruler that measures (owner, 1 Nov). */
+  line: '<path d="M3.5 14.5 14.5 3.5"/><circle cx="3.5" cy="14.5" r="1.4"/><circle cx="14.5" cy="3.5" r="1.4"/>',
   protractor: '<path d="M2 13.5h14M2 13.5a7 7 0 0 1 14 0"/><path d="M9 13.5 13 8.2M9 6.5v1.6M4.1 8.6l1.1 1.1M13.9 8.6l-1.1 1.1"/>',
   compass: '<circle cx="9" cy="3" r="1.3"/><path d="M8.4 4.2 4.2 15.5"/><path d="M9.6 4.2 13.8 15.5"/>'
          + '<path d="M5.6 11.6c2.2 1.3 4.6 1.3 6.8 0"/>',

@@ -1259,6 +1259,24 @@ if (notDrawn.length > NOT_DRAWN_MAX) {
   console.log(`   ${NOT_DRAWN_MAX - notDrawn.length} fewer than the ceiling -- lower NOT_DRAWN_MAX to ${notDrawn.length} to keep the gain.`);
 }
 
+/* ---------- AND THE STEMS (owner, 1 Nov: "Where is the sketch?"): a preamble naming a figure nobody has drawn says "Figure not drawn yet." on its page (`stemFigOwed_`), and the count cannot grow. */
+const STEM_NOT_DRAWN_MAX = 658;
+const stemNotDrawn = rows.filter(r => {
+  if (!r || r.kind !== 'preamble' || hasPic_(r)) return false;
+  const q = String(r.question || '').trim();
+  const figured = q ? picAt_['q|' + r.paper_id + '|' + q] : (r.section ? picAt_['s|' + r.paper_id + '|' + r.section] : picAt_['p|' + r.paper_id]);
+  return figWanted_(String(r.html || ''), !!figured);
+});
+console.log(`stems naming a figure nobody has drawn yet: ${stemNotDrawn.length}   (ceiling ${STEM_NOT_DRAWN_MAX})`);
+if (stemNotDrawn.length > STEM_NOT_DRAWN_MAX) {
+  const why = `${stemNotDrawn.length - STEM_NOT_DRAWN_MAX} more stem(s) name a figure nobody has drawn than the ${STEM_NOT_DRAWN_MAX} already known -- `
+    + `draw it (\`diagram\`, tools/diagram_png.js), or its page says "Figure not drawn yet.". Some: ${stemNotDrawn.slice(-3).map(r => r.row_id).join(', ')}`;
+  fail.push(why);
+  console.log('  ' + why);
+} else if (stemNotDrawn.length < STEM_NOT_DRAWN_MAX) {
+  console.log(`   ${STEM_NOT_DRAWN_MAX - stemNotDrawn.length} fewer than the ceiling -- lower STEM_NOT_DRAWN_MAX to ${stemNotDrawn.length} to keep the gain.`);
+}
+
 /* ---------- ONE SPELLING OF A PART PER QUESTION § */
 const spellBy_ = {};
 rows.forEach(r => {
