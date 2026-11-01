@@ -197,6 +197,8 @@ const KINDS = {
   hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
   /* MECHANICS (548): parts, models, jobs and symptoms, Library like the rest; `mKind` says which, js/mechanics.js. */
   mech: { group: 'Learning', label: 'Library', card: x => mechCard_(x) },
+  /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
+  chem: { group: 'Learning', label: 'Library', card: x => chemCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -440,6 +442,11 @@ const FACETS = [
   { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
   { field: 'mDifficulty', label: 'Difficulty', of: x => x.mDifficulty || '' },
+  /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
+  { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
+  { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
+  { field: 'cPeriod',   label: 'Period',      of: x => x.cPeriod || '' },
+  { field: 'cState',    label: 'State',       of: x => x.cState || '' },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
@@ -9137,6 +9144,7 @@ function stuffItemsRaw_() {
     ...(typeof orthoItems_ === 'function' ? orthoItems_() : []),
     ...(typeof hymnsItems_ === 'function' ? hymnsItems_() : []),
     ...(typeof mechItems_ === 'function' ? mechItems_() : []),
+    ...(typeof chemItems_ === 'function' ? chemItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -10482,6 +10490,7 @@ const TAG_OF = {
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
   mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level', mDifficulty: 'tier',
+  cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
@@ -10660,6 +10669,7 @@ function paintStuff(keepPage) {
   if (typeof orthoIndex_ === 'function') orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
+  if (typeof chemIndex_ === 'function') chemIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
