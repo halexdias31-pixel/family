@@ -870,8 +870,7 @@ function settleCurve_(D, v) {
   return { dur: dur, a: s.a, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
 }
 /* LESS MOTION ASKED FOR: every placement lands at once — a release snaps, a tab jumps (527). */
-const MOTION_LESS = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { return null; } })();
-const motionLess_ = () => { try { return !!(MOTION_LESS && MOTION_LESS.matches); } catch (e) { return false; } };
+const motionLess_ = () => !motionOK_();   // one question for less motion, asked through motionOK_ (531)
 
 /* ---------- EACH AXIS HAS ITS OWN CLOCK § */
 const SPLIT_AXES = (() => {
