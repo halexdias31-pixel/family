@@ -1153,8 +1153,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     const H = said(sent.htmlBody);
     /* EACH CARD'S TAGS FIRST (380, 20 Oct) — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
     /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Accuracy tag after the marks. */
-    ['Learning Questions PX-1 Q7 1 mark Accuracy unverified Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
-     'Learning Questions PX-1 Q11 3 marks Accuracy unverified Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Learning Questions PX-1 Q6 1 mark Accuracy unverified Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
+    ['Learning Practice Questions Accuracy unverified PX-1 Q7 1 mark Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
+     'Learning Practice Questions Accuracy unverified PX-1 Q11 3 marks Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Learning Practice Questions Accuracy unverified PX-1 Q6 1 mark Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1379,8 +1379,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
   /* no "Printed sheet" since 385: Q7 is drawn and marked on screen */
-  if (said7 !== 'Learning Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator Accuracy verified'
-      || saidC !== 'Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1 Accuracy unverified Corbettmaths')
+  if (said7 !== 'Learning Practice Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Accuracy verified Paper 1 Q7 4 marks Non-calculator'
+      || saidC !== 'Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1 Corbettmaths')
     bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
   G.__LIB = lib;
   G.__L = { id: 'P-S1', first: 'Kit', fresh: [
@@ -1391,7 +1391,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   if (cards !== 2 || r.html.indexOf('<span class="gi" style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
       || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">4 marks') === -1
-      || said(r.html).indexOf('Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
+      || said(r.html).indexOf('Learning Practice Questions Maths Worksheet SATs KS2 Year 3 Accuracy unverified Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
     bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;
@@ -1557,6 +1557,22 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const N = sum([{ key: 'q:Q-Z-1', label: '', hidden: true, verdict: 'right' }], null);
   if (M.lines.indexOf('Topics: Perimeter and Types of Angle.') === -1 || N.lines.indexOf('Topics: not recorded.') === -1)
     bad.push('a mixed week is not "Topics: Perimeter and Types of Angle", or a week nothing names has no topics line: ' + JSON.stringify([M.lines, N.lines]));
+}
+
+/* ---------- THE EMAIL'S TAG ORDER IS THE CARD'S, ONE SOURCE (546): data/settings/facets.json, read by the backend as the phone reads it ---------- */
+{
+  asked++;
+  const { b } = world();
+  const file = fs.readFileSync(path.join(REPO, 'data', 'settings', 'facets.json'), 'utf8');
+  const fromFile = b.ev('digestTagFacets_(' + file + ').map(f => f[0]).join(" ")');
+  const fallback = b.ev('DIGEST_TAG_FACETS.map(f => f[0]).join(" ")');
+  const rows = JSON.parse(file), at = {};
+  rows.forEach(r => { at[r.field] = Number(r.sort_order); });
+  const want = fallback.split(' ').filter(f => at[f] !== undefined).sort((x, y) => at[x] - at[y]).join(' ');
+  if (fromFile !== want) bad.push('the email\'s tags are not in the facets file\'s order: ' + fromFile + ' — the file says ' + want);
+  if (fallback !== fromFile) bad.push('the email\'s fallback order (DIGEST_TAG_FACETS, used when the facets file cannot be fetched) has drifted from the file: ' + fallback + ' — the file says ' + fromFile);
+  const T = b.ev('Object.keys(digestTagIndex_("", [], ' + file + ')).indexOf("facets") >= 0');
+  if (!T) bad.push('digestTagIndex_ does not carry the facets file\'s order, so the cards in the email ignore it');
 }
 
 console.log('rules asked: ' + asked);
