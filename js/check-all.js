@@ -245,6 +245,7 @@ const SUITE = [
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
   { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
+  { file: 'check/share-profile.js', what: 'the shared staff profile, against the profile card on the site at 390px', slow: true },
   /* THE POLISH HARNESS (531): three visitors at 320, 390 and 1280, one browser each, scenarios in check/steady|jank|touch/. */
   { file: 'check/steady.js',  what: 'nothing moves that was not asked to: layout shift, the card in front, scroll offsets', slow: true },
   { file: 'check/jank.js',    what: 'no long task while nothing is touched', slow: true },

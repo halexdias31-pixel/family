@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check/share-profile.js: IS THE SHARED STAFF PROFILE THE CARD ON THE SITE? (547, 549)
-   At 390px, in a real browser: the card `tutorPng_` photographs is laid out at the site card's width with
-   every text in the same place and on the same number of lines, the rate on one line, nothing overlapping,
-   and the map either drawn from loaded tiles or left out whole. --shots=DIR writes both pictures. */
+/* @family. — check/share-profile.js: THE SHARED STAFF PROFILE IS THE SITE CARD (547, 549) at 390px — same width, lines and places, rate on one line, no overlap, map loaded or left out. --shots=DIR. */
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
@@ -95,6 +92,13 @@ function measure(card, TEXTS) {
     return { site: measure(site, TEXTS), pic, url, rate: rateRange_(t) };
   }, [TEXTS, String(measure)]);
 
+  /* THE SITE CARD'S PICTURE BEFORE ANY SHARE, so nothing the share opens lies over it. */
+  if (SHOTS) {
+    await page.evaluate(() => { const t = (DATA.tutors || [])[0]; const el = [...document.querySelectorAll('.card.is-prof')].find(c =>
+      ((c.querySelector('.prof-handle') || {}).textContent || '') === '@' + t.handle); if (el) { el.setAttribute('data-share-site', ''); el.scrollIntoView({ block: 'start' }); } });
+    await page.waitForTimeout(400);
+    await page.locator('[data-share-site]').first().screenshot({ path: path.join(SHOTS, 'profile-390-site.png'), animations: 'disabled' });
+  }
   const got = await shoot();
   if (got.err) bad.push(got.err);
   else {
@@ -123,7 +127,6 @@ function measure(card, TEXTS) {
     }
     if (SHOTS) {
       fs.writeFileSync(path.join(SHOTS, 'profile-390-shared.png'), Buffer.from(got.url.split(',')[1], 'base64'));
-      await page.locator('[data-share-site]').first().screenshot({ path: path.join(SHOTS, 'profile-390-site.png'), animations: 'disabled' });
     }
   }
 
