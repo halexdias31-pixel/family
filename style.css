@@ -246,11 +246,11 @@ html.wide body { max-width: none; box-shadow: none; }
   transform: none;
 }
 
-/* The toast still follows the column — content, not furniture: its box is the app's width less a margin, on any window (537). */
+/* The toast still follows the column — content, not furniture: its box is the app's width less a margin, on any window (537), clear of a landscape notch (542). */
 #toasts {
   position: fixed;
-  left: max(var(--s4), calc(50% - var(--app) / 2 + var(--s4)));
-  right: max(var(--s4), calc(50% - var(--app) / 2 + var(--s4)));
+  left: calc(max(var(--s4), calc(50% - var(--app) / 2 + var(--s4))) + var(--safe-left));
+  right: calc(max(var(--s4), calc(50% - var(--app) / 2 + var(--s4))) + var(--safe-right));
 }
 
 /* And inside a full-width bar, the row stays the width of the app. So the tabs sit under the
