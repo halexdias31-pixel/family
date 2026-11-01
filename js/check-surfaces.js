@@ -148,12 +148,65 @@ css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
   });
 }
 
+/* ---------- FIXED FURNITURE KEEPS CLEAR OF THE PHONE'S OWN BANDS (542, U19) ----------
+   An edge set by a length must add that edge's `var(--safe-*)`; a 0 is fine when the box spans the axis, or its padding on that side does. */
+const SAFE_EXEMPT = [{ sel: '.pad-loupe', why: 'top/left 0 is the origin its transform moves to the finger (padLoupe_), not an edge' }];
+const safeBad = [];
+let safeRead = 0;
+{
+  const sides = ['top', 'right', 'bottom', 'left'], opp = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+  const fixedSel = new Set();
+  const rulesOf = {};
+  css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
+    sel.trim().replace(/\s+/g, ' ').split(',').map(x => x.trim()).forEach(one => {
+      const base = FIXED_OK.find(k => one === k);
+      if (!base) return;
+      (rulesOf[base] = rulesOf[base] || []).push({ body, line: css.slice(0, css.indexOf(all)).split('\n').length });
+      if (/position\s*:\s*fixed/.test(body)) fixedSel.add(base);
+    });
+    return all;
+  });
+  fixedSel.forEach(sel => {
+    if (SAFE_EXEMPT.some(e => e.sel === sel)) return;
+    safeRead++;
+    const inset = {}, pad = {}, at = {};
+    rulesOf[sel].forEach(({ body, line }) => {
+      body.split(';').forEach(d => {
+        const m = /^\s*([a-z-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d);
+        if (!m) return;
+        const [, prop, val] = m;
+        const four = v => {                  // split on spaces outside brackets: calc(8px + var(--safe-bottom)) is one value
+          const p = ['']; let depth = 0;
+          for (const c of v.trim()) { if (c === '(') depth++; if (c === ')') depth--; if (/\s/.test(c) && !depth) { if (p[p.length - 1]) p.push(''); } else p[p.length - 1] += c; }
+          return [p[0], p[1] || p[0], p[2] || p[0], p[3] || p[1] || p[0]];
+        };
+        if (prop === 'inset') four(val).forEach((v, i) => { inset[sides[i]] = v; at[sides[i]] = line; });
+        else if (sides.includes(prop)) { inset[prop] = val; at[prop] = line; }
+        else if (prop === 'padding') four(val).forEach((v, i) => { pad[sides[i]] = v; });
+        else if (/^padding-/.test(prop)) pad[prop.slice(8)] = val;
+      });
+    });
+    Object.keys(inset).forEach(side => {
+      const v = inset[side];
+      if (/var\(--safe-/.test(v) || /^(auto|50%)$/.test(v)) return;
+      if (/^0(px|rem)?$/.test(v)) {
+        if (/^0(px|rem)?$/.test(inset[opp[side]] || '')) return;
+        if (/var\(--safe-/.test(pad[side] || '')) return;
+      }
+      safeBad.push({ short: 'style.css', line: at[side], name: `${sel} { ${side}: ${v} }`, use: `calc(${v} + var(--safe-${side}))` });
+    });
+  });
+}
+say('FIXED FURNITURE IN THE PHONE\'S OWN BAND — an edge without var(--safe-*) (542)', safeBad,
+    r => `${r.short}:${r.line}  ${r.name}  ->  use ${r.use}`);
+if (!safeRead) { console.log('FAILED — no position: fixed rule of FIXED_OK was found, so the safe area was not checked.'); process.exit(1); }
+
 say('A POP-UP MENU, DIALOG, POPOVER OR FLOATING BOX (420)', popups,
     r => `${r.short}:${r.line}  ${r.name}  ->  use ${r.use}`);
 
-console.log('\nfiles read: ' + files.length + ', style rules read: ' + rules);
+console.log('\nfiles read: ' + files.length + ', style rules read: ' + rules + ', fixed boxes asked about the safe area: ' + safeRead);
 if (!rules) { console.log('FAILED — the stylesheet could not be read, so nothing about it was checked.'); process.exit(1); }
-if (bad.length || blanks.length || popups.length) {
+if (bad.length || blanks.length || popups.length || safeBad.length) {
   console.log('FAILED — nothing in this app opens over the app. See Engine > surfaces.');
   process.exit(1);
 }
