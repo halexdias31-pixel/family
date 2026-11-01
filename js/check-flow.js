@@ -2577,7 +2577,7 @@ check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile an
   const said = r.texts.join(' | ');
   console.log('          drawn: ' + said.slice(0, 160));
   ['Ada Tutor', '@adatutor', 'TEACHES', 'adatutor'].forEach(s => { if (said.indexOf(s) < 0) bad.push('the picture does not say "' + s + '"'); });
-  if (!/£20\/h/.test(said)) bad.push('a visitor\'s picture has no rate on it: ' + said.slice(0, 200));
+  if (!/£20(–\d+)?\/hour/.test(said)) bad.push('a visitor\'s picture has no rate on it: ' + said.slice(0, 200));
   if (!r.images.some(i => /ada\.jpg/.test(i._src || '') && i.crossOrigin === 'anonymous')) bad.push('Ada\'s photo was not drawn, or was asked for without crossOrigin');
   /* ---------- 2. A LAPTOP: no file sharing, so the PNG is downloaded and the link copied ---------- */
   r = profilePng_(v.w, { noFiles: true });
@@ -23554,6 +23554,33 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
   /* AND THE ADMIN'S LINE SAYS WHERE THE CUT CAME FROM — their own, or the default. */
   if (got.own && !/their cut 0\.2/.test(got.own.seatSource || '')) bad.push('the breakdown\'s source for a tutor\'s own cut reads "' + (got.own && got.own.seatSource) + '"');
   if (got.blank && !/\+ B 0\.1/.test(got.blank.seatSource || '')) bad.push('the breakdown\'s source for a blank cut reads "' + (got.blank && got.blank.seatSource) + '"');
+  return bad;
+});
+
+/* ---------- A TUTOR'S RATE IS SHOWN AS A RANGE, ONE SEAT TO A FULL CLASS (549) ---------- */
+check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile card, the shared picture and booking\'s tutor choice; one seat is one rate', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.rateRange_ !== 'function' || typeof w.findCard !== 'function' || !t.STEPS) return ['rateRange_ / findCard / BOOK_STEPS not reachable — NOT checked'];
+  const D = t.DATA();
+  D.constants = D.constants || {};
+  D.constants.vars = Object.assign({}, D.constants.vars || {}, { c: 0.2, B: 0.1 });
+  const base = (D.tutors || []).find(x => x && x.personId) || {};
+  const mk = (title, more) => Object.assign({}, base, { title, personId: 'P-' + title.replace(/\W/g, ''), listed: true, rate: 10, extraSeat: 0.2, extraSeatCut: 0.1, maxStudents: 4 }, more);
+  const rows = { four: mk('Range Four', {}), one: mk('Range One', { maxStudents: 1 }), none: mk('Range None', { maxStudents: '' }), free: mk('Range Free', { rate: '' }) };
+  const bad = [];
+  const WANT = { four: '£10–19/hour', one: '£10/hour', none: '£10/hour', free: '' };
+  Object.keys(WANT).forEach(k => { const g = w.rateRange_(rows[k]); if (g !== WANT[k]) bad.push(k + ': rateRange_ says "' + g + '", wanted "' + WANT[k] + '"'); });
+  const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row: rows.four });
+  const card = ((box.querySelector('.prof-rate') || {}).textContent || '').trim();
+  if (card !== '£10–19/hour') bad.push('the profile card draws "' + card + '", wanted "£10–19/hour"');
+  if (typeof w.tpngRate_ === 'function' && w.tpngRate_(rows.four) !== '£10–19/hour') bad.push('the shared picture says "' + w.tpngRate_(rows.four) + '"');
+  D.tutors = [rows.four, rows.one].concat(D.tutors || []);
+  const st = t.STEPS.find(s => s.id === 'tutor');
+  const said = st && st.label_ ? st.label_('Range Four') : '';
+  if (said.indexOf('£10–19/hour') === -1) bad.push('booking\'s tutor choice says "' + said + '", wanted the range');
+  if (st && st.label_('Range One').indexOf('£10/hour') === -1) bad.push('booking\'s one-seat tutor says "' + st.label_('Range One') + '"');
   return bad;
 });
 

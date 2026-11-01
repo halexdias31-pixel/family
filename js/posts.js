@@ -1407,7 +1407,7 @@ function tpngFacts_(t) {
 }
 
 /* A CHILD'S PHONE DRAWS NO PRICE (398) — the same rule as the card's `prof-rate`. */
-const tpngRate_ = t => (Number(t.rate) > 0 && !childView_()) ? money(t.rate).replace(/\.00$/, '') + '/h' : '';
+const tpngRate_ = t => (Number(t.rate) > 0 && !childView_()) ? rateRange_(t) : '';
 
 function tutorPng_(t, url) {
   const fontsReady = (document.fonts && document.fonts.load)
