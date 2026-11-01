@@ -69,11 +69,20 @@ const VISITORS = [
                                   lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
                                   lib3_name: 'Wandsworth Town and Putney',
                                   lib3_no: '2000000000002', lib3_pin: '0000' } } },
-];
+  /* AND A STUDENT (541 review), ON ASKING: the lowest rank sees the most locked cards, but most states in states.js
+     are drawn for an admin and have no `only`, so by default it would report ~50 unreachable states. */
+  { as: 'student', ask: true, user: { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' } },
+].filter(v => arg('as') ? arg('as').split(',').indexOf(v.as) !== -1 : !v.ask);   // `--as=out,in,student` picks
+const whoSay_ = as => as === 'in' ? ' signed in' : as === 'out' ? '' : ' as ' + as;
+
+/* THE ZOOM LADDER, as the owner agreed it (533, D3) -- written here and not read from the app, so the app cannot move it and pass. */
+const ZOOM_LADDER = [1, 0.875, 0.75];
 
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.
    The smaller number is used so this reports what is indefensible rather than what is imperfect. */
 const MIN_TAP = 44;
+/* AN iPHONE'S SAFE AREA (542): 47 under the notch and 34 over the home bar upright; turned, 47 each side and 21 below. */
+const SAFE_AT = (w, h) => (w < h ? { top: 47, bottom: 34 } : { left: 47, right: 47, bottom: 21 });
 
 /* ---------- KNOWN, WITH A WRITTEN REASON EACH, AND STILL PRINTED § */
 const ACCEPTED_TAP = [
@@ -88,21 +97,33 @@ const ACCEPTED_TAP = [
   + 'between rows goes to the nearest key in that row (`kpNear_`), which makes the edge keys reach the edge of the '
   + 'glass -- `q` is 44.8px wide in effect at 320; and the pressed letter is shown above the finger. From 640px wide the '
   + 'letters pad widens and its keys are 60px, so a tablet is not on this list. A wrong letter costs one ⌫.' },
-  { cls: /^(counted\.row|chip\.sm)\b/, why:
+  { cls: /^mc-btn\b/, run: 36, why:
+    'THE CALCULATOR IS DRAWN AT FULL SIZE AND ITS KEY ROWS GIVE WAY INSTEAD (533). The owner said yes to *"Make the '
+  + 'calculator fit its space at full size rather than being shrunk on every phone"* (D4). A ClassWiz has nine rows of '
+  + 'keys under its display, and nine 44px rows with the display are taller than the pane on a laptop and on a small '
+  + 'phone, where `paneReach_` used to draw the whole device at .7-.8: 31px keys at 320. Now `calcFit_` (games.js) gives '
+  + 'each row what the pane has left, between 36px (a tile\'s floor, `PANE_FLOOR_TILE`) and 56px: about 41px at 390x844 '
+  + 'and 36px at 1280x800 and 320x568, where the pane scrolls the rest. Each key is its whole cell, the column wide, so '
+  + 'it is 44px or more across; the run down its middle is held to 36 here.' },
+  { cls: /^(counted\.row|chip\.sm)\b/, run: 36, why:
     'A FUNNEL ANSWER, AND THE CHIP IT BECOMES, IS 32px BY THE OWNER\'S CHOICE -- *"Make the tags smaller because this will '
   + 'help to make sure more fit in even when there\'s lots of names for the user to parse through."* '
   + 'The funnel stopped cutting long lists into letter ranges on the same day, so a question can draw '
   + 'thirty answers, and at 44px a third of them sat below the card. What was done instead of the '
-  + 'full height: each chip carries a 6px reach above and below (a `::before`, as `.qw` does), so the '
-  + 'hit area is 44px tall while the drawn chip is 32; `min-width: 44px` keeps the narrowest answer a '
-  + 'fingertip wide. A wrong tap is cheap: the answer comes back off with its chip\'s cross.' },
-  { cls: /^qw\b/, why:
+  + 'full height: each chip carries a 6px reach above and below (a `::before`, as `.qw` does); `min-width: 44px` keeps the narrowest answer a '
+  + 'fingertip wide. A wrong tap is cheap: the answer comes back off with its chip\'s cross.\n'
+  + '        THIS ENTRY SAID THE REACH MADE A 44px HIT AREA, AND IT DOES NOT (533): lines of chips sit .4rem apart, so '
+  + 'one chip\'s reach is under the next line\'s, and `elementFromPoint` down a chip\'s middle gives it 36-38px (43 on a '
+  + 'lone line). A 12px line gap would make it 44 and push a long answer list a line further down the card; the owner\'s '
+  + 'density is kept, and the run is held to 36, a tile\'s floor.' },
+  { cls: /^qw\b/, run: 32, why:
     'A WORD IN A PASSAGE IS THE SIZE OF A WORD, and on a "circle the three adjectives" question the '
   + 'words ARE the controls -- *"some questions require answers on diagram"*, and for KS2 grammar the '
   + 'passage is the diagram. A 44px word would be a passage with one word a line. What was done '
   + 'instead: the passage opens to 2.4 line height and each word carries a 9px reach above and '
-  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area to about 35px '
-  + "tall without moving a line; the width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
+  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area without moving a line -- '
+  + '32-33px tall at 320 as `elementFromPoint` measures it down a word\'s middle (533; it said "about 35"), held to 32 here. '
+  + "The width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
   + 'cell liveable: a wrong tap costs nothing -- the same tap takes the ring straight back off, and '
   + 'nothing is sent anywhere.' },
   { cls: /^hr\b/, why:
@@ -335,7 +356,11 @@ async function settled(page) {
       const t0 = performance.now();
       for (;;) {
         const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
-          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'))
+          /* AND A FOLD OR THE SHEET STILL OPENING OR CLOSING (537): a finite animation inside the screen; a loop (dots, a busy ring) never ends, so it is not waited for. */
+          || (typeof document.getAnimations === 'function' && document.getAnimations().some(a => a.playState === 'running'
+            && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#screen')
+            && isFinite(a.effect.getComputedTiming().endTime)));
         /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341): a column or a widget slot it is still drawing
            in the quiet is a screen still changing under the measurement. Bounded by the same four seconds. */
         const booked = (typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME)
@@ -445,7 +470,7 @@ async function veiledOnGlass(page) {
 
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [],
+  const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [], offLadder: [],
                  tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME § */
@@ -474,6 +499,24 @@ function inspect(opts) {
     return r.width > 0 && r.height > 0;
   };
 
+  /* ---------- A CONTROL'S REACH (542): its box, grown by an empty, unpainted ::before/::after it positions, the way .biz-dot and .kp-handle reach 44px */
+  const reach_ = el => {
+    const b = el.getBoundingClientRect();
+    let L = b.left, T = b.top, R = b.right, B = b.bottom;
+    if (getComputedStyle(el).position === 'static') return b;
+    for (const which of ['::before', '::after']) {
+      const ps = getComputedStyle(el, which);
+      if (ps.content === 'none' || ps.content === 'normal' || ps.position !== 'absolute' || ps.pointerEvents === 'none') continue;
+      if (!/^["']{2}$/.test(ps.content) || ps.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(ps.backgroundColor)) continue;
+      const px = v => (/px$/.test(v) ? parseFloat(v) : NaN);
+      const ox = b.left + el.clientLeft, oy = b.top + el.clientTop;
+      const l = px(ps.left), t = px(ps.top), w = px(ps.width), h = px(ps.height);
+      if ([l, t, w, h].some(isNaN)) continue;
+      L = Math.min(L, ox + l); T = Math.min(T, oy + t); R = Math.max(R, ox + l + w); B = Math.max(B, oy + t + h);
+    }
+    return { left: L, top: T, right: R, bottom: B, width: R - L, height: B - T };
+  };
+
   /* ---------- AND THE SHEET, WHEN ONE IS OPEN § */
   const sheet = document.getElementById('sheet');
   const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
@@ -482,7 +525,12 @@ function inspect(opts) {
   /* ---------- AND THE MATHS KEYPAD, FOR THE SAME REASON AGAIN § */
   const kp = document.getElementById('kp');
   const onPad = kp && !kp.hidden && vis(kp) ? [kp, ...kp.querySelectorAll('*')] : [];
-  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onPad].filter(vis);
+  /* ---------- AND THE CHROME OUTSIDE #screen (542, U19): the Business dot, the banner, the toast obey the same tap and press rules */
+  const screenEl = document.getElementById('screen');
+  const chrome = [...document.body.children]
+    .filter(e => e !== screenEl && e !== sheet && e !== kp && !/^(SCRIPT|STYLE|TEMPLATE|LINK|svg)$/i.test(e.tagName))
+    .flatMap(e => [e, ...e.querySelectorAll('*')]);
+  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onPad, ...chrome].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR § */
   const roots = [document.scrollingElement, live, ...inside];
@@ -519,6 +567,8 @@ function inspect(opts) {
       /* 2px of slack, which is the rounding a fractional scale leaves behind — `0.3533` on 794px
          does not land on a whole pixel and neither does the box. */
       if (paintedRight !== null && paintedRight - box.right <= 2) continue;
+      /* A FINGERTIP'S REACH IS NOT CONTENT (542): an empty, unpainted ::before that grows a small control is overflow nobody sees or scrolls. */
+      if ((paintedRight === null || paintedRight - box.right <= 2) && reach_(el).right - box.right >= over - 1) continue;
       found.overflow.push({ tag: el.tagName.toLowerCase(),
         cls: String(el.className || '').slice(0, 40),
         by: over, width: el.clientWidth });
@@ -536,11 +586,19 @@ function inspect(opts) {
       const card = el.firstElementChild;
       found.shrunk.push({ cls: String(card.className || '').split(/\s+/)[0], z: zk });
     }
+    /* EVERY ZOOM IN THE PANE, a card's and its words' (`cardFigFit_`), for the ladder (533). */
+    [...el.children, ...el.querySelectorAll('[data-face-zoom]')].forEach(k => {
+      const z = parseFloat(k.style && k.style.zoom);
+      if (z > 0 && !opts.LADDER.some(s => Math.abs(s - z) < 1e-6)) {
+        found.offLadder.push({ cls: String(k.className || k.tagName).split(/\s+/)[0], z });
+      }
+    });
     const s2 = getComputedStyle(el);
     if (/(auto|scroll)/.test(s2.overflowY)) continue;
     const under = el.scrollHeight - el.clientHeight;
     if (under <= 2 || el.clientHeight <= 0) continue;
     const box = el.getBoundingClientRect();
+    /* A FULL-SIZE CARD IS NEVER CLIPPED "ON PURPOSE" (533 review): past the floors its pane scrolls, so only a card drawn smaller may claim `PANE_REACH`. */
     let paintedBottom = null;
     for (const kid of el.children) {
       const k = kid.getBoundingClientRect();
@@ -550,7 +608,7 @@ function inspect(opts) {
     found.hidden.push({ tag: el.tagName.toLowerCase(),
       cls: String((el.firstElementChild && el.firstElementChild.className) || el.className || '')
              .slice(0, 40),
-      by: under, height: el.clientHeight, tol: under <= paneFloor, floor: paneFloor });
+      by: under, height: el.clientHeight, tol: under <= paneFloor && zk > 0 && zk < 1, floor: paneFloor });
   }
 
   /* ---------- AND THE PANE ITSELF CAN BE OFF THE SCREEN, WHICH THE RULE ABOVE CANNOT SEE § */
@@ -672,14 +730,29 @@ function inspect(opts) {
       const zv = parseFloat(e.style && e.style.zoom);
       if (zv > 0 && zv < 1) ez *= zv;
     }
-    const r0 = el.getBoundingClientRect();
+    const r0 = reach_(el);
     const r = { width: r0.width / ez, height: r0.height / ez };
     if (r.height < MIN_TAP - 0.5 || r.width < MIN_TAP - 0.5) {
+      /* THE RUN A FINGER REALLY HAS (533): down the control's middle, how many pixels `elementFromPoint` gives to it -- its reach included, a neighbour's overlap and any zoom taken off. */
+      let run = null;
+      const cls0 = String(el.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.');
+      const cx = r0.left + r0.width / 2;
+      /* ONLY WHERE A FINGER CAN REACH IT: on the page in front, and whole inside its pane (a pane that scrolls clips the rest). */
+      const pn = el.closest('.pane'), pr = pn && pn.getBoundingClientRect();
+      const reachable = !el.closest('.page') || (el.closest('.page.on') && (!pr || (r0.top - 16 >= pr.top && r0.bottom + 16 <= pr.bottom)));
+      if (reachable && (opts.RUN_CLS || []).some(src => new RegExp(src).test(cls0)) && cx > 0 && cx < vw && r0.top - 16 >= 0 && r0.bottom + 16 <= vh) {
+        let best = 0, cur = 0;
+        for (let y = Math.floor(r0.top - 16); y <= r0.bottom + 16; y++) {
+          const hit = document.elementFromPoint(cx, y);
+          if (hit && (hit === el || el.contains(hit))) { cur++; if (cur > best) best = cur; } else cur = 0;
+        }
+        run = best;
+      }
       /* THE CLASS COMES BACK WITH IT, because a finding has to be identifiable to be accepted. § */
       found.tinyTargets.push({ tag: tag.toLowerCase(),
         cls: String(el.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'),
         text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 28),
-        w: Math.round(r.width), h: Math.round(r.height),
+        w: Math.round(r.width), h: Math.round(r.height), run,
         /* WHETHER IT IS IN A CARD'S EDITOR — an `ACCEPTED_TAP` entry may be accepted there and nowhere else. */
         onCardEdit: !!(el.closest && el.closest('.card-ed')) });
     }
@@ -808,6 +881,18 @@ function inspect(opts) {
     const s = getComputedStyle(el);
     const fg = parse(s.color);
     if (!fg) continue;
+    /* ---------- AND THE OPACITY ABOVE IT (541, U18): a faded parent fades the words. The slide
+       dims what is not in front, and `.soft` a parked pane, on purpose, so the walk stops there. Disabled is exempt (WCAG). */
+    let quiet = false;
+    const dims = [];
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.matches('.page, .screen, .page.soft > .pane')) break;
+      if (n.matches(':disabled, [aria-disabled="true"]')) { quiet = true; break; }
+      const o = parseFloat(getComputedStyle(n).opacity);
+      if (o < 1) { fg.a *= o || 0; dims.push(n.tagName.toLowerCase() + (typeof n.className === 'string' && n.className.trim() ? '.' + n.className.trim().split(/\s+/).join('.') : '') + ' ' + o); }
+    }
+    /* A TEACHING ANIMATION (`.an-<id>`) is art that fades its own frames; a word faded to nothing is not on the glass. */
+    if (quiet || fg.a < .05 || el.closest('[class^="an-"], [class*=" an-"]')) continue;
     let bg = null, ratio = Infinity;
     grounds(el).forEach(g => {
       const solidFg = fg.a < 1 ? over(fg, g) : fg;
@@ -824,7 +909,7 @@ function inspect(opts) {
     if (ratio < need) {
       found.lowContrast.push({ text: el.textContent.trim().slice(0, 30),
         ratio: +ratio.toFixed(2), need, px: Math.round(px),
-        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})` });
+        fg: s.color, bg: `rgb(${[bg.r, bg.g, bg.b].map(Math.round).join(' ')})`, dims: dims.join(' < ') });
     }
   }
 
@@ -862,7 +947,7 @@ function inspect(opts) {
   /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
      top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
   found.floating = [];
-  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #boot-slow, .biz-dot, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
+  const NOT_MENUS = '#kp, #banner, #toasts, #toast, #reconnect, #boot-slow, .biz-dot, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
   [...document.querySelectorAll('body *')].forEach(el => {
     const s = getComputedStyle(el);
     let top = false;
@@ -875,6 +960,42 @@ function inspect(opts) {
   });
   const sh = document.getElementById('sheet');
   if (sh && getComputedStyle(sh).position !== 'static') found.floating.push('#sheet is position: ' + getComputedStyle(sh).position + ' — the sheet is a page in the flow (420)');
+
+  /* ---------- NOTHING TO PRESS IN THE PHONE'S OWN BANDS (542, U19): the notch, the status bar and the home bar forced
+     to an iPhone's insets for one layout; a fixed control's reach must stay clear of every band */
+  found.inBand = [];
+  if (opts.safe) {
+    const fixedHere = [...document.querySelectorAll('body *')].filter(el => getComputedStyle(el).position === 'fixed' && vis(el));
+    const kill = document.createElement('style');
+    kill.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; }';
+    const force = document.createElement('style');
+    force.textContent = ':root { ' + Object.keys(opts.safe).map(k => '--safe-' + k + ': ' + opts.safe[k] + 'px !important;').join(' ') + ' }';
+    document.head.append(kill, force);
+    try {
+      const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, S = opts.safe;
+      fixedHere.flatMap(f => [f, ...f.querySelectorAll('*')]).forEach(el => {
+        const tag = el.tagName;
+        const tappable = /^(BUTTON|A|SELECT|INPUT|TEXTAREA|LABEL|SUMMARY)$/.test(tag)
+          || el.getAttribute('role') === 'button' || el.hasAttribute('onclick') || el.hasAttribute('data-do');
+        if (!tappable || !vis(el) || el.closest('[hidden]')) return;
+        if (getComputedStyle(el).pointerEvents === 'none') return;
+        const r = reach_(el);
+        const hit = [];
+        if (S.top && r.top < S.top - 0.5 && r.bottom > 0) hit.push('top ' + S.top);
+        if (S.bottom && r.bottom > H - S.bottom + 0.5 && r.top < H) hit.push('bottom ' + S.bottom);
+        if (S.left && r.left < S.left - 0.5 && r.right > 0) hit.push('left ' + S.left);
+        if (S.right && r.right > W - S.right + 0.5 && r.left < W) hit.push('right ' + S.right);
+        if (hit.length) found.inBand.push((el.id ? '#' + el.id : tag.toLowerCase())
+          + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '')
+          + ' reaches into the ' + hit.join(', ') + 'px band (' + [r.left, r.top, r.right, r.bottom].map(Math.round).join(',') + ')');
+      });
+      found.bandAsked = fixedHere.length;
+    } finally {
+      force.remove();
+      void document.body.offsetHeight;   // lay out again with transitions still off, so nothing glides back into the next measurement
+      kill.remove();
+    }
+  }
 
   return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
@@ -890,10 +1011,13 @@ function inspect(opts) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
   let failures = 0;
+  let bandFixed = 0;   // fixed boxes measured against the forced safe area, printed so a run that met none says so
   /* HOW MANY BOARDS THE RULE ABOVE `BOARDS` ACTUALLY MEASURED, printed with the summary — a count
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
   let boardsMeasured = 0;
+  /* ACCEPTED_TAP RUNS HELD TO THEIR NUMBER (533): none measured on a whole run is a rule that reached nothing. */
+  let runsMeasured = 0;
   /* AND HOW MANY DRAWN PICTURES WERE PHOTOGRAPHED FOR A CUT EDGE (`FACE_SEL`), for the same reason. */
   let facesMeasured = 0;
   /* LOADERS, COUNTED LIKE BOARDS — a run that measured none and a run where every one passed print the same nothing. § */
@@ -1169,7 +1293,10 @@ function inspect(opts) {
         if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
         if ((veil.off || []).length) rows.push({ width, id: label, as: who.as, offGlass: veil.off });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
-          { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
+          { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id,
+            RUN_CLS: ACCEPTED_TAP.filter(a => a.run).map(a => a.cls.source), LADDER: ZOOM_LADDER,
+            safe: SAFE_AT(width, height) });
+        bandFixed += found.bandAsked || 0;
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
                                 + `which pane is in front, so this row may be measuring the wrong thing.`);
 
@@ -1377,7 +1504,7 @@ function inspect(opts) {
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
-            + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+            + `-${width}${who.as === 'out' ? '' : '-' + who.as}.png`) });
 
         /* ---------- AND WHEN WHAT IT WAITED FOR LANDS, THE CARD DOES NOT MOVE § */
         if (state.release && loaders.length) {
@@ -1499,9 +1626,9 @@ function inspect(opts) {
   /* WHERE A FAULT WAS SEEN NOW SAYS WHO WAS LOOKING. § */
   for (const r of rows) {
     if (r.skipped) continue;
-    const at = `${r.id}@${r.width}${r.as === 'in' ? ' signed in' : ''}`;
+    const at = `${r.id}@${r.width}${whoSay_(r.as)}`;
     (r.jsErrors || []).forEach(e => add('JS ERROR', e,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`));
+      `${r.width}px${whoSay_(r.as)}`));
     /* NOT GROUPED UNDER A SCREEN NAME, because it is not about one: the place is the width and the
        visitor, and the finding names the two columns furthest apart so there is something to look
        at rather than a number. */
@@ -1510,11 +1637,11 @@ function inspect(opts) {
       `the page is ${r.docScroll.h}px tall inside a ${r.docScroll.vh}px viewport, so the whole app `
       + `can be scrolled by ${r.docScroll.over}px — body padding ${r.docScroll.pad}, `
       + `children ${r.docScroll.kids}`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
       `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
       + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
-      `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
+      `${r.width}px${whoSay_(r.as)}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
@@ -1559,12 +1686,25 @@ function inspect(opts) {
     (r.shrunk || []).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
       `.${o.cls || 'card'} at ${Math.round(o.z * 100)}%`, at,
       `ASKED FOR: "I don't like scrolling. If you need to leave things more compact or smaller font. `
-      + `This goes for all widgets so they all fit on screen." \`paneReach_\` in find.js shrinks a card `
-      + `taller than its pane, down to PANE_ZOOM_MIN, and only scrolls past that. Its controls shrink `
-      + `with it — the trade the owner chose — so each is judged above at its own size, and this line `
-      + `is how many cards pay it and by how much.`));
+      + `This goes for all widgets so they all fit on screen." \`paneReach_\` in find.js draws a card `
+      + `taller than its pane at .875 or .75 (533, D3), never with its words under 11px or a tile under 36px, `
+      + `and scrolls past that. Its controls are judged above at their own size, and this line is how many `
+      + `cards pay it and by how much.`));
+    /* THE LADDER (533, D3): a card is drawn at full size, .875 or .75 and nothing between. */
+    (r.offLadder || []).forEach(o => add('A ZOOM OFF THE LADDER',
+      `.${o.cls} is drawn at ${o.z}, not one of ${ZOOM_LADDER.join(', ')}`, at));
+    /* THE TOOLS ARE DRAWN AT FULL SIZE where the pane can hold them (533, D4): the calculator's rows are sized from the pane instead. */
+    if (/^tools\b/.test(r.id) && (r.width === 390 || r.width === 1280)) (r.shrunk || []).forEach(o => add('A TOOL DRAWN SMALLER',
+      `.${o.cls} at ${o.z} on Tools — at ${r.width}px a tool fits its pane at full size`, at));
+    (r.inBand || []).forEach(f => add('A CONTROL IN THE PHONE\'S OWN BAND (542)', f, at));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || '') && (!a.onCardEdit || t.onCardEdit));
+      /* A REASON THAT NAMES A RUN IS HELD TO IT (533): `run` is the pixels down the middle a finger really has, measured by `elementFromPoint`. */
+      if (ok && ok.run && t.run != null) {
+        runsMeasured++;
+        if (t.run < ok.run - 0.5) add('TAP TARGET SHORTER THAN ITS REASON SAYS',
+          `<${t.tag}>.${t.cls} ${JSON.stringify(t.text)} has a ${t.run}px run down its middle; its ACCEPTED_TAP reason says ${ok.run}`, at);
+      }
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',
         `<${t.tag}>${t.cls ? '.' + t.cls : ''} ${JSON.stringify(t.text)} is ${t.w}x${t.h}`, at,
         ok && ok.why);
@@ -1573,7 +1713,7 @@ function inspect(opts) {
       `${e.sel} ${JSON.stringify(e.name)} ${e.ratio}:1 against what is behind it (needs 3) — face ${e.face}, `
       + `edge ${e.line}, on ${e.bg}`, at));
     (r.lowContrast || []).forEach(c => add('CONTRAST',
-      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}`, at));
+      `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}${c.dims ? ', faded by opacity: ' + c.dims : ''}`, at));
     (r.noName || []).forEach(n => add('NO NAME',
       `<${n.tag}>${n.cls ? '.' + n.cls : ''}${n.act ? ` [${n.act}]` : ''} has no text, label, `
       + `aria-label, title or placeholder — a screen reader has nothing to say about it`, at));
@@ -1583,12 +1723,16 @@ function inspect(opts) {
   console.log(`\nchecked ${checked} screen/width/visitor combinations `
             + `(${screens.reduce((n, id) => n + statesOf(id).length, 0)} screen states x `
             + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
-            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
+            + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as !== 'out' ? whoSay_(v.as).trim()
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
+  console.log(`accepted small targets whose run down the middle was measured against their reason: ${runsMeasured}\n`);
+  if (!runsMeasured && !ONLY && !PART.length) add('TAP TARGET SHORTER THAN ITS REASON SAYS',
+    'no accepted target that names a run was ever measured, so no reason was held to its number', 'the whole run');
   console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `
               + `${soundHit} of them in view and hit-tested at their centre (the top thing there is the tile)\n`);
   console.log(`drawn pictures photographed for a cut edge: ${facesMeasured}\n`);
+  console.log(`fixed boxes measured with an iPhone's safe area forced (47/34 upright, 47/47/21 turned): ${bandFixed}\n`);
   /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
   Object.keys(loaderSizes).forEach(wd => {
     const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];

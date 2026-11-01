@@ -4,6 +4,21 @@
 const STATES = {
   stuff: [
     { name: 'the question' },
+    /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
+    { name: 'the library failed',
+      enter: () => inFinder_(finderOf_('stuff'), () => {
+        window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
+        LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
+        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        paintStuff();
+      }),
+      leave: () => inFinder_(finderOf_('stuff'), () => {
+        const h = window.__LIB_FAIL || {};
+        LIBRARY_ROWS = h.rows || null; LIBRARY_FAILED = h.f || '';
+        stuffForget_(); paintStuff();
+      }),
+      expect: () => document.querySelectorAll('#s-stuff > .page').length && !document.querySelector('#s-stuff .loading') ? 1 : 0,
+      wants: 'the column drawn with the question file failed, and no loader waiting for it' },
     /* A WORD THAT IS IN THOUSANDS OF QUESTIONS, so the results are real cards rather than a lucky one. § */
     /* ---------- AND THE SECONDS BEFORE THE LIBRARY LANDS § */
     { name: 'the library still coming',
@@ -357,11 +372,13 @@ const STATES = {
         const art = pad.querySelector('.qpad-art > svg:first-child');
         const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
         const words = [...pad.closest('.qcard').querySelectorAll('[data-face-zoom]')];
-        const gave = words.length && words.every(e => Math.abs(parseFloat(e.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001);
+        /* GIVEN WAY = drawn at a step of the ladder under 1 (533): the words' 11px floor may stop them at .875 rather than the last step. */
+        const gave = words.length && words.every(e => PANE_ZOOM_STEPS.indexOf(parseFloat(e.style.zoom || '1')) > 0);
         return [...pad.querySelectorAll('.qpad-bar [data-do]')].every(e => side(e) >= 43.5)
                && [...pane.children].every(k => !k.style.zoom)
                && art.getBoundingClientRect().width >= FIG_FLOOR - 0.5
-               && (!art.style.width || !!gave);
+               /* NONE GIVEN IS THE 11px FLOOR HOLDING THEM (533): then the picture narrows alone. */
+               && (!art.style.width || !!gave || !words.length);
       },
       wants: 'the four sine grids under the pen, its tiles at 44px, nothing drawn smaller whole, the figure no narrower than the floor and narrowed only once the words have given way',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
@@ -1894,6 +1911,21 @@ const STATES = {
   /* FIND 2, RIGHT OF FIND (docs/history/329, 347) § */
   res: [
     { name: 'the question' },
+    /* ---------- THE QUESTION FILE FAILED (531): the column draws, and never a loader that waits for ever (U13). D adds the failure card with Try again. */
+    { name: 'the library failed',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        window.__LIB_FAIL = { rows: LIBRARY_ROWS, f: LIBRARY_FAILED };
+        LIBRARY_ROWS = []; LIBRARY_FAILED = 'the question file answered 500';
+        stuffForget_(); STUFF.filters = []; STUFF.q = '';
+        paintStuff();
+      }),
+      leave: () => inFinder_(finderOf_('res'), () => {
+        const h = window.__LIB_FAIL || {};
+        LIBRARY_ROWS = h.rows || null; LIBRARY_FAILED = h.f || '';
+        stuffForget_(); paintStuff();
+      }),
+      expect: () => document.querySelectorAll('#s-res > .page').length && !document.querySelector('#s-res .loading') ? 1 : 0,
+      wants: 'the column drawn with the question file failed, and no loader waiting for it' },
     /* ---------- A CONTENT CARD, REACHED BY WHAT KIND · CONTENT AND ITS SUBJECT § */
     { name: 'a content card',
       enter: () => inFinder_(finderOf_('res'), () => {
@@ -4043,6 +4075,17 @@ const STATES = {
       },
       wants: 'the Business column: Insurance, Tax, Legal and data, Safeguarding, Money and company, each with its Save' },
 
+    /* THE BUSINESS DOT (542): drawn on the body, outside every column, so its size and its distance from the notch are measured here. */
+    { name: 'the Business dot',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => { bizNeed_('check-542', 3, 'three things'); bizNeedsPaint_(); },
+      leave: () => { delete BIZ_NEEDS['check-542']; bizNeedsPaint_(); },
+      expect: () => {
+        const d = document.getElementById('biz-dot');
+        return d && d.textContent === String(bizNeedsTotal_()) && d.getBoundingClientRect().width > 0 ? 1 : 0;
+      },
+      wants: 'the Business dot drawn on the body with the count of what needs the admin' },
+
     /* THE INSURANCE CARD WITH SOMETHING RECORDED. § */
     { name: 'the business records (insurance)',
       only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
@@ -4284,7 +4327,9 @@ const STATES = {
               paneReach_([pane]);
               const zoom = Math.min(...[...pane.children].map(k => Number(k.style.zoom || 1)));
               const rows = document.querySelectorAll('#s-tools .mat-list label:not(.off)').length;
-              if (pane.scrollHeight - pane.clientHeight > 2 || zoom < 0.85 || rows > 8) {
+              /* FITS, OR SCROLLS TO ITS FOOT (533, D3): a view the floors hold at full size scrolls rather than being drawn under 11px words. */
+              const over = pane.scrollHeight - pane.clientHeight > 2 && pane.style.overflowY !== 'auto';
+              if (over || PANE_ZOOM_STEPS.indexOf(zoom) < 0 || rows > 8) {
                 miss = `${s} · ${l} · ${g || '(one topic)'}: ${rows} rows, ${pane.scrollHeight}px in `
                      + `${pane.clientHeight}px at zoom ${zoom}`;
               }
@@ -4296,7 +4341,7 @@ const STATES = {
            would pass this with one view measured. */
         return !miss && views > 50;
       },
-      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844 with no scroll and no zoom below 0.85 (window.MAT_FIT_MISS names the first that did not)',
+      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844, or scrolling to its foot, at a zoom on the ladder (window.MAT_FIT_MISS names the first that did not)',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
         MAT_GROUP = ''; if (typeof MAT_KIND !== 'undefined') MAT_KIND = 'cheat';
@@ -5233,6 +5278,20 @@ const STATES = {
   /* THE CAMERA IS A PAGE OF THE FEED NOW, directly above the newest post — the `make` column is gone. § */
   feed: [
     { name: '' },
+    /* ---------- OFFLINE (531): the payload asked for again and failing. What was drawn stays drawn (U8) and no raw error is printed (U13); D6 adds the way forward. */
+    { name: 'offline',
+      enter: () => {
+        window.__OFF = { f: LOAD_FAILED, t: RECONNECT.tries, n: document.querySelectorAll('#s-feed > .page').length };
+        LOAD_FAILED = 'Failed to fetch'; RECONNECT.tries = 1;
+        paint('feed');
+      },
+      leave: () => { const o = window.__OFF || {}; LOAD_FAILED = o.f || ''; RECONNECT.tries = o.t || 0; paint('feed'); },
+      expect: () => {
+        const col = document.getElementById('s-feed');
+        return col && col.querySelectorAll(':scope > .page').length >= ((window.__OFF || {}).n || 1)
+          && !col.querySelector('.loading') && !/Failed to fetch|TypeError/.test(col.textContent) ? 1 : 0;
+      },
+      wants: 'the feed still showing what it had, no loader over it and no raw error text' },
     { name: 'a photograph taken',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -6184,6 +6243,19 @@ const STATES = {
         if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
+  /* THE SETTINGS AND PROFILE COLUMNS, KEYED HERE (531) so a package adds a state without editing another's lines; the `col:` states below still land on them. */
+  ...Object.fromEntries(['family', 'staff', 'tutors', 'students', 'parents'].map(id => [id, [
+    { name: '' },
+    /* THE LAST CARD, turned to through the pager as a swipe would: the column's far end measured, not only its first card. */
+    { name: 'the last card',
+      enter: new Function(`const n = document.querySelectorAll('#s-${id} > .page').length;
+        if (!n) throw new Error('the ${id} column drew no card');
+        goPage('${id}', n - 1, true);`),
+      expect: new Function(`const ps = [...document.querySelectorAll('#s-${id} > .page')];
+        return ps.length && ps[ps.length - 1].classList.contains('on') ? 1 : 0;`),
+      leave: new Function(`goPage('${id}', 0, true);`),
+      wants: 'the column turned to its last card' },
+  ]])),
 };
 
 /* ---------- NOTIFICATIONS, AS EACH ROLE IS SENT THEM — `notifyCard_` in js/me.js § */

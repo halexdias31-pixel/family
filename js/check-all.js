@@ -16,6 +16,8 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
+  { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
   { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
@@ -199,8 +201,13 @@ const SUITE = [
   { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
+  { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
+  { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
+  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true },
+  { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
-  { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
+  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
@@ -231,6 +238,10 @@ const SUITE = [
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
   { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
+  /* THE POLISH HARNESS (531): three visitors at 320, 390 and 1280, one browser each, scenarios in check/steady|jank|touch/. */
+  { file: 'check/steady.js',  what: 'nothing moves that was not asked to: layout shift, the card in front, scroll offsets', slow: true },
+  { file: 'check/jank.js',    what: 'no long task while nothing is touched', slow: true },
+  { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once, one press look at once on every control, held as long as the finger (536)', slow: true },
 ];
 
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */

@@ -214,7 +214,8 @@ function layoutTiles_(w) {
 
 /* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
    Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
-const layCalm_ = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+/* LESS MOTION is the app's one question, `motionOK_` (537): the ring still lights, as a ring, for `--dur-mark`. */
+const layCalm_ = () => !motionOK_();
 function layThing_(kind, id, col) {
   const host = col ? document.getElementById('s-' + col) : document;
   if (!host || !id) return null;
@@ -227,7 +228,11 @@ function layLight_(el) {
   el.classList.remove('lay-moved');
   void el.offsetWidth;
   el.classList.add('lay-moved');
-  setTimeout(() => el.classList.remove('lay-moved'), 1400);
+  /* OFF WHEN ITS RING ENDS; the timer only for a ring that never ran (an element not drawn), and one per element, so a second light is not cut short by the first's. */
+  clearTimeout(el.layLitT);
+  const off = () => { clearTimeout(el.layLitT); el.classList.remove('lay-moved'); };
+  el.addEventListener('animationend', e => { if (e.animationName === 'lay-moved') off(); }, { once: true });
+  el.layLitT = setTimeout(off, MOTION_.mark + 200);
 }
 /* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
 function layMoveShow_(kind, id, col, save, to) {
@@ -242,20 +247,19 @@ function layMoveShow_(kind, id, col, save, to) {
         const n = pg && host ? [...host.querySelectorAll('.page')].indexOf(pg) : -1;
         if (n > -1) { try { goPage(to, n, layCalm_()); } catch (e) {} }
         layLight_(el);
-      }, layCalm_() ? 0 : 420);
+      }, layCalm_() ? 0 : MOTION_.move + 140);
       return;
     }
     const el = layThing_(kind, id, col);
     if (!el) return;
     if (!r0 || layCalm_()) { layLight_(el); return; }
+    /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
+    if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
     const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top;
-    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) { layLight_(el); return; }
-    el.style.transition = 'none';
-    el.style.transform = `translate(${dx}px, ${dy}px)`;
-    void el.offsetWidth;
-    el.style.transition = 'transform 320ms cubic-bezier(.2,.7,.2,1)';
-    el.style.transform = '';
-    setTimeout(() => { el.style.transition = ''; }, 360);
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth || typeof el.animate !== 'function') { layLight_(el); return; }
+    const z = el.currentCSSZoom || 1;
+    el.layGlide = el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }],
+                             { duration: MOTION_.move, easing: MOTION_.spring });
     layLight_(el);
   };
   try { requestAnimationFrame(after); } catch (e) { after(); }
@@ -284,24 +288,23 @@ on('lay-w-col', el => {
   D.widgets[to] = D.widgets[to].concat(all);
   layMoveShow_('w', id, col, () => layoutSave_(D), to);
 });
+/* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
+function layArm_(el, say, rest, word) {
+  return sure_(el, say, { ms: 3000,
+    face: x => {
+      x.classList.add('is-armed'); tileSet_(x, { label: say });
+      const k = x.querySelector('.tile-i');
+      if (word && k && !x.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+    },
+    back: x => { x.classList.remove('is-armed'); tileSet_(x, { label: rest }); x.querySelector('.lay-again')?.remove(); } });
+}
 /* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-w');
   const all = mergeAll_(id, layoutNow_());
   if (all.some(basketKept_)) return;
-  if (el.getAttribute('data-armed') !== '1') {
-    const say = all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
-    el.setAttribute('data-armed', '1');
-    el.classList.add('is-armed');
-    tileSet_(el, { label: say });
-    const k = el.querySelector('.tile-i');
-    if (k && !el.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed');
-      tileSet_(el, { label: 'Delete' }); el.querySelector('.lay-again')?.remove(); } }, 3000);
-    return;
-  }
+  if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
   const D = layoutDraftOf_(layoutNow_());
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
   all.forEach(x => { if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
@@ -825,19 +828,9 @@ on('lay-c-del', el => {
   const id = el.getAttribute('data-lc');
   if (!cardIs_(id)) return;
   const all = mergeAll_(id, layoutNow_());
-  if (el.getAttribute('data-armed') !== '1') {
-    const only = all.map(cardOnly_).filter(Boolean).join(', ');
-    const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
-    el.setAttribute('data-armed', '1');
-    el.classList.add('is-armed');
-    tileSet_(el, { label: say });
-    const k = el.querySelector('.tile-i');
-    if (k && !el.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed');
-      tileSet_(el, { label: 'Delete' }); el.querySelector('.lay-again')?.remove(); } }, 3000);
-    return;
-  }
+  const only = all.map(cardOnly_).filter(Boolean).join(', ');
+  const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
+  if (!layArm_(el, say, 'Delete', true)) return;
   const D = layoutDraftOf_(layoutNow_());
   all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
   layoutSave_(D);
@@ -925,12 +918,7 @@ on('lay-col-del', el => {
   if (!layoutIsAdmin_()) return;
   const col = el.getAttribute('data-col'), D = layoutDraftOf_(layoutNow_());
   if (!(D.custom || []).some(x => x.id === col)) return;
-  if (el.getAttribute('data-armed') !== '1') {
-    el.setAttribute('data-armed', '1'); el.classList.add('is-armed'); tileSet_(el, { label: 'Tap again to delete this column' });
-    clearTimeout(el.ARM_T);
-    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed'); tileSet_(el, { label: 'Delete column' }); } }, 3000);
-    return;
-  }
+  if (!layArm_(el, 'Tap again to delete this column', 'Delete column', false)) return;
   if (D.cards) delete D.cards[col];
   D.custom = D.custom.filter(x => x.id !== col);
   layoutSave_(D);

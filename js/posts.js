@@ -1176,7 +1176,7 @@ function poll(p) {
         ${voted
           /* The bar is drawn against the BIGGEST answer, not against the total — with four options
              the winner might be 30%, and a bar 30% across reads as nobody choosing it. */
-          ? `<span class="poll-bar" style="width:${Math.round(n / most * 100)}%"></span>` : ''}
+          ? `<span class="poll-bar" style="--f:${(n / most).toFixed(3)}"></span>` : ''}
         <span class="poll-text">${mine ? '✓ ' : ''}${esc(opt)}</span>
         ${voted ? `<span class="poll-n">${share}%</span>` : ''}
       </button>`;

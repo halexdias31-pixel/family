@@ -870,8 +870,7 @@ function settleCurve_(D, v) {
   return { dur: dur, a: s.a, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
 }
 /* LESS MOTION ASKED FOR: every placement lands at once — a release snaps, a tab jumps (527). */
-const MOTION_LESS = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { return null; } })();
-const motionLess_ = () => { try { return !!(MOTION_LESS && MOTION_LESS.matches); } catch (e) { return false; } };
+const motionLess_ = () => !motionOK_();   // one question for less motion, asked through motionOK_ (531)
 
 /* ---------- EACH AXIS HAS ITS OWN CLOCK § */
 const SPLIT_AXES = (() => {
@@ -2147,23 +2146,29 @@ const sheetFront_ = () => {
   const pg = document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT);
   return pg && (pg.querySelector(':scope > .pane') || pg);
 };
-function sheetPlace_() {
-  const sh = sheetEl_();
+/* WHERE THE SHEET WILL GO, worked out before anything moves, so `expand_` can read what is below that place first (537). */
+function sheetWhere_() {
   const want = SHEET_HERE_; SHEET_HERE_ = null;
-  document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
   let from = want ? want.el : PRESSED_;
   if (from && (!from.isConnected || !from.closest('#s-' + AT))) from = null;
   let host = from && from.closest(SHEET_HOSTS_);
   /* NOTHING PRESSED ON THIS SCREEN (a sign-in answered, a booking confirmed): the card in front. */
   if (!host) host = sheetFront_();
-  SHEET_AT_ = { post: host && host.dataset ? host.dataset.post || '' : '', swap: !!(want && want.swap) };
+  const swap = !!(want && want.swap);
+  const row = host && from && from.closest('.tile-row, .post-acts, .post-when');
+  const after = !swap && row && host.contains(row) && row !== host ? row : null;
+  return { host, after, swap };
+}
+function sheetPlace_(where) {
+  const sh = sheetEl_();
+  const w = where || sheetWhere_();
+  document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
+  SHEET_AT_ = { post: w.host && w.host.dataset ? w.host.dataset.post || '' : '', swap: w.swap };
   /* NO SCREEN DRAWN YET (a link opened on arrival): it waits at home, and `sheetKeep_` moves it in once one is. */
-  if (!host) return;
-  const row = from && from.closest('.tile-row, .post-acts, .post-when');
-  const after = !(want && want.swap) && row && host.contains(row) && row !== host ? row : null;
-  if (after) after.after(sh); else host.appendChild(sh);
-  host.classList.add('sheet-host');
-  if (want && want.swap) host.classList.add('sheet-swap');
+  if (!w.host) return;
+  if (w.after) w.after.after(sh); else w.host.appendChild(sh);
+  w.host.classList.add('sheet-host');
+  if (w.swap) w.host.classList.add('sheet-swap');
 }
 
 /* AN OPEN SHEET STAYS IN THE CARD: after any redraw, back into the same post, or the card in front. */
@@ -2189,36 +2194,234 @@ function openSheet(title, html, onClose, step) {
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
 
-  sheetPlace_();
   const sh = sheetEl_();
-  sh.querySelector('#sheet-title').textContent = title;
-  sh.querySelector('#sheet-body').innerHTML = html;
-  sh.classList.remove('hidden');
+  /* A SHEET STILL LEAVING stops leaving: this one takes its place. */
+  sheetOutStop_(sh);
+  const where = sheetWhere_();
+  const fill = () => {
+    sheetPlace_(where);
+    sh.querySelector('#sheet-title').textContent = title;
+    sh.querySelector('#sheet-body').innerHTML = html;
+    sh.classList.remove('hidden');
+  };
+  /* OPENING (not a sheet changing what it says) opens downward and slides what is below out of its way (537, U6). */
+  const at = where.host && (where.after || where.host);
+  if (sh.classList.contains('hidden') && at && at.closest('#screen')) expand_([at], fill, { content: () => [sh] });
+  else fill();
   sheetOnClose = onClose || null;
   try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) {}
   try { placeCells(undefined, true); } catch (err) {}
 }
 
 /* ---------- CLOSING IT: THE CARD AS IT WAS ---------- */
+/* A SHEET PLAYING ITS EXIT: shut in every sense that counts (its `onClose` has run, nothing can be pressed in it), still drawn until the fade ends. */
+let SHEET_OUT_ = null;
+function sheetOutStop_(sh) {
+  if (!SHEET_OUT_) return;
+  SHEET_OUT_.cancel(); SHEET_OUT_ = null;
+  sh.classList.remove('is-leaving');
+}
 function closeSheet() {
   sheetStep = null;
   const sh = sheetEl_();
+  if (SHEET_OUT_) return;             /* already leaving: its exit finishes the close */
   const was = !sh.classList.contains('hidden');
   sh.classList.add('hidden');
   const f = sheetOnClose; sheetOnClose = null;
   if (f) { try { f(); } catch (err) { console.error('[sheet onClose]', err); } }
   /* EMPTIED AND SENT HOME after `onClose` has read it, and only if that did not open another. */
-  if (sh.classList.contains('hidden')) {
+  const home = () => {
     sh.querySelector('#sheet-body').innerHTML = '';
     SHEET_AT_ = null;
     document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
     if ($('sheet-home')) $('sheet-home').after(sh);
-  }
-  if (was) { try { placeCells(undefined, true); } catch (err) {} }
+  };
+  const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) {} } };
+  if (!sh.classList.contains('hidden')) { placed(); return; }
+  const host = sh.closest('.sheet-host');
+  if (!was || !sh.closest('#screen') || !expandMoves_(sh) || !MOTION_.exit) { home(); placed(); return; }
+  /* THE EXIT PLAYS BEFORE IT IS GONE (537, U6): drawn again for the fade, then hidden, and what was below closes the gap. */
+  sh.classList.remove('hidden');
+  sh.classList.add('is-leaving');
+  const swap = !!(host && host.classList.contains('sheet-swap'));
+  SHEET_OUT_ = expandOut_([sh], () => {
+    SHEET_OUT_ = null;
+    sh.classList.remove('is-leaving');
+    sh.classList.add('hidden');
+    home();
+  }, { anchors: [sh], content: swap ? () => [...host.children].filter(c => c !== sh) : null, done: placed });
 }
+
+/* ---------- A HEIGHT THAT CHANGES ON THE GLASS MOVES, IT DOES NOT JUMP (537, U6) ---------- */
+/* What is below a change, at most this many boxes, is slid from where it stood (FLIP); the rest of the page is out of sight anyway. */
+const EXPAND_FOLLOW_ = 24;
+const expandMoves_ = el => !!(el && typeof el.animate === 'function' && motionOK_() && MOTION_.move > 0);
+function expandFollowers_(anchors) {
+  const out = new Set();
+  anchors.forEach(a => {
+    for (let n = a; n && n.parentElement && out.size < EXPAND_FOLLOW_; n = n.parentElement) {
+      if (n.matches('.page, .screen, #screen, body')) break;
+      for (let s = n.nextElementSibling; s && out.size < EXPAND_FOLLOW_; s = s.nextElementSibling) out.add(s);
+    }
+  });
+  return [...out];
+}
+const expandCancel_ = (el, key) => { const a = el && el[key]; if (a) { try { a.cancel(); } catch (e) { /* already gone */ } el[key] = null; } };
+/* `mutate` changes what `anchors` hold. What is below them slides from where it was, and `content` (what the change shows) opens downward as it fades in. Compositor only: translate, opacity, clip-path. */
+function expand_(anchors, mutate, o) {
+  const opt = o || {};
+  const list = [].concat(anchors).filter(a => a && a.isConnected);
+  if (!list.length || !expandMoves_(list[0])) { mutate(); return; }
+  const follow = expandFollowers_(list);
+  /* A MOVE DURING A MOVE starts from where the eye sees it: read with the old slide still running, then the old one goes. */
+  const before = follow.map(f => f.getBoundingClientRect().top);
+  follow.forEach(f => expandCancel_(f, 'expandFlip'));
+  mutate();
+  follow.forEach((f, i) => {
+    if (!f.isConnected || !f.getClientRects().length) return;
+    const dy = before[i] - f.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) return;
+    const z = f.currentCSSZoom || 1;
+    f.expandFlip = f.animate([{ translate: `0 ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
+  });
+  const shown = typeof opt.content === 'function' ? opt.content() : opt.content;
+  [].concat(shown || []).forEach(c => {
+    if (!c || !c.isConnected || !c.getClientRects().length) return;
+    expandCancel_(c, 'expandIn');
+    c.expandIn = c.animate([{ opacity: 0, clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)' }],
+                           { duration: MOTION_.move, easing: MOTION_.spring });
+  });
+}
+/* AND CLOSING: `leaving` fades out first, then `mutate` takes it away and what was below closes the gap with `expand_`. Returns the job (cancel() keeps things as they are), or null when it ran at once. */
+function expandOut_(leaving, mutate, o) {
+  const opt = o || {};
+  const els = [].concat(leaving).filter(e => e && e.isConnected && e.getClientRects().length);
+  const end = () => { mutate(); if (opt.done) opt.done(); };
+  if (!els.length || !expandMoves_(els[0]) || !MOTION_.exit) { end(); return null; }
+  els.forEach(e => expandCancel_(e, 'expandIn'));
+  const fades = els.map(e => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MOTION_.exit, easing: MOTION_.in, fill: 'forwards' }));
+  const job = { done: false, cancel() { if (job.done) return; job.done = true; fades.forEach(f => { try { f.cancel(); } catch (e) { /* already gone */ } }); } };
+  /* FINISHED OR CANCELLED BY THE BROWSER (the box taken out under it), the close still happens: only `job.cancel()` keeps it. */
+  const finish = () => {
+    if (job.done) return;
+    job.done = true;
+    expand_(opt.anchors || els, () => { mutate(); fades.forEach(f => { try { f.cancel(); } catch (e) { /* already gone */ } }); }, { content: opt.content });
+    if (opt.done) opt.done();
+  };
+  Promise.all(fades.map(f => f.finished)).then(finish, finish);
+  return job;
+}
+/* EVERY FOLD OPENS AND CLOSES WITH THE ONE MOTION (537): the summary's own toggle is taken over only when there is motion to give it. On `window`, after the app's click handlers, so a swipe's click (prevented there) toggles nothing. */
+addEventListener('click', e => {
+  if (e.defaultPrevented || e.button) return;
+  const s = e.target && e.target.closest && e.target.closest('summary');
+  const d = s && s.parentElement;
+  if (!d || d.tagName !== 'DETAILS' || d.querySelector(':scope > summary') !== s) return;
+  /* A CONTROL INSIDE THE SUMMARY is pressed, not the fold. */
+  const ctl = e.target.closest('a, button, input, textarea');
+  if (ctl && s.contains(ctl)) return;
+  if (!expandMoves_(d) || !d.isConnected) return;
+  e.preventDefault();
+  /* PRESSED AGAIN WHILE IT CLOSES: it stays open. */
+  if (d.expandOut && !d.expandOut.done) { d.expandOut.cancel(); d.expandOut = null; return; }
+  const kids = () => [...d.children].filter(c => c !== s);
+  if (!d.open) expand_([d], () => { d.open = true; }, { content: kids });
+  else d.expandOut = expandOut_(kids(), () => { d.open = false; }, { anchors: [d] });
+});
+
+/* ---------- MOTION IS ONE SYSTEM (531) ---------- */
+/* Whether to move at all. Every script that animates asks this, so less motion is one answer everywhere. */
+function motionOK_() {
+  try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
+}
+/* THE STYLESHEET'S `--dur-*` AND `--ease-*`, in ms and as curves, read once they exist; the fallbacks are the same numbers, for a page whose CSS has not arrived. */
+const MOTION_FALL_ = { press: 0, quick: 120, enter: 220, exit: 180, move: 280, mark: 1300,
+  out: 'cubic-bezier(.2, .8, .2, 1)', in: 'cubic-bezier(.4, 0, 1, 1)', spring: 'cubic-bezier(.2, .9, .3, 1)' };
+let MOTION_READ_ = null;
+function motionRead_() {
+  if (MOTION_READ_) return MOTION_READ_;
+  let cs = null;
+  try { cs = getComputedStyle(document.documentElement); } catch (e) { /* no document yet: the fallbacks answer */ }
+  const v = k => (cs && cs.getPropertyValue(k) || '').trim();
+  if (!v('--dur-move')) return MOTION_FALL_;                       /* not loaded yet: answer, and ask again next time */
+  const ms = s => { const n = parseFloat(s); return !isFinite(n) ? 0 : /ms$/.test(s) ? n : n * 1000; };
+  const got = {};
+  Object.keys(MOTION_FALL_).forEach(k => {
+    const raw = typeof MOTION_FALL_[k] === 'number' ? v('--dur-' + k) : v('--ease-' + k);
+    got[k] = !raw ? MOTION_FALL_[k] : typeof MOTION_FALL_[k] === 'number' ? ms(raw) : raw;
+  });
+  return (MOTION_READ_ = got);
+}
+/* `MOTION_.move` is ms, `MOTION_.spring` a timing function. Getters, so a script loaded before the CSS still reads the CSS. */
+const MOTION_ = {};
+/* A MOVEMENT TAKES NO TIME WHILE LESS MOTION IS ASKED FOR, asked live (537): the stylesheet says the same, but its answer was read once. `mark` is information and keeps its time. */
+const MOTION_MOVES_ = ['quick', 'enter', 'exit', 'move'];
+Object.keys(MOTION_FALL_).forEach(k => Object.defineProperty(MOTION_, k, { enumerable: true,
+  get: () => (MOTION_MOVES_.indexOf(k) !== -1 && !motionOK_() ? 0 : motionRead_()[k]) }));
+/* READ AGAIN WHEN THE PHONE'S SETTING CHANGES (537), so the numbers read while it was on do not outlive it. */
+try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { MOTION_READ_ = null; }); } catch (e) { /* no matchMedia: the fallbacks stand */ }
+
+/* ---------- ONE PRESS, ONE ACTION (534) ---------- */
+/* A double tap deleted a post and starred twice: the same control again within PRESS_AGAIN_MS, or while the request it started is out, is dropped. */
+const PRESS_AGAIN_MS = 350;
+/* KEYS AND STEPS PRESSED FAST ON PURPOSE (a digit typed twice, a maze step, a month flipped): `data-repeat` on the control, or its action named here. */
+const PRESS_REPEAT_ = new Set(['kp-key', 'maze-go', 'cal-back', 'cal-fwd', 'eink-step', 'tal-size', 'imp-count', 'c4-drop',
+                               'pad-undo', 'chess-undo', 'sp-ctl', 'feed-tap', 'rw-next', 'rw-back', 'speed-back']);
+const PRESS_LAST_ = new Map();   /* press key -> { t, el }: when it last acted, and which element */
+const PRESS_OUT_ = new Map();    /* press key -> Map(element -> requests it started that are still out) */
+let PRESS_ACTING_ = null;        /* { key, el } while a handler runs, so `api()` knows whose request it is */
+/* THE SAME CONTROL, EVEN REDRAWN: its kind (first class), action and data, less the arming marks — a star drawn afresh is still the star; an ordering's item and slot are two. */
+function pressKey_(el) {
+  let k = (String(el.getAttribute('class') || '').trim().split(/\s+/)[0] || el.tagName) + ':' + (el.getAttribute('data-do') || '');
+  for (const a of el.attributes) if (/^data-/.test(a.name) && !/^data-(do|sure|armed|repeat)$/.test(a.name)) k += '|' + a.name + '=' + a.value;
+  return k;
+}
+/* TRUE WHEN THIS PRESS IS THE SAME ONE AGAIN; otherwise it is recorded as the last. */
+function pressAgain_(el) {
+  if (el.hasAttribute('data-repeat') || PRESS_REPEAT_.has(el.getAttribute('data-do'))) return false;
+  const key = pressKey_(el), now = performance.now();
+  /* HELD BY ELEMENT: another live copy (a Send in another sheet) still works; the one redrawn from a held control is still held. */
+  const out = PRESS_OUT_.get(key);
+  if (out) for (const o of out.keys()) if (o === el || !o.isConnected) return true;
+  /* THE SAME ELEMENT, or the one it was redrawn from; two live copies of a control (a card drawn twice) are two controls. */
+  const last = PRESS_LAST_.get(key);
+  if (last && now - last.t < PRESS_AGAIN_MS && (last.el === el || !last.el.isConnected)) return true;
+  if (PRESS_LAST_.size > 64) PRESS_LAST_.forEach((v, k) => { if (now - v.t >= PRESS_AGAIN_MS) PRESS_LAST_.delete(k); });
+  PRESS_LAST_.set(key, { t: now, el });
+  return false;
+}
+/* A REQUEST OR A PROMISE A PRESS STARTED: the control says aria-busy and takes no press until it settles, or `ms` passes — a fetch with no deadline of its own (Spotify, Tasks) cannot hold it for ever. */
+function pressOut_(key, el, p, ms) {
+  const out = PRESS_OUT_.get(key) || new Map();
+  PRESS_OUT_.set(key, out);
+  out.set(el, (out.get(el) || 0) + 1);
+  if (el && !el.hasAttribute('aria-busy')) { el.setAttribute('aria-busy', 'true'); el.PRESS_BUSY = true; }
+  let bell = 0, gone = false;
+  const done = () => {
+    if (gone) return;
+    gone = true; clearTimeout(bell);
+    const n = (out.get(el) || 1) - 1;
+    if (n > 0) { out.set(el, n); return; }
+    out.delete(el);
+    if (!out.size && PRESS_OUT_.get(key) === out) PRESS_OUT_.delete(key);
+    if (el && el.PRESS_BUSY) { el.PRESS_BUSY = false; el.removeAttribute('aria-busy'); }
+  };
+  bell = setTimeout(done, (ms || API_DEADLINE_MS) + 1000);
+  Promise.resolve(p).then(done, done);
+}
+
+/* A PRESS WHOSE SCREEN HAS ALREADY CHANGED (a star, a face) saves in the background: its request does not hold the control, so it can be taken back at once. */
+function pressFree_() { PRESS_ACTING_ = null; }
 
 /* ---------- ONE WAY TO POST § */
 /* ONE REQUEST, BUILT IN ONE PLACE. § */
+/* A MINUTE, AS load() HAS (534): a POST that never answers left its control spinning for ever; past this it rejects into the caller's why_(). */
+const API_DEADLINE_MS = 60000;
+/* ACTIONS THE BACKEND IS BUILT TO RUN FOR MINUTES wait for Apps Script's own six-minute ceiling instead; check-api-deadline.js finds them by their budgets. */
+const API_LONG_ = {
+  raceBuild: 6 * 60000,        /* Overpass [timeout:150], then heights until t0 + 280 s (buildRaceMap_) */
+  libImportDrive: 6 * 60000,   /* starts files until LIB_DRIVE_MS, four minutes (libImportDrive_) */
+};
 /* WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED. § */
 function why_(err) {
   const msg = String((err && err.message) || err || '').trim();
@@ -2239,8 +2442,20 @@ function api(body, opts) {
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE § */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
-  return fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
-                                  opts && opts.keepalive ? { keepalive: true } : {}))
+  const keep = !!(opts && opts.keepalive);
+  const wait = API_LONG_[b.action] || API_DEADLINE_MS;
+  let stop = null, bell = 0;
+  try { if (!keep && typeof AbortController === 'function') stop = new AbortController(); } catch (e) { stop = null; }
+  /* THE WHOLE REPLY, headers and body, under the one deadline; a keepalive flush outlives the page and is not cut. */
+  const late = keep ? null : new Promise((u, no) => { bell = setTimeout(() => {
+    const e = new Error('The server did not answer within ' + (wait > API_DEADLINE_MS ? Math.round(wait / 60000) + ' minutes' : 'a minute')
+      + '. It may still have been saved — look before trying again.');
+    e.name = 'TimeoutError';
+    try { if (stop) stop.abort(); } catch (err) { /* already settled */ }
+    no(e);
+  }, wait); });
+  const asked = fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
+                                         keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY § */
     .then(r => r.text().then(txt => {
       try { return JSON.parse(txt); } catch (e) {}
@@ -2277,6 +2492,11 @@ function api(body, opts) {
       }
       return d || {};
     });
+  if (keep) return asked;
+  asked.catch(() => { /* the deadline answered first; this rejection is the abort it caused */ });
+  const p = Promise.race([asked, late]).finally(() => clearTimeout(bell));
+  if (PRESS_ACTING_) pressOut_(PRESS_ACTING_.key, PRESS_ACTING_.el, p, wait);
+  return p;
 }
 
 /** The same request, refusing to resolve on a refusal — for callers that would rather catch. */
@@ -2297,18 +2517,81 @@ function send(body) {
   });
 }
 
-/* ---------- SAYING SOMETHING BRIEFLY ------------------------------------------------------------ */
-let toastTimer = null;
-function toast(msg) {
-  let el = $('toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'toast';
-    document.body.appendChild(el);
+/* ---------- SAYING SOMETHING BRIEFLY (537, D10) ------------------------------------------------- */
+/* EVERY MESSAGE IS SHOWN, none replaced: a new one comes in at the foot and lifts the older, each staying for its own length. `#toast` is always the newest. */
+const TOASTS_ = [];
+const TOAST_MAX_ = 3;
+/* LONG ENOUGH TO READ: two seconds and a twentieth for every letter, never past seven. */
+const toastMs_ = s => Math.min(7000, 2000 + 50 * String(s).length);
+function toastHost_() {
+  let h = $('toasts');
+  if (!h) {
+    h = document.createElement('div');
+    h.id = 'toasts';
+    /* ONE LIVE REGION THAT STAYS, so a reader announces each line as it is added rather than a box that keeps being born. */
+    h.setAttribute('role', 'status');
+    h.setAttribute('aria-live', 'polite');
+    document.body.appendChild(h);
   }
-  el.textContent = msg;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.remove(), 2600);
+  return h;
+}
+const toastMoves_ = el => motionOK_() && typeof el.animate === 'function';
+/* THE NEWEST AT THE FOOT, each older one lifted above it by `translate`, which moves without laying anything out. */
+function toastStack_() {
+  let up = 0;
+  for (let i = TOASTS_.length - 1; i >= 0; i--) {
+    const t = TOASTS_[i];
+    t.el.style.translate = up ? `0 ${-up}px` : '';
+    if (!t.leaving) up += t.el.offsetHeight + 6;
+  }
+}
+function toastEnter_(t) {
+  if (t.anim) { try { t.anim.cancel(); } catch (e) { /* already gone */ } t.anim = null; }
+  if (!toastMoves_(t.el)) return;
+  t.anim = t.el.animate([{ opacity: 0, transform: 'translateY(.5rem) scale(.97)' }, { opacity: 1, transform: 'none' }],
+                        { duration: MOTION_.enter, easing: MOTION_.spring });
+}
+function toastLeave_(t) {
+  if (t.leaving) return;
+  t.leaving = true;
+  clearTimeout(t.timer);
+  const gone = () => {
+    t.el.remove();
+    const i = TOASTS_.indexOf(t);
+    if (i > -1) TOASTS_.splice(i, 1);
+    /* THE NAME PASSES TO THE NEWEST STILL SHOWN, so `#toast` is what the screen says now. */
+    if (t.el.id === 'toast') { t.el.removeAttribute('id'); const n = TOASTS_.filter(x => !x.leaving).pop(); if (n) n.el.id = 'toast'; }
+    toastStack_();
+  };
+  if (t.anim) { try { t.anim.cancel(); } catch (e) { /* already gone */ } t.anim = null; }
+  if (!toastMoves_(t.el) || !MOTION_.exit) { gone(); return; }
+  t.anim = t.el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(.35rem) scale(.97)' }],
+                        { duration: MOTION_.exit, easing: MOTION_.in, fill: 'forwards' });
+  /* REMOVED WHEN ITS EXIT HAS PLAYED, not on a timer that might cut it short. */
+  t.anim.finished.then(gone, gone);
+}
+function toast(msg) {
+  const text = String(msg == null ? '' : msg);
+  const host = toastHost_();
+  const last = TOASTS_[TOASTS_.length - 1];
+  /* THE SAME WORDS AGAIN come in again, on the same line, with their time started over. */
+  let t = last && !last.leaving && last.text === text ? last : null;
+  if (!t) {
+    TOASTS_.forEach(x => { if (x.el.id === 'toast') x.el.removeAttribute('id'); });
+    const el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    el.textContent = text;
+    host.appendChild(el);
+    t = { el, text, timer: 0, anim: null, leaving: false };
+    TOASTS_.push(t);
+    const live = TOASTS_.filter(x => !x.leaving);
+    live.slice(0, Math.max(0, live.length - TOAST_MAX_)).forEach(toastLeave_);
+  }
+  clearTimeout(t.timer);
+  t.timer = setTimeout(() => toastLeave_(t), toastMs_(text));
+  toastEnter_(t);
+  toastStack_();
 }
 
 /* ---------- A CANVAS SHARED AS A PNG (413) ----------
@@ -2479,16 +2762,15 @@ let PRESS_SLIDING = false;
 let PRESSED = null;
 let PRESSED_OFF = 0;
 
+const PRESS_SEL_ = '[data-do], .tab, button, a[href], summary, label, [role="button"]';
 function pressMark_(t) {
   pressClear_();
-  /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
-     card. */
-  const el = t && t.closest && t.closest('[data-do], .tab');
+  /* THE NEAREST CONTROL OF ANY KIND, not the exact target — a word inside a card lights the card; a calculator key, a link tile or a fold's summary carries no `data-do` and is lit too (536). */
+  const el = t && t.closest && t.closest(PRESS_SEL_);
   /* NOT A DISABLED CONTROL. § */
   if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   PRESSED = el;
   el.classList.add('is-pressed');
-  PRESSED_OFF = setTimeout(pressClear_, 1200);
 }
 
 function pressClear_() {
@@ -2499,7 +2781,9 @@ function pressClear_() {
 
 /* TWO FRAMES, NOT ONE. § */
 function pressDone_() {
-  requestAnimationFrame(() => requestAnimationFrame(pressClear_));
+  /* ONLY THE PRESS IT WAS ASKED FOR: a new finger landing inside those two frames keeps its own mark. */
+  const was = PRESSED;
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (PRESSED === was) pressClear_(); }));
 }
 
 addEventListener('pointerdown', e => {
@@ -2513,6 +2797,15 @@ addEventListener('pointerdown', e => {
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
+/* THE MARK LASTS AS LONG AS THE FINGER (536, U9): it goes two frames after the lift, and the orphan timer starts at the lift too, so a held press stays lit. */
+addEventListener('pointerup', e => {
+  if (!e.isPrimary || !PRESSED) return;
+  pressDone_();
+  clearTimeout(PRESSED_OFF);
+  PRESSED_OFF = setTimeout(pressClear_, 1200);
+}, { passive: true, capture: true });
+/* iOS PAINTS `:active` ONLY ON A PAGE WITH A TOUCH LISTENER; this one is the app's own promise of that, not the measuring tool's in find.js. */
+document.addEventListener('touchstart', () => {}, { passive: true });
 /* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see `HOLD_AT`. § */
 document.addEventListener('focusin', e => holdHere_(e.target), true);
 document.addEventListener('change', e => holdHere_(e.target), true);
@@ -2630,13 +2923,20 @@ document.addEventListener('click', e => {
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
   if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
   if (doer && ACTIONS[doer.dataset.do]) {
+    /* ONE PRESS, ONE ACTION — see `pressAgain_`. */
+    if (pressAgain_(doer)) {
+      if (CLICK_LOG) console.log('[click] dropped — the same control again, or its request is still out');
+      return;
+    }
+    const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
     /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
     try {
-      ACTIONS[doer.dataset.do](doer, e);
+      const got = ACTIONS[doer.dataset.do](doer, e);
+      if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
     } catch (err) {
       oops_(err, 'act:' + doer.dataset.do);
       toast('That did not work. Everything else still works.');
-    }
+    } finally { PRESS_ACTING_ = null; }
   }
 });
 
@@ -3325,5 +3625,5 @@ try {
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) {}
 
-/* A DOUBLE TAP DOES NOTHING BUT TWO TAPS (466): iPad Safari zooms on it whatever the viewport says, and the column jumped. Nothing in the app listens for dblclick. */
+/* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
 document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) {} }, { passive: false });

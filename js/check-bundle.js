@@ -345,6 +345,7 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   posts.length = 0;
   b.initCart();
   if (!send()) { bad.push('the Send button went after a refusal'); return done(); }
+  await tick(300);   // a person's second Send, not a double tap's second half (534)
   send().click();
   await tick(60);
   const sent = posts.filter(p => p.action === 'sendMessage');

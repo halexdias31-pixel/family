@@ -657,23 +657,38 @@ on('job-delete', el => {
 
 /* The state the games keep between frames — the board, the clock, the deck, which month the calendar is showing. § */
 /* ---------- ARE YOU SURE, WITHOUT A DIALOG § */
-function sure_(el, ask) {
+/* THE YES COUNTS ONLY SURE_GAP_MS AFTER THE ASK (534): a double tap's second half came 110 ms later and deleted; an early yes is ignored and it stays armed. */
+const SURE_GAP_MS = 400;
+/* `o.face(el, ask)` and `o.back(el)` draw a control's own armed look (the layout tiles say it in a label); without them the words replace the face. */
+function sure_(el, ask, o) {
   if (!el) return true;                       // called from somewhere with no button: nothing to arm
-  if (el.dataset.sure) { delete el.dataset.sure; sureBack_(el); return true; }
+  const opt = o || {};
+  if (el.dataset.sure) {
+    if (performance.now() - (el._sureAt || 0) < SURE_GAP_MS) return false;
+    delete el.dataset.sure; clearTimeout(el._sureT); sureBack_(el); return true;
+  }
   el.dataset.sure = '1';
-  /* THE WHOLE FACE IS KEPT, not its text: a tile is a drawn mark, and its text is nothing (420). */
-  el._sureWas = { html: el.innerHTML, label: el.getAttribute('aria-label') };
-  el.classList.add('is-sure');
-  el.textContent = ask;
-  if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', ask);
-  setTimeout(() => {
+  el._sureAt = performance.now();
+  el._sureBack = opt.back || null;
+  if (opt.face) opt.face(el, ask);
+  else {
+    /* THE WHOLE FACE IS KEPT, not its text: a tile is a drawn mark, and its text is nothing (420). */
+    el._sureWas = { html: el.innerHTML, label: el.getAttribute('aria-label') };
+    el.classList.add('is-sure');
+    el.textContent = ask;
+    if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', ask);
+  }
+  clearTimeout(el._sureT);
+  el._sureT = setTimeout(() => {
     if (!el.dataset.sure) return;
     delete el.dataset.sure;
     sureBack_(el);
-  }, 4000);
+  }, opt.ms || 4000);
   return false;
 }
 function sureBack_(el) {
+  const back = el._sureBack; el._sureBack = null;
+  if (back) { if (el.isConnected) back(el); return; }
   const w = el._sureWas; el._sureWas = null;
   el.classList.remove('is-sure');
   if (!w) return;

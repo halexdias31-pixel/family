@@ -1597,7 +1597,7 @@ function matPaint() {
   const pct = Math.min(100, Math.round(used / room * 100));
   const left = Math.max(0, Math.round((room - used) / 100));
   $('mat-gauge').classList.toggle('over', over);
-  $('mat-gauge').firstElementChild.style.width = pct + '%';
+  $('mat-gauge').firstElementChild.style.setProperty('--f', (pct / 100).toFixed(3));
   $('mat-said').className = 'mat-said' + (over ? ' over' : '');
   /* A PERCENTAGE OF ONE PAGE AND A COUNT, which are the two things somebody holding a phone can picture. § */
   const n = pieces.length;
