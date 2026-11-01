@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-01-integrate-abc";
+  --css-version: "2026-11-01-mech-pixels";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -7135,3 +7135,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* THE HYMNS SHELF (517): its facts line and a gap between verses. */
 .hy-facts { margin: 0 0 .4rem; font: 400 .65rem/1.4 var(--mono); color: var(--faint); }
 .hy-verse + .hy-verse { margin-top: .6rem; }
+
+/* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
+.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 0.5rem; image-rendering: pixelated; }
