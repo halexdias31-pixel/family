@@ -31668,6 +31668,10 @@ check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Jo
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
   if (!/What it does/.test(html) || html.indexOf('general workshop knowledge') < 0 || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
+  /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
+  for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
+  const model = all.find(x => x.mKind === 'Model');
+  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or model card draws no picture');
   return bad;
 });
 
