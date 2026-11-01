@@ -13112,7 +13112,8 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
   if (/digest-preview|Weekly parent email/.test(d.documentElement.outerHTML)) bad.push('the page still names the weekly parent email card or its Preview');
   if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'digest-preview')) bad.push('a `digest-preview` handler is still wired — for a tile nothing draws');
   if (/digest/i.test(w.youSettingsPages_().join(''))) bad.push('`youSettingsPages_` still builds something of the weekly email\'s card');
-  if (sent.some(b => b.action === 'digestPreview')) bad.push('something on the phone still asks the server for digestPreview');
+  /* SINCE 547 the Site column's Weekly email card asks `digestPreview` for the email as is -- an admin's alone; nobody else may ask. */
+  if (sent.some(b => b.action === 'digestPreview' && !(t.whoami() && /admin/i.test(String(t.whoami().role || ''))))) bad.push('somebody who is not an admin asked the server for digestPreview');
   if (d.documentElement !== doc) bad.push('the page was reloaded');
   return bad;
 });
