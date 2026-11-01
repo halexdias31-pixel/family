@@ -8,7 +8,7 @@ const MECH_SUBJECT = 'Mechanics';
 function mechIndex_() {
   if (MECH.data) return MECH.data;
   if (MECH.asking || MECH.failed || typeof fetch !== 'function') return null;
-  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  const stamp = deployStamp_();
   const get = f => Promise.resolve().then(() => fetch('data/mechanics/' + f + '.json' + stamp, { cache: 'default' }))
     .then(res => (res && res.ok) ? res.json() : null).catch(() => null);
   const names = Object.keys(MECH_FILES);
