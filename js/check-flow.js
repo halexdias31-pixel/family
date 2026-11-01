@@ -2545,6 +2545,13 @@ const profilePng_ = (w, o) => {
   w.Image = class { set src(v) { this._src = v; const no = o.photoFails && /^https?:/.test(v);
     setTimeout(() => (no ? this.onerror && this.onerror() : this.onload && this.onload()), 0); }
     get src() { return this._src; } get naturalWidth() { return 100; } get naturalHeight() { return 100; } };
+  /* JSDOM DOES NOT DO PSEUDO-ELEMENTS (the receipt's journey says the same): the element's own style, so the snapshot adds no ::before. */
+  const gcs = w.__gcs0 || (w.__gcs0 = w.getComputedStyle);
+  w.getComputedStyle = (el, pseudo) => gcs.call(w, el);
+  /* AND THE SNAPSHOT FETCHES THE PHOTO TO CARRY IT AS DATA (547): ada.jpg comes, or (`o.photoFails`) does not. */
+  const fetch0 = w.__fetch0 || (w.__fetch0 = w.fetch);
+  w.fetch = (u, x) => (/ada\.jpg/.test(String(u)) ? (o.photoFails ? Promise.reject(new Error('blocked'))
+    : Promise.resolve({ ok: true, blob: () => Promise.resolve(new w.Blob(['jpg'], { type: 'image/jpeg' })) })) : fetch0 ? fetch0(u, x) : Promise.reject(new Error('no fetch')));
   w.navigator.canShare = x => !o.noFiles && !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
   w.navigator.share = x => { r.shared.push(x); return Promise.resolve(); };
   Object.defineProperty(w.navigator, 'clipboard', { configurable: true, value: { writeText: s => { r.copied.push(s); return Promise.resolve(); } } });
@@ -2553,7 +2560,7 @@ const profilePng_ = (w, o) => {
   r.till = async ok => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < 6000) await wait(20); };
   return r;
 };
-check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile and the link; a child\'s phone draws no price on it; without file sharing the PNG is saved and the link copied', async () => {
+check('Share on a tutor card (412, 547) hands over a PNG of the very card the site draws (findCard, snapshotted) and the link; a child\'s phone has no price on it; a photo that will not come is left out; without file sharing the PNG is saved and the link copied', async () => {
   const W = cardWorld_();
   const bad = [];
   const open = async before => {
@@ -2562,6 +2569,19 @@ check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile an
     await wait(800);
     return { w: b.w, tile: b.w.document.querySelector('#sheet-body [data-do="tutor-share"]') };
   };
+  /* THE SNAPSHOT'S HTML, out of the SVG the canvas drew, and the card on the screen beside it: the same words, in the same order. */
+  const flat = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const shot = (w, r) => {
+    const img = r.images.find(i => /^data:image\/svg\+xml/.test(i._src || ''));
+    if (!img) return null;
+    const svg = decodeURIComponent(img._src.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
+    /* READ AS HTML: jsdom's serializer writes the xmlns twice, which a browser does not, and an XML parser refuses. */
+    const m = svg.match(/<foreignObject[^>]*>([\s\S]*)<\/foreignObject>/);
+    const html = m ? m[1] : '';
+    const box = w.document.createElement('div'); box.innerHTML = html;
+    return { svg, text: flat(box.textContent), html };
+  };
+  const site = w => flat((w.document.querySelector('#sheet-body .is-prof') || {}).textContent);
   /* ---------- 1. A VISITOR ON A PHONE: one PNG and the link, to the share sheet ---------- */
   const v = await open();
   if (!v.tile) return ['?tutor=adatutor opened no card with a Share tile'];
@@ -2572,13 +2592,17 @@ check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile an
   const f = (r.shared[0].files || [])[0];
   if (!f || f.type !== 'image/png' || !/\.png$/.test(f.name) || !(f instanceof v.w.File)) bad.push('the share was not one PNG File: ' + (f ? f.type + ' ' + f.name : 'no file'));
   if (!/\?tutor=adatutor$/.test(String(r.shared[0].text || ''))) bad.push('the share\'s text is not Ada\'s link: ' + r.shared[0].text);
-  const cv = r.canvases.find(c => c.width === 1080 && c.height === 1350);
-  if (!cv || !r.blob || r.blob.__w !== 1080 || r.blob.__h !== 1350) bad.push('the picture is not 1080×1350');
-  const said = r.texts.join(' | ');
-  console.log('          drawn: ' + said.slice(0, 160));
-  ['Ada Tutor', '@adatutor', 'TEACHES', 'adatutor'].forEach(s => { if (said.indexOf(s) < 0) bad.push('the picture does not say "' + s + '"'); });
-  if (!/£20\/h/.test(said)) bad.push('a visitor\'s picture has no rate on it: ' + said.slice(0, 200));
-  if (!r.images.some(i => /ada\.jpg/.test(i._src || '') && i.crossOrigin === 'anonymous')) bad.push('Ada\'s photo was not drawn, or was asked for without crossOrigin');
+  const s1 = shot(v.w, r);
+  if (!s1) bad.push('no snapshot of the card was drawn');
+  else {
+    console.log('          shot: ' + s1.text.slice(0, 160));
+    if (!/is-prof/.test(s1.svg)) bad.push('the picture is not the profile card');
+    if (!site(v.w) || s1.text !== site(v.w)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w).slice(0, 200) + '"');
+    if (!/£20/.test(s1.text)) bad.push('a visitor\'s picture has no rate on it');
+    if (!/<img[^>]+src="data:image\/jpeg/.test(s1.html)) bad.push('Ada\'s photo is not carried in the picture as data: ' + (s1.html.match(/<img[^>]*>/) || ['no img'])[0].slice(0, 160));
+  }
+  if (r.texts.length) bad.push('words were drawn on the canvas by hand: ' + r.texts.slice(0, 5).join(' | '));
+  if (v.w.document.querySelector('.tpng-host')) bad.push('the card drawn for the picture was left on the page');
   /* ---------- 2. A LAPTOP: no file sharing, so the PNG is downloaded and the link copied ---------- */
   r = profilePng_(v.w, { noFiles: true });
   v.w.__t.ACTIONS['tutor-share'](v.tile);
@@ -2587,7 +2611,7 @@ check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile an
   if (!r.clicks.length || !/\.png$/.test(r.clicks[0].download || '')) bad.push('no PNG was downloaded: ' + JSON.stringify(r.clicks));
   if (!r.copied.some(s => /\?tutor=adatutor$/.test(s))) bad.push('the link was not copied: ' + JSON.stringify(r.copied));
   if (!/Image saved/.test(toastOf_(v.w.document))) bad.push('the toast said "' + toastOf_(v.w.document) + '", not "Image saved"');
-  /* ---------- 3. A CHILD'S PHONE (398): no price anywhere on the picture; a photo that will not load is the initial ---------- */
+  /* ---------- 3. A CHILD'S PHONE (398): the child's card, so no price; a photo that will not come is left out, never a broken picture ---------- */
   const kid = W.user('student@example.org');
   if (!kid) return bad.concat(['Sam could not sign in']);
   const k = await open(signedInAs_(kid));
@@ -2595,10 +2619,12 @@ check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile an
   r = profilePng_(k.w, { photoFails: true });
   k.w.__t.ACTIONS['tutor-share'](k.tile);
   await r.till(() => r.shared.length);
-  const kidSaid = r.texts.join(' | ');
-  if (!/Ada Tutor/.test(kidSaid)) bad.push('the child\'s picture was not drawn: ' + kidSaid.slice(0, 120));
-  if (/£|\/h\b/.test(kidSaid)) bad.push('a child\'s phone drew a price on the picture: ' + kidSaid);
-  if (r.texts.indexOf('A') < 0) bad.push('a photo that would not load did not fall back to the initial');
+  const s3 = shot(k.w, r);
+  if (!s3 || !/Ada Tutor/.test(s3.text)) bad.push('the child\'s picture was not the card: ' + (s3 ? s3.text.slice(0, 120) : 'no snapshot'));
+  else {
+    if (/£|\/h\b/.test(s3.text)) bad.push('a child\'s phone drew a price on the picture: ' + s3.text.slice(0, 200));
+    if (/<img[^>]+src="https?:/i.test(s3.html)) bad.push('a photo from outside is still in the picture, where it cannot load');
+  }
   return bad;
 });
 
@@ -13110,7 +13136,8 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
   if (/digest-preview|Weekly parent email/.test(d.documentElement.outerHTML)) bad.push('the page still names the weekly parent email card or its Preview');
   if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'digest-preview')) bad.push('a `digest-preview` handler is still wired — for a tile nothing draws');
   if (/digest/i.test(w.youSettingsPages_().join(''))) bad.push('`youSettingsPages_` still builds something of the weekly email\'s card');
-  if (sent.some(b => b.action === 'digestPreview')) bad.push('something on the phone still asks the server for digestPreview');
+  /* SINCE 547 the Site column's Weekly email card asks `digestPreview` for the email as is -- an admin's alone; nobody else may ask. */
+  if (sent.some(b => b.action === 'digestPreview' && !(t.whoami() && /admin/i.test(String(t.whoami().role || ''))))) bad.push('somebody who is not an admin asked the server for digestPreview');
   if (d.documentElement !== doc) bad.push('the page was reloaded');
   return bad;
 });
@@ -23221,7 +23248,7 @@ check('daive: pinned first in Messages as a conversation — the DM head, bubble
   return bad;
 });
 
-check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the slogan and placeholders stay out of the facts; shut at 0', async () => {
+check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the facts are a site map with nothing of the business (547); shut at 0', async () => {
   const bad = [];
   let n = 0;
   const { w, sent } = boot({ reply: b => {
@@ -23251,9 +23278,12 @@ check('daive: an answer takes the count from 5 to 4 even when the reply forgets 
   const a = sent.filter(b => b.action === 'askAssistant').pop();
   if (!a) return bad.concat(['Send sent no askAssistant']);
   const facts = String(a.facts || '');
-  if (/say why/i.test(facts)) bad.push('the slogan went into the facts: ' + facts.slice(0, 200));
-  if (/\{\{|TODO/.test(facts)) bad.push('a placeholder went into the facts: ' + facts.slice(0, 200));
-  if (!/business name: @family\./.test(facts) || !/Merton/.test(facts)) bad.push('the real brand facts are missing: ' + facts.slice(0, 200));
+  /* SITE HELP ONLY (547): the facts are a map of the site -- no brand value, no config number -- whatever the brand tab holds. */
+  const brandVals = Object.values(w.__t.DATA().brand || {}).map(v => String(v == null ? '' : v).trim()).filter(v => v.length > 3);
+  const leaked = brandVals.filter(v => facts.indexOf(v) >= 0);
+  if (leaked.length) bad.push('the business went into Daive\'s facts: ' + leaked.slice(0, 3).join(' | '));
+  if (/hours per session|most students|business name/i.test(facts)) bad.push('a business number went into the facts: ' + facts.slice(0, 200));
+  if (!/column "Find"/.test(facts) || !/column "Messages"/.test(facts)) bad.push('the site map is missing from the facts: ' + facts.slice(0, 200));
   if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
   if (card().querySelectorAll('.msg-bub').length !== 2) bad.push('the question and answer are not two DM bubbles');
   if (!card().querySelector('.msg.mine .msg-bub')) bad.push('the question is not drawn as the person\'s own bubble');
@@ -28956,7 +28986,7 @@ check('Suggest a change takes files and a folder from an admin and not a student
   const reply = b => {
     if (b.action === 'suggestUpload') {
       ups.push(b);
-      if (failOnce && /b\.pdf$/.test(b.rel)) { failOnce = false; return { error: 'Drive refused that part (500).' }; }
+      if (failOnce && /b\.py$/.test(b.rel)) { failOnce = false; return { error: 'Drive refused that part (500).' }; }
       const end = b.start + Math.floor(b.data.length * 3 / 4) - (b.data.match(/=*$/)[0].length);
       return end >= b.size ? { success: true, done: true, id: 'F' + ups.length } : { success: true, next: end };
     }
@@ -28990,11 +29020,13 @@ check('Suggest a change takes files and a folder from an admin and not a student
   const box = o.box;
   if (!box) return bad.concat('an admin has no box');
   const inF = box.querySelector('input.rep-files-in[type=file][multiple]'), inD = box.querySelector('input.rep-dir-in[type=file]');
-  if (!box.querySelector('[data-do="rep-files"]') || !inF || !/pdf/.test(inF.accept) || !/docx/.test(inF.accept) || !/zip/.test(inF.accept)) bad.push('an admin has no Add files for PDFs, docx and zip');
+  /* ANY KIND OF FILE (547): no `accept` list on either picker, so a .py goes as a PDF does. */
+  if (!box.querySelector('[data-do="rep-files"]') || !inF) bad.push('an admin has no Add files');
+  else if (inF.getAttribute('accept') || inD && inD.getAttribute('accept')) bad.push('Add files only takes some kinds of file: accept="' + (inF.getAttribute('accept') || inD.getAttribute('accept')) + '"');
   if (!box.querySelector('[data-do="rep-dir"]') || !inD || !inD.hasAttribute('webkitdirectory')) bad.push('an admin has no Add a folder');
   const BIG = 9 * 1048576;
-  const mk = (name, size, rel) => { const f = new w.File([new Uint8Array(size)], name, { type: 'application/pdf' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
-  const files = [mk('a.pdf', 1000, 'Edexcel 2023/June/a.pdf'), mk('b.pdf', 2000, 'Edexcel 2023/June/b.pdf'), mk('big.pdf', BIG, 'Edexcel 2023/Nov/big.pdf')];
+  const mk = (name, size, rel, type) => { const f = new w.File([new Uint8Array(size)], name, { type: type || 'application/pdf' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
+  const files = [mk('a.pdf', 1000, 'Edexcel 2023/June/a.pdf'), mk('b.py', 2000, 'Edexcel 2023/June/b.py', 'text/x-python'), mk('big.pdf', BIG, 'Edexcel 2023/Nov/big.pdf')];
   Object.defineProperty(inD, 'files', { value: files, configurable: true });
   inD.dispatchEvent(new w.Event('change', { bubbles: true }));
   if (box.querySelectorAll('.rep-file').length !== 3) bad.push('the chosen folder lists ' + box.querySelectorAll('.rep-file').length + ' files, wanted 3');
@@ -29002,13 +29034,14 @@ check('Suggest a change takes files and a folder from an admin and not a student
   t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
   for (let i = 0; i < 100 && !sent.some(b => b.action === 'suggest'); i++) await wait(100);
   const order = ups.map(u => u.rel + '@' + u.start);
-  const want = ['June/a.pdf@0', 'June/b.pdf@0', 'June/b.pdf@0', 'Nov/big.pdf@0', 'Nov/big.pdf@' + 8 * 1048576];
+  const want = ['June/a.pdf@0', 'June/b.py@0', 'June/b.py@0', 'Nov/big.pdf@0', 'Nov/big.pdf@' + 8 * 1048576];
+  if (!ups.some(u => u.rel === 'June/b.py' && u.mime === 'text/x-python')) bad.push('the .py file did not go with its own type');
   if (order.join() !== want.join()) bad.push('the parts went ' + JSON.stringify(order) + ', wanted ' + JSON.stringify(want));
   if (ups.some(u => u.batch !== 'Edexcel 2023' || u.action !== 'suggestUpload')) bad.push('a part was not in the batch named after the folder');
   if (ups.some(u => u.data.length > 11300000)) bad.push('a part is larger than the backend takes');
   const note = sent.find(b => b.action === 'suggest');
   if (!note) bad.push('no note was sent after the files');
-  else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.pdf,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
+  else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.py,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
   o.host.remove();
   return bad;
 });
@@ -31411,6 +31444,123 @@ check('library cards (489): the widget holds one card — no Add another, the on
   if (box.querySelectorAll('.lib-card').length !== 1) bad.push(box.querySelectorAll('.lib-card').length + ' card slots, not one');
   if (box.querySelector('[data-do="shelf-more"]')) bad.push('there is still an Add another');
   if (!box.querySelector('[name="lib2_name"], [data-me="lib2_name"], [data-f="lib2_name"]') && h.indexOf('Town library') === -1) bad.push('the filled card is not the one shown');
+  return bad;
+});
+
+/* ---------- TWO BARE-BONES TOOLS (547): the poster planner and the pixel editor -- tiles, one line per thing, this device only, files out ---------- */
+check('the poster planner and the pixel editor (547) are Tools widgets: tiles only, a box drawn, moved, resized and labelled, a square painted and erased, JSON and PNG out, kept on this device and never sent', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof w.initPoster_ !== 'function' || typeof w.initPixel_ !== 'function') return ['no initPoster_ or initPixel_ -- NOT checked'];
+  const ids = (typeof w.widgetsOf_ === 'function' ? w.widgetsOf_('tool') : []).map(x => x.id);
+  ['poster', 'pixel'].forEach(id => { if (ids.indexOf(id) < 0) bad.push('no ' + id + ' widget in Tools'); });
+  /* A FRESH WINDOW HAS NOTHING STORED, so both start blank; Clear makes sure of it should a widget have drawn on the way in. */
+  const saved = [], strokes = [];
+  w.HTMLCanvasElement.prototype.getContext = function () { return new Proxy({}, { get: (x, k) => (k === 'fillRect' ? (...a) => strokes.push(a) : k in x ? x[k] : () => {}), set: (x, k, v) => { x[k] = v; return true; } }); };
+  w.HTMLCanvasElement.prototype.toBlob = function (cb, type) { setTimeout(() => cb(new w.Blob(['x'], { type })), 0); };
+  w.URL.createObjectURL = () => 'blob:x'; w.URL.revokeObjectURL = () => {};
+  w.HTMLAnchorElement.prototype.click = function () { saved.push(this.download); };
+  const ev = (el, type, x, y) => el.dispatchEvent(new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+  const before = sent.length;
+  /* ---------- THE POSTER ---------- */
+  const ph = d.createElement('div'); ph.id = 'pst-box'; d.body.appendChild(ph);
+  w.initPoster_();
+  if (ph.querySelector('[data-do="pst-clear"]:not([disabled])')) A['pst-clear'](ph.querySelector('[data-do="pst-clear"]'));
+  const sizes = [...ph.querySelectorAll('[data-pst-set="size"] option')].map(o => o.value).join();
+  if (sizes !== 'A0,A1,A2,A3') bad.push('the poster sizes are ' + sizes + ', not A0-A3');
+  if (!ph.querySelector('[data-pst-set="orient"] option[value="landscape"]')) bad.push('no landscape');
+  const kinds = [...ph.querySelectorAll('.tile[data-do="pst-kind"]')].map(x => x.dataset.kind).join();
+  if (kinds !== 'title,text,image,chart') bad.push('the box kinds are ' + kinds);
+  const loose = ph.querySelectorAll('button:not(.tile)');
+  if (loose.length) bad.push('the poster planner has ' + loose.length + ' button(s) that are not tiles');
+  const page = () => ph.querySelector('.pst-page');
+  page().getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 300 });
+  A['pst-kind'](ph.querySelector('[data-do="pst-kind"][data-kind="title"]'));
+  page().getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 300 });
+  ev(page(), 'pointerdown', 20, 30); ev(d, 'pointermove', 120, 90); ev(d, 'pointerup', 120, 90);
+  let plan = JSON.parse(w.localStorage.getItem('posterPlan') || '{}');
+  const b0 = (plan.boxes || [])[0];
+  if (!b0 || b0.kind !== 'title' || Math.abs(b0.x - 0.1) > 0.01 || Math.abs(b0.w - 0.5) > 0.01 || Math.abs(b0.h - 0.2) > 0.01) bad.push('the drawn box is ' + JSON.stringify(plan.boxes));
+  else {
+    page().getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 300 });
+    ev(ph.querySelector('[data-pst="' + b0.id + '"] .pst-label'), 'pointerdown', 50, 50); ev(d, 'pointermove', 70, 80); ev(d, 'pointerup', 70, 80);
+    page().getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 300 });
+    ev(ph.querySelector('[data-pst-grip="' + b0.id + '"]'), 'pointerdown', 140, 120); ev(d, 'pointermove', 160, 150); ev(d, 'pointerup', 160, 150);
+    plan = JSON.parse(w.localStorage.getItem('posterPlan') || '{}');
+    const b1 = plan.boxes[0];
+    if (Math.abs(b1.x - 0.2) > 0.01 || Math.abs(b1.y - 0.2) > 0.01) bad.push('the box did not move: ' + JSON.stringify(b1));
+    if (Math.abs(b1.w - 0.6) > 0.01 || Math.abs(b1.h - 0.3) > 0.01) bad.push('the box did not resize: ' + JSON.stringify(b1));
+    const lab = ph.querySelector('[data-pst-label="' + b0.id + '"]');
+    if (!lab) bad.push('a chosen box has no label row');
+    else { lab.value = 'Method'; lab.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    const sz = ph.querySelector('[data-pst-set="orient"]'); sz.value = 'landscape'; sz.dispatchEvent(new w.Event('change', { bubbles: true }));
+    const out = w.pstExport_();
+    if (out.paper !== 'A1' || out.orientation !== 'landscape' || out.width_mm !== 841 || out.height_mm !== 594) bad.push('the JSON page is ' + JSON.stringify([out.paper, out.orientation, out.width_mm, out.height_mm]));
+    const ob = (out.boxes || [])[0] || {};
+    if (ob.label !== 'Method' || ob.kind !== 'title' || Math.abs(ob.x_mm - 168.2) > 0.2) bad.push('the JSON box is ' + JSON.stringify(ob));
+    A['pst-json'](ph.querySelector('[data-do="pst-json"]'));
+    A['pst-png'](ph.querySelector('[data-do="pst-png"]'));
+    await wait(50);
+    if (saved.indexOf('poster-layout.json') < 0 || saved.indexOf('poster-layout.png') < 0) bad.push('the poster exports saved ' + JSON.stringify(saved));
+  }
+  /* ---------- THE PIXEL EDITOR ---------- */
+  const xh = d.createElement('div'); xh.id = 'pxe-box'; d.body.appendChild(xh);
+  w.initPixel_();
+  if (xh.querySelectorAll('.pxe-c').length !== 256) bad.push('the pixel grid has ' + xh.querySelectorAll('.pxe-c').length + ' squares, not 16 x 16');
+  if (xh.querySelectorAll('button:not(.tile)').length) bad.push('the pixel editor has buttons that are not tiles');
+  ['pxe-tool', 'pxe-clear', 'pxe-png'].forEach(a => { if (!xh.querySelector('.tile[data-do="' + a + '"]')) bad.push('no ' + a + ' tile'); });
+  const col = xh.querySelector('input[type="color"][data-pxe-set="colour"]');
+  if (!col) bad.push('no colour row');
+  else { col.value = '#ff0000'; col.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  const cell = i => xh.querySelector('[data-pxe="' + i + '"]');
+  ev(cell(5), 'pointerdown', 0, 0); ev(cell(6), 'pointermove', 0, 0); ev(d, 'pointerup', 0, 0);
+  let art = JSON.parse(w.localStorage.getItem('pixelArt') || '{}');
+  if ((art.px || [])[5] !== '#ff0000' || art.px[6] !== '#ff0000') bad.push('a press and a drag did not paint: ' + JSON.stringify((art.px || []).slice(4, 8)));
+  A['pxe-tool'](xh.querySelector('[data-do="pxe-tool"][data-tool="eraser"]'));
+  ev(cell(6), 'pointerdown', 0, 0); ev(d, 'pointerup', 0, 0);
+  art = JSON.parse(w.localStorage.getItem('pixelArt') || '{}');
+  if (art.px[6] !== '' || art.px[5] !== '#ff0000') bad.push('the eraser did not clear one square: ' + JSON.stringify(art.px.slice(4, 8)));
+  strokes.length = 0;
+  A['pxe-png'](xh.querySelector('[data-do="pxe-png"]'));
+  await wait(50);
+  if (strokes.length !== 1 || saved.indexOf('pixel-art-16x16.png') < 0) bad.push('the PNG drew ' + strokes.length + ' square(s) (wanted 1) and saved ' + JSON.stringify(saved));
+  A['pxe-clear'](xh.querySelector('[data-do="pxe-clear"]'));
+  art = JSON.parse(w.localStorage.getItem('pixelArt') || '{}');
+  if (art.px.some(Boolean)) bad.push('Clear left painted squares');
+  const gs = xh.querySelector('[data-pxe-set="n"]'); gs.value = '8'; gs.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if (xh.querySelectorAll('.pxe-c').length !== 64) bad.push('an 8 x 8 grid has ' + xh.querySelectorAll('.pxe-c').length + ' squares');
+  if (sent.length !== before) bad.push('the tools sent ' + sent.slice(before).map(x => x.action).join(', ') + ' -- they are this device\'s alone');
+  ph.remove(); xh.remove();
+  return bad;
+});
+
+/* ---------- THE WEEKLY EMAIL CARD SHOWS THE EMAIL AS IS (547): the backend's own HTML in a frame, and typed words re-render it there ---------- */
+check('the Weekly email card (547) shows the very HTML the backend sends, in a sandboxed frame, never a copy drawn on the phone; a typed subject is asked of the same renderer', async () => {
+  const W = cardWorld_(), bad = [];
+  const reply = b => (b.action === 'digestPreview' ? W.real.post(b) : W.reply(b));
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return [a.err];
+  a.t.go('site', false, true); a.w.paint('site');
+  let fr = null;
+  for (let i = 0; i < 60 && !(fr = a.d.querySelector('#s-site .digest-look iframe.dw-frame')); i++) await wait(100);
+  if (!fr) return ['the Weekly email card drew no frame: ' + ((a.d.querySelector('#s-site .digest-look') || {}).textContent || '(no card)').replace(/\s+/g, ' ').slice(0, 200)];
+  const want = W.real.post({ action: 'digestPreview', personId: a.u.personId, token: a.u.token });
+  if (!want || !want.shown || fr.getAttribute('srcdoc') !== want.shown.html) bad.push('the frame does not hold the backend\'s shown email byte for byte');
+  if (fr.getAttribute('sandbox') !== '') bad.push('the frame is not fully sandboxed: sandbox="' + fr.getAttribute('sandbox') + '"');
+  if (a.d.querySelector('#s-site .digest-look .dp-q, #s-site .digest-look .dp-body')) bad.push('a hand-drawn imitation of the email is still on the card');
+  const subj = a.d.querySelector('#s-site .digest-look .dp-subj');
+  if (!subj || subj.textContent.indexOf(want.shown.subject) < 0) bad.push('the subject line is not the backend\'s: ' + (subj && subj.textContent));
+  const box = a.d.querySelector('#s-site .digest-words [data-dw="digest_subject"]');
+  if (!box) return bad.concat(['no Subject box on the words card']);
+  box.value = 'Typed for {child}';
+  box.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  let asked = null;
+  for (let i = 0; i < 40 && !(asked = a.sent.filter(x => x.action === 'digestPreview' && x.words).pop()); i++) await wait(100);
+  if (!asked || asked.words.digest_subject !== 'Typed for {child}') bad.push('typing the subject did not ask the backend\'s renderer with it: ' + JSON.stringify(asked && asked.words));
+  await wait(400);
+  const subj2 = a.d.querySelector('#s-site .digest-look .dp-subj');
+  if (!subj2 || !/Typed for \S/.test(subj2.textContent)) bad.push('after typing, the subject shown is "' + (subj2 && subj2.textContent) + '"');
   return bad;
 });
 

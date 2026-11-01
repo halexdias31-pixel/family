@@ -17,8 +17,6 @@ const REASONS = {
   flagMessage: 'kept for a phone loaded before 486: a message routed into the one `suggest` action (check-posts proves it).',
   linkChild: 'the one way an admin settles a HELD family link besides typing in the sheet (check-signin proves the '
     + 'address rule on it). Posted by hand for now; no admin card yet (433).',
-  digestPreview: 'the Sunday email\'s dry run against the LIVE sheet, posted by hand by an admin (the card went in '
-    + 'eef67ad); check-digest proves it writes, sends and books nothing (433).',
 };
 
 /* every backend file, so a handler moved out of dopost.gs is still seen */

@@ -404,10 +404,10 @@ function digestQuestions_(items, max, o) {
     return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
       + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
       + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
-      /* THE VERDICT IN WORDS AND ITS COLOUR, the summary's own; THEIR ANSWER in the site's answer box, paper ringed in that colour; the ANSWER as the Answers page sets it. */
-      + '<p class="gi" style="margin:12px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
+      /* IN THE SITE CARD'S ORDER (547): THEIR ANSWER in the answer box, then the VERDICT under it as Check says it, then the ANSWER as the Answers page sets it. */
       + (it.theirs ? head('THEIR ANSWER', 10) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.box
         + '" style="border:1px solid ' + ink.paneLine + ';border-radius:18px;padding:4px 14px;color:' + ink.ink + '">' + it.theirs.html + '</td></tr></table>' : '')
+      + '<p class="gi" style="margin:' + (it.theirs ? 8 : 12) + 'px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
       + (it.right ? head('ANSWER') + '<p style="margin:0;color:' + ink.ink + '">' + it.right.html + '</p>' : '')
       + '</td></tr></table>';
   };
@@ -866,8 +866,10 @@ function digestFill_(t, v) {
 
 /* THE PLAN FOR A WEEK, OFF THE SHEET AS IT IS. The only impure step: three reads and the real
    `acceptedParents`. `now` is the moment the list is made up to (`digestLook_`); the clock when none. */
-function digestPlanNow_(week, now, lib) {
+function digestPlanNow_(week, now, lib, words) {
   const look = digestLook_(now, week);
+  /* THE ADMIN'S UNSAVED WORDS, for the Preview alone (547): the same renderer with what is being typed; a run never passes any. */
+  if (words) look.words = digestWordsOver_(look.words, words);
   /* AND THE LIBRARY'S ROWS, when the caller fetched them (`digestEmailLibrary_`): each question as it is on
      the site. Without them each goes as its words cell — the check's plans, and a run whose fetch failed. */
   if (lib && lib.rows) look.lib = lib;
@@ -1117,14 +1119,19 @@ function digestScheduled_(fn) {
   catch (err) { return null; }
 }
 /* ---------- WHAT THE ADMIN'S PREVIEW IS SENT — `digestPreview` in dopost.gs § */
-function digestPreviewOut_(now) {
+function digestPreviewOut_(now, words) {
   let cfg = {};
   try { cfg = config(); } catch (err) { cfg = {}; }
   const week = digestWeek_(now);
   /* THE SAME LIBRARY AS THE RUN'S, so the Preview is the email as it will go (18 Oct). */
   let lib = null;
   try { lib = digestEmailLibrary_(week, read(TAB.submissions).rows, cfg); } catch (err) { lib = null; }
-  const plan = digestPlanNow_(week, now, lib);
+  const plan = digestPlanNow_(week, now, lib, words);
+  /* THE EMAIL THE CARD SHOWS, AS IS (547): this week's first, byte for byte; with none, a made-up child through the same `digestRender_`. */
+  const first = plan.emails[0];
+  const sample = first ? null : digestRender_(DIGEST_SAMPLE_CHILD, { first: 'Alex' }, week, plan.look);
+  const shown = first ? { subject: first.subject, html: first.html, learner: first.learner, parent: first.parent, sample: false }
+    : { subject: sample.subject, html: sample.html, learner: DIGEST_SAMPLE_CHILD.first, parent: 'Alex', sample: true };
   /* AND WHETHER THERE IS ANYTHING TO READ: with no `submissions` tab the plan is empty for a reason, and
      the card says the reason rather than "nobody has done a question". */
   const warning = digestNoSubmissions_();
@@ -1138,7 +1145,20 @@ function digestPreviewOut_(now) {
     emails: plan.emails.map(m => ({ learner: m.learner, parent: m.parent, to: m.to, subject: m.subject,
       text: m.text, html: m.html, count: m.count })),
     unreachable: plan.unreachable,
+    shown: shown,
   };
+}
+/* THE MADE-UP CHILD the Preview shows when no family has an email this week: three questions, their words and answers, every way one goes. */
+const DIGEST_SAMPLE_CHILD = { first: 'Sam', days: [], again: [], fresh: [
+  { key: 'q:SAMPLE-1', label: 'Maths · Fractions · Q1', words: 'Work out 2/3 + 1/4.', verdict: 'right', answer: '11/12' },
+  { key: 'q:SAMPLE-2', label: 'Maths · Fractions · Q2', words: 'Simplify 18/24.', verdict: 'wrong', answer: '9/12' },
+  { key: 'q:SAMPLE-3', label: 'Maths · Ratio · Q1', words: 'Share 20 in the ratio 3 : 2.', verdict: 'ai:1/2', answer: '12 and 8' }] };
+/* WORDS AN ADMIN IS TYPING, held to what `digestWordsSave` would keep: the four keys, each at most DIGEST_WORD_MAX; blank is the default. */
+function digestWordsOver_(base, words) {
+  const out = Object.assign({}, base || {});
+  if (!words || typeof words !== 'object') return out;
+  Object.keys(DIGEST_WORDS).forEach(k => { if (k in words) out[k] = S(words[k]).slice(0, DIGEST_WORD_MAX).trim() || DIGEST_WORDS[k]; });
+  return out;
 }
 
 

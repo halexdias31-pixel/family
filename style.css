@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-01-integrate-ab";
+  --css-version: "2026-11-01-integrate-abc";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -7008,16 +7008,12 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .shop-hit { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: 0 .2rem; background: none; border: 0;
   border-bottom: 1px solid var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .shop-hit .shop-ic { width: 1.4rem; height: 1.4rem; }
-/* THE WEEKLY EMAIL'S PREVIEW (491): the email's own dark colours (digestInk_ in backend/digest.gs), one component's own. */
-.digest-words { --dp-page: #000; --dp-ink: #e6e6e6; --dp-dim: #9a9a9a; --dp-line: #232323; --dp-right: #3ddc84; --dp-wrong: #ff5f56; }
-.dp { background: var(--dp-page); color: var(--dp-ink); border: 1px solid var(--dp-line); border-radius: 6px; padding: .7rem .8rem; margin: .4rem 0 .8rem; font-size: .8rem; line-height: 1.5; }
-.dp p { margin: 0 0 .6rem; }
-.dp-subj { color: var(--dp-dim); border-bottom: 1px solid var(--dp-line); padding-bottom: .4rem; }
+/* THE WEEKLY EMAIL'S PREVIEW (491, 547): the backend's own email in a frame, phone-wide and tall enough to read; the email brings its own colours. */
+.dw-frame-box { position: relative; min-height: 6rem; }
+.dw-frame { display: block; width: 100%; height: min(70vh, 40rem); border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.dp-subj { color: var(--dim); border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin: .4rem 0; overflow-wrap: anywhere; }
 .dp-subj span { text-transform: uppercase; letter-spacing: .08em; font-size: .65rem; margin-right: .4rem; }
-.dp-sum, .dp-foot, .dp-sub { color: var(--dp-dim); }
-.dp-foot { font-size: .7rem; margin-top: 1rem !important; }
-.dp-q { border: 1px solid var(--dp-line); padding: .4rem .5rem; margin: 0 0 .4rem; display: flex; flex-direction: column; }
-.dp-v { font-size: .7rem; } .dp-v.is-right { color: var(--dp-right); } .dp-v.is-wrong { color: var(--dp-wrong); }
+.dp-who { margin: 0 0 .5rem; }
 .dw-row { display: flex; flex-direction: column; margin-bottom: .5rem; }
 
 /* ---------- THE RULES (496): the Rules card on Site, and the two rules only CSS applies (`data-uni`, rules.js) ---------- */
@@ -7042,11 +7038,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .seen-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
 .seen-row select { min-height: 44px; max-width: 60%; }
 .seen-box .seen-say { margin: .25rem 0 .5rem; }
-/* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent, a message read in place. */
+/* ---------- THE EMAIL WIDGET (493): one line per message, the unread dot in the accent; a static overview, nothing opens (547). */
 .ib-list { display: flex; flex-direction: column; }
-.ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: .45rem; text-align: left;
-  min-height: 48px; padding: .55rem 0; background: none; border: 0; border-bottom: 1px solid var(--line);
-  color: var(--ink); font: inherit; width: 100%; cursor: pointer; }
+.ib-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: .45rem;
+  padding: .55rem 0; border-bottom: 1px solid var(--line); color: var(--ink); }
 .ib-dot { grid-row: 1; align-self: center; width: 8px; height: 8px; border-radius: 50%; }
 .ib-row.is-unread .ib-dot { background: var(--gold); }
 .ib-from, .ib-subj, .ib-snip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -7055,13 +7050,34 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-at { grid-column: 3; font-size: .8rem; color: var(--faint); }
 .ib-subj, .ib-snip { grid-column: 2 / 4; }
 .ib-snip { font-size: .85rem; color: var(--faint); }
-.ib-h { margin: .6rem 0 .2rem; overflow-wrap: anywhere; }
-.ib-meta { overflow-wrap: anywhere; }
-.ib-body { overflow-wrap: anywhere; overflow-x: auto; max-width: 100%; }
-.ib-body img { max-width: 100%; height: auto; }
-.ib-body img[data-blocked] { display: inline-block; min-width: 1rem; min-height: 1rem; border: 1px dashed var(--line); }
-.ib-body table { max-width: 100%; }
-.ib-text { white-space: pre-wrap; font: inherit; margin: 0; }
+
+/* ---------- THE POSTER PLANNER (547, poster.js): the page is paper, boxes are outlines; the page takes the drag, so it never scrolls the column. */
+.pst-line { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
+.pst-line > span { color: var(--dim); }
+.pst-line select, .pst-line input { min-height: 44px; min-width: 0; max-width: 60%; }
+.pst-line input { flex: 1; }
+.pst-say, .pst-mm { margin: .35rem 0; }
+.pst-page { position: relative; width: 100%; margin: .5rem auto; background: var(--paper); border: 1px solid var(--line);
+  touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; cursor: crosshair; }
+.pst-box { position: absolute; box-sizing: border-box; border: 2px solid var(--paper-ink); color: var(--paper-ink); padding: .2rem .3rem;
+  overflow: hidden; cursor: move; display: flex; flex-direction: column; gap: .1rem; font-size: .7rem; line-height: 1.15; }
+.pst-box.on { border-style: dashed; background: var(--paper-strip); }
+.pst-kind { text-transform: uppercase; letter-spacing: .04em; color: var(--paper-dim); font-size: .6rem; }
+.pst-label { font-weight: 700; overflow-wrap: anywhere; }
+.pst-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--paper-ink) 50%); }
+
+/* ---------- THE PIXEL EDITOR (547, pixel.js): square cells on a checker of the paper tokens so see-through reads as see-through; the grid takes the drag. */
+.pxe-line { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
+.pxe-line > span { color: var(--dim); }
+.pxe-line select, .pxe-line input { min-height: 44px; min-width: 44px; max-width: 60%; }
+.pxe-grid { display: grid; width: 100%; max-width: 70vh; aspect-ratio: 1; margin: .5rem auto; border: 1px solid var(--line);
+  background: repeating-conic-gradient(var(--paper) 0 25%, var(--paper-strip) 0 50%) 0 0 / 16px 16px;
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.pxe-c { box-shadow: inset 0 0 0 .5px var(--paper-rule); }
+
+/* ---------- A PROFILE SHARED AS A PICTURE (412, 547): the card itself, drawn off the screen at a phone column's width for the snapshot (`tutorPng_`). */
+.tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }

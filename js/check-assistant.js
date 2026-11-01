@@ -118,8 +118,21 @@ const ADA = 's1@example.org', BEN = 's2@example.org';
   }
 }
 
+/* SITE HELP ONLY (547, owner 1 Nov): Daive's rules say it helps with finding things in the app and nothing else -- not the business, not homework. */
+{
+  gem.sent = [];
+  const { ask } = world();
+  ask(ADA);
+  const sys = (() => { try { return JSON.parse(gem.sent.pop().payload).systemInstruction.parts[0].text; } catch (e) { return ''; } })();
+  if (!sys) bad.push('Daive\'s rules were not found in the request, so site-help-only was NOT checked');
+  else {
+    if (!/ONLY help people find their way around this app/.test(sys)) bad.push('Daive\'s rules do not keep it to finding things in the app: ' + sys.slice(0, 200));
+    if (/Answer questions about the business|its services, prices, booking|help with schoolwork/i.test(sys)) bad.push('Daive is still told to answer about the business or schoolwork: ' + sys.slice(0, 200));
+  }
+}
+
 if (bad.length) {
   console.log('check-assistant: ' + bad.length + ' failure(s)\n  - ' + bad.join('\n  - '));
   process.exit(1);
 }
-console.log('check-assistant: ' + asked + ' asks — signed in only, the token’s person, the cap from config (5 when blank), a failure given back, the child’s rules');
+console.log('check-assistant: ' + asked + ' asks — signed in only, the token’s person, the cap from config (5 when blank), a failure given back, the child’s rules, site help only');
