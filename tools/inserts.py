@@ -141,6 +141,44 @@ for e in PT.split('|'):
     z, s, n, a, g, p = e.split()
     ELEMENTS.append([int(z), s, n, a, int(g), int(p)])
 
+# ---------- A level and OCR periodic tables (521): the boxes as each board's insert prints them, masses to one place ----------
+PLACE = {e[0]: e for e in ELEMENTS}
+for k, (s, n) in enumerate([('Rf', 'Rutherfordium'), ('Db', 'Dubnium'), ('Sg', 'Seaborgium'), ('Bh', 'Bohrium'), ('Hs', 'Hassium'),
+                             ('Mt', 'Meitnerium'), ('Ds', 'Darmstadtium'), ('Rg', 'Roentgenium'), ('Cn', 'Copernicium')]):
+    PLACE[104 + k] = [104 + k, s, n, '', 4 + k, 7]
+PLACE[114] = [114, 'Fl', 'Flerovium', '', 14, 7]
+PLACE[116] = [116, 'Lv', 'Livermorium', '', 16, 7]
+# the f-block, printed under the table: lanthanides on row 9, actinides on row 10, from the fourth column
+for k, (s, n) in enumerate([('Ce', 'Cerium'), ('Pr', 'Praseodymium'), ('Nd', 'Neodymium'), ('Pm', 'Promethium'), ('Sm', 'Samarium'),
+                             ('Eu', 'Europium'), ('Gd', 'Gadolinium'), ('Tb', 'Terbium'), ('Dy', 'Dysprosium'), ('Ho', 'Holmium'),
+                             ('Er', 'Erbium'), ('Tm', 'Thulium'), ('Yb', 'Ytterbium'), ('Lu', 'Lutetium')]):
+    PLACE[58 + k] = [58 + k, s, n, '', 4 + k, 9]
+for k, (s, n) in enumerate([('Th', 'Thorium'), ('Pa', 'Protactinium'), ('U', 'Uranium'), ('Np', 'Neptunium'), ('Pu', 'Plutonium'),
+                             ('Am', 'Americium'), ('Cm', 'Curium'), ('Bk', 'Berkelium'), ('Cf', 'Californium'), ('Es', 'Einsteinium'),
+                             ('Fm', 'Fermium'), ('Md', 'Mendelevium'), ('No', 'Nobelium'), ('Lr', 'Lawrencium')]):
+    PLACE[90 + k] = [90 + k, s, n, '', 4 + k, 10]
+
+
+def table(masses, zs):
+    return [PLACE[z][:3] + [masses.get(z, '')] + PLACE[z][4:] for z in zs]
+
+
+# AQA 7405 Data Booklet (specimen insert, the one whose table is text): 1 to 111, the f-block under it
+AQA_A_MASS = {int(z): m for z, m in (p.split(':') for p in (
+    '1:1.0 2:4.0 3:6.9 4:9.0 5:10.8 6:12.0 7:14.0 8:16.0 9:19.0 10:20.2 11:23.0 12:24.3 13:27.0 14:28.1 15:31.0 16:32.1 17:35.5 18:39.9 '
+    '19:39.1 20:40.1 21:45.0 22:47.9 23:50.9 24:52.0 25:54.9 26:55.8 27:58.9 28:58.7 29:63.5 30:65.4 31:69.7 32:72.6 33:74.9 34:79.0 '
+    '35:79.9 36:83.8 37:85.5 38:87.6 39:88.9 40:91.2 41:92.9 42:96.0 43:[98] 44:101.1 45:102.9 46:106.4 47:107.9 48:112.4 49:114.8 '
+    '50:118.7 51:121.8 52:127.6 53:126.9 54:131.3 55:132.9 56:137.3 57:138.9 58:140.1 59:140.9 60:144.2 61:[145] 62:150.4 63:152.0 '
+    '64:157.3 65:158.9 66:162.5 67:164.9 68:167.3 69:168.9 70:173.1 71:175.0 72:178.5 73:180.9 74:183.8 75:186.2 76:190.2 77:192.2 '
+    '78:195.1 79:197.0 80:200.6 81:204.4 82:207.2 83:209.0 84:[209] 85:[210] 86:[222] 87:[223] 88:[226] 89:[227] 90:232.0 91:231.0 '
+    '92:238.0 93:[237] 94:[244] 95:[243] 96:[247] 97:[247] 98:[251] 99:[252] 100:[257] 101:[258] 102:[259] 103:[262] 104:[267] '
+    '105:[268] 106:[271] 107:[272] 108:[270] 109:[276] 110:[281] 111:[280]').split())}
+ELEMENTS_AQA_A = table(AQA_A_MASS, list(range(1, 112)))
+# OCR J248 Data Sheet: the main table only (57-71 and 89-103 are a footnote row), no mass for an element with no stable isotope
+OCR_MASS = {z: m for z, m in AQA_A_MASS.items() if z <= 83 and z not in (43, 57)}
+OCR_MASS[42] = '95.9'
+ELEMENTS_OCR = table(OCR_MASS, list(range(1, 57)) + list(range(72, 89)) + list(range(104, 113)) + [114, 116])
+
 # ---------- A level Maths: the booklet's main formulas ----------
 SUVAT_M = (i('v') + ' = ' + i('u') + ' + ' + i('a') + i('t') + '; &nbsp; ' + i('s') + ' = ' + i('u') + i('t') + ' + ' + HALF + i('a') + i('t')
            + '<sup>2</sup>; &nbsp; ' + i('s') + ' = ' + HALF + '(' + i('u') + ' + ' + i('v') + ')' + i('t') + '; &nbsp; ' + i('v') + '<sup>2</sup> = '
@@ -286,6 +324,24 @@ ROWS = [
                        'Elements 58 to 71 and from 90 on are left out, as the insert leaves them out. Written from memory and not yet compared box by box with the insert, so marked unverified.'),
         official=[{'label': 'AQA periodic table insert', 'url': 'https://drive.google.com/file/d/15RfifsYaBRBYNngrVd74BnDwlmAcF5AQ/view'}],
         table='periodic', elements=ELEMENTS),
+    row(insert_id='INS-OCR-GCSE-PERIODIC', name='OCR GCSE Chemistry periodic table',
+        summary='The periodic table on the Data Sheet an OCR GCSE Chemistry A (Gateway) candidate is given in the exam.',
+        subject='Chemistry', level='GCSE', keystage='KS4', board='OCR', tier='Foundation, Higher',
+        for_subjects='Chemistry', for_levels='GCSE',
+        verified_note=('Copied box by box from the periodic table on OCR’s J248 Data Sheet (Autumn 2021), masses to one decimal place as it prints them, '
+                       'and none for an element with no stable isotope; its lanthanoid and actinoid rows are left out, as the GCSE table here leaves them (521). '
+                       'Checked against the Data Sheet text, not yet by a person, so marked unverified.'),
+        official=[{'label': 'OCR J248 Data Sheet', 'url': 'https://www.ocr.org.uk/Images/667723-data-sheet.pdf'}],
+        table='periodic', elements=ELEMENTS_OCR),
+    row(insert_id='INS-ALEVEL-PERIODIC', name='A level Chemistry periodic table',
+        summary='The periodic table of the Data Booklet an AQA A level Chemistry candidate is given in the exam.',
+        subject='Chemistry', level='A-Level', keystage='KS5', board='AQA',
+        for_subjects='Chemistry', for_levels='A-Level',
+        verified_note=('Copied box by box from the periodic table in AQA’s 7405 Data Booklet (the specimen insert; the booklet names itself the insert of every '
+                       '7405 paper), masses to one decimal place and in brackets for an element with no stable isotope, the f-block underneath. '
+                       'The booklet’s spectroscopy tables are not here (521). Checked against the booklet text, not yet by a person, so marked unverified.'),
+        official=[{'label': 'AQA 7405 Data Booklet', 'url': 'https://cdn.sanity.io/files/p28bar15/green/58fd05f3a19be1bc2d57987df41c8d3f82401cb0.pdf'}],
+        table='periodic', elements=ELEMENTS_AQA_A),
     row(insert_id='INS-ALEVEL-MATHS', name='A level Maths formulae booklet',
         summary='The main formulas of the booklet an A level or AS Maths candidate is given in the exam.',
         subject='Maths', level='A-Level, AS', keystage='KS5', board='Edexcel, AQA, OCR',
@@ -299,6 +355,13 @@ ROWS = [
 ]
 
 if __name__ == '__main__':
+    # a reading insert (458) is written by its own tool, so a row this script does not write is kept as it stands
+    mine = {r['insert_id'] for r in ROWS}
+    try:
+        with open(OUT, encoding='utf-8') as f:
+            ROWS = ROWS + [r for r in json.load(f) if r.get('insert_id') not in mine]
+    except (OSError, ValueError):
+        pass
     with open(OUT, 'w', encoding='utf-8') as f:
         json.dump(ROWS, f, ensure_ascii=False, indent=1)
         f.write('\n')
