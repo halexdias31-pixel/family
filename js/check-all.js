@@ -16,6 +16,8 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
+  { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
   { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
@@ -231,6 +233,10 @@ const SUITE = [
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
   { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
+  /* THE POLISH HARNESS (531): three visitors at 320, 390 and 1280, one browser each, scenarios in check/steady|jank|touch/. */
+  { file: 'check/steady.js',  what: 'nothing moves that was not asked to: layout shift, the card in front, scroll offsets', slow: true },
+  { file: 'check/jank.js',    what: 'no long task while nothing is touched', slow: true },
+  { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once', slow: true },
 ];
 
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */

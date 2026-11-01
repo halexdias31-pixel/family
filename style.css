@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-31-merge-booking";
+  --css-version: "2026-11-01-polish";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -87,12 +87,69 @@
   /* How wide the app is ever allowed to be. A phone, and on a desktop still a phone. */
   --app: 26.5rem;
 
-  --quick: .13s;         /* how long anything takes to respond to a touch */
+
+  /* ---------- THE POLISH TOKENS (531): one scale each for motion, press, type, spacing, radius and edge. Defined
+     here first and adopted package by package, so nothing below changes look until it moves onto them. */
+  /* MOTION. js/shell.js reads these into `MOTION_`; a press lands at once and only its release eases. */
+  --dur-press: 0s;
+  --dur-quick: 120ms;
+  --dur-enter: 220ms;
+  --dur-exit:  180ms;
+  --dur-move:  280ms;
+  /* AN INFORMATION HIGHLIGHT (`.lay-moved`, `.post-lit`): it says where something is, so reduced motion keeps it. */
+  --dur-mark:  1.3s;
+  /* how long anything takes to respond to a touch; the old name, kept as an alias until every use moves onto `--dur-quick`. */
+  --quick: var(--dur-quick);
+  --ease-out:    cubic-bezier(.2, .8, .2, 1);
+  --ease-in:     cubic-bezier(.4, 0, 1, 1);
+  /* THE SLIDE'S SPRING once that rebuild lands here as `linear(…)`; one spring for the app, never a second. */
+  --ease-spring: cubic-bezier(.2, .9, .3, 1);
+
+  /* PRESS. Sinks as the finger lands (D7): about 4% for a small control, less for a whole card, a faint wash. */
+  --press-small: .96;
+  --press-card:  .985;
+  --press-wash:  rgb(255 255 255 / .08);
+  --press-wash-paper: rgb(0 0 0 / .06);
+  --disabled: .4;
+
+  /* TYPE. In rem so it scales from the html clamp; the smallest step never renders under 11px. */
+  --fs-xs:  max(11px, .75rem);
+  --fs-sm:  .875rem;
+  --fs-md:  1rem;
+  --fs-lg:  1.125rem;
+  --fs-xl:  1.375rem;
+  --fs-2xl: 1.75rem;
+  --lh-tight: 1.2;
+  --lh-body:  1.45;
+  --fw-title: 600;
+
+  /* SPACING. `--pad` is `--s4`; `--gap` stays .62rem until package I moves it onto `--s2`. */
+  --s1: .25rem;
+  --s2: .5rem;
+  --s3: .75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+
+  /* RADIUS, in px: a panel's corner does not grow with the type. `--r` and `--r-sm` above stay the controls'. */
+  --r-surface: 14px;
+  --r-pill: 999px;
+
+  /* EDGE, ELEVATION AND THE INK ON THE ACCENT: one of each, so a surface or a pressed thing is never drawn two ways. */
+  --edge-surface: 1px solid rgb(255 255 255 / .16);
+  --shadow-1: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
+  --shadow-press: inset 0 1px 3px rgb(0 0 0 / .5);
+  --on-gold: #000;
+  --toast-bg: #e6e6e6;
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE § */
   --over-wash: rgb(0 0 0 / .55);
   --over-edge: rgb(255 255 255 / .28);
   --over-ink:  #fff;
+}
+/* LESS MOTION ASKED FOR: movement takes no time, but a highlight that says where something is (`--dur-mark`) stays (D14). */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-quick: 0s; --dur-enter: 0s; --dur-exit: 0s; --dur-move: 0s; }
 }
 
 /* ---------- THE TYPEFACE, SELF-HOSTED § */
@@ -4878,7 +4935,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   transition: color var(--quick) ease, background var(--quick) ease,
               border-color var(--quick) ease, transform var(--quick) ease;
 }
-.tile:active, .tile.is-pressed { background: rgb(255 255 255 / .08); border-color: var(--line); }
+.tile:active, .tile.is-pressed { background: var(--press-wash); border-color: var(--line); }
 /* A DISABLED TILE LOSES THE PLATE ENTIRELY. Dimming a button still reads as a button; taking the
    surface away is what says there is nothing here to press. */
 .tile:active, .tile.is-pressed { transform: scale(.88); }

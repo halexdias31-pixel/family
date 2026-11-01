@@ -2217,6 +2217,33 @@ function closeSheet() {
   if (was) { try { placeCells(undefined, true); } catch (err) {} }
 }
 
+/* ---------- MOTION IS ONE SYSTEM (531) ---------- */
+/* Whether to move at all. Every script that animates asks this, so less motion is one answer everywhere. */
+function motionOK_() {
+  try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; }
+}
+/* THE STYLESHEET'S `--dur-*` AND `--ease-*`, in ms and as curves, read once they exist; the fallbacks are the same numbers, for a page whose CSS has not arrived. */
+const MOTION_FALL_ = { press: 0, quick: 120, enter: 220, exit: 180, move: 280, mark: 1300,
+  out: 'cubic-bezier(.2, .8, .2, 1)', in: 'cubic-bezier(.4, 0, 1, 1)', spring: 'cubic-bezier(.2, .9, .3, 1)' };
+let MOTION_READ_ = null;
+function motionRead_() {
+  if (MOTION_READ_) return MOTION_READ_;
+  let cs = null;
+  try { cs = getComputedStyle(document.documentElement); } catch (e) { /* no document yet: the fallbacks answer */ }
+  const v = k => (cs && cs.getPropertyValue(k) || '').trim();
+  if (!v('--dur-move')) return MOTION_FALL_;                       /* not loaded yet: answer, and ask again next time */
+  const ms = s => { const n = parseFloat(s); return !isFinite(n) ? 0 : /ms$/.test(s) ? n : n * 1000; };
+  const got = {};
+  Object.keys(MOTION_FALL_).forEach(k => {
+    const raw = typeof MOTION_FALL_[k] === 'number' ? v('--dur-' + k) : v('--ease-' + k);
+    got[k] = !raw ? MOTION_FALL_[k] : typeof MOTION_FALL_[k] === 'number' ? ms(raw) : raw;
+  });
+  return (MOTION_READ_ = got);
+}
+/* `MOTION_.move` is ms, `MOTION_.spring` a timing function. Getters, so a script loaded before the CSS still reads the CSS. */
+const MOTION_ = {};
+Object.keys(MOTION_FALL_).forEach(k => Object.defineProperty(MOTION_, k, { enumerable: true, get: () => motionRead_()[k] }));
+
 /* ---------- ONE WAY TO POST § */
 /* ONE REQUEST, BUILT IN ONE PLACE. § */
 /* WHAT ACTUALLY WENT WRONG, IN WORDS, WHERE THEY CAN BE READ AND COPIED. § */
