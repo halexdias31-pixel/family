@@ -2547,7 +2547,7 @@ function pageParts_(x, prev) {
        with the answer -- and its figure among them wherever `partPlan_` stands it. */
     const plan = partPlan_(x);
     plan.chunks.forEach((c, j) => out.push(j === plan.chunks.length - 1 ? null : 'pre' + j));
-    if (questionHasAns_(x)) out.push('ans');
+    if (questionHasAns_(x) || schemeOwed_(x)) out.push('ans');
     return out;
   }
   /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
@@ -8426,8 +8426,16 @@ function ansOpen_(x) {
   return ANS_SHOWN.has(k) || (answersAsked_() && !ANS_HID.has(k));
 }
 
+/* A PAST-PAPER PART IMPORTED WITHOUT ITS MARK SCHEME (584): no answer of any kind anywhere, so its answer page says so plainly. */
+function schemeOwed_(x) {
+  const r = x && x.row;
+  if (!r || x.kind !== 'question' || questionHasAns_(x) || libTrue(r.verified) || libS(r.document_type) !== 'Past paper') return false;
+  return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
+}
 function questionAnsCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
+  if (schemeOwed_(x)) return `<div class="qcard qans-card" data-of="${esc(id)}">${tagRow_(x, 'ans')}
+    <p class="qans-none">No checked answer yet: this paper's mark scheme has not been added.</p></div>`;
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
