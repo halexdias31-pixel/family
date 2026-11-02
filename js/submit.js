@@ -720,14 +720,14 @@ function reportBoxHtml_(kind, id, label, finder, path) {
       : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
   </div>`;
 }
-/* THE FUNNEL PATH (498): a suggestion made on Find or Find 2 says which answers and words led there, e.g. "Learning › Library › History". */
+/* THE FUNNEL PATH (498): a suggestion made on Find or Find 2 says which answers and words led there, in the chips' own words (660), never a field name. */
 function reportPath_(el) {
   try {
     const sc = el && el.closest ? el.closest('.screen') : null;
     const F = sc && typeof finderOf_ === 'function' ? finderOf_(String(sc.id).replace(/^s-/, '')) : null;
     if (!F) return '';
     return inFinder_(F, () => {
-      const steps = (STUFF.filters || []).map(f => f.any ? 'any ' + f.field : String(f.value || '')).filter(Boolean);
+      const steps = (STUFF.filters || []).map((f, i) => { try { return String(chipText_(f, i)); } catch (e) { return f.any ? 'any' : String(f.value || ''); } }).filter(Boolean);
       if (STUFF.q) steps.push('words "' + String(STUFF.q).trim().slice(0, 60) + '"');
       return (F.id === 'res' ? 'Find 2' : 'Find') + (steps.length ? ' › ' + steps.join(' › ') : '');
     });

@@ -1178,16 +1178,16 @@ let WALKED = 'not walked';
 /* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (545). FUNNEL_ONLY=under runs it alone. */
 function underTypes_(f, items) {
   const byField = fl => f.facetList().find(x => x.field === fl);
-  const typeF = byField('documentType'), kindF = byField('kindLabel');
+  const typeF = byField('documentType'), kindF = byField('kindLabel'), typeOwnF = byField('typeOwn');
   const under = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' }, seenUnder = {};
+  /* 660: Type offers the one above ALONE ("spec paper should be in past papers"), and Which type, after it, the type itself. */
   items.forEach(x => {
     const t = x.kind === 'question' && String(x.documentType || '');
     if (!t || !under[t] || !typeF) return;
     seenUnder[t] = (seenUnder[t] || 0) + 1;
-    const said = f.asList_(typeF.of(x)).map(String);
-    if (said.indexOf(under[t]) === -1 || said.indexOf(t) === -1) {
-      bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Type ' + JSON.stringify(said) + ', not both ' + JSON.stringify([under[t], t]));
-    }
+    const said = f.asList_(typeF.of(x)).map(String), own = typeOwnF ? f.asList_(typeOwnF.of(x)).map(String) : [];
+    if (said.join() !== under[t]) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Type ' + JSON.stringify(said) + ', not ' + JSON.stringify(under[t]) + ' alone');
+    if (own.join() !== t) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Which type ' + JSON.stringify(own) + ', not ' + JSON.stringify(t));
   });
   Object.keys(under).forEach(t => { if (!seenUnder[t]) bad.push('no ' + t + ' question was read, so "' + t + ' is under ' + under[t] + '" proves nothing'); });
   /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */

@@ -18092,7 +18092,9 @@ check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the 
     return fields;
   };
   if (look([], 'the first screen').indexOf('required') >= 0) bad.push('the first screen asks Required before Practicals is chosen');
-  const inPaper = look([{ field: 'paperId', value: PID }], 'the chosen paper');
+  /* WHICH FIRST (660): a kind question is asked inside a paper however lopsided, then Question. */
+  let inPaper = look([{ field: 'paperId', value: PID }], 'the chosen paper');
+  if (inPaper[0] === 'kindOwn') inPaper = look([{ field: 'paperId', value: PID }, { field: 'kindOwn', value: 'Questions' }], 'the chosen paper, Questions');
   if (inPaper[0] !== 'qNumber') bad.push('with the paper chosen the funnel asks ' + (inPaper[0] || 'nothing') + ', not Question — a paper is not an end since 396: ' + h.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
   look([{ field: 'fiveDay', value: '1 June' }], 'a 5-a-day chosen by its Day');
   /* THE WORD ON THE CARD: a sub-part's answer is `ii`, never `Ii`. */
@@ -20824,9 +20826,10 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     }
     const mixed = projs.concat(others);
     const nfMixed = w.nextFacet(mixed);
-    if (!nfMixed || nfMixed.field !== 'projectType') {
-      bad.push('Project or coursework is not asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
-        + ' — the list is mostly projects, and the one bar asks it (it asks ' + (nfMixed ? nfMixed.field : 'nothing') + ')');
+    /* ANY WHICH IS NEVER ASKED FINER (660): with Which skipped and other kinds left, Project or coursework would re-ask it. */
+    if (nfMixed && nfMixed.field === 'projectType') {
+      bad.push('Project or coursework is asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
+        + ' after Any which — every answer sits inside Projects, so it is Which asked finer (660)');
     }
     const nfAlone = w.nextFacet(projs);
     if (!nfAlone || nfAlone.field !== 'projectType') bad.push('with the doors skipped, the projects alone ask ' + (nfAlone ? nfAlone.field : 'nothing') + ', not Project or coursework — so the mixed list above proves nothing');
@@ -24264,7 +24267,10 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
   };
   try {
     /* THE WHOLE PAPER: its six questions, each once however many parts — asked, not an end (396). */
-    const all = ask('');
+    /* WHICH FIRST (660): a kind question is asked however lopsided — "why has it not asked me for question or answer?" */
+    const which = ask('');
+    if (which.field !== 'kindOwn' || which.vals.join(' ') !== 'Questions Answers') bad.push('the chosen paper asks ' + (which.field || 'nothing') + ' ' + JSON.stringify(which.vals) + ' first — Which, Questions Answers (660)');
+    const all = ask('', [{ field: 'kindOwn', value: 'Questions' }]);
     if (all.field !== 'qNumber' || all.vals.join(' ') !== 'Q1 Q8 Q14 Q18 Q20 Q21') bad.push('the chosen paper asks ' + (all.field || 'nothing') + ' ' + JSON.stringify(all.vals) + ' — Question, Q1 Q8 Q14 Q18 Q20 Q21');
     /* "q8": Q8's two parts, so the next question splits them. */
     const q8 = ask('q8');
@@ -31951,6 +31957,10 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
   if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
   const said = () => [...d.querySelectorAll('#s-stuff .miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
+  /* ONE LINE FIRST (660): the rows open behind The list. */
+  if (!/papers? missing in \d+ of \d+/.test(said())) bad.push('the card is not one line: ' + said().slice(0, 160));
+  const allTile = d.querySelector('#s-stuff .miss-card [data-do="miss-all"]');
+  if (!allTile) bad.push('no The list tile on the card (660)'); else { allTile.click(); await wait(200); }
   const s0 = said();
   if (!/What.s missing/.test(s0)) bad.push('the card has no title: ' + s0.slice(0, 120));
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
@@ -31958,7 +31968,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
   if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
   if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
-  if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
+  if (!/1 paper waiting for their words|· 1 waiting for words/.test(s0)) bad.push('the paper with pending words is not counted');
   if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
   if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
   if (d.querySelector('#s-stuff .miss-card [aria-busy="true"], #s-stuff .miss-card .loading')) bad.push('the card is still waiting after its list came');
@@ -32056,6 +32066,50 @@ check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel ›
   if (plain) { W.qtPenSet_(plain, true); if (W.padSource_(plain)) bad.push(plain.key + ': a Pen tap on a part with no figure still lays a blank grid'); W.qtPenSet_(plain, false); }
   const fig = W.stuffItemsAll_().find(x => x.kind === 'question' && x.diagram);
   if (fig && !/data-do="qt-pen"/.test(W.qtRow_(fig))) bad.push(fig.key + ' has a figure and no Pen');
+  return bad;
+});
+
+/* ---------- THE OWNER'S NOTES OF 2 NOV, ON FIND'S FUNNEL (660) ---------- */
+check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers Past paper and Worksheet alone and Which type holds Specimen paper and 5-a-day; Which (a kind question) is asked under Practice and inside one paper however lopsided; Any what kind is never asked finer (Which, Shelf) but Subject; the Hebrew Bible answers Judaism › Tanakh; a path says labels, never field names', async () => {
+  const full = LIB_FULL.rows('questions');
+  const one = await resBoot_({ serve: url => (/data\/questions\.json/.test(url) ? full : undefined), before: signedInAs_(LAY_ADMIN_) });
+  if (!one) return ['the app did not boot — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  for (let i = 0; i < 100 && W.stuffItemsAll_().filter(x => x.kind === 'question').length < 5000; i++) await wait(50);
+  T.go('res'); await wait(80);
+  const R = resView_(W);
+  const ask = fs_ => { T.RES().filters = fs_.map(f => Object.assign({}, f)); const l = R.stuffFiltered(); const n = R.nextFacet(l) || R.overFacet_(l); return { n, vals: n ? R.facetValues(l, n).map(v => v.value) : [], l }; };
+  const P = [{ field: 'kindLabel', value: 'Practice' }];
+  if (R.stuffFiltered && ask(P).l.length < 5000) return ['the library holds ' + ask(P).l.length + ' Practice cards — NOT checked'];
+  /* 1. Which first, then Type with the types above alone, then Which type with the one below. */
+  let s = ask(P);
+  if (!s.n || s.n.field !== 'kindOwn') bad.push('Practice asks ' + (s.n ? s.n.field : 'nothing') + ' first, not Which');
+  s = ask(P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }]));
+  if (!s.n || s.n.field !== 'documentType') bad.push('Practice › Questions › Maths asks ' + (s.n ? s.n.field : 'nothing') + ', not Type');
+  else if (s.vals.some(v => v === 'Specimen paper' || v === '5-a-day') || s.vals.indexOf('Past paper') < 0) bad.push('Type offers ' + s.vals.join(', ') + ' — a specimen or 5-a-day beside the type it is under');
+  s = ask(P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }]));
+  if (!s.n || s.n.field !== 'typeOwn' || s.vals.indexOf('Specimen paper') < 0) bad.push('after Past paper the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.join(', ') + ')' : 'nothing') + ', not Which type with Specimen paper');
+  /* 3. Inside one paper Questions and Answers are the same cards, and Which is still asked. */
+  const paper = (s.l.find(x => x.kind === 'question' && x.row && x.row.paper_id && R.questionHasAns_(x)) || {}).row;
+  if (paper) {
+    T.RES().filters = [{ field: 'paperId', value: paper.paper_id }];
+    const why = R.facetWhy_(R.stuffFiltered(), R.facetList().find(f => f.field === 'kindOwn'));
+    if (why) bad.push('inside ' + paper.paper_id + ' Which is held back: ' + why);
+  } else bad.push('no past paper with answers — Which inside a paper NOT checked');
+  /* 6. Doesn't matter on What kind: nothing that only re-asks it, Subject instead. */
+  s = ask([{ field: 'kindLabel', any: true }]);
+  if (!s.n || s.n.field !== 'subject') bad.push('after Any what kind the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.slice(0, 4).join(', ') + ')' : 'nothing') + ', not Subject');
+  /* 3. The path a suggestion carries says labels. */
+  T.RES().filters = [{ field: 'kindLabel', any: true }, { field: 'qNumber', any: true }, { field: 'myResult', any: true }];
+  const said = T.RES().filters.map((f, i) => R.chipText_(f, i)).join(' › ');
+  if (/kindLabel|qNumber|myResult/.test(said)) bad.push('the path says field names: ' + said);
+  /* 4. The Masoretic Hebrew is Judaism's Tanakh too; a translation of it is not. */
+  const heb = { kind: 'bible', topic: 'Christianity', bb: { book: 'Genesis', testament: 'Old Testament', group: 'Law', text: 'Hebrew' }, ch: '1', v: '1' };
+  const kjv = { kind: 'bible', topic: 'Christianity', bb: { book: 'Genesis', testament: 'Old Testament', group: 'Law', text: 'English, King James Version (1611)' }, ch: '1', v: '1' };
+  const at = (x, k) => [].concat(W.writingAt_(x, k) || []);
+  if (at(heb, 'religion').indexOf('Judaism') < 0 || at(heb, 'collection').indexOf('Tanakh') < 0) bad.push('the Hebrew Genesis answers Religion ' + at(heb, 'religion') + ', Collection ' + at(heb, 'collection') + ' — not Judaism, Tanakh');
+  if (at(kjv, 'religion').indexOf('Judaism') >= 0) bad.push('the KJV Genesis answers Judaism — a translation is not the Tanakh');
+  T.RES().filters = [];
   return bad;
 });
 

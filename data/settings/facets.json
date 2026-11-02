@@ -41,6 +41,7 @@
 {"field": "practicalType", "label": "Experiment or build", "sort_order": 38, "note": "practicals only; the coverage rule hides it elsewhere", "active": true},
 {"field": "required", "label": "Required", "sort_order": 39, "note": "Required practical, Extra or Not for now; practicals only, so the coverage rule keeps it off the first screen", "active": true},
 {"field": "documentType", "label": "Type", "sort_order": 40, "note": "the errand: revising a topic and sitting a mock want different questions after this one", "active": true},
+{"field": "typeOwn", "label": "Which type", "sort_order": 40.5, "note": "the type under a type (660): Past paper or Specimen paper under Past paper, Worksheet or 5-a-day under Worksheet; asked after Type", "active": true},
 {"field": "fiveLevel", "label": "Level", "sort_order": 44, "note": "5-a-day only: the coverage rule hides it elsewhere", "active": true},
 {"field": "fiveMonth", "label": "Month", "sort_order": 45, "note": "5-a-day only: which month's book", "active": true},
 {"field": "fiveDay", "label": "Day", "sort_order": 46, "note": "5-a-day only: which day, said as 1 June; the 40-answer cap holds it until Month narrows the list", "active": true},

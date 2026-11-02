@@ -152,9 +152,21 @@ function writingLinkOf_(x) {
   return WRITING_TITLES.get(spellKey_(String(x.name || '').split(':')[0].trim())) || '';
 }
 /* A WRITING'S RELIGION (546) is its registry topic (Christianity, Judaism, Islam): "why is religion not coming up" — Topic holds hundreds of answers. */
-const writingAt_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
+const writingAt1_ = (x, k) => (!x ? '' : k === 'religion' ? ((x.w || (x.kind === 'bible' && x.bb)) && x.topic) || ''
   : x.w ? x.w[k] || '' : x.kind === 'bible' && x.bb ? bibleW_(x, k) || ''
   : k === 'work' ? writingLinkOf_(x) : '');
+/* A SOURCE TEXT TWO TRADITIONS HOLD (660): "where's the bible here?" under Judaism — the Masoretic Text in its own Hebrew is the
+   Old Testament's original and Judaism's Tanakh, so those cards answer both. */
+const WRITING_HELD = { [WRITING_MT]: { work: 'Bible', religion: 'Judaism', collection: 'Tanakh' } };
+function writingAt_(x, k) {
+  const v = writingAt1_(x, k);
+  if (k !== 'religion' && k !== 'collection') return v;
+  const also = WRITING_HELD[writingAt1_(x, 'source')];
+  /* THE ORIGINAL ONLY: a text with a translator (KJV's Old Testament) is a translation of it, not it. */
+  if (!also || !also[k] || writingAt1_(x, 'work') !== also.work || writingVersionOf_(writingAt1_(x, 'text'))) return v;
+  const had = [].concat(v || []);
+  return had.indexOf(also[k]) === -1 ? had.concat(also[k]) : v;
+}
 function writingOf_(x) {
   if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;
   const w = {};
