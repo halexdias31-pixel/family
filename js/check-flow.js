@@ -7359,7 +7359,7 @@ check('the console is one widget for every game (441): game files, Flabby Pird a
   const pick = d.querySelector('#s-games #cs-pick');
   if (!pick) return bad.concat(['the Console has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
-  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer') bad.push('the picker offers ' + JSON.stringify(opts));
+  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer|Linked pictures|I can guess') bad.push('the picker offers ' + JSON.stringify(opts));
   const bodies = { file: '#nes-box', flabby: '.cs-hand #flappy-canvas', racer: '.cs-wide #race-box' };
   for (const k of ['flabby', 'racer', 'file']) {
     pick.value = k; t.ACTIONS['cs-pick'](pick);
@@ -13271,7 +13271,8 @@ check('progress, populated: counts by topic from the account and the device, a s
     if (!/Coming up/.test(progTxt_(ss)) || !/Done/.test(progTxt_(ss))) bad.push('the Sessions card does not show sessions to come and done: ' + progTxt_(ss).slice(0, 120));
     if (ss.querySelectorAll('.row').length !== 6) bad.push('the Sessions card has ' + ss.querySelectorAll('.row').length + ' rows, wanted the next three and the last three');
   }
-  if (/Not built yet|Coming soon/.test(progTxt_(host))) bad.push('the placeholder words are still drawn');
+  /* Only the progress widgets: Student settings now carries the owner's own Coming soon cards on purpose (562). */
+  if ([...host.querySelectorAll('.prog-w')].some(c => /Not built yet|Coming soon/.test(progTxt_(c)))) bad.push('the placeholder words are still drawn');
   if (tiles[0]) {
     try { t.ACTIONS['prog-practise'](tiles[0]); } catch (e) { bad.push('prog-practise threw: ' + e.message); }
     await wait(LEAVE_MS); await woken_();
@@ -13568,7 +13569,7 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games', 'family', 'staff', 'apprentice', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
 
 check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -21788,7 +21789,8 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   if (facet.label !== 'Religion') bad.push('the question is labelled ' + facet.label);
   const work = w.facetList().find(f => f.field === 'wWork'), vals = w.facetValues(items, work).map(v => String(v.value));
   if (work.label !== 'Work') bad.push('Which writing is labelled ' + work.label);
-  ['Bible', 'Quran', 'Talmud', 'Hadith'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
+  /* The Hadith's six books are Works of the Hadith collection since 600, so a book stands for it. */
+  ['Bible', 'Quran', 'Talmud', 'Sahih al-Bukhari'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
   if (w.scriptureWait_(items) !== '') bad.push('with every index in, the dots under Which writing still stand: ' + w.scriptureWait_(items));
   const k = w.stuffItemsAll_().find(y => y.key === 'bible:kjv:1:1:1'), e = w.stuffItemsAll_().find(y => y.key === 'bible:web:1:1:1');
   if (!k || !e) return bad.concat(['Genesis 1:1 is not a KJV card and a WEB card']);
@@ -28187,7 +28189,9 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
   const SC = require('../check/schema.js');
   const LIB = LIB_FULL.rows('questions');
-  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim()));
+  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim())
+    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/schema.js says. */
+    && !(SC.schemeOwed(r) && !String(r.cells || '').trim()));
   /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
   if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];

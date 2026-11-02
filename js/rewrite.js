@@ -445,7 +445,8 @@ function rwSummaryHtml_(order) {
 function rwDraw_(into) {
   if (!into) return;
   if (!(typeof isAdmin === 'function' && isAdmin())) { into.innerHTML = ''; return; }
-  rwRanksLoad_(() => { if (into.isConnected && !into.contains(document.activeElement)) rwDraw_(into); });
+  /* Only once there is text to weigh: an empty coach drawn ahead fetches nothing (check-widgets). */
+  if (RW.facts.length || RW.text) rwRanksLoad_(() => { if (into.isConnected && !into.contains(document.activeElement)) rwDraw_(into); });
   const ai = !!(typeof DATA === 'object' && DATA && DATA.aiMarking);
   const st = RW.step, has = RW.facts.length > 0;
   const said = RW.said ? `<p class="note rw-said">${esc(RW.said)}</p>` : '';

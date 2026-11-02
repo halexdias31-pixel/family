@@ -772,7 +772,7 @@ let KP_MIC_ON = null;
 const kpMicApi_ = () => (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) || null;
 function kpMicPaint_(on) { document.querySelectorAll('.kp-mic').forEach(k => { k.classList.toggle('is-on', !!on); k.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
 function kpMic_(inp, el) {
-  if (KP_MIC_ON) { try { KP_MIC_ON.stop(); } catch (e) {} return; }
+  if (KP_MIC_ON) { try { KP_MIC_ON.stop(); } catch (e) { /* already stopped: nothing to undo */ } return; }
   const Api = kpMicApi_();
   if (!Api) { if (typeof toast === 'function') toast('Dictation is not available in this browser.'); return; }
   let r;

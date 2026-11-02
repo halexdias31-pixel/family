@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-02-merge-6z";
+  --css-version: "2026-11-02-merge-5";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5694,10 +5694,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- THE CONSOLE'S OWN BODIES FOR ITS TWO BUILT-IN GAMES (441): a handheld round the bird, a wide dark bezel round the street. */
 .cs-body { --cs-shell: #2a2a30; --cs-edge: #45454d; box-sizing: border-box; margin: .55rem auto 0; background: var(--cs-shell);
   border: 1px solid var(--cs-edge); }
-.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 1rem 1rem 2.6rem 1rem; }
-.cs-wide { padding: .6rem .6rem .7rem; border-radius: 1.1rem; }
+.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 16px 16px 42px 16px; }
+.cs-wide { padding: .6rem .6rem .7rem; border-radius: 18px; }
 .lk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 22rem; margin: .5rem auto; }
-.lk-sq { min-height: 44px; font-size: 1.4rem; border: 1px solid var(--line); border-radius: .4rem; background: var(--bg); color: var(--ink); }
+.lk-sq { min-height: 44px; font-size: 1.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
 .lk-sq.on { outline: 3px solid var(--gold); }
 .lk-sq:disabled { border-color: transparent; }
 .gs-q { font-size: 1.1rem; margin: .6rem 0; }
@@ -7151,7 +7151,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hy-verse + .hy-verse { margin-top: .6rem; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
-.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 0.5rem; image-rendering: pixelated; }
+.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 8px; image-rendering: pixelated; }
 
 /* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
 .tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }

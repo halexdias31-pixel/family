@@ -1998,7 +1998,9 @@ screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 screen('apprentice', () => pages('apprentice', [`<div class="card"><h3>${esc(tabLabel_('apprentice', 'Apprentice'))}</h3><p class="muted">${
-  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`]));
+  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p>${
+  /* ITS REPORT TILE (486): this column draws its own card, so it carries the row `cardReportRow_` gives a laid-out one. */
+  typeof suggestTile_ === 'function' ? `<div class="tile-row card-rep">${suggestTile_('card', 'apprentice', tabLabel_('apprentice', 'Apprentice'))}</div>` : ''}</div>`]));
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
