@@ -22399,9 +22399,8 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
-  /* THE SOURCE TEXT FIRST (owner, 29 Oct): the Greek New Testament answers the testament, so Collection is not asked again after it. */
-  /* THE LANGUAGE, THEN WHOSE TRANSLATION (546): "Greek should be a tag not merged with the version". */
-  const route = [['wSource', 'Greek New Testament'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
+  /* WHAT IT IS FIRST (594): the testament and its section, then the language and whose translation (546); the New Testament's one Source is not asked. */
+  const route = [['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }

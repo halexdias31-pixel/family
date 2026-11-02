@@ -54,6 +54,13 @@ function orthoItems_() {
 const ORTHO_ANAG = ['Tobit', 'Judith', 'Wisdom of Solomon', 'Sirach', 'Baruch', 'Letter of Jeremiah', 'Susanna', 'Bel and the Dragon',
   '1 Maccabees', '2 Maccabees', '3 Maccabees', '4 Maccabees', '1 Esdras', 'Prayer of Manasseh'];
 const ORTHO_KATHISMA = [8, 16, 23, 31, 36, 45, 54, 63, 69, 76, 84, 90, 100, 104, 108, 117, 118, 133, 142, 150];
+/* A KATHISMA IS A PART OF THE PSALTER, so it answers Section beside the book's group, never Collection beside the testaments (594). */
+function orthoKathisma_(x) {
+  const bb = x && x.kind === 'bible' ? x.bb : null;
+  if (!bb || bb.book !== 'Psalms' || (bb.dir !== 'lxx' && bb.dir !== 'brenton')) return '';
+  const k = ORTHO_KATHISMA.findIndex(last => Number(x.ch) <= last);
+  return k >= 0 ? 'Kathisma ' + (k + 1) : '';
+}
 function orthoBibleTags_(x) {
   const bb = x && x.kind === 'bible' ? x.bb : null;
   if (!bb) return [];
@@ -63,8 +70,7 @@ function orthoBibleTags_(x) {
   const c = Number(x.ch);
   if (bb.book === 'Psalms') {
     if (c === 151) return [WRITING_DEUTERO];
-    const k = ORTHO_KATHISMA.findIndex(last => c <= last);
-    return k >= 0 ? ['Psalter', 'Kathisma ' + (k + 1)] : [];
+    return orthoKathisma_(x) ? ['Psalter'] : [];
   }
   if (bb.book === 'Esther' || (bb.book === 'Daniel' && c === 3)) return ['Septuagint additions'];
   return [];

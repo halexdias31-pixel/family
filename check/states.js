@@ -2097,10 +2097,10 @@ const STATES = {
       }),
       expect: () => {
         const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
-        return a.length >= 1 && a.every(b => b.dataset.field === 'wSource') && a.some(b => b.dataset.value === 'Hebrew Masoretic Text')
+        return a.length >= 1 && a.every(b => b.dataset.field === 'wCollection') && a.some(b => b.dataset.value === 'Old Testament')
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
-      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Source text, the Masoretic among its answers' },
+      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Collection (594), the Old Testament among its answers' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {

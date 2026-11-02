@@ -421,13 +421,14 @@ const FACETS = [
   /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
   { field: 'wReligion',  label: 'Religion',   of: x => writingAt_(x, 'religion') },
   { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
+  /* WHAT IT IS BEFORE HOW IT IS WRITTEN (590): the collection and section a passage sits in, then its source, language and translation. */
+  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
+  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
   { field: 'wLanguage',  label: 'Language',   of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
   { field: 'wText',      label: 'Translation', of: x => writingVersionOf_(writingAt_(x, 'text')) },
   { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
-  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
-  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wBook',      label: 'Book',       of: x => writingAt_(x, 'book') },
   { field: 'wChapter',   label: 'Chapter',    of: x => writingAt_(x, 'chapter') },
   { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
