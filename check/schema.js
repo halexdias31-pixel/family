@@ -168,6 +168,9 @@ const FILL_IN = [
 /* PARTS THE CELLS RULE LEAVES, one written reason each: cells mark each box alone, so an open pair or an open table stays as
    it is; a bulk-imported paper (521) whose boxes and key were pictures has nothing here to make cells from. */
 const PICTURED = 'the paper prints its boxes as pictures and the scheme its key as drawn lines, neither in the text layer: no items, options or key here to make cells from';
+/* AWAITING ITS MARK SCHEME (584): pending, unverified past-paper part with no answer of any kind; cells wait for the scheme. */
+const schemeOwed = row => S(row.kind) === 'question' && S(row.lib_pending) === 'True' && S(row.verified) !== 'True'
+  && S(row.document_type) === 'Past paper' && !['answer', 'accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => S(row[f]));
 const CELLS_EXEMPT = {
   'Q-CBM-square-numbers-16': 'an open pair (81 and 9, or 36 and 54): one box per value, marked as a pair',
   'Q-CBM-5AD-F-0606-1': 'an open pair in either order (5 and -5): one box per value, marked as a pair',
@@ -298,7 +301,7 @@ function validate(row, file) {
     if (kind === 'question' && S(row.answer_type) === 'calculation' && S(row.answer) && !mathsy(row.answer) && !(S(row.accept) && mathsy(row.accept))) bad('answer', 'answer', "a calculation whose answer is neither a number nor algebra — it gets a number keypad");
     if (kind === 'question' && S(row.answer_type) === 'order' && S(row.html) && !(S(row.choices) && S(row.choice_right))) bad('answer', 'choices', 'an ordering with no choices or no choice_right');
     /* A PART THAT ASKS TO FILL SOMETHING IN IS ANSWERED IN CELLS (the owner's fill-in standard): never on the diagram. */
-    if (kind === 'question' && live && !S(row.cells) && !CELLS_EXEMPT[S(row.row_id)]) {
+    if (kind === 'question' && live && !S(row.cells) && !CELLS_EXEMPT[S(row.row_id)] && !schemeOwed(row)) {
       const ask = fillIn(row.html);
       if (ask) bad('cells', 'cells', 'its words ask to ' + JSON.stringify(ask) + ' and it has no cells — a table of cells, laid out as the paper\'s');
     }
@@ -383,5 +386,5 @@ function committed(file, map) {
   });
 }
 
-module.exports = { fillIn, FILL_IN, SHARED, CELLS_EXEMPT, FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
+module.exports = { schemeOwed, fillIn, FILL_IN, SHARED, CELLS_EXEMPT, FILES, VOCAB, LIST_COLS, KEY_STAGES, BOARDS, BOARD_NAMES, SOURCES, TIERS, LEVELS, LEVEL_TABLE,
                    levelsIn, rowLevels, validate, validateFile, newProblems, refuse, committed, topicWords };

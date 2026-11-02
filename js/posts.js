@@ -116,13 +116,14 @@ function picsJobs_() {
   return out;
 }
 if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(picsJobs_);
-function postMediaHtml_(list, i) {
+function postMediaHtml_(list, i, p) {
   if (!list.length) return '';
   if (list.length === 1) {
     const u = list[0];
     if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
     /* THE PICTURE'S OWN SHAPE, EDGE TO EDGE — and 4:5 only until the file says what that is. § */
-    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
+    const sized = !!(p && p.imageW > 0 && p.imageH > 0);
+    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="${sized ? Math.round(p.imageW) : 800}" height="${sized ? Math.round(p.imageH) : 1000}"
            decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }
   return `<div class="post-grid${list.length % 2 ? ' is-odd' : ''}">${
@@ -205,7 +206,7 @@ function postCard_(p, i) {
 
       ${/* A SHAPE BEFORE IT LOADS. § */
              ''}
-      ${postMediaHtml_(media, i)}
+      ${postMediaHtml_(media, i, p)}
 
       ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already goes and where the thing you can do about a photograph belongs. § */
             ''}
@@ -289,7 +290,7 @@ on('cmt-add', el => {
        length, the post being gone, not being signed in — and "Not posted" would throw away the
        only part that says what to do about it. */
     .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
-                    if (said) said.textContent = String(err.message || 'Not posted.'); });
+                    if (said) said.textContent = why_(err); });
 });
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where the server has already said yes — and the server checks again § */
@@ -299,7 +300,7 @@ on('cmt-del', el => {
   send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
          commentId: el.dataset.id })
     .then(() => load())
-    .catch(err => { el.disabled = false; toast(String(err.message || 'Not removed.')); });
+    .catch(err => { el.disabled = false; toast(why_(err)); });
 });
 
 function feedPosts() {
@@ -734,7 +735,7 @@ function camItemOf_(file) {
 function camKeep_() {
   const c = $('cam-still');
   if (!c || c.hidden) return;
-  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85) }); } catch (e) { return; }
+  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85), w: c.width, h: c.height }); } catch (e) { return; }
   c.hidden = true;
 }
 /* ---------- WHICH CONTROLS ARE SHOWING IS ONE FACT: WHAT IS BEING HELD § */
@@ -820,7 +821,7 @@ on('cam-video', () => {
     const type = recType_();
     CAM_REC = new MediaRecorder(CAM_STREAM, type ? { mimeType: type } : undefined);
   } catch (err) {
-    if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
+    if (said) said.textContent = 'Could not start recording: ' + why_(err);
     return;
   }
 
@@ -851,12 +852,12 @@ on('cam-video', () => {
         camHold_(); camSettle_();
       });
     } catch (err) {
-      if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
+      if (said) said.textContent = 'Could not save that: ' + why_(err);
     }
   };
 
   try { CAM_REC.start(); } catch (err) {
-    if (said) said.textContent = 'Could not start recording: ' + String((err && err.message) || err);
+    if (said) said.textContent = 'Could not start recording: ' + why_(err);
     return;
   }
   camRecMark_(true);
@@ -890,7 +891,7 @@ on('cam-post', el => {
   if (!c.hidden) {
     try { list.push(c.toDataURL('image/jpeg', 0.85)); }
     catch (err) { if (said) said.textContent = 'Could not read that photo: '
-      + String((err && err.message) || err); return; }
+      + why_(err); return; }
   }
   if (!list.length) { if (said) said.textContent = 'Take a photo or pick one first.'; return; }
   /* ONE REQUEST CARRIES ALL OF IT, base64 inside a JSON body, and Apps Script refuses a body much
@@ -903,6 +904,8 @@ on('cam-post', el => {
     return;
   }
   const data = list[0];
+  /* THE FIRST PICTURE'S SIZE TRAVELS WITH IT (561, U20): the card's box is final before the file arrives. */
+  const first = CAM_ITEMS[0] || (!c.hidden ? { kind: 'image', w: c.width, h: c.height } : {});
 
   /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. § */
   send_({
@@ -910,6 +913,7 @@ on('cam-post', el => {
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     data: data,
     media: list.slice(1),
+    imageW: first.kind === 'image' ? first.w || 0 : 0, imageH: first.kind === 'image' ? first.h || 0 : 0,
     postAs: postAsOf_('cam-as'),
     caption: ($('cam-cap') || {}).value || '',
     body: '', location: '', poll: '',
@@ -933,7 +937,7 @@ on('cam-save', () => {
     document.body.appendChild(a); a.click(); a.remove();
     if (said) said.textContent = 'Saved to this device.';
   } catch (err) {
-    if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
+    if (said) said.textContent = 'Could not save that: ' + why_(err);
   }
 });
 
@@ -1156,7 +1160,7 @@ function choicePump_(key) {
   s.busy = true;
   Promise.resolve().then(() => s.o.send(want, s.saved))
     .then(() => { s.saved = want; },
-          err => { s.o.put(s.saved); toast(String((err && err.message) || s.o.or)); })
+          err => { s.o.put(s.saved); toast(why_(err)); })
     .then(() => { s.busy = false; choicePump_(key); });
 }
 
@@ -1624,7 +1628,7 @@ on('post-save', el => {
     })
     .catch(err => {
       el.disabled = false;
-      if (said) said.textContent = String(err.message || 'Could not save that');
+      if (said) said.textContent = why_(err);
     });
 });
 
@@ -1647,7 +1651,7 @@ on('post-delete', el => {
     .catch(err => {
       el.disabled = false;
       delete el.dataset.sure; sureBack_(el);
-      const why = String(err.message || 'Could not do that');
+      const why = why_(err);
       if (said) said.textContent = why; else toast(why);
     });
 });
@@ -1798,7 +1802,7 @@ function reelCards_(count) {
     /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
     out.push(`<div class="card is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN + REEL_LEAD}" data-do="reel-tap">${feedSlide(it)}` +
+           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${feedSlide(it)}` +
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${typeof mediaAgeSay_ === 'function' && mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(mediaAgeSay_(it.age))}">${esc(mediaAgeSay_(it.age))}</span>` : ''}` +
       `${reelSoundTile_(false)}</div>

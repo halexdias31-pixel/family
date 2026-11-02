@@ -69,6 +69,8 @@ const TABS = [
   { id: 'parents',  icon: '👪', label: 'Parent profiles',  title: 'Parent profiles' },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
+  /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
+  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice', title: 'Apprentice' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -87,7 +89,7 @@ const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social
                    'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'family', 'staff', 'account',                      /* Parent, Tutor and Student account settings (461) */
+                   'family', 'staff', 'apprentice', 'account',                    /* Parent, Tutor and Student account settings (461) */
                    'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
                    'biz', 'site'];                                    /* the admin's two: Business, then Site (491) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
@@ -365,7 +367,8 @@ function bootGlass_() {
 
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
 function screenHasMarkup_(id) {
-  const el = $('s-' + id);
+  /* BY ID, NOT `$`: a section is on the page once, and a check that saw data.js fail to load crashed here on `$` */
+  const el = document.getElementById('s-' + id);
   /* THE FIRST CHILD, NOT `innerHTML`, which serialises every screen's whole markup to answer yes or no — about a millisecond across eleven at 1x and four at 4x § */
   return !!(el && el.firstElementChild);
 }
@@ -405,6 +408,31 @@ let REPAINT_MARK = 1;
 const PRE_PAYLOAD = new Set();
 /* HOW MANY TIMES EACH COLUMN WAS DRAWN, for the journeys that ask what a landing drew (check-flow). */
 const PAINT_N = {};
+
+/* A REDRAW KEEPS THE READER'S PLACE (561, U2): each scrolled box's offset, keyed by its path of child indexes from the column, and focus by id. */
+function placeKeep_(el) {
+  const out = [];
+  el.querySelectorAll('*').forEach(n => {
+    if (!n.scrollTop && !n.scrollLeft) return;
+    const path = [];
+    for (let x = n; x && x !== el; x = x.parentElement) path.unshift([...x.parentElement.children].indexOf(x) + ':' + x.tagName);
+    out.push({ path: path, top: n.scrollTop, left: n.scrollLeft });
+  });
+  const f = document.activeElement;
+  return { boxes: out, focus: f && f.id && el.contains(f) ? f.id : '' };
+}
+function placeBack_(el, kept) {
+  kept.boxes.forEach(k => {
+    let n = el;
+    for (const step of k.path) {
+      const [i, tag] = step.split(':');
+      n = n && n.children[+i];
+      if (!n || n.tagName !== tag) return;
+    }
+    n.scrollTop = k.top; n.scrollLeft = k.left;
+  });
+  if (kept.focus) { const f = document.getElementById(kept.focus); if (f && el.contains(f)) try { f.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy: a box that cannot take it keeps the place anyway */ } }
+}
 
 /* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the column in front. § */
 function paint(id, fresh, o) {
@@ -453,6 +481,7 @@ function paint(id, fresh, o) {
   }
   const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
   const waited = waitingPages_(el);
+  const kept = pre ? null : placeKeep_(el);
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
@@ -461,6 +490,7 @@ function paint(id, fresh, o) {
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
   if (held.length) widgetsBack_(id, held);
   arrivePages_(el, waited);
+  if (kept) placeBack_(el, kept);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
      (`placePages_`). */
   el.PG_SIG = null;
@@ -490,7 +520,7 @@ function nothingHere(whenEmpty, needsLibrary) {
   if (why) {
     return `<p class="empty">Couldn’t load.<br>
         <span class="faint">${esc(why)}</span><br>
-        <span class="text-action" data-do="retry">Try again</span></p>`;
+        <button type="button" class="text-action" data-do="retry">Try again</button></p>`;
   }
   /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY § */
   /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN § */
@@ -1473,6 +1503,8 @@ function pageWrite_(el, st) {
   if (!was || was.on !== st.on) {
     el.classList.toggle('on', st.on);
     el.style.pointerEvents = st.on ? 'auto' : 'none';
+    /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
+    el.inert = !st.on;
   }
   if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
   if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
@@ -1602,6 +1634,7 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
+  apprentice: () => [tabLabel_('apprentice', 'Apprentice')],
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),
@@ -2953,6 +2986,10 @@ const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
                  ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
 
 addEventListener('keydown', e => {
+  /* A [role=button] THAT IS NOT A <button> PRESSES ON ENTER OR SPACE LIKE ONE (561, U15). */
+  if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role=button][data-do]:not(button)')) {
+    e.preventDefault(); e.target.click(); return;
+  }
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 

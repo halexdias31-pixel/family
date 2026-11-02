@@ -474,7 +474,7 @@ on('set-listed', el => {
          the one case where showing it early has a cost, and it is paid here. */
       tileSet_(el, { label: !on ? 'Listed' : 'Not listed', on: !on,
                      note: !on ? 'clients can see them' : 'clients cannot see them' });
-      toast(String((err && err.message) || 'Could not reach the server.'));
+      toast(why_(err));
     });
 });
 
@@ -488,7 +488,7 @@ document.addEventListener('change', e => {
     ACTIONS[el.dataset.do](el, e);
   } catch (err) {
     console.error('[' + el.dataset.do + ']', err);
-    toast(el.dataset.do + ' — ' + String((err && err.message) || err));
+    toast(el.dataset.do + ' — ' + why_(err));
   }
 });
 

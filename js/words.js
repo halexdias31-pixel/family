@@ -111,7 +111,7 @@ function wordsSend_(set, reset) {
   put(next);
   return send({ action: 'wordsSave', personId: (USER && USER.personId) || '', set: set, reset: reset })
     .then(d => { if (d && d.words && typeof d.words === 'object') { try { DATA.words = d.words; } catch (e) {} } toast('Saved for everyone'); return true; })
-    .catch(err => { put(was); toast(String((err && err.message) || 'The words did not save')); return false; });
+    .catch(err => { put(was); toast(why_(err)); return false; });
 }
 on('words-save', el => {
   if (!layoutIsAdmin_()) return;

@@ -13,18 +13,20 @@ const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther
 const WRITING_WORKS = {
   bible: { work: 'Bible', topic: 'Christianity' },
   quran: { work: 'Quran', topic: 'Islam' },
-  hadith: { work: 'Hadith', topic: 'Islam' },
-  talmud: { work: 'Talmud', topic: 'Judaism', collection: 'Mishnah and Talmud' },
+  hadith: { topic: 'Islam', collection: 'Hadith' },
+  talmud: { work: 'Talmud', topic: 'Judaism', collection: 'Rabbinic' },
   'texts:apocrypha': { work: 'Bible', topic: 'Christianity' },
-  'texts:enoch': { topic: 'Judaism' }, 'texts:jubilees': { topic: 'Judaism' }, 'texts:josephus': { topic: 'Judaism' },
-  'texts:mishnah': { topic: 'Judaism', collection: 'Mishnah and Talmud' }, 'texts:mishnah-en': { topic: 'Judaism', collection: 'Mishnah and Talmud' },
-  'texts:zohar': { topic: 'Judaism' },
+  /* JUDAISM BY WHAT A WORK IS (600): Rabbinic, Second Temple, Kabbalah — asked as Collection before Work, as Christianity's are. */
+  'texts:enoch': { topic: 'Judaism', collection: 'Second Temple' }, 'texts:jubilees': { topic: 'Judaism', collection: 'Second Temple' },
+  'texts:josephus': { topic: 'Judaism', collection: 'Second Temple' },
+  'texts:mishnah': { topic: 'Judaism', collection: 'Rabbinic' }, 'texts:mishnah-en': { topic: 'Judaism', collection: 'Rabbinic' },
+  'texts:zohar': { topic: 'Judaism', collection: 'Kabbalah' },
   'texts:fathers-grc': { topic: 'Christianity', collection: 'Apostolic Fathers' }, 'texts:fathers-en': { topic: 'Christianity', collection: 'Apostolic Fathers' },
   'texts:justin-en': { topic: 'Christianity', collection: 'Church Fathers' }, 'texts:justin-grc': { topic: 'Christianity', collection: 'Church Fathers' },
   'texts:confessions': { topic: 'Christianity', collection: 'Church Fathers' },
   'texts:gilgamesh': { topic: 'Mesopotamian religion' },
   'works:WR-0001': { topic: 'Christianity', collection: 'Apostolic Fathers' },
-  'works:WR-0002': { topic: 'Judaism' },
+  'works:WR-0002': { topic: 'Judaism', collection: 'Second Temple' },
   orthodox: { topic: 'Christianity' },
   /* ANCIENT EGYPT (546): Budge's translations of the Egyptian legends of Horus, Isis and Osiris, and Plutarch's Isis and Osiris. */
   'pdtexts:TX-0085': { topic: 'Ancient Egyptian religion' }, 'pdtexts:TX-0086': { topic: 'Ancient Egyptian religion' },
@@ -131,7 +133,10 @@ function bibleW_(x, k) {
     case 'unit': return x.v;
     case 'text': return bb.text || bb.translation;
     case 'source': return writingSourceOf_(bb.text || bb.translation, bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament);
-    case 'section': return bb.group === 'Deuterocanon' ? '' : bb.group;
+    case 'section': {
+      const g = bb.group === 'Deuterocanon' ? '' : bb.group, k = typeof orthoKathisma_ === 'function' ? orthoKathisma_(x) : '';
+      return k ? [g, k].filter(Boolean) : g;
+    }
     case 'collection': {
       const col = bb.group === 'Deuterocanon' ? WRITING_DEUTERO : bb.testament;
       const more = typeof orthoBibleTags_ === 'function' ? orthoBibleTags_(x).filter(v => v !== col) : [];
@@ -163,8 +168,17 @@ const WRITING_CAME = {};
 function writingCame_(src) {
   WRITING_CAME[src] = true;
   if (typeof stuffForget_ === 'function') stuffForget_();
-  if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+  /* EIGHT SOURCES LANDING TOGETHER ARE ONE REPAINT, of the finder in front only (561, U4); the other is marked and the builder draws it ahead. */
+  if (WRITING_PAINT) return;
+  WRITING_PAINT = setTimeout(() => {
+    WRITING_PAINT = 0;
+    if (typeof finderEach_ === 'function') finderEach_(F => {
+      if (!$(F.id + '-controls')) return;
+      if (F.id === AT) paintStuff(true); else markStale_(F.id);
+    });
+  }, 0);
 }
+let WRITING_PAINT = 0;
 const writingNow_ = () => Object.keys(WRITING_CAME).filter(k => WRITING_CAME[k]).sort().join(',');
 /* AN ANSWER PRESSED FREEZES THE SET it was pressed over; a kept place restored at boot is not a press, so it still fills in. */
 function writingFreeze_() { if (STUFF.admit == null) STUFF.admit = writingNow_(); }

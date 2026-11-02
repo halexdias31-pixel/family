@@ -26,6 +26,8 @@
 
 <!-- NOTHING HERE IS EVER CACHED. § -->
 <script>
+  /* PHONE OR WIDE IS DECIDED BEFORE THE FIRST PAINT (561): the 700 is shell.js's WIDE_FROM; check-css compares the two. */
+  try { if (matchMedia('(min-width:700px)').matches) document.documentElement.classList.add('wide'); } catch (e) {}
   /* ---------- THE PURGE THAT USED TO BE HERE, AND WHY IT IS NOT § */
   /* ---------- ?dev: THE SAME ESCAPE, ON DEMAND, AND IT HAS TO BE HERE § */
   try {
@@ -208,6 +210,7 @@
   <section class="screen hidden" id="s-parents"></section>
   <section class="screen hidden" id="s-family"></section>
   <section class="screen hidden" id="s-staff"></section>
+  <section class="screen hidden" id="s-apprentice"></section>
 </main>
 
 <!-- The sheet. One element, reused: a booking, a profile, a form. Not a pop-up (453): `openSheet` moves it

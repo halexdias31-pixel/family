@@ -856,7 +856,7 @@ function racePaint_(still) {
   if (box.dataset.view !== 'drive' || !box.querySelector('.race-gl')) {
     box.dataset.view = 'drive';
     box.innerHTML = `<div class="race-stage" data-noswipe>
-        <canvas class="race-gl" data-do="race-go" aria-label="The road ahead"></canvas>
+        <canvas class="race-gl" role="button" tabindex="0" data-do="race-go" aria-label="The road ahead"></canvas>
         <canvas class="race-mini" aria-hidden="true"></canvas>
         <div class="race-hud" aria-live="off"><b data-hud="mph">0 mph</b><span data-hud="road"></span><span data-hud="near"></span><span data-hud="alt"></span></div>
         <div class="race-lap"><span data-hud="gate"></span><span data-hud="time"></span></div>

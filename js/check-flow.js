@@ -1604,7 +1604,14 @@ check('a reply that lands leaves an open list where it is: a focused select keep
   /* THE SETTINGS COLUMN: a select focused, then `profileRefresh_`'s repaint. */
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
   await wait(200);
-  const cc = d.querySelector('#s-account select[data-me]');
+  /* ITS PAGE BROUGHT IN FRONT FIRST (561): a page off the glass is inert, and nobody focuses a box in it. */
+  let cc = d.querySelector('#s-account select[data-me]');
+  const ccPage = cc && cc.closest('#s-account .page');
+  if (ccPage && typeof w.goPage === 'function') {
+    try { w.goPage('account', [...ccPage.parentElement.children].filter(x => x.classList.contains('page')).indexOf(ccPage), true); } catch (e) {}
+    await wait(200);
+    cc = d.querySelector('#s-account select[data-me]');
+  }
   if (!cc) bad.push('no select on Settings (' + JSON.stringify([...d.querySelectorAll('#s-account [data-me]')].map(x => x.tagName + ':' + x.dataset.me).slice(0, 12)) + ') — the settings half was NOT checked');
   else if (typeof w.profileRefresh_ !== 'function') bad.push('profileRefresh_ is not a global — its repaint was NOT checked');
   else {
@@ -2581,7 +2588,18 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
     const box = w.document.createElement('div'); box.innerHTML = html;
     return { svg, text: flat(box.textContent), html };
   };
-  const site = w => flat((w.document.querySelector('#sheet-body .is-prof') || {}).textContent);
+  /* A MAP WHOSE TILES WILL NOT COME IS LEFT OUT WHOLE (547), its caption with it unless tags follow: so the site's words, less what `tpngInline_` drops. */
+  const site = (w, pic) => {
+    const card = w.document.querySelector('#sheet-body .is-prof');
+    if (!card) return '';
+    const c = card.cloneNode(true);
+    if (pic && !/prof-heat/.test(pic.html)) c.querySelectorAll('.prof-heat').forEach(heat => {
+      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
+      heat.remove();
+      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
+    });
+    return flat(c.textContent);
+  };
   /* ---------- 1. A VISITOR ON A PHONE: one PNG and the link, to the share sheet ---------- */
   const v = await open();
   if (!v.tile) return ['?tutor=adatutor opened no card with a Share tile'];
@@ -2597,7 +2615,7 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
   else {
     console.log('          shot: ' + s1.text.slice(0, 160));
     if (!/is-prof/.test(s1.svg)) bad.push('the picture is not the profile card');
-    if (!site(v.w) || s1.text !== site(v.w)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w).slice(0, 200) + '"');
+    if (!site(v.w, s1) || s1.text !== site(v.w, s1)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w, s1).slice(0, 200) + '"');
     if (!/£20/.test(s1.text)) bad.push('a visitor\'s picture has no rate on it');
     if (!/<img[^>]+src="data:image\/jpeg/.test(s1.html)) bad.push('Ada\'s photo is not carried in the picture as data: ' + (s1.html.match(/<img[^>]*>/) || ['no img'])[0].slice(0, 160));
   }
@@ -7341,7 +7359,7 @@ check('the console is one widget for every game (441): game files, Flabby Pird a
   const pick = d.querySelector('#s-games #cs-pick');
   if (!pick) return bad.concat(['the Console has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
-  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer') bad.push('the picker offers ' + JSON.stringify(opts));
+  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer|Linked pictures|I can guess') bad.push('the picker offers ' + JSON.stringify(opts));
   const bodies = { file: '#nes-box', flabby: '.cs-hand #flappy-canvas', racer: '.cs-wide #race-box' };
   for (const k of ['flabby', 'racer', 'file']) {
     pick.value = k; t.ACTIONS['cs-pick'](pick);
@@ -10248,7 +10266,7 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   if (n !== pages.length) bad.push('the pager counts ' + n + ' Settings pages and the column draws ' + pages.length);
   /* THE OLD LAST INDEX, AND A REPAINT. `PAGE` reaches a journey as a getter (the `__t` hook). */
   const P = typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE;
-  P.account = 16;
+  P.account = 99;   /* past any last page, however many cards the column grows (562) */
   try { t.repaint(true); } catch (e) { bad.push('repainting threw: ' + e.message); }
   await wait(200);
   const at = P.account;
@@ -13253,7 +13271,8 @@ check('progress, populated: counts by topic from the account and the device, a s
     if (!/Coming up/.test(progTxt_(ss)) || !/Done/.test(progTxt_(ss))) bad.push('the Sessions card does not show sessions to come and done: ' + progTxt_(ss).slice(0, 120));
     if (ss.querySelectorAll('.row').length !== 6) bad.push('the Sessions card has ' + ss.querySelectorAll('.row').length + ' rows, wanted the next three and the last three');
   }
-  if (/Not built yet|Coming soon/.test(progTxt_(host))) bad.push('the placeholder words are still drawn');
+  /* Only the progress widgets: Student settings now carries the owner's own Coming soon cards on purpose (562). */
+  if ([...host.querySelectorAll('.prog-w')].some(c => /Not built yet|Coming soon/.test(progTxt_(c)))) bad.push('the placeholder words are still drawn');
   if (tiles[0]) {
     try { t.ACTIONS['prog-practise'](tiles[0]); } catch (e) { bad.push('prog-practise threw: ' + e.message); }
     await wait(LEAVE_MS); await woken_();
@@ -13550,7 +13569,7 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games', 'family', 'staff', 'apprentice', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
 
 check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -15981,7 +16000,7 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   if (pad.getAttribute('data-layer') !== 'sym' || !pad.classList.contains('is-sym')) bad.push('αβ on the letters did not turn the pad to its symbols: ' + pad.getAttribute('data-layer'));
   ['≈', '→', '…', '∛', 'θ', 'μ', '≠', '∞', '{', '[', '∈'].forEach(c => { if (!key(c)) bad.push('the symbols face has no ' + c + ' key'); });
   const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!abc|!left|!right| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc ← → space ⌫ ✓');
+  if (bottom.slice(-6).join('|') !== '!123|!abc|!mic| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc mic space ⌫ ✓ (562)');
   press('≈'); press(' '); press('!123'); ['2', '.', '6'].forEach(press);
   if (inp.value !== 'x ≈ 2.6') bad.push('x, a space, ≈ from the symbols, a space, 2.6 gave ' + JSON.stringify(inp.value));
   press('!done');
@@ -16079,9 +16098,10 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   /* THE LETTERS FACE: every letter, the punctuation, and the maths pad's bottom row in its places. */
   const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
   if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
-  ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
-  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 αβ ← → ↵ ⌫ ✓, the maths pad\'s with the symbols beside 123');
+  ["'", '.', ' ', '!shift', '!mic'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
+  /* AS AN iPHONE'S (562): ⌫ ends the z row, and the last row is 123 αβ mic space ' . ✓. */
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!back|!123|!sym|!mic| |\'|.|!done') bad.push('the letters\' last keys are ' + bottom.join(' ') + ', wanted ⌫ then 123 αβ mic space \' . ✓');
   if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
   'egestion'.split('').forEach(press);
   if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
@@ -16498,12 +16518,12 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
   if (nl.length !== 1 || !ret) bad.push('the essay\'s letters have ' + nl.length + ' new-line keys and ' + (ret ? 'a' : 'no') + ' labelled return — wanted exactly one, the return');
   else {
-    if (!/return/.test(ret.textContent) || !/span 12/.test(ret.getAttribute('style') || '')) bad.push('the return key is not labelled "return" and twelve columns wide: ' + ret.outerHTML.slice(0, 200));
+    if (!ret.querySelector('.kp-ret-i')) bad.push('the return key has no ↵ mark: ' + ret.outerHTML.slice(0, 200));
     const space = pad.querySelector('.kp-key.kp-space');
-    if (!space || !/span 24/.test(space.getAttribute('style') || '')) bad.push('the space bar did not give the return its twelve columns');
+    if (!space || !/span 18/.test(space.getAttribute('style') || '')) bad.push('the essay\'s space bar is not 18 columns, the room left beside return and done (562)');
   }
-  const bottom = keys.slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own with the symbols beside 123: 123 αβ ← → ␣ ⌫ ✓');
+  const bottom = keys.slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!sym|!mic| |\'|.|!nl|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted 123 αβ mic space \' . return done (562)');
   const doneKey = keys[keys.length - 1];
   if (!doneKey || !doneKey.classList.contains('kp-done-k') || doneKey.textContent.trim() !== 'done' || doneKey.querySelector('svg')) bad.push('the essay\'s ✓ still wears Send\'s aeroplane — on an essay it only puts the pad away, so it says "done"');
   if (!blank()) bad.push('the sheet stopped being blank when it was focused, so the hint went before a letter was written');
@@ -16651,7 +16671,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (!si || !si.closest('.qp-bar') || si.hasAttribute('data-kp-essay') || card.querySelector('.qp-sheet, .qp-words')) bad.push('a three-mark explain box is not the chat bar any more');
   else {
     si.focus();
-    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
+    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!mic| |\'|.|!done') bad.push('a short worded box has not the letters\' last row (123 αβ mic space \' . ✓, 562), or gained the essay\'s return');
     si.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     if (!pad.hidden || si.value) bad.push('Enter on a short worded box did not put the pad away as ✓ (value ' + JSON.stringify(si.value) + ')');
   }
@@ -21769,7 +21789,8 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   if (facet.label !== 'Religion') bad.push('the question is labelled ' + facet.label);
   const work = w.facetList().find(f => f.field === 'wWork'), vals = w.facetValues(items, work).map(v => String(v.value));
   if (work.label !== 'Work') bad.push('Which writing is labelled ' + work.label);
-  ['Bible', 'Quran', 'Talmud', 'Hadith'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
+  /* The Hadith's six books are Works of the Hadith collection since 600, so a book stands for it. */
+  ['Bible', 'Quran', 'Talmud', 'Sahih al-Bukhari'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
   if (w.scriptureWait_(items) !== '') bad.push('with every index in, the dots under Which writing still stand: ' + w.scriptureWait_(items));
   const k = w.stuffItemsAll_().find(y => y.key === 'bible:kjv:1:1:1'), e = w.stuffItemsAll_().find(y => y.key === 'bible:web:1:1:1');
   if (!k || !e) return bad.concat(['Genesis 1:1 is not a KJV card and a WEB card']);
@@ -21873,7 +21894,10 @@ check('the history database: a manuscript and a historical figure are each found
     const drawn = el.querySelector('.hdb-msc');
     if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.firstElementChild.matches('.qtags')
               : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
-    if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
+    /* NO CARD TALLER THAN A PHONE (562): the lines a card does not keep are its pages after it, so the card and its pages together have them. */
+    const lines = el.querySelectorAll('.hdb-lines dl > div').length
+      + w.pageParts_(x).filter(p => /^facts\d+$/.test(String(p))).reduce((n, p) => { const e = d.createElement('div'); e.innerHTML = w.stuffPart_(x, p); return n + e.querySelectorAll('.hdb-lines dl > div').length; }, 0);
+    if (lines < 4) bad.push(x.name + '\'s card and its pages have fewer than four label/value lines');
     if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
     if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
   }
@@ -22398,9 +22422,8 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
-  /* THE SOURCE TEXT FIRST (owner, 29 Oct): the Greek New Testament answers the testament, so Collection is not asked again after it. */
-  /* THE LANGUAGE, THEN WHOSE TRANSLATION (546): "Greek should be a tag not merged with the version". */
-  const route = [['wSource', 'Greek New Testament'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
+  /* WHAT IT IS FIRST (594): the testament and its section, then the language and whose translation (546); the New Testament's one Source is not asked. */
+  const route = [['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }
@@ -28166,7 +28189,9 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
   const SC = require('../check/schema.js');
   const LIB = LIB_FULL.rows('questions');
-  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim()));
+  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim())
+    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/schema.js says. */
+    && !(SC.schemeOwed(r) && !String(r.cells || '').trim()));
   /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
   if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];
@@ -30730,7 +30755,7 @@ check('layout engine (508): ▶ on a Site card makes an admin-only column after 
   return bad;
 });
 
-check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
+check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first makes one on the left (600); a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -30783,12 +30808,30 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
   await layPaintAll_(w);
   if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
-  /* ◀ FROM THE FIRST RIGHT-HAND COLUMN STAYS PUT. */
-  const first = laySeen_(w, 'staff')[0] || laySeen_(w, 'account')[0];
-  const lt = layCardTile_(d, first, 'lay-c-col', '-1');
-  if (laySeen_(w, 'family').length === 0 && laySeen_(w, 'staff')[0] === first && lt && !lt.disabled) {} /* family is first, and empty for an admin */
-  const fam = layCardTile_(d, laySeen_(w, 'family')[0], 'lay-c-col', '-1');
-  if (fam && !fam.disabled) bad.push('◀ on the first right-hand column is live');
+  /* ◀ FROM THE FIRST CARD COLUMN MAKES A NEW ONE ON THE LEFT (600), before Parent settings; ◀ again there makes another; ▶ back empties it and it goes. */
+  const lid = laySeen_(w, 'account')[0];
+  let lt = null;
+  for (let k = 0; k < 6 && lid; k++) {
+    await layPaintAll_(w);
+    lt = layCardTile_(d, lid, 'lay-c-col', '-1');
+    if (!lt || lt.disabled) break;
+    const left = /new column on the left/.test(lt.getAttribute('aria-label') || '');
+    A['lay-c-col'](lt); await wait(300);
+    if (left) break;
+    lt = null;
+  }
+  if (!lt || lt.disabled) bad.push('◀ from Student settings never reached "Move to a new column on the left"');
+  else {
+    const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
+    if (!nid || !(LL.custom[0].left === true) || ((LL.cards || {})[nid] || []).indexOf(lid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
+    const lids = t.TABS.map(x => x.id);
+    if (!nid || lids.indexOf(nid) !== lids.indexOf('family') - 1) bad.push('the new left column is not just before Parent settings: ' + lids.join());
+    await layPaintAll_(w); try { w.paint(nid); } catch (e) {}
+    await wait(100);
+    const back = nid && layCardTile_(d, lid, 'lay-c-col', '1');
+    if (back) { A['lay-c-col'](back); await wait(300); }
+    if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed: ' + (back ? back.getAttribute('aria-label') + (back.disabled ? ' (off)' : '') : 'no ▶') + ' ' + JSON.stringify(layLast_(sent)));
+  }
   /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
   const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
@@ -31642,7 +31685,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Job and Symptom; Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list (570); Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31661,13 +31704,13 @@ check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Jo
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Job,Model,Part,Parts list,Symptom') bad.push('Mechanics → Card type offers ' + kinds);
+  if (kinds !== 'Model,Part,Parts list') bad.push('Mechanics → Card type offers ' + kinds);
   S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
   if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
   if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
-  if (!/What it does/.test(html) || html.indexOf('general workshop knowledge') < 0 || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
+  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
   /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
   for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
   const model = all.find(x => x.mKind === 'Model');
@@ -31766,14 +31809,17 @@ check('Library → a subject offers only shelves that subject has — never Book
 const MISS_LIST_ = [
   { board: 'Edexcel', level: 'GCSE', subject: 'Maths', label: 'Edexcel GCSE Maths', papers: ['1H', '2H'], series: ['June'], from: 2017, to: 2017 },
   { board: 'AQA', level: 'GCSE', subject: 'Geography', label: 'AQA GCSE Geography', papers: ['1'], from: 2022, to: 2022 },
-  { board: 'OCR', level: 'GCSE', subject: 'Psychology', label: 'OCR GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'AQA', level: 'GCSE', subject: 'Psychology', label: 'AQA GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  /* NEVER SHOWN (562): an OCR line, and an Edexcel line that is not Maths. */
+  { board: 'OCR', level: 'GCSE', subject: 'Maths', label: 'OCR GCSE Maths', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'Edexcel', level: 'GCSE', subject: 'History', label: 'Edexcel GCSE History', papers: ['1'], from: 2022, to: 2022 },
 ];
 const MISS_ROWS_ = [
   { kind: 'document', document_type: 'Past paper', paper_id: 'MX-1H', exam_board: 'Edexcel', level: 'GCSE', subject: 'Maths', year: '2017', month: '6',
     paper: '1', tier: 'Higher', name: 'Paper 1 — June 2017', active: 'True' },
-  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Paper 1 — June 2022', active: 'True' },
-  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Q1', active: 'True', lib_pending: 'True' },
 ];
 const missServe_ = list => u => (/expected-papers\.json/.test(u) ? list : /data\/questions\.json/.test(u) ? MISS_ROWS_ : undefined);
@@ -31798,7 +31844,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
   if (/Paper 1H|Papers 1H/.test(s0)) bad.push('a present paper (1H June 2017) is listed as missing');
   if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
-  if (!/OCR GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
   if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
   if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
   if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');

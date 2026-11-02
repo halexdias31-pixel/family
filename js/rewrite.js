@@ -89,6 +89,18 @@ function rwStem_(w) {
   return s.replace(/(.)\1$/, '$1').replace(/e$/, '');
 }
 const RW_COMMON = new Set(RW_COMMON_WORDS.map(rwStem_));
+/* THE WORD RANKS (554), data/word-freq.json, fetched when the coach first draws: a word of substance that no rank reaches is the rarest. Absent or broken, every substance word weighs 2 as before. */
+let RW_RANKED = null, rwRankAsked_ = false;
+function rwRanksLoad_(redraw) {
+  if (rwRankAsked_ || typeof fetch !== 'function') return;
+  rwRankAsked_ = true;
+  try {
+    fetch('data/word-freq.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { const w = j && Array.isArray(j.words) ? j.words : []; if (w.length) { RW_RANKED = new Set(w.map(rwStem_)); if (redraw) redraw(); } })
+      .catch(() => {});
+  } catch (e) { /* no ranks: the old weights stand */ }
+}
 /* A NUMBER, A DATE OR A NAME IS SUBSTANCE WHATEVER ITS RARITY; a name is a capital not at the start of a sentence. */
 function rwWeigh_(w, text, at) {
   const lw = w.toLowerCase();
@@ -97,7 +109,8 @@ function rwWeigh_(w, text, at) {
   const before = text.slice(Math.max(0, at - 3), at);
   if (/^[A-Z]/.test(w) && at > 0 && !/[.!?:]\s*$|^\s*$/.test(before) && !/\n\s*$/.test(before)) return 3;
   if (/^[A-Z]{2,}$/.test(w)) return 3;
-  return RW_COMMON.has(rwStem_(w)) || lw.length < 3 ? 0.5 : 2;
+  if (RW_COMMON.has(rwStem_(w)) || lw.length < 3) return 0.5;
+  return RW_RANKED && !RW_RANKED.has(rwStem_(w)) ? 2.5 : 2;
 }
 /* THE TEXT'S SUBSTANCE: every word with a weight, its stem and where it stands. */
 function rwSubstance_(text) {
@@ -432,6 +445,8 @@ function rwSummaryHtml_(order) {
 function rwDraw_(into) {
   if (!into) return;
   if (!(typeof isAdmin === 'function' && isAdmin())) { into.innerHTML = ''; return; }
+  /* Only once there is text to weigh: an empty coach drawn ahead fetches nothing (check-widgets). */
+  if (RW.facts.length || RW.text) rwRanksLoad_(() => { if (into.isConnected && !into.contains(document.activeElement)) rwDraw_(into); });
   const ai = !!(typeof DATA === 'object' && DATA && DATA.aiMarking);
   const st = RW.step, has = RW.facts.length > 0;
   const said = RW.said ? `<p class="note rw-said">${esc(RW.said)}</p>` : '';
