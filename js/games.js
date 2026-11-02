@@ -154,8 +154,8 @@ function initMiniCalc() {
 }
 
 /* THE KEY ROWS SIZED FROM THE PANE (533, D4): the device is drawn at full size, never zoomed, so its nine key rows (`--calc-row`) take what the pane has left. */
-/* 36px IS A TILE'S FLOOR (`PANE_FLOOR_TILE`); a pane too short even then scrolls (320x568). 56px keeps a tall screen's keys a calculator's. */
-const CALC_ROW_MIN = 36, CALC_ROW_MAX = 56, CALC_ROWS = 9;
+/* 36px IS A TILE'S FLOOR (`PANE_FLOOR_TILE`); a pane too short even then scrolls (320x568). 44px at most: the owner, "calc widget is too big" (562). */
+const CALC_ROW_MIN = 36, CALC_ROW_MAX = 44, CALC_ROWS = 9;
 function calcFit_(pane) {
   const c = pane && pane.querySelector('.calc');
   if (!c) return;
@@ -3791,7 +3791,7 @@ function tmtSave_(t) {
       return api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
             timetable: USER.timetable }, keepalive ? { keepalive: true } : undefined)
         .then(d => { if (d && d.error) throw new Error(d.error); })
-        .catch(err => toast('Timetable not saved — ' + String((err && err.message) || 'no connection.')));
+        .catch(err => toast('Timetable not saved — ' + why_(err)));
     };
     TMT_TIMER = setTimeout(send, 900);
     keepDue_('timetable', send);
@@ -4217,6 +4217,116 @@ on('bg-pick', el => {
   initBoardGames();
 });
 
+/* LINKED PICTURES (570): tap two matching pictures that a line with at most two turns can join, through empty squares or round the edge. */
+const LK_W = 6, LK_H = 6, LK_PICS = ['🍎', '🐟', '⭐', '🌙', '🔔', '🎈', '🌵', '🐢', '🍄'];
+let LK = null;
+function lkNew_() {
+  const n = LK_W * LK_H, cells = [];
+  for (let i = 0; i < n; i++) cells.push(LK_PICS[Math.floor(i / 2) % LK_PICS.length]);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = cells[i]; cells[i] = cells[j]; cells[j] = t; }
+  LK = { cells, pick: -1, left: n };
+}
+/* THE GRID WITH A BORDER OF EMPTY SQUARES, so a line may run round the outside; a breadth-first walk counting turns. */
+function lkJoins_(a, b) {
+  const W = LK_W + 2, H = LK_H + 2, at = i => (Math.floor(i / LK_W) + 1) * W + (i % LK_W) + 1;
+  const free = p => { const x = p % W - 1, y = Math.floor(p / W) - 1; return x < 0 || y < 0 || x >= LK_W || y >= LK_H || !LK.cells[y * LK_W + x]; };
+  const s = at(a), t = at(b), D = [[1, 0], [-1, 0], [0, 1], [0, -1]], best = {};
+  const q = D.map((d, k) => [s, k, 0]);
+  while (q.length) {
+    const [p, k, turns] = q.shift();
+    const x = p % W + D[k][0], y = Math.floor(p / W) + D[k][1];
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    const np = y * W + x;
+    if (np === t) return true;
+    if (!free(np)) continue;
+    for (let k2 = 0; k2 < 4; k2++) {
+      const nt = turns + (k2 === k ? 0 : 1), key = np * 4 + k2;
+      if (nt > 2 || (key in best && best[key] <= nt)) continue;
+      best[key] = nt; q.push([np, k2, nt]);
+    }
+  }
+  return false;
+}
+function lkPaint_() {
+  if (!LK) lkNew_();
+  document.querySelectorAll('.lk-grid').forEach(g => {
+    g.innerHTML = LK.cells.map((c, i) => `<button type="button" class="lk-sq${i === LK.pick ? ' on' : ''}" data-do="lk-sq" data-i="${i}"${
+      c ? '' : ' disabled'} aria-label="${c ? 'picture ' + (i + 1) : 'empty'}">${c}</button>`).join('');
+  });
+  document.querySelectorAll('.lk-tiles').forEach(x => { x.innerHTML = tile_({ icon: 'again', label: 'New board', act: 'lk-new' }); });
+  document.querySelectorAll('.lk-left').forEach(x => { x.textContent = LK.left ? LK.left / 2 + ' pairs left' : 'Cleared. Well done.'; });
+}
+on('lk-sq', el => {
+  const i = +el.getAttribute('data-i');
+  if (!LK || !LK.cells[i]) return;
+  if (LK.pick === -1 || LK.pick === i) { LK.pick = LK.pick === i ? -1 : i; return lkPaint_(); }
+  const a = LK.pick;
+  if (LK.cells[a] === LK.cells[i] && lkJoins_(a, i)) { LK.cells[a] = LK.cells[i] = ''; LK.left -= 2; LK.pick = -1; }
+  else LK.pick = i;
+  lkPaint_();
+});
+on('lk-new', () => { lkNew_(); lkPaint_(); });
+
+/* THE GUESSER (570): the site asks yes-or-no questions and names the person you picked from a small list of figures from history. */
+const GS_PEOPLE = [
+  { n: 'Julius Caesar', a: ['ancient', 'ruler', 'soldier', 'europe'] },
+  { n: 'Cleopatra', a: ['ancient', 'ruler', 'woman', 'africa'] },
+  { n: 'Elizabeth I', a: ['ruler', 'woman', 'europe', 'britain'] },
+  { n: 'Henry VIII', a: ['ruler', 'europe', 'britain'] },
+  { n: 'Isaac Newton', a: ['science', 'europe', 'britain'] },
+  { n: 'Marie Curie', a: ['science', 'woman', 'europe', 'modern'] },
+  { n: 'Charles Darwin', a: ['science', 'europe', 'britain', 'traveller'] },
+  { n: 'Florence Nightingale', a: ['woman', 'europe', 'britain', 'medicine'] },
+  { n: 'Mary Seacole', a: ['woman', 'britain', 'medicine', 'traveller'] },
+  { n: 'Napoleon Bonaparte', a: ['ruler', 'soldier', 'europe'] },
+  { n: 'Winston Churchill', a: ['ruler', 'soldier', 'europe', 'britain', 'modern', 'writer'] },
+  { n: 'William Shakespeare', a: ['writer', 'europe', 'britain'] },
+  { n: 'Christopher Columbus', a: ['europe', 'traveller'] },
+  { n: 'Genghis Khan', a: ['ruler', 'soldier', 'asia'] },
+  { n: 'Mahatma Gandhi', a: ['asia', 'modern', 'writer'] },
+  { n: 'Nelson Mandela', a: ['ruler', 'africa', 'modern'] },
+  { n: 'Leonardo da Vinci', a: ['science', 'artist', 'europe'] },
+  { n: 'Ada Lovelace', a: ['science', 'woman', 'europe', 'britain'] },
+  { n: 'Confucius', a: ['ancient', 'asia', 'writer'] },
+  { n: 'Martin Luther King Jr.', a: ['modern', 'writer', 'america'] },
+];
+const GS_ASK = { ancient: 'Did they live more than 2,000 years ago?', ruler: 'Did they rule or lead a country?', soldier: 'Did they lead armies?',
+  woman: 'Are they a woman?', europe: 'Were they from Europe?', britain: 'Were they British or English?', science: 'Are they known for science or invention?',
+  medicine: 'Are they known for caring for the sick?', traveller: 'Did they make a famous journey?', writer: 'Are they known for their writing or speeches?',
+  modern: 'Were they alive in the 20th century?', asia: 'Were they from Asia?', africa: 'Were they from Africa?', artist: 'Were they an artist?', america: 'Were they from America?' };
+let GS = null;
+function gsNew_() { GS = { left: GS_PEOPLE.slice(), asked: [], q: '' }; gsNext_(); }
+/* THE QUESTION THAT SPLITS WHAT IS LEFT MOST EVENLY. */
+function gsNext_() {
+  GS.q = '';
+  if (GS.left.length <= 1) return;
+  let best = 1e9;
+  Object.keys(GS_ASK).forEach(k => {
+    if (GS.asked.indexOf(k) !== -1) return;
+    const yes = GS.left.filter(p => p.a.indexOf(k) !== -1).length, d = Math.abs(GS.left.length - 2 * yes);
+    if (yes && yes < GS.left.length && d < best) { best = d; GS.q = k; }
+  });
+}
+function gsPaint_() {
+  if (!GS) gsNew_();
+  const said = !GS.left.length ? 'I give up. You beat me.'
+    : !GS.q ? 'You are thinking of ' + GS.left[0].n + '.' + (GS.left.length > 1 ? ' Or ' + GS.left.slice(1).map(p => p.n).join(', or ') + '.' : '')
+    : GS_ASK[GS.q];
+  const tiles = GS.q ? tile_({ icon: 'tick', label: 'Yes', act: 'gs-say', data: { y: '1' } }) + tile_({ icon: 'close', label: 'No', act: 'gs-say', data: { y: '0' } })
+    + tile_({ icon: 'suggest', label: 'Not sure', act: 'gs-say', data: { y: '?' } }) : '';
+  document.querySelectorAll('.gs-box').forEach(b => {
+    b.innerHTML = `<p class="gs-q">${esc(said)}</p><div class="tile-row">${tiles}${tile_({ icon: 'again', label: 'Start again', act: 'gs-new' })}</div>`;
+  });
+}
+on('gs-say', el => {
+  if (!GS || !GS.q) return;
+  const y = el.getAttribute('data-y'), k = GS.q;
+  GS.asked.push(k);
+  if (y !== '?') GS.left = GS.left.filter(p => (p.a.indexOf(k) !== -1) === (y === '1'));
+  gsNext_(); gsPaint_();
+});
+on('gs-new', () => { gsNew_(); gsPaint_(); });
+
 /* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
@@ -4236,6 +4346,14 @@ const CONSOLE_GAMES = [
   { k: 'racer', name: 'Colliers Wood racer', start: () => initRacer(), still: () => raceStill_(),
     stop: () => racerStop_(),
     body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
+  /* TWO SMALL ONES (570): linked pictures and the guesser; nothing runs between taps, so stopping stops nothing. */
+  { k: 'link', name: 'Linked pictures', start: () => lkPaint_(), still: () => lkPaint_(), stop: () => {},
+    body: `<p class="sub">Join two the same with a line of up to two turns.</p>
+    <div class="lk-grid"></div><p class="note lk-left"></p>
+    <div class="tile-row lk-tiles"></div>` },
+  { k: 'guess', name: 'I can guess', start: () => gsPaint_(), still: () => gsPaint_(), stop: () => {},
+    body: `<p class="sub">Think of someone from history: ${GS_PEOPLE.map(p => p.n).join(', ')}. I will ask until I know.</p>
+    <div class="gs-box"></div>` },
 ];
 function csGame_(k) { return CONSOLE_GAMES.find(g => g.k === k) || CONSOLE_GAMES[0]; }
 /* REMEMBERED ON THE DEVICE under `cs-game`, `bg-game`'s rule. */

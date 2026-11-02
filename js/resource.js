@@ -50,7 +50,7 @@ on('wear', el => {
     .catch(err => {
       /* PUT BACK EXACTLY WHAT WAS THERE. § */
       tileSet_(el, { label: was.label, off: false });
-      toast(String(err.message || err));
+      toast(why_(err));
     });
 });
 

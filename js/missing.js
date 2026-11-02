@@ -8,6 +8,8 @@ const MISSING_SERIES = { June: ['5', '6'], November: ['11'] };
 const MISSING_CODE = /^([1-9]\d?)([FH]?)$/;
 const MISSING_SITTING = /^(June|November) (\d{4})$/;
 const MISSING_STAGE = { KS4: 'GCSE', KS5: 'A-Level' };
+/* WHICH LINES THE CARD SHOWS (562, owner note 108): never OCR, and Edexcel only for Maths. One rule over the list, not edits to it. */
+const MISSING_SHOWN = q => q.board !== 'OCR' && (q.board !== 'Edexcel' || q.subject === 'Maths');
 /* WHICH QUALIFICATIONS ARE OPEN, so a redraw does not shut one (no pop-up: a <details> grows where it is). */
 const MISSING_OPEN = new Set();
 document.addEventListener('toggle', e => {
@@ -130,8 +132,8 @@ function missingNow_() {
   const memo = MISSING.memo;
   if (memo.rows === rows && memo.list === MISSING.list && memo.out) return memo.out;
   const read = (MISSING.list || []).map(missingEntry_);
-  const quals = read.filter(Boolean);
-  const out = Object.assign(missingGaps_(quals, rows), { unread: read.length - quals.length });
+  const known = read.filter(Boolean), quals = known.filter(MISSING_SHOWN);
+  const out = Object.assign(missingGaps_(quals, rows), { unread: read.length - known.length });
   MISSING.memo = { rows: rows, list: MISSING.list, out: out };
   return out;
 }

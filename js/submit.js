@@ -659,7 +659,8 @@ function subForget_() {
 
 /* ---------- SUGGEST A CHANGE (494): one tile on every thing, one box in place ----------
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
-const SUGGEST_NOTE_MAX = 1000;
+/* VIRTUALLY UNLIMITED (562, owner note 119), the backend's CLAUDE_NOTE_MAX: a sheet cell's 50,000 less room for the rest of the row. */
+const SUGGEST_NOTE_MAX = 40000;
 const suggestPeople_ = kind => kind === 'message' || kind === 'post';
 /* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
@@ -735,19 +736,20 @@ function reportPath_(el) {
 const REP_PIC_MAX = 300 * 1024, REP_PIC_SIDE = 1280;
 /* THE SHRUNK PICTURE, by its box: a data URL is too long for an attribute. */
 const REP_PIC = new WeakMap();
-function reportPicShrink_(file) {
+function reportPicShrink_(file, sideMax, bytesMax) {
+  const SIDE = sideMax || REP_PIC_SIDE, MAX = bytesMax || REP_PIC_MAX;
   return new Promise((ok, no) => {
     const url = URL.createObjectURL(file), img = new Image();
     img.onerror = () => { URL.revokeObjectURL(url); no(new Error('That is not a picture this phone can read.')); };
     img.onload = () => {
       URL.revokeObjectURL(url);
-      let side = REP_PIC_SIDE, out = '';
+      let side = SIDE, out = '';
       for (let tries = 0; tries < 6; tries++) {
         const k = Math.min(1, side / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
         const c = document.createElement('canvas');
         c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        for (const q of [0.8, 0.65, 0.5]) { out = c.toDataURL('image/jpeg', q); if (out.length * 0.75 <= REP_PIC_MAX) return ok(out); }
+        for (const q of [0.8, 0.65, 0.5]) { out = c.toDataURL('image/jpeg', q); if (out.length * 0.75 <= MAX) return ok(out); }
         side = Math.round(side * 0.7);
       }
       ok(out);
@@ -767,7 +769,7 @@ document.addEventListener('change', e => {
     if (show) { show.src = data; show.hidden = false; }
     const t = form.querySelector('.rep-pic');
     if (t) tileSet_(t, { icon: 'photo', label: 'Change the picture', on: true });
-  }).catch(err => { if (said) said.textContent = String((err && err.message) || 'That picture could not be read.'); });
+  }).catch(err => { if (said) said.textContent = why_(err); });
 });
 /* ---------- FILES AND FOLDERS FOR CLAUDE (515), the admin's alone: each file sent in parts to Drive "Claude inbox", one at a time, then the note names them. */
 /* ANY KIND OF FILE (owner, 1 Nov: "python is what I was trying to add but can't"): no `accept` list, only the size limit (547). */
@@ -818,11 +820,23 @@ async function repSendFile_(form, x, b) {
         start += part.size; x.sent = start; repFilesDraw_(form);
       } while (start < x.file.size);
       x.state = 'done'; repFilesDraw_(form);
+      await repSmallCopy_(x, b, rel);
       return true;
-    } catch (e) { x.error = String((e && e.message) || e); }
+    } catch (e) { x.error = why_(e); }
   }
   x.state = 'failed'; repFilesDraw_(form);
   return false;
+}
+/* A PICTURE ALSO GOES AS `<name>.small.jpg` (600), 640 px and under 40 KB, so a Claude session can read it without the 1.4 MB original. Best effort. */
+const REP_SMALL_SIDE = 640, REP_SMALL_MAX = 40 * 1024;
+async function repSmallCopy_(x, b, rel) {
+  if (!/^image\//.test(x.file.type || '') || /\.small\.jpg$/i.test(rel)) return;
+  try {
+    const data = String(await reportPicShrink_(x.file, REP_SMALL_SIDE, REP_SMALL_MAX)).replace(/^data:[^,]*,/, '');
+    const size = Math.floor(data.length * 3 / 4) - (/==$/.test(data) ? 2 : /=$/.test(data) ? 1 : 0);
+    await api({ action: 'suggestUpload', personId: USER.personId || '', batch: b.batch, rel: rel.replace(/\.[^./]*$/, '') + '.small.jpg',
+      upload: Date.now() + '-s' + Math.random().toString(36).slice(2, 8), size, start: 0, mime: 'image/jpeg', data });
+  } catch (e) { /* best effort: the original is already in Drive */ }
 }
 function repFilesAdd_(form, files, dir) {
   const said = form.querySelector('.rep-said'), list = REP_FILES.get(form) || [], big = [];

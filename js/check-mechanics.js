@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-mechanics.js MECHANICS (548): each card has a system and a source; car cards name make, model, years; no part
-   numbers or plates; each facet one string; named parts are real part cards. No flags, no port. */
+   numbers but a part's labelled example; each facet one string; named parts exist. No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data', 'mechanics');
-const FILES = ['parts', 'models', 'fits', 'jobs', 'symptoms'];
+const FILES = ['parts', 'models', 'fits'];
 const SYSTEMS = ['Engine', 'Fuel', 'Ignition', 'Cooling', 'Lubrication', 'Exhaust', 'Transmission/Clutch', 'Brakes', 'Suspension', 'Steering',
   'Electrical', 'Lighting', 'Body', 'Tyres & wheels', 'HVAC'];
-const DIFF = ['Easy', 'Moderate', 'Garage'];
+/* A PART'S EXAMPLE NUMBER IS THE SITE'S OWN FORMAT (570), never a maker's: EX-<system>-<nnn>. */
+const EXAMPLE_NO = /^EX-[A-Z]{3}-\d{3}$/;
 /* A CATALOGUE NUMBER: seven or more digits run together or spaced, or letters then five or more digits. */
 const PARTNO = /\d(?:[ -]?\d){6,}|\b[A-Z]{1,3}\d{5,}\b/;
 const fail = [], data = {};
@@ -24,18 +25,19 @@ FILES.forEach(f => data[f].forEach(r => {
   if (!r.name) fail.push(at + ': no name');
   if (SYSTEMS.indexOf(r.system) < 0) fail.push(at + ': system "' + r.system + '" is not one of the ' + SYSTEMS.length);
   if (!String(r.source || '').trim()) fail.push(at + ': no source line');
-  ['system', 'make', 'model', 'engine', 'difficulty'].forEach(k => {
+  ['system', 'make', 'model', 'engine'].forEach(k => {
     if (r[k] != null && typeof r[k] !== 'string') fail.push(at + ': ' + k + ' is not one string');
   });
-  if (r.difficulty && DIFF.indexOf(r.difficulty) < 0) fail.push(at + ': difficulty "' + r.difficulty + '" is not Easy, Moderate or Garage');
-  if (f === 'parts' && !(r.does && r.signs && r.interval && r.difficulty && r.tools)) fail.push(at + ': a part needs what it does, signs, interval, difficulty and tools');
-  if (f === 'models' || f === 'fits' || f === 'jobs') {
+  if (f === 'parts' && !(r.does && EXAMPLE_NO.test(r.part_no || '') && /£\d/.test(r.value || '') && /example/.test(r.source) && /approximate/.test(r.source)))
+    fail.push(at + ': a part needs what it is, an example number EX-XXX-nnn, a £ value, and a source saying example and approximate');
+  if (['steps', 'causes', 'signs', 'check'].some(k => r[k] != null)) fail.push(at + ': carries jobs-and-symptoms teaching, which went in 570');
+  if (f === 'models' || f === 'fits') {
     if (!r.make || !r.model || !/\d{4}/.test(r.years || '')) fail.push(at + ': a car card must name make, model and year range');
   }
   if (f === 'models' && !(r.facts || []).length) fail.push(at + ': a model card with no facts');
   if (f === 'jobs' && !((r.steps || []).length && r.time && r.difficulty && r.tools)) fail.push(at + ': a job needs steps, time, difficulty and tools');
   [].concat(r.causes || [], r.parts || []).forEach(p => { if (!partNames.has(p)) fail.push(at + ': names "' + p + '", which is no part card'); });
-  const words = JSON.stringify(r);
+  const words = JSON.stringify(Object.assign({}, r, { part_no: '' }));
   const m = words.match(PARTNO);
   if (m) fail.push(at + ': "' + m[0] + '" looks like a part number');
   if (/\b[A-Z]{1,3}\s?\d{2}\s?[A-Z]{3}\b|\b[A-Z]\d{1,3}\s?[A-Z]{3}\b/.test(words)) fail.push(at + ': something that looks like a number plate');
@@ -61,4 +63,4 @@ if (fail.length) {
   console.error('check-mechanics: ' + fail.length + ' fault(s)');
   process.exit(1);
 }
-console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a system and a source, no part numbers; ' + Object.keys((pix && pix.images) || {}).length + ' pictures 64x64 in the palette.');
+console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a system and a source, part numbers only as labelled examples; ' + Object.keys((pix && pix.images) || {}).length + ' pictures 64x64 in the palette.');

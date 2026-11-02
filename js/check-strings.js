@@ -40,6 +40,20 @@ ORDER.forEach(n => {
   ast.body.forEach(s => walk(s, false, n + '.js'));
 });
 
+/* CONTROLS ARE CONTROLS (561, U15): a data-do on a non-control element needs role + tabindex, or Tab never reaches it. */
+const ROLE_OK = { 'feed-tap': 'a delegated surface: the cards inside it are the controls' };
+const roleBad = [];
+ORDER.forEach(n => {
+  const src = fs.readFileSync(path.join(__dirname, n + '.js'), 'utf8');
+  for (const m of src.matchAll(/<(div|span|li|canvas|img|video|section|article)\b([^>]*?)data-do="([\w-]+)"([^>]*)>/g)) {
+    const at = m[2] + m[4];
+    if (ROLE_OK[m[3]] || (/role=/.test(at) && /tabindex=/.test(at))) continue;
+    roleBad.push(n + '.js:' + src.slice(0, m.index).split('\n').length + '  <' + m[1] + ' data-do="' + m[3] + '">');
+  }
+});
+console.log('A data-do ON A <div>/<span>/<canvas> WITHOUT role AND tabindex  (' + roleBad.length + ')');
+roleBad.forEach(x => console.log('  ' + x));
+
 console.log('');
 console.log('A ${…} INSIDE A QUOTED STRING — reaches the page as characters  (' + hits.length + ')');
 if (!hits.length) console.log('  none');
@@ -47,4 +61,5 @@ hits.forEach(h => console.log('  ' + (h.file + ':' + h.line).padEnd(18) + h.text
 console.log('');
 console.log(hits.length ? 'FAILED — each of those is drawn literally, exactly where a value should be'
                         : 'OK — every ${…} is somewhere it will actually interpolate.');
-process.exit(hits.length ? 1 : 0);
+if (roleBad.length) console.log('FAILED — give each a role and tabindex="0" (or make it a <button type="button">)');
+process.exit(hits.length || roleBad.length ? 1 : 0);

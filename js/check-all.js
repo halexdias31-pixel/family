@@ -57,6 +57,7 @@ const SUITE = [
      whether the person it names can be found again tomorrow. */
   /* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE § */
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
+  { file: 'check-said.js', what: 'every error shown is said through why_(), never raw (561)' },
   /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD § */
   { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   /* THE @family KEYPAD EVERYWHERE (528): every box the source can draw and every box on every column, bound to the pad and tapped. */

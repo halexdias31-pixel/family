@@ -559,7 +559,7 @@ function wardrobeBody_() {
   const swatches = (field, colours) => `<div class="av-swatches">
     ${colours.map((col, i) => `<span class="av-sw${cfg[field] === i ? ' on' : ''}"
       style="background:${col}" data-do="av-colour" data-field="${field}" data-value="${i}"
-      role="button" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
+      role="button" tabindex="0" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
   </div>`;
   const line = (label, body) => `<div class="av-line">
       <span class="av-slot-name">${esc(label)}</span>${body}</div>`;
@@ -668,7 +668,7 @@ function avatarSave(change) {
       avatarDraw_();
       /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
          shell.js — and the line it used to be written to is gone. */
-      toast(String(err.message || err));
+      toast(why_(err));
     });
 }
 
@@ -1012,8 +1012,8 @@ function friendsSave(list, said) {
       USER.friends = before;
       friendsForget_();
       const el = $('fr-said');
-      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
-      else toast(String(err.message || 'Not saved — no connection.'));
+      if (el) el.textContent = why_(err);
+      else toast(why_(err));
     });
 }
 
@@ -1195,7 +1195,7 @@ function msgPost_(p) {
     try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
-    p.err = String((err && err.message) || 'Not sent.');
+    p.err = why_(err);
     /* `why: 'files'` — the server refused the PHOTOGRAPHS, not the message, so the bubble can offer
        the words on their own. Read off the reply `send()` hangs on the error, never off the wording. */
     p.why = String((err && err.reply && err.reply.why) || '');
@@ -1522,7 +1522,7 @@ on('uploads-check', el => {
   send_({ action: 'checkUploads', name: USER.name, personId: USER.personId },
         { button: el, where: box && box.querySelector('.up-said') })
     .then(d => { UPLOADS_SAID = d; uploadsPaint_(); })
-    .catch(err => { UPLOADS_SAID = { error: String((err && err.message) || err) }; uploadsPaint_(); });
+    .catch(err => { UPLOADS_SAID = { error: why_(err) }; uploadsPaint_(); });
 });
 
 /* `on('messages')` was here — a second way to see the same thread, opened in a sheet. § */
@@ -1910,10 +1910,17 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), soonCards_(),
     /* PHONE NOTIFICATIONS (492), push.js — here because every account has this column. Google Tasks lives in the Docket (491). */
     typeof pushCard_ === 'function' ? [pushCard_()].filter(Boolean) : [], prog, wait);
 }
+/* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */
+const SOON_CARDS = [
+  ['soon-brownie', 'Brownie points', 'Points you earn for good work. Coming soon.'],
+  ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
+  ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
+];
+const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => `<div class="card soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`);
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
@@ -1988,6 +1995,12 @@ function staffPages_() {
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
+
+/* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
+screen('apprentice', () => pages('apprentice', [`<div class="card"><h3>${esc(tabLabel_('apprentice', 'Apprentice'))}</h3><p class="muted">${
+  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p>${
+  /* ITS REPORT TILE (486): this column draws its own card, so it carries the row `cardReportRow_` gives a laid-out one. */
+  typeof suggestTile_ === 'function' ? `<div class="tile-row card-rep">${suggestTile_('card', 'apprentice', tabLabel_('apprentice', 'Apprentice'))}</div>` : ''}</div>`]));
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {

@@ -131,7 +131,7 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   if (b.bundleOf_()) bad.push('a bundle is offered for the whole of `What for · Learning`');
 
   /* ---------- 2. THE OWNER'S OWN EXAMPLE, NAMED PAPER FOR PAPER § */
-  const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
+  const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                  { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
                  { field: 'level', value: 'GCSE' }];
   const JUNE = r => String(r.year) === '2017' && String(r.month) === '6';

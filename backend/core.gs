@@ -618,9 +618,9 @@ function layoutClean_(v) {
   const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
   if (split.length) out.split = split;
   /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
-  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title, admin?}]`, at most twelve; `admin: true` is shown to admins alone (508). */
+  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title, admin?, left?}]`, at most twelve; `admin` to admins alone (508), `left` before Parent settings (600). */
   const custom = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && /^custom-\d{1,3}$/.test(String(x.id)))
-    .map(x => { const o2 = { id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }; if (x.admin === true) o2.admin = true; return o2; })
+    .map(x => { const o2 = { id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }; if (x.admin === true) o2.admin = true; else if (x['left'] === true) o2.left = true; return o2; })
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
   if (custom.length) out.custom = custom;
   const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'].concat(custom.map(x => x.id));

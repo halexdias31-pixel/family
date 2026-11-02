@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-01-merge-4";
+  --css-version: "2026-11-02-merge-5";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -518,6 +518,8 @@ input:disabled, select:disabled, textarea:disabled {
    the pair reads as a rendering fault rather than as a state. */
 .is-sending .field > span { color: var(--faint); }
 textarea { min-height: 5.8rem; resize: vertical; }
+/* ONE VISIBLE RING FOR EVERY CONTROL REACHED BY KEYBOARD (561, U15): zero specificity, so a control's own ring still wins. */
+:where(:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
 input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
   outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
@@ -707,7 +709,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   column-gap: .7rem;
   width: min(100%, var(--lib-w, 100%)); margin: 0 auto .6rem; padding: .65rem .85rem 0;
   background: var(--paper); color: var(--paper-ink);
-  border: 1px solid var(--paper-rule); border-radius: .7rem;
+  border: 1px solid var(--paper-rule); border-radius: 11px;
 }
 .lib-cap { grid-area: cap; }
 .lib-name { grid-area: name; min-width: 0; }
@@ -910,7 +912,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 .chess { container-type: inline-size;
          display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
          aspect-ratio: 1; width: min(100%, 70vh); margin: .35rem auto .6rem;
-         border: 2px solid #2a2119; border-radius: .25rem; overflow: hidden; }
+         border: 2px solid #2a2119; border-radius: 4px; overflow: hidden; }
 .chess .sq { display: flex; align-items: center; justify-content: center;
              /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
              font-size: 10cqw; line-height: 1; cursor: pointer;
@@ -1074,13 +1076,13 @@ a { color: inherit; text-decoration: none; }
         --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
         --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
         /* ONE KEY ROW'S HEIGHT, set from the pane by `calcFit_` (games.js) so the device fits at full size (533, D4); nine rows of it. */
-        --calc-row: 52px;
+        --calc-row: 44px;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
         max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
-        border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
+        border-radius: 26px 26px 35px 35px;
         background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
         box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
-.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .55rem .6rem .3rem; margin-bottom: .5rem;
+.calc-bezel { background: var(--calc-bezel); border-radius: 11px; padding: .55rem .6rem .3rem; margin-bottom: .5rem;
               box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
 .calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
   box-shadow: inset 0 2px 6px rgb(0 0 0 / .25); padding: .3rem .6rem .45rem;
@@ -1189,11 +1191,12 @@ a { color: inherit; text-decoration: none; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: .2rem 0 .5rem; }
 /* ---------- 44px, IN px, AND IT WAS 31x36 § */
 .cal-arrow { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px;
-             cursor: pointer; color: var(--gold); font-size: 1.2rem; }
+             cursor: pointer; color: var(--gold); font-size: 1.2rem;
+             background: none; border: 0; padding: 0; font-family: inherit; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
 .cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
 /* The padding is set once, below, where the room for the dots under a date is decided. */
-.cal .cal-d { font-size: .85rem; border-radius: .4rem; }
+.cal .cal-d { font-size: .85rem; border-radius: 6px; }
 .cal .cal-d.cal-today { background: var(--gold); color: var(--on-gold); font-weight: 700; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
@@ -1229,7 +1232,7 @@ a { color: inherit; text-decoration: none; }
 /* THE SCREEN'S SURROUND, behind the picture: the glass, and on a home console the casing's rim round it. */
 .nes-stage::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--nes-bz)); background: var(--nes-bezel);
   border: var(--nes-rim-w) solid var(--nes-rim); border-radius: var(--nes-bz-r); box-sizing: border-box; box-shadow: 0 2px 0 var(--nes-hi), inset 0 2px 4px var(--nes-lo); }
-.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated; border-radius: .15rem; }
+.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated; border-radius: 2px; }
 .nes-hinge { position: absolute; left: 0; right: 0; height: 0; z-index: 2; pointer-events: none; }
 .nes-wrap[data-sys="nds"] .nes-hinge { left: -50vw; right: -50vw; }
 /* TOO NARROW A CARD for buttons beside the screen (a 320px phone on keys): the screen keeps its width and the picture of them goes. */
@@ -1258,11 +1261,11 @@ a { color: inherit; text-decoration: none; }
 .nes-dpad.is-down { --nes-dp: var(--gold); --nes-knob: var(--gold); }
 /* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold — on a dark plate, whatever the console's colour. */
 .nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .5rem; padding: .35rem .4rem;
-  box-sizing: border-box; border-radius: .4rem; background: var(--bg); font: .72rem/1.3 var(--mono); color: var(--dim); }
+  box-sizing: border-box; border-radius: 6px; background: var(--bg); font: .72rem/1.3 var(--mono); color: var(--dim); }
 .nes-legend[hidden] { display: none; }
 .nes-lg { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
 .nes-lg-k { display: inline-flex; gap: .2rem; }
-.nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: .25rem; padding: .05rem .3rem; background: var(--sunk); }
+.nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: 4px; padding: .05rem .3rem; background: var(--sunk); }
 .nes-lg-v { color: var(--ink); }
 /* WHILE A GAME PLAYS EVERY LOOPING ANIMATION ELSEWHERE IN THE APP HOLDS STILL (`nesQuiet_`, games.js): the parked columns
    are still drawn, and a slow laptop needs those frames for the game. */
@@ -1288,7 +1291,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 .nes-shoulders .nes-key { background: var(--nes-sh); color: var(--nes-sh-ink); }
 .nes-wrap .nes-key.is-down { background: var(--gold); color: var(--bg); }
 /* THE OTHER SYSTEMS (391): EmulatorJS draws into its own canvas; every piece of its own UI is hidden so the Console's tiles drive it. */
-.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: .15rem; }
+.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: 2px; }
 .emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
 .emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
 .emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
@@ -1304,7 +1307,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 /* A HOME CONSOLE'S CONTROLLER is drawn as its own object under the screen (`.nes-ctl::before`, its outline); a handheld's buttons sit on its body. */
 .nes-wrap[data-sys="nes"] .nes-ctl, .nes-wrap[data-sys="snes"] .nes-ctl, .nes-wrap[data-sys="n64"] .nes-ctl { position: relative; isolation: isolate; }
 .nes-wrap[data-sys="nes"] .nes-deco, .nes-wrap[data-sys="snes"] .nes-deco, .nes-wrap[data-sys="n64"] .nes-deco { position: absolute; }
-.nes-ctl::before { content: none; position: absolute; z-index: -1; inset: var(--nes-ctl-top, 0px) 0 0; background: var(--nes-ctl); border-radius: var(--nes-ctl-r, .5rem);
+.nes-ctl::before { content: none; position: absolute; z-index: -1; inset: var(--nes-ctl-top, 0px) 0 0; background: var(--nes-ctl); border-radius: var(--nes-ctl-r, 8px);
   box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -3px 0 var(--nes-lo); }
 .nes-wrap[data-sys="nes"] .nes-ctl::before, .nes-wrap[data-sys="snes"] .nes-ctl::before, .nes-wrap[data-sys="n64"] .nes-ctl::before { content: ''; }
 
@@ -1312,11 +1315,11 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 .nes-wrap[data-sys="nes"] { --nes-rim: #c6c6c1; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #121212; --nes-ctl: #1c1c1c; --nes-ctl-edge: #c6c6c1;
   --nes-dp: #0b0b0b; --nes-dp-hi: #262626; --nes-mid: #222; --nes-mid-ink: #e8e8e8; --nes-a: #c8102e; --nes-b: #c8102e; --nes-plate: #d9d9d3;
   --nes-stripe: #8e8e8a; --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
-.nes-wrap[data-sys="nes"] .nes-ctl::before { border: 7px solid var(--nes-ctl-edge); border-radius: .45rem; box-sizing: border-box; }
+.nes-wrap[data-sys="nes"] .nes-ctl::before { border: 7px solid var(--nes-ctl-edge); border-radius: 7px; box-sizing: border-box; }
 .nes-wrap[data-sys="nes"] .nes-pad { padding: 12px 10px; }
-.nes-wrap[data-sys="nes"] .nes-mid { background: repeating-linear-gradient(var(--nes-stripe) 0 5px, transparent 5px 9px); border-radius: .3rem; padding: 6px 10px; }
+.nes-wrap[data-sys="nes"] .nes-mid { background: repeating-linear-gradient(var(--nes-stripe) 0 5px, transparent 5px 9px); border-radius: 5px; padding: 6px 10px; }
 .nes-wrap[data-sys="nes"] .nes-pad .nes-mid { flex: 0 0 auto; margin: 0 auto; }
-.nes-wrap[data-sys="nes"] .nes-ab { background: var(--nes-plate); border-radius: .4rem; padding: 6px; gap: 8px; }
+.nes-wrap[data-sys="nes"] .nes-ab { background: var(--nes-plate); border-radius: 6px; padding: 6px; gap: 8px; }
 .nes-wrap[data-sys="nes"] .nes-deco { padding: .55em .75em; }
 .nes-wrap[data-sys="nes"] .nes-deco .nes-ctl, .nes-wrap[data-sys="nes"] .nes-deco .nes-ab { padding: .2em; gap: .25em; }
 .nes-wrap[data-sys="nes"] .nes-deco .nes-mid { padding: .2em .35em; }
@@ -1380,7 +1383,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-small, .nes-wrap[data-sys="gba"] .nes-deco .nes-small { min-width: 1.6rem; padding: 0 .15rem; }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 8px 8px; font-size: .5rem; }
 
 /* A DS LITE (481): two halves of one width, each a rounded slab, joined by a hinge barrel; speakers either side of the top screen, D-pad left and A/B/X/Y right of the touch screen. */
 /* EVERY SIZE IS A SHARE OF THE BODY'S WIDTH (`cqw` of the nes-body container), so a narrow card shows the same DS smaller instead of rearranging it. */
@@ -1455,7 +1458,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key::before { inset: min(0px, (100% - 44px) / 2) 0; border-radius: 0; }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
-          background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
+          background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; }
 /* ---------- A THUMB ON THE GAME IS A FLAP, NOT A SELECTION § */
 .pane:has(.flappy), .card:has(.flappy) {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -1639,7 +1642,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   min-height: 44px; max-height: 30dvh;
   field-sizing: content;
   padding: .5rem .65rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: .8rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 13px;
   color: var(--ink); font: inherit; font-size: .84rem; line-height: 1.4; resize: none;
 }
 .cmt-text:focus { outline: 0; border-color: var(--gold); }
@@ -2301,18 +2304,18 @@ button.text-drop { color: var(--bad); }
      mechanism — and a short answer under a long one is what tells you the turn changed. */
   max-width: 78%;
   padding: .4rem .7rem;
-  border-radius: 1.05rem;
+  border-radius: 17px;
   background: var(--raised); border: 1px solid var(--line); color: var(--ink);
 }
 .msg.mine .msg-bub { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
-.msg.run-end .msg-bub { border-bottom-left-radius: .35rem; }
-.msg.mine.run-end .msg-bub { border-bottom-left-radius: 1.05rem;
-                             border-bottom-right-radius: .35rem; }
+.msg.run-end .msg-bub { border-bottom-left-radius: 6px; }
+.msg.mine.run-end .msg-bub { border-bottom-left-radius: 17px;
+                             border-bottom-right-radius: 6px; }
 /* ---------- AND A RUN IS ONE SHAPE, NOT FOUR PEBBLES § */
-.msg:not(.run-top):not(.mine) .msg-bub { border-top-left-radius: .35rem; }
-.msg:not(.run-end):not(.mine) .msg-bub { border-bottom-left-radius: .35rem; }
-.msg.mine:not(.run-top) .msg-bub { border-top-right-radius: .35rem; }
-.msg.mine:not(.run-end) .msg-bub { border-bottom-right-radius: .35rem; }
+.msg:not(.run-top):not(.mine) .msg-bub { border-top-left-radius: 6px; }
+.msg:not(.run-end):not(.mine) .msg-bub { border-bottom-left-radius: 6px; }
+.msg.mine:not(.run-top) .msg-bub { border-top-right-radius: 6px; }
+.msg.mine:not(.run-end) .msg-bub { border-bottom-right-radius: 6px; }
 /* The TEXT of a message. § */
 .msg-body-text { margin: 0; font-size: .88rem; line-height: 1.45; overflow-wrap: break-word; }
 
@@ -2399,17 +2402,17 @@ button.text-drop { color: var(--bad); }
 .msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) .msg-pic img { border-radius: 0; }
 /* 16rem wide whatever the picture's own size — a bubble shrinks to its content, so a small image
    would otherwise make a bubble the width of a thumbnail. The track above caps it. */
-.msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
-.msg-pic img { display: block; width: 100%; border-radius: .8rem; }
+.msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: 13px; }
+.msg-pic img { display: block; width: 100%; border-radius: 13px; }
 .msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
 .msg-vid { max-height: 20rem; background: var(--letterbox); }
 /* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it was a 16rem black slab with an underlined gold line at its § */
 .msg-body a.msg-vid { display: flex; align-items: center; min-height: 44px; max-height: none;
   padding: .35rem .75rem; background: var(--sunk); border: 1px solid var(--line);
-  border-radius: .7rem; color: var(--ink); text-decoration: none; font-size: .8rem; }
+  border-radius: 11px; color: var(--ink); text-decoration: none; font-size: .8rem; }
 /* ---------- A FILE IS A CHIP, NOT A LINK IN A BOX § */
 .msg-body a.msg-file, .msg-file { display: flex; align-items: center; gap: .55rem; min-height: 44px;
-            min-width: 0; padding: .35rem .65rem .35rem .4rem; border-radius: .7rem;
+            min-width: 0; padding: .35rem .65rem .35rem .4rem; border-radius: 11px;
             background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
             text-decoration: none; font-size: .8rem; line-height: 1.3; }
 .msg-file span { min-width: 0; overflow-wrap: anywhere;
@@ -2418,19 +2421,19 @@ button.text-drop { color: var(--bad); }
 .msg-file b, .msg-chip b { flex: 0 0 auto; font-size: .62rem; letter-spacing: .04em;
             color: var(--gold); }
 .msg-file b { display: grid; place-items: center; min-width: 2.3rem; height: 2.3rem;
-              padding: 0 .25rem; border-radius: .45rem; border: 1px solid var(--line); }
+              padding: 0 .25rem; border-radius: 7px; border: 1px solid var(--line); }
 /* THE SAME PLATE IN THE TRAY, at the 2rem a queued photograph's thumbnail already is — so a photo
    and a PDF waiting to go are two chips of one shape rather than a picture and a loose word. */
 .msg-chip b { display: grid; place-items: center; min-width: 2rem; height: 2rem;
-              padding: 0 .2rem; border-radius: .35rem; border: 1px solid var(--line); }
+              padding: 0 .2rem; border-radius: 6px; border: 1px solid var(--line); }
 
 /* ---------- THE COMPOSER'S TRAY ---------------------------------------------------------------- */
 .msg-queue { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .35rem; }
 .msg-queue:empty { display: none; }
 .msg-chip { display: inline-flex; align-items: center; gap: .35rem; max-width: 100%;
-            padding: 0 0 0 .5rem; border-radius: .7rem;
+            padding: 0 0 0 .5rem; border-radius: 11px;
             background: var(--sunk); border: 1px solid var(--line); font-size: .74rem; }
-.msg-chip img { width: 2rem; height: 2rem; object-fit: cover; border-radius: .35rem; }
+.msg-chip img { width: 2rem; height: 2rem; object-fit: cover; border-radius: 6px; }
 .msg-chip-name { min-width: 0; max-width: 9rem; overflow: hidden;
                  text-overflow: ellipsis; white-space: nowrap; }
 .msg-chip-x { min-width: 44px; min-height: 44px; background: none; border: 0;
@@ -3335,7 +3338,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
    with the rest thrown away. */
 .prof-top { display: flex; gap: .7rem; align-items: flex-start; }
 .prof-pic {
-  width: 3.2rem; height: 3.2rem; flex: none;
+  width: 4.2rem; height: 4.2rem; flex: none; /* A BIT BIGGER (562, owner note 126). */
   object-fit: cover;
   border-radius: 50%;
   border: 1px solid var(--line);
@@ -3507,7 +3510,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW — `addCard_` in tiles.js (373) ---------- */
 .add-card { display: flex; width: 100%; align-items: center; gap: .7rem; min-height: 48px; margin: 0;
-  padding: .7rem .85rem; border: 1px dashed var(--line); border-radius: .75rem; background: none;
+  padding: .7rem .85rem; border: 1px dashed var(--line); border-radius: 12px; background: none;
   color: var(--dim); font: inherit; font-size: .9rem; text-align: left; }
 .add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
 @media (hover: hover) { .add-card:hover { border-color: var(--gold); color: var(--ink); } }
@@ -3518,9 +3521,9 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .media-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
 .media-row { display: grid; grid-template-columns: 4rem 1fr; gap: .3rem .6rem; align-items: center; }
 .media-row .tile-row { grid-column: 1 / -1; }
-.media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; background: var(--line); }
+.media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; background: var(--line); }
 .media-name { min-width: 0; overflow-wrap: anywhere; }
-.media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: .4rem; }
+.media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: 6px; }
 /* HOW OLD YOU HAVE TO BE (406): the form's one picker row, and the badge on a reel or a video's picture. */
 .media-age { display: block; margin-bottom: .75rem; }
 .media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
@@ -4373,7 +4376,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
 .qsheet { font-family: var(--font); line-height: 1.5; }
 /* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE § */
-.qsheet-stem.is-standin { border: 1px dashed var(--line); border-radius: .5rem;
+.qsheet-stem.is-standin { border: 1px dashed var(--line); border-radius: 8px;
   padding: .7rem .8rem; }
 .qsheet-stem.is-standin h4 { margin: 0 0 .4rem; font-size: .82rem; letter-spacing: .04em;
   text-transform: uppercase; color: var(--dim); }
@@ -4433,7 +4436,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* A PHOTOGRAPH OR A SCAN, WHERE `figure svg` IS A DRAWING. § */
 .qsheet .qpic { margin: 1rem 0; }
 .qsheet .qpic img { display: block; width: 100%; max-width: 100%; height: auto;
-  border-radius: .4rem; background: var(--sunk); }
+  border-radius: 6px; background: var(--sunk); }
 .qsheet figure svg, .gd figure svg { width: min(100%, 20rem); height: auto; }
 
 /* ---------- A DRAWING'S LABELS ARE SERIF, AND THAT IS MEASURED RATHER THAN PREFERRED § */
@@ -4553,7 +4556,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 /* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT (each chapter is a content card now) § */
 .tb-h { display: inline-block; margin-left: .35em; padding: .05rem .28rem; vertical-align: .1em;
   font: 600 .6rem/1.2 var(--mono); letter-spacing: .04em; color: var(--ink);
-  border: 1px solid var(--line); border-radius: .3rem; }
+  border: 1px solid var(--line); border-radius: 5px; }
 .tb-words b { color: var(--ink); font-weight: 600; }
 /* A FORMULA'S NAME ABOVE IT, THE FORMULA IN THE CARD'S OWN INK AND A SIZE UP — it is the thing on the page somebody came for, and a stacked fraction at .8rem is § */
 /* NO BULLET ON A FORMULA. Its name is the label, so a dot in front is a third marker for one line,
@@ -4838,7 +4841,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-ko { font: 600 .66rem/1 var(--mono); color: var(--dim); }
 /* THE SPLIT, ONE BAR. Rounded ends by clipping the SVG rather than each rect, so a segment that is
    the whole bar has both ends round and one in the middle has none. */
-.boxer-bar { display: block; width: 100%; height: .4rem; margin: .8rem 0 0; border-radius: .2rem;
+.boxer-bar { display: block; width: 100%; height: .4rem; margin: .8rem 0 0; border-radius: 3px;
              overflow: hidden; background: var(--line-soft); }
 .boxer-bar .is-w  { fill: var(--boxer-w); }
 .boxer-bar .is-l  { fill: var(--boxer-l); }
@@ -4870,7 +4873,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
                      gap: .35rem .6rem; margin: 0 0 var(--fc-in); }
 .boxer .boxer-titles-head h4 { margin: 0; }
 .boxer .boxer-badges li { font: 600 .62rem/1 var(--mono); letter-spacing: .07em; text-transform: uppercase;
-                          color: var(--boxer-w); border: 1px solid var(--boxer-w); border-radius: .5rem;
+                          color: var(--boxer-w); border: 1px solid var(--boxer-w); border-radius: 8px;
                           padding: .3rem .45rem; }
 .boxer .boxer-badges li.is-hof::before { content: "\2605\00a0"; }
 
@@ -5327,7 +5330,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .search::placeholder { color: var(--faint); }
 /* THE EDGE LIGHTS, NOTHING MOVES. A field that grows or glows when you tap it shifts the words you
    were about to read. */
-.search:focus { outline: 0; border-color: var(--line-soft); background: #0a0a0a; }
+.search:focus { outline: 0; border-color: var(--gold); background: #0a0a0a; }
 @media (hover: hover) { .search:hover { border-color: var(--line-soft); } }
 /* ---------- THE BOX AND THE BIN, ONE ROW § */
 .find-search { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
@@ -5437,7 +5440,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   max-height: 60vh;
   margin: .5rem 0 .7rem;
   border: 1px solid var(--line);
-  border-radius: .7rem;
+  border-radius: 11px;
   background: var(--sunk);
   overflow: hidden;
 }
@@ -5691,8 +5694,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- THE CONSOLE'S OWN BODIES FOR ITS TWO BUILT-IN GAMES (441): a handheld round the bird, a wide dark bezel round the street. */
 .cs-body { --cs-shell: #2a2a30; --cs-edge: #45454d; box-sizing: border-box; margin: .55rem auto 0; background: var(--cs-shell);
   border: 1px solid var(--cs-edge); }
-.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 1rem 1rem 2.6rem 1rem; }
-.cs-wide { padding: .6rem .6rem .7rem; border-radius: 1.1rem; }
+.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 16px 16px 42px 16px; }
+.cs-wide { padding: .6rem .6rem .7rem; border-radius: 18px; }
+.lk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 22rem; margin: .5rem auto; }
+.lk-sq { min-height: 44px; font-size: 1.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.lk-sq.on { outline: 3px solid var(--gold); }
+.lk-sq:disabled { border-color: transparent; }
+.gs-q { font-size: 1.1rem; margin: .6rem 0; }
 .cs-wide .race-stage { margin-top: 0; }
 
 /* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
@@ -6143,6 +6151,11 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
 .kp-ret-i { font: 600 1.15rem/1 var(--font); }
 .kp-ret-k { font: 600 .78rem/1 var(--font); letter-spacing: .02em; }
+/* AT A SIXTH OF THE ROW (562) the return key is its mark alone; the word comes back where there is room. */
+@media (max-width: 40rem) { .kp-ret-k { display: none; } }
+/* THE MIC (562, `kpMic_`): its drawn mark, lit as ⇧ is while it listens. */
+.kp-key.kp-mic .tile-i { width: 20px; height: 20px; }
+.kp-key.kp-mic.is-on { background: var(--kp-face); color: var(--kp-ink); }
 /* AND AN ESSAY'S ✓ SAYS "done" (`KP_DONE_ESSAY`, keypad.js): on an essay it only puts the pad away, and
    the paper aeroplane it wears elsewhere is Send's mark. */
 .kp-key.kp-done-k { font: 700 .95rem/1 var(--font); letter-spacing: .02em; }
@@ -6172,7 +6185,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .qp-work { margin: .3rem 14px .2rem; }
 .qp-work[hidden] { display: none; }
 .qp-work-pics { display: flex; flex-wrap: wrap; gap: .5rem; }
-.qp-work-pic { position: relative; display: block; width: 5.5rem; height: 7rem; border: 1px solid var(--line); border-radius: .4rem; overflow: hidden; }
+.qp-work-pic { position: relative; display: block; width: 5.5rem; height: 7rem; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .qp-work-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .qp-work-x { position: absolute; top: 2px; right: 2px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); font: 400 1.1rem/1 var(--font); padding: 0; cursor: pointer; }
@@ -6212,8 +6225,9 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 @media (hover: hover) { body.mag-on .page.mag-host { cursor: none; } }
 /* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): § */
+.qans-none { margin: .75rem 0; color: var(--dim); }
 .qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
-  border: 1px dashed var(--line); border-radius: .5rem; }
+  border: 1px dashed var(--line); border-radius: 8px; }
 .qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON § */
@@ -6602,7 +6616,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pb { display: grid; gap: .7rem; margin: 0 0 .7rem; }
 .pb-cap { margin: 0 0 .25rem; font-size: .78rem; color: var(--ink); display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 .pb-paid { color: var(--dim); font-variant-numeric: tabular-nums; }
-.pb-bar { position: relative; height: 1.1rem; border-radius: .3rem; overflow: hidden; background: var(--line-soft); }
+.pb-bar { position: relative; height: 1.1rem; border-radius: 5px; overflow: hidden; background: var(--line-soft); }
 .pb-seg { position: absolute; inset: 0; transform: scaleX(var(--x, 0)); transform-origin: left;
           transition: transform var(--dur-move) var(--ease-spring); }
 .pb-seg.is-tutor { background: var(--pb-tutor); z-index: 4; }
@@ -6619,7 +6633,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pb-note { margin: 0; font-size: .7rem; }
 /* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */
 .stmt-out { margin: .5rem 0 .6rem; }
-.stmt { background: var(--paper); color: var(--paper-ink); border-radius: .4rem; padding: .9rem .8rem; }
+.stmt { background: var(--paper); color: var(--paper-ink); border-radius: 6px; padding: .9rem .8rem; }
 .stmt-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--paper-rule); padding-bottom: .35rem; }
 .stmt-head b { font-size: .95rem; }
 .stmt-head span { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--paper-dim); }
@@ -6866,7 +6880,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- THE E-INK SCREEN WIDGET (470, 482): the real 1.54-inch panel, 200x200 1-bit, drawn by the screen's own rules, its pixels kept square. */
 .eink {
   --eink-white: #fff; --eink-black: #000;
-  padding: .7rem; border-radius: .6rem; background: var(--eink-black);
+  padding: .7rem; border-radius: 10px; background: var(--eink-black);
   border: 1px solid var(--line); margin: .4rem auto .6rem; max-width: calc(400px + 1.4rem);
 }
 .eink-panel { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: var(--eink-white); color: var(--eink-black); }
@@ -6963,7 +6977,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms { margin: .6rem 0 .3rem; }
 .hdb-ms-sides { display: flex; gap: .6rem; align-items: flex-start; }
 .hdb-ms-side { flex: 1 1 0; min-width: 0; margin: 0; }
-.hdb-ms svg { display: block; width: 100%; height: auto; }
+.hdb-ms svg { display: block; width: 100%; height: auto; max-height: 40vh; }  /* NO CARD TALLER THAN A PHONE (562): the leaf shrinks to fit */
 .hdb-ms .mfr-leaf { fill: var(--paper); }
 .hdb-ms-papyrus { --papyrus: #a9765a; --papyrus-fibre: #8a5c44; --papyrus-ink: #2a1a14; }
 .hdb-ms-papyrus .mfr-leaf { fill: var(--papyrus); }
@@ -7113,11 +7127,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rw-copied { background: var(--gold); color: var(--on-gold); }
 .rw-facts, .rw-verdicts, .rw-tips { margin: .2rem 0 .4rem 1.1rem; padding: 0; font-size: .85rem; }
 .rw-terms { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .15rem; }
-.rw-term { font-weight: 600; border: 1px solid var(--line); border-radius: .3rem; padding: 0 .3rem; font-size: .78rem; }
+.rw-term { font-weight: 600; border: 1px solid var(--line); border-radius: 5px; padding: 0 .3rem; font-size: .78rem; }
 .rw-hidden { font-style: italic; }
 .rw-cov { margin: 0; font-size: .8rem; color: var(--dim); }
 .rw-chips { display: inline-flex; flex-wrap: wrap; gap: .25rem; }
-.rw-chip { font-weight: 400; border: 1px dashed var(--line); border-radius: .3rem; padding: 0 .3rem; }
+.rw-chip { font-weight: 400; border: 1px dashed var(--line); border-radius: 5px; padding: 0 .3rem; }
 .rw-chip.is-rare { font-weight: 600; border-style: solid; }
 .rw-score { font-weight: 600; margin: .5rem 0 .2rem; }
 .rw-score .is-high { color: var(--warn); }
@@ -7137,4 +7151,14 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hy-verse + .hy-verse { margin-top: .6rem; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
-.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 0.5rem; image-rendering: pixelated; }
+.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 8px; image-rendering: pixelated; }
+
+/* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
+.tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }
+.tl-dot { position: absolute; bottom: -.3rem; width: .5rem; height: .5rem; margin-left: -.25rem; border-radius: 50%; background: var(--line); }
+.tl-dot.past, .tl-dot.on { background: var(--ink); }
+.tl-mark { position: absolute; bottom: -.15rem; width: 0; height: 1.3rem; border-left: 3px solid var(--gold); }
+.tl-now { animation: tl-in var(--dur-enter) var(--ease-out); }
+.tl-when { margin: 0; color: var(--dim); font-size: .85rem; }
+@keyframes tl-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
