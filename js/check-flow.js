@@ -29026,7 +29026,7 @@ check('Suggest a change takes the place of its thing on every kind -- a widget, 
     const inPlace = (box.parentElement.classList.contains('is-writing')) || (box.classList.contains('is-beside') && tile.closest('.tile-row').hidden);
     if (!inPlace) bad.push(say + ': the box went under the thing, not in its place');
     if (box.querySelector('.ncl-list, [data-do="ncl-done"]')) bad.push(say + ': the box still lists notes or a Done tile');
-    if (!box.querySelector('[data-do="rep-pic"]') || !box.querySelector('input[type=file][accept="image/*"]')) bad.push(say + ': no Add a picture tile');
+    if (!box.querySelector('[data-do="rep-pic"]') || !box.querySelector('input[type=file].rep-pic-in[accept^="image/*"]')) bad.push(say + ': no Add a picture tile');
     if (say === 'a Find card' && !/^Find/.test(box.dataset.path || '')) bad.push('a Find card’s box carries no funnel path: ' + JSON.stringify(box.dataset.path));
     t.ACTIONS['rep-cancel'](box.querySelector('[data-do="rep-cancel"]'));
     await wait(10);
@@ -29101,6 +29101,73 @@ check('Suggest a change takes files and a folder from an admin and not a student
   if (!note) bad.push('no note was sent after the files');
   else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.py,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
   o.host.remove();
+  return bad;
+});
+
+/* ---------- A VIDEO GOES WITH ITS FRAMES (640): "so Claude can see problems that happen over time" ---------- */
+check('Suggest a change takes a video from the camera roll: it is sent in parts, and the phone makes timestamped frame sheets and a small copy that go beside it; when frames cannot be made the video still goes and the box says so', async () => {
+  const ups = [];
+  const reply = b => {
+    if (b.action === 'suggestUpload') {
+      ups.push(b);
+      const end = b.start + Math.floor(b.data.length * 3 / 4) - (b.data.match(/=*$/)[0].length);
+      return end >= b.size ? { success: true, done: true, id: 'F' + ups.length } : { success: true, next: end };
+    }
+    return b.action === 'suggest' ? { success: true, serious: true, notes: [] } : { success: true, messages: [] };
+  };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  /* JSDOM PLAYS NO VIDEO AND DRAWS NO CANVAS: a stubbed <video> (3 s, 640x360, seeks answer) and a canvas that counts what is drawn. */
+  let drawn = 0;
+  const stamps = [];
+  w.URL.createObjectURL = f => 'blob:' + f.name; w.URL.revokeObjectURL = () => {};
+  const P = w.HTMLMediaElement.prototype, V = w.HTMLVideoElement.prototype;
+  Object.defineProperty(P, 'duration', { get() { return 3; }, configurable: true });
+  Object.defineProperty(V, 'videoWidth', { get() { return 640; }, configurable: true });
+  Object.defineProperty(V, 'videoHeight', { get() { return 360; }, configurable: true });
+  Object.defineProperty(P, 'src', { set(v) { this._src = v; setTimeout(() => this.dispatchEvent(new w.Event(/broken/.test(v) ? 'error' : 'loadeddata')), 1); }, get() { return this._src || ''; }, configurable: true });
+  Object.defineProperty(P, 'currentTime', { set(v) { this._t = v; setTimeout(() => this.dispatchEvent(new w.Event('seeked')), 1); }, get() { return this._t || 0; }, configurable: true });
+  P.load = () => {};
+  w.HTMLCanvasElement.prototype.getContext = () => ({ fillRect() {}, fillText(s) { stamps.push(s); }, measureText: s => ({ width: s.length * 8 }),
+    drawImage(src) { if (src instanceof w.HTMLVideoElement) drawn++; } });
+  w.HTMLCanvasElement.prototype.toDataURL = function () { return 'data:image/jpeg;base64,' + 'A'.repeat(Math.min(100000, this.width * 10)); };
+  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  const host = d.createElement('div');
+  host.className = 'pane';
+  host.innerHTML = '<div class="card"><h3>Past papers</h3></div>' + w.cardReportRow_('ppl:parents:all', '<div class="card"><h3>Past papers</h3></div>');
+  d.body.appendChild(host);
+  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
+  const box = host.querySelector('.rep-box');
+  if (!box) return ['an admin has no box'];
+  const said = () => (box.querySelector('.rep-vid-said') || {}).textContent || '';
+  const pic = box.querySelector('input.rep-pic-in');
+  if (!pic || pic.getAttribute('accept') !== 'image/*,video/*') bad.push('the camera roll picker does not offer videos: accept=' + JSON.stringify(pic && pic.getAttribute('accept')));
+  const vid = new w.File([new Uint8Array(9 * 1048576)], 'IMG_0001.MOV', { type: 'video/quicktime' });
+  Object.defineProperty(pic, 'files', { value: [vid], configurable: true });
+  pic.dispatchEvent(new w.Event('change', { bubbles: true }));
+  const row = box.querySelector('.rep-vid');
+  if (!row || !row.querySelector('.loading') || !/making its frames/.test(said())) bad.push('no tile says the video is attached, with the dots, while its frames are made');
+  for (let i = 0; i < 100 && /making/.test(said()); i++) await wait(20);
+  if (!/6 frames on 1 sheet/.test(said())) bad.push('the frames were not made: ' + JSON.stringify(said()));
+  if (box.querySelector('.rep-vid .loading')) bad.push('the dots stayed after the frames were made');
+  if (drawn < 6 || !stamps.includes('0:00.0') || !stamps.includes('0:02.5')) bad.push('the frames were not drawn and stamped every half second: ' + drawn + ' ' + JSON.stringify(stamps));
+  /* AND ONE THE BROWSER CANNOT PLAY. */
+  const broken = new w.File([new Uint8Array(500)], 'broken.mp4', { type: 'video/mp4' });
+  Object.defineProperty(pic, 'files', { value: [broken], configurable: true });
+  pic.dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(100);
+  if (!/broken\.mp4 · video attached · no frames: this browser cannot play that video\. The video still goes\./.test(box.querySelector('.rep-vids').textContent)) bad.push('a video without frames is not said plainly before sending');
+  t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
+  for (let i = 0; i < 100 && !sent.some(b => b.action === 'suggest'); i++) await wait(50);
+  const rels = ups.map(u => u.rel + '@' + u.start);
+  const want = ['IMG_0001.MOV@0', 'IMG_0001.MOV@' + 8 * 1048576, 'IMG_0001.frames-1.jpg@0', 'IMG_0001.small.jpg@0', 'broken.mp4@0'];
+  if (rels.join() !== want.join()) bad.push('the uploads went ' + JSON.stringify(rels) + ', wanted ' + JSON.stringify(want));
+  if (ups.some(u => /\.jpg$/.test(u.rel) && (u.mime !== 'image/jpeg' || u.size > 150 * 1024))) bad.push('a frame sheet is not a JPEG under 150 KB');
+  if (!ups.some(u => u.rel === 'IMG_0001.MOV' && u.mime === 'video/quicktime')) bad.push('the video did not go with its own type');
+  const note = sent.find(b => b.action === 'suggest');
+  if (!note || !note.files || note.files.names.join() !== 'IMG_0001.MOV,broken.mp4') bad.push('the note does not name the videos: ' + JSON.stringify(note && note.files));
+  host.remove();
   return bad;
 });
 
