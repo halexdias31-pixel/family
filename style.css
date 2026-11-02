@@ -6214,6 +6214,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 @media (hover: hover) { body.mag-on .page.mag-host { cursor: none; } }
 /* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): § */
+.qans-none { margin: .75rem 0; color: var(--dim); }
 .qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
   border: 1px dashed var(--line); border-radius: .5rem; }
 .qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
