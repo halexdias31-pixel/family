@@ -1605,7 +1605,7 @@ function insSay_(r) {
   if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
   const t = 'in:' + r.id;
   if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
-  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
   return loading_();
 }
 /* ASKED FOR, if it has words in the Ledger and they are not here yet */
@@ -3755,7 +3755,7 @@ function libSay_(x) {
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
   if (LIB.failed) {
     return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
-      <span class="text-action" data-do="lib-retry">Try again</span></p>`;
+      <button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
   }
   return loading_();
 }
@@ -7852,7 +7852,7 @@ function circWords_(html, block, on) {
       if (!word) return w;
       const k = block + '.' + (n++);
       const lit = on && on.indexOf(k) !== -1;
-      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" aria-pressed="${lit}">${word}</span>`;
+      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" tabindex="0" aria-pressed="${lit}">${word}</span>`;
     });
   });
 }
@@ -10364,7 +10364,7 @@ function toggleFav(k, kind) {
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
       try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
       if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
-      toast(String((err && err.message) || 'That did not save'));
+      toast(why_(err));
     });
   }
 }
@@ -11332,7 +11332,7 @@ function drawWidget_(wgt) {
   if (String(into.innerHTML || '').trim()) return;
   into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
     ${esc(wgt.what)} did not start.<br>
-    <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+    <span class="faint">${esc(err ? why_(err) : 'It drew nothing.')}</span></p>`;
 }
 
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
@@ -11394,7 +11394,7 @@ function stuffQuestion() {
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `<p class="empty">No friends yet.<br>
-      <span class="text-action" data-do="friend-add-open">Add someone by their handle</span></p>`;
+      <button type="button" class="text-action" data-do="friend-add-open">Add someone by their handle</button></p>`;
   }
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */
   /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
@@ -11403,8 +11403,8 @@ function stuffQuestion() {
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
   const facet = nextFacet(items) || overFacet_(items);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
-    ? `<p class="find-end"><span class="text-action" data-do="friend-add-open"
-        >Add someone by their handle</span></p>` : '';
+    ? `<p class="find-end"><button type="button" class="text-action" data-do="friend-add-open"
+        >Add someone by their handle</button></p>` : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN § */
     const n = items.length === 1 ? 'one' : items.length;
@@ -11432,7 +11432,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = `<div class="counted row tap is-skip" data-do="facet-skip"
+  const skip = `<div class="counted row tap is-skip" role="button" tabindex="0" data-do="facet-skip"
         data-field="${esc(facet.field)}">
         <span class="k">Doesn't matter</span>
       </div>`;
@@ -11443,7 +11443,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
+  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
@@ -11630,7 +11630,7 @@ function docketSave(list) {
         /* SAID, not swallowed. A list that looks saved and is not is worse than one that never
            pretended — you find out by opening it tomorrow to nothing. */
         const el = $('dock-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+        if (el) el.textContent = why_(err);
       });
   };
   dockTimer = setTimeout(sendTodo, 900);
@@ -11773,7 +11773,7 @@ function padSend_(keepalive) {
     })
     .catch(err => {
       const el = $('pad-said');
-      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+      if (el) el.textContent = why_(err);
     });
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */

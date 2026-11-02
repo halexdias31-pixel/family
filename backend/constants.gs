@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-01-integrate-abc";
+const BACKEND_VERSION = "2026-11-02-polish-561";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -387,6 +387,8 @@ const SCHEMA = {
     /* WHETHER IT MAY BE SEEN, and it is NOT the same question as `active` below. § */
     "approved", "approved_by", "approved_on",
     "post_id", "author", "image",
+    /* THE FIRST PICTURE'S OWN SIZE IN PX (561, U20), so its box is final before the file arrives. */
+    "image_w", "image_h",
     /* ---------- EVERY PICTURE AND CLIP AFTER THE FIRST, AS ONE LIST § */
     "media",
     "caption", "file_name", "body",

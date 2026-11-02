@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-01-integrate-abc";
+const DOPOST_VERSION = "2026-11-02-polish-561";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -973,6 +973,8 @@ function doPost(e) {
         author: asBrand ? brandName() : (personDisplayName(me) || S(body.name)),
         posted_by: personDisplayName(me) || S(body.name),
         image: url,
+        image_w: Math.max(0, Math.round(Number(body.imageW) || 0)) || '',
+        image_h: Math.max(0, Math.round(Number(body.imageH) || 0)) || '',
         media: more.join(' | '),
         caption: S(body.caption),
         body: S(body.body),

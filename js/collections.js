@@ -64,7 +64,7 @@ function toggleSpot(k, kind) {
        already said something newer. Leaving the card on (or off) the column after the save failed
        is the lie this was built on. */
     if (SPOT.has(key) === want) spotSet_(key, !want);
-    toast(String((err && err.message) || 'That did not save'));
+    toast(why_(err));
   });
 }
 

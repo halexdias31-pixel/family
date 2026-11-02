@@ -1038,7 +1038,7 @@ function digestShownAsk_(words) {
   }).catch(err => {
     if (seq !== DIGEST_SHOWN_.seq) return;
     DIGEST_SHOWN_.busy = false;
-    DIGEST_SHOWN_.got = { said: String((err && err.message) || err) };
+    DIGEST_SHOWN_.got = { said: why_(err) };
     digestShownPaint_();
   });
 }

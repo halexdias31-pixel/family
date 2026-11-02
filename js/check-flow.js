@@ -1604,7 +1604,14 @@ check('a reply that lands leaves an open list where it is: a focused select keep
   /* THE SETTINGS COLUMN: a select focused, then `profileRefresh_`'s repaint. */
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
   await wait(200);
-  const cc = d.querySelector('#s-account select[data-me]');
+  /* ITS PAGE BROUGHT IN FRONT FIRST (561): a page off the glass is inert, and nobody focuses a box in it. */
+  let cc = d.querySelector('#s-account select[data-me]');
+  const ccPage = cc && cc.closest('#s-account .page');
+  if (ccPage && typeof w.goPage === 'function') {
+    try { w.goPage('account', [...ccPage.parentElement.children].filter(x => x.classList.contains('page')).indexOf(ccPage), true); } catch (e) {}
+    await wait(200);
+    cc = d.querySelector('#s-account select[data-me]');
+  }
   if (!cc) bad.push('no select on Settings (' + JSON.stringify([...d.querySelectorAll('#s-account [data-me]')].map(x => x.tagName + ':' + x.dataset.me).slice(0, 12)) + ') — the settings half was NOT checked');
   else if (typeof w.profileRefresh_ !== 'function') bad.push('profileRefresh_ is not a global — its repaint was NOT checked');
   else {

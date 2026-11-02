@@ -64,7 +64,7 @@ function inboxFetch_() {
       }
       inboxPaint_();
     })
-    .catch(err => { INBOX_.busy = false; INBOX_.said = String((err && err.message) || err); inboxPaint_(); });
+    .catch(err => { INBOX_.busy = false; INBOX_.said = why_(err); inboxPaint_(); });
 }
 
 function initInbox() {

@@ -767,7 +767,7 @@ document.addEventListener('change', e => {
     if (show) { show.src = data; show.hidden = false; }
     const t = form.querySelector('.rep-pic');
     if (t) tileSet_(t, { icon: 'photo', label: 'Change the picture', on: true });
-  }).catch(err => { if (said) said.textContent = String((err && err.message) || 'That picture could not be read.'); });
+  }).catch(err => { if (said) said.textContent = why_(err); });
 });
 /* ---------- FILES AND FOLDERS FOR CLAUDE (515), the admin's alone: each file sent in parts to Drive "Claude inbox", one at a time, then the note names them. */
 /* ANY KIND OF FILE (owner, 1 Nov: "python is what I was trying to add but can't"): no `accept` list, only the size limit (547). */
@@ -819,7 +819,7 @@ async function repSendFile_(form, x, b) {
       } while (start < x.file.size);
       x.state = 'done'; repFilesDraw_(form);
       return true;
-    } catch (e) { x.error = String((e && e.message) || e); }
+    } catch (e) { x.error = why_(e); }
   }
   x.state = 'failed'; repFilesDraw_(form);
   return false;

@@ -70,7 +70,7 @@ async function libraryRowsAsk_() {
     else if (!res.ok) LIBRARY_FAILED = 'the question file answered ' + res.status;
     else rows = await libWithin_(res.json(), 'the question file', LIB_BODY);          /* a truncated body throws here, and that is the point */
   } catch (e) {
-    LIBRARY_FAILED = String((e && e.message) || 'the question file did not arrive');
+    LIBRARY_FAILED = why_(e);
   }
   /* AN EMPTY ARRAY IS A REAL ANSWER and is left alone — the file legitimately parses to `[]` on a
      fresh clone. Only a throw or a refusal sets the flag, so "empty" and "absent" stay different. */

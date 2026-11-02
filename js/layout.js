@@ -320,7 +320,7 @@ function layoutSave_(next) {
   set(val);
   return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
     .then(() => true)
-    .catch(err => { set(was); toast(String((err && err.message) || 'The layout did not save')); return false; });
+    .catch(err => { set(was); toast(why_(err)); return false; });
 }
 
 /* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
