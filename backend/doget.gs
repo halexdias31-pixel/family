@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-01-integrate-abc";
+const DOGET_VERSION = "2026-11-02-polish-561";
 
 
 function doGet(e) {
@@ -708,6 +708,8 @@ function doGet(e) {
           /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. § */
           figure: (faces[key(S(r.author))] || {}).figure,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
+          /* THE FIRST PICTURE'S SIZE (561), 0 for a legacy row, which keeps 4:5. */
+          imageW: Number(r.image_w) || 0, imageH: Number(r.image_h) || 0,
           /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than stitching `image` onto the front itself — which would be a second place for § */
           media: postMediaOut_(r),
           /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE. § */

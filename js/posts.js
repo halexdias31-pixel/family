@@ -116,13 +116,14 @@ function picsJobs_() {
   return out;
 }
 if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(picsJobs_);
-function postMediaHtml_(list, i) {
+function postMediaHtml_(list, i, p) {
   if (!list.length) return '';
   if (list.length === 1) {
     const u = list[0];
     if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
     /* THE PICTURE'S OWN SHAPE, EDGE TO EDGE — and 4:5 only until the file says what that is. § */
-    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
+    const sized = !!(p && p.imageW > 0 && p.imageH > 0);
+    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="${sized ? Math.round(p.imageW) : 800}" height="${sized ? Math.round(p.imageH) : 1000}"
            decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }
   return `<div class="post-grid${list.length % 2 ? ' is-odd' : ''}">${
@@ -205,7 +206,7 @@ function postCard_(p, i) {
 
       ${/* A SHAPE BEFORE IT LOADS. § */
              ''}
-      ${postMediaHtml_(media, i)}
+      ${postMediaHtml_(media, i, p)}
 
       ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already goes and where the thing you can do about a photograph belongs. § */
             ''}
@@ -734,7 +735,7 @@ function camItemOf_(file) {
 function camKeep_() {
   const c = $('cam-still');
   if (!c || c.hidden) return;
-  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85) }); } catch (e) { return; }
+  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85), w: c.width, h: c.height }); } catch (e) { return; }
   c.hidden = true;
 }
 /* ---------- WHICH CONTROLS ARE SHOWING IS ONE FACT: WHAT IS BEING HELD § */
@@ -903,6 +904,8 @@ on('cam-post', el => {
     return;
   }
   const data = list[0];
+  /* THE FIRST PICTURE'S SIZE TRAVELS WITH IT (561, U20): the card's box is final before the file arrives. */
+  const first = CAM_ITEMS[0] || (!c.hidden ? { kind: 'image', w: c.width, h: c.height } : {});
 
   /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. § */
   send_({
@@ -910,6 +913,7 @@ on('cam-post', el => {
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     data: data,
     media: list.slice(1),
+    imageW: first.kind === 'image' ? first.w || 0 : 0, imageH: first.kind === 'image' ? first.h || 0 : 0,
     postAs: postAsOf_('cam-as'),
     caption: ($('cam-cap') || {}).value || '',
     body: '', location: '', poll: '',
