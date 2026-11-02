@@ -517,7 +517,7 @@ function nothingHere(whenEmpty, needsLibrary) {
   if (why) {
     return `<p class="empty">Couldn’t load.<br>
         <span class="faint">${esc(why)}</span><br>
-        <span class="text-action" data-do="retry">Try again</span></p>`;
+        <button type="button" class="text-action" data-do="retry">Try again</button></p>`;
   }
   /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY § */
   /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN § */
@@ -2980,6 +2980,10 @@ const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
                  ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
 
 addEventListener('keydown', e => {
+  /* A [role=button] THAT IS NOT A <button> PRESSES ON ENTER OR SPACE LIKE ONE (561, U15). */
+  if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.matches && e.target.matches('[role=button][data-do]:not(button)')) {
+    e.preventDefault(); e.target.click(); return;
+  }
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 

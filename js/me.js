@@ -559,7 +559,7 @@ function wardrobeBody_() {
   const swatches = (field, colours) => `<div class="av-swatches">
     ${colours.map((col, i) => `<span class="av-sw${cfg[field] === i ? ' on' : ''}"
       style="background:${col}" data-do="av-colour" data-field="${field}" data-value="${i}"
-      role="button" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
+      role="button" tabindex="0" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
   </div>`;
   const line = (label, body) => `<div class="av-line">
       <span class="av-slot-name">${esc(label)}</span>${body}</div>`;

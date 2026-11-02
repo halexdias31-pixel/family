@@ -280,9 +280,9 @@ const WIDGETS = [
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">
     <div class="cal-head">
-      <span class="cal-arrow" data-do="cal-back">‹</span>
+      <button type="button" class="cal-arrow" data-do="cal-back">‹</button>
       <h3 id="cal-label" style="margin:0">Calendar</h3>
-      <span class="cal-arrow" data-do="cal-fwd">›</span>
+      <button type="button" class="cal-arrow" data-do="cal-fwd">›</button>
     </div>
     <div id="cal-body" class="cal"></div>
   </div>` },

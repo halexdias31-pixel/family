@@ -1770,7 +1770,7 @@ function reelCards_(count) {
     /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
     out.push(`<div class="card is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN + REEL_LEAD}" data-do="reel-tap">${feedSlide(it)}` +
+           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${feedSlide(it)}` +
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
       `${typeof mediaAgeSay_ === 'function' && mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(mediaAgeSay_(it.age))}">${esc(mediaAgeSay_(it.age))}</span>` : ''}` +
       `${reelSoundTile_(false)}</div>
