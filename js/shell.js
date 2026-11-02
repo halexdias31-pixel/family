@@ -1500,6 +1500,8 @@ function pageWrite_(el, st) {
   if (!was || was.on !== st.on) {
     el.classList.toggle('on', st.on);
     el.style.pointerEvents = st.on ? 'auto' : 'none';
+    /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
+    el.inert = !st.on;
   }
   if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
   if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
