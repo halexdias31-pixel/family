@@ -251,8 +251,33 @@ const TIDY = { facts: ['plants make glucose from carbon dioxide and water'], voc
   }
 }
 
+/* THE WORD RANKS (554): data/word-freq.json is current, public domain, fetched only by the coach, and grades rarity without breaking the fallback. */
+{
+  const root = path.join(__dirname, '..'), f = path.join(root, 'data/word-freq.json');
+  let j = null;
+  try { j = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { bad.push('data/word-freq.json cannot be read (' + e.message + ') — NOT checked'); }
+  if (j) {
+    if (!Array.isArray(j.words) || j.words.length < 5000) bad.push('data/word-freq.json has ' + (j.words || []).length + ' words, fewer than 5000');
+    else if (new Set(j.words).size !== j.words.length) bad.push('data/word-freq.json repeats a word');
+    if (!/public domain/i.test(String(j.licence)) || !/pdtexts/.test(String(j.source))) bad.push('data/word-freq.json does not name its public-domain source and licence');
+    const r = require('child_process').spawnSync(process.execPath, [path.join(root, 'tools/word-freq.js'), '--check'], { encoding: 'utf8' });
+    if (r.status !== 0) bad.push('data/word-freq.json is stale against data/pdtexts: run node tools/word-freq.js');
+  }
+  if (/word-freq/.test(fs.readFileSync(path.join(root, 'index.html'), 'utf8'))) bad.push('index.html loads the word ranks; only the coach may fetch them, lazily');
+  const src = fs.readFileSync(path.join(__dirname, 'rewrite.js'), 'utf8'), cut = src.indexOf('const rwAllTerms_');
+  if (!/rwRanksLoad_\(/.test(src.slice(src.indexOf('function rwDraw_')))) bad.push('rwDraw_ never asks for the word ranks');
+  const ctx = vm.createContext({});
+  vm.runInContext(src.slice(0, cut) + ';globalThis.K = { rwWeigh_, setRanks: w => { RW_RANKED = w && new Set(w.map(rwStem_)); } };', ctx);
+  const K = ctx.K, at = (t, w) => K.rwWeigh_(w, t, t.indexOf(w));
+  const T = 'the merchant uses chlorophyll';
+  if (at(T, 'chlorophyll') !== 2 || at(T, 'merchant') !== 2) bad.push('with no ranks loaded a word of substance no longer weighs 2 (the fallback broke)');
+  K.setRanks(j && j.words || []);
+  if (at(T, 'chlorophyll') !== 2.5) bad.push('with the ranks, a word no rank reaches ("chlorophyll") is not the rarest (2.5)');
+  if (at(T, 'merchant') !== 2) bad.push('with the ranks, a ranked word of substance ("merchant") does not weigh 2');
+}
+
 if (bad.length) {
   console.log('check-rewrite: ' + bad.length + ' failure(s)\n  - ' + bad.join('\n  - '));
   process.exit(1);
 }
-console.log('check-rewrite: admin only, no key said plainly, its own cap, the text fenced as data, the AI only tidies, words cues and judges one fact per answer with a real quote, nothing kept; small facts, specific distinct cues, spelling forgiven, per-fact scores and the copying check hold with no AI');
+console.log('check-rewrite: admin only, no key said plainly, its own cap, the text fenced as data, the AI only tidies, words cues and judges one fact per answer with a real quote, nothing kept; small facts, specific distinct cues, spelling forgiven, per-fact scores and the copying check hold with no AI; the word ranks are current, public domain and lazily fetched');
