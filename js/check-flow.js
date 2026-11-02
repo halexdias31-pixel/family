@@ -31756,7 +31756,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list (570); Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+check('Mechanics (548, 650): Library → Mechanics offers Part and Car; Car → Brand BMW → Model E30; Part → Brand Renault → Model Clio narrows to its parts; the Parts tile on a car card opens them; a part card draws its words and source', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31775,17 +31775,35 @@ check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list 
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Model,Part,Parts list') bad.push('Mechanics → Card type offers ' + kinds);
-  S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
-  if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
-  if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  if (kinds !== 'Car,Part') bad.push('Mechanics → Card type offers ' + kinds);
+  const base = S.filters.slice();
+  S.filters.push({ field: 'mKind', value: 'Car' }, { field: 'mMake', value: 'BMW' });
+  if (vals('mModel').join() !== 'E30') bad.push('Car → BMW offers models ' + vals('mModel').join(', '));
+  if (vals('mEngine').length !== 4) bad.push('BMW cars offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  S.filters = base.concat({ field: 'mKind', value: 'Part' });
+  if (vals('mMake').sort().join() !== 'BMW,Renault') bad.push('Part → Brand offers ' + vals('mMake').join(', '));
+  S.filters.push({ field: 'mMake', value: 'Renault' });
+  /* A part fitting both cars answers both models, so E30 may stay on offer; Clio must be. */
+  if (vals('mModel').indexOf('Clio') < 0) bad.push('Part → Renault offers models ' + vals('mModel').join(', '));
+  S.filters.push({ field: 'mModel', value: 'Clio' });
+  const clio = w.stuffFiltered();
+  if (!clio.length || clio.some(x => (x.mModel || []).indexOf('Clio') < 0)) bad.push('Part → Renault → Clio found ' + clio.length + ', not only Clio parts');
+  if (clio.length >= all.filter(x => x.mKind === 'Part').length) bad.push('Part → Renault → Clio did not narrow');
+  const car = all.find(x => x.mKind === 'Car' && x.mModel === 'E30');
+  const tile = /data-do="mech-parts"[^>]*data-car="E30"/.test(w.mechCard_(car));
+  if (!tile) bad.push('a car card offers no Parts tile');
+  else {
+    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.make = 'BMW'; b.dataset.car = 'E30'; w.document.body.appendChild(b); b.click(); b.remove();
+    const got = t.STUFF().filters.map(c => c.field + '=' + c.value).join();
+    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mMake=BMW,mModel=E30') bad.push('the Parts tile set ' + got);
+  }
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
   if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
   /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
   for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
-  const model = all.find(x => x.mKind === 'Model');
-  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or model card draws no picture');
+  const model = all.find(x => x.mKind === 'Car');
+  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or car card draws no picture');
   return bad;
 });
 

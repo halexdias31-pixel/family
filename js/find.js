@@ -195,7 +195,7 @@ const KINDS = {
   orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
   /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
   hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
-  /* MECHANICS (548): parts, models, jobs and symptoms, Library like the rest; `mKind` says which, js/mechanics.js. */
+  /* MECHANICS (548, 650): parts and cars, Library like the rest; `mKind` says which, js/mechanics.js. */
   mech: { group: 'Learning', label: 'Library', card: x => mechCard_(x) },
   /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
   chem: { group: 'Learning', label: 'Library', card: x => chemCard_(x) },
@@ -442,7 +442,7 @@ const FACETS = [
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mMake',     label: 'Make',        of: x => x.mMake || '' },
+  { field: 'mMake',     label: 'Brand',       of: x => x.mMake || '' },
   { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */

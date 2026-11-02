@@ -26,7 +26,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'Renault Clio' (Clio III) and 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine"
+"source": "Wikipedia, 'Renault Clio' (Clio III) and 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine",
+"car": "Clio"
 },
 {
 "id": "MM-002",
@@ -50,7 +51,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine"
+"source": "Wikipedia, 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine",
+"car": "Clio"
 },
 {
 "id": "MM-003",
@@ -78,7 +80,8 @@
 "Later versions carry a diesel particulate filter"
 ]
 ],
-"source": "Wikipedia, 'Renault K engine' — https://en.wikipedia.org/wiki/Renault_K_engine"
+"source": "Wikipedia, 'Renault K engine' — https://en.wikipedia.org/wiki/Renault_K_engine",
+"car": "Clio"
 },
 {
 "id": "MM-004",
@@ -102,7 +105,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'Renault Clio' (Clio Renault Sport) — https://en.wikipedia.org/wiki/Renault_Clio"
+"source": "Wikipedia, 'Renault Clio' (Clio Renault Sport) — https://en.wikipedia.org/wiki/Renault_Clio",
+"car": "Clio"
 },
 {
 "id": "MM-005",
@@ -125,7 +129,8 @@
 "3- and 5-door hatchback, and the Sport Tourer estate"
 ]
 ],
-"source": "Wikipedia, 'Renault Clio' — https://en.wikipedia.org/wiki/Renault_Clio"
+"source": "Wikipedia, 'Renault Clio' — https://en.wikipedia.org/wiki/Renault_Clio",
+"car": "Clio"
 },
 {
 "id": "MM-006",
@@ -148,7 +153,8 @@
 "Tensioner and idler, and the water pump where the belt drives it"
 ]
 ],
-"source": "Renault UK service schedule as summarised by owners' clubs (clio.net forums) and Wikipedia's engine pages; confirm in the car's service book"
+"source": "Renault UK service schedule as summarised by owners' clubs (clio.net forums) and Wikipedia's engine pages; confirm in the car's service book",
+"car": "Clio"
 },
 {
 "id": "MM-007",
@@ -171,7 +177,8 @@
 "Annual, with a mileage limit of about 12,000–18,000 miles by engine"
 ]
 ],
-"source": "Renault owner's handbook guidance as quoted by major UK oil makers' look-up tools (e.g. Castrol, Comma); confirm for the exact engine"
+"source": "Renault owner's handbook guidance as quoted by major UK oil makers' look-up tools (e.g. Castrol, Comma); confirm for the exact engine",
+"car": "Clio"
 },
 {
 "id": "MM-008",
@@ -190,7 +197,8 @@
 "DOT 4, changed about every 2 years"
 ]
 ],
-"source": "Renault owner's handbook guidance as quoted by UK parts retailers' fluid look-ups; confirm in the handbook"
+"source": "Renault owner's handbook guidance as quoted by UK parts retailers' fluid look-ups; confirm in the handbook",
+"car": "Clio"
 },
 {
 "id": "MM-009",
@@ -213,7 +221,8 @@
 "On a label inside the driver's door"
 ]
 ],
-"source": "UK tyre retailers' size look-ups by model (e.g. Kwik Fit, Black Circles); confirm on the tyre sidewall"
+"source": "UK tyre retailers' size look-ups by model (e.g. Kwik Fit, Black Circles); confirm on the tyre sidewall",
+"car": "Clio"
 },
 {
 "id": "MM-010",
@@ -240,7 +249,8 @@
 "P21/5W stop and tail, P21W reverse and fog"
 ]
 ],
-"source": "UK bulb retailers' vehicle look-ups (e.g. Ring, Halfords); confirm against the old bulb"
+"source": "UK bulb retailers' vehicle look-ups (e.g. Ring, Halfords); confirm against the old bulb",
+"car": "Clio"
 },
 {
 "id": "MM-101",
@@ -268,7 +278,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'BMW M40' — https://en.wikipedia.org/wiki/BMW_M40"
+"source": "Wikipedia, 'BMW M40' — https://en.wikipedia.org/wiki/BMW_M40",
+"car": "E30"
 },
 {
 "id": "MM-102",
@@ -296,7 +307,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'BMW M40' — https://en.wikipedia.org/wiki/BMW_M40"
+"source": "Wikipedia, 'BMW M40' — https://en.wikipedia.org/wiki/BMW_M40",
+"car": "E30"
 },
 {
 "id": "MM-103",
@@ -324,7 +336,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'BMW M20' — https://en.wikipedia.org/wiki/BMW_M20"
+"source": "Wikipedia, 'BMW M20' — https://en.wikipedia.org/wiki/BMW_M20",
+"car": "E30"
 },
 {
 "id": "MM-104",
@@ -352,7 +365,8 @@
 "Belt"
 ]
 ],
-"source": "Wikipedia, 'BMW M20' — https://en.wikipedia.org/wiki/BMW_M20"
+"source": "Wikipedia, 'BMW M20' — https://en.wikipedia.org/wiki/BMW_M20",
+"car": "E30"
 },
 {
 "id": "MM-105",
@@ -375,7 +389,8 @@
 "Rear-wheel drive; a 325i Touring and the M3 were other bodies of the same family"
 ]
 ],
-"source": "Wikipedia, 'BMW 3 Series (E30)' — https://en.wikipedia.org/wiki/BMW_3_Series_(E30)"
+"source": "Wikipedia, 'BMW 3 Series (E30)' — https://en.wikipedia.org/wiki/BMW_3_Series_(E30)",
+"car": "E30"
 },
 {
 "id": "MM-106",
@@ -398,7 +413,8 @@
 "Worn camshaft lobes and rocker arms are worth checking with the cover off"
 ]
 ],
-"source": "Wikipedia, 'BMW M20' and 'BMW M40', and the BMW Car Club GB E30 register"
+"source": "Wikipedia, 'BMW M20' and 'BMW M40', and the BMW Car Club GB E30 register",
+"car": "E30"
 },
 {
 "id": "MM-107",
@@ -421,7 +437,8 @@
 "The dashboard Service Interval Indicator lights call for an Oil Service or an Inspection, roughly every 7,500–15,000 miles by how the car is driven"
 ]
 ],
-"source": "Wikipedia, 'BMW 3 Series (E30)', and owners' clubs' maintenance guides; confirm in the service book"
+"source": "Wikipedia, 'BMW 3 Series (E30)', and owners' clubs' maintenance guides; confirm in the service book",
+"car": "E30"
 },
 {
 "id": "MM-108",
@@ -444,7 +461,8 @@
 "The plastic expansion tank, thermostat housing and viscous fan clutch age badly"
 ]
 ],
-"source": "Owners' clubs' maintenance guides (BMW Car Club GB, r3vlimited forum)"
+"source": "Owners' clubs' maintenance guides (BMW Car Club GB, r3vlimited forum)",
+"car": "E30"
 },
 {
 "id": "MM-109",
@@ -467,7 +485,8 @@
 "Four bolts on a 4x100 pattern"
 ]
 ],
-"source": "Wikipedia, 'BMW 3 Series (E30)', and UK tyre retailers' size look-ups"
+"source": "Wikipedia, 'BMW 3 Series (E30)', and UK tyre retailers' size look-ups",
+"car": "E30"
 },
 {
 "id": "MM-110",
@@ -490,7 +509,8 @@
 "P21/5W stop and tail, P21W reverse"
 ]
 ],
-"source": "UK bulb retailers' vehicle look-ups and owners' clubs; confirm against the old bulb"
+"source": "UK bulb retailers' vehicle look-ups and owners' clubs; confirm against the old bulb",
+"car": "E30"
 }
 ]
 }

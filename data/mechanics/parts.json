@@ -7,7 +7,12 @@
 "does": "A toothed rubber belt that keeps the crankshaft and camshaft(s) turning in step, so the valves open at the right moment.",
 "part_no": "EX-ENG-001",
 "value": "£20–£60 (kit with pulleys £60–£150)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-002",
@@ -25,7 +30,12 @@
 "does": "A ribbed belt that drives the alternator, the water pump on some engines, the power steering pump and the air-con compressor.",
 "part_no": "EX-ENG-003",
 "value": "£10–£30",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-004",
@@ -34,7 +44,12 @@
 "does": "Hold the right tension on a belt and guide its route.",
 "part_no": "EX-ENG-004",
 "value": "£25–£90",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-005",
@@ -43,7 +58,12 @@
 "does": "Seals the joint between the cylinder head and the block, keeping combustion, oil and coolant apart.",
 "part_no": "EX-ENG-005",
 "value": "£20–£80 (set £60–£200)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-006",
@@ -52,7 +72,12 @@
 "does": "Rubber-and-metal blocks that hold the engine to the body and soak up its vibration.",
 "part_no": "EX-ENG-006",
 "value": "£20–£80 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-007",
@@ -61,7 +86,12 @@
 "does": "Seals the top cover of the engine so oil stays in.",
 "part_no": "EX-ENG-007",
 "value": "£8–£30",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-008",
@@ -70,7 +100,11 @@
 "does": "Uses exhaust gas to spin a compressor that pushes more air into the engine for more power.",
 "part_no": "EX-ENG-008",
 "value": "£250–£800",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
 },
 {
 "id": "MP-009",
@@ -79,7 +113,12 @@
 "does": "Stops dust and grit getting into the engine with the air it breathes.",
 "part_no": "EX-ENG-009",
 "value": "£6–£20",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-010",
@@ -88,7 +127,11 @@
 "does": "Feeds a little exhaust gas back into the intake to cut nitrogen oxides.",
 "part_no": "EX-ENG-010",
 "value": "£60–£250",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
 },
 {
 "id": "MP-011",
@@ -97,7 +140,12 @@
 "does": "Catches dirt and water before fuel reaches the injectors; vital on a diesel.",
 "part_no": "EX-FUE-011",
 "value": "£8–£35",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-012",
@@ -106,7 +154,12 @@
 "does": "Pushes fuel from the tank to the engine at the pressure it needs.",
 "part_no": "EX-FUE-012",
 "value": "£50–£200",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-013",
@@ -115,7 +168,12 @@
 "does": "Spray a measured mist of fuel into the engine at exactly the right moment.",
 "part_no": "EX-FUE-013",
 "value": "£40–£150 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-014",
@@ -124,7 +182,12 @@
 "does": "The valve that lets air into a petrol engine as the accelerator is pressed.",
 "part_no": "EX-FUE-014",
 "value": "£60–£250",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-015",
@@ -133,7 +196,11 @@
 "does": "Heat the combustion chamber of a diesel so it starts from cold.",
 "part_no": "EX-FUE-015",
 "value": "£8–£25 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
 },
 {
 "id": "MP-016",
@@ -142,7 +209,12 @@
 "does": "Make the spark that lights the fuel and air in a petrol engine.",
 "part_no": "EX-IGN-016",
 "value": "£4–£15 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-017",
@@ -151,7 +223,11 @@
 "does": "Turns 12 volts into the many thousands of volts a spark plug needs.",
 "part_no": "EX-IGN-017",
 "value": "£25–£90",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only)"
 },
 {
 "id": "MP-018",
@@ -160,7 +236,11 @@
 "does": "Carry the high voltage from the coil or distributor to the plugs on older engines.",
 "part_no": "EX-IGN-018",
 "value": "£15–£50 (set)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-019",
@@ -169,7 +249,11 @@
 "does": "On older engines, sends the spark to each cylinder in turn.",
 "part_no": "EX-IGN-019",
 "value": "£15–£45",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-020",
@@ -178,7 +262,12 @@
 "does": "Tells the engine computer where the crank is and how fast it is turning.",
 "part_no": "EX-IGN-020",
 "value": "£15–£60",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
 },
 {
 "id": "MP-021",
@@ -187,7 +276,12 @@
 "does": "Sheds engine heat into the air passing through it.",
 "part_no": "EX-COO-021",
 "value": "£50–£180",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-022",
@@ -196,7 +290,12 @@
 "does": "Circulates coolant through the engine and radiator.",
 "part_no": "EX-COO-022",
 "value": "£25–£90",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-023",
@@ -205,7 +304,12 @@
 "does": "A valve that keeps coolant in the engine until it is warm, then opens to the radiator.",
 "part_no": "EX-COO-023",
 "value": "£10–£45",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-024",
@@ -214,7 +318,12 @@
 "does": "Rubber pipes carrying coolant between engine, radiator and heater.",
 "part_no": "EX-COO-024",
 "value": "£10–£40 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-025",
@@ -223,7 +332,12 @@
 "does": "Holds spare coolant and keeps the system at the right pressure.",
 "part_no": "EX-COO-025",
 "value": "£20–£60",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-026",
@@ -232,7 +346,12 @@
 "does": "Pulls air through the radiator when the car is slow or standing.",
 "part_no": "EX-COO-026",
 "value": "£50–£180",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-027",
@@ -241,7 +360,12 @@
 "does": "Carries heat, stops freezing and protects the engine's metals from corrosion.",
 "part_no": "EX-COO-027",
 "value": "£10–£25 (5 litres)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-028",
@@ -250,7 +374,12 @@
 "does": "Coats moving parts, carries heat away and holds dirt until it is drained.",
 "part_no": "EX-LUB-028",
 "value": "£25–£50 (5 litres)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-029",
@@ -259,7 +388,12 @@
 "does": "Strains dirt out of the oil as it circulates.",
 "part_no": "EX-LUB-029",
 "value": "£5–£15",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-030",
@@ -268,7 +402,12 @@
 "does": "The pan under the engine that holds the oil, and the plug it drains from.",
 "part_no": "EX-LUB-030",
 "value": "£3–£10 (plug), £50–£150 (sump)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-031",
@@ -277,7 +416,12 @@
 "does": "Turns on the oil light when pressure drops too low.",
 "part_no": "EX-LUB-031",
 "value": "£8–£25",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-032",
@@ -286,7 +430,12 @@
 "does": "Turns the worst exhaust gases into less harmful ones.",
 "part_no": "EX-EXH-032",
 "value": "£150–£600",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-033",
@@ -304,7 +453,12 @@
 "does": "Measures oxygen in the exhaust so the engine computer can trim the fuel.",
 "part_no": "EX-EXH-034",
 "value": "£30–£100",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-035",
@@ -313,7 +467,12 @@
 "does": "Carry gases away from the car and quieten them.",
 "part_no": "EX-EXH-035",
 "value": "£40–£150 a section",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-036",
@@ -322,7 +481,12 @@
 "does": "Hang the exhaust under the car and stop it knocking.",
 "part_no": "EX-EXH-036",
 "value": "£3–£10 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-037",
@@ -331,7 +495,12 @@
 "does": "The friction plate, pressure plate and release bearing that join and part the engine and the gearbox.",
 "part_no": "EX-TRN-037",
 "value": "£80–£250",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-038",
@@ -340,7 +509,12 @@
 "does": "Carries the pedal's movement to the clutch, by cable or by fluid in a master and slave cylinder.",
 "part_no": "EX-TRN-038",
 "value": "£15–£40 (cable), £40–£120 (cylinders)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-039",
@@ -358,7 +532,12 @@
 "does": "Lubricates the gears and synchromesh inside the gearbox.",
 "part_no": "EX-TRN-040",
 "value": "£15–£35",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-041",
@@ -367,7 +546,11 @@
 "does": "Let the driveshafts turn the wheels while they steer and move up and down.",
 "part_no": "EX-TRN-041",
 "value": "£15–£40 (boot kit), £40–£120 (joint)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-042",
@@ -376,7 +559,11 @@
 "does": "On rear-wheel-drive cars, carries drive from the gearbox to the rear axle.",
 "part_no": "EX-TRN-042",
 "value": "£40–£100 (bearing), £200–£500 (shaft)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-043",
@@ -385,7 +572,12 @@
 "does": "Friction blocks that squeeze the brake disc to slow the car.",
 "part_no": "EX-BRK-043",
 "value": "£15–£50 (axle set)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-044",
@@ -394,7 +586,12 @@
 "does": "The metal rotors the pads grip.",
 "part_no": "EX-BRK-044",
 "value": "£30–£90 (pair)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-045",
@@ -403,7 +600,12 @@
 "does": "Hold the pads and push them against the disc with hydraulic pressure.",
 "part_no": "EX-BRK-045",
 "value": "£40–£120 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-046",
@@ -412,7 +614,12 @@
 "does": "Transmits the pedal's force to every brake; it absorbs water over time.",
 "part_no": "EX-BRK-046",
 "value": "£5–£15 (1 litre)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-047",
@@ -421,7 +628,12 @@
 "does": "Rear brakes on many small cars: shoes push out against the inside of a drum.",
 "part_no": "EX-BRK-047",
 "value": "£20–£45 (shoes), £40–£90 (drums, pair)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-048",
@@ -430,7 +642,12 @@
 "does": "Pulls on the rear brakes to hold the car still.",
 "part_no": "EX-BRK-048",
 "value": "£15–£45",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-049",
@@ -439,7 +656,12 @@
 "does": "Carry brake fluid from the master cylinder to each wheel.",
 "part_no": "EX-BRK-049",
 "value": "£8–£25 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-050",
@@ -448,7 +670,12 @@
 "does": "Calm the springs so the car does not keep bouncing after a bump.",
 "part_no": "EX-SUS-050",
 "value": "£30–£90 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-051",
@@ -457,7 +684,12 @@
 "does": "Hold the car's weight and absorb bumps.",
 "part_no": "EX-SUS-051",
 "value": "£20–£60 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-052",
@@ -466,7 +698,12 @@
 "does": "Join the anti-roll bar to the suspension so the car leans less in corners.",
 "part_no": "EX-SUS-052",
 "value": "£10–£30 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-053",
@@ -475,7 +712,12 @@
 "does": "Locate the wheel and let it move up and down; the rubber bushes absorb shocks.",
 "part_no": "EX-SUS-053",
 "value": "£30–£90 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-054",
@@ -484,7 +726,12 @@
 "does": "Pivot points between the suspension arms and the hub.",
 "part_no": "EX-SUS-054",
 "value": "£12–£35 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-055",
@@ -493,7 +740,12 @@
 "does": "Bearings at the top of the strut that let it turn as the car steers.",
 "part_no": "EX-SUS-055",
 "value": "£15–£50 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-056",
@@ -502,7 +754,12 @@
 "does": "Let the wheel spin freely on its hub.",
 "part_no": "EX-SUS-056",
 "value": "£20–£70 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-057",
@@ -511,7 +768,12 @@
 "does": "The outer joints of the steering that turn the wheel hub.",
 "part_no": "EX-STE-057",
 "value": "£10–£30 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-058",
@@ -520,7 +782,11 @@
 "does": "Turns the steering wheel's rotation into the sideways push that steers.",
 "part_no": "EX-STE-058",
 "value": "£150–£400 (reconditioned)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-059",
@@ -529,7 +795,11 @@
 "does": "On hydraulic systems, pumps fluid that does most of the work of steering.",
 "part_no": "EX-STE-059",
 "value": "£80–£250 (pump)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-060",
@@ -538,7 +808,11 @@
 "does": "Assists the steering with an electric motor instead of a hydraulic pump.",
 "part_no": "EX-STE-060",
 "value": "£200–£600 (reconditioned)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-061",
@@ -547,7 +821,12 @@
 "does": "Starts the car and steadies the electrical supply.",
 "part_no": "EX-ELE-061",
 "value": "£60–£150",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-062",
@@ -556,7 +835,12 @@
 "does": "Charges the battery and powers the car while the engine runs.",
 "part_no": "EX-ELE-062",
 "value": "£80–£250",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-063",
@@ -565,7 +849,12 @@
 "does": "Turns the engine over to start it.",
 "part_no": "EX-ELE-063",
 "value": "£60–£200",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-064",
@@ -574,7 +863,12 @@
 "does": "Protect circuits and switch heavy loads.",
 "part_no": "EX-ELE-064",
 "value": "£1–£15 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-065",
@@ -583,7 +877,12 @@
 "does": "The computer that runs the engine's fuel and spark.",
 "part_no": "EX-ELE-065",
 "value": "£100–£500 (used or reconditioned, needs coding)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-066",
@@ -592,7 +891,11 @@
 "does": "The dipped and main beam lights.",
 "part_no": "EX-LIT-066",
 "value": "£5–£25 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-067",
@@ -601,7 +904,11 @@
 "does": "Signal turns and braking.",
 "part_no": "EX-LIT-067",
 "value": "£1–£5 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-068",
@@ -610,7 +917,11 @@
 "does": "Light the plate at night and the cabin.",
 "part_no": "EX-LIT-068",
 "value": "£1–£4 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-069",
@@ -619,7 +930,11 @@
 "does": "Clear rain from the windscreen.",
 "part_no": "EX-BOD-069",
 "value": "£8–£30 (pair)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-070",
@@ -628,7 +943,11 @@
 "does": "Lock and unlock the doors, often by motor.",
 "part_no": "EX-BOD-070",
 "value": "£30–£120 a lock",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-071",
@@ -637,7 +956,11 @@
 "does": "The mechanism that raises and lowers a window.",
 "part_no": "EX-BOD-071",
 "value": "£30–£100",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-072",
@@ -646,7 +969,11 @@
 "does": "The structural edges under the doors and round the wheels.",
 "part_no": "EX-BOD-072",
 "value": "£20–£60 a repair panel",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
 },
 {
 "id": "MP-073",
@@ -655,7 +982,12 @@
 "does": "The only contact the car has with the road.",
 "part_no": "EX-TYR-073",
 "value": "£50–£150 each",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-074",
@@ -664,7 +996,12 @@
 "does": "The angles of the wheels to each other and to the car.",
 "part_no": "EX-TYR-074",
 "value": "£30–£70 (a garage service, no part)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-075",
@@ -673,7 +1010,12 @@
 "does": "Hold the wheel to the hub.",
 "part_no": "EX-TYR-075",
 "value": "£1–£4 each, £20–£40 locking set",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-076",
@@ -682,7 +1024,12 @@
 "does": "Gets the car home after a puncture.",
 "part_no": "EX-TYR-076",
 "value": "£20–£40 (kit), £50–£120 (wheel)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
 },
 {
 "id": "MP-077",
@@ -691,7 +1038,11 @@
 "does": "Cleans the air blown into the cabin.",
 "part_no": "EX-HVA-077",
 "value": "£6–£20",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-078",
@@ -700,7 +1051,11 @@
 "does": "The fan that blows air into the cabin, and the resistor that sets its speed.",
 "part_no": "EX-HVA-078",
 "value": "£15–£40 (resistor), £50–£120 (motor)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-079",
@@ -709,7 +1064,11 @@
 "does": "A small radiator behind the dashboard that warms the cabin air.",
 "part_no": "EX-HVA-079",
 "value": "£40–£120",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 },
 {
 "id": "MP-080",
@@ -718,7 +1077,11 @@
 "does": "The pump and refrigerant that cool the cabin air.",
 "part_no": "EX-HVA-080",
 "value": "£200–£500 (compressor), £50–£90 (re-gas)",
-"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
 }
 ]
 }
