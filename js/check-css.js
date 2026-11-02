@@ -389,6 +389,14 @@ say('A BLOCK THAT IS NEVER CLOSED — everything after it is inside it',
       Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' appears ' + seen[k] + ' times'));
 }
 
+/* RADII IN PX (561, U17): a corner is drawn for a fingertip-sized box, so it must not grow with the viewport-scaled root font. */
+{
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+  const bad = [];
+  css.split('\n').forEach((l, i) => { if (/radius\s*:[^;}]*\d(\.\d+)?rem\b/.test(l)) bad.push('line ' + (i + 1) + '  ' + l.trim().slice(0, 100)); });
+  say('A BORDER-RADIUS IN rem — write it in px', bad);
+}
+
 /* PHONE OR WIDE BEFORE THE FIRST PAINT (561): index.html's head says html.wide at WIDE_FROM, the same number shell.js uses. */
 {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
