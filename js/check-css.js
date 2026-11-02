@@ -389,6 +389,16 @@ say('A BLOCK THAT IS NEVER CLOSED — everything after it is inside it',
       Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' appears ' + seen[k] + ' times'));
 }
 
+/* PHONE OR WIDE BEFORE THE FIRST PAINT (561): index.html's head says html.wide at WIDE_FROM, the same number shell.js uses. */
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const sh = fs.readFileSync(path.join(__dirname, 'shell.js'), 'utf8');
+  const head = (html.match(/min-width:\s*(\d+)px\)'\)\.matches\) document\.documentElement\.classList\.add\('wide'\)/) || [])[1];
+  const from = (sh.match(/const WIDE_FROM\s*=\s*(\d+)/) || [])[1];
+  say('THE WIDE CLASS IS NOT SET BEFORE FIRST PAINT AT WIDE_FROM — the body jumps from phone to wide when shell.js runs',
+      !head || !from ? ['index.html head or WIDE_FROM not found'] : head !== from ? ['index.html says ' + head + 'px, WIDE_FROM is ' + from] : []);
+}
+
 say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
