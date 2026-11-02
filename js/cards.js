@@ -332,8 +332,7 @@ function findCard(x) {
           ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
           ${/* ---------- THE RATE, UP HERE AND BIGGER § */
                 ''}
-          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span>${
-              profSeat_(t) ? `<span class="prof-seat">+${esc(money(profSeat_(t)))}/h a seat</span>` : ''}</span>` : ''}
+          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
           ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
                 ''}
         </div>

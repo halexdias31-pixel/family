@@ -75,6 +75,7 @@ const SUITE = [
   /* PUBLIC-DOMAIN TEXTS (514): the index, every file, sources and licences, nothing over 2 MB. */
   { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
   { file: 'check-mechanics.js', what: 'the mechanics cards: system, source, no part numbers (548)' },
+  { file: 'check-chemistry.js', what: 'the chemistry cards: 118 elements 1–118, reactions name real cards, sources (550)' },
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
   { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate' },
@@ -244,6 +245,7 @@ const SUITE = [
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
   { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
+  { file: 'check/share-profile.js', what: 'the shared staff profile, against the profile card on the site at 390px', slow: true },
   /* THE POLISH HARNESS (531): three visitors at 320, 390 and 1280, one browser each, scenarios in check/steady|jank|touch/. */
   { file: 'check/steady.js',  what: 'nothing moves that was not asked to: layout shift, the card in front, scroll offsets', slow: true },
   { file: 'check/jank.js',    what: 'no long task while nothing is touched', slow: true },

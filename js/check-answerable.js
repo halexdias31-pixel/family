@@ -17,10 +17,8 @@ const ACCEPTED = [
   [/^Q-(R0396|R0388|R0376|P-AQA-8700-2506-1|R0395|R0393|R0394|R0379|R0377)-/, 'reading', 'AQA English Language: this paper\'s insert is not in Drive, or only its redacted copy (458)'],
   [/^Q-(R0375|R0390)-/, 'reading', 'AQA English Language Paper 2: Drive\'s copy of the insert has Source B and not Source A (458)'],
   /* THE BOARDS' BULK PAPERS (521) name inserts no row stands for yet: the owner to supply each, verified, before the paper's parts can open one */
-  [/^Q-AQA-7037-(2111-1-05-2|2206-1-05-3)$/, 'insert', 'AQA A-level Geography 7037/1: its figures are in the paper\'s own insert, not in Drive (521)'],
-  [/^Q-OCR-H420-(1806-01-23a|2111-01-17a)$/, 'insert', 'OCR A-level Biology H420/01: its micrographs are in the paper\'s own insert, not in Drive (521)'],
-  [/^Q-AQA-7405-(2406-1-012|2506-1-071|2506-3-25)$/, 'insert', 'AQA A-level Chemistry 7405: its Periodic Table is the data booklet, no insert row yet (INS-GCSE-PERIODIC is GCSE\'s) (521)'],
-  [/^Q-OCR-J248-(1806-01-(04|10|11)|2111-02-(08|16biii))$/, 'insert', 'OCR GCSE Chemistry J248: its periodic table is OCR\'s own, and INS-GCSE-PERIODIC is AQA\'s, not compared with it (521)'],
+  [/^Q-AQA-7037-(2111-1-05-2|2206-1-05-3)$/, 'insert', 'AQA A-level Geography 7037/1: AQA\'s public insert prints Figures 9a-9d and 10a-10c as "not reproduced, third-party copyright" (521)'],
+  [/^Q-OCR-H420-(1806-01-23a|2111-01-17a)$/, 'insert', 'OCR A-level Biology H420/01: the inserts are micrographs, which an insert row\'s words cannot carry, and OCR publishes no Nov 2021 insert (521)'],
 ];
 const accepted = (id, inv) => ACCEPTED.find(a => a[1] === inv && a[0].test(id));
 

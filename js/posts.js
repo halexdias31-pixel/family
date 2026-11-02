@@ -1350,22 +1350,50 @@ function tutorPng_(t) {
   host.innerHTML = findCard({ kind: 'tutor', key: t.title || '', name: t.title || '', row: t });
   const card = host.firstElementChild;
   if (!card) return Promise.reject(new Error('no card'));
+  host.style.width = tpngWidth_(t) + 'px';
   document.body.appendChild(host);
   return tpngInline_(card).then(() => rcPng_(card)).then(r => r.blob)
     .then(b => { host.remove(); return b; }, e => { host.remove(); throw e; });
 }
-/* A PICTURE INSIDE AN SVG IMAGE LOADS NOTHING FROM OUTSIDE, so each photo goes in as data, and one that will not come is left out; the page's #av-clip is not in the picture either. */
+/* THE SITE CARD'S OWN WIDTH, unzoomed, so the picture wraps where the site does; a column's card when no tutor card is drawn. */
+function tpngWidth_(t) {
+  const px = el => { const w = el ? parseFloat(getComputedStyle(el).width) : 0; return w > 0 ? w : 0; };
+  const cards = [...document.querySelectorAll('.card.is-prof')].filter(el => !el.closest('.tpng-host') && px(el));
+  const own = h => ((h.querySelector('.prof-handle') || {}).textContent || '') === '@' + (t && t.handle);
+  const shown = cards.find(own) || cards[0];
+  if (shown) return px(shown);
+  const any = [...document.querySelectorAll('.screen .card, section .card')].find(el => !el.closest('.tpng-host') && px(el));
+  return any ? px(any) : 24 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+}
+/* A PICTURE INSIDE AN SVG IMAGE LOADS NOTHING FROM OUTSIDE, so each photo and map tile goes in as data, decoded before the shot; what will not come is left out whole, never blurred. */
 function tpngInline_(card) {
   card.querySelectorAll('[clip-path="url(#av-clip)"]').forEach(el => el.removeAttribute('clip-path'));
   const asData = src => fetch(src, { mode: 'cors' }).then(r => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
     .then(b => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => no(fr.error); fr.readAsDataURL(b); }));
-  return Promise.all([...card.querySelectorAll('img')].map(img => {
+  const safe = src => { try { return asData(src); } catch (e) { return Promise.reject(e); } };
+  const imgs = [...card.querySelectorAll('img')].map(img => {
     const src = img.getAttribute('src') || '';
-    if (/^data:/.test(src)) return null;
-    let got;
-    try { got = asData(img.src); } catch (e) { got = Promise.reject(e); }
-    return got.then(d => { img.setAttribute('src', d); img.removeAttribute('loading'); }, () => { img.remove(); });
-  }));
+    const got = /^data:/.test(src) ? Promise.resolve(src) : safe(img.src);
+    return got.then(d => { img.removeAttribute('loading'); img.setAttribute('src', d);
+      return img.decode ? img.decode().catch(() => img.remove()) : null; }, () => { img.remove(); });
+  });
+  const maps = [...card.querySelectorAll('.prof-heat')].map(heat => {
+    const drop = () => {
+      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
+      heat.remove();
+      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
+    };
+    const tiles = heat.querySelector('.heat-tiles');
+    const css = tiles ? tiles.style.backgroundImage : '';
+    const urls = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(m => m[1]);
+    if (!urls.length) { drop(); return null; }
+    return Promise.all(urls.map(safe)).then(ds => {
+      tiles.style.backgroundImage = ds.map(d => 'url("' + d + '")').join(',');
+      return Promise.all(ds.map(d => { const i = new Image(); i.src = d; return i.decode ? i.decode() : null; }));
+    }).catch(drop);
+  });
+  const fonts = document.fonts && document.fonts.ready ? document.fonts.ready.catch(() => {}) : null;
+  return Promise.all(imgs.concat(maps, [fonts]));
 }
 
 /* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */

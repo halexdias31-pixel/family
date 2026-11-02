@@ -40,9 +40,25 @@ FILES.forEach(f => data[f].forEach(r => {
   if (m) fail.push(at + ': "' + m[0] + '" looks like a part number');
   if (/\b[A-Z]{1,3}\s?\d{2}\s?[A-Z]{3}\b|\b[A-Z]\d{1,3}\s?[A-Z]{3}\b/.test(words)) fail.push(at + ': something that looks like a number plate');
 }));
+/* EVERY PART AND CAR HAS ITS PICTURE (tools/mech_pixels.py): 64 rows of 64 letters, each a palette colour or '.'. */
+let pix = null;
+try { pix = JSON.parse(fs.readFileSync(path.join(dir, 'pixels.json'), 'utf8')); } catch (e) {}
+if (!pix || !pix.images || !pix.palette) fail.push('data/mechanics/pixels.json did not load — run python3 tools/mech_pixels.py');
+else {
+  const ok = new Set(Object.keys(pix.palette).concat('.'));
+  Object.keys(pix.palette).forEach(k => { if (!/^#[0-9a-f]{6}$/i.test(pix.palette[k])) fail.push('pixels palette ' + k + ' is not a #rrggbb colour'); });
+  const want = data.parts.map(p => p.id).concat([...new Set(data.models.map(m => 'car:' + m.model))]);
+  want.forEach(k => {
+    const rows = pix.images[k];
+    if (!Array.isArray(rows) || rows.length !== 64 || rows.some(r => typeof r !== 'string' || r.length !== 64)) return fail.push('picture ' + k + ' is missing or not 64x64');
+    const bad = [...rows.join('')].find(ch => !ok.has(ch));
+    if (bad) fail.push('picture ' + k + ' uses "' + bad + '", which is no palette colour');
+    if (!/[^.]/.test(rows.join(''))) fail.push('picture ' + k + ' is blank');
+  });
+}
 if (fail.length) {
   fail.forEach(f => console.error('  ' + f));
   console.error('check-mechanics: ' + fail.length + ' fault(s)');
   process.exit(1);
 }
-console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a system and a source, no part numbers.');
+console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a system and a source, no part numbers; ' + Object.keys((pix && pix.images) || {}).length + ' pictures 64x64 in the palette.');
