@@ -69,6 +69,8 @@ const TABS = [
   { id: 'parents',  icon: '👪', label: 'Parent profiles',  title: 'Parent profiles' },
   { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
   { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
+  /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
+  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice', title: 'Apprentice' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -87,7 +89,7 @@ const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social
                    'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'family', 'staff', 'account',                      /* Parent, Tutor and Student account settings (461) */
+                   'family', 'staff', 'apprentice', 'account',                    /* Parent, Tutor and Student account settings (461) */
                    'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
                    'biz', 'site'];                                    /* the admin's two: Business, then Site (491) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));

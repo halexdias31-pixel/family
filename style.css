@@ -5695,6 +5695,11 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   border: 1px solid var(--cs-edge); }
 .cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 1rem 1rem 2.6rem 1rem; }
 .cs-wide { padding: .6rem .6rem .7rem; border-radius: 1.1rem; }
+.lk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 22rem; margin: .5rem auto; }
+.lk-sq { min-height: 44px; font-size: 1.4rem; border: 1px solid var(--line); border-radius: .4rem; background: var(--bg); color: var(--ink); }
+.lk-sq.on { outline: 3px solid var(--gold); }
+.lk-sq:disabled { border-color: transparent; }
+.gs-q { font-size: 1.1rem; margin: .6rem 0; }
 .cs-wide .race-stage { margin-top: 0; }
 
 /* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
@@ -7138,3 +7143,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
 .mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 0.5rem; image-rendering: pixelated; }
+
+/* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
+.tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }
+.tl-dot { position: absolute; bottom: -.3rem; width: .5rem; height: .5rem; margin-left: -.25rem; border-radius: 50%; background: var(--line); }
+.tl-dot.past, .tl-dot.on { background: var(--ink); }
+.tl-mark { position: absolute; bottom: -.15rem; width: 0; height: 1.3rem; border-left: 3px solid var(--gold); }
+.tl-now { animation: tl-in .5s ease; }
+.tl-when { margin: 0; opacity: .7; font-size: .85rem; }
+@keyframes tl-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
