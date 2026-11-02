@@ -1260,11 +1260,14 @@ if (notDrawn.length > NOT_DRAWN_MAX) {
 }
 
 /* ---------- AND THE STEMS (owner, 1 Nov: "Where is the sketch?"): a preamble naming a figure nobody has drawn says "Figure not drawn yet." on its page (`stemFigOwed_`), and the count cannot grow. */
-/* 682 since 584: the stems of the scheme-less 1MA1 import (twelve a batch) whose figures the owner chose not to have drawn yet. */
-const STEM_NOT_DRAWN_MAX = 682;
+/* A stem whose every part awaits its scheme (SCHEMA.schemeOwed) is left out: its paper waits for scheme and figures together, so the owner's backlog is that paper, not a ceiling raised per batch (584). */
+const STEM_NOT_DRAWN_MAX = 658;
+const owedQ_ = {};
+rows.forEach(r => { if (r && r.kind === 'question') { const k = r.paper_id + '|' + String(r.question || '').trim(); owedQ_[k] = owedQ_[k] !== false && SCHEMA.schemeOwed(r); } });
 const stemNotDrawn = rows.filter(r => {
   if (!r || r.kind !== 'preamble' || hasPic_(r)) return false;
   const q = String(r.question || '').trim();
+  if (q && owedQ_[r.paper_id + '|' + q]) return false;
   const figured = q ? picAt_['q|' + r.paper_id + '|' + q] : (r.section ? picAt_['s|' + r.paper_id + '|' + r.section] : picAt_['p|' + r.paper_id]);
   return figWanted_(String(r.html || ''), !!figured);
 });
