@@ -30728,7 +30728,7 @@ check('layout engine (508): ▶ on a Site card makes an admin-only column after 
   return bad;
 });
 
-check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
+check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first makes one on the left (600); a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -30781,12 +30781,30 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
   await layPaintAll_(w);
   if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
-  /* ◀ FROM THE FIRST RIGHT-HAND COLUMN STAYS PUT. */
-  const first = laySeen_(w, 'staff')[0] || laySeen_(w, 'account')[0];
-  const lt = layCardTile_(d, first, 'lay-c-col', '-1');
-  if (laySeen_(w, 'family').length === 0 && laySeen_(w, 'staff')[0] === first && lt && !lt.disabled) {} /* family is first, and empty for an admin */
-  const fam = layCardTile_(d, laySeen_(w, 'family')[0], 'lay-c-col', '-1');
-  if (fam && !fam.disabled) bad.push('◀ on the first right-hand column is live');
+  /* ◀ FROM THE FIRST CARD COLUMN MAKES A NEW ONE ON THE LEFT (600), before Parent settings; ◀ again there makes another; ▶ back empties it and it goes. */
+  const lid = laySeen_(w, 'account')[0];
+  let lt = null;
+  for (let k = 0; k < 6 && lid; k++) {
+    await layPaintAll_(w);
+    lt = layCardTile_(d, lid, 'lay-c-col', '-1');
+    if (!lt || lt.disabled) break;
+    const left = /new column on the left/.test(lt.getAttribute('aria-label') || '');
+    A['lay-c-col'](lt); await wait(300);
+    if (left) break;
+    lt = null;
+  }
+  if (!lt || lt.disabled) bad.push('◀ from Student settings never reached "Move to a new column on the left"');
+  else {
+    const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
+    if (!nid || !(LL.custom[0].left === true) || ((LL.cards || {})[nid] || []).indexOf(lid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
+    const lids = t.TABS.map(x => x.id);
+    if (!nid || lids.indexOf(nid) !== lids.indexOf('family') - 1) bad.push('the new left column is not just before Parent settings: ' + lids.join());
+    await layPaintAll_(w); try { w.paint(nid); } catch (e) {}
+    await wait(100);
+    const back = nid && layCardTile_(d, lid, 'lay-c-col', '1');
+    if (back) { A['lay-c-col'](back); await wait(300); }
+    if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed: ' + (back ? back.getAttribute('aria-label') + (back.disabled ? ' (off)' : '') : 'no ▶') + ' ' + JSON.stringify(layLast_(sent)));
+  }
   /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
   const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);

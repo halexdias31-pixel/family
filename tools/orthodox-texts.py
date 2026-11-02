@@ -241,14 +241,14 @@ FIX = {'Wheat is the Divine Gloom.': 'What is the Divine Gloom.'}
 
 
 def work(title, units, *, src, url, author='', author_text='', tradition='Orthodox', era='', genre='', collection='',
-         about='', date_text='', unit='Chapter', translator='', language='English'):
+         about='', date_text='', unit='Chapter', translator='', language='English', whole='', book=''):
     units = [(say, '\n'.join(FIX.get(p, p) for p in body if p).strip()) for say, body in units]
     units = [(s, t) for s, t in units if t]
     if not units:
         raise SystemExit('no units: ' + title)
     WORKS.append(dict(title=title, units=units, src=src, url=url, author=author, author_text=author_text, tradition=tradition,
                       era=era, genre=genre, collection=collection, about=about, date_text=date_text, unit=unit,
-                      translator=translator, language=language))
+                      translator=translator, language=language, whole=whole, book=book))
 
 
 def ccel(vol):
@@ -427,6 +427,7 @@ def fathers():
         ccel_work('Calvin, Institutes of the Christian Religion, Book %s' % 'I II III IV'.split()[b - 1], 'calvin_institutes.xml',
                   'calvin/institutes', r'^BOOK %s' % word, src='Henry Beveridge\'s translation (1845)', author='John Calvin',
                   tradition='Reformed', era='Reformation', genre='Dogmatic', collection='Reformation',
+                  whole='Institutes of the Christian Religion', book='Book %s' % 'I II III IV'.split()[b - 1],
                   about=['The knowledge of God the Creator.', 'The knowledge of God the Redeemer in Christ.',
                          'How we receive the grace of Christ: faith, repentance, justification, election.',
                          'The Church, the sacraments and civil government.'][b - 1]
@@ -531,7 +532,7 @@ def aquinas():
              src='Thomas Aquinas, Summa Theologiae, literally translated by Fathers of the English Dominican Province '
                  '(second and revised edition, 1920; public domain, also on Project Gutenberg), via ' + CCEL,
              url=ccel('aquinas/summa'), author='Thomas Aquinas', tradition='Catholic', era='Medieval', genre='Dogmatic',
-             collection='Scholastics | Summa Theologiae', unit='Article', date_text='1265–1274',
+             collection='Scholastics', whole='Summa Theologiae', book='%s (%s)' % (title, short), unit='Article', date_text='1265–1274',
              translator='Fathers of the English Dominican Province',
              about='Each card is one article (Part.Question.Article): objections, "On the contrary", "I answer that" and the '
                    'replies. ' + about)
@@ -571,6 +572,8 @@ def main():
                           'chapters': [s for s, _ in units], 'unit': w['unit'], 'author': w['author'] or w['author_text'],
                           'tradition': w['tradition'], 'era': w['era'], 'genre': w['genre'], 'collection': w['collection'],
                           'about': w['about'], 'date_text': w['date_text']})
+            if w['whole']:
+                index[-1].update(work=w['whole'], book=w['book'])
             print(wid, title, len(units), 'units')
     json.dump({'works': index}, open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     print(len(index), 'works,', sum(len(w['chapters']) for w in index), 'cards')

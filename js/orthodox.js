@@ -33,13 +33,14 @@ function orthoItems_() {
   const ix = ORTHO.index;
   if (!ix) return [];
   if (ORTHO.items && ORTHO.from === ix) return ORTHO.items;
+  /* A WORK IN SEVERAL VOLUMES IS ONE WORK (600): `work` names it and `book` the volume, so Summa Theologiae is a Work, never a Collection. */
   const list = [], reg = writingWork_('orthodox');
   ix.works.forEach(w => {
     w.languages.forEach(lang => w.chapters.forEach((say, i) => {
       list.push(writingUnit_('orthodox', reg, {
         kind: 'orthotext', key: 'or:' + w.id + ':' + lang + ':' + i, name: w.title + ', ' + say, sub: w.about || lang,
         text: [w.title, say, lang, w.author, w.collection, w.genre, w.era].join(' '),
-        w: { work: w.title, chapter: say, text: writingText_(writingTextOf_(lang)), tradition: orthoList_(w.tradition),
+        w: { work: w.work || w.title, book: w.book || '', chapter: say, text: writingText_(writingTextOf_(lang)), tradition: orthoList_(w.tradition),
              collection: orthoList_(w.collection), author: w.author || '', form: w.genre || '' },
         ot: { id: w.id, file: w.file, i: i, lang: lang },
       }));
