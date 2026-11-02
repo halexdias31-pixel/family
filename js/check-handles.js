@@ -73,6 +73,7 @@ const SRC = [
   grab(consts, /const PRICING_FIELDS[^;]*;/, 'PRICING_FIELDS'),
   /* AND THE MOST AN HOUR MAY BE, which `pricingRefusal_` asks first (405). */
   grab(consts, /const RATE_MAX[^;]*;/, 'RATE_MAX'),
+  grab(consts, /const SEAT_RATE_MAX[^;]*;/, 'SEAT_RATE_MAX'),
   grab(people, /function pricingMoved_\([\s\S]*?\n\}/, 'pricingMoved_'),
   grab(people, /function pricingRefusal_\([\s\S]*?\n\}/, 'pricingRefusal_'),
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) § */
@@ -492,7 +493,8 @@ function run() {
     /* THE SHAPES THE PRICE CANNOT USE, refused for an admin too — see `pricingRefusal_`. */
     ['no',  PRI, { extra_seat_rate: 15 }, false, 'an extra-seat share of 15 is pounds typed into a fraction'],
     ['no',  PRI, { extra_seat_rate: 15 }, true, 'and an admin cannot save it either'],
-    ['yes', PRI, { extra_seat_rate: 2 }, false, 'two is the top of the range and allowed'],
+    ['yes', PRI, { extra_seat_rate: 1 }, false, 'one — the first student\'s rate — is the top and allowed (620)'],
+    ['no',  PRI, { extra_seat_rate: 1.5 }, true, 'and past it is refused, an admin too: a seat never costs more than the first student'],
     ['no',  PRI, { min_students: 6 }, false, 'a minimum above the saved maximum of 4'],
     ['no',  PRI, { min_students: 6, max_students: 4 }, true, 'both posted, the wrong way round'],
     ['yes', PRI, { min_students: 3, max_students: 3 }, false, 'equal is a class of exactly three'],

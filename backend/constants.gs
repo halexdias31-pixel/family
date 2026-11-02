@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-02-merge-5";
+const BACKEND_VERSION = "2026-11-02-seat-620";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1149,6 +1149,8 @@ const AVATAR_ITEMS = [
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 /* THE MOST AN HOUR MAY BE, so a slip of the thumb (2500 for 25.00) is refused, not published (405). The phone's `STAFF_RATE_MAX` is the same. */
 const RATE_MAX = 200;
+/* AN EXTRA SEAT COSTS AT MOST WHAT THE FIRST STUDENT DOES (620): the tutor's share of it, 0 to 1 of the rate. */
+const SEAT_RATE_MAX = 1;
 
 /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM § */
 const SEAT_CUT_FIELD = 'extra_seat_cut';

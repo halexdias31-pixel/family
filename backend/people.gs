@@ -385,10 +385,10 @@ function pricingRefusal_(me, fields, isAdmin) {
     return 'The rate is pounds an hour, 0 to ' + RATE_MAX + ' — "' + rate.slice(0, 12) + '" is not one. Nothing was saved.';
   }
   const seat = S(got('extra_seat_rate'));
-  if (seat !== '' && !(N(seat) >= 0 && N(seat) <= 2 && !isNaN(Number(seat)))) {
+  if (seat !== '' && !(N(seat) >= 0 && N(seat) <= SEAT_RATE_MAX && !isNaN(Number(seat)))) {
     /* "THE" RATE, NOT "YOUR" RATE: an admin on somebody else's row is told this too (the review of 345). */
-    return 'The extra-seat rate is at most twice the hourly rate — as a share, 0 to 2, where 0.5 is half the '
-         + 'rate for each extra student. Nothing was saved.';
+    return 'An extra seat costs at most what the first student does — as a share of the rate, 0 to ' + SEAT_RATE_MAX
+         + ', where 0.5 is half the rate for each extra student. Nothing was saved.';
   }
   const lo = S(got('min_students')), hi = S(got('max_students'));
   if (lo !== '' && hi !== '' && N(lo) > N(hi)) {

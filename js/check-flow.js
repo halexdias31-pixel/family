@@ -453,7 +453,7 @@ check('the app loads and draws without throwing', async () => {
   await wait(300);
   const bad = [];
   if (errs.length) bad.push('errors at load: ' + errs.join(' | '));
-  if (!w.__t) return ['nothing was exported — the app did not finish loading'];
+  if (!w.__t) return ['nothing was exported — the app did not finish loading' + (errs.length ? ': ' + errs.join(' | ') : '')];
   if (typeof w.__t.go !== 'function') bad.push('go() is not a function');
   return bad;
 });
@@ -2076,11 +2076,12 @@ const cardOpen_ = async (W, who, more) => {
   return c;
 };
 /* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only (docs/history/339) — the owner, 11 Oct: § */
-const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
 /* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
-const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
-const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$/;
+const CARD_STAFF_ = ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+/* A TUTOR'S CUT IS WORDS, NOT A BOX (620): the one field of theirs the cards show and do not offer. */
+const SHOWN_ONLY_RE_ = /^extra_seat_cut$/;
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
 const cardEditEverything_ = async c => {
   const f = c.form();
@@ -2137,12 +2138,12 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */
   const groups = c.t.DATA().profileFields || {};
   const five = Object.keys(groups).filter(g => !/contact|library/i.test(g)).reduce((a, g) => a.concat(groups[g]), []);
-  const missing = five.filter(f => f !== 'photo' && f !== 'first_name' && f !== 'last_name' && !HUB_OWNS_RE_.test(f) && !c.box(f));
+  const missing = five.filter(f => f !== 'photo' && f !== 'first_name' && f !== 'last_name' && !SHOWN_ONLY_RE_.test(f) && !c.box(f));
   if (!five.length) bad.push('the payload sent no profileFields, so the boxes were NOT checked');
   if (missing.length) bad.push('the cards have no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
   ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('there is no ' + f + ' — where they tutor is not editable'); });
-  /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate, which the Staff hub edits');
+  /* THE RATE IS ON ITS OWN CARD (620), the hub only tries figures. */
+  if (!form.querySelector('.card-ed[data-sec="seat"] [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor has no rate on its Rate and extra seat card');
   if (!form.querySelector('.card-ed .me-week')) bad.push('Tutor settings has no Available week (487)');
   /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: § */
   const lazy = [...form.querySelectorAll('.card-ed img')].filter(i => i.getAttribute('loading') === 'lazy');
@@ -2715,9 +2716,9 @@ check('Staff hub (405): "Staff hub" is on Tutor settings, "Share my profile" und
 const RANK_COLS_ = [
   ['student@example.org', 'student', 'P-S1'], ['parent@example.org', 'client', 'P-C1'],
   ['tutor@example.org', 'staff', 'P-T1'], ['admin@example.org', 'admin', 'P-A1']];
-/* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, the hub's pricing sliders, the PIN. */
+/* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, and the PIN. */
 const editorsOf_ = (d, into) => {
-  const PV = { rate: 'rate_per_hour', seat: 'extra_seat_rate' };
+  /* (the hub's pricing sliders were here until 620; they save nothing now.) */
   const where = el => { const s = el.closest('section.screen'); return s ? s.id.replace(/^s-/, '') : el.closest('#sheet-body') ? 'staff (hub)' : '?'; };
   const add = (f, el) => {
     /* A PLACE IS A COLUMN AND A CARD'S TITLE — the same card drawn again after a repaint is the same place. */
@@ -2728,7 +2729,7 @@ const editorsOf_ = (d, into) => {
   /* A LOCKED CARD (467) IS SHOWN, NOT EDITED: its boxes are disabled and are no place to edit anything. */
   const live = el => !el.disabled && !el.closest('.is-locked');
   d.querySelectorAll('[data-me]').forEach(el => { if (live(el)) add(el.dataset.me, el); });
-  d.querySelectorAll('input[data-pv]').forEach(el => { if (live(el) && PV[el.dataset.pv]) add(PV[el.dataset.pv], el); });
+  /* THE HUB'S PRICING SLIDERS ONLY TRY FIGURES SINCE 620 (no Save), so they are no place a setting is edited. */
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => { if (live(el)) add('pin', el); });
   return into;
 };
@@ -2821,7 +2822,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       /* 468: YOUR CARD'S PLACE IS A LOCKED CARD PER SECTION, each with its own layout id — never one "Your card". */
       const ownLocks = [...a.d.querySelectorAll('#s-' + col + ' .own-lock.is-locked')].map(x => x.dataset.layCard);
       /* 469: EACH SECTION ON ONE COLUMN ONLY — Tutor settings holds a tutor's alone, Parent settings none of everybody's four. */
-      const wantLocks = (col === 'staff' ? ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
+      const wantLocks = (col === 'staff' ? ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
       if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
     if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
@@ -2941,7 +2942,7 @@ check('Availability on Tutor settings (487): the week a tutor teaches is the Ava
   return bad;
 });
 
-check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; Save writes through updateProfile', async () => {
+check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; nothing is saved here — its tile opens the Rate and class size card (620)', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
@@ -2966,17 +2967,17 @@ check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor
   if (seg() === was) bad.push('the tutor\'s part of the bar did not move with the rate');
   if (say(1).indexOf('family pays £45.00') === -1) bad.push('the rate at £30 does not make one student £45.00: ' + say(1));
   if (S.querySelector('input.pf-num[data-pv="rate"]').value !== '30') bad.push('the number box did not follow the slider');
-  const save = S.querySelector('[data-do="price-save"]');
   a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '500'); await wait(50);
-  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
-  a.A('price-save', save); await wait(200);
-  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('a rate of £500 was posted');
   if (!/at most £200/.test(S.querySelector('.hub-said').textContent)) bad.push('a rate of £500 is not refused in words: ' + S.querySelector('.hub-said').textContent);
-  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '24'); await wait(50);
-  a.A('price-save', save); await wait(500);
-  const post = a.sent.filter(x => x.action === 'updateProfile').pop();
-  if (!post || post.fields.rate_per_hour !== 24 || Math.abs(Number(post.fields.extra_seat_rate) - 10 / 24) > 1e-5) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ', wanted rate 24 and the £10 seat as 10/24');
-  if (Number(W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').rate_per_hour")) !== 24) bad.push('the server row was not written');
+  /* ONE HOME (620): Pricing saves nothing and points to the Rate and class size card. */
+  if (S.querySelector('[data-do="price-save"]')) bad.push('Pricing still has its own Save — the rate card is the one home');
+  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
+  const to = S.querySelector('[data-do="price-card"]');
+  if (!to) return bad.concat(['Pricing has no tile to the Rate and class size card']);
+  a.A('price-card', to); await wait(500);
+  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('opening the card from Pricing posted a change');
+  if (a.d.querySelector('#sheet-body .hub-price')) bad.push('the tile left Pricing open over the card');
+  if (!a.d.querySelector('#s-tutors .card-ed[data-sec="seat"] [data-me="rate_per_hour"], #s-staff [data-me="rate_per_hour"]')) bad.push('no rate box waits where the tile goes');
   return bad;
 });
 
@@ -3131,8 +3132,8 @@ check('no profile card offers Edit to anybody, an admin included (467): your own
 /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT, ON THE TUTOR'S CARD, IN POUNDS (docs/history/345) § */
 const CUT_VARS_ = { c: 0.3, B: 0.1 };
 const seatSaid_ = c => String((c.form() && (c.form().querySelector('.ce-seat') || {}).textContent) || '').trim();
-/* ---------- A TUTOR'S SEAT IS SET IN THE STAFF HUB ALONE (444), AND A FORCED CUT IS STILL REFUSED § */
-check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card offers no rate, seat or cut box — and a forced cut is refused by the server with nothing written', async () => {
+/* ---------- THREE CARDS, EACH ONE HOME (620): rate and seat k, @family.'s share g (words to a tutor), class size; a forced cut is still refused § */
+check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.\'s share as words, class size — each say their effect in pounds by x + k·x·(n−1) + g·x·(n−1); Save writes the class size; a forced cut is refused alone and left out beside another field', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
   const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
   if (h.indexOf('extra_seat_cut') < 0 || ri < 0) return ['the people tab has no extra_seat_cut column or no Ada, so the tutor\'s view was NOT checked'];
@@ -3142,12 +3143,34 @@ check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card 
   const bad = [];
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
   if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
-  if (c.form().querySelector('[data-pound="extra_seat_rate"], [data-pound="extra_seat_cut"], [data-me="rate_per_hour"], [data-me="extra_seat_rate"]'))
-    bad.push('Ada\'s tutor card offers her rate or seat, which the Staff hub edits');
+  const seat = c.sec('seat'), cut = c.sec('cut'), size = c.sec('size');
+  if (!seat || !cut || !size) return ['Ada\'s settings do not draw the three cards: ' + c.secs().join(', ')];
+  const txt = el => String(el.textContent).replace(/\s+/g, ' ');
+  ['[data-me="rate_per_hour"]', '[data-pound="extra_seat_rate"]'].forEach(q => { if (!seat.querySelector(q)) bad.push('the Rate and extra seat card has no ' + q); });
+  if (!size.querySelector('[data-me="max_students"]') || !size.querySelector('[data-me="min_students"]')) bad.push('the Class size card has no min and max boxes');
+  const cutBox = cut.querySelector('input:not([type="hidden"]), input[type="hidden"][data-me="extra_seat_cut"]');
+  if (cutBox) bad.push('a tutor is offered @family.\'s cut as a box: ' + cutBox.outerHTML.slice(0, 120));
+  if (!/£3\.00\/h of each extra student is @family\.'s — only @family\. sets that/.test(txt(cut))) bad.push('the cut is not said in pounds as words a tutor cannot change: ' + txt(cut).slice(0, 200));
+  if (!/\+£10\.00\/h a seat/.test(txt(seat))) bad.push('the seat card does not say the tutor\'s £10.00 of a £20 rate: ' + txt(seat).slice(0, 200));
+  /* 20 + 0.5·20·3 + 0.15·20·3 = 59 for four. */
+  if (!/4: £59\.00/.test(txt(size))) bad.push('the class size card does not say four students pay £59.00/h: ' + txt(size).slice(0, 200));
+  c.type(size.querySelector('[data-me="max_students"]'), '3'); await wait(50);
+  if (!/3: £46\.00/.test(txt(size))) bad.push('typing 3 did not redraw the class total to £46.00/h: ' + txt(size).slice(0, 200));
+  c.A('card-save', c.tileOn('size', 'card-save')); await wait(600);
+  const post = c.posts().pop();
+  if (!post || 'extra_seat_cut' in post.fields) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ' — wanted the class size and no cut');
+  if (Number(W.real.row('P-T1').max_students) !== 3) bad.push('the class size did not reach the sheet: ' + W.real.row('P-T1').max_students);
   const u = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
   const r = W.real.post({ action: 'updateProfile', token: u.token, name: u.name, personId: 'P-T1', target: 'Ada Tutor', targetId: 'P-T1', fields: { extra_seat_cut: '0' } });
-  if (r.success) bad.push('the server took a tutor\'s forced cut');
+  if (r.success || !/Only @family/.test(r.error || '')) bad.push('the server took a tutor\'s forced cut, or did not say why: ' + JSON.stringify(r));
+  const r2 = W.real.post({ action: 'updateProfile', token: u.token, name: u.name, personId: 'P-T1', target: 'Ada Tutor', targetId: 'P-T1', fields: { extra_seat_cut: '0', headline: 'Partly saved' } });
+  if (!r2.success || !/Not saved: Only @family/.test(r2.said || '') || W.real.row('P-T1').headline !== 'Partly saved') bad.push('a forced cut beside a headline did not save the headline and name the cut: ' + JSON.stringify(r2));
   if (Number(W.real.row('P-T1').extra_seat_cut) !== 0.15) bad.push('a tutor\'s forced cut reached the sheet: ' + W.real.row('P-T1').extra_seat_cut);
+  /* AND THE ADMIN'S OWN CARD, WHERE THE CUT IS A BOX (rankAtLeast_ on both sides). */
+  const a = await cardOpen_(cardWorld_({ vars: CUT_VARS_ }), 'admin@example.org', { col: 'tutors' });
+  if (a.err) return bad.concat([a.err]);
+  for (let k = 0; k < 20 && !a.sec('cut'); k++) await wait(100);
+  if (!a.sec('cut') || !a.sec('cut').querySelector('[data-pound="extra_seat_cut"]')) bad.push('the admin\'s own @family.\'s share card offers no box for the cut: ' + a.secs().join(', '));
   return bad;
 });
 

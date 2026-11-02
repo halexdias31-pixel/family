@@ -3127,10 +3127,11 @@ const STATES = {
              WILL PRINT IT (docs/history/345): £15.00 theirs and £3.00 the business's of a £30 rate. */
           && (form.querySelector('[data-pound="extra_seat_rate"]') || {}).value === '15.00'
           && (form.querySelector('[data-pound="extra_seat_cut"]') || {}).value === '3.00'
-          && /\+£18\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
+          && /\+£15\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
+          && /\+£3\.00\/h a seat/.test((form.querySelector('.ce-cut') || {}).textContent || '')
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
       },
-      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds, each on its own card, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) § */
     ...['', 'client', 'student'].map(role => ({
       /* ON THE ROLE'S SETTINGS COLUMN (464), where its card's name and picture are edited. */
