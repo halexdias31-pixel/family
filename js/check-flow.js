@@ -2581,7 +2581,18 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
     const box = w.document.createElement('div'); box.innerHTML = html;
     return { svg, text: flat(box.textContent), html };
   };
-  const site = w => flat((w.document.querySelector('#sheet-body .is-prof') || {}).textContent);
+  /* A MAP WHOSE TILES WILL NOT COME IS LEFT OUT WHOLE (547), its caption with it unless tags follow: so the site's words, less what `tpngInline_` drops. */
+  const site = (w, pic) => {
+    const card = w.document.querySelector('#sheet-body .is-prof');
+    if (!card) return '';
+    const c = card.cloneNode(true);
+    if (pic && !/prof-heat/.test(pic.html)) c.querySelectorAll('.prof-heat').forEach(heat => {
+      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
+      heat.remove();
+      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
+    });
+    return flat(c.textContent);
+  };
   /* ---------- 1. A VISITOR ON A PHONE: one PNG and the link, to the share sheet ---------- */
   const v = await open();
   if (!v.tile) return ['?tutor=adatutor opened no card with a Share tile'];
@@ -2597,7 +2608,7 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
   else {
     console.log('          shot: ' + s1.text.slice(0, 160));
     if (!/is-prof/.test(s1.svg)) bad.push('the picture is not the profile card');
-    if (!site(v.w) || s1.text !== site(v.w)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w).slice(0, 200) + '"');
+    if (!site(v.w, s1) || s1.text !== site(v.w, s1)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w, s1).slice(0, 200) + '"');
     if (!/£20/.test(s1.text)) bad.push('a visitor\'s picture has no rate on it');
     if (!/<img[^>]+src="data:image\/jpeg/.test(s1.html)) bad.push('Ada\'s photo is not carried in the picture as data: ' + (s1.html.match(/<img[^>]*>/) || ['no img'])[0].slice(0, 160));
   }
