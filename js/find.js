@@ -1909,10 +1909,30 @@ const writingRefs_ = on => {
 };
 
 const HIST_TILE_LINKS = 3;
+/* NO CARD TALLER THAN A PHONE (562, owner note 122): a history card keeps this many lines, none under a drawing; the rest are pages of HIST_PAGE_ROWS after it. */
+const HIST_CARD_ROWS = 6, HIST_PAGE_ROWS = 8;
+function histRows_(x) {
+  const r = x.row || {};
+  return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
+    .filter(l => String(l[1] == null ? '' : l[1]).trim())
+    .filter(l => !(x.kind === 'manuscript' && MS_LOOK[r.id] && MS_SAID.indexOf(l[0]) >= 0));
+}
+const histOnCard_ = x => (x.kind === 'manuscript' && MS_LOOK[(x.row || {}).id] ? 0 : HIST_CARD_ROWS);
+function histPages_(x) {
+  const rest = histRows_(x).slice(histOnCard_(x)), out = [];
+  for (let i = 0; i * HIST_PAGE_ROWS < rest.length; i++) out.push('facts' + i);
+  return out;
+}
+const histDl_ = rows => `<section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
+  histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>`;
+function histFactsPart_(x, part) {
+  const i = Number(part.slice(5)) || 0, at = histOnCard_(x) + i * HIST_PAGE_ROWS;
+  const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
+  return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
+}
 function histCard_(x) {
   const r = x.row || {};
-  const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
-    .filter(l => String(l[1] == null ? '' : l[1]).trim());
+  const rows = histRows_(x).slice(0, histOnCard_(x));
   const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
   /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
   const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
@@ -1926,16 +1946,13 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${look}
     <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
-    <section class="fc-sec hdb-lines"><dl>${rows.filter(l => MS_SAID.indexOf(l[0]) < 0).map(l => `<div><dt>${esc(l[0])}</dt><dd>${
-      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
   }
   return `<div class="card fc hdb">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
-    <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
-      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${rows.length ? histDl_(rows) : ''}
     ${writingRefs_(r.id)}
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
@@ -2421,7 +2438,7 @@ function finderOpen_(x, part, F) {
   });
 }
 /* WHICH OF A THING'S PAGES A KEPT LIST DRAWS: § */
-const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+)$/.test(p);
+const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+|facts\d+)$/.test(p);
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
@@ -2496,6 +2513,7 @@ function pageParts_(x, prev) {
   /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
      `boxerFightPages_`. */
   if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
+  if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the diagrams should be its own widgets" (204), and the owner asked § */
@@ -2544,6 +2562,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
+  if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return qFoot_(x, questionAnsCard_(x));
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);

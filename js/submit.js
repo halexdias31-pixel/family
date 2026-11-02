@@ -659,7 +659,8 @@ function subForget_() {
 
 /* ---------- SUGGEST A CHANGE (494): one tile on every thing, one box in place ----------
    An admin's goes to Notes for Claude; anybody else's waits for Confirm. A message's says "Tell the admin" (413). */
-const SUGGEST_NOTE_MAX = 1000;
+/* VIRTUALLY UNLIMITED (562, owner note 119), the backend's CLAUDE_NOTE_MAX: a sheet cell's 50,000 less room for the rest of the row. */
+const SUGGEST_NOTE_MAX = 40000;
 const suggestPeople_ = kind => kind === 'message' || kind === 'post';
 /* A RULE (496): `tell-admin` — the words only; the quiet safeguarding path stays either way. */
 const suggestTell_ = kind => suggestPeople_(kind) && (typeof ruleOn_ !== 'function' || ruleOn_('tell-admin'));
