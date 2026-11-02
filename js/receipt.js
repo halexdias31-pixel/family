@@ -241,7 +241,7 @@ on('book-share', el => {
   toast('Making a picture of this booking…');
   rcPng_(rc)
     .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png'))
-    .catch(e => toast('Could not make the picture: ' + String((e && e.message) || e)));
+    .catch(e => toast('Could not make the picture: ' + why_(e)));
 });
 
 /* THE BOOKER IS NOT A SHEET ANY MORE. § */
@@ -447,7 +447,7 @@ on('book-send', el => {
     .catch(err => {
       el.disabled = false;
       bookSending_(false);
-      if (said) said.textContent = String(err.message || 'Could not ask for that');
+      if (said) said.textContent = why_(err);
     });
 });
 

@@ -626,7 +626,7 @@ function bootFailed(err, when) {
       + '<p style="color:#ff8f6b;font-weight:700;margin:0 0 .6rem">'
       + 'The app stopped while ' + String(when) + '.</p>'
       + '<p style="margin:0 0 .6rem;white-space:pre-wrap">'
-      + String((err && err.message) || err) + '</p>'
+      + why_(err) + '</p>'
       + (err && err.stack
           ? '<p style="margin:0 0 .6rem;color:#9a8f82;white-space:pre-wrap;font-size:11px">'
             + String(err.stack).split('\n').slice(0, 4).join('\n') + '</p>'

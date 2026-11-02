@@ -10356,7 +10356,7 @@ function toggleFav(k, kind) {
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
       try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
       if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
-      toast(String((err && err.message) || 'That did not save'));
+      toast(why_(err));
     });
   }
 }
@@ -11322,7 +11322,7 @@ function drawWidget_(wgt) {
   if (String(into.innerHTML || '').trim()) return;
   into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
     ${esc(wgt.what)} did not start.<br>
-    <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+    <span class="faint">${esc(err ? why_(err) : 'It drew nothing.')}</span></p>`;
 }
 
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
@@ -11620,7 +11620,7 @@ function docketSave(list) {
         /* SAID, not swallowed. A list that looks saved and is not is worse than one that never
            pretended — you find out by opening it tomorrow to nothing. */
         const el = $('dock-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+        if (el) el.textContent = why_(err);
       });
   };
   dockTimer = setTimeout(sendTodo, 900);
@@ -11763,7 +11763,7 @@ function padSend_(keepalive) {
     })
     .catch(err => {
       const el = $('pad-said');
-      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+      if (el) el.textContent = why_(err);
     });
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */

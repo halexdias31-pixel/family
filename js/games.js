@@ -3791,7 +3791,7 @@ function tmtSave_(t) {
       return api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
             timetable: USER.timetable }, keepalive ? { keepalive: true } : undefined)
         .then(d => { if (d && d.error) throw new Error(d.error); })
-        .catch(err => toast('Timetable not saved — ' + String((err && err.message) || 'no connection.')));
+        .catch(err => toast('Timetable not saved — ' + why_(err)));
     };
     TMT_TIMER = setTimeout(send, 900);
     keepDue_('timetable', send);

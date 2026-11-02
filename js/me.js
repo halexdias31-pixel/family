@@ -668,7 +668,7 @@ function avatarSave(change) {
       avatarDraw_();
       /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
          shell.js — and the line it used to be written to is gone. */
-      toast(String(err.message || err));
+      toast(why_(err));
     });
 }
 
@@ -1012,8 +1012,8 @@ function friendsSave(list, said) {
       USER.friends = before;
       friendsForget_();
       const el = $('fr-said');
-      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
-      else toast(String(err.message || 'Not saved — no connection.'));
+      if (el) el.textContent = why_(err);
+      else toast(why_(err));
     });
 }
 
@@ -1195,7 +1195,7 @@ function msgPost_(p) {
     try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
-    p.err = String((err && err.message) || 'Not sent.');
+    p.err = why_(err);
     /* `why: 'files'` — the server refused the PHOTOGRAPHS, not the message, so the bubble can offer
        the words on their own. Read off the reply `send()` hangs on the error, never off the wording. */
     p.why = String((err && err.reply && err.reply.why) || '');
@@ -1522,7 +1522,7 @@ on('uploads-check', el => {
   send_({ action: 'checkUploads', name: USER.name, personId: USER.personId },
         { button: el, where: box && box.querySelector('.up-said') })
     .then(d => { UPLOADS_SAID = d; uploadsPaint_(); })
-    .catch(err => { UPLOADS_SAID = { error: String((err && err.message) || err) }; uploadsPaint_(); });
+    .catch(err => { UPLOADS_SAID = { error: why_(err) }; uploadsPaint_(); });
 });
 
 /* `on('messages')` was here — a second way to see the same thread, opened in a sheet. § */

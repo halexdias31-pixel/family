@@ -114,7 +114,7 @@ on('agree-sign', el => {
       hubTilesRedraw_();
       try { paint('staff'); } catch (e) {}
     })
-    .catch(err => { el.checked = false; el.disabled = false; toast(String((err && err.message) || 'Not saved.')); });
+    .catch(err => { el.checked = false; el.disabled = false; toast(why_(err)); });
 });
 
 /* ---------- ON THE TUTOR COLUMN (444): THE HUB'S TILE, AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
