@@ -1260,8 +1260,8 @@ if (notDrawn.length > NOT_DRAWN_MAX) {
 }
 
 /* ---------- AND THE STEMS (owner, 1 Nov: "Where is the sketch?"): a preamble naming a figure nobody has drawn says "Figure not drawn yet." on its page (`stemFigOwed_`), and the count cannot grow. */
-/* 670 since 584: the twelve stems of the scheme-less 1MA1 import whose figures the owner chose not to have drawn yet. */
-const STEM_NOT_DRAWN_MAX = 670;
+/* 682 since 584: the stems of the scheme-less 1MA1 import (twelve a batch) whose figures the owner chose not to have drawn yet. */
+const STEM_NOT_DRAWN_MAX = 682;
 const stemNotDrawn = rows.filter(r => {
   if (!r || r.kind !== 'preamble' || hasPic_(r)) return false;
   const q = String(r.question || '').trim();

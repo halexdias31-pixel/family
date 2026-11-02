@@ -13,6 +13,7 @@ Seven papers, 268 rows (parts and shared stems), each paper summing to its 80, i
 |---|---|
 | November 2024 1F, 1H, 2F, 2H, 3F, 3H | `D-RS1786302107764-409` … `414` |
 | June 2023 3F | `D-RS1786302107764-431` |
+| November 2022 1F, 2F, 3F, 3H (second batch, 178 rows; P68720A, P68722A, P68724A, P68725A) | `433`, `435`, `437`, `438` |
 
 The words were read through the Drive connector's text of each PDF (identified by its cover: P75157A–P75162A for
 November 2024, P75151A for June 2023 3F) and typed as rows by a script outside the repository, as 415's were.
@@ -39,12 +40,13 @@ Every part that needs the paper's picture says so in its words ("shown in the di
 surd that cannot be recovered with certainty — Nov 2024 2F Q20 and 2H Q1's calculation, 1H Q18a's f(x), 2H Q17 and Q19,
 3H Q15, and the angles of 2F Q13), the part refers to the expression "shown in the diagram" rather than guess it.
 Fractions and surds that could be confirmed from the question's own arithmetic were written out (1H Q10, Q16b, Q20;
-2H Q22's 3/5; 3H Q14). `check-library`'s stem ceiling rose 658 → 670 for these papers' twelve figure-naming stems.
+2H Q22's 3/5; 3H Q14). `check-library`'s stem ceiling rose 658 → 670 → 682 for these papers' figure-naming stems (twelve a batch). November 2022's unrecoverable expressions
+(1F Q26a, 3F Q17b and Q29b, 3H Q9b and Q22) are referred to the diagram the same way.
 Two "use your line of best fit" parts carry `uses: b` so the child's line is shown.
 
 ## Left
 
-- November 2022 1F, 2F, 3F, 3H; June 2022 2F and 2H (covers 441, 442; the backups may hold 2H); November 2021 all six; November
+- June 2022 2F and 2H (covers 441, 442; the backups may hold 2H); November 2021 all six; November
   2020 (check against the May/June 2020 rows, 415 found 1H the same sitting); November 2019 3F (no cover row; 2H and 3H are
   already P-1MA1-1911-*); June 2019 1F/3F; November 2018 1F/2F/3F. The Drive folder holds most of them by plain name;
   the hash-named `past-papers-backup/…Higher…` PDFs are June 2022 and June 2023 Higher papers by their titles, not yet
