@@ -365,7 +365,8 @@ function bootGlass_() {
 
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
 function screenHasMarkup_(id) {
-  const el = $('s-' + id);
+  /* BY ID, NOT `$`: a section is on the page once, and a check that saw data.js fail to load crashed here on `$` */
+  const el = document.getElementById('s-' + id);
   /* THE FIRST CHILD, NOT `innerHTML`, which serialises every screen's whole markup to answer yes or no — about a millisecond across eleven at 1x and four at 4x § */
   return !!(el && el.firstElementChild);
 }
