@@ -221,6 +221,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
 function go(id, remember, instant) {
+  /* A SCREEN CHANGE IS A SAFE MOMENT FOR A WAITING BUILD (610). */
+  if (BUILD_WAITING) buildQuietly_();
   id = TAB_GONE[id] || id;
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
@@ -3545,12 +3547,12 @@ function splashForget_() {
   return gone.length > 0;
 }
 
-/* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument rather than a second function: § */
-function banner(msg, tap) {
+/* A BANNER IS WORDS ONLY: the one tap it ever carried, "load the new version", is gone (610). */
+function banner(msg) {
   const el = $('banner');
   if (!msg) { el.classList.add('hidden'); el.removeAttribute('data-do'); return; }
   el.textContent = msg;
-  if (tap) el.setAttribute('data-do', 'reload-build'); else el.removeAttribute('data-do');
+  el.removeAttribute('data-do');
   el.classList.remove('hidden');
 }
 
@@ -3581,7 +3583,7 @@ async function watchBuild_() {
   if (!BUILD_TAG) return;
   bootStale_();
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { BUILD_HID = Date.now(); return; }
+    if (document.hidden) { BUILD_HID = Date.now(); buildQuietly_(); return; }
     checkBuild_();
   });
   /* ---------- AND `pageshow`, BECAUSE OF THE HOME SCREEN § */
@@ -3599,7 +3601,7 @@ async function checkBuild_() {
     location.reload();
     return;
   }
-  banner('A newer version of the app is ready. Tap to load it.', true);
+  BUILD_WAITING = now;
 }
 
 /* ---------- AND ON A HOME SCREEN, IT LOADS ITSELF § */
@@ -3620,7 +3622,18 @@ function buildMayReload_(tag, booted) {
   return !typed.length;
 }
 
-on('reload-build', () => location.reload());
+/* A NEWER BUILD IS NEVER ASKED ABOUT (610): "just let site update to new". It waits for a screen change or a hidden page, then loads if nothing typed or unsaved would go. */
+let BUILD_WAITING = null;
+function buildQuietly_() {
+  const tag = BUILD_WAITING;
+  if (!tag) return;
+  try { if (sessionStorage.getItem('familyBuiltFor') === tag) { BUILD_WAITING = null; return; } } catch (e) { return; }
+  const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
+    .filter(el => String(el.value || '').trim() && !el.hasAttribute('data-draft'));
+  if (typed.length || document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  if (typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return;
+  if (buildMark_(tag)) location.reload();
+}
 
 /* ---------- THE MARK THAT STOPS A SECOND RELOAD, WRITTEN AND READ BACK BEFORE THE FIRST § */
 function buildMark_(tag) {
@@ -3638,7 +3651,7 @@ function bootStale_() {
     location.reload();
     return;
   }
-  banner('A newer version of the app is ready. Tap to load it.', true);
+  BUILD_WAITING = BUILD_TAG;
 }
 
 /* ---------- NOTHING MAY BE HELD — AND THEN SOMETHING DELIBERATELY WAS § */

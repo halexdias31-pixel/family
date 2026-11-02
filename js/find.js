@@ -408,12 +408,14 @@ const spellKey_ = v => {
 const FACETS = [
   { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
+  /* A KIND UNDER ANOTHER (`KIND_UNDER`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
   { field: 'kindLabel', label: 'What kind',
-    of: x => {
-      const k = x.kindLabel || kindOf_(x).label;
-      return kindUnder_(x, x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k);
-    },
-    tagOf: (x, page) => kindUnder_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+    of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
+    tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+  /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
+  { field: 'kindOwn', label: 'Which', at: 20.5,
+    of: x => !kindTop_(x) ? '' : (x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
+    tagOf: (x, page) => !kindTop_(x) ? '' : (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
@@ -637,7 +639,7 @@ function facetList() {
   FACET_LIVE = FACETS
     .map((f, i) => {
       const s = said[f.field];
-      if (!s) return Object.assign({}, f, { at: (i + 1) * 10 });
+      if (!s) return Object.assign({}, f, { at: f.at || (i + 1) * 10 });
       if (s.active === false) return null;
       return Object.assign({}, f, { label: s.label || f.label, at: facetNum_(s.order, (i + 1) * 10) });
     })
@@ -1007,10 +1009,10 @@ function facetSplit_(items, facet) {
 }
 
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
-/* THE SAME RULE FOR KINDS (546): "questions and answers should both go into a new practice tag. practicals should also go into practice tag". */
-/* A kind under another answers both What kind answers, its own and the one above it, on every page it has. */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice' };
-function kindUnder_(x, labels) { const up = x && KIND_UNDER[x.kind]; return up ? [up].concat(labels) : labels; }
+/* KINDS UNDER KINDS (546, 610): "questions and answers should be under practice … practicals … projects too", "timeline should be in library under history". */
+/* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library' };
+function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 function docTypeAnswers_(t) { const up = DOC_TYPE_UNDER[t]; return up ? [up, t] : t; }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
@@ -9708,7 +9710,7 @@ function stuffPages_() {
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
 function answersAsked_() {
-  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
+  return (STUFF.filters || []).some(f => f && (f.field === 'kindLabel' || f.field === 'kindOwn') && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
