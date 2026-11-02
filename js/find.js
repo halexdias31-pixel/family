@@ -422,14 +422,16 @@ const FACETS = [
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
   /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
   { field: 'wReligion',  label: 'Religion',   of: x => writingAt_(x, 'religion') },
+  /* A COLLECTION IS A GROUP OF WORKS (600), so it is asked before Work: Rabbinic, Second Temple, Kabbalah; New Testament; Hadith. */
+  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
+  /* WHAT IT IS BEFORE HOW IT IS WRITTEN (590): the work and the section a passage sits in, then its source, language and translation. */
   { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
+  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
   { field: 'wLanguage',  label: 'Language',   of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
   { field: 'wText',      label: 'Translation', of: x => writingVersionOf_(writingAt_(x, 'text')) },
   { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
-  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
-  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wBook',      label: 'Book',       of: x => writingAt_(x, 'book') },
   { field: 'wChapter',   label: 'Chapter',    of: x => writingAt_(x, 'chapter') },
   { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
@@ -1024,10 +1026,14 @@ function fiveADay_(x) {
 
 /* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: two answers at least,
    half the list able to answer, a split worth making. `over` lets a question past FACET_MAX_ANSWERS through. */
+/* A NUMBERED RUN IS DRAWN AS A GRID (396): bare numbers, or one word and a number (`Chapter 7`, drawn as 7). Up to FACET_MAX_GRID it is a question, not a list (600). */
+const FACET_MAX_GRID = 200;
+const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.value)) || []);
+const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
-  const vals = facetValues(items, facet).length;
+  const all = facetValues(items, facet), vals = all.length;
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
-  if (!over && vals > FACET_MAX_ANSWERS) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
+  if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
   const echo = facetEcho_(items, facet);
@@ -1764,7 +1770,8 @@ function histItem_(kind, r) {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
     histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Works',
-    shelf: 'History', subject: 'History',
+    /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
+    shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
     row: r,
   };
@@ -11521,11 +11528,11 @@ function facetAnswersHtml_(facet, values, more) {
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
-  const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
+  const grid = numberedRun_(values);
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
-        grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
-        <span class="k">${mark(v.show || v.value)}</span>
+        grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
+        <span class="k">${mark(grid ? runNumber_(v)[2] : v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 

@@ -63,7 +63,7 @@ function layoutSane_(v) {
   const cards = {};
   /* CUSTOM COLUMNS (466): `custom: [{id: 'custom-N', title}]`, made by ▶ past the last right-hand column. */
   const cu = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && CUSTOM_ID.test(String(x.id)))
-    .map(x => Object.assign({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }, x.admin === true ? { admin: true } : {}))
+    .map(x => Object.assign({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }, x.admin === true ? { admin: true } : x.left === true ? { left: true } : {}))
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, CUSTOM_MAX);
   if (cu.length) out.custom = cu;
   const colOk = k => CARD_COLS.indexOf(k) !== -1 || cu.some(x => x.id === k);
@@ -180,7 +180,7 @@ function layoutDraftOf_(L) {
   if (L && L.split && L.split.length) out.split = L.split.slice();
   if (L && L.start) out.start = Object.assign({}, L.start);
   if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
-  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id, title: x.title }, x.admin ? { admin: true } : {}));
+  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id, title: x.title }, x.admin ? { admin: true } : x.left ? { left: true } : {}));
   if (L && L.merged && L.merged.length) out.merged = L.merged.map(g => g.slice());
   if (L && L.seen) out.seen = Object.assign({}, L.seen);
   return out;
@@ -658,7 +658,8 @@ function cardAdminRow_(id, col, mergeable) {
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-c-col', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: ci <= 0 })}${
+    tile_({ icon: 'left', label: ci === 0 && !adminCol_(col) ? 'Move to a new column on the left' : 'Move to previous column', act: 'lay-c-col', tone: 'admin',
+      data: { lc: id, col: col, d: -1 }, off: ci === -1 || (ci === 0 && (adminCol_(col) || !customRoom_())) })}${
     tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 ? (adminCol_(col) ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: 'lay-c-col', tone: 'admin',
       data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && !customRoom_()) })}${
     startTile_(col, id, start)}${
@@ -813,14 +814,19 @@ on('lay-c-col', el => {
   const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
   let to = cols[cols.indexOf(col) + d];
   if (cols.indexOf(col) === -1) return;
-  /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; past Site, an admin-only one after it (508). ◀ from the first stays put. */
-  if (!to && d > 0 && customRoom_()) {
+  /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; past Site, an admin-only one after it (508). */
+  /* ◀ PAST THE FIRST MAKES ONE ON THE LEFT (600), before Parent settings: "I want to move this to the left even more". */
+  /* A NEW COLUMN STARTS EMPTY (`fresh`): an id used before keeps its old drawn list in CARD_SEEN, which would come back with it. */
+  let fresh = false;
+  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
+    fresh = true;
     const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
     to = 'custom-' + n;
-    D.custom = cu.concat([adminCol_(col) ? { id: to, title: 'New admin column', admin: true } : { id: to, title: 'New column' }]);
+    const made = d < 0 ? { id: to, title: 'New column', left: true } : adminCol_(col) ? { id: to, title: 'New admin column', admin: true } : { id: to, title: 'New column' };
+    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
   }
   if (!to) return;
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
   all.forEach(x => cardUnlist_(D, x));
   D.cards = D.cards || {};
   D.cards[col] = from;
@@ -878,14 +884,16 @@ const customRoom_ = () => (((layoutNow_() || {}).custom) || []).length < CUSTOM_
 function customTabsSync_() {
   const want = ((layoutNow_() || {}).custom) || [];
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
-  let at = COLUMNS.findIndex(t => t.id === 'biz');
-  if (at === -1) at = COLUMNS.length;
-  /* AN ADMIN-ONLY ONE (508) goes after Site and is `admin`, so `columnsFor_` leaves it out for everybody else. */
-  want.filter(c => !c.admin).concat(want.filter(c => c.admin)).forEach((c, k) => {
+  /* A `left` ONE (600) stands before Parent settings, the others before Business; an admin-only one (508) after Site, `admin`, so `columnsFor_` leaves it out for everybody else. */
+  const before = id => { const i = COLUMNS.findIndex(t => t.id === id); return i === -1 ? COLUMNS.length : i; };
+  let atL = before('family');
+  want.filter(c => c.left).concat(want.filter(c => !c.admin && !c.left), want.filter(c => c.admin)).forEach(c => {
     const t = CUSTOM_TABS[c.id] || (CUSTOM_TABS[c.id] = { id: c.id, icon: '▦', custom: true });
     t.label = t.title = c.title;
     t.admin = !!c.admin;
-    if (c.admin) COLUMNS.push(t); else COLUMNS.splice(at + k, 0, t);
+    if (c.admin) COLUMNS.push(t);
+    else if (c.left) COLUMNS.splice(atL++, 0, t);
+    else COLUMNS.splice(before('biz'), 0, t);
     if (!SCREENS[c.id]) screen(c.id, () => pages(c.id, cardsOf_(c.id)));
     if (!PAGE_HOME[c.id]) PAGE_HOME[c.id] = () => { const n = CARD_START_AT[c.id]; return typeof n === 'number' && n >= 0 ? n : 0; };
   });

@@ -51,10 +51,10 @@ function hadithItems_() {
   ix.collections.forEach(c => c.books.forEach(b => {
     const say = hadithBookSay_(b), words = [HADITH_WORDS, c.name, c.ar, b.name].join(' ');
     hadithNums_(b).forEach((n, i) => {
-      /* ONE SHAPE (520): which of the six is the Collection, its book the Book, the number the Unit. */
+      /* ONE SHAPE (520, 600): each of the six is a Work in the Hadith collection, its book the Book, the number the Unit. */
       list.push(writingUnit_('hadith', reg, {
         kind: 'hadith', key: 'hd:' + c.id + ':' + n, name: c.name + ' ' + n, sub: b.name, text: words,
-        w: { collection: c.name, book: say, unit: n, text: text },
+        w: { work: c.name, collection: 'Hadith', book: say, unit: n, text: text },
         hd: { c: c.id, b: b.n, file: b.file, i: i },
       }));
     });
