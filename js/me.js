@@ -1996,6 +1996,10 @@ function staffPages_() {
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
+/* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
+screen('apprentice', () => pages('apprentice', [`<div class="card"><h3>${esc(tabLabel_('apprentice', 'Apprentice'))}</h3><p class="muted">${
+  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`]));
+
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];

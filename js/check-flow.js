@@ -31664,7 +31664,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Job and Symptom; Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list (570); Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31683,13 +31683,13 @@ check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Jo
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Job,Model,Part,Parts list,Symptom') bad.push('Mechanics → Card type offers ' + kinds);
+  if (kinds !== 'Model,Part,Parts list') bad.push('Mechanics → Card type offers ' + kinds);
   S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
   if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
   if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
-  if (!/What it does/.test(html) || html.indexOf('general workshop knowledge') < 0 || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
+  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
   /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
   for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
   const model = all.find(x => x.mKind === 'Model');

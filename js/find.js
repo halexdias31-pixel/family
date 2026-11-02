@@ -441,7 +441,6 @@ const FACETS = [
   { field: 'mMake',     label: 'Make',        of: x => x.mMake || '' },
   { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
-  { field: 'mDifficulty', label: 'Difficulty', of: x => x.mDifficulty || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
   { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
   { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
@@ -2000,10 +1999,63 @@ function histTimelineCard_(x) {
   return `<div class="card fc hdb hdb-tl">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
+    <section class="fc-sec tl-step" data-tl="${esc(x.key)}">${tlStep_(x.key)}</section>
     <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
+
+/* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
+const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
+const tlEvents_ = key => { const t = histTimelines_().find(y => y.key === key); return t ? t.row.events || [] : []; };
+function tlStep_(key) {
+  const evs = tlEvents_(key);
+  if (!evs.length) return '';
+  const i = Math.min(TL_AT[key] || 0, evs.length - 1), e = evs[i], last = evs[evs.length - 1];
+  const from = Number(evs[0].date_from), span = Math.max(1, Number(last.date_to || last.date_from) - from);
+  const at = v => Math.max(0, Math.min(100, (Number(v) - from) / span * 100)).toFixed(1);
+  const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
+  return `<div class="tl-bar">${evs.map((d, k) => `<span class="tl-dot${k === i ? ' on' : k < i ? ' past' : ''}" style="left:${at(d.date_from)}%"></span>`).join('')}
+    <span class="tl-mark" style="left:${at(e.date_from)}%"></span></div>
+    <div class="tl-now" data-i="${i}"><p class="tl-when">${esc(e.date_text || histDay_(e.date_iso))} · ${i + 1} of ${evs.length}</p>
+    <h4>${esc(e.name)}</h4><p>${esc(e.summary || '')}</p></div>
+    <div class="tile-row">${tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })}${
+      tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })}${
+      tile_({ icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === evs.length - 1 })}</div>`;
+}
+function tlPaint_(key) {
+  document.querySelectorAll('.tl-step').forEach(s => { if (s.getAttribute('data-tl') === key) s.innerHTML = tlStep_(key); });
+}
+function tlStop_() {
+  if (TL_PLAY.timer) clearInterval(TL_PLAY.timer);
+  const k = TL_PLAY.key;
+  TL_PLAY.timer = null; TL_PLAY.key = '';
+  if (k) tlPaint_(k);
+}
+function tlMove_(key, by) {
+  const n = tlEvents_(key).length;
+  TL_AT[key] = Math.max(0, Math.min(n - 1, (TL_AT[key] || 0) + by));
+  if (TL_AT[key] >= n - 1 && TL_PLAY.key === key) return tlStop_();
+  tlPaint_(key);
+}
+on('tl-step', el => {
+  const key = el.getAttribute('data-key');
+  if (TL_PLAY.key === key) tlStop_();
+  tlMove_(key, +el.getAttribute('data-by'));
+});
+/* PLAY ADVANCES ON A TIMER that holds its own timeline's key, and stops at the last event or once the card is gone. */
+on('tl-play', el => {
+  const key = el.getAttribute('data-key');
+  if (TL_PLAY.key === key) return tlStop_();
+  tlStop_();
+  if ((TL_AT[key] || 0) >= tlEvents_(key).length - 1) TL_AT[key] = 0;
+  TL_PLAY.key = key;
+  TL_PLAY.timer = setInterval(() => {
+    if (![...document.querySelectorAll('.tl-step')].some(s => s.getAttribute('data-tl') === key)) return tlStop_();
+    tlMove_(key, 1);
+  }, TL_STEP_MS);
+  tlPaint_(key);
+});
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';
@@ -10508,7 +10560,7 @@ const TAG_OF = {
   /* EVERY WRITING'S (520), in kinds that already have colours. */
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
-  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level', mDifficulty: 'tier',
+  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level',
   cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
