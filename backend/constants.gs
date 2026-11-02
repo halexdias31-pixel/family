@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-02-polish-561";
+const BACKEND_VERSION = "2026-11-02-merge-6z";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -743,7 +743,8 @@ const CLAUDE_NOTES_FILE = 'Notes for Claude';
 /* A SUGGESTION'S PICTURE (498): the phone shrinks it to about 300 KB; this refuses anything far past that. */
 const SUGGEST_PIC_MAX = 600 * 1024;
 const CLAUDE_NOTES_DONE_FILE = 'data/notes-done.json';
-const CLAUDE_NOTE_MAX = 4000;
+/* VIRTUALLY UNLIMITED (562, owner note 119): a sheet cell holds 50,000 characters, so the note stops just short of it. */
+const CLAUDE_NOTE_MAX = 40000;
 
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
 const FILMS_FOLDER_NAME = 'notflix';

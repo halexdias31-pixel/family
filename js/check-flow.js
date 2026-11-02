@@ -10266,7 +10266,7 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   if (n !== pages.length) bad.push('the pager counts ' + n + ' Settings pages and the column draws ' + pages.length);
   /* THE OLD LAST INDEX, AND A REPAINT. `PAGE` reaches a journey as a getter (the `__t` hook). */
   const P = typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE;
-  P.account = 16;
+  P.account = 99;   /* past any last page, however many cards the column grows (562) */
   try { t.repaint(true); } catch (e) { bad.push('repainting threw: ' + e.message); }
   await wait(200);
   const at = P.account;
@@ -15999,7 +15999,7 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   if (pad.getAttribute('data-layer') !== 'sym' || !pad.classList.contains('is-sym')) bad.push('αβ on the letters did not turn the pad to its symbols: ' + pad.getAttribute('data-layer'));
   ['≈', '→', '…', '∛', 'θ', 'μ', '≠', '∞', '{', '[', '∈'].forEach(c => { if (!key(c)) bad.push('the symbols face has no ' + c + ' key'); });
   const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!abc|!left|!right| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc ← → space ⌫ ✓');
+  if (bottom.slice(-6).join('|') !== '!123|!abc|!mic| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc mic space ⌫ ✓ (562)');
   press('≈'); press(' '); press('!123'); ['2', '.', '6'].forEach(press);
   if (inp.value !== 'x ≈ 2.6') bad.push('x, a space, ≈ from the symbols, a space, 2.6 gave ' + JSON.stringify(inp.value));
   press('!done');
@@ -16097,9 +16097,10 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   /* THE LETTERS FACE: every letter, the punctuation, and the maths pad's bottom row in its places. */
   const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
   if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
-  ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
-  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 αβ ← → ↵ ⌫ ✓, the maths pad\'s with the symbols beside 123');
+  ["'", '.', ' ', '!shift', '!mic'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
+  /* AS AN iPHONE'S (562): ⌫ ends the z row, and the last row is 123 αβ mic space ' . ✓. */
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!back|!123|!sym|!mic| |\'|.|!done') bad.push('the letters\' last keys are ' + bottom.join(' ') + ', wanted ⌫ then 123 αβ mic space \' . ✓');
   if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
   'egestion'.split('').forEach(press);
   if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
@@ -16516,12 +16517,12 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
   if (nl.length !== 1 || !ret) bad.push('the essay\'s letters have ' + nl.length + ' new-line keys and ' + (ret ? 'a' : 'no') + ' labelled return — wanted exactly one, the return');
   else {
-    if (!/return/.test(ret.textContent) || !/span 12/.test(ret.getAttribute('style') || '')) bad.push('the return key is not labelled "return" and twelve columns wide: ' + ret.outerHTML.slice(0, 200));
+    if (!ret.querySelector('.kp-ret-i')) bad.push('the return key has no ↵ mark: ' + ret.outerHTML.slice(0, 200));
     const space = pad.querySelector('.kp-key.kp-space');
-    if (!space || !/span 24/.test(space.getAttribute('style') || '')) bad.push('the space bar did not give the return its twelve columns');
+    if (!space || !/span 18/.test(space.getAttribute('style') || '')) bad.push('the essay\'s space bar is not 18 columns, the room left beside return and done (562)');
   }
-  const bottom = keys.slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own with the symbols beside 123: 123 αβ ← → ␣ ⌫ ✓');
+  const bottom = keys.slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!sym|!mic| |\'|.|!nl|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted 123 αβ mic space \' . return done (562)');
   const doneKey = keys[keys.length - 1];
   if (!doneKey || !doneKey.classList.contains('kp-done-k') || doneKey.textContent.trim() !== 'done' || doneKey.querySelector('svg')) bad.push('the essay\'s ✓ still wears Send\'s aeroplane — on an essay it only puts the pad away, so it says "done"');
   if (!blank()) bad.push('the sheet stopped being blank when it was focused, so the hint went before a letter was written');
@@ -16669,7 +16670,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (!si || !si.closest('.qp-bar') || si.hasAttribute('data-kp-essay') || card.querySelector('.qp-sheet, .qp-words')) bad.push('a three-mark explain box is not the chat bar any more');
   else {
     si.focus();
-    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
+    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!mic| |\'|.|!done') bad.push('a short worded box has not the letters\' last row (123 αβ mic space \' . ✓, 562), or gained the essay\'s return');
     si.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     if (!pad.hidden || si.value) bad.push('Enter on a short worded box did not put the pad away as ✓ (value ' + JSON.stringify(si.value) + ')');
   }
@@ -21891,7 +21892,10 @@ check('the history database: a manuscript and a historical figure are each found
     const drawn = el.querySelector('.hdb-msc');
     if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.firstElementChild.matches('.qtags')
               : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
-    if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
+    /* NO CARD TALLER THAN A PHONE (562): the lines a card does not keep are its pages after it, so the card and its pages together have them. */
+    const lines = el.querySelectorAll('.hdb-lines dl > div').length
+      + w.pageParts_(x).filter(p => /^facts\d+$/.test(String(p))).reduce((n, p) => { const e = d.createElement('div'); e.innerHTML = w.stuffPart_(x, p); return n + e.querySelectorAll('.hdb-lines dl > div').length; }, 0);
+    if (lines < 4) bad.push(x.name + '\'s card and its pages have fewer than four label/value lines');
     if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
     if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
   }
@@ -31784,14 +31788,17 @@ check('Library → a subject offers only shelves that subject has — never Book
 const MISS_LIST_ = [
   { board: 'Edexcel', level: 'GCSE', subject: 'Maths', label: 'Edexcel GCSE Maths', papers: ['1H', '2H'], series: ['June'], from: 2017, to: 2017 },
   { board: 'AQA', level: 'GCSE', subject: 'Geography', label: 'AQA GCSE Geography', papers: ['1'], from: 2022, to: 2022 },
-  { board: 'OCR', level: 'GCSE', subject: 'Psychology', label: 'OCR GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'AQA', level: 'GCSE', subject: 'Psychology', label: 'AQA GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  /* NEVER SHOWN (562): an OCR line, and an Edexcel line that is not Maths. */
+  { board: 'OCR', level: 'GCSE', subject: 'Maths', label: 'OCR GCSE Maths', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'Edexcel', level: 'GCSE', subject: 'History', label: 'Edexcel GCSE History', papers: ['1'], from: 2022, to: 2022 },
 ];
 const MISS_ROWS_ = [
   { kind: 'document', document_type: 'Past paper', paper_id: 'MX-1H', exam_board: 'Edexcel', level: 'GCSE', subject: 'Maths', year: '2017', month: '6',
     paper: '1', tier: 'Higher', name: 'Paper 1 — June 2017', active: 'True' },
-  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Paper 1 — June 2022', active: 'True' },
-  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Q1', active: 'True', lib_pending: 'True' },
 ];
 const missServe_ = list => u => (/expected-papers\.json/.test(u) ? list : /data\/questions\.json/.test(u) ? MISS_ROWS_ : undefined);
@@ -31816,7 +31823,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
   if (/Paper 1H|Papers 1H/.test(s0)) bad.push('a present paper (1H June 2017) is listed as missing');
   if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
-  if (!/OCR GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
   if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
   if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
   if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');

@@ -154,8 +154,8 @@ function initMiniCalc() {
 }
 
 /* THE KEY ROWS SIZED FROM THE PANE (533, D4): the device is drawn at full size, never zoomed, so its nine key rows (`--calc-row`) take what the pane has left. */
-/* 36px IS A TILE'S FLOOR (`PANE_FLOOR_TILE`); a pane too short even then scrolls (320x568). 56px keeps a tall screen's keys a calculator's. */
-const CALC_ROW_MIN = 36, CALC_ROW_MAX = 56, CALC_ROWS = 9;
+/* 36px IS A TILE'S FLOOR (`PANE_FLOOR_TILE`); a pane too short even then scrolls (320x568). 44px at most: the owner, "calc widget is too big" (562). */
+const CALC_ROW_MIN = 36, CALC_ROW_MAX = 44, CALC_ROWS = 9;
 function calcFit_(pane) {
   const c = pane && pane.querySelector('.calc');
   if (!c) return;

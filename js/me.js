@@ -1910,10 +1910,17 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
-  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(),
+  return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), soonCards_(),
     /* PHONE NOTIFICATIONS (492), push.js — here because every account has this column. Google Tasks lives in the Docket (491). */
     typeof pushCard_ === 'function' ? [pushCard_()].filter(Boolean) : [], prog, wait);
 }
+/* PLACEHOLDERS (562, owner notes 116, 118, 114): one card each, its title and one line, until the thing is built; each in CARD_REG so it moves and deletes. */
+const SOON_CARDS = [
+  ['soon-brownie', 'Brownie points', 'Points you earn for good work. Coming soon.'],
+  ['soon-roadmap', 'Roadmap', 'How much of your syllabus is left, subject by subject. Coming soon.'],
+  ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
+];
+const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => `<div class="card soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`);
 screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
