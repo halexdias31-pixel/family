@@ -97,7 +97,7 @@ const HIST_DB = [
   { file: 'timeline', prefix: 'EV-', kind: 'event', years: ['date_from', 'date_to'] },
 ];
 
-/* One fetch per tab, all started before this file parsed — see `index.html`. § */
+/* One fetch per tab, started by boot.js once the first screen is drawn (630). § */
 function libraryExtraRows_() {
   if (LIBRARY_EXTRA) return Promise.resolve(LIBRARY_EXTRA);
   if (!LIBRARY_EXTRA_ASK) LIBRARY_EXTRA_ASK = libraryExtraAsk_().finally(() => { LIBRARY_EXTRA_ASK = null; });

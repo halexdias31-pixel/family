@@ -265,7 +265,7 @@ top level, before `LIB_EXTRA`
    its chapter row. A rename would be churn in all three for a word nobody reads. */
 ```
 
-### One fetch per tab, all started before this file parsed — see `index.html`.
+### One fetch per tab, started by boot.js once the first screen is drawn (630).
 
 top level, before `libraryExtraRows_`
 

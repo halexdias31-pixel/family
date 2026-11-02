@@ -89,21 +89,13 @@
       /* CAUGHT HERE AS WELL AS THERE. § */
       window.BOOT_GET = fetch(url, { cache: 'no-store' }).catch(function () { return null; });
 
-      /* ---------- AND THE LIBRARY, IN PARALLEL § */
-      window.BOOT_LIB = fetch('data/questions.json?t=' + LOAD, { cache: 'default' })
-        .catch(function () { return null; });
-
-      /* ---------- AND THE OTHER THREE LIBRARY TABS, THE SAME WAY § */
-      window.BOOT_LIB_EXTRA = {};
-      ['boxers', 'fights', 'cheatsheet'].forEach(function (name) {
-        window.BOOT_LIB_EXTRA[name] =
-          fetch('data/' + name + '.json?t=' + LOAD, { cache: 'default' })
-            .catch(function () { return null; });
-      });
+      /* THE LIBRARY IS NOT ASKED FOR HERE (630): on a phone's link its megabyte fought the code for the wire and the screen stayed black; boot.js asks once the first screen is drawn. */
     }
   } catch (e) {}
 
+  /* AND THE TYPEFACE WITH THE STYLESHEET, so the first words are drawn once in it rather than swapped (630). */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">'
+    + '<link rel="preload" as="font" type="font/woff2" href="fonts/family-code.woff2" crossorigin>'
     + FILES.map(function (f) {
         return '<link rel="preload" as="script" href="js/' + f + '.js?t=' + LOAD + '">';
       }).join(''));
