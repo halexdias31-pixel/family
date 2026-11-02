@@ -14,6 +14,9 @@ Seven papers, 268 rows (parts and shared stems), each paper summing to its 80, i
 | November 2024 1F, 1H, 2F, 2H, 3F, 3H | `D-RS1786302107764-409` … `414` |
 | June 2023 3F | `D-RS1786302107764-431` |
 | November 2022 1F, 2F, 3F, 3H (second batch, 178 rows; P68720A, P68722A, P68724A, P68725A) | `433`, `435`, `437`, `438` |
+| November 2021 all six (fourth batch, 234 rows; P64629A 1F, P64630A 1H, P64631A 2F, P64632A 2H, P64633A 3F, P64634A 3H, all six from the hash-named `2021_November` backups) | `445` … `450` |
+| June 2019 1F, 3F (P54155A, P55606A) | `457`, `461` |
+| November 2018 1F, 2F, 3F (P55583A, P55587A, P55596A) | `463`, `465`, `467` |
 | June 2022 all six (third batch, 231 rows; P66306RA 1F, P66305A 1H, P66304A 2F, P66303A 2H, P66380A 3F, P66381A 3H — 1H, 1F, 3F, 3H from the hash-named backups 29611431cb, 97e0be7de4, 574dbba869, 2b7dd549d1) | `439` … `444` |
 
 The words were read through the Drive connector's text of each PDF (identified by its cover: P75157A–P75162A for
@@ -47,13 +50,20 @@ together, so the backlog is that paper), and the ceiling is back at 658. Novembe
 (1F Q26a, 3F Q17b and Q29b, 3H Q9b and Q22) are referred to the diagram the same way, as are June 2022's: 2F Q14(i);
 2H Q8's calculation and Q19's g and h; 1H Q3's (and 1F Q25's) fraction of cars, Q18 and Q19; 1F Q15a; 3F Q5, Q15, Q17b
 and Q19's fractions; 3H Q9a, Q13's vectors, Q16's formula and Q19.
+Fourth batch, referred to the diagram: Nov 2021 3H Q12's identity, Q22's fractions and form; 2H Q16a's iteration formula and
+Q21's pendulum formula; 2F Q12a's calculation and Q15's fractions; 1H Q15's fractions, Q19's surds and Q21's g(x). June 2019
+1F Q8's fractions, Q15a and Q19; 3F Q14's calculation and Q19's formula. November 2018 1F Q20 and Q26's ratio; 2F Q27c; 3F Q3,
+Q19's three inequalities and Q20b. Written out because the arithmetic confirms them: 1H Q7 and 1F Q26's √(<i>k</i>π) (6<i>x</i>² = 36π),
+1H Q3's 4 1&frasl;5 − 2 2&frasl;3. The lost glyph in "−3 _ <i>y</i> &lt; 4" and in the grouped-table intervals was read as ≤, as it is in
+every 1MA1 class interval.
 Two "use your line of best fit" parts carry `uses: b` so the child's line is shown.
 
 ## Left
 
-- November 2021 all six; November
-  2020 (check against the May/June 2020 rows, 415 found 1H the same sitting); November 2019 3F (no cover row; 2H and 3H are
-  already P-1MA1-1911-*); June 2019 1F/3F; November 2018 1F/2F/3F. The Drive folder holds most of them by plain name;
-  the hash-named `past-papers-backup/…Higher…` PDFs are June 2022 and June 2023 Higher papers by their titles, not yet
-  opened.
+- November 2020 all six: the six `…2020_November…` backups named for it (7df0cc4df7, 5d175dda7e, 972986bf0b, fd4a6e7f5b,
+  7acf68e021, 33291e86ea) are by their covers the **May/June 2020** papers (P62274RA 1F, P62275A 2F, P62276A 3F, P62277RA 1H,
+  P62278RA 2H, P62279A 3H), so none was put in the November 2020 covers `451`–`456`. 1H/2H/3H are already P-1MA1-2005-1H,
+  2006-2H, 2006-3H; June 2020 1F/2F/3F have no cover row. November 2020 itself still needs finding in the Drive folder.
+- November 2019 3F (no cover row; 2H and 3H are already P-1MA1-1911-*); June 2019 1H/2F/2H/3H (`458`–`460`, `462`);
+  November 2018 1H/2H (`464`, `466`).
 - Every imported part's answer, from its scheme, and the figures.
