@@ -7149,7 +7149,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tl-dot { position: absolute; bottom: -.3rem; width: .5rem; height: .5rem; margin-left: -.25rem; border-radius: 50%; background: var(--line); }
 .tl-dot.past, .tl-dot.on { background: var(--ink); }
 .tl-mark { position: absolute; bottom: -.15rem; width: 0; height: 1.3rem; border-left: 3px solid var(--gold); }
-.tl-now { animation: tl-in .5s ease; }
-.tl-when { margin: 0; opacity: .7; font-size: .85rem; }
+.tl-now { animation: tl-in var(--dur-enter) var(--ease-out); }
+.tl-when { margin: 0; color: var(--dim); font-size: .85rem; }
 @keyframes tl-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }

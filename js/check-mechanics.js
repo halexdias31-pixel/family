@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-mechanics.js MECHANICS (548): each card has a system and a source; car cards name make, model, years; no part
-   numbers or plates beyond a part's labelled example; each facet one string; named parts are real part cards (570: no jobs or symptoms). No flags, no port. */
+   numbers but a part's labelled example; each facet one string; named parts exist. No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data', 'mechanics');
