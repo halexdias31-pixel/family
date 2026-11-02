@@ -94,27 +94,31 @@ function kpVecStep_(v, a) {
 
 /* ---------- THE LETTERS § */
 const kpCh_ = (t, a, span, at) => ({ t: t, a: a || '', c: ' kp-ch', span: span || 6, at: at || 0 });
+/* AS AN iPHONE'S (562, owner notes 114, 128): ⇧ z–m ⌫ on the third row, one wide space bar on the last with 123, αβ and the mic; the rest of the punctuation is on αβ. */
+const KP_DEL_KEY = () => KP_KEYS.find(k => k.v === '!back');
+const KP_DONE_KEY = () => KP_KEYS.find(k => k.v === '!done');
+const KP_MIC = { v: '!mic', a: 'dictate, speak instead of typing', c: ' kp-mode kp-mic', icon: 'mic' };
+const KP_SPACE_KEY = { v: ' ', a: 'space', c: ' kp-space kp-mode', t: 'space' };
 const KP_ABC = [].concat(
   'qwertyuiop'.split('').map(c => kpCh_(c)),
   'asdfghjkl'.split('').map((c, i) => kpCh_(c, '', 6, i ? 0 : 4)),
   [{ v: '!shift', a: 'capitals', c: ' kp-shift kp-mode', span: 9, t: '\u21e7' }],
   'zxcvbnm'.split('').map(c => kpCh_(c)),
-  [kpCh_('\'', 'apostrophe', 9), kpCh_(',', 'comma'), kpCh_('.', 'full stop'),
-   { v: ' ', a: 'space', c: ' kp-space kp-mode', span: 36, t: 'space' },
-   kpCh_('?', 'question mark'), kpCh_('-', 'hyphen')]);
-/* THE BOTTOM ROW, THE MATHS PAD'S OWN with `123` where `abc` was. § */
+  [Object.assign({}, KP_DEL_KEY(), { span: 9 })]);
+/* THE LETTERS' LAST ROW: 123 αβ 🎤 [space] ' . ✓ — an essay's ends in return and done, a smaller space between. */
+const kpAbcBottom_ = (essay, sym) => [
+  Object.assign({ span: 6 }, { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }),
+  Object.assign({ span: 6 }, sym ? { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' } : KP_SYM_KEY),
+  Object.assign({}, KP_MIC, { span: 6 }),
+  Object.assign({}, KP_SPACE_KEY, { span: essay ? 18 : 24 }),
+  /* ON αβ the two punctuation keys give way to ⌫, which the symbols have no other row for. */
+  ...(sym ? [Object.assign({}, KP_DEL_KEY(), { span: 12 })] : [kpCh_('\'', 'apostrophe', 6), kpCh_('.', 'full stop', 6)])]
+  .concat(essay ? [Object.assign({}, KP_RETURN, { span: 6 }), Object.assign({}, KP_DONE_ESSAY, { span: 6 })]
+    : [Object.assign({}, KP_DONE_KEY(), { span: 6 })]);
+/* THE ESSAY'S DONE KEY, which puts the pad away rather than sending. */
 const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
 /* AND THE SYMBOLS' KEY BESIDE `123` (round 4); on the symbols face `abc` stands there, and the space stays a space */
 const KP_SYM_KEY = { v: '!sym', a: 'symbols and Greek letters', c: ' kp-mode', t: '\u03b1\u03b2' };
-const KP_BOTTOM_SPAN = [8, 8, 8, 8, 12, 8, 8];
-const kpBottom_ = (words, essay, sym) => {
-  const row = KP_KEYS.slice(-6).map(k =>
-    k.v === '!abc' ? { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }
-    : (words && !essay && !sym && k.v === ' ') ? { v: '!nl', a: 'new line', c: ' kp-mode', t: '\u21b5' }
-    : (essay && k.v === '!done') ? KP_DONE_ESSAY : k);
-  row.splice(1, 0, sym ? { v: '!abc', a: 'letters', c: ' kp-mode', t: 'abc' } : KP_SYM_KEY);
-  return row.map((k, i) => Object.assign({}, k, { span: KP_BOTTOM_SPAN[i] }));
-};
 /* ---------- THE SYMBOLS (round 4): what a stored answer is written in and no other key types -- Greek letters, ≈ ≠ → ∞ … ∛, sets and intervals */
 const kpSy_ = (t, a, v) => ({ v: v, t: t, a: a, c: ' kp-op kp-sy', span: 6 });
 const KP_SYM = [
@@ -125,12 +129,14 @@ const KP_SYM = [
   kpSy_('\u222a', 'union'), kpSy_('\u2229', 'intersection'),
   kpSy_('{', 'open curly bracket'), kpSy_('}', 'close curly bracket'), kpSy_('[', 'open square bracket'), kpSy_(']', 'close square bracket'),
   kpSy_('_', 'underscore, for a subscript'), kpSy_('!', 'exclamation mark, factorial'), kpSy_('x\u0304', 'a bar over the letter before', '\u0304'),
+  /* THE PUNCTUATION THE LETTERS GAVE UP FOR THE WIDE SPACE BAR (562): one row of ten. */
+  kpSy_(',', 'comma', ','), kpSy_('?', 'question mark', '?'), kpSy_('-', 'hyphen', '-'), kpSy_(':', 'colon', ':'), kpSy_(';', 'semicolon', ';'),
+  kpSy_('"', 'quotation mark', '"'), kpSy_('(', 'open bracket', '('), kpSy_(')', 'close bracket', ')'), kpSy_('/', 'slash', '/'), kpSy_('&amp;', 'and', '&'),
   kpSy_('\u2124', 'the integers'), kpSy_('\u211d', 'the real numbers'), kpSy_('\u00b5', 'micro, for a unit'),
 ];
 /* ---------- AN ESSAY'S LETTERS: A RETURN KEY YOU CAN SEE § */
 const KP_RETURN = { v: '!nl', a: 'return, a new line', c: ' kp-mode kp-ret', span: 12,
   t: '<span class="kp-ret-i" aria-hidden="true">\u21b5</span><span class="kp-ret-k">return</span>' };
-const KP_ABC_ESSAY = KP_ABC.map(k => (k.c === ' kp-space kp-mode' ? Object.assign({}, k, { span: 24 }) : k)).concat([KP_RETURN]);
 
 /* ---------- EVERY OTHER BOX ON THE SITE (528): the same pad, its maths keys made plain characters, and @ . / for an address */
 const KP_MAIL_KEYS = ['@', '.', '/', '_', '-', ':'].map(c => kpCh_(c, { '@': 'at', '.': 'dot', '/': 'slash', '_': 'underscore', '-': 'hyphen', ':': 'colon' }[c], 10));
@@ -151,9 +157,9 @@ const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="k
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
 /* `site` IS A BOX ELSEWHERE ON THE SITE (528): 'mail' tops the letters with @ . /, any other the 123 face with @ # & and plain keys for the structures */
 function kpPadHtml_(layer, words, signs, essay, vec, site) {
-  if (layer === 'sym') return KP_SYM.concat(kpBottom_(words, essay, true)).map(kpKey_).join('');
+  if (layer === 'sym') return KP_SYM.concat(kpAbcBottom_(essay, true)).map(kpKey_).join('');
   const top = site === 'mail' ? KP_MAIL_KEYS : site ? [] : vec ? [KP_POW].concat(KP_VEC_KEYS).map((k, i) => Object.assign({}, k, { span: KP_ABC_TOP_SPAN[i] })) : [];
-  if (layer === 'abc') return top.concat(essay ? KP_ABC_ESSAY : KP_ABC).concat(kpBottom_(words, essay)).map(kpKey_).join('');
+  if (layer === 'abc') return top.concat(KP_ABC).concat(kpAbcBottom_(essay)).map(kpKey_).join('');
   if (site) return KP_SITE_KEYS.concat(KP_SIGN_KEYS, KP_KEYS.map(kpPlainKey_)).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
   return (vec ? KP_VEC_KEYS : []).concat(signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
@@ -757,8 +763,31 @@ on('kp-key', (el) => {
   if (v === '!done') return kpDone_(inp);
   if (v === '!abc' || v === '!123' || v === '!sym') return kpLayer_(v === '!abc' ? 'abc' : v === '!sym' ? 'sym' : 'maths', inp);
   if (v === '!shift') return kpShiftTap_();
+  if (v === '!mic') return kpMic_(inp, el);
   kpType_(inp, v, false);
 });
+
+/* ---------- THE MIC (562, owner note 128): the browser's own speech recognition types what you say into the live box; none, and the key says so */
+let KP_MIC_ON = null;
+const kpMicApi_ = () => (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) || null;
+function kpMicPaint_(on) { document.querySelectorAll('.kp-mic').forEach(k => { k.classList.toggle('is-on', !!on); k.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
+function kpMic_(inp, el) {
+  if (KP_MIC_ON) { try { KP_MIC_ON.stop(); } catch (e) { /* already stopped: nothing to undo */ } return; }
+  const Api = kpMicApi_();
+  if (!Api) { if (typeof toast === 'function') toast('Dictation is not available in this browser.'); return; }
+  let r;
+  try { r = new Api(); } catch (e) { return; }
+  r.lang = 'en-GB'; r.interimResults = false; r.continuous = false;
+  r.onresult = ev => {
+    const said = [].map.call(ev.results || [], x => (x && x[0] && x[0].transcript) || '').join(' ').trim();
+    const box = kpLive_() || inp;
+    if (!said || !box) return;
+    const v = String(box.value || ''), a = box.selectionStart == null ? v.length : box.selectionStart;
+    kpType_(box, (a > 0 && !/\s$/.test(v.slice(0, a)) ? ' ' : '') + said, true);
+  };
+  r.onend = r.onerror = () => { KP_MIC_ON = null; kpMicPaint_(false); };
+  try { r.start(); KP_MIC_ON = r; kpMicPaint_(true); } catch (e) { KP_MIC_ON = null; kpMicPaint_(false); }
+}
 
 /* ✓ IS CHECK, where the question has a scheme to check against — the same handler the button runs, not a copy of it — and otherwise it is "I have finished" § */
 /* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND § */

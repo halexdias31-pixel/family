@@ -59,7 +59,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
                          /* `Level · SATs` AND THEN `Key stage · KS2`. § */
@@ -87,7 +87,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
@@ -108,7 +108,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
@@ -131,7 +131,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
@@ -155,7 +155,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
@@ -181,7 +181,7 @@ const STATES = {
     { name: 'a long list, drawn whole',
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Questions' },
+        STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
                          { field: 'keystage', value: 'KS2' },
@@ -201,7 +201,7 @@ const STATES = {
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
@@ -859,7 +859,7 @@ const STATES = {
         if (!q1) throw new Error('Q-CBM-subtraction-1 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Questions' }];
+        STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(q1), true);
         window.__q2From = PAGE.stuff;
@@ -1803,7 +1803,7 @@ const STATES = {
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* AND A SEARCH A CHIP HIDES. § */
     { name: 'a search a chip hides',
-      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => {
         const g = document.querySelector('#stuff-groups');
         return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
@@ -1815,7 +1815,7 @@ const STATES = {
          so it runs out of questions in two or three answers whatever the data says next week. */
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Projects' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
         paintStuff();
         for (let i = 0; i < 8; i++) {
           const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
@@ -2097,10 +2097,10 @@ const STATES = {
       }),
       expect: () => {
         const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
-        return a.length >= 1 && a.every(b => b.dataset.field === 'wSource') && a.some(b => b.dataset.value === 'Hebrew Masoretic Text')
+        return a.length >= 1 && a.every(b => b.dataset.field === 'wCollection') && a.some(b => b.dataset.value === 'Old Testament')
                && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
       },
-      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Source text, the Masoretic among its answers' },
+      wants: 'the Writings shelf answered: the Bible\'s cover, and one question, Collection (594), the Old Testament among its answers' },
     { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => inFinder_(finderOf_('res'), () => {

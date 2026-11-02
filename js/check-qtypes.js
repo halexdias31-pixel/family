@@ -100,7 +100,8 @@ if (Q) rows.forEach(r => {
   if (!Q.qtDrawn_(r)) return;
   const f = Q.qtFigureOf_(r, stemsOf(r));
   figs[f] = (figs[f] || 0) + 1;
-  if (f === 'none') broken.push(`${r.row_id} is drawn, its words point at a figure, and it has none and no stem with one`);
+  /* A PART AWAITING ITS SCHEME (584) shows "Figure not drawn yet." until its figure and answer come together. */
+  if (f === 'none' && !require('../check/schema.js').schemeOwed(r)) broken.push(`${r.row_id} is drawn, its words point at a figure, and it has none and no stem with one`);
   if (f === 'ambiguous') broken.push(`${r.row_id} is drawn under two stems with a figure each: which one it draws on is not said`);
 });
 if (Q && !(figs.stem > 50)) broken.push('only ' + (figs.stem || 0) + ' drawn parts reach a stem\'s figure — wanted the library\'s 80-odd; is the stem index reading the file?');

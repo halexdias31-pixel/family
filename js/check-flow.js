@@ -1604,7 +1604,14 @@ check('a reply that lands leaves an open list where it is: a focused select keep
   /* THE SETTINGS COLUMN: a select focused, then `profileRefresh_`'s repaint. */
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
   await wait(200);
-  const cc = d.querySelector('#s-account select[data-me]');
+  /* ITS PAGE BROUGHT IN FRONT FIRST (561): a page off the glass is inert, and nobody focuses a box in it. */
+  let cc = d.querySelector('#s-account select[data-me]');
+  const ccPage = cc && cc.closest('#s-account .page');
+  if (ccPage && typeof w.goPage === 'function') {
+    try { w.goPage('account', [...ccPage.parentElement.children].filter(x => x.classList.contains('page')).indexOf(ccPage), true); } catch (e) {}
+    await wait(200);
+    cc = d.querySelector('#s-account select[data-me]');
+  }
   if (!cc) bad.push('no select on Settings (' + JSON.stringify([...d.querySelectorAll('#s-account [data-me]')].map(x => x.tagName + ':' + x.dataset.me).slice(0, 12)) + ') — the settings half was NOT checked');
   else if (typeof w.profileRefresh_ !== 'function') bad.push('profileRefresh_ is not a global — its repaint was NOT checked');
   else {
@@ -2581,7 +2588,18 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
     const box = w.document.createElement('div'); box.innerHTML = html;
     return { svg, text: flat(box.textContent), html };
   };
-  const site = w => flat((w.document.querySelector('#sheet-body .is-prof') || {}).textContent);
+  /* A MAP WHOSE TILES WILL NOT COME IS LEFT OUT WHOLE (547), its caption with it unless tags follow: so the site's words, less what `tpngInline_` drops. */
+  const site = (w, pic) => {
+    const card = w.document.querySelector('#sheet-body .is-prof');
+    if (!card) return '';
+    const c = card.cloneNode(true);
+    if (pic && !/prof-heat/.test(pic.html)) c.querySelectorAll('.prof-heat').forEach(heat => {
+      const cap = heat.previousElementSibling, next = heat.nextElementSibling;
+      heat.remove();
+      if (cap && cap.classList.contains('prof-cap') && !(next && next.classList.contains('prof-tags'))) cap.remove();
+    });
+    return flat(c.textContent);
+  };
   /* ---------- 1. A VISITOR ON A PHONE: one PNG and the link, to the share sheet ---------- */
   const v = await open();
   if (!v.tile) return ['?tutor=adatutor opened no card with a Share tile'];
@@ -2597,7 +2615,7 @@ check('Share on a tutor card (412, 547) hands over a PNG of the very card the si
   else {
     console.log('          shot: ' + s1.text.slice(0, 160));
     if (!/is-prof/.test(s1.svg)) bad.push('the picture is not the profile card');
-    if (!site(v.w) || s1.text !== site(v.w)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w).slice(0, 200) + '"');
+    if (!site(v.w, s1) || s1.text !== site(v.w, s1)) bad.push('the picture does not say what the card on the site says: picture "' + s1.text.slice(0, 200) + '" / site "' + site(v.w, s1).slice(0, 200) + '"');
     if (!/£20/.test(s1.text)) bad.push('a visitor\'s picture has no rate on it');
     if (!/<img[^>]+src="data:image\/jpeg/.test(s1.html)) bad.push('Ada\'s photo is not carried in the picture as data: ' + (s1.html.match(/<img[^>]*>/) || ['no img'])[0].slice(0, 160));
   }
@@ -7341,7 +7359,7 @@ check('the console is one widget for every game (441): game files, Flabby Pird a
   const pick = d.querySelector('#s-games #cs-pick');
   if (!pick) return bad.concat(['the Console has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
-  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer') bad.push('the picker offers ' + JSON.stringify(opts));
+  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer|Linked pictures|I can guess') bad.push('the picker offers ' + JSON.stringify(opts));
   const bodies = { file: '#nes-box', flabby: '.cs-hand #flappy-canvas', racer: '.cs-wide #race-box' };
   for (const k of ['flabby', 'racer', 'file']) {
     pick.value = k; t.ACTIONS['cs-pick'](pick);
@@ -10248,7 +10266,7 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   if (n !== pages.length) bad.push('the pager counts ' + n + ' Settings pages and the column draws ' + pages.length);
   /* THE OLD LAST INDEX, AND A REPAINT. `PAGE` reaches a journey as a getter (the `__t` hook). */
   const P = typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE;
-  P.account = 16;
+  P.account = 99;   /* past any last page, however many cards the column grows (562) */
   try { t.repaint(true); } catch (e) { bad.push('repainting threw: ' + e.message); }
   await wait(200);
   const at = P.account;
@@ -13253,7 +13271,8 @@ check('progress, populated: counts by topic from the account and the device, a s
     if (!/Coming up/.test(progTxt_(ss)) || !/Done/.test(progTxt_(ss))) bad.push('the Sessions card does not show sessions to come and done: ' + progTxt_(ss).slice(0, 120));
     if (ss.querySelectorAll('.row').length !== 6) bad.push('the Sessions card has ' + ss.querySelectorAll('.row').length + ' rows, wanted the next three and the last three');
   }
-  if (/Not built yet|Coming soon/.test(progTxt_(host))) bad.push('the placeholder words are still drawn');
+  /* Only the progress widgets: Student settings now carries the owner's own Coming soon cards on purpose (562). */
+  if ([...host.querySelectorAll('.prog-w')].some(c => /Not built yet|Coming soon/.test(progTxt_(c)))) bad.push('the placeholder words are still drawn');
   if (tiles[0]) {
     try { t.ACTIONS['prog-practise'](tiles[0]); } catch (e) { bad.push('prog-practise threw: ' + e.message); }
     await wait(LEAVE_MS); await woken_();
@@ -13550,7 +13569,7 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games', 'family', 'staff', 'apprentice', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
 
 check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -14869,8 +14888,8 @@ check('a page that opens older than the server reloads once, and never twice for
   if (mark !== '"build-b"') bad.push('the reload was not remembered against the build it was for, so nothing stops a second');
   if (again.reloads()) bad.push('a page that had already reloaded for this build reloaded again — that is the loop');
   const ban = again.w.document.getElementById('banner');
-  if (!ban || ban.classList.contains('hidden') || !/newer version/i.test(ban.textContent))
-    bad.push('a page still stale after its one reload was not offered the tap to load the new build');
+  if (ban && !ban.classList.contains('hidden') && /newer version/i.test(ban.textContent))
+    bad.push('the page asked about the new build — it must update quietly, never prompt (610)');
   return bad;
 });
 
@@ -14895,8 +14914,8 @@ check('a page that cannot remember it reloaded for a build is offered the tap, n
   const bad = [];
   if (reloads) bad.push('storage refused the once-per-build mark and the page reloaded anyway — the next boot would too');
   const ban = b.w.document.getElementById('banner');
-  if (!ban || ban.classList.contains('hidden') || !/newer version/i.test(ban.textContent))
-    bad.push('a page it could not safely reload was not offered the tap to load the new build');
+  if (ban && !ban.classList.contains('hidden') && /newer version/i.test(ban.textContent))
+    bad.push('the page asked about the new build — it must update quietly, never prompt (610)');
   return bad;
 });
 
@@ -15326,8 +15345,8 @@ const pageNum = root => {
   return q ? q + tagF(root, 'qPart') + (tagF(root, 'qSub') ? '(' + tagF(root, 'qSub') + ')' : '')
     + (i ? ' · ' + num(i) + ' of ' + num(tagF(root, 'qPages')) : '') : '';
 };
-const tagText = (root, kind) => kind === 'number' ? pageNum(root) : tagF(root, kind === 'kind' ? 'kindLabel' : kind);
-const pageHead = root => [tagF(root, 'kindLabel'), pageNum(root)].filter(Boolean).join(' ');
+const tagText = (root, kind) => kind === 'number' ? pageNum(root) : kind === 'kind' ? [tagF(root, 'kindLabel'), tagF(root, 'kindOwn')].filter(Boolean).join(' ') : tagF(root, kind);
+const pageHead = root => [tagF(root, 'kindLabel'), tagF(root, 'kindOwn'), pageNum(root)].filter(Boolean).join(' ');
 /* AN ITEM'S ROW WITHOUT ITS PAGE: every tag but the two that say which page this is, and What kind --
    the facts that must read the same on every page of one item (`tagRow_`'s rule, 355). */
 const rowSay = root => [...(root ? root.querySelectorAll('.qcard-tags .qtag') : [])]
@@ -15981,7 +16000,7 @@ check('the pad\'s symbols face types ≈ → … ∛ and Greek letters into the 
   if (pad.getAttribute('data-layer') !== 'sym' || !pad.classList.contains('is-sym')) bad.push('αβ on the letters did not turn the pad to its symbols: ' + pad.getAttribute('data-layer'));
   ['≈', '→', '…', '∛', 'θ', 'μ', '≠', '∞', '{', '[', '∈'].forEach(c => { if (!key(c)) bad.push('the symbols face has no ' + c + ' key'); });
   const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!abc|!left|!right| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc ← → space ⌫ ✓');
+  if (bottom.slice(-6).join('|') !== '!123|!abc|!mic| |!back|!done') bad.push('the symbols\' bottom row is ' + bottom.join(' ') + ', wanted 123 abc mic space ⌫ ✓ (562)');
   press('≈'); press(' '); press('!123'); ['2', '.', '6'].forEach(press);
   if (inp.value !== 'x ≈ 2.6') bad.push('x, a space, ≈ from the symbols, a space, 2.6 gave ' + JSON.stringify(inp.value));
   press('!done');
@@ -16079,9 +16098,10 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   /* THE LETTERS FACE: every letter, the punctuation, and the maths pad's bottom row in its places. */
   const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
   if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
-  ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
-  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 αβ ← → ↵ ⌫ ✓, the maths pad\'s with the symbols beside 123');
+  ["'", '.', ' ', '!shift', '!mic'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
+  /* AS AN iPHONE'S (562): ⌫ ends the z row, and the last row is 123 αβ mic space ' . ✓. */
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!back|!123|!sym|!mic| |\'|.|!done') bad.push('the letters\' last keys are ' + bottom.join(' ') + ', wanted ⌫ then 123 αβ mic space \' . ✓');
   if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
   'egestion'.split('').forEach(press);
   if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
@@ -16498,12 +16518,12 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
   if (nl.length !== 1 || !ret) bad.push('the essay\'s letters have ' + nl.length + ' new-line keys and ' + (ret ? 'a' : 'no') + ' labelled return — wanted exactly one, the return');
   else {
-    if (!/return/.test(ret.textContent) || !/span 12/.test(ret.getAttribute('style') || '')) bad.push('the return key is not labelled "return" and twelve columns wide: ' + ret.outerHTML.slice(0, 200));
+    if (!ret.querySelector('.kp-ret-i')) bad.push('the return key has no ↵ mark: ' + ret.outerHTML.slice(0, 200));
     const space = pad.querySelector('.kp-key.kp-space');
-    if (!space || !/span 24/.test(space.getAttribute('style') || '')) bad.push('the space bar did not give the return its twelve columns');
+    if (!space || !/span 18/.test(space.getAttribute('style') || '')) bad.push('the essay\'s space bar is not 18 columns, the room left beside return and done (562)');
   }
-  const bottom = keys.slice(-7).map(b => b.getAttribute('data-v'));
-  if (bottom.join('|') !== '!123|!sym|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own with the symbols beside 123: 123 αβ ← → ␣ ⌫ ✓');
+  const bottom = keys.slice(-8).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!sym|!mic| |\'|.|!nl|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted 123 αβ mic space \' . return done (562)');
   const doneKey = keys[keys.length - 1];
   if (!doneKey || !doneKey.classList.contains('kp-done-k') || doneKey.textContent.trim() !== 'done' || doneKey.querySelector('svg')) bad.push('the essay\'s ✓ still wears Send\'s aeroplane — on an essay it only puts the pad away, so it says "done"');
   if (!blank()) bad.push('the sheet stopped being blank when it was focused, so the hint went before a letter was written');
@@ -16651,7 +16671,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (!si || !si.closest('.qp-bar') || si.hasAttribute('data-kp-essay') || card.querySelector('.qp-sheet, .qp-words')) bad.push('a three-mark explain box is not the chat bar any more');
   else {
     si.focus();
-    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
+    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-7).map(b => b.getAttribute('data-v')).join('|') !== '!123|!sym|!mic| |\'|.|!done') bad.push('a short worded box has not the letters\' last row (123 αβ mic space \' . ✓, 562), or gained the essay\'s return');
     si.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     if (!pad.hidden || si.value) bad.push('Enter on a short worded box did not put the pad away as ✓ (value ' + JSON.stringify(si.value) + ')');
   }
@@ -17006,7 +17026,7 @@ check('a question\'s pages follow the paper: its stem first and once with its fi
   /* `Questions` CHOSEN: the same strip with no answer page in it. */
   const S = w.__t.STUFF();
   const heldQ = S.filters;
-  S.filters = [{ field: 'kindLabel', value: 'Questions' }];
+  S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
   w.stuffFiltered = (() => { const list = [a, b, c]; return () => list; })();
   let qs = '';
   try { qs = w.stuffPages_().map(pg => pg.x.qPart + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; S.filters = heldQ; }
@@ -17883,12 +17903,12 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (!r.first || !r.first.classList.contains('qcard-tags')) bad.push('the ' + k + ' page\'s first block is ' + (r.first ? '.' + r.first.className : 'nothing') + ', not the tag row');
     ['.qcard-top', '.qcard-sub', '.qcard-needs', '.qcard-sat'].forEach(c => { if (r.card.querySelector(c)) bad.push('the ' + k + ' page still draws ' + c); });
     /* EVERY FACET A TAG (396): What for, then What kind — this page's own kind. */
-    /* PRACTICE ABOVE IT (546, `KIND_UNDER`): the page's What kind tags are Practice, then its own kind. */
-    const kts = r.tags.filter(x => x.f === 'kindLabel'), kt = kts[kts.length - 1];
-    if (kts.length !== 2 || kts[0].text !== 'Practice') bad.push('the ' + k + ' page\'s What kind tags are ' + say(kts) + ', wanted Practice and then ' + kind[k]);
-    if (!r.tags.length || r.tags[0].f !== 'forLabel' || !kt || kt.text !== kind[k]) bad.push('the ' + k + ' page\'s row starts ' + say(r.tags.slice(0, 2)) + ', wanted What for and then the What kind answer ' + kind[k]);
+    /* PRACTICE ABOVE IT (546, 610 `KIND_UNDER`): What kind says Practice, then Which says the page's own kind. */
+    const kts = r.tags.filter(x => x.f === 'kindLabel'), kt = r.tags.find(x => x.f === 'kindOwn');
+    if (kts.length !== 1 || kts[0].text !== 'Practice') bad.push('the ' + k + ' page\'s What kind tags are ' + say(kts) + ', wanted Practice alone');
+    if (!r.tags.length || r.tags[0].f !== 'forLabel' || !kt || kt.text !== kind[k]) bad.push('the ' + k + ' page\'s row starts ' + say(r.tags.slice(0, 3)) + ', wanted What for, Practice, then the Which answer ' + kind[k]);
     /* ONE ITEM, ONE ROW: everything but What kind and the page's own number reads the same on every page. */
-    const facts = say(r.tags.filter(x => ['kindLabel', 'qPage', 'qPages'].indexOf(x.f) < 0));
+    const facts = say(r.tags.filter(x => ['kindLabel', 'kindOwn', 'qPage', 'qPages'].indexOf(x.f) < 0));
     if (itemFacts === null) itemFacts = facts;
     else if (facts !== itemFacts) bad.push('the ' + k + ' page says the item as ' + facts + ', the question page as ' + itemFacts);
     const calc = r.tags.filter(x => /calculator/i.test(x.text));
@@ -18080,7 +18100,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   const first = w.nextFacet(w.stuffFiltered());
   if (first && first.field === 'required') bad.push('the first screen asks Required');
   {
-    S.filters = [{ field: 'kindLabel', value: 'Practicals' }];
+    S.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Practicals' }];
     if (!w.stuffFiltered().length) bad.push('the Practicals chip leaves nothing');
     const seen = [];
     for (let i = 0; i < 10; i++) {
@@ -20643,8 +20663,8 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
   if (found.length !== mapped.length) bad.push('Find offers ' + found.length + ' of ' + mapped.length + ' projects');
   if (!found.length) return bad;
 
-  /* THE TAG. `What kind` is grouped, so the word sits one tap in, beside the practicals. */
-  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  /* THE TAG. Projects is a kind under Practice (610), so it is a Which answer, beside the practicals. */
+  const kindFacet = w.facetList().find(f => f.field === 'kindOwn');
   const shown = items => w.facetValues(items, kindFacet).map(v => String(v.show || v.value));
   const learning = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning');
   /* BESIDE THE PRACTICALS, in the kinds tab's order (`answerCmp_`, 396) — where the owner will look. */
@@ -20739,7 +20759,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     }
     return false;
   };
-  if (!(await press('forLabel', 'Learning')) || !(await press('kindLabel', 'Projects'))) return bad;
+  if (!(await press('forLabel', 'Learning')) || !(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
 
   /* THE NEXT QUESTION IS PROJECT OR COURSEWORK, AND ITS TWO ANSWERS ARE THE TWO WORDS. Asked of the
      buttons drawn, not of `nextFacet`, because the claim is what a person sees after pressing
@@ -20772,7 +20792,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   else {
     const held = t.STUFF().filters.slice();
     t.STUFF().filters.length = 0;
-    t.STUFF().filters.push({ field: 'forLabel', any: true }, { field: 'kindLabel', any: true });
+    t.STUFF().filters.push({ field: 'forLabel', any: true }, { field: 'kindLabel', any: true }, { field: 'kindOwn', any: true });
     const few = w.stuffItems().filter(i => i.kind !== 'project').slice(0, projs.length * 2);
     const thin = projs.concat(few);
     const nfThin = w.nextFacet(thin);
@@ -21204,7 +21224,7 @@ check('both finders carry the same items — the same keys, the same count, ever
   const said = l => w.facetValues(l, kl).map(v => String(v.value) + ' ' + v.n).join(', ');
   const fSaid = said(find), rSaid = inRes_(w, () => said(res));
   if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
-  if (!/\bLibrary\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Library: ' + fSaid);
+  if (!/\bLibrary\b/.test(fSaid) || !/\bPractice\b/.test(fSaid)) bad.push('What kind does not offer both Practice and Library: ' + fSaid);
   if (/\bResources\b/.test(fSaid)) bad.push('What kind still offers Resources — it went into Content (445): ' + fSaid);
   /* SEARCH: a word that is only inside a content card's words finds the card on both. */
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
@@ -21295,10 +21315,10 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
   if (!clear) bad.push('Find 2 has no Clear tile beside its box while it holds a chip');
   else {
-    t.STUFF().filters.push({ field: 'kindLabel', value: 'Projects' });
+    t.STUFF().filters.push({ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' });
     A['filter-clear'](clear);
     if (t.RES().filters.length) bad.push('Find 2\'s Clear left ' + JSON.stringify(t.RES().filters));
-    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('Find 2\'s Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('Find 2\'s Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
   }
   return bad;
 });
@@ -21322,7 +21342,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   await wait(150);
   const want = pg_(T).res;
   /* FIND HAS A PLACE OF ITS OWN, which is not in front and so is not the one a reload comes back to. */
-  T.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  T.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
   W.paintStuff();
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   W.dispatchEvent(new W.Event('pagehide'));
@@ -21345,7 +21365,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const t2 = two.w;
   t.go('stuff');
   await wait(60);
-  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
   t2.paintStuff();
   t2.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   t2.dispatchEvent(new t2.Event('pagehide'));
@@ -21355,14 +21375,14 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const t3 = three.w.__t;
   for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
   if (t3.AT() !== 'stuff') bad.push('the reload from Find opened on ' + t3.AT());
-  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
+  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
   if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Find 2: ' + JSON.stringify(t3.RES().filters));
   /* A PLACE KEPT BEFORE THIS CHANGE, AND CHIPS NOTHING WILL ANSWER (`placeChipDead_`). § */
   const stale = Object.assign({}, kept2);
   const early = { field: 'paperId', value: 'P-NOT-HERE-YET' };
   Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
-    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Writings' },
+    p.f = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Writings' },
            { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' },
            { field: 'examWave', value: 'Summer 2018' }, { field: 'shelf', value: '@family. textbooks' },
            { field: 'book', value: 'GCSE Statistics' }, early];
@@ -21372,7 +21392,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   if (!four) return bad.concat(['the stale reload did not load — the dead-chip rule was NOT checked']);
   const t4 = four.w.__t;
   for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
-  const want4 = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
+  const want4 = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
   if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify(want4)) bad.push('a kept place holding Shelf · Boxing, the Books shelf, Bible chips, a retired question and a paper not here yet came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' (the textbooks\' shelf and a Book chip among them)' + ' — wanted ' + JSON.stringify(want4));
   /* AND A CHIP ON A FIELD NO FACET ASKS, once the facets have arrived — it is a chip that does nothing (`filterHit` reads a facetless chip as matching everything). § */
   const w4 = four.w, D = t4.DATA();
@@ -21472,7 +21492,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
   t.RES().filters = [{ field: 'kindLabel', value: 'Library' }]; t.RES().q = 'ali';
   const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
-  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
   const openOn = x => [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === x.key);
   if (openOn(fight)) bad.push('a fight kept on Saved has an Open tile — Saved draws it whole');
@@ -21769,7 +21789,8 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   if (facet.label !== 'Religion') bad.push('the question is labelled ' + facet.label);
   const work = w.facetList().find(f => f.field === 'wWork'), vals = w.facetValues(items, work).map(v => String(v.value));
   if (work.label !== 'Work') bad.push('Which writing is labelled ' + work.label);
-  ['Bible', 'Quran', 'Talmud', 'Hadith'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
+  /* The Hadith's six books are Works of the Hadith collection since 600, so a book stands for it. */
+  ['Bible', 'Quran', 'Talmud', 'Sahih al-Bukhari'].forEach(k => { if (vals.indexOf(k) < 0) bad.push('Which writing does not offer ' + k + ': ' + vals.join(', ')); });
   if (w.scriptureWait_(items) !== '') bad.push('with every index in, the dots under Which writing still stand: ' + w.scriptureWait_(items));
   const k = w.stuffItemsAll_().find(y => y.key === 'bible:kjv:1:1:1'), e = w.stuffItemsAll_().find(y => y.key === 'bible:web:1:1:1');
   if (!k || !e) return bad.concat(['Genesis 1:1 is not a KJV card and a WEB card']);
@@ -21873,7 +21894,10 @@ check('the history database: a manuscript and a historical figure are each found
     const drawn = el.querySelector('.hdb-msc');
     if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.firstElementChild.matches('.qtags')
               : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
-    if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
+    /* NO CARD TALLER THAN A PHONE (562): the lines a card does not keep are its pages after it, so the card and its pages together have them. */
+    const lines = el.querySelectorAll('.hdb-lines dl > div').length
+      + w.pageParts_(x).filter(p => /^facts\d+$/.test(String(p))).reduce((n, p) => { const e = d.createElement('div'); e.innerHTML = w.stuffPart_(x, p); return n + e.querySelectorAll('.hdb-lines dl > div').length; }, 0);
+    if (lines < 4) bad.push(x.name + '\'s card and its pages have fewer than four label/value lines');
     if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
     if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
   }
@@ -21924,9 +21948,9 @@ check('the history timeline: events are found under Learning, Content, History, 
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                        { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
   const found = w.stuffFiltered();
-  /* A TIMELINE IS ITS OWN KIND (545): found by Learning, Timeline, and not among the Library's events. */
-  if (found.indexOf(tl) >= 0) bad.push('the timeline is still under Library, History, Events rather than What kind "Timeline"');
-  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Timeline' }];
+  /* A TIMELINE IS IN LIBRARY › HISTORY (610), and Which says Timeline. */
+  if (found.indexOf(tl) < 0) bad.push('the timeline is not under Library, History (610)');
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Timeline' }];
   if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Timeline');
   const lost = evs.filter(e => found.indexOf(get(e.id)) < 0).map(e => e.id);
   if (lost.length) bad.push(lost.length + ' event(s) not found by History, Events: ' + lost.slice(0, 5).join(', '));
@@ -21999,7 +22023,7 @@ check('an empty search on either finder says "take a filter off" under a chip th
     if (st().q !== 'Olivares') { bad.push('typing into #' + id + '-q did not reach ' + name + '\'s words — NOT checked'); continue; }
     if (list().indexOf(olivares) < 0) bad.push(name + ' does not find Ruben Olivares by name — both finders hold the boxers');
     /* UNDER A CHIP THAT HIDES HIM: take a filter off — and no tile to the other column. */
-    st().filters = [{ field: 'kindLabel', value: 'Projects' }];
+    st().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
     w.paintFinder_(id);
     await wait(60); await woken_();
     if (list().length) bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) for "Olivares" under Projects — the empty answer was NOT checked');
@@ -22398,9 +22422,8 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
-  /* THE SOURCE TEXT FIRST (owner, 29 Oct): the Greek New Testament answers the testament, so Collection is not asked again after it. */
-  /* THE LANGUAGE, THEN WHOSE TRANSLATION (546): "Greek should be a tag not merged with the version". */
-  const route = [['wSource', 'Greek New Testament'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wSection', 'Gospels'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
+  /* WHAT IT IS FIRST (594): the testament and its section, then the language and whose translation (546); the New Testament's one Source is not asked. */
+  const route = [['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
   for (const [field, value] of route) {
     const list = R.stuffFiltered(), f = R.nextFacet(list);
     if (!f || f.field !== field) { bad.push('after ' + S.filters.map(x => x.value).join(' → ') + ' the funnel asks ' + (f ? f.field : 'nothing') + ', not ' + field); break; }
@@ -23965,7 +23988,8 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
   try {
     /* OFFERED AT THE START, as a kind. */
     S.q = ''; S.filters = [];
-    const kind = w.facetList().find(x => x.field === 'kindLabel');
+    /* UNDER PRACTICE (610), a question's own kinds are Which answers. */
+    const kind = w.facetList().find(x => x.field === 'kindOwn');
     const said = x => { try { return [].concat(kind.of(x)); } catch (e) { return []; } };
     const withAns = lib.items.find(x => x.name === 'Q8(i)');
     const kinds = kind ? said(withAns) : [];
@@ -23979,7 +24003,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     const h0 = d.createElement('div'); h0.innerHTML = w.questionAnsCard_(a);
     if (h0.querySelector('[data-do="qa-only"], [data-do="qa-all"]')) bad.push('the answer page still draws the "Answers only" switch');
     /* CHOSEN: only answer pages, in order, open. */
-    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Answers' }];
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }];
     const pages = w.stuffPages_();
     const parts = [...new Set(pages.map(pg => pg.part))];
     if (!pages.length || parts.length !== 1 || parts[0] !== 'ans') bad.push('the Answers strip holds ' + JSON.stringify(parts) + ', wanted answer pages and nothing else');
@@ -24007,7 +24031,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
       host.remove();
     }
     /* ---------- AND "Questions" MEANS QUESTIONS § */
-    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     const qPages = w.stuffPages_();
     if (!qPages.some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
     const leaked = qPages.filter(pg => pg.part === 'ans');
@@ -24041,7 +24065,7 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
     for (const [who, u] of [['a pupil', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
                             ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }]]) {
       w.__t.USER(u);
-      S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
+      S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
       const pages = w.stuffPages_().filter(pg => pg.x.qNumber === '8' || String(pg.x.qNumber) === '8');
       if (pages.filter(pg => !pg.part).length !== 2) { bad.push(who + ': Q8 drew ' + pages.filter(pg => !pg.part).length + ' question cards, wanted its two parts -- nothing was asked'); continue; }
       pages.forEach(pg => {
@@ -24074,8 +24098,11 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   const lib = mpLibrary_(w, mpBank_());
   try {
     const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
-    /* PRACTICE ABOVE THEM (546, `KIND_UNDER`), then Questions and Answers. */
-    if (chips[0] !== 'Practice' || chips[1] !== 'Questions' || chips[2] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Practice, then Questions, then Answers');
+    const own = w.facetList().find(f => f.field === 'kindOwn');
+    const under = own ? w.facetValues(lib.items, own).map(v => String(v.show || v.value)) : [];
+    /* PRACTICE ALONE (546, 610 `KIND_UNDER`), and Questions then Answers under it. */
+    if (chips.join() !== 'Practice') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Practice alone');
+    if (under[0] !== 'Questions' || under[1] !== 'Answers') bad.push('under Practice the Which chips read "' + under.join(' | ') + '", wanted Questions, then Answers');
   } finally { lib.put(); }
   return bad;
 });
@@ -24134,7 +24161,7 @@ check('films are not in Find for an admin with films in the payload — not by t
   const picks = () => [...d.querySelectorAll('#s-stuff #stuff-groups [data-do="facet-pick"]')];
   const learning = picks().find(b => b.dataset.field === 'forLabel' && b.dataset.value === 'Learning');
   if (learning) { t.ACTIONS['facet-pick'](learning); await wait(30); }
-  const kinds = picks().filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
+  const kinds = picks().filter(b => b.dataset.field === 'kindLabel' || b.dataset.field === 'kindOwn').map(b => b.dataset.value);
   if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Practicals') === -1) bad.push('What kind was not drawn with Projects and Practicals (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
   else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
   /* AND NOT IN FIND 2 EITHER: it carries what Find carries (347), and a film is in neither, so the column
@@ -24221,10 +24248,10 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
     if (q8.field === 'qNumber') bad.push('"q8" in the paper still asks Question — it has one answer');
     if (w.stuffFiltered().some(x => x.qNumber !== '8' && String(x.qNumber) !== '8')) bad.push('"q8" keeps a part that is not Q8');
     /* ANSWERS: the answer pages, and only those, through the page's own tag. */
-    ask('', [{ field: 'kindLabel', value: 'Answers' }]);
+    ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }]);
     const pages = w.stuffPages_();
     if (!pages.length || pages.some(p => p.part !== 'ans')) bad.push('with Answers chosen the strip holds ' + pages.map(p => p.part || 'card').join(', ') + ' — wanted the answer pages alone');
-    ask('', [{ field: 'kindLabel', value: 'Questions' }]);
+    ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]);
     if (w.stuffPages_().some(p => p.part === 'ans')) bad.push('with Questions chosen the strip still holds an answer page');
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
@@ -26350,7 +26377,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     t.STUFF().q = 'fractions';
     if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
@@ -26372,7 +26399,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     await wait(300);
     const t = w.__t;
     t.go('stuff', false, true);
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     t.STUFF().q = 'fractions';
     w.paintStuff();
     t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
@@ -28166,7 +28193,9 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
 check('the fill-in standard: every library part that asks to fill something in shows its cells, in its own table where it has one, and its own answers mark every cell right', async () => {
   const SC = require('../check/schema.js');
   const LIB = LIB_FULL.rows('questions');
-  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim()));
+  const ask = LIB.filter(r => r.kind === 'question' && r.active !== 'False' && SC.fillIn(r.html) && !(SC.CELLS_EXEMPT[r.row_id] && !String(r.cells || '').trim())
+    /* A PART WHOSE SCHEME IS STILL OWED (584, questions only) has no answers to make cells from, as check/schema.js says. */
+    && !(SC.schemeOwed(r) && !String(r.cells || '').trim()));
   /* A PENDING PART WHOSE WORDS HERE ARE OLDER THAN ITS CARD (a fresh clone before `pull`, docs/library.md) is not asked. */
   const asks = ask.filter(r => !LIB_FULL.waits('questions', r)), waiting = ask.length - asks.length;
   if (ask.length < 100 || !asks.length) return ['only ' + asks.length + ' parts ask to fill something in (' + waiting + ' waiting for newer words) — the words did not load, NOT checked'];
@@ -29992,7 +30021,7 @@ check('back to top: every result page of either finder ends in a Back to top til
     const F = w.finderOf_(id), other = id === 'stuff' ? 'res' : 'stuff';
     t.go(id, false, true); await wait(120); await woken_();
     /* EVERY QUESTION, as a child narrowing to Questions would have them */
-    (id === 'stuff' ? t.STUFF() : t.RES()).filters = [{ field: 'kindLabel', value: 'Questions' }];
+    (id === 'stuff' ? t.STUFF() : t.RES()).filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     w.finderForgetFound_();
     w.paintFinder_(id); await wait(150); await woken_();
     const n = w.inFinder_(F, () => w.stuffPageCount());
@@ -30730,7 +30759,7 @@ check('layout engine (508): ▶ on a Site card makes an admin-only column after 
   return bad;
 });
 
-check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
+check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first makes one on the left (600); a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -30783,12 +30812,30 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
   await layPaintAll_(w);
   if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
-  /* ◀ FROM THE FIRST RIGHT-HAND COLUMN STAYS PUT. */
-  const first = laySeen_(w, 'staff')[0] || laySeen_(w, 'account')[0];
-  const lt = layCardTile_(d, first, 'lay-c-col', '-1');
-  if (laySeen_(w, 'family').length === 0 && laySeen_(w, 'staff')[0] === first && lt && !lt.disabled) {} /* family is first, and empty for an admin */
-  const fam = layCardTile_(d, laySeen_(w, 'family')[0], 'lay-c-col', '-1');
-  if (fam && !fam.disabled) bad.push('◀ on the first right-hand column is live');
+  /* ◀ FROM THE FIRST CARD COLUMN MAKES A NEW ONE ON THE LEFT (600), before Parent settings; ◀ again there makes another; ▶ back empties it and it goes. */
+  const lid = laySeen_(w, 'account')[0];
+  let lt = null;
+  for (let k = 0; k < 6 && lid; k++) {
+    await layPaintAll_(w);
+    lt = layCardTile_(d, lid, 'lay-c-col', '-1');
+    if (!lt || lt.disabled) break;
+    const left = /new column on the left/.test(lt.getAttribute('aria-label') || '');
+    A['lay-c-col'](lt); await wait(300);
+    if (left) break;
+    lt = null;
+  }
+  if (!lt || lt.disabled) bad.push('◀ from Student settings never reached "Move to a new column on the left"');
+  else {
+    const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
+    if (!nid || !(LL.custom[0].left === true) || ((LL.cards || {})[nid] || []).indexOf(lid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
+    const lids = t.TABS.map(x => x.id);
+    if (!nid || lids.indexOf(nid) !== lids.indexOf('family') - 1) bad.push('the new left column is not just before Parent settings: ' + lids.join());
+    await layPaintAll_(w); try { w.paint(nid); } catch (e) {}
+    await wait(100);
+    const back = nid && layCardTile_(d, lid, 'lay-c-col', '1');
+    if (back) { A['lay-c-col'](back); await wait(300); }
+    if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed: ' + (back ? back.getAttribute('aria-label') + (back.disabled ? ' (off)' : '') : 'no ▶') + ' ' + JSON.stringify(layLast_(sent)));
+  }
   /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
   const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
@@ -31642,7 +31689,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Job and Symptom; Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list (570); Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31661,13 +31708,13 @@ check('Mechanics (548): Library → Mechanics offers Part, Model, Parts list, Jo
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Job,Model,Part,Parts list,Symptom') bad.push('Mechanics → Card type offers ' + kinds);
+  if (kinds !== 'Model,Part,Parts list') bad.push('Mechanics → Card type offers ' + kinds);
   S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
   if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
   if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
-  if (!/What it does/.test(html) || html.indexOf('general workshop knowledge') < 0 || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
+  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
   /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
   for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
   const model = all.find(x => x.mKind === 'Model');
@@ -31766,14 +31813,17 @@ check('Library → a subject offers only shelves that subject has — never Book
 const MISS_LIST_ = [
   { board: 'Edexcel', level: 'GCSE', subject: 'Maths', label: 'Edexcel GCSE Maths', papers: ['1H', '2H'], series: ['June'], from: 2017, to: 2017 },
   { board: 'AQA', level: 'GCSE', subject: 'Geography', label: 'AQA GCSE Geography', papers: ['1'], from: 2022, to: 2022 },
-  { board: 'OCR', level: 'GCSE', subject: 'Psychology', label: 'OCR GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'AQA', level: 'GCSE', subject: 'Psychology', label: 'AQA GCSE Psychology', papers: ['1'], from: 2022, to: 2022 },
+  /* NEVER SHOWN (562): an OCR line, and an Edexcel line that is not Maths. */
+  { board: 'OCR', level: 'GCSE', subject: 'Maths', label: 'OCR GCSE Maths', papers: ['1'], from: 2022, to: 2022 },
+  { board: 'Edexcel', level: 'GCSE', subject: 'History', label: 'Edexcel GCSE History', papers: ['1'], from: 2022, to: 2022 },
 ];
 const MISS_ROWS_ = [
   { kind: 'document', document_type: 'Past paper', paper_id: 'MX-1H', exam_board: 'Edexcel', level: 'GCSE', subject: 'Maths', year: '2017', month: '6',
     paper: '1', tier: 'Higher', name: 'Paper 1 — June 2017', active: 'True' },
-  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'document', document_type: 'Past paper', paper_id: 'MX-PS', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Paper 1 — June 2022', active: 'True' },
-  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'OCR', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
+  { kind: 'question', row_id: 'MX-PS-1', paper_id: 'MX-PS', question: '1', exam_board: 'AQA', level: 'GCSE', subject: 'Psychology', year: '2022', month: '5',
     paper: '1', name: 'Q1', active: 'True', lib_pending: 'True' },
 ];
 const missServe_ = list => u => (/expected-papers\.json/.test(u) ? list : /data\/questions\.json/.test(u) ? MISS_ROWS_ : undefined);
@@ -31798,7 +31848,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
   if (/Paper 1H|Papers 1H/.test(s0)) bad.push('a present paper (1H June 2017) is listed as missing');
   if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
-  if (!/OCR GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
+  if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
   if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
   if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
   if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
@@ -31854,7 +31905,7 @@ check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel ›
   const W = one.w, T = W.__t, d = W.document, bad = [];
   for (let i = 0; i < 100 && !(W.stuffItemsAll_().some(x => x.row && x.row.paper_id === 'RS1786302107764-506')); i++) await wait(50);
   T.go('res'); await wait(80);
-  const path = [{ field: 'kindLabel', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
+  const path = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
     { field: 'level', value: 'A-Level' }, { field: 'examBoard', value: 'Edexcel' }, { field: 'examYear', value: '2021' }];
   const R = resView_(W);
   T.RES().filters = path.map(f => Object.assign({}, f));

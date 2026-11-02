@@ -142,6 +142,8 @@ const TILE_ICONS = {
   /* NEW GAME (chess, 429): one arrow coming round to where it began. */
   again: '<path d="M14.8 9.5A5.8 5.8 0 1 1 13 5"/><path d="M13.4 1.6v3.6H9.8"/>',
   /* SPEED READ (403): the reader's two guide ticks, and a line of words running through them. */
+  /* DICTATE (562): a microphone on its stand, the keypad's mic key. */
+  mic: '<rect x="6.5" y="1.5" width="5" height="8.5" rx="2.5"/><path d="M3.8 8a5.2 5.2 0 0 0 10.4 0"/><path d="M9 13.2v2.3"/>',
   speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };
 

@@ -15,7 +15,6 @@ const GAP_MS = 110, EARLY_YES_MS = 375, LATE_YES_MS = 1000;
 /* NOT PRESSED, each with its reason, and still printed. */
 const ACCEPTED = {
   signout: 'ends the session every later press in this run depends on; it posts nothing to repeat.',
-  'reload-build': 'reloads the page, which ends the run\'s page with it.',
   retry: 'asks for the payload again (a GET); a second retry is a second ask for the same thing, not a second action.',
 };
 const SKIP_TAGS = /^(SELECT|INPUT|TEXTAREA)$/;

@@ -408,12 +408,14 @@ const spellKey_ = v => {
 const FACETS = [
   { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
+  /* A KIND UNDER ANOTHER (`KIND_UNDER`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
   { field: 'kindLabel', label: 'What kind',
-    of: x => {
-      const k = x.kindLabel || kindOf_(x).label;
-      return kindUnder_(x, x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k);
-    },
-    tagOf: (x, page) => kindUnder_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+    of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
+    tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+  /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
+  { field: 'kindOwn', label: 'Which', at: 20.5,
+    of: x => !kindTop_(x) ? '' : (x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
+    tagOf: (x, page) => !kindTop_(x) ? '' : (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
@@ -422,14 +424,16 @@ const FACETS = [
      answer the same questions, read off `writingOf_` (writings.js) — no loader has a private one. */
   /* ONE KIND OF VALUE A FACET (546): the religion, the language and whose translation are three questions, never one menu. */
   { field: 'wReligion',  label: 'Religion',   of: x => writingAt_(x, 'religion') },
+  /* A COLLECTION IS A GROUP OF WORKS (600), so it is asked before Work: Rabbinic, Second Temple, Kabbalah; New Testament; Hadith. */
+  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
+  /* WHAT IT IS BEFORE HOW IT IS WRITTEN (590): the work and the section a passage sits in, then its source, language and translation. */
   { field: 'wWork',      label: 'Work',       of: x => writingAt_(x, 'work') },
+  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wSource',    label: 'Source text', of: x => writingAt_(x, 'source') },
   /* ONE LANGUAGE QUESTION FOR EVERYTHING WRITTEN (546): a text's language and a manuscript's (the history database) are one kind of answer. */
   { field: 'wLanguage',  label: 'Language',   of: x => writingLanguageOf_(writingAt_(x, 'text')) || histCol_(x, 'language') },
   { field: 'wText',      label: 'Translation', of: x => writingVersionOf_(writingAt_(x, 'text')) },
   { field: 'wTradition', label: 'Tradition',  of: x => writingAt_(x, 'tradition') },
-  { field: 'wCollection', label: 'Collection', of: x => writingAt_(x, 'collection') },
-  { field: 'wSection',   label: 'Section',    of: x => writingAt_(x, 'section') },
   { field: 'wBook',      label: 'Book',       of: x => writingAt_(x, 'book') },
   { field: 'wChapter',   label: 'Chapter',    of: x => writingAt_(x, 'chapter') },
   { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
@@ -441,7 +445,6 @@ const FACETS = [
   { field: 'mMake',     label: 'Make',        of: x => x.mMake || '' },
   { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
-  { field: 'mDifficulty', label: 'Difficulty', of: x => x.mDifficulty || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
   { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
   { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
@@ -636,7 +639,7 @@ function facetList() {
   FACET_LIVE = FACETS
     .map((f, i) => {
       const s = said[f.field];
-      if (!s) return Object.assign({}, f, { at: (i + 1) * 10 });
+      if (!s) return Object.assign({}, f, { at: f.at || (i + 1) * 10 });
       if (s.active === false) return null;
       return Object.assign({}, f, { label: s.label || f.label, at: facetNum_(s.order, (i + 1) * 10) });
     })
@@ -1006,10 +1009,10 @@ function facetSplit_(items, facet) {
 }
 
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
-/* THE SAME RULE FOR KINDS (546): "questions and answers should both go into a new practice tag. practicals should also go into practice tag". */
-/* A kind under another answers both What kind answers, its own and the one above it, on every page it has. */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice' };
-function kindUnder_(x, labels) { const up = x && KIND_UNDER[x.kind]; return up ? [up].concat(labels) : labels; }
+/* KINDS UNDER KINDS (546, 610): "questions and answers should be under practice … practicals … projects too", "timeline should be in library under history". */
+/* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library' };
+function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 function docTypeAnswers_(t) { const up = DOC_TYPE_UNDER[t]; return up ? [up, t] : t; }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
@@ -1025,10 +1028,14 @@ function fiveADay_(x) {
 
 /* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: two answers at least,
    half the list able to answer, a split worth making. `over` lets a question past FACET_MAX_ANSWERS through. */
+/* A NUMBERED RUN IS DRAWN AS A GRID (396): bare numbers, or one word and a number (`Chapter 7`, drawn as 7). Up to FACET_MAX_GRID it is a question, not a list (600). */
+const FACET_MAX_GRID = 200;
+const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.value)) || []);
+const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
-  const vals = facetValues(items, facet).length;
+  const all = facetValues(items, facet), vals = all.length;
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
-  if (!over && vals > FACET_MAX_ANSWERS) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
+  if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
   const echo = facetEcho_(items, facet);
@@ -1605,7 +1612,7 @@ function insSay_(r) {
   if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
   const t = 'in:' + r.id;
   if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
-  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
   return loading_();
 }
 /* ASKED FOR, if it has words in the Ledger and they are not here yet */
@@ -1765,7 +1772,8 @@ function histItem_(kind, r) {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
     histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Works',
-    shelf: 'History', subject: 'History',
+    /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
+    shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
     row: r,
   };
@@ -1916,10 +1924,30 @@ const writingRefs_ = on => {
 };
 
 const HIST_TILE_LINKS = 3;
+/* NO CARD TALLER THAN A PHONE (562, owner note 122): a history card keeps this many lines, none under a drawing; the rest are pages of HIST_PAGE_ROWS after it. */
+const HIST_CARD_ROWS = 6, HIST_PAGE_ROWS = 8;
+function histRows_(x) {
+  const r = x.row || {};
+  return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
+    .filter(l => String(l[1] == null ? '' : l[1]).trim())
+    .filter(l => !(x.kind === 'manuscript' && MS_LOOK[r.id] && MS_SAID.indexOf(l[0]) >= 0));
+}
+const histOnCard_ = x => (x.kind === 'manuscript' && MS_LOOK[(x.row || {}).id] ? 0 : HIST_CARD_ROWS);
+function histPages_(x) {
+  const rest = histRows_(x).slice(histOnCard_(x)), out = [];
+  for (let i = 0; i * HIST_PAGE_ROWS < rest.length; i++) out.push('facts' + i);
+  return out;
+}
+const histDl_ = rows => `<section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
+  histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>`;
+function histFactsPart_(x, part) {
+  const i = Number(part.slice(5)) || 0, at = histOnCard_(x) + i * HIST_PAGE_ROWS;
+  const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
+  return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
+}
 function histCard_(x) {
   const r = x.row || {};
-  const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
-    .filter(l => String(l[1] == null ? '' : l[1]).trim());
+  const rows = histRows_(x).slice(0, histOnCard_(x));
   const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
   /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
   const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
@@ -1933,16 +1961,13 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${look}
     <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
-    <section class="fc-sec hdb-lines"><dl>${rows.filter(l => MS_SAID.indexOf(l[0]) < 0).map(l => `<div><dt>${esc(l[0])}</dt><dd>${
-      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
   }
   return `<div class="card fc hdb">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
-    <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
-      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${rows.length ? histDl_(rows) : ''}
     ${writingRefs_(r.id)}
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
@@ -1983,10 +2008,63 @@ function histTimelineCard_(x) {
   return `<div class="card fc hdb hdb-tl">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
+    <section class="fc-sec tl-step" data-tl="${esc(x.key)}">${tlStep_(x.key)}</section>
     <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
+
+/* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
+const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
+const tlEvents_ = key => { const t = histTimelines_().find(y => y.key === key); return t ? t.row.events || [] : []; };
+function tlStep_(key) {
+  const evs = tlEvents_(key);
+  if (!evs.length) return '';
+  const i = Math.min(TL_AT[key] || 0, evs.length - 1), e = evs[i], last = evs[evs.length - 1];
+  const from = Number(evs[0].date_from), span = Math.max(1, Number(last.date_to || last.date_from) - from);
+  const at = v => Math.max(0, Math.min(100, (Number(v) - from) / span * 100)).toFixed(1);
+  const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
+  return `<div class="tl-bar">${evs.map((d, k) => `<span class="tl-dot${k === i ? ' on' : k < i ? ' past' : ''}" style="left:${at(d.date_from)}%"></span>`).join('')}
+    <span class="tl-mark" style="left:${at(e.date_from)}%"></span></div>
+    <div class="tl-now" data-i="${i}"><p class="tl-when">${esc(e.date_text || histDay_(e.date_iso))} · ${i + 1} of ${evs.length}</p>
+    <h4>${esc(e.name)}</h4><p>${esc(e.summary || '')}</p></div>
+    <div class="tile-row">${tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })}${
+      tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })}${
+      tile_({ icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === evs.length - 1 })}</div>`;
+}
+function tlPaint_(key) {
+  document.querySelectorAll('.tl-step').forEach(s => { if (s.getAttribute('data-tl') === key) s.innerHTML = tlStep_(key); });
+}
+function tlStop_() {
+  if (TL_PLAY.timer) clearInterval(TL_PLAY.timer);
+  const k = TL_PLAY.key;
+  TL_PLAY.timer = null; TL_PLAY.key = '';
+  if (k) tlPaint_(k);
+}
+function tlMove_(key, by) {
+  const n = tlEvents_(key).length;
+  TL_AT[key] = Math.max(0, Math.min(n - 1, (TL_AT[key] || 0) + by));
+  if (TL_AT[key] >= n - 1 && TL_PLAY.key === key) return tlStop_();
+  tlPaint_(key);
+}
+on('tl-step', el => {
+  const key = el.getAttribute('data-key');
+  if (TL_PLAY.key === key) tlStop_();
+  tlMove_(key, +el.getAttribute('data-by'));
+});
+/* PLAY ADVANCES ON A TIMER that holds its own timeline's key, and stops at the last event or once the card is gone. */
+on('tl-play', el => {
+  const key = el.getAttribute('data-key');
+  if (TL_PLAY.key === key) return tlStop_();
+  tlStop_();
+  if ((TL_AT[key] || 0) >= tlEvents_(key).length - 1) TL_AT[key] = 0;
+  TL_PLAY.key = key;
+  TL_PLAY.timer = setInterval(() => {
+    if (![...document.querySelectorAll('.tl-step')].some(s => s.getAttribute('data-tl') === key)) return tlStop_();
+    tlMove_(key, 1);
+  }, TL_STEP_MS);
+  tlPaint_(key);
+});
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';
@@ -2428,7 +2506,7 @@ function finderOpen_(x, part, F) {
   });
 }
 /* WHICH OF A THING'S PAGES A KEPT LIST DRAWS: § */
-const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+)$/.test(p);
+const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+|facts\d+)$/.test(p);
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
@@ -2478,7 +2556,7 @@ function pageParts_(x, prev) {
        with the answer -- and its figure among them wherever `partPlan_` stands it. */
     const plan = partPlan_(x);
     plan.chunks.forEach((c, j) => out.push(j === plan.chunks.length - 1 ? null : 'pre' + j));
-    if (questionHasAns_(x)) out.push('ans');
+    if (questionHasAns_(x) || schemeOwed_(x)) out.push('ans');
     return out;
   }
   /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
@@ -2503,6 +2581,7 @@ function pageParts_(x, prev) {
   /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
      `boxerFightPages_`. */
   if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
+  if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the diagrams should be its own widgets" (204), and the owner asked § */
@@ -2551,6 +2630,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
+  if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return qFoot_(x, questionAnsCard_(x));
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
@@ -3755,7 +3835,7 @@ function libSay_(x) {
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
   if (LIB.failed) {
     return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
-      <span class="text-action" data-do="lib-retry">Try again</span></p>`;
+      <button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
   }
   return loading_();
 }
@@ -7852,7 +7932,7 @@ function circWords_(html, block, on) {
       if (!word) return w;
       const k = block + '.' + (n++);
       const lit = on && on.indexOf(k) !== -1;
-      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" aria-pressed="${lit}">${word}</span>`;
+      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" tabindex="0" aria-pressed="${lit}">${word}</span>`;
     });
   });
 }
@@ -8355,8 +8435,16 @@ function ansOpen_(x) {
   return ANS_SHOWN.has(k) || (answersAsked_() && !ANS_HID.has(k));
 }
 
+/* A PAST-PAPER PART IMPORTED WITHOUT ITS MARK SCHEME (584): no answer of any kind anywhere, so its answer page says so plainly. */
+function schemeOwed_(x) {
+  const r = x && x.row;
+  if (!r || x.kind !== 'question' || questionHasAns_(x) || libTrue(r.verified) || libS(r.document_type) !== 'Past paper') return false;
+  return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
+}
 function questionAnsCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
+  if (schemeOwed_(x)) return `<div class="qcard qans-card" data-of="${esc(id)}">${tagRow_(x, 'ans')}
+    <p class="qans-none">No checked answer yet: this paper's mark scheme has not been added.</p></div>`;
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
@@ -9622,7 +9710,7 @@ function stuffPages_() {
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
 function answersAsked_() {
-  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
+  return (STUFF.filters || []).some(f => f && (f.field === 'kindLabel' || f.field === 'kindOwn') && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
@@ -10364,7 +10452,7 @@ function toggleFav(k, kind) {
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
       try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
       if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
-      toast(String((err && err.message) || 'That did not save'));
+      toast(why_(err));
     });
   }
 }
@@ -10489,7 +10577,7 @@ const TAG_OF = {
   /* EVERY WRITING'S (520), in kinds that already have colours. */
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
-  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level', mDifficulty: 'tier',
+  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level',
   cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
   shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
 };
@@ -11332,7 +11420,7 @@ function drawWidget_(wgt) {
   if (String(into.innerHTML || '').trim()) return;
   into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
     ${esc(wgt.what)} did not start.<br>
-    <span class="faint">${esc(err ? String(err.message || err) : 'It drew nothing.')}</span></p>`;
+    <span class="faint">${esc(err ? why_(err) : 'It drew nothing.')}</span></p>`;
 }
 
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
@@ -11394,7 +11482,7 @@ function stuffQuestion() {
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `<p class="empty">No friends yet.<br>
-      <span class="text-action" data-do="friend-add-open">Add someone by their handle</span></p>`;
+      <button type="button" class="text-action" data-do="friend-add-open">Add someone by their handle</button></p>`;
   }
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */
   /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
@@ -11403,8 +11491,8 @@ function stuffQuestion() {
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
   const facet = nextFacet(items) || overFacet_(items);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
-    ? `<p class="find-end"><span class="text-action" data-do="friend-add-open"
-        >Add someone by their handle</span></p>` : '';
+    ? `<p class="find-end"><button type="button" class="text-action" data-do="friend-add-open"
+        >Add someone by their handle</button></p>` : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN § */
     const n = items.length === 1 ? 'one' : items.length;
@@ -11432,7 +11520,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
-  const skip = `<div class="counted row tap is-skip" data-do="facet-skip"
+  const skip = `<div class="counted row tap is-skip" role="button" tabindex="0" data-do="facet-skip"
         data-field="${esc(facet.field)}">
         <span class="k">Doesn't matter</span>
       </div>`;
@@ -11442,11 +11530,11 @@ function facetAnswersHtml_(facet, values, more) {
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
-  const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
+  const grid = numberedRun_(values);
+  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
-        grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
-        <span class="k">${mark(v.show || v.value)}</span>
+        grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
+        <span class="k">${mark(grid ? runNumber_(v)[2] : v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 
@@ -11630,7 +11718,7 @@ function docketSave(list) {
         /* SAID, not swallowed. A list that looks saved and is not is worse than one that never
            pretended — you find out by opening it tomorrow to nothing. */
         const el = $('dock-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+        if (el) el.textContent = why_(err);
       });
   };
   dockTimer = setTimeout(sendTodo, 900);
@@ -11773,7 +11861,7 @@ function padSend_(keepalive) {
     })
     .catch(err => {
       const el = $('pad-said');
-      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+      if (el) el.textContent = why_(err);
     });
 }
 /* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */

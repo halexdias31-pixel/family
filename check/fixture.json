@@ -265,6 +265,8 @@
    "avatar": "",
    "authorId": "",
    "image": "data/reels/archetest.jpg",
+   "imageW": 540,
+   "imageH": 540,
    "media": [
     "data/reels/archetest.jpg",
     "data/reels/v24044gl0000d88i15nog65im2kilnbg.jpg",
@@ -333,6 +335,8 @@
    "authorId": "P002",
    "figure": "skin:2|hairColour:3|shirt:2|hair:long|faceware:glasses",
    "image": "",
+   "imageW": 0,
+   "imageH": 0,
    "media": [],
    "caption": "Waiting on a check before this one goes up",
    "body": "",

@@ -330,7 +330,7 @@ boot(f => {
 
   /* ---------- 4a. YEAR, MONTH, PAPER -- ASKED LIKE EVERY OTHER QUESTION, SO NEVER WITH ONE ANSWER (396) § */
   if (f.nextFacet && f.stuffNarrow_ && smonth && syear) {
-    const MATHS_PAST = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
+    const MATHS_PAST = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                         { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }];
     const was = f.STUFF.filters.slice();
     const asks = chips => {
@@ -463,7 +463,7 @@ boot(f => {
         const one = byPaper[id][0];
         const y = f.facetOwn_(syear, one)[0], m = f.facetOwn_(smonth, one)[0];
         f.STUFF.q = '';
-        f.STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }]
+        f.STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]
           .concat(y ? [{ field: 'examYear', value: y }] : [])
           .concat(m ? [{ field: 'examMonth', value: m }] : [])
           .concat([{ field: 'paperId', value: id }]);
@@ -735,7 +735,7 @@ boot(f => {
     };
     let read = 0, unsaid = 0;
     try {
-      find([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
+      find([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
             { field: 'documentType', value: 'Past paper' }], 6);
       const labelsAt = chips => {
         const out = [];
@@ -1192,15 +1192,21 @@ function underTypes_(f, items) {
   Object.keys(under).forEach(t => { if (!seenUnder[t]) bad.push('no ' + t + ' question was read, so "' + t + ' is under ' + under[t] + '" proves nothing'); });
   /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */
   const tls = items.filter(x => x.kind === 'timeline').concat([{ kind: 'timeline', hdb: true, name: 'a bare timeline' }]);
-  tls.forEach(x => { if (!kindF || f.asList_(kindF.of(x)).indexOf('Timeline') === -1) bad.push(x.name + ': a timeline does not answer What kind "Timeline"'); });
-  /* PRACTICE ABOVE QUESTIONS, ANSWERS AND PRACTICALS (546): each answers What kind "Practice" beside its own, and so does every page it has. */
-  const practice = { question: 0, practical: 0 };
+  const ownF = byField('kindOwn');
+  tls.forEach(x => {
+    if (!kindF || f.asList_(kindF.of(x)).indexOf('Library') === -1) bad.push(x.name + ': a timeline does not answer What kind "Library" (610)');
+    if (!ownF || f.asList_(ownF.of(x)).indexOf('Timeline') === -1) bad.push(x.name + ': a timeline does not answer Which "Timeline" under Library');
+  });
+  /* UNDER PRACTICE (546, 610): What kind offers Practice alone for a question, practical or project; Which offers its own kind, on every page. */
+  const practice = { question: 0, practical: 0, project: 0 };
   items.forEach(x => {
     if (!(x.kind in practice) || !kindF) return;
     practice[x.kind]++;
     const said = f.asList_(kindF.of(x)).map(String), pages = kindF.tagOf ? [null, 'ans'].map(p => f.asList_(kindF.tagOf(x, p)).map(String)) : [];
-    if (said.indexOf('Practice') === -1) bad.push(x.name + ': a ' + x.kind + ' answers What kind ' + JSON.stringify(said) + ', without "Practice"');
-    pages.forEach(t => { if (t.indexOf('Practice') === -1) bad.push(x.name + ': a page of a ' + x.kind + ' wears ' + JSON.stringify(t) + ', without "Practice"'); });
+    if (said.join() !== 'Practice') bad.push(x.name + ': a ' + x.kind + ' answers What kind ' + JSON.stringify(said) + ', not "Practice" alone');
+    pages.forEach(t => { if (t.join() !== 'Practice') bad.push(x.name + ': a page of a ' + x.kind + ' wears What kind ' + JSON.stringify(t) + ', not "Practice"'); });
+    const own = ownF ? f.asList_(ownF.of(x)).map(String) : [];
+    if (!own.length || own.indexOf('Practice') !== -1) bad.push(x.name + ': a ' + x.kind + ' answers Which ' + JSON.stringify(own) + ', wanted its own kind');
   });
   Object.keys(practice).forEach(k => { if (!practice[k]) bad.push('no ' + k + ' was read, so "a ' + k + ' is Practice" proves nothing'); });
   console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
