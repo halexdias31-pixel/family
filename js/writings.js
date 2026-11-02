@@ -163,8 +163,17 @@ const WRITING_CAME = {};
 function writingCame_(src) {
   WRITING_CAME[src] = true;
   if (typeof stuffForget_ === 'function') stuffForget_();
-  if (typeof finderEach_ === 'function') finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
+  /* EIGHT SOURCES LANDING TOGETHER ARE ONE REPAINT, of the finder in front only (561, U4); the other is marked and the builder draws it ahead. */
+  if (WRITING_PAINT) return;
+  WRITING_PAINT = setTimeout(() => {
+    WRITING_PAINT = 0;
+    if (typeof finderEach_ === 'function') finderEach_(F => {
+      if (!$(F.id + '-controls')) return;
+      if (F.id === AT) paintStuff(true); else markStale_(F.id);
+    });
+  }, 0);
 }
+let WRITING_PAINT = 0;
 const writingNow_ = () => Object.keys(WRITING_CAME).filter(k => WRITING_CAME[k]).sort().join(',');
 /* AN ANSWER PRESSED FREEZES THE SET it was pressed over; a kept place restored at boot is not a press, so it still fills in. */
 function writingFreeze_() { if (STUFF.admit == null) STUFF.admit = writingNow_(); }

@@ -428,7 +428,7 @@ function placeBack_(el, kept) {
     }
     n.scrollTop = k.top; n.scrollLeft = k.left;
   });
-  if (kept.focus) { const f = document.getElementById(kept.focus); if (f && el.contains(f)) try { f.focus({ preventScroll: true }); } catch (e) {} }
+  if (kept.focus) { const f = document.getElementById(kept.focus); if (f && el.contains(f)) try { f.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy: a box that cannot take it keeps the place anyway */ } }
 }
 
 /* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the column in front. § */
