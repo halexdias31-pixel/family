@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-02-seat-620";
+const BACKEND_VERSION = "2026-11-03-layout-710";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

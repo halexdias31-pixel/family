@@ -521,6 +521,8 @@ function widgetPagesOf_(kind) {
   return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
 }
 function widgetColumn_(kind) {
+  /* ANY UNIT ON ANY COLUMN (710): once layout.js is here a widget column is drawn as every column is, its widgets and any card moved onto it (`cardsOf_`). */
+  if (typeof cardsOf_ === 'function' && typeof LAYOUT_COL !== 'undefined' && LAYOUT_COL[kind]) return cardsOf_(LAYOUT_COL[kind]);
   return widgetPagesOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
     /* ---------- AND THE NAME IS PRINTED ONCE § */
@@ -676,6 +678,8 @@ function widgetsOn_(col) {
   if (col === 'tools') return widgetsOf_('tool');
   if (col === 'games') return widgetsOf_('game');
   if (col === 'shop') return widgetsOf_('shop');
+  /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
+  if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
   return [];
 }
 

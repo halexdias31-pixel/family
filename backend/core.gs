@@ -613,17 +613,18 @@ function layoutClean_(v) {
     if (out.deleted.indexOf('item:feed:festive') === -1) out.deleted.push('item:feed:festive');
   }
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
-  Object.keys(w).filter(k => ID.test(k)).slice(0, 20).forEach(k => { out.widgets[k] = ids(w[k], 300); });
+  Object.keys(w).filter(k => ID.test(k)).slice(0, 40).forEach(k => { out.widgets[k] = ids(w[k], 300); });
   /* SPLIT CARDS (464): the ids of the settings and Business cards drawn a field a card; presentation only. */
   const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
   if (split.length) out.split = split;
   /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
-  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title, admin?, left?}]`, at most twelve; `admin` to admins alone (508), `left` before Parent settings (600). */
+  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', admin?|left?|first?}]`, at most twelve; no name since 710, a saved `title` dropped. */
   const custom = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && /^custom-\d{1,3}$/.test(String(x.id)))
-    .map(x => { const o2 = { id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }; if (x.admin === true) o2.admin = true; else if (x['left'] === true) o2.left = true; return o2; })
+    .map(x => { const o2 = { id: String(x.id) }; if (x.admin === true) o2.admin = true; else if (x['left'] === true) o2.left = true; else if (x['first'] === true) o2.first = true; return o2; })
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
   if (custom.length) out.custom = custom;
-  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'].concat(custom.map(x => x.id));
+  /* ANY UNIT ON ANY COLUMN (710): a widget column's `cards` list is its mixed order. */
+  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site', 'reel', 'tools', 'games', 'shop'].concat(custom.map(x => x.id));
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};
   Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });

@@ -332,6 +332,11 @@ function startScreen_(id, arriving) {
   else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
   /* AND THE WIDGETS LEADING THE REELS (414) — Videos and One more thing, the pages before the first reel. */
   else if (id === 'reel' && typeof toolsStart_ === 'function') { toolsStart_('reel', arriving); }
+  /* AND A WIDGET MOVED ONTO ANY OTHER COLUMN (710, layout.js). */
+  else if (typeof WIDGET_COLS !== 'undefined' && WIDGET_COLS.indexOf(id) !== -1 && typeof widgetsWake_ === 'function') {
+    const ws = widgetsOn_(id);
+    if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
+  }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
   if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop' || id === 'reel') && id === AT) {
     placeCells('y', true, 0, id);
@@ -1612,6 +1617,15 @@ function placeNow_(which, instant, dragPx, id) {
 }
 
 /* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
+/* A WIDGET COLUMN'S PAGES BY NAME; with a card moved onto it (710, layout.js) the column as drawn, a card's page unnamed. */
+function widgetColNames_(k) {
+  const ws = (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_(k) : []).map(w => w.name || '');
+  try {
+    const col = LAYOUT_COL[k], L = layoutNow_();
+    if (!(L && L.cards && (L.cards[col] || []).length)) return ws;
+    return cardsOf_(col).map(h => { const m = /id="wgt-([^"]+)"/.exec(h), w = m && widgetPagesOf_(k).find(x => String(x.id) === m[1]); return w ? w.name || '' : ''; });
+  } catch (e) { return ws; }
+}
 function cardCount_(col, raw, none) {
   try { return typeof cardsOf_ === 'function' ? cardsOf_(col).length : raw(); } catch (e) { return none === undefined ? 1 : none; }
 }
@@ -1630,8 +1644,8 @@ const PAGER = {
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
   /* ---------- TOOLS AND GAMES PAGE NOW, SO THEY NEED NAMING § */
-  tools:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('tool') : []).map(w => w.name || ''),
-  games:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('game') : []).map(w => w.name || ''),
+  tools:  () => widgetColNames_('tool'),
+  games:  () => widgetColNames_('game'),
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */

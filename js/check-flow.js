@@ -30855,7 +30855,7 @@ check('layout engine (508): ▶ on a Site card makes an admin-only column after 
   return bad;
 });
 
-check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first makes one on the left (600); a garbled custom falls back', async () => {
+check('layout engine (466, 710): ▶ on the last right-hand column makes a new column before Business, for everybody, with no name — no Column name card, no Rename, its tab says its first card; its card moved back empties it and it goes; ◀ from the first column a unit stands on makes one on the far left; a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -30865,19 +30865,16 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if (!right || right.disabled) return ['"+ Add a parent" has no live ▶ — NOT checked'];
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
-  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1', title: 'New column' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
+  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
   if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
   try { w.paint('custom-1'); w.paint('parents'); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150);
   if (!d.querySelector('#s-custom-1 [data-do="person-add"]') || d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" is not on the new column alone');
-  /* ITS CARDS GO ON: ▶ again there makes a second. */
-  if (!d.querySelector('#s-custom-1 .custom-head [data-do="lay-col-rename"]')) bad.push('the new column has no Rename');
-  /* RENAME. */
-  const box = d.querySelector('#s-custom-1 .lay-col-name');
-  if (box) { box.value = 'Front desk'; A['lay-col-rename'](d.querySelector('#s-custom-1 [data-do="lay-col-rename"]')); await wait(250); }
-  if (((layLast_(sent) || {}).custom || [])[0]?.title !== 'Front desk') bad.push('Rename did not store the title');
-  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== 'Front desk') bad.push('the tab is not called Front desk');
+  /* NO NAME (710): a column is a position. */
+  if (d.querySelector('#s-custom-1 .custom-head, #s-custom-1 .lay-col-name, [data-do="lay-col-rename"], [data-do="lay-col-del"]')) bad.push('the new column still has a name card, Rename or Delete column');
+  if (A['lay-col-rename'] || A['lay-col-del']) bad.push('a lay-col-rename or lay-col-del handler still exists');
+  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== w.cardLabel_(id)) bad.push('the tab is not named for its first card: ' + (t.TABS.find(x => x.id === 'custom-1') || {}).label);
   /* EVERYBODY: a client reloading has the column and the card where it was put (its own gate decides what is drawn). */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p = payload(); p.layout = layLast_(sent);
@@ -30887,8 +30884,14 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   try { c.w.paint('custom-1'); } catch (e) {}
   await wait(100);
   if (!c.w.document.getElementById('s-custom-1')) bad.push('a client has no section for the new column');
-  if (c.w.document.querySelector('#s-custom-1 .custom-head, #s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
+  if (c.w.document.querySelector('#s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
   if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
+  /* A NAMED COLUMN SAVED BEFORE 710 still loads, its title dropped. */
+  const o = payload(); o.layout = { v: 2, widgets: {}, deleted: [], custom: [{ id: 'custom-3', title: 'Front desk' }], cards: { 'custom-3': ['acct:voice'] } };
+  const ob = layBoot_({ payload: o }); await wait(300);
+  const otab = ob.w.__t.TABS.find(x => x.id === 'custom-3');
+  if (!otab || otab.label === 'Front desk') bad.push('an old named column did not load as an unnamed one: ' + JSON.stringify(otab && otab.label));
+  if (JSON.stringify(ob.w.layoutNow_().custom) !== JSON.stringify([{ id: 'custom-3' }])) bad.push('an old named column read as ' + JSON.stringify(ob.w.layoutNow_().custom));
   /* ◀ BACK: the column is empty and goes. */
   await layPaintAll_(w); try { w.paint('custom-1'); } catch (e) {}
   await wait(100);
@@ -30898,47 +30901,121 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
   await layPaintAll_(w);
   if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" did not come back to Parent profiles');
-  /* DELETE COLUMN sends its cards home. */
-  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '1')); await wait(300);
-  try { w.paint('custom-1'); } catch (e) {}
-  await wait(100);
-  const dc = d.querySelector('#s-custom-1 [data-do="lay-col-del"]');
-  if (!dc) bad.push('no Delete column');
-  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); await wait(450); A['lay-col-del'](dc); await wait(300); }
-  if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
-  await layPaintAll_(w);
-  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
-  /* ◀ FROM THE FIRST CARD COLUMN MAKES A NEW ONE ON THE LEFT (600), before Parent settings; ◀ again there makes another; ▶ back empties it and it goes. */
-  const lid = laySeen_(w, 'account')[0];
-  let lt = null;
-  for (let k = 0; k < 6 && lid; k++) {
-    await layPaintAll_(w);
-    lt = layCardTile_(d, lid, 'lay-c-col', '-1');
-    if (!lt || lt.disabled) break;
-    const left = /new column on the left/.test(lt.getAttribute('aria-label') || '');
-    A['lay-c-col'](lt); await wait(300);
-    if (left) break;
-    lt = null;
-  }
-  if (!lt || lt.disabled) bad.push('◀ from Student settings never reached "Move to a new column on the left"');
+  /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
+  t.go('tools', false, true); await wait(300);
+  const tid = layIds_(t, 'tool')[0];
+  const tl = layTile_(d, tid, 'lay-w-col', '-1');
+  if (!tl || tl.disabled) bad.push('the first tool has no live ◀');
   else {
-    const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
-    if (!nid || !(LL.custom[0].left === true) || ((LL.cards || {})[nid] || []).indexOf(lid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
-    const lids = t.TABS.map(x => x.id);
-    if (!nid || lids.indexOf(nid) !== lids.indexOf('family') - 1) bad.push('the new left column is not just before Parent settings: ' + lids.join());
-    await layPaintAll_(w); try { w.paint(nid); } catch (e) {}
-    await wait(100);
-    const back = nid && layCardTile_(d, lid, 'lay-c-col', '1');
-    if (back) { A['lay-c-col'](back); await wait(300); }
-    if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed: ' + (back ? back.getAttribute('aria-label') + (back.disabled ? ' (off)' : '') : 'no ▶') + ' ' + JSON.stringify(layLast_(sent)));
+    A['lay-w-col'](tl); await wait(300);
+    if (layIds_(t, 'reel').indexOf(tid) === -1) bad.push('◀ from Tools did not reach Reels: ' + layIds_(t, 'reel').join());
+    try { w.paint('reel'); } catch (e) {}
+    await wait(150);
+    const lt = layTile_(d, tid, 'lay-w-col', '-1');
+    if (!lt || lt.getAttribute('aria-label') !== 'Move to a new column on the left') bad.push('◀ on Reels says ' + (lt && lt.getAttribute('aria-label')));
+    else {
+      A['lay-w-col'](lt); await wait(300);
+      const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
+      if (!nid || LL.custom[0].first !== true || ((LL.widgets || {})[nid] || []).indexOf(tid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
+      const lids = t.TABS.map(x => x.id);
+      if (!nid || lids.indexOf(nid) !== lids.indexOf('reel') - 1) bad.push('the new left column is not just before Reels: ' + lids.join());
+      try { w.paint(nid); } catch (e) {}
+      await wait(150);
+      if (!d.querySelector('#s-' + nid + ' #wgt-' + tid)) bad.push('the tool is not drawn on the new left column');
+      const back = layTile_(d, tid, 'lay-w-col', '1');
+      if (back) { A['lay-w-col'](back); await wait(300); }
+      if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed');
+    }
   }
-  /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
+  /* GARBLED: a custom with a bad id, a duplicate — the bad ones ignored, the column still drawn. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
   const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
   const gids = gb.w.__t.TABS.map(x => x.id);
   if (gids.filter(x => /custom|evil/.test(x)).join() !== 'custom-2') bad.push('a garbled custom gave columns ' + gids.join());
   if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a card named under a bad column left Student settings');
   if (gb.errs.length) bad.push('garbled errors: ' + gb.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (710): any unit anywhere — a settings card moves into Tools and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  await layPaintAll_(w);
+  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Tools. */
+  const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"]`) && !/^own:/.test(x));
+  if (!cid) return ['Student settings has no card with an admin row — NOT checked'];
+  const CARD_ = `[data-lay-for="${cid}"]`;
+  for (let k = 0; k < 12; k++) {
+    const col = t.TABS.map(x => x.id).find(c => laySeen_(w, c).indexOf(cid) !== -1 && d.querySelector(`#s-${c} .card-admin[data-lay-for="${cid}"]`));
+    if (col === 'tools' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
+    const lt = d.querySelector(`#s-${col} .card-admin[data-lay-for="${cid}"] [data-do="lay-c-col"][data-d="-1"]`);
+    if (!lt || lt.disabled) { bad.push('stuck on ' + col + ': ' + (lt ? lt.getAttribute('aria-label') + ' off' : 'no ◀')); break; }
+    A['lay-c-col'](lt); await wait(300);
+    try { const to = (layLast_(sent) || {}).cards || {}; Object.keys(to).forEach(c => { try { w.paint(c); } catch (e) {} }); } catch (e) {}
+    await wait(150);
+  }
+  try { w.paint('tools'); } catch (e) {}
+  await wait(150);
+  const L1 = layLast_(sent) || {};
+  if (((L1.cards || {}).tools || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Tools: ' + JSON.stringify(L1.cards));
+  const onTools = d.querySelector(`#s-tools .card-admin[data-lay-for="${cid}"]`);
+  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Tools with its admin row');
+  if (!d.querySelector('#s-tools ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Tools');
+  if (d.querySelector('#s-account ' + CARD_)) bad.push('the card ' + cid + ' is still on Student settings too — two homes');
+  /* ▲ PAST A TOOL: the card is last on Tools, and Move up puts it above the last tool. */
+  const tools0 = layIds_(t, 'tool'), lastTool = tools0[tools0.length - 1];
+  const up = onTools && onTools.querySelector('[data-do="lay-c-move"][data-d="-1"]');
+  if (!up || up.disabled) bad.push('the card on Tools has no live Move up');
+  else {
+    A['lay-c-move'](up); await wait(300);
+    const ord = ((layLast_(sent) || {}).cards || {}).tools || [];
+    if (ord.indexOf(cid) === -1 || ord.indexOf(cid) > ord.indexOf(lastTool)) bad.push('Move up did not put the card above ' + lastTool + ': ' + ord.join());
+    const slots = [...d.querySelectorAll('#s-tools .widget-slot, #s-tools .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
+    if (slots.indexOf(cid) === -1 || slots.indexOf(cid) > slots.indexOf(lastTool)) bad.push('Tools did not redraw the card above ' + lastTool + ': ' + slots.join());
+  }
+  /* A TOOL INTO STUDENT SETTINGS: ▶ from Tools until it stands there. */
+  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; }) || tools0[0];
+  for (let k = 0; k < 12; k++) {
+    const col = t.TABS.map(x => x.id).find(c => d.querySelector(`#s-${c} #wgt-${tid}`));
+    if (col === 'account' || !col) break;
+    const rt = d.querySelector(`#s-${col} #wgt-${tid}`)?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+    if (!rt || rt.disabled) break;
+    A['lay-w-col'](rt); await wait(300);
+    await layPaintAll_(w);
+    ['tools', 'shop', 'games'].forEach(c => { try { w.paint(c); } catch (e) {} });
+    await wait(150);
+  }
+  const L2 = layLast_(sent) || {};
+  if (((L2.widgets || {}).account || []).indexOf(tid) === -1) bad.push(tid + ' never reached Student settings: ' + JSON.stringify(L2.widgets));
+  const there = d.querySelector(`#s-account #wgt-${tid}`)?.closest('.card');
+  if (!there) bad.push(tid + ' is not drawn on Student settings');
+  else ['Move up', 'Move down', 'Move to previous column', 'Move to next column'].forEach(l => {
+    if (!there.querySelector(`.wgt-admin [aria-label="${l}"]`)) bad.push(tid + ' on Student settings has no ' + l);
+  });
+  if (d.querySelector(`#s-tools #wgt-${tid}`)) bad.push(tid + ' is still on Tools too');
+  /* A RELOAD keeps both, and the tool starts on its new column. */
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300);
+  await layPaintAll_(r.w); try { r.w.paint('tools'); } catch (e) {}
+  await wait(150);
+  const rd = r.w.document;
+  if (!rd.querySelector('#s-tools ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Tools');
+  if (!rd.querySelector(`#s-account #wgt-${tid}`)) bad.push('a reload lost ' + tid + ' on Student settings');
+  r.w.__t.go('account', false, true); await wait(200);
+  { const host = rd.getElementById('s-account'), pg = rd.querySelector(`#s-account #wgt-${tid}`)?.closest('.page'); const n = pg ? [...host.querySelectorAll(':scope > .page')].indexOf(pg) : -1; if (n > -1) { try { r.w.goPage('account', n, true); } catch (e) {} } }
+  await wait(600);
+  const slot = rd.querySelector(`#s-account #wgt-${tid}`);
+  if (slot && slot.getAttribute('aria-busy') && r.w.widgetsOn_('account').some(x => String(x.id) === tid && typeof x.start === 'function')) bad.push(tid + ' on Student settings was never started');
+  /* A CLIENT reloading sees both where they were put, with no admin tiles. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
+  try { c.w.paint('tools'); c.w.paint('account'); } catch (e) {}
+  await wait(150);
+  if (!c.w.document.querySelector(`#s-account #wgt-${tid}`)) bad.push('a client does not see ' + tid + ' on Student settings');
+  if (c.w.cardSeen_('tools').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Tools');
+  if (c.w.document.querySelector('.wgt-admin')) bad.push('a client sees layout tiles');
+  [r, c].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join('; ')); });
   return bad;
 });
 
