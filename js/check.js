@@ -15,7 +15,13 @@ function loadOrder_() {
     console.error('cannot read window.FILES out of index.html — that list IS the load order');
     process.exit(1);
   }
-  return [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  const all = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  /* THE LATER FILES RUN AFTER boot.js (670), in their own order, so a load-time read is checked against the order that really runs. */
+  const l = /window\.LATER\s*=\s*\[([\s\S]*?)\]/.exec(html);
+  const later = l ? [...l[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
+  const bad = later.filter(f => all.indexOf(f) === -1);
+  if (bad.length) { console.error('window.LATER names files window.FILES does not: ' + bad.join(', ')); process.exit(1); }
+  return all.filter(f => later.indexOf(f) === -1).concat(all.filter(f => later.indexOf(f) !== -1));
 }
 const ORDER = loadOrder_();
 
@@ -71,7 +77,7 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 /* THE TYPED ARRAYS. Missing from this list since it was written, which nothing noticed because nothing used one until the overworld started merging geometry into § */
 'Float32Array Float64Array Int8Array Int16Array Int32Array Uint8Array Uint8ClampedArray '+
 'Uint16Array Uint32Array BigInt64Array BigUint64Array ArrayBuffer SharedArrayBuffer DataView '+
-'BigInt WeakRef FinalizationRegistry').split(/\s+/));
+'BigInt WeakRef FinalizationRegistry ReferenceError').split(/\s+/));
 
 const dir=__dirname;
 let fail=0;

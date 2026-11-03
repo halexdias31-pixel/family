@@ -11573,6 +11573,8 @@ on('members-join', () => { if (typeof registerSheet_ === 'function') registerShe
 function finderScreen_() {
   const F = FINDER;
   if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
+  /* THE LIBRARY STILL COMING (670): one wait, and no menu until every card is in, so the first answers shown are the last (546). */
+  if (LIBRARY_LATE) { PAGE_KEEP[F.id] = 1; return pages(F.id, [loading_()]); }
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';

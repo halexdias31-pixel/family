@@ -462,8 +462,11 @@ function paint(id, fresh, o) {
   /* ONE SCREEN THAT WILL NOT DRAW MUST NOT TAKE THE OTHERS WITH IT. § */
   let html;
   try {
-    html = s ? s.draw() : null;
+    /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
+    html = s ? s.draw() : (LATER_IN ? null : loading_());
   } catch (err) {
+    /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
+    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = loading_(); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
@@ -3025,11 +3028,11 @@ async function filesOnly_() {
     if (DATA && DATA.questions && DATA.questions.length) return;
   } catch (e) { return; }
   const d = {};
+  try { await laterFiles_(); } catch (e) { /* never rejects; drawn with what came */ }
   try {
     libraryInto_(d, await libraryRows_());
-    const extra = await libraryExtraRows_();
-    libraryExtras_(d, extra);
-    settingsInto_(d, extra);
+    libraryExtras_(d, await libraryExtraRows_());
+    settingsInto_(d, await settingsRows_());
   } catch (e) {}
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
@@ -3268,6 +3271,34 @@ async function load(again) {
   }
 }
 
+/* `DATA` IS THE PAYLOAD BEHIND A PROXY that counts the keys read and never sent (`missingKeys`). A new proxy on the library's arrival is a new `DATA`, so every memo keyed on it starts again. */
+function dataProxy_(d) {
+  return new Proxy(d, {
+    get(t, k) {
+      /* `then` is asked for by anything that awaits an object, to find out whether it is a promise. Not a missing key. */
+      if (typeof k === 'string' && !(k in t) && k !== 'then') MISSING_KEYS[k] = (MISSING_KEYS[k] || 0) + 1;
+      return t[k];
+    }
+  });
+}
+/* THE LIBRARY AFTER THE PAYLOAD (670): merged into the same rows once both files are in, then Find draws, and the question a reload left is reopened. */
+let LIBRARY_FOR = null;
+async function libraryLate_(d) {
+  try {
+    const rows = await libraryRows_(), extra = await libraryExtraRows_();
+    if (LIBRARY_FOR !== d) return;   /* a newer payload took its place, and merged the library itself */
+    libraryInto_(d, rows);
+    libraryExtras_(d, extra);
+    loadRowsClean_(d);
+    DATA = dataProxy_(d);
+  } catch (e) { /* a malformed library row is what the payload path always swallowed: Find draws with what merged */ }
+  LIBRARY_LATE = false;
+  if (LIBRARY_FAILED) banner('The questions did not load — ' + LIBRARY_FAILED + '. Everything else is here; reload the page to try again.');
+  /* THE CARRY-OVER WAITS FOR THE QUESTIONS (`subMigrate_`, submit.js), so it runs again now they are here. */
+  try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); if (typeof subMigrate_ === 'function') { subMigrate_(); subPush_(true); } landRepaint_(); if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_(); }
+  catch (e) { oops_(e, 'load:library-paint'); }
+}
+
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
 let FIRST_PAINT_DONE = false;
 async function loadOnce_(again, n) {
@@ -3350,33 +3381,30 @@ async function loadOnce_(again, n) {
          that is the last device's guess. */
       /* ---------- THE LIBRARY, MERGED IN BEFORE THIS BECOMES `DATA` § */
       /* ---------- NOT `d = ...`, AND THAT LINE HAD BEEN THROWING ON EVERY LOAD § */
+      /* THE CODE THE FIRST SCREEN DID NOT NEED (670) is in before anything draws from the payload. */
+      await laterFiles_();
+      /* FEED FIRST (670): a library not yet here is merged after the payload is painted, and only Find waits for it (`LIBRARY_LATE`). */
+      const late = !libraryHere_();
       try {
-        libraryInto_(d, await libraryRows_());
-        /* THE OTHER THREE TABS, WHICH MAY STILL BE EMPTY. § */
-        const extra = await libraryExtraRows_();
-        libraryExtras_(d, extra);
-        /* AND THE SETTINGS TABS, ON THE SAME RULE AND FROM THE SAME FETCH. § */
-        settingsInto_(d, extra);
-      } catch (e) {
-        d.questions = d.questions || [];
-        d.dropdowns = d.dropdowns || {};
-        d.dropdowns.checklists = d.dropdowns.checklists || {};
-      }
+        if (!late) {
+          libraryInto_(d, await libraryRows_());
+          /* THE OTHER THREE TABS, WHICH MAY STILL BE EMPTY. § */
+          libraryExtras_(d, await libraryExtraRows_());
+        }
+        /* AND THE SETTINGS TABS, ON THE SAME RULE; their own small fetch, so the columns and words never wait for the library. */
+        settingsInto_(d, await settingsRows_());
+      } catch (e) { /* the repairs below make an empty library a working one */ }
+      d.questions = d.questions || [];
+      d.dropdowns = d.dropdowns || {};
+      d.dropdowns.checklists = d.dropdowns.checklists || {};
 
       /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. § */
       if (loadStale_(n, who)) return;
       loadRowsClean_(d);
-      DATA = new Proxy(d, {
-        get(t, k) {
-          /* `then` is asked for by anything that awaits an object, to find out whether it is a
-             promise. It is not a missing key, and counting it would put it at the top of the list
-             on every single load. */
-          if (typeof k === 'string' && !(k in t) && k !== 'then') {
-            MISSING_KEYS[k] = (MISSING_KEYS[k] || 0) + 1;
-          }
-          return t[k];
-        }
-      });
+      DATA = dataProxy_(d);
+      LIBRARY_LATE = late;
+      LIBRARY_FOR = d;
+      if (late) libraryLate_(d);
       LOAD_FAILED = '';
       got = true;
       RECONNECT.shown = n; RECONNECT.shownFor = who;
@@ -3403,7 +3431,7 @@ async function loadOnce_(again, n) {
           + '. Anything saved to them is discarded.');
       }
       /* ---------- AND THE QUESTION FILE, WHICH FAILS SEPARATELY AND USED TO FAIL SILENTLY § */
-      if (LIBRARY_FAILED) {
+      if (LIBRARY_FAILED && !LIBRARY_LATE) {
         banner('The questions did not load — ' + LIBRARY_FAILED
           + '. Everything else is here; reload the page to try again.');
       }
@@ -3520,7 +3548,7 @@ async function loadOnce_(again, n) {
   try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) {}   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
-  if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
+  if (!LOAD_FAILED && !LIBRARY_LATE && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
 /* ---------- NO SPLASH (466): THE APP IS ON SCREEN FROM THE FIRST FRAME */

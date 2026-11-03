@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — check/arrival.js THE FIRST ELEVEN SECONDS ON A PHONE (630). Port ARRIVAL_PORT; SHOTS=<dir> writes the filmstrip, PREFIX names it; -v a line a frame. */
-/* 390x844, CPU 4x, slow 4G, a cold cache and the payload 5 s late, then a warm second visit: no layout shift past 0.1, and no empty box or dots in view once it lands. */
+/* 390x844, CPU 4x, slow 4G, a cold cache and the payload 5 s late, then a warm second visit: no layout shift past 0.1, no empty box or dots in view once it lands, and cold, the feed drawn before the library (670). */
 'use strict';
 require('./quiet');
 const fs = require('fs'), path = require('path'), http = require('http'), zlib = require('zlib');
@@ -14,6 +14,8 @@ const DELAY = Number(process.env.ARRIVAL_DELAY || 5000);
 const VERBOSE = !!process.env.VERBOSE || process.argv.includes('-v');
 const COLD = [0.5, 1, 2, 3, 5, 8, 11], WARM = [0.5, 1, 2, 5];
 const CLS_MAX = 0.1;
+/* 670: the cold first paint, and how far ahead of the library the feed must be. */
+const PAINT_MAX = Number(process.env.ARRIVAL_PAINT_MAX || 5), FEED_LEAD = 1;
 const lib = require('./lib-full.js');
 const GZ = new Map();
 const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.html': 'text/html', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
@@ -44,6 +46,16 @@ function serve() {
 function WATCH() {
   window.__cls = []; window.__drawn = 0;
   const tick = setInterval(() => { const m = document.getElementById('screen'); if (m && m.querySelector('.screen > *')) { window.__drawn = Math.round(performance.now()); clearInterval(tick); } }, 100);
+  /* THE FEED IN, AND THE LIBRARY IN (670): the feed drawn from the payload with no dots in it, and the questions merged into DATA. */
+  window.__feed = 0; window.__lib = 0;
+  const tick2 = setInterval(() => {
+    try {
+      const f = document.getElementById('s-feed');
+      if (!window.__feed && typeof LOADED !== 'undefined' && LOADED && f && f.querySelector('.card, .widget') && !f.querySelector('.loading')) window.__feed = Math.round(performance.now());
+      if (!window.__lib && typeof DATA !== 'undefined' && DATA && DATA.questions && DATA.questions.length && !(typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE)) window.__lib = Math.round(performance.now());
+      if (window.__feed && window.__lib) clearInterval(tick2);
+    } catch (e) {}
+  }, 100);
   try {
     new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls.push({ t: Math.round(e.startTime), v: e.value }); })
       .observe({ type: 'layout-shift', buffered: true });
@@ -85,6 +97,8 @@ async function visit(ctx, tag) {
       return real.apply(this, arguments);
     };
   }, [FIXTURE, DELAY]);
+  const errs = [];
+  page.on('pageerror', e => errs.push(String(e.message).slice(0, 160)));
   const t0 = Date.now();
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'commit' });
   const frames = [];
@@ -98,12 +112,14 @@ async function visit(ctx, tag) {
   }
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 120000, polling: 250 });
   const landedAt = (Date.now() - t0) / 1000;
+  await page.waitForFunction(() => window.__feed && window.__lib, null, { timeout: 120000, polling: 250 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1500));
   if (SHOTS) { try { await page.screenshot({ path: path.join(SHOTS, `${PREFIX}-${tag}-landed.png`) }); } catch (e) {} }
   const after = await page.evaluate(LOOK);
   const shifts = await page.evaluate(() => window.__cls), drawnAt = await page.evaluate(() => window.__drawn / 1000);
+  const feedAt = await page.evaluate(() => window.__feed / 1000), libAt = await page.evaluate(() => window.__lib / 1000);
   await page.close();
-  return { frames, after, shifts, landedAt, drawnAt, cls: shifts.reduce((a, e) => a + e.v, 0) };
+  return { frames, after, shifts, landedAt, drawnAt, feedAt, libAt, errs, cls: shifts.reduce((a, e) => a + e.v, 0) };
 }
 
 (async () => {
@@ -116,8 +132,15 @@ async function visit(ctx, tag) {
       const r = await visit(ctx, tag);
       if (VERBOSE) {
         for (const f of r.frames) console.log(tag, f.s + 's', JSON.stringify(f.look));
-        console.log(tag, 'shifts', JSON.stringify(r.shifts), 'after', JSON.stringify(r.after), 'first drawn at', r.drawnAt + 's', 'landed at', r.landedAt + 's');
+        console.log(tag, 'shifts', JSON.stringify(r.shifts), 'after', JSON.stringify(r.after), 'first drawn at', r.drawnAt + 's', 'landed at', r.landedAt + 's',
+          'feed in at', r.feedAt + 's', 'library in at', r.libAt + 's');
       }
+      if (r.errs.length) bad.push(`${tag}: the page threw: ${[...new Set(r.errs)].join(' | ')}`);
+      if (!r.feedAt) bad.push(`${tag}: the feed never drew from the payload`);
+      if (!r.libAt) bad.push(`${tag}: the library never merged in`);
+      /* FEED FIRST (670): cold, the library (a megabyte) lands long after the payload; a feed that waits for it is drawn with it, or after. */
+      if (tag === 'cold' && r.feedAt && r.libAt && r.feedAt >= r.libAt - FEED_LEAD) bad.push(`cold: the feed waited for the library (feed ${r.feedAt}s, library ${r.libAt}s; it must lead by ${FEED_LEAD}s)`);
+      if (tag === 'cold' && r.drawnAt > PAINT_MAX) bad.push(`cold: first drawn at ${r.drawnAt}s, over ${PAINT_MAX}s`);
       if (r.cls > CLS_MAX) bad.push(`${tag}: layout shift ${r.cls.toFixed(3)} > ${CLS_MAX} (${r.shifts.map(e => e.t + 'ms ' + e.v.toFixed(3)).join(', ')})`);
       if (r.after.empty.length) bad.push(`${tag}: empty boxes in view after the payload: ${r.after.empty.join(' | ')}`);
       if (r.after.dots) bad.push(`${tag}: ${r.after.dots} loading dots still in view after the payload`);
@@ -125,5 +148,5 @@ async function visit(ctx, tag) {
   } catch (e) { bad.push('could not run: ' + e.message); }
   await browser.close(); srv.close();
   if (bad.length) { console.error('FAIL — arrival:\n  ' + bad.join('\n  ')); process.exit(1); }
-  console.log(`OK — arrival at 390px, 4x CPU, slow 4G, payload ${DELAY / 1000} s late: no layout shift past ${CLS_MAX}, nothing empty or waiting in view once it lands, cold and warm`);
+  console.log(`OK — arrival at 390px, 4x CPU, slow 4G, payload ${DELAY / 1000} s late: no layout shift past ${CLS_MAX}, nothing empty or waiting in view once it lands, cold and warm; the feed before the library, first paint under ${PAINT_MAX} s`);
 })();

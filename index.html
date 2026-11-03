@@ -74,6 +74,11 @@
   window.FILES = ['core', 'finder-tags', 'price-rows', 'chess', 'data', 'library', 'qtypes', 'settings', 'shell', 'rules', 'cards', 'me', 'posts',
     'links', 'find', 'keypad', 'answers', 'ink', 'board', 'submit', 'working', 'qtools', 'resource', 'arcade', 'map', 'book', 'receipt', 'flyer', 'records', 'mat', 'games', 'racer',
     'overworld', 'select', 'collections', 'tiles', 'reader', 'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'staff', 'help', 'layout', 'words', 'gtasks', 'push', 'inbox', 'spotify', 'favlinks', 'rewrite', 'poster', 'pixel', 'missing', 'boot'];
+  /* NOT BEFORE THE FIRST SCREEN (670): these run after boot.js, asked for by `laterFiles_` (data.js) once the first column is drawn, in this order; `load()` waits for them before it paints the payload. */
+  window.LATER = ['games', 'racer', 'mat', 'chess', 'keypad', 'board', 'answers', 'submit', 'qtools', 'working',
+    'receipt', 'flyer', 'records', 'rewrite', 'staff', 'poster', 'pixel', 'spotify', 'inbox', 'gtasks', 'push', 'reader',
+    'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'layout', 'words', 'help', 'favlinks', 'map', 'book', 'collections', 'find'];
+  window.EAGER = FILES.filter(function (f) { return LATER.indexOf(f) === -1; });
   /* THE REQUEST GOES OUT NOW, NOT AFTER A MEGABYTE OF JAVASCRIPT HAS PARSED. § */
   try {
     if (window.fetch && location.protocol !== 'file:') {
@@ -96,7 +101,7 @@
   /* AND THE TYPEFACE WITH THE STYLESHEET, so the first words are drawn once in it rather than swapped (630). */
   document.write('<link rel="stylesheet" href="style.css?t=' + LOAD + '">'
     + '<link rel="preload" as="font" type="font/woff2" href="fonts/family-code.woff2" crossorigin>'
-    + FILES.map(function (f) {
+    + EAGER.map(function (f) {
         return '<link rel="preload" as="script" href="js/' + f + '.js?t=' + LOAD + '">';
       }).join(''));
 </script>
@@ -112,7 +117,7 @@
   /* NINETEEN NOW — `flyer` sits after `receipt` because it uses `money` and `esc` from core and
      `openSheet` from shell, and before `boot`, which starts everything. */
   /* `FILES` — declared with the preloads in the head. See the note there. */
-  FILES.forEach(function (f) {
+  EAGER.forEach(function (f) {
     /* `js/` — THE FOLDER THEY ARE ACTUALLY IN. § */
     /* `onerror` NAMES THE FILE THAT DID NOT ARRIVE. § */
     /* ---------- `defer`, AND IT IS THE WHOLE OPTIMISATION § */
