@@ -1,0 +1,255 @@
+{
+ "score": 79.1,
+ "questions": 201,
+ "healthy": 159,
+ "walked": {
+  "nodes": 300,
+  "maxNodes": 300,
+  "maxDepth": 7,
+  "maxChildren": 10,
+  "sample": 3000
+ },
+ "rules": [
+  {
+   "id": "single",
+   "label": "a question with one answer — nothing to decide",
+   "count": 2
+  },
+  {
+   "id": "rawkey",
+   "label": "an answer that reads as a key, not words",
+   "count": 0
+  },
+  {
+   "id": "repeat",
+   "label": "a question whose name was already asked on the way here",
+   "count": 0
+  },
+  {
+   "id": "subtype",
+   "label": "a finer question asked before its coarser one",
+   "count": 31
+  },
+  {
+   "id": "siblings",
+   "label": "sibling branches ask their next question in different orders",
+   "count": 0
+  },
+  {
+   "id": "echo",
+   "label": "an answer that repeats the answer above it",
+   "count": 4
+  },
+  {
+   "id": "twins",
+   "label": "two answers that keep exactly the same cards",
+   "count": 8
+  }
+ ],
+ "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
+ "top": [
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Church history",
+   "asks": "Work",
+   "cards": 3150,
+   "why": [
+    "a finer question asked before its coarser one: Work before Author",
+    "an answer that repeats the answer above it: Church history › Eusebius, Church History"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Anthology",
+   "asks": "Collection",
+   "cards": 153,
+   "why": [
+    "a finer question asked before its coarser one: Collection before Author",
+    "an answer that repeats the answer above it: Anthology › Poetry Anthology (Eduqas)"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights › February",
+   "asks": "Fighter",
+   "cards": 10,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division",
+    "two answers that keep exactly the same cards: Jake LaMotta = Sugar Ray Robinson"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity",
+   "asks": "Collection",
+   "cards": 169963,
+   "why": [
+    "two answers that keep exactly the same cards: Canon law = Ecumenical Councils"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism",
+   "asks": "Collection",
+   "cards": 46528,
+   "why": [
+    "a finer question asked before its coarser one: Collection before Topic"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Maths › Past paper",
+   "asks": "Which type",
+   "cards": 6024,
+   "why": [
+    "a question with one answer — nothing to decide: Which type"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
+   "asks": "Work",
+   "cards": 5455,
+   "why": [
+    "a finer question asked before its coarser one: Work before Translation"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Maths › Worksheet",
+   "asks": "Which type",
+   "cards": 4693,
+   "why": [
+    "a question with one answer — nothing to decide: Which type"
+   ]
+  },
+  {
+   "where": "Find › Library › History › Writings",
+   "asks": "Work",
+   "cards": 3327,
+   "why": [
+    "a finer question asked before its coarser one: Work before Translation"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Church Fathers",
+   "asks": "Work",
+   "cards": 1283,
+   "why": [
+    "a finer question asked before its coarser one: Work before Author"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Combined Science › Foundation",
+   "asks": "Year",
+   "cards": 1226,
+   "why": [
+    "a finer question asked before its coarser one: Year before Month"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Combined Science › Higher",
+   "asks": "Year",
+   "cards": 1119,
+   "why": [
+    "a finer question asked before its coarser one: Year before Month"
+   ]
+  },
+  {
+   "where": "Find › Practice › Answers › Religious Studies",
+   "asks": "Level",
+   "cards": 1004,
+   "why": [
+    "a finer question asked before its coarser one: Level before Key stage"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Religious Studies",
+   "asks": "Level",
+   "cards": 1004,
+   "why": [
+    "a finer question asked before its coarser one: Level before Key stage"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works",
+   "asks": "Work",
+   "cards": 942,
+   "why": [
+    "a finer question asked before its coarser one: Work before Kind of writing"
+   ]
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Canon law",
+   "asks": "Work",
+   "cards": 783,
+   "why": [
+    "a finer question asked before its coarser one: Work before Author"
+   ]
+  },
+  {
+   "where": "Find › Practice › Questions › Religious Studies › GCSE",
+   "asks": "Year",
+   "cards": 420,
+   "why": [
+    "a finer question asked before its coarser one: Year before Month"
+   ]
+  },
+  {
+   "where": "Find › Library › Chemistry › Reaction",
+   "asks": "Chemical type",
+   "cards": 84,
+   "why": [
+    "an answer that repeats the answer above it: Reaction › Acid reaction; Reaction › Reversible reaction"
+   ]
+  },
+  {
+   "where": "Find › Library › English Language › SATs",
+   "asks": "Topic",
+   "cards": 46,
+   "why": [
+    "two answers that keep exactly the same cards: Adjectives = Adverbs; Antonyms = Synonyms; Brackets = Dashes"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1980s",
+   "asks": "Fighter",
+   "cards": 35,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 2010s",
+   "asks": "Fighter",
+   "cards": 34,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Maths › A-Level",
+   "asks": "Topic",
+   "cards": 33,
+   "why": [
+    "two answers that keep exactly the same cards: Tree Diagrams = Venn Diagrams & Set Notation"
+   ]
+  },
+  {
+   "where": "Find › Library › English Literature › Anthology › Unseen poetry",
+   "asks": "Chapter",
+   "cards": 30,
+   "why": [
+    "a finer question asked before its coarser one: Chapter before Unit"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights › June",
+   "asks": "Year",
+   "cards": 30,
+   "why": [
+    "a finer question asked before its coarser one: Year before Decade"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1970s",
+   "asks": "Fighter",
+   "cards": 24,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  }
+ ]
+}
