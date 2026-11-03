@@ -494,7 +494,8 @@ const FACETS = [
   { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
-  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : '' },
+  /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
+  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
@@ -508,6 +509,8 @@ const FACETS = [
   /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id) },
+  /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
+  { field: 'paperSection', label: 'Section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -724,8 +727,17 @@ const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document'
 /* WHAT A PAPER ID IS CALLED: its document row's name, or the id itself — an unreadable button beats a blank one. */
 const paperLabel_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null;
-  return String((d && d.name) || id || '').trim();
+  const name = String((d && d.name) || id || '').trim(), sec = paperSectionOf_(d);
+  /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
+  return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
+/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): an id ending in the paper's own number and a digit (`P-9MA0-2406-31`, `paper` 3) is
+   that paper's section, 1 = A, 2 = B — 9MA0 Paper 3 is Statistics (Section A) and Mechanics (Section B). Any board, one rule. */
+function paperSectionOf_(row) {
+  const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
+  if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || '').trim() };
+}
 
 /* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip
    and the card alike (396). Sets `show` on each value in place; the last rung is the full name. */
@@ -969,7 +981,9 @@ function facetTally_(items, facet) {
     const vals = facetOwn_(facet, x);
     new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
   });
-  Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
+  /* AN ANSWER EVERY CARD CARRIES IS NOT THE COMMONEST CHOICE BUT DOESN'T MATTER AGAIN (770): the split is measured over the rest — every facet. */
+  const keys = Object.keys(wBy), part = keys.filter(k => wBy[k] < whole);
+  (part.length && part.length < keys.length ? part : keys).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
     facet: facet,
@@ -1580,7 +1594,7 @@ function contentItem_(b, c) {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
-    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics,
+    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
@@ -10031,16 +10045,17 @@ function accountPages_(col) {
   /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_(col)].filter(Boolean) : [];
   const fam = famIn(col).map(famCard_);
+  /* EVERY PROFILE COLUMN HAS ITS SEARCH CARD (442, 770), one rule: under the "+", above the people. */
+  const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
   if (col === 'tutors') {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
     const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
     /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
-    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
+    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:search', search), cardMark_('ppl:tutors:dir', mine.concat(others)));
   } else if (col === 'students') {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
-    const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
     /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
     const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
@@ -10050,7 +10065,7 @@ function accountPages_(col) {
     /* A PARENT'S CLAIM ("X says they are your parent") is answered here, by the child. */
     const claims = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
       ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
-    out = cardMark_('ppl:parents:add', add).concat(cardMark_('ppl:parents:you', mine), cardMark_('ppl:parents:claims', claims),
+    out = cardMark_('ppl:parents:add', add).concat(cardMark_('ppl:parents:search', search), cardMark_('ppl:parents:you', mine), cardMark_('ppl:parents:claims', claims),
       cardMark_('ppl:parents:family', fam), cardMark_('ppl:parents:all', everyone));
   }
   return out.concat(coming);
@@ -11539,7 +11554,25 @@ function stuffQuestion() {
   const values = facetValues(items, facet);
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const sw = scriptureWait_(items);
-  return facetAnswersHtml_(facet, values, sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '');
+  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
+}
+/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): the owner, "why isn't there an Accuracy verified option?" — every facet, one rule. A
+   question not asked because all of these answer it one way, while the whole list has exactly two answers, says the other greyed
+   with its 0 rather than vanishing. Never pressable, never in `.answers`. */
+function facetNoneHtml_(items, shown) {
+  try {
+    const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];
+    facetList().forEach(facet => {
+      if (facet === shown || asked.indexOf(facet.field) !== -1) return;
+      const here = facetValues(items, facet);
+      if (here.length !== 1 || facetCoverage(items, facet) < 1) return;
+      const every = facetValues(all, facet);
+      if (every.length !== 2) return;
+      const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
+      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(other.show || other.value)} <b>0</b></span>`);
+    });
+    return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
+  } catch (e) { return ''; }
 }
 /* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
 function facetAnswersHtml_(facet, values, more) {
