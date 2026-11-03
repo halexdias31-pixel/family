@@ -472,10 +472,10 @@ function paint(id, fresh, o) {
   let html;
   try {
     /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
-    html = s ? s.draw() : (LATER_IN ? null : loading_());
+    html = s ? s.draw() : (LATER_IN ? null : waitShape_(id));
   } catch (err) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
-    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = loading_(); STALE[id] = 1; return; }
+    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
@@ -503,6 +503,7 @@ function paint(id, fresh, o) {
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
   if (held.length) widgetsBack_(id, held);
+  shapeHold_(el, id);
   arrivePages_(el, waited);
   if (kept) placeBack_(el, kept);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
@@ -548,6 +549,41 @@ function nothingHere(whenEmpty, needsLibrary) {
 function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
+}
+
+/* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
+const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
+const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
+function shapeAll_() { try { return JSON.parse(localStorage.getItem(SHAPE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+/* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
+function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }
+/* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
+function waitShape_(id) {
+  const hs = shapeOf_(id) || [0];
+  return hs.map(h => `<section class="page"><div class="pane"${h ? ` data-keep style="--keep-h:${h}px"` : ''}>${loading_()}</div></section>`).join('');
+}
+/* AND A PANE A DRAWER LEFT WAITING gets the height its page had last time. */
+function shapeHold_(el, id) {
+  const hs = shapeOf_(id);
+  if (!hs || !el || (LOADED && LATER_IN)) return;   /* the arrival only: a column paging itself later is its own business */
+  el.querySelectorAll(':scope > .page > .pane').forEach((p, i) => {
+    if (hs[i] && p.querySelector(':scope > .loading:only-child')) { p.setAttribute('data-keep', ''); p.style.setProperty('--keep-h', hs[i] + 'px'); }
+  });
+}
+/* WRITTEN ONCE THE COLUMNS HAVE LANDED, and again after the library. */
+function shapeSave_() {
+  try {
+    const w = shapeWidth_(), old = shapeAll_(), out = { at: w };
+    TABS.forEach(t => {
+      const el = $('s-' + t.id);
+      const panes = el ? [].slice.call(el.querySelectorAll(':scope > .page > .pane'), 0, SHAPE_PAGES) : [];
+      const was = (old.at === w && old[t.id]) || [];
+      /* A PANE STILL ONLY WAITING says nothing of its size: the last good height stands, or none. */
+      const hs = panes.map((p, i) => (p.querySelector(':scope > .loading:only-child') ? (was[i] || 0) : Math.round(p.getBoundingClientRect().height)));
+      if (hs.some(h => h > 0)) out[t.id] = hs;
+    });
+    keepPut_(SHAPE_KEY, JSON.stringify(out), true);
+  } catch (e) {}
 }
 
 /* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
@@ -3366,6 +3402,7 @@ async function libraryLate_(d) {
   /* THE CARRY-OVER WAITS FOR THE QUESTIONS (`subMigrate_`, submit.js), so it runs again now they are here. */
   try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); if (typeof subMigrate_ === 'function') { subMigrate_(); subPush_(true); } landRepaint_(); if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_(); }
   catch (e) { oops_(e, 'load:library-paint'); }
+  setTimeout(shapeSave_, 4000);
 }
 
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
@@ -3478,6 +3515,10 @@ async function loadOnce_(again, n) {
       got = true;
       RECONNECT.shown = n; RECONNECT.shownFor = who;
 
+      /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
+      if (typeof dmAdopt_ === 'function') dmAdopt_(d);
+      /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
+      setTimeout(shapeSave_, 4000);
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
       adoptMarks_();
       /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you

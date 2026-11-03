@@ -2232,6 +2232,13 @@ function dmSync_(force) {
   });
 }
 
+/* THE PAYLOAD'S COPY (700): taken as the first answer, and the 20 s poll keeps it fresh from there. A backend that sends none leaves the ask as it was. */
+function dmAdopt_(d) {
+  if (!USER || !d || !Array.isArray(d.messages) || DM_BUSY) return;
+  MESSAGES = d.messages; MSG_FAILED = false;
+  DM_ASKED = true; DM_DONE = true; DM_LAST = Date.now();
+}
+
 /* STARTED WHEN THE COLUMN ARRIVES AND STOPPED WHEN IT LEAVES, from `startScreen_` and `paint` — the one list that exists for exactly this. § */
 function dmPoll_() {
   clearInterval(DM_TIMER);
