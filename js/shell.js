@@ -749,13 +749,27 @@ const CELL_GAP   = 16;        // pixels between one card and the next, going DOW
 /* HOW FAR APART TWO PANES SIT, so that the gap between what you SEE is `CELL_GAP`. § */
 /* ---------- THE BROWSER STACKS THE COLUMN, NOT THIS FILE § */
 /* ---------- THE CARD YOU ARE ON SITS IN THE MIDDLE OF THE SCREEN § */
+/* THE PART OF A COLUMN'S GLASS THAT CAN BE SEEN (720): all of it, or only what is above the keypad while it is up, so a card is centred where it shows. */
+function glassSeenH_(host) {
+  const boxH = host.clientHeight || innerHeight;
+  if (!document.documentElement.classList.contains('kp-up')) return boxH;
+  try {
+    const pad = document.getElementById('kp');
+    if (!pad || pad.hidden) return boxH;
+    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
+    const seen = pad.getBoundingClientRect().top - 12 - base;
+    return seen > 120 ? Math.min(boxH, seen) : boxH;
+  } catch (e) { return boxH; }
+}
 function columnShift_(host, at) {
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
   if (!cur) return 0;
-  const boxH = host.clientHeight || innerHeight;
+  const boxH = glassSeenH_(host);
   const h = HOLD_AT;
-  if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
+  /* A FINDER IS NOT HELD ONCE NOTHING IN IT HAS FOCUS (720, owner: "the finder widget should always stay centred"): the hold is for typing, and typing is over. */
+  const loose = h && typeof finderOf_ === 'function' && finderOf_(h.id) && !(document.activeElement && host.contains(document.activeElement));
+  if (h && !loose && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
       && h.vp === innerWidth + 'x' + innerHeight) {
     const room = boxH - cur.offsetHeight;
     /* HELD ONLY WHILE IT GROWS (508): a card that shrank (words or chips cleared) is centred again, and held from there. */
@@ -2970,17 +2984,38 @@ document.addEventListener('click', e => {
       if (CLICK_LOG) console.log('[click] dropped — the same control again, or its request is still out');
       return;
     }
-    const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
-    /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
-    try {
-      const got = ACTIONS[doer.dataset.do](doer, e);
-      if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
-    } catch (err) {
-      oops_(err, 'act:' + doer.dataset.do);
-      toast('That did not work. Everything else still works.');
-    } finally { PRESS_ACTING_ = null; }
+    /* A HEAVY PRESS BY A REAL FINGER WAITS ONE FRAME (720): the pressed mark is painted first, then the work — a chip on Find took 3 s at 4x CPU with nothing drawn. */
+    if (e.isTrusted && PRESS_AFTER_PAINT_.has(doer.dataset.do)) { pressAfterPaint_(doer, e); return; }
+    pressAct_(doer, e);
   }
 });
+/* THE ACTIONS WHOSE WORK IS A WHOLE REDRAW (the funnel's answers and chips): `pressAfterPaint_` lets the frame showing the press go first. */
+const PRESS_AFTER_PAINT_ = new Set(['facet-pick', 'facet-skip', 'filter-drop', 'filter-clear']);
+let PRESS_SOON_ = null;   // the one press waiting for its frame: { el, key }
+function pressAfterPaint_(doer, e) {
+  const key = pressKey_(doer);
+  /* ONE AT A TIME: a second tap in the same frame is the first one's, already on its way. */
+  if (PRESS_SOON_) return;
+  PRESS_SOON_ = { el: doer, key };
+  doer.classList.add('is-pressed');
+  requestAnimationFrame(() => setTimeout(() => {
+    PRESS_SOON_ = null;
+    /* REDRAWN AWAY MEANWHILE (a payload landing): the press was on something no longer there, so nothing is done. */
+    if (doer.isConnected) pressAct_(doer, e);
+    else if (CLICK_LOG) console.log('[click] dropped — its control was redrawn before its frame came');
+  }, 0));
+}
+function pressAct_(doer, e) {
+  const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
+  /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
+  try {
+    const got = ACTIONS[doer.dataset.do](doer, e);
+    if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
+  } catch (err) {
+    oops_(err, 'act:' + doer.dataset.do);
+    toast('That did not work. Everything else still works.');
+  } finally { PRESS_ACTING_ = null; }
+}
 
 /* Swiping between tabs is further down, with the gesture handling it belongs to — I wrote a second, cruder version here before noticing the first. § */
 
