@@ -1,15 +1,15 @@
 {
  "v": 1,
- "score": 46.9,
+ "score": 46,
  "verdict": "Fragile: the exceptions outweigh the rules.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 190,
+   "count": 199,
    "weight": 0.1,
    "cap": 20,
-   "off": 19,
+   "off": 19.9,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -33,6 +33,7 @@
     "check/press-twice.js ACCEPTED": 2,
     "check/press.js ACCEPTED_QUIET": 21,
     "check/types.js ACCEPTED": 2,
+    "check/ui.js ACCEPTED_NEST": 9,
     "check/ui.js ACCEPTED_TAP": 24
    }
   },
@@ -97,11 +98,11 @@
    "cap": 10,
    "off": 2.5,
    "where": {
-    "js/find.js": 12157,
+    "js/find.js": 12175,
     "js/games.js": 6449,
     "js/me.js": 4872,
-    "js/shell.js": 3746,
-    "backend/dopost.gs": 4604
+    "js/shell.js": 3822,
+    "backend/dopost.gs": 4609
    }
   },
   {
@@ -147,9 +148,9 @@
     "js/racer.js raceMesh_": 151,
     "js/receipt.js flappyStill_": 304,
     "js/shell.js placeGrid": 163,
-    "js/shell.js loadOnce_": 248,
-    "backend/doget.gs doGet": 1201,
-    "backend/dopost.gs doPost": 3618,
+    "js/shell.js loadOnce_": 252,
+    "backend/doget.gs doGet": 1204,
+    "backend/dopost.gs doPost": 3590,
     "backend/setup.gs dataProblems": 282
    }
   },
