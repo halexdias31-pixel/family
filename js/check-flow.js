@@ -2766,8 +2766,9 @@ check('486: every top-level card and widget in every column has the one Report t
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
-  const SIX = ['s-family', 's-staff', 's-account', 's-tutors', 's-students', 's-parents'];
-  const LABELS = ['Parent settings', 'Tutor settings', 'Student settings', 'Tutor profiles', 'Student profiles', 'Parent profiles'];
+  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web settings, an admin's, between Tutor and Kids). */
+  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
+  const LABELS = ['Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Kids settings', 'Parent settings'];
   for (const [who, rank, pid] of RANK_COLS_) {
     const a = await hubBoot_(W, who);
     if (a.err) { bad.push(rank + ': ' + a.err); continue; }
@@ -2779,7 +2780,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (tabOrder.join() !== SIX.join()) bad.push(rank + ': the six read ' + tabOrder.join(' ') + ', wanted ' + SIX.join(' '));
     const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
     if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
-    if (rank === 'admin' && tabs.slice(-2).join(',') !== 'biz,site') bad.push('Business then Site are not last for an admin (491)');
+    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== tabs.indexOf('staff') + 1)) bad.push('Biz settings is not last, or Web settings not right of Tutor settings, for an admin (730)');
     /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
     /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
     if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
@@ -9897,7 +9898,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   }
   if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
   const note = String((d.getElementById('reg-note') || {}).textContent || '');
-  if (!/Add as my child/.test(note) || !/Student profiles/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
+  if (!/Add as my child/.test(note) || !/Student profiles?/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
 
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -10011,7 +10012,7 @@ check('461: "Manage your child" lists the children and says how to add one — n
   if (d.querySelector('[data-kid-new], [data-do="kid-make"], .kid-make')) bad.push('a form to make a child\'s account is still drawn');
   if (typeof t.ACTIONS['kid-make'] === 'function') bad.push('the kid-make handler is still registered');
   const add = manage[0].querySelector('.kid-add');
-  if (!add || !/Add your child/.test(add.textContent) || !/own account/.test(add.textContent) || !/Student profiles/.test(add.textContent)) bad.push('the add section does not say the child makes their own account and to search on Student profiles');
+  if (!add || !/Add your child/.test(add.textContent) || !/own account/.test(add.textContent) || !/Student profiles?/.test(add.textContent)) bad.push('the add section does not say the child makes their own account and to search on Student profiles');
   t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
   try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(200);
@@ -10875,7 +10876,7 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
   const bad = [];
   /* ---------- IT LOOKED IN THE SHEET, AND THERE IS NO SHEET § */
   const buttonsOn = id => {
-    try { w.__t.ACTIONS['job']({ dataset: { id } }); } catch (e) { return ['THREW: ' + e.message]; }
+    try { w.openJob_(id); } catch (e) { return ['THREW: ' + e.message]; }
     const b = w.document.getElementById('s-booking');
     return b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   };
@@ -10916,7 +10917,7 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   const { w, sent } = boot();
   await wait(300);
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
-  try { w.__t.ACTIONS['job']({ dataset: { id: 'W-LIST' } }); }
+  try { w.openJob_('W-LIST'); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
   /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. § */
   const b = w.document.getElementById('s-booking');
@@ -11013,7 +11014,7 @@ check('signing in over somebody else empties both finders\' words, chips and sea
 
 /* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT § */
 const joinPage_ = (w, id) => {
-  w.__t.ACTIONS['job']({ dataset: { id } });
+  w.openJob_(id);
   return [...w.document.querySelectorAll('#s-booking .page')]
     .find(p => new RegExp('\\b' + id + '\\b').test((p.querySelector('.rc-ref') || {}).textContent || ''));
 };
@@ -13595,9 +13596,9 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'apprentice', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(11));  /* the owner's eleven since 730, as columns.json lists them */
 
-check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Apprentice settings (730), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -13631,15 +13632,14 @@ check('business: an admin has a Business column last, straight after Parent prof
   }
 
   /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
-  t.go('parents', false, true);
+  t.go('apprentice', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'parents') return bad.concat(['go("parents") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await bizSwipe_(w, 'parents');
-  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent profiles landed on ' + t.AT() + ', wanted Business']);
+  if (t.AT() !== 'apprentice') return bad.concat(['go("apprentice") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'apprentice');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Apprentice settings (730) landed on ' + t.AT() + ', wanted Business']);
+  /* BIZ SETTINGS IS LAST SINCE 730 (Web settings stands right of Tutor settings): one more swipe stays. */
   await bizSwipe_(w, 'biz');
-  if (t.AT() !== 'site') bad.push('a sideways swipe off Business did not land on Site (491): ' + t.AT());
-  await bizSwipe_(w, 'site');
-  if (t.AT() !== 'site') bad.push('a sideways swipe past the last column moved off Site, to ' + t.AT());
+  if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Biz settings, to ' + t.AT());
 
   /* THE RECORDS WERE ASKED ONCE IN ALL — drawing asked, arriving found it asked — and the five cards are the
      column's pages, in order, the pager agreeing. */
@@ -13818,18 +13818,18 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     const ids = t.TABS.map(x => x.id);
     if (!bizApplied_(t)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
-    if (ids[ids.length - 1] !== 'parents') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Parent profiles');
+    if (ids[ids.length - 1] !== 'apprentice') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Apprentice settings (730)');
     /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: § */
     const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
-    if (!home || home === 'parents') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
-    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'parents' ? ' — they were moved left off a column they should never have been put on' : ''));
+    if (!home || home === 'apprentice') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'apprentice' ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
-    t.go('parents', false, true);
+    t.go('apprentice', false, true);
     await wait(LEAVE_MS); await woken_();
-    await bizSwipe_(w, 'parents');
-    if (t.AT() !== 'parents') bad.push(as + ': a swipe past Parent profiles moved to ' + t.AT() + ' — wanted to stay on the last column');
+    await bizSwipe_(w, 'apprentice');
+    if (t.AT() !== 'apprentice') bad.push(as + ': a swipe past Apprentice settings (730) moved to ' + t.AT() + ' — wanted to stay on the last column');
     t.go('biz', false, true);
     await wait(300);
     if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
@@ -13862,7 +13862,7 @@ check('business: signing in as an admin adds the column and signing out takes it
 
   /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
      (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go('parents', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('apprentice', false, true); await wait(LEAVE_MS); await woken_();
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   const btn = d.querySelector('[data-do="do-signin"]');
@@ -13876,11 +13876,11 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids().slice(-2).join(' ') !== 'biz site') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Business then Site, without a reload');
+  if (ids().slice(-2).join(' ') !== 'apprentice biz') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Apprentice settings then Biz settings (730), without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== 'parents') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Parent and go back there');
-  await bizSwipe_(w, 'parents');
-  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Parent profiles landed on ' + t.AT() + ', wanted Business');
+  if (t.AT() !== 'apprentice') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Apprentice settings and go back there');
+  await bizSwipe_(w, 'apprentice');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Apprentice settings (730) landed on ' + t.AT() + ', wanted Business');
   else {
     for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
     const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
@@ -13921,8 +13921,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== 'parents') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Parent profiles, the column left of it');
-  if (!d2.querySelector('#s-parents > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
+  if (t2.AT() !== 'apprentice') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Apprentice settings (730), the column left of it');
+  if (!d2.querySelector('#s-apprentice > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
   return bad;
 });
 
@@ -30484,7 +30484,7 @@ check('layout tiles (463): a stale or garbled layout falls back cleanly — unkn
 });
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
-const LAY_CARD_COLS_ = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
+const LAY_CARD_COLS_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).filter(r => String(r.cards).toUpperCase() === 'TRUE').map(r => r.screen);
 const layPaintAll_ = async w => { for (const c of LAY_CARD_COLS_) { try { w.paint(c); } catch (e) {} } await wait(200); };
 const layCardRow_ = (d, id) => d.querySelector(`.card-admin[data-lay-for="${id}"]`);
 const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
@@ -30599,14 +30599,14 @@ check('merge with the card above (480): widgets — Make a flyer has no Merge un
   return bad;
 });
 
-check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
+check('a card moved ◀ into the next column is on a page that column scrolls to — Biz settings into Apprentice settings (730), parents into students — and still after a reload (476)', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const A = w.__t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-c-col'] || typeof w.__t.pageCount !== 'function') return ['no lay-c-col or pageCount — NOT checked'];
   await layPaintAll_(w);
   const moves = [];
-  for (const [from, to] of [['biz', 'parents'], ['parents', 'students']]) {
+  for (const [from, to] of [['biz', 'apprentice'], ['parents', 'students']]) {
     const seen = laySeen_(w, from).filter(x => !moves.some(m => m[1] === x)), id = from === 'biz' ? seen[0] : seen[seen.length - 1];
     const tile = id && layCardTile_(d, id, 'lay-c-col', '-1');
     if (!tile) { bad.push(from + ' has no ◀ card to move — NOT checked'); continue; }
@@ -30635,7 +30635,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       const row = layCardRow_(d, id);
       if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }
       const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
-      ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
+      /* THE FIRST COLUMN'S ◀ (Spotlight since 730) makes a new column on the left rather than naming a previous one. */
+      ['Move up', 'Move down', 'Move to previous column|Move to a new column on the left', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (!l.split('|').some(x => labels.indexOf(x) !== -1)) bad.push(id + ' has no ' + l); });
     });
   }
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
@@ -30683,7 +30684,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const pgs = [...d.querySelectorAll('#s-students > .page')];
   if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
   /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
-  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
+  /* THE LAST COLUMN A NON-ADMIN CARD MAY STAND ON is Apprentice settings since 730 (Biz settings, an admin's, is right of it). */
+  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
   if (!pr || pr.disabled || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on the last right-hand column does not offer a new column (466): ' + (pr && pr.getAttribute('aria-label')));
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   return bad;
@@ -30826,62 +30828,59 @@ check('layout engine (466): a split card\'s pieces are cards of their own — ea
   return bad;
 });
 
-check('layout engine (508): ▶ on a Site card makes an admin-only column after Site with the card on it; a settings card cannot move onto it; a client never sees it', async () => {
+check('layout engine (508): ▶ on a Biz settings card makes an admin-only column after it (Biz settings is last since 730) with the card on it; a settings card cannot move onto it; a client never sees it', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  const sid = laySeen_(w, 'site').find(x => /^(site|biz):/.test(x));
+  const sid = laySeen_(w, 'biz').find(x => /^(site|biz):/.test(x));
   const right = sid && layCardTile_(d, sid, 'lay-c-col', '1');
-  if (!right || right.disabled) return ['no live ▶ on a Site card (' + sid + ') — NOT checked'];
-  if (right.getAttribute('aria-label') !== 'Move to a new admin-only column') bad.push('▶ on Site says ' + right.getAttribute('aria-label'));
+  if (!right || right.disabled) return ['no live ▶ on a Biz settings card (' + sid + ') — NOT checked'];
+  if (right.getAttribute('aria-label') !== 'Move to a new admin-only column') bad.push('▶ on Biz settings says ' + right.getAttribute('aria-label'));
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
   const cu = (L.custom || [])[0] || {};
-  if (!/^custom-\d+$/.test(cu.id || '') || cu.admin !== true || ((L.cards || {})[cu.id] || []).indexOf(sid) === -1) bad.push('▶ past Site posted ' + JSON.stringify(L));
+  if (!/^custom-\d+$/.test(cu.id || '') || cu.admin !== true || ((L.cards || {})[cu.id] || []).indexOf(sid) === -1) bad.push('▶ past Biz settings posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
-  if (ids.indexOf(cu.id) !== ids.indexOf('site') + 1) bad.push('the admin-only column is not just after Site: ' + ids.join());
+  if (ids.indexOf(cu.id) !== ids.indexOf('biz') + 1) bad.push('the admin-only column is not just after Biz settings: ' + ids.join());
   try { w.paint(cu.id); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150); await layPaintAll_(w);
   if (laySeen_(w, cu.id).indexOf(sid) === -1) bad.push(sid + ' is not on the new column: ' + laySeen_(w, cu.id).join());
   /* A SETTINGS CARD'S ▶ never reaches it: the last right-hand public column still offers a public new column. */
-  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
-  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Parent profiles now says ' + (pr && pr.getAttribute('aria-label')));
+  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
+  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Apprentice settings now says ' + (pr && pr.getAttribute('aria-label')));
   /* A CLIENT reloading has no such column and no section for it. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p = payload(); p.layout = layLast_(sent);
   const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
   if (c.w.__t.TABS.some(x => x.id === cu.id) || c.w.document.getElementById('s-' + cu.id)) bad.push('a client sees the admin-only column');
   if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
-  /* ◀ BACK to Site empties it and it goes. */
+  /* ◀ BACK to Biz settings empties it and it goes. */
   A['lay-c-col'](layCardTile_(d, sid, 'lay-c-col', '-1')); await wait(300);
   if ((layLast_(sent) || {}).custom) bad.push('the emptied admin column was not removed');
   return bad;
 });
 
-check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first makes one on the left (600); a garbled custom falls back', async () => {
+check('layout engine (466, 710): ▶ on the last right-hand column makes a new column before Business, for everybody, with no name — no Column name card, no Rename, its tab says its first card; its card moved back empties it and it goes; ◀ from the first column a unit stands on makes one on the far left; a garbled custom falls back', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  const id = 'ppl:parents:add';
+  const id = 'appr:blurb';   /* the last column a public card stands on is Apprentice settings since 730 */
   const right = layCardTile_(d, id, 'lay-c-col', '1');
-  if (!right || right.disabled) return ['"+ Add a parent" has no live ▶ — NOT checked'];
+  if (!right || right.disabled) return ['Apprentice settings\' card has no live ▶ — NOT checked'];
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
-  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1', title: 'New column' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
+  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
   if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
-  try { w.paint('custom-1'); w.paint('parents'); } catch (e) { bad.push('painting it threw ' + e.message); }
+  try { w.paint('custom-1'); w.paint('apprentice'); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150);
-  if (!d.querySelector('#s-custom-1 [data-do="person-add"]') || d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" is not on the new column alone');
-  /* ITS CARDS GO ON: ▶ again there makes a second. */
-  if (!d.querySelector('#s-custom-1 .custom-head [data-do="lay-col-rename"]')) bad.push('the new column has no Rename');
-  /* RENAME. */
-  const box = d.querySelector('#s-custom-1 .lay-col-name');
-  if (box) { box.value = 'Front desk'; A['lay-col-rename'](d.querySelector('#s-custom-1 [data-do="lay-col-rename"]')); await wait(250); }
-  if (((layLast_(sent) || {}).custom || [])[0]?.title !== 'Front desk') bad.push('Rename did not store the title');
-  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== 'Front desk') bad.push('the tab is not called Front desk');
+  if (!d.querySelector('#s-custom-1 .appr-set') || d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card is not on the new column alone');
+  /* NO NAME (710): a column is a position. */
+  if (d.querySelector('#s-custom-1 .custom-head, #s-custom-1 .lay-col-name, [data-do="lay-col-rename"], [data-do="lay-col-del"]')) bad.push('the new column still has a name card, Rename or Delete column');
+  if (A['lay-col-rename'] || A['lay-col-del']) bad.push('a lay-col-rename or lay-col-del handler still exists');
+  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== w.cardLabel_(id)) bad.push('the tab is not named for its first card: ' + (t.TABS.find(x => x.id === 'custom-1') || {}).label);
   /* EVERYBODY: a client reloading has the column and the card where it was put (its own gate decides what is drawn). */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p = payload(); p.layout = layLast_(sent);
@@ -30891,8 +30890,14 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   try { c.w.paint('custom-1'); } catch (e) {}
   await wait(100);
   if (!c.w.document.getElementById('s-custom-1')) bad.push('a client has no section for the new column');
-  if (c.w.document.querySelector('#s-custom-1 .custom-head, #s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
+  if (c.w.document.querySelector('#s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
   if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
+  /* A NAMED COLUMN SAVED BEFORE 710 still loads, its title dropped. */
+  const o = payload(); o.layout = { v: 2, widgets: {}, deleted: [], custom: [{ id: 'custom-3', title: 'Front desk' }], cards: { 'custom-3': ['acct:voice'] } };
+  const ob = layBoot_({ payload: o }); await wait(300);
+  const otab = ob.w.__t.TABS.find(x => x.id === 'custom-3');
+  if (!otab || otab.label === 'Front desk') bad.push('an old named column did not load as an unnamed one: ' + JSON.stringify(otab && otab.label));
+  if (JSON.stringify(ob.w.layoutNow_().custom) !== JSON.stringify([{ id: 'custom-3' }])) bad.push('an old named column read as ' + JSON.stringify(ob.w.layoutNow_().custom));
   /* ◀ BACK: the column is empty and goes. */
   await layPaintAll_(w); try { w.paint('custom-1'); } catch (e) {}
   await wait(100);
@@ -30901,48 +30906,280 @@ check('layout engine (466): ▶ on the last right-hand column makes "New column"
   if (B.custom || (B.cards || {})['custom-1']) bad.push('the emptied column was not removed: ' + JSON.stringify(B));
   if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
   await layPaintAll_(w);
-  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" did not come back to Parent profiles');
-  /* DELETE COLUMN sends its cards home. */
-  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '1')); await wait(300);
-  try { w.paint('custom-1'); } catch (e) {}
-  await wait(100);
-  const dc = d.querySelector('#s-custom-1 [data-do="lay-col-del"]');
-  if (!dc) bad.push('no Delete column');
-  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); await wait(450); A['lay-col-del'](dc); await wait(300); }
-  if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
-  await layPaintAll_(w);
-  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
-  /* ◀ FROM THE FIRST CARD COLUMN MAKES A NEW ONE ON THE LEFT (600), before Parent settings; ◀ again there makes another; ▶ back empties it and it goes. */
-  const lid = laySeen_(w, 'account')[0];
-  let lt = null;
-  for (let k = 0; k < 6 && lid; k++) {
-    await layPaintAll_(w);
-    lt = layCardTile_(d, lid, 'lay-c-col', '-1');
-    if (!lt || lt.disabled) break;
-    const left = /new column on the left/.test(lt.getAttribute('aria-label') || '');
-    A['lay-c-col'](lt); await wait(300);
-    if (left) break;
-    lt = null;
-  }
-  if (!lt || lt.disabled) bad.push('◀ from Student settings never reached "Move to a new column on the left"');
+  if (!d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card did not come back');
+  /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
+  t.go('tools', false, true); await wait(300);
+  const tid = layIds_(t, 'tool')[0];
+  const tl = layTile_(d, tid, 'lay-w-col', '-1');
+  if (!tl || tl.disabled) bad.push('the first tool has no live ◀');
   else {
-    const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
-    if (!nid || !(LL.custom[0].left === true) || ((LL.cards || {})[nid] || []).indexOf(lid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
-    const lids = t.TABS.map(x => x.id);
-    if (!nid || lids.indexOf(nid) !== lids.indexOf('family') - 1) bad.push('the new left column is not just before Parent settings: ' + lids.join());
-    await layPaintAll_(w); try { w.paint(nid); } catch (e) {}
-    await wait(100);
-    const back = nid && layCardTile_(d, lid, 'lay-c-col', '1');
-    if (back) { A['lay-c-col'](back); await wait(300); }
-    if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed: ' + (back ? back.getAttribute('aria-label') + (back.disabled ? ' (off)' : '') : 'no ▶') + ' ' + JSON.stringify(layLast_(sent)));
+    A['lay-w-col'](tl); await wait(300);
+    if (layIds_(t, 'reel').indexOf(tid) === -1) bad.push('◀ from Tools did not reach Reels: ' + layIds_(t, 'reel').join());
+    try { w.paint('reel'); } catch (e) {}
+    await wait(150);
+    /* SPOTLIGHT IS THE FIRST COLUMN A UNIT STANDS ON SINCE 730: one more ◀ takes the tool there first. */
+    const sp = layTile_(d, tid, 'lay-w-col', '-1');
+    if (sp && sp.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](sp); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
+    const lt = layTile_(d, tid, 'lay-w-col', '-1');
+    if (!lt || lt.getAttribute('aria-label') !== 'Move to a new column on the left') bad.push('◀ on Spotlight says ' + (lt && lt.getAttribute('aria-label')));
+    else {
+      A['lay-w-col'](lt); await wait(300);
+      const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
+      if (!nid || LL.custom[0].first !== true || ((LL.widgets || {})[nid] || []).indexOf(tid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
+      const lids = t.TABS.map(x => x.id);
+      if (!nid || lids.indexOf(nid) !== lids.indexOf('spotlight') - 1) bad.push('the new left column is not just before Spotlight: ' + lids.join());
+      try { w.paint(nid); } catch (e) {}
+      await wait(150);
+      if (!d.querySelector('#s-' + nid + ' #wgt-' + tid)) bad.push('the tool is not drawn on the new left column');
+      const back = layTile_(d, tid, 'lay-w-col', '1');
+      if (back) { A['lay-w-col'](back); await wait(300); }
+      if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === nid)) bad.push('the emptied left column was not removed');
+    }
   }
-  /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
+  /* GARBLED: a custom with a bad id, a duplicate — the bad ones ignored, the column still drawn. */
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
   const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
   const gids = gb.w.__t.TABS.map(x => x.id);
   if (gids.filter(x => /custom|evil/.test(x)).join() !== 'custom-2') bad.push('a garbled custom gave columns ' + gids.join());
   if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a card named under a bad column left Student settings');
   if (gb.errs.length) bad.push('garbled errors: ' + gb.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (710): any unit anywhere — a settings card moves into Tools and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  await layPaintAll_(w);
+  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Tools. */
+  const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"]`) && !/^own:/.test(x));
+  if (!cid) return ['Student settings has no card with an admin row — NOT checked'];
+  const CARD_ = `[data-lay-for="${cid}"]`;
+  for (let k = 0; k < 12; k++) {
+    const col = t.TABS.map(x => x.id).find(c => laySeen_(w, c).indexOf(cid) !== -1 && d.querySelector(`#s-${c} .card-admin[data-lay-for="${cid}"]`));
+    if (col === 'tools' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
+    const lt = d.querySelector(`#s-${col} .card-admin[data-lay-for="${cid}"] [data-do="lay-c-col"][data-d="-1"]`);
+    if (!lt || lt.disabled) { bad.push('stuck on ' + col + ': ' + (lt ? lt.getAttribute('aria-label') + ' off' : 'no ◀')); break; }
+    A['lay-c-col'](lt); await wait(300);
+    try { const to = (layLast_(sent) || {}).cards || {}; Object.keys(to).forEach(c => { try { w.paint(c); } catch (e) {} }); } catch (e) {}
+    await wait(150);
+  }
+  try { w.paint('tools'); } catch (e) {}
+  await wait(150);
+  const L1 = layLast_(sent) || {};
+  if (((L1.cards || {}).tools || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Tools: ' + JSON.stringify(L1.cards));
+  const onTools = d.querySelector(`#s-tools .card-admin[data-lay-for="${cid}"]`);
+  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Tools with its admin row');
+  if (!d.querySelector('#s-tools ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Tools');
+  if (d.querySelector('#s-account ' + CARD_)) bad.push('the card ' + cid + ' is still on Student settings too — two homes');
+  /* ▲ PAST A TOOL: the card is last on Tools, and Move up puts it above the last tool. */
+  const tools0 = layIds_(t, 'tool'), lastTool = tools0[tools0.length - 1];
+  const up = onTools && onTools.querySelector('[data-do="lay-c-move"][data-d="-1"]');
+  if (!up || up.disabled) bad.push('the card on Tools has no live Move up');
+  else {
+    A['lay-c-move'](up); await wait(300);
+    const ord = ((layLast_(sent) || {}).cards || {}).tools || [];
+    if (ord.indexOf(cid) === -1 || ord.indexOf(cid) > ord.indexOf(lastTool)) bad.push('Move up did not put the card above ' + lastTool + ': ' + ord.join());
+    const slots = [...d.querySelectorAll('#s-tools .widget-slot, #s-tools .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
+    if (slots.indexOf(cid) === -1 || slots.indexOf(cid) > slots.indexOf(lastTool)) bad.push('Tools did not redraw the card above ' + lastTool + ': ' + slots.join());
+  }
+  /* A TOOL INTO STUDENT SETTINGS: ▶ from Tools until it stands there. */
+  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; }) || tools0[0];
+  for (let k = 0; k < 12; k++) {
+    const col = t.TABS.map(x => x.id).find(c => d.querySelector(`#s-${c} #wgt-${tid}`));
+    if (col === 'account' || !col) break;
+    const rt = d.querySelector(`#s-${col} #wgt-${tid}`)?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+    if (!rt || rt.disabled) break;
+    A['lay-w-col'](rt); await wait(300);
+    await layPaintAll_(w);
+    ['tools', 'shop', 'games'].forEach(c => { try { w.paint(c); } catch (e) {} });
+    await wait(150);
+  }
+  const L2 = layLast_(sent) || {};
+  if (((L2.widgets || {}).account || []).indexOf(tid) === -1) bad.push(tid + ' never reached Student settings: ' + JSON.stringify(L2.widgets));
+  const there = d.querySelector(`#s-account #wgt-${tid}`)?.closest('.card');
+  if (!there) bad.push(tid + ' is not drawn on Student settings');
+  else ['Move up', 'Move down', 'Move to previous column', 'Move to next column'].forEach(l => {
+    if (!there.querySelector(`.wgt-admin [aria-label="${l}"]`)) bad.push(tid + ' on Student settings has no ' + l);
+  });
+  if (d.querySelector(`#s-tools #wgt-${tid}`)) bad.push(tid + ' is still on Tools too');
+  /* A RELOAD keeps both, and the tool starts on its new column. */
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300);
+  await layPaintAll_(r.w); try { r.w.paint('tools'); } catch (e) {}
+  await wait(150);
+  const rd = r.w.document;
+  if (!rd.querySelector('#s-tools ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Tools');
+  if (!rd.querySelector(`#s-account #wgt-${tid}`)) bad.push('a reload lost ' + tid + ' on Student settings');
+  r.w.__t.go('account', false, true); await wait(200);
+  { const host = rd.getElementById('s-account'), pg = rd.querySelector(`#s-account #wgt-${tid}`)?.closest('.page'); const n = pg ? [...host.querySelectorAll(':scope > .page')].indexOf(pg) : -1; if (n > -1) { try { r.w.goPage('account', n, true); } catch (e) {} } }
+  await wait(600);
+  const slot = rd.querySelector(`#s-account #wgt-${tid}`);
+  if (slot && slot.getAttribute('aria-busy') && r.w.widgetsOn_('account').some(x => String(x.id) === tid && typeof x.start === 'function')) bad.push(tid + ' on Student settings was never started');
+  /* A CLIENT reloading sees both where they were put, with no admin tiles. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
+  try { c.w.paint('tools'); c.w.paint('account'); } catch (e) {}
+  await wait(150);
+  if (!c.w.document.querySelector(`#s-account #wgt-${tid}`)) bad.push('a client does not see ' + tid + ' on Student settings');
+  if (c.w.cardSeen_('tools').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Tools');
+  if (c.w.document.querySelector('.wgt-admin')) bad.push('a client sees layout tiles');
+  [r, c].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join('; ')); });
+  return bad;
+});
+
+/* ---------- THE OWNER'S COLUMNS AND WHOLE-COLUMN MOVES (730) ---------- */
+const COLS730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+check('columns (730): the owner\'s eleven — five profiles then six settings, named as asked, in that order; Web profile is the business card, Apprentice profile says none yet; Web and Biz settings an admin\'s alone', async () => {
+  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Apprentice profile', 'Tutor settings', 'Web settings',
+    'Kids settings', 'Parent settings', 'Apprentice settings', 'Biz settings'];
+  const bad = [];
+  const { w } = layBoot_();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const labels = t.TABS.map(x => x.label), got = labels.filter(l => want.indexOf(l) !== -1);
+  if (got.join('|') !== want.join('|')) bad.push('an admin\'s columns: ' + got.join(', '));
+  const at = labels.indexOf('Web profile');
+  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the eleven are not side by side: ' + labels.slice(at).join(', '));
+  const fileLabels = COLS730_.map(r => r.label).filter(l => want.indexOf(l) !== -1);
+  if (fileLabels.join('|') !== want.join('|')) bad.push('columns.json says ' + fileLabels.join(', '));
+  t.go('web', false, true); await wait(200); try { w.paint('web'); } catch (e) {}
+  const web = d.querySelector('#s-web .web-card');
+  if (!web) bad.push('Web profile draws no business card');
+  else if (!/@family\.|\w/.test(web.querySelector('h3')?.textContent || '')) bad.push('the business card has no name');
+  try { w.paint('apprentices'); } catch (e) {}
+  if (!d.querySelector('#s-apprentices .appr-card')) bad.push('Apprentice profile draws nothing');
+  try { w.paint('site'); w.paint('biz'); } catch (e) {}
+  ['site:rules', 'site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
+  ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
+  const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
+  await wait(300);
+  const ids = s.w.__t.TABS.map(x => x.id);
+  ['site', 'biz'].forEach(c => { if (ids.indexOf(c) !== -1) bad.push(c + ' is a student\'s column'); });
+  ['web', 'apprentices', 'apprentice', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
+  return bad;
+});
+
+check('layout (730): a whole column moves — the first unit of Web profile carries Move this column ◀ ▶; ▶ saves an order with Web profile right of Tutor profile, the row redraws so, and a reload keeps it', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-col']) return ['no lay-col handler — NOT checked'];
+  try { w.paint('web'); } catch (e) {}
+  await wait(150);
+  const rt = d.querySelector('#s-web [data-do="lay-col"][data-d="1"]');
+  if (!rt || rt.disabled) return ['Web profile has no live Move this column right'];
+  if (d.querySelectorAll('#s-web [data-do="lay-col"][data-d="1"]').length !== 1) bad.push('more than one column tile on Web profile');
+  A['lay-col'](rt); await wait(300);
+  const L = layLast_(sent) || {}, ord = L.order || [];
+  if (!(ord.indexOf('web') > ord.indexOf('tutors') && ord.indexOf('tutors') !== -1)) bad.push('the saved order does not put web after tutors: ' + ord.join(' '));
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('web') !== ids.indexOf('tutors') + 1) bad.push('the row is not redrawn so: ' + ids.join(' '));
+  const p = payload(); p.layout = L;
+  const r = layBoot_({ payload: p }); await wait(300);
+  const ids2 = r.w.__t.TABS.map(x => x.id);
+  if (ids2.indexOf('web') !== ids2.indexOf('tutors') + 1) bad.push('a reload lost the order: ' + ids2.join(' '));
+  return bad;
+});
+
+check('layout (730): a column between two — Move to a new column here, on the right, from a Kids settings card makes an unnamed column between Kids and Parent settings holding it; another Kids settings card moved ▶ lands in it; a reload keeps both', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-newcol']) return ['no lay-newcol handler — NOT checked'];
+  await layPaintAll_(w);
+  const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"] [data-do="lay-newcol"][data-d="1"]`) && !/^own:/.test(x));
+  if (!cid) return ['Kids settings has no card with Move to a new column here — NOT checked'];
+  A['lay-newcol'](d.querySelector(`#s-account .card-admin[data-lay-for="${cid}"] [data-do="lay-newcol"][data-d="1"]`)); await wait(300);
+  const L = layLast_(sent) || {}, nc = ((L.custom || [])[0] || {}).id;
+  if (!nc) return ['no new column was saved: ' + JSON.stringify(L).slice(0, 300)];
+  if (((L.cards || {})[nc] || []).indexOf(cid) === -1) bad.push(cid + ' is not in the new column: ' + JSON.stringify(L.cards));
+  const ids = t.TABS.map(x => x.id), at = ids.indexOf(nc);
+  if (ids[at - 1] !== 'account' || ids[at + 1] !== 'family') bad.push('the new column is not between Kids and Parent settings: ' + ids.join(' '));
+  if ((t.TABS[at] || {}).label === 'Column' || !(t.TABS[at] || {}).label) bad.push('the new column has no word for its tab');
+  await layPaintAll_(w); try { w.paint(nc); } catch (e) {}
+  await wait(150);
+  if (!d.querySelector(`#s-${nc} [data-lay-for="${cid}"]`)) bad.push(cid + ' is not drawn on the new column');
+  const fid = laySeen_(w, 'account').find(x => x !== cid && d.querySelector(`#s-account .card-admin[data-lay-for="${x}"] [data-do="lay-c-col"][data-d="1"]`));
+  if (!fid) bad.push('Kids settings has no second card to move ▶ — that half NOT checked');
+  else {
+    A['lay-c-col'](d.querySelector(`#s-account .card-admin[data-lay-for="${fid}"] [data-do="lay-c-col"][data-d="1"]`)); await wait(300);
+    const L2 = layLast_(sent) || {};
+    if (((L2.cards || {})[nc] || []).indexOf(fid) === -1) bad.push(fid + ' moved ▶ did not land in the new column: ' + JSON.stringify(L2.cards));
+  }
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300);
+  const ids2 = r.w.__t.TABS.map(x => x.id), at2 = ids2.indexOf(nc);
+  if (ids2[at2 - 1] !== 'account' || ids2[at2 + 1] !== 'family') bad.push('a reload lost the column\'s place: ' + ids2.join(' '));
+  return bad;
+});
+
+check('layout (730): Spotlight and Board games move like any unit — the window is one unit with ▲ ▼ ◀ ▶, and Board games ▶ leaves Games for the next column and is drawn there', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('spotlight', false, true); await wait(200); try { w.paint('spotlight'); } catch (e) {}
+  const row = d.querySelector('#s-spotlight .card-admin[data-lay-for="spot:list"]');
+  if (!row) bad.push('Spotlight has no admin row');
+  else ['Move to next column', 'Move this column right'].forEach(l => { if (!row.querySelector(`[aria-label="${l}"]`)) bad.push('Spotlight has no ' + l); });
+  t.go('games', false, true); await wait(300);
+  const bt = d.querySelector('#s-games #wgt-boardgames')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+  if (!bt || bt.disabled) bad.push('Board games has no live ▶');
+  else {
+    A['lay-w-col'](bt); await wait(300);
+    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('boardgames') !== -1);
+    if (!to || to === 'games') bad.push('Board games did not leave Games: ' + JSON.stringify(L.widgets));
+    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-boardgames`)) bad.push('Board games is not drawn on ' + to); }
+  }
+  return bad;
+});
+
+check('stability (730): Web settings carries the Stability card for an admin — its score, verdict and top three from data/stability.json, Show every signal opens the rest; a student has no such card', async () => {
+  const J = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'stability.json'), 'utf8'));
+  /* THE FILE AS GITHUB PAGES SERVES IT: the card asks `fetch` once, the first time it is drawn. */
+  const stub = w0 => { const was = w0.fetch; w0.fetch = (u, o) => /data\/stability\.json/.test(String(u)) ? Promise.resolve({ ok: true, json: () => Promise.resolve(J) }) : (was ? was.call(w0, u, o) : Promise.reject(new Error('no fetch'))); };
+  const { w } = layBoot_({ before: w0 => { signedInAs_(LAY_ADMIN_)(w0); stub(w0); } });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  try { w.paint('site'); } catch (e) { return ['could not draw Web settings: ' + e.message]; }
+  await wait(300);
+  try { w.paint('site'); } catch (e) {}
+  await wait(150);
+  const c = d.querySelector('#s-site .stability-card');
+  if (!c) return ['Web settings has no Stability card'];
+  if ((c.querySelector('.stab-score')?.textContent || '') !== J.score + '%') bad.push('the score says ' + c.querySelector('.stab-score')?.textContent + ', the file ' + J.score);
+  const n = J.signals.filter(x => x.off > 0).length;
+  if (c.querySelectorAll('.stab-top li').length !== Math.min(3, n)) bad.push('not the top three: ' + c.querySelectorAll('.stab-top li').length);
+  const all = c.querySelector('[data-do="stab-all"]');
+  if (n > 3) {
+    if (!all) bad.push('no Show every signal tile');
+    else { A['stab-all'](all); await wait(150); const c2 = d.querySelector('#s-site .stability-card'); if (c2.querySelectorAll('.stab-top li').length !== n) bad.push('Show every signal shows ' + c2.querySelectorAll('.stab-top li').length + ' of ' + n); }
+  }
+  if (w.cardHome0_('site:stability') !== 'site') bad.push('site:stability is not a Web settings card');
+  const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
+  await wait(300);
+  if (s.w.document.querySelector('.stability-card')) bad.push('a student is drawn the Stability card');
+  return bad;
+});
+
+check('layout (730): pager names for moved units — a tool moved onto Kids settings is named by the pager there, and a card moved onto Tools by its title (Brownie points)', async () => {
+  const { w } = layBoot_();
+  await wait(300);
+  const t = w.__t, bad = [];
+  if (typeof w.pageName_ !== 'function' || !t.PAGER) return ['no pageName_ or PAGER — NOT checked'];
+  const tool = layIds_(t, 'tool').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; });
+  const name = (w.layoutWidgetOf_(tool) || {}).name;
+  const D = w.layoutDraftOf_(null);
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => x !== tool); });
+  D.widgets.account = [tool];
+  D.cards = { tools: ['acct:brownie'] };
+  w.layoutSave_(D);
+  await wait(300);
+  const names = t.PAGER.account();
+  if (!Array.isArray(names) || names.indexOf(name) === -1) bad.push('Kids settings\' pager does not name ' + name + ': ' + JSON.stringify(names).slice(0, 300));
+  const tn = t.PAGER.tools();
+  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Tools\' pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
+  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Tools is unnamed');
   return bad;
 });
 

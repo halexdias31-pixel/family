@@ -12,6 +12,9 @@ const TILE_ICONS = {
   down:  '<path d="M9 2.5v12"/><path d="m4.5 10 4.5 4.5 4.5-4.5"/>',
   left:  '<path d="M15 8.5h-12"/><path d="m7.5 4 -4.5 4.5 4.5 4.5"/>',
   right: '<path d="M3 8.5h12"/><path d="m10.5 4 4.5 4.5-4.5 4.5"/>',
+  /* A WHOLE COLUMN MOVED (730): a column's bar beside the arrow, so it is told from a card's own ◀ ▶. */
+  'col-left':  '<path d="M15.5 2.5v12"/><path d="M12 8.5h-9.5"/><path d="m6.5 4.5 -4 4 4 4"/>',
+  'col-right': '<path d="M2.5 2.5v12"/><path d="M6 8.5h9.5"/><path d="m11.5 4.5 4 4-4 4"/>',
   /* SPLIT AND JOIN (464): one card into a card a field, and back. */
   split: '<path d="M2.5 4.5h5v9h-5z"/><path d="M10.5 4.5h5v9h-5z"/>',
   merge: '<path d="M2.5 4.5h13v9h-13z"/><path d="M9 6.5v5"/>',

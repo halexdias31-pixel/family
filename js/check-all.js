@@ -65,6 +65,8 @@ const SUITE = [
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
+  /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
+  { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
   /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN § */
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },

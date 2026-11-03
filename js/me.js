@@ -1556,7 +1556,7 @@ function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
     <p class="sub">Your child makes their own account (Make an account). Then search their handle at the top of
-      ${esc(tabLabel_('students', 'Student profiles'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
+      ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
 
@@ -1695,7 +1695,7 @@ on('kid-pin-go', el => {
       const body = $('sheet-body');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
         + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Student settings once they are in.</p>'
+        + 'under Kids settings once they are in.</p>'
         + '<button class="btn quiet" data-do="sheet-done">Done</button>';
     })
     .catch(() => {});
@@ -1937,7 +1937,7 @@ const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = (say, more) => `<div class="card rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
-const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Student settings') + ' first.');
+const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
 
 /* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
 /* A placeholder of the column's role draws the column's real cards, so nobody's data is in them; each is then shut (`lockCard_`). */
@@ -1977,7 +1977,7 @@ function familyPages_() {
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Student settings') + '.').replace('rank-off', 'set-none')];
+  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -1996,10 +1996,31 @@ function staffPages_() {
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
-screen('apprentice', () => pages('apprentice', [`<div class="card"><h3>${esc(tabLabel_('apprentice', 'Apprentice'))}</h3><p class="muted">${
-  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p>${
-  /* ITS REPORT TILE (486): this column draws its own card, so it carries the row `cardReportRow_` gives a laid-out one. */
-  typeof suggestTile_ === 'function' ? `<div class="tile-row card-rep">${suggestTile_('card', 'apprentice', tabLabel_('apprentice', 'Apprentice'))}</div>` : ''}</div>`]));
+function apprenticePages_() {
+  return [`<div class="card appr-set"><h3>${esc(tabLabel_('apprentice', 'Apprentice settings'))}</h3><p class="muted">${
+    esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`];
+}
+screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
+
+/* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
+function webProfilePages_() {
+  const b = typeof matBrand === 'function' ? matBrand() : {};
+  const name = b.name || brand('name', '@family.'), logo = brand('logo_square', '') || brand('logo_circle', '');
+  const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
+    b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
+  return [`<div class="card web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
+    lines.map(l => `<p class="sub">${esc(l)}</p>`).join('')}</div>`];
+}
+screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
+
+/* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
+function apprenticeProfilePages_() {
+  const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
+  if (all.length) return all.map(p => `<div class="card appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="sub prof-handle">@${esc(p.handle)}</p>` : ''}</div>`);
+  return [`<div class="card appr-card people-none"><h3>${esc(tabLabel_('apprentices', 'Apprentice profile'))}</h3><p class="muted">${
+    esc(brand('apprentices_none', 'No apprentices yet.'))}</p></div>`];
+}
+screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
@@ -2011,8 +2032,32 @@ function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
+    .concat([stabilityCard_()])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
+
+/* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
+const STAB = { got: null, failed: false, asked: false, all: false };
+function stabilityCard_() {
+  if (!STAB.asked) {
+    STAB.asked = true;
+    try {
+      fetch('data/stability.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+        .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
+        .catch(() => { STAB.failed = true; })
+        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+    } catch (e) { STAB.failed = true; }
+  }
+  const s = STAB.got, head = '<h3>Stability</h3>';
+  if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="muted">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
+  const sig = (s.signals || []).filter(x => x.off > 0);
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="faint">(−${esc(String(x.off))})</span></li>`;
+  return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}</p>
+    <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
+    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top three' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
+}
+on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */

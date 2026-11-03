@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-03-merge-8";
+  --css-version: "2026-11-03-merge-9";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -7194,3 +7194,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
 .rep-vids { margin: .4rem 0; }
 .rep-vid { align-items: center; }
+
+/* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
+.web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
+
+/* STABILITY (730): the score big, the signals as a short list. */
+.stability-card .stab-score { font-size: 2.6rem; line-height: 1; margin: .4rem 0; color: var(--gold); }
+.stability-card .stab-top { margin: .5rem 0 .6rem 1.1rem; padding: 0; }
+.stability-card .stab-top li { font-size: .9rem; }
