@@ -2046,7 +2046,7 @@ function stabilityCard_() {
         .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
         .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
         .catch(() => { STAB.failed = true; })
-        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) {} });
+        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
     } catch (e) { STAB.failed = true; }
   }
   const s = STAB.got, head = '<h3>Stability</h3>';
@@ -2057,7 +2057,7 @@ function stabilityCard_() {
     <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
     ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top three' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
 }
-on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) {} });
+on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
