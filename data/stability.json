@@ -122,12 +122,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 95,
+   "count": 97,
    "weight": 0.02,
    "cap": 10,
    "off": 1.9,
    "where": {
-    "lines": 33
+    "lines": 34
    }
   },
   {

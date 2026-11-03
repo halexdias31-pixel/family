@@ -245,8 +245,31 @@ function acrossTiles_(id, col, isW, data) {
   return tile_({ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
       data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) }) +
     tile_({ icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
-      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) });
+      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) }) +
+    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
+    tile_({ icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room }) +
+    tile_({ icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room });
 }
+/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
+function layNewCol_(id, col, d, kind) {
+  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
+  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
+  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
+  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, all);
+  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
+  ord.splice(d < 0 ? at : at + 1, 0, to);
+  D.order = ord;
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+on('lay-newcol', el => {
+  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
+  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
+});
 
 /* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
    Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */

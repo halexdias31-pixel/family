@@ -29,6 +29,10 @@ Apprentice profile, Tutor settings, Web settings, Kids settings, Parent settings
   `order: [ids]`; `colOrderApply_` (at the end of `customTabsSync_`, so every `columnsFor_`) lets the named columns take
   the places they already fill, in that order — a column added to the code later keeps its TAB_ORDER place. The
   backend keeps `order` to ids in `LAYOUT_SCREENS` or the admin's own columns.
+- **A column between two.** The owner: "I want to be able to insert a column in between two columns." Every unit's
+  row has Move to a new column here, on the left / on the right (`lay-newcol`, `layNewCol_`): an unnamed custom column
+  holding that unit, placed beside its column by the same saved `order`; ◀ ▶ from the neighbours move into it, and it
+  goes when emptied, like any custom column (710). An admin-only column's unit makes an admin-only one.
 - **Spotlight** is a card column; the window is one unit, `spot:list`, moved by its first page's row.
 - **Board games** was not reproducible as stuck on this build: on a2397ac its ▶ was disabled (Games was the last widget
   column, and 710's one set of host columns was not yet merged); after f2fd4d9 it moves ▲ ▼ ◀ ▶ in jsdom and in
@@ -55,7 +59,7 @@ Apprentice profile, Tutor settings, Web settings, Kids settings, Parent settings
   external. Red after the f2fd4d9 merge, green on a2397ac — the near-`https` heuristic depended on its neighbours.
 
 Journeys: `columns (730)`, `layout (730): a whole column moves`, `layout (730): Spotlight and Board games …`,
-`layout (730): pager names for moved units`.
+`layout (730): pager names for moved units`, `layout (730): a column between two`.
 
 ## Stability (Web settings)
 

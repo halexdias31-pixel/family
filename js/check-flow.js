@@ -2763,8 +2763,9 @@ check('486: every top-level card and widget in every column has the one Report t
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
-  const SIX = ['s-family', 's-staff', 's-account', 's-tutors', 's-students', 's-parents'];
-  const LABELS = ['Parent settings', 'Tutor settings', 'Student settings', 'Tutor profiles', 'Student profiles', 'Parent profiles'];
+  /* THE OWNER'S ORDER SINCE 730: the profiles first, then the settings (Web settings, an admin's, between Tutor and Kids). */
+  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
+  const LABELS = ['Tutor profile', 'Student profile', 'Parent profile', 'Tutor settings', 'Kids settings', 'Parent settings'];
   for (const [who, rank, pid] of RANK_COLS_) {
     const a = await hubBoot_(W, who);
     if (a.err) { bad.push(rank + ': ' + a.err); continue; }
@@ -2776,7 +2777,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (tabOrder.join() !== SIX.join()) bad.push(rank + ': the six read ' + tabOrder.join(' ') + ', wanted ' + SIX.join(' '));
     const tabs = a.t.TABS.map(x => x.id), labs = SIX.map(id => (a.t.TABS.find(x => 's-' + x.id === id) || {}).label);
     if (labs.join('|') !== LABELS.join('|')) bad.push(rank + ': the six are labelled ' + JSON.stringify(labs));
-    if (rank === 'admin' && tabs.slice(-2).join(',') !== 'biz,site') bad.push('Business then Site are not last for an admin (491)');
+    if (rank === 'admin' && (tabs[tabs.length - 1] !== 'biz' || tabs.indexOf('site') !== tabs.indexOf('staff') + 1)) bad.push('Biz settings is not last, or Web settings not right of Tutor settings, for an admin (730)');
     /* THE READING ALOUD VOICE IS A GENERIC SETTING: Student settings, nowhere else. */
     /* (jsdom has no speech, so `voiceCard_` may draw nothing: what is asked is that it is never anywhere else.) */
     if (a.d.querySelectorAll('.voice-card').length > 1 || (a.d.querySelector('.voice-card') && !q('#s-account .voice-card'))) bad.push(rank + ': Reading aloud is not on Student settings alone');
@@ -9894,7 +9895,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   }
   if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
   const note = String((d.getElementById('reg-note') || {}).textContent || '');
-  if (!/Add as my child/.test(note) || !/Student profiles/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
+  if (!/Add as my child/.test(note) || !/Student profiles?/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
 
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -10008,7 +10009,7 @@ check('461: "Manage your child" lists the children and says how to add one — n
   if (d.querySelector('[data-kid-new], [data-do="kid-make"], .kid-make')) bad.push('a form to make a child\'s account is still drawn');
   if (typeof t.ACTIONS['kid-make'] === 'function') bad.push('the kid-make handler is still registered');
   const add = manage[0].querySelector('.kid-add');
-  if (!add || !/Add your child/.test(add.textContent) || !/own account/.test(add.textContent) || !/Student profiles/.test(add.textContent)) bad.push('the add section does not say the child makes their own account and to search on Student profiles');
+  if (!add || !/Add your child/.test(add.textContent) || !/own account/.test(add.textContent) || !/Student profiles?/.test(add.textContent)) bad.push('the add section does not say the child makes their own account and to search on Student profiles');
   t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
   try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(200);
@@ -10913,7 +10914,7 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   const { w, sent } = boot();
   await wait(300);
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
-  try { w.__t.ACTIONS['job']({ dataset: { id: 'W-LIST' } }); }
+  try { w.openJob_('W-LIST'); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
   /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. § */
   const b = w.document.getElementById('s-booking');
@@ -11010,7 +11011,7 @@ check('signing in over somebody else empties both finders\' words, chips and sea
 
 /* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT § */
 const joinPage_ = (w, id) => {
-  w.__t.ACTIONS['job']({ dataset: { id } });
+  w.openJob_(id);
   return [...w.document.querySelectorAll('#s-booking .page')]
     .find(p => new RegExp('\\b' + id + '\\b').test((p.querySelector('.rc-ref') || {}).textContent || ''));
 };
@@ -13592,9 +13593,9 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games', 'family', 'staff', 'apprentice', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];  /* the six, settings first (461) */
+                    'booking', 'shop', 'games'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(11));  /* the owner's eleven since 730, as columns.json lists them */
 
-check('business: an admin has a Business column last, straight after Parent profiles, holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Apprentice settings (730), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -13628,15 +13629,14 @@ check('business: an admin has a Business column last, straight after Parent prof
   }
 
   /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
-  t.go('parents', false, true);
+  t.go('apprentice', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'parents') return bad.concat(['go("parents") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await bizSwipe_(w, 'parents');
-  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Parent profiles landed on ' + t.AT() + ', wanted Business']);
+  if (t.AT() !== 'apprentice') return bad.concat(['go("apprentice") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'apprentice');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Apprentice settings (730) landed on ' + t.AT() + ', wanted Business']);
+  /* BIZ SETTINGS IS LAST SINCE 730 (Web settings stands right of Tutor settings): one more swipe stays. */
   await bizSwipe_(w, 'biz');
-  if (t.AT() !== 'site') bad.push('a sideways swipe off Business did not land on Site (491): ' + t.AT());
-  await bizSwipe_(w, 'site');
-  if (t.AT() !== 'site') bad.push('a sideways swipe past the last column moved off Site, to ' + t.AT());
+  if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Biz settings, to ' + t.AT());
 
   /* THE RECORDS WERE ASKED ONCE IN ALL — drawing asked, arriving found it asked — and the five cards are the
      column's pages, in order, the pager agreeing. */
@@ -13815,18 +13815,18 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     const ids = t.TABS.map(x => x.id);
     if (!bizApplied_(t)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
-    if (ids[ids.length - 1] !== 'parents') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Parent profiles');
+    if (ids[ids.length - 1] !== 'apprentice') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Apprentice settings (730)');
     /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: § */
     const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
-    if (!home || home === 'parents') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
-    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'parents' ? ' — they were moved left off a column they should never have been put on' : ''));
+    if (!home || home === 'apprentice') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'apprentice' ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
-    t.go('parents', false, true);
+    t.go('apprentice', false, true);
     await wait(LEAVE_MS); await woken_();
-    await bizSwipe_(w, 'parents');
-    if (t.AT() !== 'parents') bad.push(as + ': a swipe past Parent profiles moved to ' + t.AT() + ' — wanted to stay on the last column');
+    await bizSwipe_(w, 'apprentice');
+    if (t.AT() !== 'apprentice') bad.push(as + ': a swipe past Apprentice settings (730) moved to ' + t.AT() + ' — wanted to stay on the last column');
     t.go('biz', false, true);
     await wait(300);
     if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
@@ -13859,7 +13859,7 @@ check('business: signing in as an admin adds the column and signing out takes it
 
   /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
      (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go('parents', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('apprentice', false, true); await wait(LEAVE_MS); await woken_();
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   const btn = d.querySelector('[data-do="do-signin"]');
@@ -13873,11 +13873,11 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids().slice(-2).join(' ') !== 'biz site') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Business then Site, without a reload');
+  if (ids().slice(-2).join(' ') !== 'apprentice biz') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Apprentice settings then Biz settings (730), without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== 'parents') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Parent and go back there');
-  await bizSwipe_(w, 'parents');
-  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Parent profiles landed on ' + t.AT() + ', wanted Business');
+  if (t.AT() !== 'apprentice') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Apprentice settings and go back there');
+  await bizSwipe_(w, 'apprentice');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Apprentice settings (730) landed on ' + t.AT() + ', wanted Business');
   else {
     for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
     const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
@@ -13918,8 +13918,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== 'parents') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Parent profiles, the column left of it');
-  if (!d2.querySelector('#s-parents > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
+  if (t2.AT() !== 'apprentice') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Apprentice settings (730), the column left of it');
+  if (!d2.querySelector('#s-apprentice > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
   return bad;
 });
 
@@ -31070,6 +31070,38 @@ check('layout (730): a whole column moves — the first unit of Web profile carr
   const r = layBoot_({ payload: p }); await wait(300);
   const ids2 = r.w.__t.TABS.map(x => x.id);
   if (ids2.indexOf('web') !== ids2.indexOf('tutors') + 1) bad.push('a reload lost the order: ' + ids2.join(' '));
+  return bad;
+});
+
+check('layout (730): a column between two — Move to a new column here, on the right, from a Kids settings card makes an unnamed column between Kids and Parent settings holding it; another Kids settings card moved ▶ lands in it; a reload keeps both', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-newcol']) return ['no lay-newcol handler — NOT checked'];
+  await layPaintAll_(w);
+  const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"] [data-do="lay-newcol"][data-d="1"]`) && !/^own:/.test(x));
+  if (!cid) return ['Kids settings has no card with Move to a new column here — NOT checked'];
+  A['lay-newcol'](d.querySelector(`#s-account .card-admin[data-lay-for="${cid}"] [data-do="lay-newcol"][data-d="1"]`)); await wait(300);
+  const L = layLast_(sent) || {}, nc = ((L.custom || [])[0] || {}).id;
+  if (!nc) return ['no new column was saved: ' + JSON.stringify(L).slice(0, 300)];
+  if (((L.cards || {})[nc] || []).indexOf(cid) === -1) bad.push(cid + ' is not in the new column: ' + JSON.stringify(L.cards));
+  const ids = t.TABS.map(x => x.id), at = ids.indexOf(nc);
+  if (ids[at - 1] !== 'account' || ids[at + 1] !== 'family') bad.push('the new column is not between Kids and Parent settings: ' + ids.join(' '));
+  if ((t.TABS[at] || {}).label === 'Column' || !(t.TABS[at] || {}).label) bad.push('the new column has no word for its tab');
+  await layPaintAll_(w); try { w.paint(nc); } catch (e) {}
+  await wait(150);
+  if (!d.querySelector(`#s-${nc} [data-lay-for="${cid}"]`)) bad.push(cid + ' is not drawn on the new column');
+  const fid = laySeen_(w, 'account').find(x => x !== cid && d.querySelector(`#s-account .card-admin[data-lay-for="${x}"] [data-do="lay-c-col"][data-d="1"]`));
+  if (!fid) bad.push('Kids settings has no second card to move ▶ — that half NOT checked');
+  else {
+    A['lay-c-col'](d.querySelector(`#s-account .card-admin[data-lay-for="${fid}"] [data-do="lay-c-col"][data-d="1"]`)); await wait(300);
+    const L2 = layLast_(sent) || {};
+    if (((L2.cards || {})[nc] || []).indexOf(fid) === -1) bad.push(fid + ' moved ▶ did not land in the new column: ' + JSON.stringify(L2.cards));
+  }
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300);
+  const ids2 = r.w.__t.TABS.map(x => x.id), at2 = ids2.indexOf(nc);
+  if (ids2[at2 - 1] !== 'account' || ids2[at2 + 1] !== 'family') bad.push('a reload lost the column\'s place: ' + ids2.join(' '));
   return bad;
 });
 
