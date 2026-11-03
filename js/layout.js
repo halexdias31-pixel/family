@@ -926,7 +926,7 @@ function boxOut_(box) {
 }
 /* A COLUMN'S WHOLE ORDER (710): what it drew, then what it holds and did not draw for this admin (a widget for tutors), so a move never sends those home. */
 function cardListOf_(col, L) {
-  if (!CARD_SEEN[col]) { try { colEntries_(col, CARD_BUILD[col] ? (CARD_BUILD[col]() || []).filter(Boolean) : []); } catch (e) {} }
+  if (!CARD_SEEN[col]) { try { colEntries_(col, CARD_BUILD[col] ? (CARD_BUILD[col]() || []).filter(Boolean) : []); } catch (e) { /* a column whose code has not loaded yet is built when it lands */ } }
   const seen = (CARD_SEEN[col] || []).slice(), here = x => !isWidgetId_(x) || layoutHome_(layoutWidgetOf_(x), L) === col;
   const had = ((L && L.cards && L.cards[col]) || []).concat(layoutWidgetsIn_(col, layoutAllWidgets_(), L).map(w => String(w.id)));
   return seen.concat(had.filter((x, i) => seen.indexOf(x) === -1 && had.indexOf(x) === i && here(x)));
@@ -1053,7 +1053,7 @@ on('lay-col', el => {
   const D = layoutDraftOf_(layoutNow_());
   D.order = all;
   layoutSave_(D);
-  try { go(col); } catch (e) {}
+  try { go(col); } catch (e) { /* a column that cannot open now stays where it was */ }
 });
 /* A WIDGET ON A CARD COLUMN IS STARTED THERE (710): every column a unit may stand on is one `widgetsOn_` (arcade.js) is asked about. */
 CARD_COLS.forEach(c => { if (WIDGET_COLS.indexOf(c) === -1) WIDGET_COLS.push(c); });
