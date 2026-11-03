@@ -2032,8 +2032,32 @@ function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
+    .concat([stabilityCard_()])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
+
+/* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
+const STAB = { got: null, failed: false, asked: false, all: false };
+function stabilityCard_() {
+  if (!STAB.asked) {
+    STAB.asked = true;
+    try {
+      fetch('data/stability.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+        .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
+        .catch(() => { STAB.failed = true; })
+        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) {} });
+    } catch (e) { STAB.failed = true; }
+  }
+  const s = STAB.got, head = '<h3>Stability</h3>';
+  if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="muted">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
+  const sig = (s.signals || []).filter(x => x.off > 0);
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="faint">(−${esc(String(x.off))})</span></li>`;
+  return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}</p>
+    <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
+    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top three' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
+}
+on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) {} });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */

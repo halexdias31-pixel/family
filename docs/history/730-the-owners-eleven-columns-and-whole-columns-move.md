@@ -56,3 +56,26 @@ Apprentice profile, Tutor settings, Web settings, Kids settings, Parent settings
 
 Journeys: `columns (730)`, `layout (730): a whole column moves`, `layout (730): Spotlight and Board games …`,
 `layout (730): pager names for moved units`.
+
+## Stability (Web settings)
+
+The owner: a widget that scores the site's stability as a percentage, falling as complexity and duct tape rise.
+`tools/stability.js` reads the repo only (no network, no clock) and writes `data/stability.json`; `check-stability.js`
+(in check-all, `--fast` too) runs it with `--check`, so the file is stale the moment the code moves on: re-run the tool
+and commit both. Score = 100 less, per signal, `min(cap, count × weight)`:
+
+| Signal | Weight per unit | Cap |
+|---|---|---|
+| written exceptions in the checks (`ACCEPTED`, `*_OK`, `KNOWN*`, `ALLOW*` entries) | 0.10 | 20 |
+| empty catches allowed (check-catches `CEILING`) | 0.02 | 15 |
+| raised ratchets (`*_MAX` in the checks, summed) | 0.002 | 10 |
+| per-facet / per-kind special cases (`facet === '…'`, `kind === '…'` in the app) | 0.05 | 10 |
+| names check-dead says nothing calls | 0.30 | 10 |
+| files over 3000 lines | 0.50 | 10 |
+| top-level functions over 150 lines | 0.05 | 10 |
+| TODO / FIXME / HACK / XXX | 0.20 | 5 |
+| repeated long lines (60+ characters, 3+ times) | 0.02 | 10 |
+
+A red check is not scored (check-all already fails it) and slowness is the machine's, not the code's. First score:
+46.9%. The card (`site:stability`, `stabilityCard_`, me.js) fetches the file the first time Web settings is drawn for
+an admin, shows the %, a verdict and the top three, and Show every signal lists the rest. Journey: `stability (730)`.

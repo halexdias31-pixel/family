@@ -31093,6 +31093,34 @@ check('layout (730): Spotlight and Board games move like any unit — the window
   return bad;
 });
 
+check('stability (730): Web settings carries the Stability card for an admin — its score, verdict and top three from data/stability.json, Show every signal opens the rest; a student has no such card', async () => {
+  const J = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'stability.json'), 'utf8'));
+  /* THE FILE AS GITHUB PAGES SERVES IT: the card asks `fetch` once, the first time it is drawn. */
+  const stub = w0 => { const was = w0.fetch; w0.fetch = (u, o) => /data\/stability\.json/.test(String(u)) ? Promise.resolve({ ok: true, json: () => Promise.resolve(J) }) : (was ? was.call(w0, u, o) : Promise.reject(new Error('no fetch'))); };
+  const { w } = layBoot_({ before: w0 => { signedInAs_(LAY_ADMIN_)(w0); stub(w0); } });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  try { w.paint('site'); } catch (e) { return ['could not draw Web settings: ' + e.message]; }
+  await wait(300);
+  try { w.paint('site'); } catch (e) {}
+  await wait(150);
+  const c = d.querySelector('#s-site .stability-card');
+  if (!c) return ['Web settings has no Stability card'];
+  if ((c.querySelector('.stab-score')?.textContent || '') !== J.score + '%') bad.push('the score says ' + c.querySelector('.stab-score')?.textContent + ', the file ' + J.score);
+  const n = J.signals.filter(x => x.off > 0).length;
+  if (c.querySelectorAll('.stab-top li').length !== Math.min(3, n)) bad.push('not the top three: ' + c.querySelectorAll('.stab-top li').length);
+  const all = c.querySelector('[data-do="stab-all"]');
+  if (n > 3) {
+    if (!all) bad.push('no Show every signal tile');
+    else { A['stab-all'](all); await wait(150); const c2 = d.querySelector('#s-site .stability-card'); if (c2.querySelectorAll('.stab-top li').length !== n) bad.push('Show every signal shows ' + c2.querySelectorAll('.stab-top li').length + ' of ' + n); }
+  }
+  if (w.cardHome0_('site:stability') !== 'site') bad.push('site:stability is not a Web settings card');
+  const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
+  await wait(300);
+  if (s.w.document.querySelector('.stability-card')) bad.push('a student is drawn the Stability card');
+  return bad;
+});
+
 check('layout (730): pager names for moved units — a tool moved onto Kids settings is named by the pager there, and a card moved onto Tools by its title (Brownie points)', async () => {
   const { w } = layBoot_();
   await wait(300);
