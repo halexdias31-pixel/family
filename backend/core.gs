@@ -624,7 +624,8 @@ function layoutClean_(v) {
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
   if (custom.length) out.custom = custom;
   /* ANY UNIT ON ANY COLUMN (710): a widget column's `cards` list is its mixed order. */
-  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site', 'reel', 'tools', 'games', 'shop'].concat(custom.map(x => x.id));
+  /* THE COLUMNS FROM columns.json (730), through the generated block of constants.gs — never a list typed here. */
+  const COLS = LAYOUT_CARD_COLS.concat(LAYOUT_WIDGET_COLS).concat(custom.map(x => x.id));
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};
   Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });
@@ -632,8 +633,11 @@ function layoutClean_(v) {
   const s = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {};
   const start = {};
   /* A WIDGET COLUMN'S START HERE TOO (489). */
-  Object.keys(s).filter(k => COLS.concat(['reel', 'tools', 'games', 'shop']).indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
+  Object.keys(s).filter(k => COLS.indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
   if (Object.keys(start).length) out.start = start;
+  /* A COLUMN ORDER (730): `order: [screen ids]` laid over TAB_ORDER, each a column the site has or an admin's own. */
+  const order = ids(o.order, 60).filter(x => LAYOUT_SCREENS.indexOf(x) !== -1 || custom.some(y => y.id === x));
+  if (order.length > 1) out.order = order;
   /* MERGED CARDS (480): `merged: [[top, …, bottom]]`, two to twelve ids each, an id in one group only, a hundred groups at most. */
   const used = {};
   const merged = (Array.isArray(o.merged) ? o.merged : []).filter(g => Array.isArray(g))

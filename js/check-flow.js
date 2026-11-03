@@ -10872,7 +10872,7 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
   const bad = [];
   /* ---------- IT LOOKED IN THE SHEET, AND THERE IS NO SHEET § */
   const buttonsOn = id => {
-    try { w.__t.ACTIONS['job']({ dataset: { id } }); } catch (e) { return ['THREW: ' + e.message]; }
+    try { w.openJob_(id); } catch (e) { return ['THREW: ' + e.message]; }
     const b = w.document.getElementById('s-booking');
     return b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   };
@@ -30480,7 +30480,7 @@ check('layout tiles (463): a stale or garbled layout falls back cleanly — unkn
 });
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
-const LAY_CARD_COLS_ = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
+const LAY_CARD_COLS_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).filter(r => String(r.cards).toUpperCase() === 'TRUE').map(r => r.screen);
 const layPaintAll_ = async w => { for (const c of LAY_CARD_COLS_) { try { w.paint(c); } catch (e) {} } await wait(200); };
 const layCardRow_ = (d, id) => d.querySelector(`.card-admin[data-lay-for="${id}"]`);
 const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
@@ -31016,6 +31016,101 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
   if (c.w.cardSeen_('tools').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Tools');
   if (c.w.document.querySelector('.wgt-admin')) bad.push('a client sees layout tiles');
   [r, c].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join('; ')); });
+  return bad;
+});
+
+/* ---------- THE OWNER'S COLUMNS AND WHOLE-COLUMN MOVES (730) ---------- */
+const COLS730_ = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+check('columns (730): the owner\'s eleven — five profiles then six settings, named as asked, in that order; Web profile is the business card, Apprentice profile says none yet; Web and Biz settings an admin\'s alone', async () => {
+  const want = ['Web profile', 'Tutor profile', 'Student profile', 'Parent profile', 'Apprentice profile', 'Tutor settings', 'Web settings',
+    'Kids settings', 'Parent settings', 'Apprentice settings', 'Biz settings'];
+  const bad = [];
+  const { w } = layBoot_();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const labels = t.TABS.map(x => x.label), got = labels.filter(l => want.indexOf(l) !== -1);
+  if (got.join('|') !== want.join('|')) bad.push('an admin\'s columns: ' + got.join(', '));
+  const at = labels.indexOf('Web profile');
+  if (labels.slice(at, at + want.length).join('|') !== want.join('|')) bad.push('the eleven are not side by side: ' + labels.slice(at).join(', '));
+  const fileLabels = COLS730_.map(r => r.label).filter(l => want.indexOf(l) !== -1);
+  if (fileLabels.join('|') !== want.join('|')) bad.push('columns.json says ' + fileLabels.join(', '));
+  t.go('web', false, true); await wait(200); try { w.paint('web'); } catch (e) {}
+  const web = d.querySelector('#s-web .web-card');
+  if (!web) bad.push('Web profile draws no business card');
+  else if (!/@family\.|\w/.test(web.querySelector('h3')?.textContent || '')) bad.push('the business card has no name');
+  try { w.paint('apprentices'); } catch (e) {}
+  if (!d.querySelector('#s-apprentices .appr-card')) bad.push('Apprentice profile draws nothing');
+  try { w.paint('site'); w.paint('biz'); } catch (e) {}
+  ['site:rules', 'site:inbox', 'biz:build'].forEach(id => { if (w.cardHome0_(id) !== 'site') bad.push(id + ' is not a Web settings card'); });
+  ['biz:apps', 'biz:staff', 'biz:profit-sum'].forEach(id => { if (w.cardHome0_(id) !== 'biz') bad.push(id + ' left Biz settings'); });
+  const s = boot({ before: signedInAs_({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], handle: 'sam' }) });
+  await wait(300);
+  const ids = s.w.__t.TABS.map(x => x.id);
+  ['site', 'biz'].forEach(c => { if (ids.indexOf(c) !== -1) bad.push(c + ' is a student\'s column'); });
+  ['web', 'apprentices', 'apprentice', 'account'].forEach(c => { if (ids.indexOf(c) === -1) bad.push(c + ' is not a student\'s column'); });
+  return bad;
+});
+
+check('layout (730): a whole column moves — the first unit of Web profile carries Move this column ◀ ▶; ▶ saves an order with Web profile right of Tutor profile, the row redraws so, and a reload keeps it', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-col']) return ['no lay-col handler — NOT checked'];
+  try { w.paint('web'); } catch (e) {}
+  await wait(150);
+  const rt = d.querySelector('#s-web [data-do="lay-col"][data-d="1"]');
+  if (!rt || rt.disabled) return ['Web profile has no live Move this column right'];
+  if (d.querySelectorAll('#s-web [data-do="lay-col"][data-d="1"]').length !== 1) bad.push('more than one column tile on Web profile');
+  A['lay-col'](rt); await wait(300);
+  const L = layLast_(sent) || {}, ord = L.order || [];
+  if (!(ord.indexOf('web') > ord.indexOf('tutors') && ord.indexOf('tutors') !== -1)) bad.push('the saved order does not put web after tutors: ' + ord.join(' '));
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('web') !== ids.indexOf('tutors') + 1) bad.push('the row is not redrawn so: ' + ids.join(' '));
+  const p = payload(); p.layout = L;
+  const r = layBoot_({ payload: p }); await wait(300);
+  const ids2 = r.w.__t.TABS.map(x => x.id);
+  if (ids2.indexOf('web') !== ids2.indexOf('tutors') + 1) bad.push('a reload lost the order: ' + ids2.join(' '));
+  return bad;
+});
+
+check('layout (730): Spotlight and Board games move like any unit — the window is one unit with ▲ ▼ ◀ ▶, and Board games ▶ leaves Games for the next column and is drawn there', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('spotlight', false, true); await wait(200); try { w.paint('spotlight'); } catch (e) {}
+  const row = d.querySelector('#s-spotlight .card-admin[data-lay-for="spot:list"]');
+  if (!row) bad.push('Spotlight has no admin row');
+  else ['Move to next column', 'Move this column right'].forEach(l => { if (!row.querySelector(`[aria-label="${l}"]`)) bad.push('Spotlight has no ' + l); });
+  t.go('games', false, true); await wait(300);
+  const bt = d.querySelector('#s-games #wgt-boardgames')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+  if (!bt || bt.disabled) bad.push('Board games has no live ▶');
+  else {
+    A['lay-w-col'](bt); await wait(300);
+    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('boardgames') !== -1);
+    if (!to || to === 'games') bad.push('Board games did not leave Games: ' + JSON.stringify(L.widgets));
+    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-boardgames`)) bad.push('Board games is not drawn on ' + to); }
+  }
+  return bad;
+});
+
+check('layout (730): pager names for moved units — a tool moved onto Kids settings is named by the pager there, and a card moved onto Tools by its title (Brownie points)', async () => {
+  const { w } = layBoot_();
+  await wait(300);
+  const t = w.__t, bad = [];
+  if (typeof w.pageName_ !== 'function' || !t.PAGER) return ['no pageName_ or PAGER — NOT checked'];
+  const tool = layIds_(t, 'tool').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; });
+  const name = (w.layoutWidgetOf_(tool) || {}).name;
+  const D = w.layoutDraftOf_(null);
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => x !== tool); });
+  D.widgets.account = [tool];
+  D.cards = { tools: ['acct:brownie'] };
+  w.layoutSave_(D);
+  await wait(300);
+  const names = t.PAGER.account();
+  if (!Array.isArray(names) || names.indexOf(name) === -1) bad.push('Kids settings\' pager does not name ' + name + ': ' + JSON.stringify(names).slice(0, 300));
+  const tn = t.PAGER.tools();
+  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Tools\' pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
+  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Tools is unnamed');
   return bad;
 });
 

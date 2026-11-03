@@ -33,7 +33,7 @@ function ownIdNow_(x) {
 }
 /* THE LAYOUT'S SHAPE NUMBER: 2 since 489's one-off repair below; `layoutClean_` (backend/core.gs) keeps the same rule. */
 const LAYOUT_V = 2;
-/* WHERE A CUSTOM COLUMN STANDS: `admin` after Site, `left` before Parent settings (600), `first` before the first column a unit stands on (710), else before Business. */
+/* WHERE A CUSTOM COLUMN STANDS: `admin` last, `left` before Parent settings (600), `first` before the first column a unit stands on (710), else before Business. */
 const customFlag_ = x => x.admin === true ? { admin: true } : x.left === true ? { left: true } : x.first === true ? { first: true } : {};
 /* WHO SEES WHAT (497): the levels an admin may narrow a widget or card to, lowest first; `seenOk_` (words.js) asks them. */
 const SEEN_ORDER = ['out', 'in', 'student', 'client', 'staff', 'admin'];
@@ -88,6 +88,9 @@ function layoutSane_(v) {
   const sn = o.seen && typeof o.seen === 'object' && !Array.isArray(o.seen) ? o.seen : {}, seen = {};
   Object.keys(sn).filter(k => LAYOUT_ID.test(k) && SEEN_ORDER.indexOf(sn[k]) !== -1).slice(0, 300).forEach(k => { seen[k] = sn[k]; });
   if (Object.keys(seen).length) out.seen = seen;
+  /* A COLUMN ORDER (730): `order: [ids]` laid over TAB_ORDER; `layoutClean_` keeps the same rule. */
+  const ord = ids(o.order).filter(x => TAB_ORDER.indexOf(x) !== -1 || cu.some(y => y.id === x)).slice(0, 60);
+  if (ord.length > 1) out.order = ord;
   return out;
 }
 const MERGE_MAX = 12;
@@ -129,6 +132,15 @@ function layoutWidgetCols_() {
   return cols.slice().sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 
+/* ---------- WHAT DOES NOT MOVE, EACH WITH ITS REASON (730): every other column is a host, its units moved by their rows; check-doors keeps this list whole ---------- */
+const LAYOUT_FIXED = {
+  feed: "the posts page by post and the camera is the page above the newest (`feedCamAt_`); moving them as one unit needs the feed's paging to stop assuming its column",
+  dm: 'one conversation per page, drawn by the messages code',
+  stuff: "Find's own funnel: its words, chips and page are the finder's state",
+  res: "Find 2's own funnel, the same finder again",
+  saved: 'what you starred, drawn from your own stars',
+  booking: 'the booking form and its receipts are one flow',
+};
 /* ---------- EVERY COLUMN A UNIT MAY STAND ON (710): the widget columns, the card columns and an admin's own ---------- */
 function hostCols_(L) {
   const cu = ((L === undefined ? layoutNow_() : L) || {}).custom || [];
@@ -195,6 +207,7 @@ function layoutDraftOf_(L) {
   if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id }, customFlag_(x)));
   if (L && L.merged && L.merged.length) out.merged = L.merged.map(g => g.slice());
   if (L && L.seen) out.seen = Object.assign({}, L.seen);
+  if (L && L.order) out.order = L.order.slice();
   return out;
 }
 /* WHAT THE ADMIN SEES ON A COLUMN — a move steps over a widget they cannot see, or it would look like nothing happened. */
@@ -216,7 +229,7 @@ function layoutTiles_(w) {
   return `<span class="tile-group is-admin wgt-admin">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 })}${
-    acrossTiles_(id, col, true, { w: id })}${
+    acrossTiles_(id, col, true, { w: id })}${colTiles_(col, id)}${
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     startTile_(col, id, ((L || {}).start || {})[col] || '')}${
@@ -455,9 +468,9 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
 /* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
-const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
-/* THE ADMIN'S TWO COLUMNS (491): Business and Site; a card moves between them, and no other card moves onto either. */
-const ADMIN_COLS_ = ['biz', 'site'];
+/* `CARD_COLS` IS shell.js's (730): TAB_ORDER's tabs marked `cards`, as columns.json marks them. */
+/* THE ADMIN'S CARD COLUMNS (491, 730): Biz and Web settings, the card columns marked `admin`; a card moves between them, no other onto either. */
+const ADMIN_COLS_ = CARD_COLS.filter(c => TABS_BUILT.some(t => t.id === c && t.admin));
 /* AND AN ADMIN-ONLY CUSTOM COLUMN (508, `admin: true`), made by ▶ past Site: Business and Site cards move onto it, nothing else. */
 const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1 || customAdmin_(c);
 function customAdmin_(c) {
@@ -496,6 +509,11 @@ const CARD_REG = [
   { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
   { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
+  /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
+  { id: 'web:card', col: 'web', label: 'Web profile', re: /^<div class="card web-card/, say: '' },
+  { id: 'spot:list', col: 'spotlight', label: 'Spotlight', say: '' },
+  { id: 'ppl:apprentices:all', col: 'apprentices', label: 'Apprentices', re: /^<div class="card appr-card/, say: 'A card per apprentice.' },
+  { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
   { id: 'biz:setup', col: 'site', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
@@ -521,7 +539,7 @@ function ownSecReg_() {
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  const where = { account: 'Student settings', family: 'Parent settings', staff: 'Tutor settings' };
+  const where = { account: 'Kids settings', family: 'Parent settings', staff: 'Tutor settings' };
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
@@ -610,6 +628,7 @@ const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
   tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
+  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentices: () => apprenticeProfilePages_(), apprentice: () => apprenticePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {
@@ -753,7 +772,7 @@ function cardAdminRow_(id, col, mergeable) {
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    acrossTiles_(id, col, false, { lc: id })}${
+    acrossTiles_(id, col, false, { lc: id })}${colTiles_(col, id)}${
     startTile_(col, id, start)}${
     frontTile_(col, id)}${wordsTiles_(id, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
@@ -957,7 +976,7 @@ function customTitle_(id, L) {
 function customTabsSync_() {
   const L = layoutNow_(), want = (L || {}).custom || [];
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
-  /* `first` (710) before the first column a unit stands on, `left` (600) before Parent settings, an admin-only one (508) after Site, the rest before Business. */
+  /* `first` (710) before the first column a unit stands on, `left` (600) before Parent settings, an admin-only one (508) last, the rest before Business. */
   const before = id => { const i = COLUMNS.findIndex(t => t.id === id); return i === -1 ? COLUMNS.length : i; };
   const hosts = hostCols_(null), f0 = COLUMNS.findIndex(t => hosts.indexOf(t.id) !== -1);
   let atF = f0 === -1 ? 0 : f0;
@@ -977,7 +996,41 @@ function customTabsSync_() {
   want.filter(c => c.left).forEach(place);
   want.filter(c => !c.admin && !c.left && !c.first).forEach(place);
   want.filter(c => c.admin).forEach(place);
+  colOrderApply_(L);
 }
+/* ---------- WHOLE COLUMNS MOVE (730): the columns `order` names take the places they already fill, in its order; the rest stay put ---------- */
+function colOrderApply_(L) {
+  const ord = ((L || {}).order || []).filter(id => COLUMNS.some(t => t.id === id));
+  if (ord.length < 2) return;
+  const slots = COLUMNS.map((t, i) => (ord.indexOf(t.id) !== -1 ? i : -1)).filter(i => i !== -1);
+  const tabs = ord.map(id => COLUMNS.find(t => t.id === id));
+  slots.forEach((at, k) => { COLUMNS[at] = tabs[k]; });
+}
+/* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
+function colTiles_(col, id) {
+  if (!layoutIsAdmin_() || (CARD_SEEN[col] || [])[0] !== id) return '';
+  let seq = [];
+  try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
+  const i = seq.indexOf(col);
+  if (i === -1) return '';
+  return `<span class="tile-group is-admin col-move">${
+    tile_({ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 })}${
+    tile_({ icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 })}</span>`;
+}
+on('lay-col', el => {
+  const col = el.getAttribute('data-col') || '', d = Number(el.getAttribute('data-d')) || 0;
+  let seq = [];
+  try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
+  const i = seq.indexOf(col), j = i + d;
+  if (i === -1 || j < 0 || j >= seq.length) return;
+  /* THE WHOLE ROW AS THIS ADMIN SEES IT, written down, so a later column added to the code still has a place (TAB_ORDER's). */
+  const all = COLUMNS.map(t => t.id), a = all.indexOf(col), b = all.indexOf(seq[j]);
+  [all[a], all[b]] = [all[b], all[a]];
+  const D = layoutDraftOf_(layoutNow_());
+  D.order = all;
+  layoutSave_(D);
+  try { go(col); } catch (e) {}
+});
 /* A WIDGET ON A CARD COLUMN IS STARTED THERE (710): every column a unit may stand on is one `widgetsOn_` (arcade.js) is asked about. */
 CARD_COLS.forEach(c => { if (WIDGET_COLS.indexOf(c) === -1) WIDGET_COLS.push(c); });
 /* AN EMPTY CUSTOM COLUMN GOES, at every save: the last unit moved or deleted out of it takes the column with it. */

@@ -966,7 +966,8 @@ function widgetsBeforeSlide_(col) {
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST § */
 screen('saved', () => pages('saved', savedCards_()));
 /* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that counts the same array the screen is built from, and a sentence § */
-screen('spotlight', () => pages('spotlight', spotlightCards_()));
+/* MOVABLE SINCE 730: a card column like the profiles; the whole window is one unit (`spot:list`), moved by its first page's row. */
+screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? cardsOf_('spotlight') : spotlightCards_()));
 /* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
 /* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
 /* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */

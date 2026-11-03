@@ -48,7 +48,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '⚙', label: 'Student settings', title: 'Student settings' },
+  { id: 'account', icon: '⚙', label: 'Kids settings', title: 'Kids settings', cards: true },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
@@ -62,15 +62,18 @@ const TABS = [
   { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
-  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
+  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
   /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
-  { id: 'tutors',   icon: '🎓', label: 'Tutor profiles',   title: 'Tutor profiles' },
-  { id: 'students', icon: '👤', label: 'Student profiles', title: 'Student profiles' },
-  { id: 'parents',  icon: '👪', label: 'Parent profiles',  title: 'Parent profiles' },
-  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
-  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
+  /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
+  { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
+  { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
+  { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
+  { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
+  { id: 'apprentices', icon: '🧰', label: 'Apprentice profile', title: 'Apprentice profile', cards: true },
+  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
+  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
-  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice', title: 'Apprentice' },
+  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice settings', title: 'Apprentice settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -78,9 +81,9 @@ const TABS = [
   /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND § */
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
-  { id: 'biz', icon: '📋', label: 'Business', title: 'Business', admin: true },
+  { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
   /* ---------- AND THE SITE'S OWN SETTINGS, SPLIT FROM BUSINESS (491), FOR AN ADMIN AND NOBODY ELSE ---------- */
-  { id: 'site', icon: '🌐', label: 'Site', title: 'Site', admin: true },
+  { id: 'site', icon: '🌐', label: 'Web settings', title: 'Web settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
@@ -89,13 +92,14 @@ const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social
                    'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'family', 'staff', 'apprentice', 'account',                    /* Parent, Tutor and Student account settings (461) */
-                   'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
-                   'biz', 'site'];                                    /* the admin's two: Business, then Site (491) */
+                   'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
+                   'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
+/* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
+const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards));
 const COLUMNS = TABS.slice();
 
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
@@ -1623,11 +1627,25 @@ function widgetColNames_(k) {
   try {
     const col = LAYOUT_COL[k], L = layoutNow_();
     if (!(L && L.cards && (L.cards[col] || []).length)) return ws;
-    return cardsOf_(col).map(h => { const m = /id="wgt-([^"]+)"/.exec(h), w = m && widgetPagesOf_(k).find(x => String(x.id) === m[1]); return w ? w.name || '' : ''; });
+    return cardsOf_(col).map(pageName_);
   } catch (e) { return ws; }
 }
+/* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
+function pageName_(h) {
+  const m = /id="wgt-([^"]+)"/.exec(h);
+  const w = m && typeof layoutWidgetOf_ === 'function' ? layoutWidgetOf_(m[1]) : null;
+  if (w) return w.name || '';
+  const t = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(String(h || ''));
+  return t ? t[1].trim().replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"') : '';
+}
+/* A CARD COLUMN'S PAGER: a count, or (730) every page's name once a unit has been moved onto it, so the guest is named. */
 function cardCount_(col, raw, none) {
-  try { return typeof cardsOf_ === 'function' ? cardsOf_(col).length : raw(); } catch (e) { return none === undefined ? 1 : none; }
+  try {
+    if (typeof cardsOf_ !== 'function') return raw();
+    const L = typeof layoutNow_ === 'function' ? layoutNow_() : null, pages = cardsOf_(col);
+    const guests = L && (((L.cards || {})[col] || []).length || ((L.widgets || {})[col] || []).length);
+    return guests ? pages.map(pageName_) : pages.length;
+  } catch (e) { return none === undefined ? 1 : none; }
 }
 /* ---------- WIDGETS AS PAGES § */
 const PAGER = {
@@ -1649,11 +1667,13 @@ const PAGER = {
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
-  spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
+  spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
-  apprentice: () => [tabLabel_('apprentice', 'Apprentice')],
+  apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
+  web: () => cardCount_('web', () => webProfilePages_().length),
+  apprentices: () => cardCount_('apprentices', () => apprenticeProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),

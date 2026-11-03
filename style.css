@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-02-merge-7";
+  --css-version: "2026-11-03-columns-730";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -7168,3 +7168,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
 .rep-vids { margin: .4rem 0; }
 .rep-vid { align-items: center; }
+
+/* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
+.web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
