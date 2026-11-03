@@ -30595,14 +30595,14 @@ check('merge with the card above (480): widgets — Make a flyer has no Merge un
   return bad;
 });
 
-check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
+check('a card moved ◀ into the next column is on a page that column scrolls to — Biz settings into Apprentice settings (730), parents into students — and still after a reload (476)', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const A = w.__t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-c-col'] || typeof w.__t.pageCount !== 'function') return ['no lay-c-col or pageCount — NOT checked'];
   await layPaintAll_(w);
   const moves = [];
-  for (const [from, to] of [['biz', 'parents'], ['parents', 'students']]) {
+  for (const [from, to] of [['biz', 'apprentice'], ['parents', 'students']]) {
     const seen = laySeen_(w, from).filter(x => !moves.some(m => m[1] === x)), id = from === 'biz' ? seen[0] : seen[seen.length - 1];
     const tile = id && layCardTile_(d, id, 'lay-c-col', '-1');
     if (!tile) { bad.push(from + ' has no ◀ card to move — NOT checked'); continue; }
@@ -30631,7 +30631,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       const row = layCardRow_(d, id);
       if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }
       const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
-      ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
+      /* THE FIRST COLUMN'S ◀ (Spotlight since 730) makes a new column on the left rather than naming a previous one. */
+      ['Move up', 'Move down', 'Move to previous column|Move to a new column on the left', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (!l.split('|').some(x => labels.indexOf(x) !== -1)) bad.push(id + ' has no ' + l); });
     });
   }
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
@@ -30679,7 +30680,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const pgs = [...d.querySelectorAll('#s-students > .page')];
   if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
   /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
-  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
+  /* THE LAST COLUMN A NON-ADMIN CARD MAY STAND ON is Apprentice settings since 730 (Biz settings, an admin's, is right of it). */
+  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
   if (!pr || pr.disabled || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on the last right-hand column does not offer a new column (466): ' + (pr && pr.getAttribute('aria-label')));
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   return bad;
@@ -30822,34 +30824,34 @@ check('layout engine (466): a split card\'s pieces are cards of their own — ea
   return bad;
 });
 
-check('layout engine (508): ▶ on a Site card makes an admin-only column after Site with the card on it; a settings card cannot move onto it; a client never sees it', async () => {
+check('layout engine (508): ▶ on a Biz settings card makes an admin-only column after it (Biz settings is last since 730) with the card on it; a settings card cannot move onto it; a client never sees it', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  const sid = laySeen_(w, 'site').find(x => /^(site|biz):/.test(x));
+  const sid = laySeen_(w, 'biz').find(x => /^(site|biz):/.test(x));
   const right = sid && layCardTile_(d, sid, 'lay-c-col', '1');
-  if (!right || right.disabled) return ['no live ▶ on a Site card (' + sid + ') — NOT checked'];
-  if (right.getAttribute('aria-label') !== 'Move to a new admin-only column') bad.push('▶ on Site says ' + right.getAttribute('aria-label'));
+  if (!right || right.disabled) return ['no live ▶ on a Biz settings card (' + sid + ') — NOT checked'];
+  if (right.getAttribute('aria-label') !== 'Move to a new admin-only column') bad.push('▶ on Biz settings says ' + right.getAttribute('aria-label'));
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
   const cu = (L.custom || [])[0] || {};
-  if (!/^custom-\d+$/.test(cu.id || '') || cu.admin !== true || ((L.cards || {})[cu.id] || []).indexOf(sid) === -1) bad.push('▶ past Site posted ' + JSON.stringify(L));
+  if (!/^custom-\d+$/.test(cu.id || '') || cu.admin !== true || ((L.cards || {})[cu.id] || []).indexOf(sid) === -1) bad.push('▶ past Biz settings posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
-  if (ids.indexOf(cu.id) !== ids.indexOf('site') + 1) bad.push('the admin-only column is not just after Site: ' + ids.join());
+  if (ids.indexOf(cu.id) !== ids.indexOf('biz') + 1) bad.push('the admin-only column is not just after Biz settings: ' + ids.join());
   try { w.paint(cu.id); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150); await layPaintAll_(w);
   if (laySeen_(w, cu.id).indexOf(sid) === -1) bad.push(sid + ' is not on the new column: ' + laySeen_(w, cu.id).join());
   /* A SETTINGS CARD'S ▶ never reaches it: the last right-hand public column still offers a public new column. */
-  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
-  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Parent profiles now says ' + (pr && pr.getAttribute('aria-label')));
+  const pr = layCardTile_(d, 'appr:blurb', 'lay-c-col', '1');
+  if (!pr || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on Apprentice settings now says ' + (pr && pr.getAttribute('aria-label')));
   /* A CLIENT reloading has no such column and no section for it. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p = payload(); p.layout = layLast_(sent);
   const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
   if (c.w.__t.TABS.some(x => x.id === cu.id) || c.w.document.getElementById('s-' + cu.id)) bad.push('a client sees the admin-only column');
   if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
-  /* ◀ BACK to Site empties it and it goes. */
+  /* ◀ BACK to Biz settings empties it and it goes. */
   A['lay-c-col'](layCardTile_(d, sid, 'lay-c-col', '-1')); await wait(300);
   if ((layLast_(sent) || {}).custom) bad.push('the emptied admin column was not removed');
   return bad;
@@ -30860,17 +30862,17 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  const id = 'ppl:parents:add';
+  const id = 'appr:blurb';   /* the last column a public card stands on is Apprentice settings since 730 */
   const right = layCardTile_(d, id, 'lay-c-col', '1');
-  if (!right || right.disabled) return ['"+ Add a parent" has no live ▶ — NOT checked'];
+  if (!right || right.disabled) return ['Apprentice settings\' card has no live ▶ — NOT checked'];
   A['lay-c-col'](right); await wait(300);
   const L = layLast_(sent) || {};
   if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
   const ids = t.TABS.map(x => x.id);
   if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
-  try { w.paint('custom-1'); w.paint('parents'); } catch (e) { bad.push('painting it threw ' + e.message); }
+  try { w.paint('custom-1'); w.paint('apprentice'); } catch (e) { bad.push('painting it threw ' + e.message); }
   await wait(150);
-  if (!d.querySelector('#s-custom-1 [data-do="person-add"]') || d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" is not on the new column alone');
+  if (!d.querySelector('#s-custom-1 .appr-set') || d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card is not on the new column alone');
   /* NO NAME (710): a column is a position. */
   if (d.querySelector('#s-custom-1 .custom-head, #s-custom-1 .lay-col-name, [data-do="lay-col-rename"], [data-do="lay-col-del"]')) bad.push('the new column still has a name card, Rename or Delete column');
   if (A['lay-col-rename'] || A['lay-col-del']) bad.push('a lay-col-rename or lay-col-del handler still exists');
@@ -30900,7 +30902,7 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   if (B.custom || (B.cards || {})['custom-1']) bad.push('the emptied column was not removed: ' + JSON.stringify(B));
   if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
   await layPaintAll_(w);
-  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" did not come back to Parent profiles');
+  if (!d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card did not come back');
   /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
   t.go('tools', false, true); await wait(300);
   const tid = layIds_(t, 'tool')[0];
@@ -30911,14 +30913,17 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
     if (layIds_(t, 'reel').indexOf(tid) === -1) bad.push('◀ from Tools did not reach Reels: ' + layIds_(t, 'reel').join());
     try { w.paint('reel'); } catch (e) {}
     await wait(150);
+    /* SPOTLIGHT IS THE FIRST COLUMN A UNIT STANDS ON SINCE 730: one more ◀ takes the tool there first. */
+    const sp = layTile_(d, tid, 'lay-w-col', '-1');
+    if (sp && sp.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](sp); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
     const lt = layTile_(d, tid, 'lay-w-col', '-1');
-    if (!lt || lt.getAttribute('aria-label') !== 'Move to a new column on the left') bad.push('◀ on Reels says ' + (lt && lt.getAttribute('aria-label')));
+    if (!lt || lt.getAttribute('aria-label') !== 'Move to a new column on the left') bad.push('◀ on Spotlight says ' + (lt && lt.getAttribute('aria-label')));
     else {
       A['lay-w-col'](lt); await wait(300);
       const LL = layLast_(sent) || {}, nid = ((LL.custom || [])[0] || {}).id;
       if (!nid || LL.custom[0].first !== true || ((LL.widgets || {})[nid] || []).indexOf(tid) === -1) bad.push('◀ past the first posted ' + JSON.stringify(LL));
       const lids = t.TABS.map(x => x.id);
-      if (!nid || lids.indexOf(nid) !== lids.indexOf('reel') - 1) bad.push('the new left column is not just before Reels: ' + lids.join());
+      if (!nid || lids.indexOf(nid) !== lids.indexOf('spotlight') - 1) bad.push('the new left column is not just before Spotlight: ' + lids.join());
       try { w.paint(nid); } catch (e) {}
       await wait(150);
       if (!d.querySelector('#s-' + nid + ' #wgt-' + tid)) bad.push('the tool is not drawn on the new left column');
