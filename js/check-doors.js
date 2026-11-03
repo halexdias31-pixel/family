@@ -174,6 +174,13 @@ try {
     .concat(fixed.filter(t => cardTabs.has(t) || wcols.indexOf(t) !== -1).map(t => t + ' (fixed AND a host)'));
 } catch (e) { unhosted = ['(js/layout.js could not be read: ' + e.message + ')']; }
 
+/* AND NO CARD UNMOVABLE BY ITS OWN HAND (770: the Deleted card was `no-move`): the one `no-move` is the owner's rule `items-no-move`. */
+let pinned = [];
+try {
+  fs.readdirSync(dir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => strip(fs.readFileSync(path.join(dir, f), 'utf8')).split('\n')
+    .forEach((l, i) => { if (/\bno-move\b/.test(l) && !/items-no-move|still \? ' no-move'/.test(l)) pinned.push(f + ':' + (i + 1)); }));
+} catch (e) { pinned = ['(js/ could not be read: ' + e.message + ')']; }
+
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -215,6 +222,8 @@ say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '
 
 say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
 
+say('A CARD MARKED no-move OUTSIDE THE items-no-move RULE — every card moves unless LAYOUT_FIXED says why', pinned, t => '');
+
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
 say('DOOR WITH NO HANDLER — it looks pressable and does nothing', noHandler,
@@ -232,7 +241,7 @@ if (doors.has('${…}')) {
 console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
             + '   screens: ' + screens.size + '   an admin\'s alone: ' + ([...adminTabs].join(', ') || 'none'));
-process.exit(unhosted.length + cardsDiffer.length + gsStale.length + noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
+process.exit(pinned.length + unhosted.length + cardsDiffer.length + gsStale.length + noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
              + noSection.length + adminWritten.length + adminUnmade.length
              + noDraw.length + noPager.length + orderOff.length
              + noColumnRow.length + orderDiffers.length ? 1 : 0);

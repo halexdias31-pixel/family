@@ -438,18 +438,18 @@ function layoutDeletedName_(id) {
   const w = layoutWidgetOf_(id);
   return w ? String(w.name || id) : cardLabel_(id);
 }
-/* NOT IN THE REGISTRY on purpose: no Delete tile under it, or the way back could itself be deleted. */
+/* A CARD LIKE ANY OTHER (770: the owner, "why is this not movable"): registered, so it moves; `CARD_KEEP` takes Delete off it alone. */
 function deletedCard_() {
   if (!layoutIsAdmin_()) return '';
   const del = ((layoutNow_() || {}).deleted || []);
   const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  const html = cardSayIn_(`<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`, 'biz:deleted');
-  /* EVERY THING HAS THE ADMIN'S TILES (487) and the one Report tile (486) in one row -- here Edit words and Report, never Delete or a move. */
-  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin no-move" data-lay-for="biz:deleted">${
-    tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: 'biz:deleted' } })}${
-    typeof suggestTile_ === 'function' ? suggestTile_('card', 'deleted-card', 'Deleted') : ''}</div>`);
+  return '<!--card:biz:deleted--><div class="card biz deleted-card"><h3>Deleted</h3>' + (rows || '<p class="muted">Nothing deleted</p>') + '</div>';
 }
+/* CARDS THAT MOVE BUT ARE NEVER DELETED, each with its reason. */
+const CARD_KEEP = {
+  'biz:deleted': 'the way back to every deleted widget and card; deleted, it would leave no way back',
+};
 on('lay-putback', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-del'), D = layoutDraftOf_(layoutNow_());
@@ -504,7 +504,7 @@ const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(ty
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
-  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Who you are signed in as on this phone, and Sign out.' },
+  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who you are signed in as on this phone and Sign out: one card, one place (770).' },
   { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
@@ -520,6 +520,7 @@ const CARD_REG = [
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
+  { id: 'ppl:tutors:search', col: 'tutors', label: 'Find by handle', say: 'Find a tutor by their handle.' },
   { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
   { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
@@ -528,6 +529,7 @@ const CARD_REG = [
   { id: 'ppl:students:manage', col: 'students', label: 'Manage your child', say: 'Link your child\'s account to yours, or answer a link.' },
   { id: 'ppl:students:all', col: 'students', label: 'Every student', say: 'Every student account.' },
   { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent', say: 'Make an account for a new parent.' },
+  { id: 'ppl:parents:search', col: 'parents', label: 'Find by handle', say: 'Find a parent by their handle.' },
   { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)', say: 'Your own card as a parent.' },
   { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
@@ -541,6 +543,7 @@ const CARD_REG = [
   { id: 'biz:setup', col: 'site', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
   { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
+  { id: 'biz:deleted', col: 'biz', label: 'Deleted', re: /^<div class="card biz deleted-card/, say: 'Every deleted widget and card, each with Put back.' },
   { id: 'biz:errs', col: 'biz', label: 'Error log', re: /^<div class="card biz errs/, say: 'What broke on people\'s screens, counted once per error.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
   { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
@@ -587,6 +590,8 @@ function cardSayIn0_(h, id) {
   const say = cardSayOf_(id);
   /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
   if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
+  /* NOR ON A PERSON (a list's first page is somebody, not the list's name) NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
+  if (personOf_(h) || /\bdata-psearch\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
   if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="faint card-say">${esc(say)}</span></button>$1`);
   const p = `<p class="faint card-say">${esc(say)}</p>`;
@@ -731,7 +736,7 @@ function cardsOf_(col) {
       const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
       const rep = g.id && i === g.pages.length - 1 && !personOf_(h) ? cardReportRow_(g.id, page) : '';
-      return rep ? cardRowIn_(page, rep) : page;
+      return grpMark_(g, i, rep ? cardRowIn_(page, rep) : page);
     })), []);
   const entries = colEntries_(col, raw);
   const start = cardStartOf_(col, L);
@@ -765,12 +770,20 @@ function cardsOf_(col) {
       const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
       if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`);
-      out.push(page);
+      out.push(grpMark_(g, i, page));
     });
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
-  if (!out.length && !kind) return [`<div class="card"><h3>${esc(typeof tabLabel_ === 'function' ? tabLabel_(col, col) : col)}</h3></div>`];
+  /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
+  if (!out.length && !kind) return [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
   return out;
+}
+/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): the owner, of the kids' cards, "have them be within a larger widget". Each person stays
+   a page of its own (Start here, its form); `pages()` (shell.js) joins a run of them into one pane by the mark. */
+function grpMark_(g, i, page) {
+  const n = g.pages.length;
+  if (n < 2 || !g.pages.every(personOf_)) return page;
+  return '<!--grp:' + (i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid') + '-->' + page;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
 function startTile_(col, id, start, note) {
@@ -802,7 +815,8 @@ function cardAdminRow_(id, col, mergeable) {
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${
-    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
+    CARD_KEEP[id] ? (typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')
+      : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
       typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
@@ -948,8 +962,8 @@ on('lay-c-col', el => {
 on('lay-c-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-lc');
-  if (!cardIs_(id)) return;
-  const all = mergeAll_(id, layoutNow_());
+  if (!cardIs_(id) || CARD_KEEP[id]) return;
+  const all = mergeAll_(id, layoutNow_()).filter(x => !CARD_KEEP[x]);
   const only = all.map(cardOnly_).filter(Boolean).join(', ');
   const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
   if (!layArm_(el, say, 'Delete', true)) return;

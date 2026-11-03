@@ -10057,7 +10057,8 @@ const psBoot_ = async user => {
   await wait(150);
   const type = async q => { const box = d.querySelector('#s-students [data-psearch]'); box.value = q;
     box.dispatchEvent(new r.w.Event('input', { bubbles: true })); await wait(30); return box; };
-  const find = async () => { t.ACTIONS['ps-find'](d.querySelector('#s-students [data-do="ps-find"]')); await wait(300); };
+  /* RETURN IN THE BOX (770: no Find button). */
+  const find = async () => { r.w.psFind_(d.querySelector('#s-students [data-psearch]')); await wait(300); };
   return Object.assign(r, { t, d, draw, type, find, out: () => d.querySelector('#s-students .ps-out') });
 };
 const PS_PAT = { name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', profile: { first_name: 'Pat', last_name: 'Parent' } };
@@ -10202,14 +10203,37 @@ check('442: "Add as my child" sends the family request by handle through claimCh
   return bad;
 });
 check('442: a student sees the search but no Find and no tile, and posts no lookup', async () => {
-  const { sent, t, d, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
+  const { sent, t, d, w, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
   if (!d.querySelector('#s-students .ps-card')) bad.push('a student has no search');
-  if (d.querySelector('#s-students [data-do="ps-find"]')) bad.push('a student is offered Find, which looks up children');
+  if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is back on the search card (770: the owner, "remove find button")');
   await type('wren_kind43');
-  t.ACTIONS['ps-find'](d.createElement('button'));
+  w.psFind_(d.querySelector('#s-students [data-psearch]'));
   await wait(200);
   if (sent.some(b => b.action === 'findChild')) bad.push('a student posted findChild');
   if (d.querySelector('#s-students [data-do="ps-add-child"]')) bad.push('a student sees "Add as my child"');
+  return bad;
+});
+
+/* ---------- 770: ONE SEARCH CARD ON EVERY PROFILE COLUMN, NO COLUMN NAMED, A LIST OF PEOPLE ONE SURFACE, SIGN IN ONE UNIT, DELETED MOVES ---------- */
+check('770: every profile column has its search card and no Find button; no card is titled with a column\'s name; people lists join; Sign in is acct:signed-in; Deleted moves', async () => {
+  const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' }), bad = [];
+  try { t.repaint(true); ['tutors', 'students', 'parents', 'account', 'family', 'staff', 'biz'].forEach(id => w.paint(id)); } catch (e) {}
+  await wait(150);
+  ['tutors', 'students', 'parents'].forEach(c => { if (!d.querySelector('#s-' + c + ' .ps-card[data-ps-col="' + c + '"]')) bad.push(c + ' has no search card'); });
+  if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is on a search card');
+  if (d.querySelector('.ps-card .card-say')) bad.push('the search card carries a sentence above its bar (its placeholder is its label, 469)');
+  const names = new Set(w.TABS.map(x => String(w.tabLabel_(x.id, x.id)).trim().toLowerCase()));
+  d.querySelectorAll('.screen .card > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
+  const g = w.grpMark_({ pages: ['<!--person:P1--><div class="card">a</div>', '<!--person:P2--><div class="card">b</div>'] }, 1, '<div class="card">b</div>');
+  if (!/^<!--grp:last-->/.test(g)) bad.push('a list of two people is not marked as one surface: ' + g.slice(0, 40));
+  if (!/class="page grp grp-last"/.test(w.pages('x', [g]))) bad.push('pages() does not join a marked run');
+  if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
+  const row = w.cardAdminRow_('biz:deleted', 'biz', false);
+  if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');
+  if (/lay-c-del/.test(row)) bad.push('the Deleted card can be deleted');
+  t.USER(null);
+  const out = w.studentSetPages_();
+  if (w.cardIdOf_(out[0]) !== 'acct:signed-in') bad.push('signed out, the Sign in card is ' + JSON.stringify(w.cardIdOf_(out[0])) + ', not acct:signed-in — moved signed in, it would jump back');
   return bad;
 });
 
