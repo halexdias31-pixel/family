@@ -541,10 +541,10 @@ function widgetOnColumn_(w, own) {
   const keep = typeof favTile_ === 'function'
     ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
       typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}${
-      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.title || w.label || '') : ''}</span>` : '';
+      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
-      <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
+      <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
     </div>`;
@@ -554,11 +554,11 @@ function widgetOnColumn_(w, own) {
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}${
-    typeof gameLockTile_ === 'function' ? gameLockTile_(top.id) : ''}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.title || top.label || '') : ''}</span>` : '';
+    typeof gameLockTile_ === 'function' ? gameLockTile_(top.id) : ''}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
+    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
   }).join('');
   return `<div class="card is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}

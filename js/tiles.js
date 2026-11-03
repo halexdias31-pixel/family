@@ -198,7 +198,9 @@ function tile_(o) {
 function addCard_(o) {
   const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   return `<button type="button" class="card tap add-card" data-do="${esc(o.act)}"${data} aria-label="${esc(o.label)}">
-    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>`;
+    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>${
+    /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
+    typeof suggestTile_ === 'function' && suggestTile_('card', 'add:' + o.act, o.label) ? `<div class="tile-row rep-row">${suggestTile_('card', 'add:' + o.act, o.label)}</div>` : ''}`;
 }
 
 /* ---------- FILLING THE SHAPE § */
@@ -594,7 +596,8 @@ function postTiles_(p) {
   if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
   /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
   if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
-  if (!p.mine && typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
+  /* YOUR OWN TOO (720): every thing carries the tile (486), and the owner's posts are his own. */
+  if (typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
   if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }

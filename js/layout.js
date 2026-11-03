@@ -472,7 +472,7 @@ function cardSayIn0_(h, id) {
   /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
   if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
-  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>\s*$/, `<span class="faint card-say">${esc(say)}</span></button>`);
+  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="faint card-say">${esc(say)}</span></button>$1`);
   const p = `<p class="faint card-say">${esc(say)}</p>`;
   if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, '</h3>' + p);
   return head + body.replace(/^(\s*<div\b[^>]*>)/, '$1' + p);
