@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* WRITES the generated block of backend/constants.gs from data/settings/columns.json and js/layout.js's LAYOUT_COL (730), so layoutClean_ knows the columns the site does.
-   Apps Script cannot read the repo, so the list is copied; check-doors fails when the copy is stale. `--check` only compares. */
+/* WRITES backend/constants.gs's COLUMNS block from columns.json and LAYOUT_COL (730): Apps Script cannot read the repo. */
+/* check-doors fails when the copy is stale; `--check` only compares. */
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 function columnsGs() {
