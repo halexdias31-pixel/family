@@ -414,8 +414,8 @@ const FACETS = [
     tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
   { field: 'kindOwn', label: 'Which',
-    of: x => !kindTop_(x) ? '' : (x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
-    tagOf: (x, page) => !kindTop_(x) ? '' : (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+    of: x => !kindTop_(x) ? '' : notTop_(x, x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
+    tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
@@ -1016,7 +1016,10 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
 function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
-function underOwn_(table, v) { return v && (table[v] || Object.keys(table).some(k => table[k] === v)) ? v : ''; }
+/* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */
+function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
+/* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
+function notTop_(x, v) { const top = spellKey_(kindTop_(x)); const l = [].concat(v || []).filter(k => k && spellKey_(k) !== top); return l.length > 1 ? l : (l[0] || ''); }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {
@@ -1037,6 +1040,8 @@ const runNumber_ = v => (/^(?:([A-Za-z]+) )?(\d+)$/.exec(String(v.show || v.valu
 const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_(v)[2]) && new Set(values.map(v => runNumber_(v)[1] || '')).size === 1;
 function facetWhy_(items, facet, over) {
   const all = facetValues(items, facet), vals = all.length;
+  /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the parent's own. */
+  if (vals && underChosen_(all)) return '';
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
@@ -1049,6 +1054,11 @@ function facetWhy_(items, facet, over) {
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }
   return '';
+}
+
+function underChosen_(values) {
+  const chosen = new Set((STUFF.filters || []).filter(f => !f.any).map(f => spellKey_(f.value)));
+  return values.every(v => DOC_TYPE_UNDER[v.value] && chosen.has(spellKey_(DOC_TYPE_UNDER[v.value])));
 }
 
 /* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): two answers make it
@@ -10609,10 +10619,14 @@ function chipText_(f, i) {
 /* THE CHIPS YOU HAVE CHOSEN. Drawn with the list rather than with the search box above it, because
    this row grows and shrinks and a fixed control does not. Clear is not one of them — see
    `filterClear_`. */
+/* 680: THE ROW NEVER SAYS THE SAME THING TWICE — a second chip with the same words is left out (its filter stays). */
 function filterChips() {
+  const said = {};
   return `<div class="chips">
     ${STUFF.filters.map((f, i) => {
-      const show = chipText_(f, i);
+      const show = chipText_(f, i), key = spellKey_(show);
+      if (said[key]) return '';
+      said[key] = 1;
       return `
       <button class="chip sm" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */

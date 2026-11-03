@@ -24021,6 +24021,7 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     const kinds = kind ? said(withAns) : [];
     if (kinds.indexOf('Answers') === -1) bad.push('a question with an answer tells What kind ' + JSON.stringify(kinds) + ' -- no "Answers" beside its own kind');
     if (kinds.length < 2) bad.push('choosing answers took the question\'s own kind off What kind');
+    if (kinds.indexOf('Practice') !== -1) bad.push('Which offers Practice, the kind above it, a second time (680)');
     const noAns = lib.items.find(x => x.kind === 'question' && !w.questionHasAns_(x));
     if (noAns && said(noAns).indexOf('Answers') !== -1) bad.push(noAns.name + ' has no answer and still says "Answers"');
     if (w.facetList().some(x => x.field === 'pageKind')) bad.push('the old hidden Page filter is still a facet');
@@ -32089,6 +32090,16 @@ check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers P
   else if (s.vals.some(v => v === 'Specimen paper' || v === '5-a-day') || s.vals.indexOf('Past paper') < 0) bad.push('Type offers ' + s.vals.join(', ') + ' — a specimen or 5-a-day beside the type it is under');
   s = ask(P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }]));
   if (!s.n || s.n.field !== 'typeOwn' || s.vals.indexOf('Specimen paper') < 0) bad.push('after Past paper the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.join(', ') + ')' : 'nothing') + ', not Which type with Specimen paper');
+  if (s.vals.indexOf('Past paper') >= 0) bad.push('after Past paper Which type offers Past paper again (680): ' + s.vals.join(', '));
+  /* 680, the owner's screenshot: Worksheet, then Which type offers 5-a-day alone, never Worksheet twice; and the chip row never repeats. */
+  const WS = P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Worksheet' }]);
+  s = ask(WS);
+  if (s.n && s.n.field === 'typeOwn' && s.vals.indexOf('Worksheet') >= 0) bad.push('after Worksheet Which type offers ' + s.vals.join(', ') + ' — Worksheet twice (680)');
+  T.RES().filters = WS.concat([{ field: 'typeOwn', value: 'Worksheet' }]).map(f => Object.assign({}, f));
+  const ch = R.filterChips ? R.filterChips() : '';
+  const words = (ch.match(/>\s*([^<]+?)<span class="chip-x"/g) || []).map(t => t.replace(/^>\s*|<span.*$/g, '').trim());
+  if (!R.filterChips) bad.push('filterChips is not reachable — the chip row NOT checked');
+  else if (new Set(words).size !== words.length) bad.push('the chip row repeats a label: ' + words.join(' · ') + ' (680)');
   /* 3. Inside one paper Questions and Answers are the same cards, and Which is still asked. */
   const paper = (s.l.find(x => x.kind === 'question' && x.row && x.row.paper_id && R.questionHasAns_(x)) || {}).row;
   if (paper) {
