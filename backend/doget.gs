@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-02-seat-620";
+const DOGET_VERSION = "2026-11-03-theme-740";
 
 
 function doGet(e) {
@@ -1026,7 +1026,8 @@ function doGet(e) {
         audience: norm(r.audience) || 'all',
         level: N(r.level_required) || 0,
         slot: S(r.slot), artId: S(r.art_id),
-        description: S(r.description), image: S(r.photo),
+        /* A THEME IS A TAG (740): history, space…; an empty cell is no tag. */
+        description: S(r.description), image: S(r.photo), theme: S(r.theme),
         inStock: ON_(r.active),
         fields: SHOP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
       });
@@ -1045,7 +1046,7 @@ function doGet(e) {
         acquire: 'buy', audience: 'all', level: 0, slot: '', artId: '',
         description: [S(r.description), S(r.place) || S(r.venue), cap ? 'up to ' + cap + ' children' : '']
           .filter(Boolean).join(' · '),
-        image: S(r.photo), inStock: true, fields: {}
+        image: S(r.photo), theme: '', inStock: true, fields: {}
       });
     });
 

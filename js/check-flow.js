@@ -1402,6 +1402,29 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   return bad;
 });
 
+/* ---------- A SHOP ITEM'S THEME IS A TAG (740): the fixture's themed items answer Theme; an empty theme is no tag ---------- */
+check('shop themes (740): a shop item with a theme carries a Theme tag and is found by it; one with an empty theme carries none', async () => {
+  const p = payload();
+  /* THE FIXTURE'S SHOP (check/fixture.json), which tags four items and leaves the rest blank. */
+  try { p.shop = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'check', 'fixture.json'), 'utf8')).shop; } catch (e) { return ['check/fixture.json did not load — NOT checked']; }
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const all = typeof w.stuffItemsAll_ === 'function' ? (w.stuffItemsAll_() || []).filter(x => x.kind === 'shop') : [];
+  if (!all.length) return ['no shop items reached the finder — NOT checked'];
+  const bad = [], f = w.facetList().find(x => x.field === 'shopTheme');
+  if (!f) return ['there is no Theme facet on shop items'];
+  const themed = all.filter(x => x.shopTheme), plain = all.filter(x => !x.shopTheme);
+  if (themed.length < 2) bad.push('only ' + themed.length + ' fixture shop items carry a theme');
+  if (!plain.length) bad.push('no fixture shop item has an empty theme, so the fallback is untested');
+  const vals = w.facetValues(all, f).map(v => v.value).sort().join();
+  if (vals !== 'History,Maths') bad.push('Theme offers ' + vals + ', wanted History,Maths');
+  const rul = themed.find(x => x.key === 'Ruler (30cm)');
+  if (!rul || !/data-tag="kind"[^>]*>[^<]*Maths/.test(String(w.thingCard_(rul, 0)))) bad.push('the themed ruler\'s card does not show its Maths tag');
+  const pen = plain[0] && String(w.thingCard_(plain[0], 0));
+  if (pen && /Theme/.test(pen)) bad.push('an unthemed item says Theme');
+  return bad;
+});
+
 /* ---------- A PENCE PRICE IS MONEY, AND A SHOP LINE IS ONE LINE § */
 check('a pence-priced shop item goes in the basket as money, on one line', async () => {
   const p = payload();
@@ -31785,7 +31808,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548, 650): Library → Mechanics offers Part and Car; Car → Brand BMW → Model E30; Part → Brand Renault → Model Clio narrows to its parts; the Parts tile on a car card opens them; a part card draws its words and source', async () => {
+check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car offers the Clio\'s four engines; Part → Engine 1.5 dCi narrows to its parts; the Parts tile on a car card opens them; cards are minimal, with no picture', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31806,33 +31829,33 @@ check('Mechanics (548, 650): Library → Mechanics offers Part and Car; Car → 
   const kinds = vals('mKind').sort().join(',');
   if (kinds !== 'Car,Part') bad.push('Mechanics → Card type offers ' + kinds);
   const base = S.filters.slice();
-  S.filters.push({ field: 'mKind', value: 'Car' }, { field: 'mMake', value: 'BMW' });
-  if (vals('mModel').join() !== 'E30') bad.push('Car → BMW offers models ' + vals('mModel').join(', '));
-  if (vals('mEngine').length !== 4) bad.push('BMW cars offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  /* ONE CAR (740): Brand and Model went, so Engine is the question that splits. */
+  ['mMake', 'mModel'].forEach(f => { if (w.facetList().some(x => x.field === f)) bad.push('the ' + f + ' facet is back, with one car to split'); });
+  S.filters.push({ field: 'mKind', value: 'Car' });
+  if (vals('mEngine').length !== 4) bad.push('the Clio offers ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
   S.filters = base.concat({ field: 'mKind', value: 'Part' });
-  if (vals('mMake').sort().join() !== 'BMW,Renault') bad.push('Part → Brand offers ' + vals('mMake').join(', '));
-  S.filters.push({ field: 'mMake', value: 'Renault' });
-  /* A part fitting both cars answers both models, so E30 may stay on offer; Clio must be. */
-  if (vals('mModel').indexOf('Clio') < 0) bad.push('Part → Renault offers models ' + vals('mModel').join(', '));
-  S.filters.push({ field: 'mModel', value: 'Clio' });
-  const clio = w.stuffFiltered();
-  if (!clio.length || clio.some(x => (x.mModel || []).indexOf('Clio') < 0)) bad.push('Part → Renault → Clio found ' + clio.length + ', not only Clio parts');
-  if (clio.length >= all.filter(x => x.mKind === 'Part').length) bad.push('Part → Renault → Clio did not narrow');
-  const car = all.find(x => x.mKind === 'Car' && x.mModel === 'E30');
-  const tile = /data-do="mech-parts"[^>]*data-car="E30"/.test(w.mechCard_(car));
-  if (!tile) bad.push('a car card offers no Parts tile');
+  const parts = w.stuffFiltered().length;
+  if (parts < 60) bad.push('Part found ' + parts + ' Clio parts, wanted 60 or more');
+  S.filters.push({ field: 'mEngine', value: '1.5 dCi (K9K)' });
+  const dci = w.stuffFiltered();
+  if (!dci.length || dci.some(x => (x.mEngine || []).indexOf('1.5 dCi (K9K)') < 0)) bad.push('Part → 1.5 dCi found ' + dci.length + ', not only its parts');
+  if (dci.length >= parts) bad.push('Part → 1.5 dCi did not narrow');
+  if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
+  const car = all.find(x => x.mKind === 'Car' && x.mEngine === '1.5 dCi (K9K)');
+  const chtml = car ? w.mechCard_(car) : '';
+  if (!/data-do="mech-parts"[^>]*data-engine="1.5 dCi \(K9K\)"/.test(chtml)) bad.push('a car card offers no Parts tile');
   else {
-    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.make = 'BMW'; b.dataset.car = 'E30'; w.document.body.appendChild(b); b.click(); b.remove();
+    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.engine = '1.5 dCi (K9K)'; w.document.body.appendChild(b); b.click(); b.remove();
     const got = t.STUFF().filters.map(c => c.field + '=' + c.value).join();
-    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mMake=BMW,mModel=E30') bad.push('the Parts tile set ' + got);
+    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mEngine=1.5 dCi (K9K)') bad.push('the Parts tile set ' + got);
   }
+  if (!/Renault · Clio/.test(chtml) || !/<b>Engine<\/b>/.test(chtml)) bad.push('a car card does not say brand, model and engine');
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
-  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
-  /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
-  for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
-  const model = all.find(x => x.mKind === 'Car');
-  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or car card draws no picture');
+  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/<b>Fits<\/b>/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw what it is, its number, price, fits and tags');
+  /* MINIMAL (740): no picture and no extra sections. */
+  if (/mech-pic|<img|viewBox="0 0 64 64"/.test(html + chtml)) bad.push('a part or car card draws a picture');
+  if ((html.match(/<p><b>/g) || []).length !== 4 || (chtml.match(/<p><b>/g) || []).length !== 2) bad.push('a card draws more than its minimal rows');
   return bad;
 });
 

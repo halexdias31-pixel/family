@@ -7155,7 +7155,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hy-verse + .hy-verse { margin-top: .6rem; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
-.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 8px; image-rendering: pixelated; }
 
 /* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
 .tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }

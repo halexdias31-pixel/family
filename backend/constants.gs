@@ -127,7 +127,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-02-seat-620";
+const BACKEND_VERSION = "2026-11-03-theme-740";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -334,7 +334,7 @@ const SCHEMA = {
   /* ---------- `resources` WAS A TAB, THEN A KIND OF ROW, AND IS NOW NEITHER § */
   /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING § */
   shop: [
-    "item_id", "name", "brand", "kind", "description", "photo",
+    "item_id", "name", "brand", "kind", "theme", "description", "photo",
     "audience", "acquire",
     "price_pence", "price_ticks", "price_coins", "value_pence",
     "stock", "max_per_person", "returnable", "contains",
@@ -1295,7 +1295,7 @@ const HANDLE_ALLOWED = {
 /* What an admin may change on a shop item. Same pattern as everything else: one list drives the
    form AND the write allow-list, so the two can't drift apart. */
 const SHOP_GROUPS = {
-  'What it is': ['name', 'brand', 'kind', 'description', 'photo'],
+  'What it is': ['name', 'brand', 'kind', 'theme', 'description', 'photo'],
   'Who and how': ['audience', 'acquire'],
   'Price':      ['price_pence', 'price_ticks', 'price_coins', 'level_required'],
   'Wearable':   ['slot', 'art_id'],

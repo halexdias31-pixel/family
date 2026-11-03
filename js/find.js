@@ -442,8 +442,6 @@ const FACETS = [
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mMake',     label: 'Brand',       of: x => x.mMake || '' },
-  { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
   { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
@@ -481,6 +479,8 @@ const FACETS = [
   { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
   { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
   { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
+  /* A THEME (740): "just tags for items in shops… like history", from the shop tab's `theme` column. */
+  { field: 'shopTheme', label: 'Theme',       of: x => x.shopTheme || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -10508,6 +10508,7 @@ function shopTags_(r) {
   const who = String(r.audience || 'all').trim().toLowerCase();
   return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
            shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
+           shopTheme: String(r.theme || (r.fields && r.fields.theme) || '').trim(),
            shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
 }
 
@@ -10589,9 +10590,9 @@ const TAG_OF = {
   /* EVERY WRITING'S (520), in kinds that already have colours. */
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
-  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level',
+  mKind: 'type', mSystem: 'topic', mEngine: 'level',
   cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
-  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
+  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper', shopTheme: 'kind',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
