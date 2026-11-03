@@ -542,14 +542,32 @@ function einkIconBits_(ic, then) {
   img.onerror = () => then(null);
   img.src = 'data/icons/120/' + ic.id + '.png';
 }
+/* HOW MANY DEVICE PIXELS EACH PANEL PIXEL TAKES: the most whole number that fits the panel's box. */
+function einkScale_(cv) {
+  const box = cv.parentElement, w = box ? box.clientWidth : 0, dpr = window.devicePixelRatio || 1;
+  return Math.max(1, Math.floor((w || EINK_PX) * dpr / EINK_PX));
+}
+/* THE PANEL'S TWO INKS, read off its tokens (--eink-black, --eink-white), so the canvas is the colours the stylesheet names. */
+function einkInk_(cv) {
+  const rgb = (v, or) => { const m = /(\d+)\D+(\d+)\D+(\d+)/.exec(v || ''); return m ? [+m[1], +m[2], +m[3]] : or; };
+  let cs = null; try { cs = getComputedStyle(cv.parentElement || cv); } catch (e) {}
+  return [rgb(cs && cs.color, [20, 20, 20]), rgb(cs && cs.backgroundColor, [232, 230, 222])];
+}
 function einkDraw_(cv) {
   const list = einkList_(), mode = einkMode_(), icon = mode === 'icon', item = list[(icon ? EINK.icon : mode === 'verse' ? EINK.verse : 0) % (list.length || 1)];
   const put = bits => {
     let g = null; try { g = cv.getContext('2d'); } catch (e) {}
     const px = einkPage_(mode, icon ? Object.assign({}, item, { bare: EINK.bare }) : item, bits); if (!g || !px) return;
-    const im = g.createImageData(EINK_PX, EINK_PX);
-    for (let i = 0; i < px.length; i++) { const v = px[i] ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+    /* WHOLE DEVICE PIXELS PER PANEL PIXEL (720): a 200px page stretched to 1.75x on a phone drew some dots twice as wide as others, and a dither turned to stripes. */
+    const k = einkScale_(cv), S = EINK_PX * k;
+    if (cv.width !== S) { cv.width = S; cv.height = S; }
+    const im = g.createImageData(S, S), dk = einkInk_(cv);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const o = (y * S + x) * 4, c = px[Math.trunc(y / k) * EINK_PX + Math.trunc(x / k)] ? dk[0] : dk[1];
+      im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = 255;
+    }
     g.putImageData(im, 0, 0);
+    cv.style.width = cv.style.height = (S / (window.devicePixelRatio || 1)) + 'px';
   };
   if (icon) einkIconBits_(item, put); else put(null);
 }

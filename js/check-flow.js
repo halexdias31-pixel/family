@@ -2747,7 +2747,7 @@ check('486: every top-level card and widget in every column has the one Report t
       const sec = a.d.getElementById('s-' + tab);
       if (!sec) continue;
       /* TOP-LEVEL: a card inside no other card; locked and the padlock line have nothing to press (467). An EMPTY card has its Suggest too (owner, 1 Nov: "no buttons on 'saved'"). */
-      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-locked, .rank-off, .col-lock, .add-card, .people-none, .set-none'));
+      const cards = [...sec.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && !c.matches('.is-locked, .rank-off, .col-lock, .people-none, .set-none'));
       cards.forEach(c => {
         seen++;
         /* A PERSON'S CARD HAS ITS ROW RIGHT AFTER IT (`withTiles_`, find.js). */
@@ -2756,6 +2756,9 @@ check('486: every top-level card and widget in every column has the one Report t
       });
     }
     if (seen < 10) bad.push(rank + ': only ' + seen + ' cards were seen, so the rule was NOT checked');
+    /* YOUR OWN POST AND A "+" CARD TOO (720): both had been let off. */
+    if (!/rep-box/.test(a.w.postTiles_({ id: 'P-own', mine: true, title: 'Mine' }))) bad.push(rank + ': your own post has no Suggest a change');
+    if (!/rep-box/.test(a.w.addCard_({ act: 'media-add', label: 'Add a reel', data: { kind: 'reel' } }))) bad.push(rank + ': a "+" card has no Suggest a change');
   }
   return bad;
 });

@@ -11742,6 +11742,9 @@ function docketSave(list) {
 function paintDocket() {
   const host = $('docket-body');
   if (!host) return;
+  /* SIGNED OUT, NO ADD ROW (720): it took a line and did nothing with it, which reads as broken. */
+  const row = host.parentElement && host.parentElement.querySelector('.dock-new');
+  if (row) row.hidden = !USER;
   if (!USER) { host.innerHTML = '<p class="empty">Sign in to keep a docket.</p>'; return; }
   /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
   const gt = $('docket-gtasks');

@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-02-merge-7";
+  --css-version: "2026-11-03-notes-720";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1847,6 +1847,7 @@ button.text-drop { color: var(--bad); }
 @media (hover: none) { .dock-row .text-drop { opacity: .5; } }
 
 .dock-new { display: flex; gap: .4rem; align-items: stretch; margin-top: .5rem; }
+.dock-new[hidden] { display: none; }
 .dock-new input { flex: 1; min-width: 0; }
 /* `.btn.tiny` AND THIS RULE ARE BOTH TWO CLASSES, so the one written later wins — and `.btn.tiny` is ninety lines below, setting `font-size: .8rem`. § */
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
@@ -3398,7 +3399,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
-.prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
+/* NO STRONGER OUTLINE FOR "Teaches" (720, owner: "one of the tags is harder outlined"): the caption over the row says which they teach; every chip is drawn alike. */
 .prof-tags + .prof-teach { margin-top: .35rem; }
 /* THE LEVELS, RAISED AFTER THE SUBJECT — `teachChip_` in cards.js. § */
 .prof-lv {
@@ -5418,6 +5419,12 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-height: 8rem;
   overflow-y: auto;
 }
+/* NO TITLE ON A WIDGET (720, owner: "none of the widgets need titles"): its heading stays for a screen reader, and its slot is a region named for it. */
+.card.is-widget .widget-slot > h3:first-child,
+.card.is-widget .widget-slot > .card:first-child > h3:first-child {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 .card.is-widget > h3 {
   margin: 0 0 .6rem;
   font: 700 .72rem/1 var(--mono);
@@ -6888,7 +6895,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   border: 1px solid var(--line); margin: .4rem auto .6rem; max-width: calc(400px + 1.4rem);
 }
 .eink-panel { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: var(--eink-white); color: var(--eink-black); }
-.eink-px { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+/* SIZED BY einkDraw_ to whole device pixels per panel pixel (720), and centred in the panel; never resampled. */
+.eink-px { display: block; margin: auto; max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.eink-panel { display: grid; place-items: center; }
 .eink-words { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .eink-words p { margin: 0; }
 .eink-none { margin: 0; padding: 1rem; font-size: .9rem; }
@@ -7107,6 +7116,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
 .sp-q { flex: 1; min-width: 0; min-height: 44px; border-radius: 999px; padding: 0 1rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
 /* ---------- FAVOURITE LINKS (509): one line per link, its tiles on the same line ---------- */
+/* A GRID OF THE SITES (720): icon over name; the letter sits under the icon and shows when the site has none. */
+.fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .6rem .4rem; margin: .2rem 0 .6rem; }
+.fav-cell { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-width: 0; min-height: 44px; padding: .35rem .1rem;
+  border-radius: 10px; color: var(--ink); text-decoration: none; }
+.fav-ico { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); overflow: hidden; --fav-plate: #fff; }
+/* A SITE'S OWN ICON IS DRAWN FOR A WHITE PAGE, so it sits on a white plate; the letter alone keeps the screen's own colours. */
+.fav-ico:has(.fav-img) { background: var(--fav-plate); }
+.fav-letter { font-weight: 700; font-size: 1.1rem; color: var(--dim); }
+.fav-img { position: absolute; inset: 9px; width: 26px; height: 26px; object-fit: contain; background: var(--fav-plate); }
+.fav-name { max-width: 100%; font-size: .72rem; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-row { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--line); }
 .fav-a { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-host { margin-left: .4rem; color: var(--faint); font-size: .72rem; }
