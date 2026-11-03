@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-02-merge-5";
+  --css-version: "2026-11-02-merge-7";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5226,7 +5226,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- A NUMBERED RUN IS A GRID, NOT A PARAGRAPH OF PILLS § */
 .answers.is-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: .4rem .35rem; }
-.answers.is-grid > .row.tap.counted { min-width: 0; padding: 0; border-radius: 8px; }
+/* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
+.answers.is-grid > .row.tap.counted { min-width: 0; padding: 0; }
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; padding: .2rem .7rem; border-radius: 16px; }
 
@@ -6786,6 +6787,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-series .row .k, .prog-sessions .row .k, .miss-card .row .k { flex: 1 1 auto; min-width: 0; }
 .prog-count .row .v, .prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v,
 .prog-series .row .v, .prog-sessions .row .v, .miss-q > summary .v, .miss-done .v { flex: 0 0 auto; }
+/* THE CARD IS ONE LINE UNTIL ITS TILE OPENS THE LIST (660). */
+.miss-card .miss-sum { margin: .2rem 0 .3rem; font-size: .9rem; }
+.miss-card > h3 { margin-bottom: .2rem; }
 
 /* DAIVE (449, 461): a conversation drawn as any other; only the disc is filled gold, and the composer greys while it waits. */
 .dm-av.daive-av { background: var(--gold); color: var(--on-gold); }
@@ -7162,3 +7166,5 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tl-when { margin: 0; color: var(--dim); font-size: .85rem; }
 @keyframes tl-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
+.rep-vids { margin: .4rem 0; }
+.rep-vid { align-items: center; }

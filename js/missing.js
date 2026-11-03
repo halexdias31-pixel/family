@@ -1,7 +1,7 @@
 /* @family. — missing.js WHAT'S MISSING (526): an admin's card above Find, the papers data/settings/expected-papers.json expects against the covers in the library. */
 /* The owner: "add a widget above Finder which tells me what stuff is missing to add". Read only; docs/library.md says how to edit the list. */
 
-const MISSING = { list: null, asking: false, memo: { rows: null, list: null, out: null } };
+const MISSING = { list: null, asking: false, all: false, memo: { rows: null, list: null, out: null } };
 /* WHICH MONTHS A SERIES' PAPERS ARE DATED: a June series sits in May and June. */
 const MISSING_SERIES = { June: ['5', '6'], November: ['11'] };
 /* A PAPER AS THE LIST SPELLS IT: its number (31 is Edexcel's Paper 31), then F or H when only that tier will do. */
@@ -51,8 +51,15 @@ function missingRepaint_() {
   if (!el) return;
   const html = missingBody_();
   if (/class="loading"/.test(html)) return;
+  /* THE CARD'S OWN TILES JOINED INTO THE LIST'S ROW (tileRowsJoin_, 489) are kept, so The list never takes Delete away (660). */
+  const kept = [...el.querySelectorAll('.tile-group')];
   el.innerHTML = html;
   el.removeAttribute('aria-busy');
+  if (kept.length) {
+    let row = [...el.children].filter(c => c.classList.contains('tile-row')).pop();
+    if (!row) { row = document.createElement('div'); row.className = 'tile-row'; el.after(row); }
+    kept.forEach(g => row.appendChild(g));
+  }
 }
 
 /* ---------- ONE LINE OF THE LIST, READ — or null when it cannot be (counted on the card, never silent) ---------- */
@@ -160,9 +167,15 @@ function missingBody_() {
   const r = missingNow_();
   const unread = r.unread ? `<p class="note">${r.unread} ${r.unread === 1 ? 'line' : 'lines'} of expected-papers.json not understood.</p>` : '';
   if (!r.quals.length) return '<p class="note">Nothing listed to expect yet.</p>' + unread;
-  const waiting = r.waiting ? `<p class="note">${r.waiting} ${r.waiting === 1 ? 'paper' : 'papers'} waiting for their words.</p>` : '';
-  return waiting + r.quals.map(missingQual_).join('') + unread;
+  /* ONE LINE, THEN THE LIST ON A TILE (660): "needs to be smaller". The summary counts; the tile opens what it counted. */
+  const papers = r.quals.reduce((n, g) => n + g.missing, 0), gaps = r.quals.filter(g => g.missing).length;
+  const say = (papers ? papers + ' ' + (papers === 1 ? 'paper' : 'papers') + ' missing in ' + gaps + ' of ' + r.quals.length
+    : 'All ' + r.quals.length + ' complete') + (r.waiting ? ' · ' + r.waiting + ' waiting for words' : '');
+  const tile = typeof tile_ === 'function'
+    ? `<div class="tile-row">${tile_({ icon: MISSING.all ? 'up' : 'down', label: MISSING.all ? 'Fewer' : 'The list', act: 'miss-all' })}</div>` : '';
+  return `<p class="miss-sum">${esc(say)}</p>` + (MISSING.all ? r.quals.map(missingQual_).join('') : '') + tile + unread;
 }
+if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
 function missingCard_() {
   const body = missingBody_();
   const waits = /class="loading"/.test(body);

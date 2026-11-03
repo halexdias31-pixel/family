@@ -15,7 +15,12 @@ try {
   try { placeCells('x', true); } catch (err2) {}
 }
 
+/* THE REST OF THE CODE FIRST (670), then the payload's wait and the library share the wire with nothing the first screen needs. */
+try { laterFiles_(); } catch (e) { /* load() asks again */ }
 load();
+/* THE LIBRARY ONCE THE FIRST SCREEN IS UP (630), not from the head, where it held the code back; `load()` waits on these same promises. */
+/* THE SETTINGS AT ONCE (a few KB the payload's columns need); THE LIBRARY BEHIND THE LATER CODE (670), so its megabyte never holds the feed's code back. */
+try { settingsRows_(); laterFiles_().then(() => { try { libraryRows_(); libraryExtraRows_(); } catch (e) { /* load() asks again */ } }); } catch (e) { /* load() asks again and says what failed */ }
 /* AND THE REST WHEN THE PHONE IS IDLE (466), so the first screen answers a tap at once: what needs no payload (`aheadPreOpen_`), and the old splash's store. */
 const bootIdle_ = f => { try { (window.requestIdleCallback || (g => setTimeout(g, 1)))(() => { try { f(); } catch (e) {} }, { timeout: 2000 }); } catch (e) {} };
 bootIdle_(() => aheadPreOpen_());

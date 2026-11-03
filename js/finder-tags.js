@@ -4,18 +4,18 @@ const FINDER_TAGS = {
 "views": {
 "bible@18": {
   "": ["kindLabel",[["Practice"],["Library"]]],
-  "kindLabel=Practice": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Design and Technology"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]]],
+  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Science"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]]],
   "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Islam"],["Judaism"],["Mesopotamian religion"]]]
 },
 "@0": {
   "": ["kindLabel",[["Practice"],["Library"]]],
-  "kindLabel=Practice": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Design and Technology"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Statistics"]]],
+  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Russian"],["Science"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]]]
 },
 "@14": {
   "": ["kindLabel",[["Practice"],["Library"]]],
-  "kindLabel=Practice": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Design and Technology"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]]],
+  "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Science"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]]],
   "kindLabel=Library&subject=Religious Studies": ["level",[["A-Level"],["GCSE"]]]
 }

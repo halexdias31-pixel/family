@@ -703,14 +703,15 @@ function reportBoxHtml_(kind, id, label, finder, path) {
     ${path ? `<p class="faint rep-path">Path: ${esc(path)}</p>` : ''}
     <textarea class="rep-note-in" rows="3" maxlength="${SUGGEST_NOTE_MAX}" autocomplete="off"
       placeholder="${people ? 'What is wrong? (you can leave this empty)' : 'What should change here?'}" aria-label="${suggestTell_(kind) ? 'Tell the admin' : 'Suggest a change'}"${draftAttr_('rep', dk)}>${esc(draftVal_('rep', dk))}</textarea>
-    <input type="file" accept="image/*" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
+    <input type="file" accept="${files ? 'image/*,video/*' : 'image/*'}" class="rep-pic-in" hidden aria-hidden="true" tabindex="-1">
     <img class="rep-pic-show" alt="The picture going with it" hidden>${files ? `
+    <div class="rep-vids" hidden></div>
     <input type="file" multiple class="rep-files-in" hidden aria-hidden="true" tabindex="-1">
     <input type="file" multiple webkitdirectory directory class="rep-dir-in" hidden aria-hidden="true" tabindex="-1">
     <ol class="faint rep-file-list" hidden></ol><p class="faint rep-file-total" aria-live="polite" hidden></p>
     ${repNoDir_() ? '<p class="faint rep-no-dir">On iPhone, Safari cannot choose a folder: use Add files and pick several at once.</p>' : ''}` : ''}
     <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: admin ? 'to Claude' : 'to the admin', act: 'rep-send', cls: 'rep-send is-submit' })}${
-      people ? '' : tile_({ icon: 'photo', label: 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
+      people ? '' : tile_({ icon: 'photo', label: files ? 'Add a picture or video' : 'Add a picture', note: 'camera or library', act: 'rep-pic', cls: 'rep-pic' })}${
       files ? tile_({ icon: 'doc', label: 'Add files', note: 'PDFs, pictures, docx, zip', act: 'rep-files', cls: 'rep-files-t' }) : ''}${
       files && !repNoDir_() ? tile_({ icon: 'plus', label: 'Add a folder', note: 'keeps its subfolders', act: 'rep-dir', cls: 'rep-dir-t' }) : ''}${
       tile_({ icon: 'close', label: 'Cancel', act: 'rep-cancel' })}</div>
@@ -719,14 +720,14 @@ function reportBoxHtml_(kind, id, label, finder, path) {
       : people ? 'Only the admin sees this, and they are told at once.' : 'The admin reads it first; nothing changes until they do.'}</p>
   </div>`;
 }
-/* THE FUNNEL PATH (498): a suggestion made on Find or Find 2 says which answers and words led there, e.g. "Learning › Library › History". */
+/* THE FUNNEL PATH (498): a suggestion made on Find or Find 2 says which answers and words led there, in the chips' own words (660), never a field name. */
 function reportPath_(el) {
   try {
     const sc = el && el.closest ? el.closest('.screen') : null;
     const F = sc && typeof finderOf_ === 'function' ? finderOf_(String(sc.id).replace(/^s-/, '')) : null;
     if (!F) return '';
     return inFinder_(F, () => {
-      const steps = (STUFF.filters || []).map(f => f.any ? 'any ' + f.field : String(f.value || '')).filter(Boolean);
+      const steps = (STUFF.filters || []).map((f, i) => { try { return String(chipText_(f, i)); } catch (e) { return f.any ? 'any' : String(f.value || ''); } }).filter(Boolean);
       if (STUFF.q) steps.push('words "' + String(STUFF.q).trim().slice(0, 60) + '"');
       return (F.id === 'res' ? 'Find 2' : 'Find') + (steps.length ? ' › ' + steps.join(' › ') : '');
     });
@@ -764,6 +765,13 @@ document.addEventListener('change', e => {
   const form = i.closest('.rep-box'), file = i.files && i.files[0];
   if (!form || !file) return;
   const said = form.querySelector('.rep-said'), show = form.querySelector('.rep-pic-show');
+  /* A VIDEO FROM THE CAMERA ROLL (640) goes the admin's files route, with its frames; a picture stays the note's picture. */
+  if (/^video\//.test(file.type || '') || /\.(mov|mp4|m4v|webm)$/i.test(file.name || '')) {
+    if (form.querySelector('.rep-files-in')) repFilesAdd_(form, [file], false);
+    else if (said) said.textContent = 'A video cannot go from here: send a picture instead.';
+    try { i.value = ''; } catch (err) { /* a picker that will not clear only means the same file cannot be picked twice */ }
+    return;
+  }
   reportPicShrink_(file).then(data => {
     REP_PIC.set(form, data);
     if (show) { show.src = data; show.hidden = false; }
@@ -783,6 +791,7 @@ const repMb_ = n => (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB';
 function repFilesDraw_(form) {
   const list = REP_FILES.get(form) || [], ol = form.querySelector('.rep-file-list'), tot = form.querySelector('.rep-file-total');
   if (!ol || !tot) return;
+  repVidsDraw_(form, list);
   ol.hidden = tot.hidden = !list.length;
   ol.innerHTML = list.slice(0, 50).map(x => `<li class="rep-file is-${x.state}">${esc(x.rel)} · ${
     x.state === 'done' ? 'sent' : x.state === 'failed' ? 'failed — Send tries it again' : x.state === 'sending' ? Math.floor(100 * x.sent / Math.max(1, x.file.size)) + '%' : repMb_(x.file.size)}</li>`).join('')
@@ -821,6 +830,7 @@ async function repSendFile_(form, x, b) {
       } while (start < x.file.size);
       x.state = 'done'; repFilesDraw_(form);
       await repSmallCopy_(x, b, rel);
+      await repFramesSend_(form, x, b, rel);
       return true;
     } catch (e) { x.error = why_(e); }
   }
@@ -844,7 +854,9 @@ function repFilesAdd_(form, files, dir) {
     const rel = String((dir && f.webkitRelativePath) || f.name).replace(/^\/+/, '');
     if (f.size > REP_FILE_MAX) { big.push(f.name); return; }
     if (!f.size || list.some(x => x.rel === rel && x.file.size === f.size)) return;
-    list.push({ file: f, rel, state: 'wait', sent: 0 });
+    const x = { file: f, rel, state: 'wait', sent: 0 };
+    list.push(x);
+    if (repIsVideo_(f)) repFramesMake_(form, x);
   });
   REP_FILES.set(form, list);
   repFilesDraw_(form);
@@ -859,6 +871,107 @@ document.addEventListener('change', e => {
   if (form) repFilesAdd_(form, i.files, i.classList.contains('rep-dir-in'));
   try { i.value = ''; } catch (err) {}
 });
+/* ---------- A VIDEO ALSO GOES AS FRAMES (640): Claude reads Drive through a connector that cannot watch video, so the phone makes `<name>.frames-N.jpg` contact sheets and a `.small.jpg`. */
+const REP_FRAMES_MAX = 24, REP_FRAMES_STEP = 0.5, REP_SHEET_W = 1280, REP_SHEET_COLS = 4, REP_SHEET_PER = 12, REP_SHEET_BYTES = 150 * 1024, REP_SEEK_MS = 8000;
+const repIsVideo_ = f => /^video\//.test((f && f.type) || '') || /\.(mov|mp4|m4v|webm)$/i.test((f && f.name) || '');
+/* ONE TILE PER VIDEO: attached, its frames being made (the dots), made, or not made — said plainly. */
+function repVidsDraw_(form, list) {
+  const el = form.querySelector('.rep-vids');
+  if (!el) return;
+  const vids = list.filter(x => repIsVideo_(x.file));
+  el.hidden = !vids.length;
+  el.innerHTML = vids.map(x => {
+    const note = x.frames === 'making' ? 'video attached · making its frames'
+      : Array.isArray(x.frames) ? `video attached · ${x.frameCount} frames on ${x.frames.length} sheet${x.frames.length === 1 ? '' : 's'}`
+      : 'video attached · no frames: ' + (x.framesError || 'this browser could not read it') + '. The video still goes.';
+    return `<div class="tile-row rep-vid${x.frames === 'making' ? ' is-making' : ''}"${x.frames === 'making' ? ' aria-busy="true"' : ''}>${
+      tile_({ icon: 'play', label: x.rel.split('/').pop(), note, act: 'rep-pic', cls: 'rep-vid-t' })}${x.frames === 'making' ? loading_() : ''}</div>`
+      + `<p class="faint rep-vid-said">${esc(x.rel.split('/').pop())} · ${esc(note)}</p>`;
+  }).join('');
+}
+const repSeek_ = (v, t) => new Promise((ok, no) => {
+  const done = () => { clearTimeout(k); v.removeEventListener('seeked', done); ok(); };
+  const k = setTimeout(() => { v.removeEventListener('seeked', done); no(new Error('the video would not move to ' + t.toFixed(1) + ' s')); }, REP_SEEK_MS);
+  v.addEventListener('seeked', done);
+  v.currentTime = t;
+});
+const repStamp_ = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') + '.' + Math.floor((t % 1) * 10);
+/* A CANVAS AS A JPEG UNDER `max` bytes, trying lower quality first, then a smaller copy. */
+function repJpeg_(c, max) {
+  let out = '';
+  for (let k = 1; k > 0.3; k *= 0.75) {
+    let src = c;
+    if (k < 1) { src = document.createElement('canvas'); src.width = Math.max(1, Math.round(c.width * k)); src.height = Math.max(1, Math.round(c.height * k)); src.getContext('2d').drawImage(c, 0, 0, src.width, src.height); }
+    for (const q of [0.75, 0.6, 0.45]) { out = src.toDataURL('image/jpeg', q); if (out.length * 0.75 <= max) return out; }
+  }
+  return out;
+}
+/* THE FRAMES: one every half second, or spread over the whole video when it is longer than 12 s; 12 to a sheet, 4 across, each stamped with its time. */
+async function repVideoFrames_(file) {
+  const v = document.createElement('video'), url = URL.createObjectURL(file);
+  v.muted = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('playsinline', '');
+  try {
+    await new Promise((ok, no) => {
+      const k = setTimeout(() => no(new Error('the video did not open')), REP_SEEK_MS);
+      v.onloadeddata = () => { clearTimeout(k); ok(); };
+      v.onerror = () => { clearTimeout(k); no(new Error('this browser cannot play that video')); };
+      v.src = url;
+    });
+    const len = isFinite(v.duration) && v.duration > 0 ? Number(v.duration) : 0, W = v.videoWidth, H = v.videoHeight;
+    if (!W || !H) throw new Error('the video has no picture');
+    const step = Math.max(REP_FRAMES_STEP, len / REP_FRAMES_MAX), times = [];
+    for (let t = 0; t < Math.max(len, 0.01) && times.length < REP_FRAMES_MAX; t += step) times.push(Math.min(t, Math.max(0, len - 0.05)));
+    const cw = Math.floor(REP_SHEET_W / REP_SHEET_COLS), ch = Math.round(cw * H / W), sheets = [];
+    let small = '';
+    for (let s = 0; s < times.length; s += REP_SHEET_PER) {
+      const part = times.slice(s, s + REP_SHEET_PER), rows = Math.ceil(part.length / REP_SHEET_COLS);
+      const c = document.createElement('canvas');
+      c.width = cw * Math.min(REP_SHEET_COLS, part.length); c.height = ch * rows;
+      const g = c.getContext('2d');
+      g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < part.length; i++) {
+        await repSeek_(v, part[i]);
+        const x0 = (i % REP_SHEET_COLS) * cw, y0 = Math.floor(i / REP_SHEET_COLS) * ch;
+        g.drawImage(v, x0, y0, cw, ch);
+        if (!small) { const sc = document.createElement('canvas'), k = Math.min(1, REP_SMALL_SIDE / Math.max(W, H)); sc.width = Math.round(W * k); sc.height = Math.round(H * k); sc.getContext('2d').drawImage(v, 0, 0, sc.width, sc.height); small = repJpeg_(sc, REP_SMALL_MAX); }
+        const lab = repStamp_(part[i]);
+        g.font = 'bold 16px sans-serif'; g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(x0 + 4, y0 + 4, g.measureText(lab).width + 10, 22);
+        g.fillStyle = '#fff'; g.fillText(lab, x0 + 9, y0 + 21);
+      }
+      sheets.push(repJpeg_(c, REP_SHEET_BYTES));
+    }
+    if (!sheets.length || sheets.some(x => !/^data:image\/jpeg/.test(x))) throw new Error('the frames could not be drawn');
+    return { sheets, small, count: times.length };
+  } finally { try { v.removeAttribute('src'); v.load(); } catch (e) { /* letting go of the video is a courtesy */ } URL.revokeObjectURL(url); }
+}
+function repFramesMake_(form, x) {
+  x.frames = 'making';
+  x.framesJob = repVideoFrames_(x.file).then(r => { x.frames = r.sheets; x.small = r.small; x.frameCount = r.count; },
+    e => { x.frames = null; x.framesError = String((e && e.message) || e || 'unknown'); })
+    .then(() => repFilesDraw_(form));
+}
+/* ONE JPEG BY ITS DATA URL, in one part; best effort. */
+async function repSendJpeg_(b, rel, url) {
+  const data = String(url || '').replace(/^data:[^,]*,/, '');
+  if (!data) return false;
+  const size = Math.floor(data.length * 3 / 4) - (/==$/.test(data) ? 2 : /=$/.test(data) ? 1 : 0);
+  const d = await api({ action: 'suggestUpload', personId: USER.personId || '', batch: b.batch, rel,
+    upload: Date.now() + '-f' + Math.random().toString(36).slice(2, 8), size, start: 0, mime: 'image/jpeg', data });
+  return !!(d && !d.error);
+}
+/* AFTER THE VIDEO: its sheets and its small copy beside it. A failure is said under the row, and the video stays sent. */
+async function repFramesSend_(form, x, b, rel) {
+  if (!repIsVideo_(x.file)) return;
+  await Promise.resolve(x.framesJob);
+  const base = rel.replace(/\.[^./]*$/, ''), said = form.querySelector('.rep-said');
+  if (!Array.isArray(x.frames)) { if (said) said.textContent = `${rel} went, but its frames could not be made (${x.framesError || 'unknown'}): Claude will have only the video.`; return; }
+  try {
+    let ok = true;
+    for (let i = 0; i < x.frames.length; i++) ok = (await repSendJpeg_(b, `${base}.frames-${i + 1}.jpg`, x.frames[i])) && ok;
+    if (x.small) ok = (await repSendJpeg_(b, base + '.small.jpg', x.small)) && ok;
+    if (!ok && said) said.textContent = `${rel} went, but some of its frames did not.`;
+  } catch (e) { if (said) said.textContent = `${rel} went, but its frames did not: ${why_(e)}`; }
+}
 /* EVERY FILE NOT YET SENT, in order; resolves to the note's `files`, or null when one failed (Send again retries only those). */
 async function repFilesSend_(form) {
   const list = REP_FILES.get(form) || [];

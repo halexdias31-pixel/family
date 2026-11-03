@@ -62,6 +62,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
+                         { field: 'typeOwn', value: 'Worksheet' },
                          /* `Level · SATs` AND THEN `Key stage · KS2`. § */
                          { field: 'level', value: 'SATs' },
                          { field: 'keystage', value: 'KS2' },
@@ -90,6 +91,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
+                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' }];
         paintStuff();
@@ -111,6 +113,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
+                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
@@ -134,6 +137,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
+                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', any: true },
@@ -158,6 +162,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
+                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' },
@@ -184,6 +189,7 @@ const STATES = {
         STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
+                         { field: 'typeOwn', value: 'Worksheet' },
                          { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', value: 'Year 5' },
                          /* SATs, since 396 asks Level here (a Year 5 sheet filed GCSE makes two answers); then Paper, 13 sheets. */
@@ -204,6 +210,7 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
+                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
@@ -3127,10 +3134,11 @@ const STATES = {
              WILL PRINT IT (docs/history/345): £15.00 theirs and £3.00 the business's of a £30 rate. */
           && (form.querySelector('[data-pound="extra_seat_rate"]') || {}).value === '15.00'
           && (form.querySelector('[data-pound="extra_seat_cut"]') || {}).value === '3.00'
-          && /\+£18\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
+          && /\+£15\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
+          && /\+£3\.00\/h a seat/.test((form.querySelector('.ce-cut') || {}).textContent || '')
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
       },
-      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds, each on its own card, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) § */
     ...['', 'client', 'student'].map(role => ({
       /* ON THE ROLE'S SETTINGS COLUMN (464), where its card's name and picture are edited. */

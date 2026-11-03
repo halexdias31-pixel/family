@@ -53,6 +53,26 @@ function jsonp(url) {
   });
 }
 
+/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, appended in order once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
+let LATER_ASK = null, LATER_IN = false;
+function laterFiles_() {
+  if (LATER_ASK) return LATER_ASK;
+  const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER : [];
+  /* IN window.FILES' ORDER, whatever order LATER is written in: that list is the load order. */
+  const list = (Array.isArray(window.FILES) ? window.FILES : later).filter(f => later.indexOf(f) !== -1);
+  const t = window.LOAD ? '?t=' + window.LOAD : '';
+  LATER_ASK = !list.length || typeof document === 'undefined' ? Promise.resolve() : Promise.all(list.map(f => new Promise(done => {
+    const s = document.createElement('script');
+    s.async = false;    /* in the order given, as `defer` keeps the head's */
+    s.src = 'js/' + f + '.js' + t;
+    s.onload = done;
+    s.onerror = () => { try { window.__missing(f); } catch (e) { /* no list to name it in */ } done(); };
+    document.head.appendChild(s);
+  })));
+  LATER_ASK = LATER_ASK.then(() => { LATER_IN = true; });
+  return LATER_ASK;
+}
+
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */
 let MISSING_KEYS = {};
 function missingKeys() {

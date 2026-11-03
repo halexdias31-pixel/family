@@ -85,10 +85,16 @@ function world() {
     const d = save({ rate_per_hour: v });
     rule(!d.success && /rate/i.test(d.error || '') && String(b.row('P-T1').rate_per_hour) === '20', 'a rate of ' + why + ' (' + v + ') was saved', d);
   });
-  const seat = save({ rate_per_hour: 24, extra_seat_rate: 3 });
-  rule(!seat.success && String(b.row('P-T1').rate_per_hour) === '20', 'an extra seat past twice the rate was saved', seat);
+  /* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620): a share past 1 is refused, and 1 itself is the top. */
+  const seat = save({ rate_per_hour: 24, extra_seat_rate: 1.5 });
+  rule(!seat.success && /at most what the first student/.test(seat.error || '') && String(b.row('P-T1').rate_per_hour) === '20', 'an extra seat dearer than the first student (1.5 of the rate) was saved', seat);
   const cut = save({ extra_seat_cut: 0.1 });
   rule(!cut.success && /Only @family/.test(cut.error || ''), 'a tutor set the business\'s share of an extra seat', cut);
+  /* ONE REFUSED FIELD NO LONGER BLOCKS THE CARD (620): the class size is saved, the cut is named as left out. */
+  const part = save({ extra_seat_cut: 0.1, max_students: 3 });
+  rule(part.success && Number(b.row('P-T1').max_students) === 3 && String(b.row('P-T1').extra_seat_cut || '') === ''
+    && (part.refused || []).length === 1 && /Not saved: Only @family/.test(part.said || ''), 'a forced cut beside a class size did not save the class size and name the cut', part);
+  b.ev("(() => { const t = read(TAB.people); const r = t.rows.find(x => x.person_id === 'P-T1'); setCells(t, r, { pricing_changed_at: '' }); })()");
   const ok = save({ rate_per_hour: 24, extra_seat_rate: 0.25 });
   rule(ok.success && Number(b.row('P-T1').rate_per_hour) === 24 && Number(b.row('P-T1').extra_seat_rate) === 0.25 && b.row('P-T1').pricing_changed_at,
     'a good rate and seat (24, 0.25) were not saved through updateProfile', ok);
@@ -134,6 +140,8 @@ function world() {
   const phone = /const STAFF_RATE_MAX = (\d+)/.exec(read('js/staff.js'));
   const server = /const RATE_MAX = (\d+)/.exec(read('backend/constants.gs'));
   rule(phone && server && phone[1] === server[1], 'the phone\'s STAFF_RATE_MAX and the server\'s RATE_MAX differ', [phone && phone[1], server && server[1]]);
+  const seatP = /const STAFF_SEAT_MAX = (\d+)/.exec(read('js/core.js')), seatS = /const SEAT_RATE_MAX = (\d+)/.exec(read('backend/constants.gs'));
+  rule(seatP && seatS && seatP[1] === seatS[1] && seatS[1] === '1', 'the extra seat\'s top is not 1 (the first student\'s rate) on both the phone and the server', [seatP && seatP[1], seatS && seatS[1]]);
 }
 
 if (bad.length) {

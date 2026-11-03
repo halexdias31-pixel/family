@@ -1776,7 +1776,6 @@ function settingsSplit_() {
   if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
-    shown[g] = shown[g].filter(f => !hubOwns_(f));
     if (!shown[g].length) return;
     const mine = shown[g].filter(f => !staffField_(f, g)), staff = shown[g].filter(f => staffField_(f, g));
     const kid = mine.filter(f => !parentOnly_(f)), par = mine.filter(parentOnly_);
@@ -2387,8 +2386,8 @@ function fieldHtml(name, value, o) {
   o = o || {};
   /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: § */
   if (name === 'extra_seat_rate' && !o.label && !o.placeholder) {
-    o = Object.assign({}, o, { label: 'extra seat: share of your rate, 0–2 (0.5 = half)',
-      extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.05"' });
+    o = Object.assign({}, o, { label: 'extra seat: share of your rate, 0–' + STAFF_SEAT_MAX + ' (0.5 = half)',
+      extra: (o.extra || '') + ' type="number" min="0" max="' + STAFF_SEAT_MAX + '" step="0.05"' });
   }
   /* AND THE BUSINESS'S CUT OF IT, PER TUTOR SINCE docs/history/345 — the same kind of figure, so the same caption and the same bounds (`seatCutRefusal_`), and it § */
   if (name === 'extra_seat_cut' && !o.label && !o.placeholder) {
@@ -3737,7 +3736,10 @@ const CARD_SECTIONS = [
   { id: 'figure', own: true, cap: 'Your figure' },
   { id: 'name', bare: true, fields: ['first_name', 'last_name'] },
   { id: 'handle', own: true, cap: 'Handle' },
-  { id: 'rate', cap: 'Rate and class size', fields: ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut', 'min_students', 'max_students'] },
+  /* THREE CARDS, EACH ONE HOME (620): the rate and the tutor's seat k; @family.'s share g, an admin's; the class size. */
+  { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
+  { id: 'cut', cap: "@family.'s share", fields: ['extra_seat_cut'] },
+  { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
   { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
@@ -3768,8 +3770,7 @@ function ownCardSections_(col) {
   /* `col` (469): the Students face edits every account's four, whatever your rank; Tutors the rest, less what the Staff hub edits. None: both. */
   const all = cardSections_({ own: true, sent, bare: !cardMine_() });
   const you = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) !== -1);
-  const staff = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) === -1)
-    .map(s => Object.assign({}, s, { list: s.list.filter(f => !hubOwns_(f)) })).filter(s => s.list.length);
+  const staff = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) === -1 && s.list.length);
   if (!col) return you.concat(staff);
   /* WHAT YOU TEACH ONLY ON A PUBLIC TUTOR CARD, as on 444's Tutor column. */
   return (col === 'students' ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
@@ -3778,15 +3779,13 @@ const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
 /* A card whose first line is its own label (a fold's, or a field's) carries no title over it (491). */
 const OWN_SEC_UNTITLED_ = ['headline', 'photos', 'words', 'glance', 'quals', 'where', 'figure', 'handle'];
-const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', rate: 'Rate and class size', headline: 'Headline',
+const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
   photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
-  staff: ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
+  staff: ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
-/* WHAT THE STAFF HUB EDITS — Pricing's rate and seat — so no card offers it a second time (444); the week is Tutor settings' Available card (487). */
-const hubOwns_ = f => typeof hubFor_ === 'function' && hubFor_()
-  && (f === 'rate_per_hour' || f === 'extra_seat_rate');
+/* THE RATE, THE SEAT AND THE CLASS SIZE HAVE ONE HOME, the Rate and class size card (620); the hub's Pricing only tries figures and points here. */
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
 
 /* ---------- WHO HAS A PUBLIC CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM § */
@@ -4091,7 +4090,7 @@ function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
   const ro = (DATA && DATA.profileReadonly) || [];
   const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
-    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1, draft: false }, extra));
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1 || (f === 'extra_seat_cut' && !isAdmin()), draft: false }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
@@ -4106,7 +4105,9 @@ function cardEditForm_(t, e, vals, only) {
           fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
       : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
-      : s.id === 'rate' ? cardRateHtml_(L, val, box, e)
+      : s.id === 'seat' ? cardRateHtml_(L, val, box, e)
+      : s.id === 'cut' ? cardCutHtml_(L, val, box)
+      : s.id === 'size' ? cardSizeHtml_(L, val, box)
       : s.id === 'glance' ? ceFold_('glance', 'At a glance', esc(ceGlanceSay_(val)), fieldRows_(L, box))
       : s.id === 'where' ? ceWhere_(L, val, box)
       : fieldRows_(L, box);
@@ -4139,56 +4140,98 @@ function cardSeatShare_(f, typed, rate, was) {
   if (cardSeatShown_(f, rate, cell) === (usual ? '' : pounds2_(P).toFixed(2))) return cell;
   return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
 }
-/* A PART OUTSIDE 0 TO 2 OF THE RATE — what the server refuses for either part. Read as the typed share. */
-const cardSeatOff_ = vals => vals.some(v => { const x = num(v); return !isNaN(x) && (x < 0 || x > 2); });
-const cardSeatOffSay_ = rate => 'Each part is £0 to ' + money(pounds2_(rate * 2)) + '/h — twice the rate.';
-/* THE SEAT AS THE CARD WILL PRINT IT — `profSeat_` over the typed row, the card's own function. § */
-function cardSeatSay_(rate, seat, cut) {
+/* A PART PAST WHAT THE SERVER TAKES, read as the typed share: the tutor's 0 to `STAFF_SEAT_MAX` (620), @family.'s 0 to 2. */
+const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
+const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
+const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
+  ? "@family.'s part is £0 to " + money(pounds2_(rate * 2)) + '/h — twice the rate.'
+  : 'An extra seat adds £0 to ' + money(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
+/* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
+/* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
+function cardSeatParts_(rate, seat, cut) {
+  const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeat: seat, extraSeatCut: cut }) : { cUsed: 0, bUsed: 0, seatOwn: false, cutOwn: false };
+  return { k: s.cUsed, g: s.bUsed, kOwn: s.seatOwn, gOwn: s.cutOwn, kx: pounds2_(rate * s.cUsed), gx: pounds2_(rate * s.bUsed) };
+}
+/* WHAT n STUDENTS PAY AN HOUR, the formula above — what the booking charges before subjects, level, day and time multiply it. */
+const cardGroupTotal_ = (rate, seat, cut, n) => { const p = cardSeatParts_(rate, seat, cut); return pounds2_(rate * (1 + (p.k + p.g) * Math.max(0, n - 1))); };
+/* THE EXTRA SEAT CARD'S LINE: the tutor's part of each extra student, in pounds. */
+function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
-  if (cardSeatOff_([seat, cut])) return esc(cardSeatOffSay_(rate));
-  const x = typeof profSeat_ === 'function' ? profSeat_({ rate, extraSeat: seat, extraSeatCut: cut }) : 0;
-  return x > 0 ? `<span class="prof-seat">+${esc(money(x))}/h a seat</span>` : 'An extra seat adds nothing.';
+  if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
+  const p = cardSeatParts_(rate, seat, '');
+  return `<span class="prof-seat">+${esc(money(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
 }
-/* ---------- THE LINE UNDER IT: WHAT A BLANK AND A NOUGHT ARE, IN POUNDS, FOR BOTH PARTS § */
-function cardSeatNote_(rate, cut, o) {
-  const u = rate > 0 ? cardSeatUsual_(rate) : null;
-  const at = k => u ? ' ' + money(u[k]) : '';
-  const mine = (o.own ? 'Yours' : 'Theirs') + ': blank or £0 is the usual' + at('extra_seat_rate') + '.';
-  if (!o.hasCut) return mine;
-  if (o.mayCut) return mine + " @family.'s: blank is the usual" + at('extra_seat_cut') + ', £0 is no cut.';
-  if (!u) return mine + " @family.'s part is set by @family.";
-  const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeatCut: cut }) : { bUsed: 0, cutOwn: false };
-  return mine + ' ' + money(pounds2_(rate * s.bUsed)) + "/h of a seat is @family.'s" + (s.cutOwn ? '' : ', the usual')
-    + ' — only @family. sets that.';
+/* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
+function cardCutSay_(rate, cut) {
+  if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
+  if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
+  const p = cardSeatParts_(rate, '', cut);
+  return `<span class="prof-seat">+${esc(money(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
 }
+/* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
+function cardSizeSay_(rate, seat, cut, lo, hi) {
+  if (!(rate > 0)) return 'Set a rate and the class prices show here.';
+  const top = Math.max(1, Math.round(num(hi)) || 1), bottom = Math.max(1, Math.round(num(lo)) || 1);
+  const at = n => n + ': ' + money(cardGroupTotal_(rate, seat, cut, n));
+  return esc([...new Set([bottom, top])].sort((x, y) => x - y).map(at).join(' · ') + '/h');
+}
+/* ---------- THE RATE AND THE TUTOR'S EXTRA SEAT, ONE CARD (620): the seat in pounds beside the rate, kept as the share k ---------- */
 function cardRateHtml_(L, val, box, e) {
   const has = f => L.indexOf(f) !== -1;
   if (!has('rate_per_hour') || !has('extra_seat_rate')) return fieldRows_(L, box);
   const rate = num(val('rate_per_hour'));
   const live = rate > 0;
-  const mayCut = has('extra_seat_cut') && isAdmin();
-  const pound = (f, label) => fieldHtml(f, cardSeatShown_(f, rate, val(f)), { attr: 'data-pound', label, readonly: !live,
-    draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01"${
-      f === 'extra_seat_cut' ? ' inputmode="decimal"' : ''} placeholder="${esc(cardSeatPh_(rate))}"` });
-  const hidden = f => has(f) ? `<input type="hidden" data-me="${f}" value="${esc(String(val(f)))}"${
-    f === 'extra_seat_cut' && !mayCut ? ' disabled' : ''}>` : '';
   const own = !!(e && e.own);
-  const boxes = [pound('extra_seat_rate', own ? 'yours, £/h' : 'theirs, £/h')]
-    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s, £/h")] : []);
-  /* THE SEAT IS ONE LINE — what it adds, live — opening on its parts in pounds and what a blank is (425). */
+  const u = live ? cardSeatUsual_(rate) : null;
+  const pound = fieldHtml('extra_seat_rate', cardSeatShown_('extra_seat_rate', rate, val('extra_seat_rate')), { attr: 'data-pound',
+    label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
+    extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
   return box('rate_per_hour', {})
-    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</span>`,
-      `${boxes.join('')}${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
-       <p class="faint ce-note ce-seat-note" data-own="${own ? '1' : ''}">${esc(cardSeatNote_(rate, val('extra_seat_cut'),
-         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`)
-    + fieldRows_(L.filter(f => ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut'].indexOf(f) === -1), box);
+    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
+      `${pound}<input type="hidden" data-me="extra_seat_rate" value="${esc(String(val('extra_seat_rate')))}">
+       <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money(u.extra_seat_rate) : '')
+         + '; at most ' + (live ? money(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
+    + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
-/* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE SEAT REDRAWN § */
+/* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
+function cardCutHtml_(L, val, box) {
+  if (L.indexOf('extra_seat_cut') === -1) return '';
+  const rate = num(val('rate_per_hour'));
+  const live = rate > 0, mayCut = isAdmin();
+  const u = live ? cardSeatUsual_(rate) : null;
+  const p = cardSeatParts_(rate, '', val('extra_seat_cut'));
+  const body = mayCut
+    ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
+        readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
+      + `<input type="hidden" data-me="extra_seat_cut" value="${esc(String(val('extra_seat_cut')))}">`
+      + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
+    : `<p class="faint ce-note ce-cut-note">${esc((live ? money(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
+        + ' — only @family. sets that.')}</p>`;
+  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
+    + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)
+    + fieldRows_(L.filter(f => f !== 'extra_seat_cut'), box);
+}
+/* ---------- THE CLASS SIZE, ITS OWN CARD (620), with what one student and a full class pay an hour ---------- */
+function cardSizeHtml_(L, val, box) {
+  const rate = num(val('rate_per_hour'));
+  return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}" data-seat="${esc(String(val('extra_seat_rate')))}" data-cut="${esc(String(val('extra_seat_cut')))}"></span>`
+    + ceFold_('size', 'Class size', `<span class="ce-size" aria-live="polite">${cardSizeSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'), val('min_students'), val('max_students'))}</span>`,
+      fieldRows_(L, box) + '<p class="faint ce-note">What the fewest and the most students pay an hour together: the rate, and each extra seat on top.</p>');
+}
+/* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, EACH CARD'S LINE REDRAWN § */
 function cardSeatSync_(form, t, ev) {
-  const sec = form.querySelector('.ce-sec[data-sec="rate"]');
-  if (!sec || !t || !sec.contains(t) || !sec.querySelector('.ce-seat')) return;
+  const sec = t && t.closest && t.closest('.ce-sec[data-sec="seat"], .ce-sec[data-sec="cut"], .ce-sec[data-sec="size"]');
+  if (!sec || !form.contains(sec)) return;
+  const id = sec.dataset.sec;
   const rateBox = sec.querySelector('[data-me="rate_per_hour"]');
-  const rate = num(rateBox ? rateBox.value : '');
+  const mark = sec.querySelector('.ce-rate');
+  const rate = num(rateBox ? rateBox.value : (mark ? mark.dataset.rate : ''));
+  if (id === 'size') {
+    const v = f => (sec.querySelector('[data-me="' + f + '"]') || {}).value;
+    const line = sec.querySelector('.ce-size');
+    if (line && mark) line.innerHTML = cardSizeSay_(rate, mark.dataset.seat, mark.dataset.cut, v('min_students'), v('max_students'));
+    return;
+  }
   const hid = f => sec.querySelector('input[type="hidden"][data-me="' + f + '"]');
   const base = CARD_DRAWN.get(form.dataset.draw || '') || {};
   const share = b => {
@@ -4203,7 +4246,7 @@ function cardSeatSync_(form, t, ev) {
   if (t === rateBox) {
     sec.querySelectorAll('[data-pound]').forEach(b => {
       b.disabled = !(rate > 0);
-      b.max = String(rate > 0 ? pounds2_(rate * 2) : 0);
+      b.max = String(rate > 0 ? pounds2_(rate * cardSeatTop_(b.dataset.pound)) : 0);
       b.placeholder = cardSeatPh_(rate);
       if (b.dataset.typed) { share(b); return; }
       const h = hid(b.dataset.pound);
@@ -4211,19 +4254,22 @@ function cardSeatSync_(form, t, ev) {
     });
   }
   const seat = hid('extra_seat_rate'), cut = hid('extra_seat_cut');
-  sec.querySelector('.ce-seat').innerHTML = cardSeatSay_(rate, seat ? seat.value : '', cut ? cut.value : '');
-  const note = sec.querySelector('.ce-seat-note');
-  if (note) note.textContent = cardSeatNote_(rate, cut ? cut.value : '', { own: note.dataset.own === '1',
-    mayCut: !!sec.querySelector('[data-pound="extra_seat_cut"]'), hasCut: !!cut });
+  const line = sec.querySelector(id === 'seat' ? '.ce-seat' : '.ce-cut');
+  if (line) line.innerHTML = id === 'seat' ? cardSeatSay_(rate, seat ? seat.value : '') : cardCutSay_(rate, cut ? cut.value : '');
 }
-/* ---------- AND SAVE REFUSES A PART PAST TWICE THE RATE ITSELF, IN POUNDS § */
+/* ---------- AND SAVE LEAVES OUT A PART PAST ITS TOP, IN POUNDS, AND SAYS SO — the rest of the card is still saved (620) § */
 function cardSeatRefusal_(form, fields) {
-  const sec = form.querySelector('.ce-sec[data-sec="rate"]');
-  if (!sec || !sec.querySelector('.ce-seat')) return '';
-  const rate = num((sec.querySelector('[data-me="rate_per_hour"]') || {}).value);
-  const moved = ['extra_seat_rate', 'extra_seat_cut'].filter(f => Object.prototype.hasOwnProperty.call(fields, f));
-  if (!(rate > 0) || !cardSeatOff_(moved.map(f => fields[f]))) return '';
-  return cardSeatOffSay_(rate) + ' Nothing was saved.';
+  const off = [];
+  [['seat', 'extra_seat_rate'], ['cut', 'extra_seat_cut']].forEach(([id, f]) => {
+    const sec = form.querySelector('.ce-sec[data-sec="' + id + '"]');
+    if (!sec || !Object.prototype.hasOwnProperty.call(fields, f) || !cardSeatOff_(f, fields[f])) return;
+    const rb = sec.querySelector('[data-me="rate_per_hour"]'), mark = sec.querySelector('.ce-rate');
+    const rate = num(rb ? rb.value : (mark ? mark.dataset.rate : ''));
+    if (!(rate > 0)) return;
+    delete fields[f];
+    off.push(cardSeatOffSay_(rate, f));
+  });
+  return off.join(' ');
 }
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) § */
 function cardHandleHtml_() {
@@ -4390,7 +4436,7 @@ on('card-save', el => {
   if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
   const fields = cardChanged_(base, cardFormVals_(form));
   const seatNo = cardSeatRefusal_(form, fields);
-  if (seatNo) { toast(seatNo); if (said) said.textContent = seatNo; return; }
+  if (seatNo && !Object.keys(fields).length) { toast(seatNo + ' Nothing was saved.'); if (said) said.textContent = seatNo + ' Nothing was saved.'; return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): § */
   if (!Object.keys(fields).length) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane, sec); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
@@ -4406,10 +4452,16 @@ on('card-save', el => {
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
       cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
-      toast((d && d.said) || 'Saved');
+      /* A PART LEFT OUT, HERE OR BY THE SERVER, IS SAID BESIDE WHAT WAS SAVED (620). */
+      const word = ((d && d.said) || 'Saved') + (seatNo ? (d && d.refused ? ' ' : ' — the rest. Not saved: ') + seatNo : '');
+      toast(word);
       cardClose_(e, pane, sec);
-      /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`. */
-      if (!d || d.changed === undefined || d.changed > 0) { try { load(); } catch (x) {} }
+      /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`; a part left out stays said under the card. */
+      const part = (d && d.refused) || seatNo;
+      if (!d || d.changed === undefined || d.changed > 0) {
+        if (part) sayAfterLoad_(() => document.querySelector('.card-ed[data-pid="' + e.pid + '"][data-sec="' + sec + '"] .me-said'), word);
+        else { try { load(); } catch (x) {} }
+      }
     })
     .catch(() => { /* `send_` has written the refusal under the form, which is still open. */ });
 });

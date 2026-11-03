@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-mechanics.js MECHANICS (548): each card has a system and a source; car cards name make, model, years; no part
-   numbers but a part's labelled example; each facet one string; named parts exist. No flags, no port. */
+   numbers but a part's labelled example; a part's cars are car cards (650). No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data', 'mechanics');
-const FILES = ['parts', 'models', 'fits'];
+const FILES = ['parts', 'models'];
+/* TWO DATABASES (650): parts and cars. A parts-list file is the kind the owner removed. */
+const CARS = new Set();
 const SYSTEMS = ['Engine', 'Fuel', 'Ignition', 'Cooling', 'Lubrication', 'Exhaust', 'Transmission/Clutch', 'Brakes', 'Suspension', 'Steering',
   'Electrical', 'Lighting', 'Body', 'Tyres & wheels', 'HVAC'];
 /* A PART'S EXAMPLE NUMBER IS THE SITE'S OWN FORMAT (570), never a maker's: EX-<system>-<nnn>. */
@@ -18,6 +20,8 @@ FILES.forEach(f => {
   if (!Array.isArray(data[f]) || !data[f].length) { console.error('check-mechanics: data/mechanics/' + f + '.json did not load or is empty — NOTHING was checked'); process.exit(1); }
 });
 const partNames = new Set(data.parts.map(p => p.name)), ids = new Set();
+data.models.forEach(m => CARS.add(m.car));
+if (fs.existsSync(path.join(dir, 'fits.json'))) fail.push('data/mechanics/fits.json is back — parts lists went in 650; a part says its cars');
 FILES.forEach(f => data[f].forEach(r => {
   const at = f + ' ' + (r.id || JSON.stringify(r).slice(0, 40));
   if (!r.id || ids.has(r.id)) fail.push(at + ': no id, or an id used twice');
@@ -31,7 +35,10 @@ FILES.forEach(f => data[f].forEach(r => {
   if (f === 'parts' && !(r.does && EXAMPLE_NO.test(r.part_no || '') && /£\d/.test(r.value || '') && /example/.test(r.source) && /approximate/.test(r.source)))
     fail.push(at + ': a part needs what it is, an example number EX-XXX-nnn, a £ value, and a source saying example and approximate');
   if (['steps', 'causes', 'signs', 'check'].some(k => r[k] != null)) fail.push(at + ': carries jobs-and-symptoms teaching, which went in 570');
-  if (f === 'models' || f === 'fits') {
+  if (f === 'parts' && r.cars != null && !(Array.isArray(r.cars) && r.cars.length && r.cars.every(c => CARS.has(c)) && r.fits))
+    fail.push(at + ': cars must name car cards (' + [...CARS].join(', ') + ') and come with a fits line');
+  if (f === 'models' && !r.car) fail.push(at + ': a car card has no `car`, the answer its parts are found by');
+  if (f === 'models') {
     if (!r.make || !r.model || !/\d{4}/.test(r.years || '')) fail.push(at + ': a car card must name make, model and year range');
   }
   if (f === 'models' && !(r.facts || []).length) fail.push(at + ': a model card with no facts');

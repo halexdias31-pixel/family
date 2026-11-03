@@ -191,6 +191,7 @@ const SUITE = [
   { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
+  { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS § */

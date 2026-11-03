@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-02-merge-5";
+const DOPOST_VERSION = "2026-11-02-seat-620";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -556,7 +556,7 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'Profile not found.' });
       /* ---------- WHO IS EDITING WHOM IS A QUESTION ABOUT TWO ROWS, ANSWERED BY THEIR IDS § */
       const me = findPerson('', S(body.personId));
-      const iAmAdmin = !!me && hasRole(me, 'admin');
+      const iAmAdmin = !!me && rankAtLeast_(me, 'admin');
       const adminEditing = !me || S(r.person_id) !== S(me.person_id);
       if (adminEditing && !iAmAdmin) {
         return jsonOut({ error: 'Not authorised to edit that profile.' });
@@ -631,17 +631,27 @@ function doPost(e) {
       /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
       const priceAsked = {};
       wanted.forEach(f => { priceAsked[f] = fields[f]; });
+      /* A REFUSED GROUP IS LEFT OUT AND NAMED, AND THE REST IS SAVED (620): the business's cut once kept a tutor's class size off the sheet. */
+      const refused = [];
+      const leaveOut = (list, why) => {
+        list.forEach(f => { const i = wanted.indexOf(f); if (i !== -1) wanted.splice(i, 1); delete priceAsked[f]; });
+        refused.push([list, S(why).replace(/\s*Nothing was saved\.$/, '')]);
+      };
+      const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
+      if (priceNo) leaveOut(PRICING_FIELDS.filter(f => wanted.indexOf(f) !== -1), priceNo);
+      /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) § */
+      const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
+      if (cutNo) leaveOut([SEAT_CUT_FIELD], cutNo);
+      const elseSent = availSent || photosSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
+      if (refused.length && !wanted.length && !elseSent) {
+        return jsonOut({ error: refused.map(p => p[1]).join(' ') + ' Nothing was saved.' });
+      }
       const priceMoved = pricingMoved_(r, priceAsked).length > 0;
       /* THE STAMP'S COLUMN IS CHECKED HERE NOW. § */
       if (priceMoved && !has('pricing_changed_at')) {
         return jsonOut({ error: 'The sheet has no column for: pricing_changed_at. '
           + 'Open the site once as an admin to add it — nothing was saved.' });
       }
-      const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
-      if (priceNo) return jsonOut({ error: priceNo });
-      /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) § */
-      const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
-      if (cutNo) return jsonOut({ error: cutNo });
       /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK § */
       const ageNo = ageRefusal_(r, priceAsked);
       if (ageNo) return jsonOut({ error: ageNo });
@@ -752,6 +762,11 @@ function doPost(e) {
       /* AS `nameFor_` SAYS IT, of the row as it now stands — a child renaming herself is still her first
          name on her own screen (the owner, 10 Oct: *"dont show children's last name"*). */
       if (renamed) out.name = adminEditing ? '' : (nameFor_(r) || full);
+      /* WHAT WAS LEFT OUT, IN WORDS, beside what was saved (620). */
+      if (refused.length) {
+        out.refused = refused.map(p => ({ fields: p[0], said: p[1] }));
+        out.said = (out.said || 'Saved') + ' — the rest. Not saved: ' + refused.map(p => p[1]).join(' ');
+      }
       return jsonOut(out);
     }
 

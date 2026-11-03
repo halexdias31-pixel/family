@@ -182,7 +182,7 @@ function priceSplit_(n) {
 function priceWrong_() {
   if (!(PRICE.rate > 0)) return 'Your rate is pounds an hour — more than £0.';
   if (PRICE.rate > STAFF_RATE_MAX) return 'Your rate is at most ' + money(STAFF_RATE_MAX) + ' an hour.';
-  if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * 2) return 'An extra seat adds £0 to ' + money(PRICE.rate * 2) + ' an hour — twice your rate.';
+  if (PRICE.seat < 0 || PRICE.seat > PRICE.rate * STAFF_SEAT_MAX) return 'An extra seat adds £0 to ' + money(PRICE.rate * STAFF_SEAT_MAX) + ' an hour — at most what the first student pays.';
   return '';
 }
 const PRICE_SEGS = [['tutor', 'You'], ['room', 'Room'], ['fees', 'Card fees'], ['business', '@family.']];
@@ -214,17 +214,17 @@ function priceHtml_() {
   const opt = (val, txt) => `<option value="${esc(val)}"${PRICE.loc === val ? ' selected' : ''}>${esc(txt)}</option>`;
   return `<div class="hub-price me-form">
     <h3>Pricing</h3>
-    <p class="faint hub-lead">Move your rate and your extra seat and watch where an hour’s booking goes — worked out by the booking form’s own sum.</p>
+    <p class="faint hub-lead">Try a rate and an extra seat and watch where an hour’s booking goes — worked out by the booking form’s own sum. Nothing here is saved: your rate lives on your card.</p>
     <div class="pf-vars">
       ${ctl('rate', 'Your rate, £ an hour', 5, Math.max(80, PRICE.rate), 0.5, PRICE.rate, PRICE.open ? 'none yet: the open rate' : 'the first student')}
-      ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * 2), 0.25, PRICE.seat, '0 is the usual ' + money(usual))}
+      ${ctl('seat', 'Each extra seat adds, £ an hour', 0, Math.max(1, PRICE.rate * STAFF_SEAT_MAX), 0.25, PRICE.seat, '0 is the usual ' + money(usual))}
     </div>
     <label class="field hub-room"><span>room</span><select data-pv="loc" aria-label="Room">${opt('', 'No room hire (online or at home)')}${
       rooms.map(r => opt(r.title, r.title + ' · ' + money(parseFloat(r.bestRate)) + '/h')).join('')}</select></label>
     <div class="pb" aria-live="polite">${priceBarsHtml_()}</div>
     <p class="faint hub-note">@family.’s share of each extra seat is ${esc(money((PRICE.rate || 0) * (s.bUsed || 0)))} an hour, set by @family.${
       fee ? ' Card fees are ' + esc(fee) + '.' : ''} What you charge can change once a month.</p>
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', note: 'your rate and seat', act: 'price-save' })}</div>
+    <div class="tile-row">${tile_({ icon: 'edit', label: 'Set it', note: 'on your Rate and class size card', act: 'price-card' })}</div>
     <p class="faint me-said hub-said" aria-live="polite">${esc(priceWrong_())}</p>
   </div>`;
 }
@@ -261,38 +261,22 @@ function priceInput_(el) {
   PRICE.moved[k] = true;
   /* THE TWIN FOLLOWS: slider ↔ box, and the seat slider's end follows the rate (twice it). */
   document.querySelectorAll('#sheet-body [data-pv="' + k + '"]').forEach(o => { if (o !== el && o.tagName === 'INPUT') o.value = String(PRICE[k]); });
-  if (k === 'rate') document.querySelectorAll('#sheet-body input[data-pv="seat"]').forEach(o => { o.max = String(Math.max(1, PRICE.rate * 2)); });
+  if (k === 'rate') document.querySelectorAll('#sheet-body input[data-pv="seat"]').forEach(o => { o.max = String(Math.max(1, PRICE.rate * STAFF_SEAT_MAX)); });
   priceRedraw_();
 }
 document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('#sheet-body .hub-price')) priceInput_(el); });
 document.addEventListener('change', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('#sheet-body .hub-price')) priceInput_(el); });
-/* SAVE GOES THROUGH `updateProfile`, the card's own door: its refusals (the month, twice the rate, the most an hour) are the server's. */
-on('price-save', el => {
-  if (!hubFor_() || !USER) return;
-  const said = document.querySelector('#sheet-body .hub-said');
-  const no = priceWrong_();
-  if (no) { if (said) said.textContent = no + ' Nothing was saved.'; toast(no); return; }
-  const t = priceMine_();
-  const fields = {};
-  if (PRICE.moved.rate && (PRICE.open || PRICE.rate !== Number(t.rate))) fields.rate_per_hour = PRICE.rate;
-  if (PRICE.moved.seat || fields.rate_per_hour !== undefined) {
-    const was = typeof seatShare_ === 'function' ? seatShare_(t) : { seatOwn: false };
-    const frac = PRICE.seat > 0 ? String(Math.round(PRICE.seat / PRICE.rate * 1e6) / 1e6) : '';
-    if (PRICE.moved.seat || was.seatOwn) fields.extra_seat_rate = frac;
-  }
-  if (!Object.keys(fields).length) { toast('Nothing had changed'); return; }
-  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name, targetId: USER.personId, fields },
-        { button: el, busy: 'Saving…', where: said })
-    .then(d => {
-      USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
-      if (typeof cardPatchRow_ === 'function') cardPatchRow_(USER.personId, Object.assign({}, USER.profile, fields), fields);
-      PRICE.moved = {}; PRICE.open = false;
-      if (said) said.textContent = 'Saved — new bookings use it.';
-      toast('Saved');
-      try { load(); } catch (e) {}
-    })
-    .catch(() => { /* `send_` wrote the refusal under the form. */ });
+/* THE ONE HOME OF THE RATE, THE SEAT AND THE CLASS SIZE IS YOUR CARD (620, CLAUDE.md "every setting has one home"): Pricing opens it. */
+on('price-card', () => {
+  try { closeSheet(); } catch (e) {}
+  /* ON YOUR PUBLIC CARD (the Tutors column) when you have one; otherwise Tutor settings carries the same fields. */
+  const col = cardMine_() ? 'tutors' : 'staff';
+  go(col);
+  setTimeout(() => {
+    const box = document.querySelector('#s-' + col + ' .card-ed[data-sec="seat"], #s-' + col + ' [data-me="rate_per_hour"]');
+    const c = box && (box.closest('.card') || box);
+    if (c && c.scrollIntoView) c.scrollIntoView({ block: 'center' });
+  }, 350);
 });
 
 /* ---------- THE MONTHLY STATEMENT: SESSIONS, WHAT THE FAMILY PAID, THE BUSINESS'S SHARE AND YOURS ----------

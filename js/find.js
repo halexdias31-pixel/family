@@ -195,7 +195,7 @@ const KINDS = {
   orthotext: { group: 'Learning', label: 'Library', card: x => orthoCard_(x) },
   /* THE HYMNS SHELF (517): one card a hymn, js/hymns.js. */
   hymn: { group: 'Learning', label: 'Library', card: x => hymnsCard_(x) },
-  /* MECHANICS (548): parts, models, jobs and symptoms, Library like the rest; `mKind` says which, js/mechanics.js. */
+  /* MECHANICS (548, 650): parts and cars, Library like the rest; `mKind` says which, js/mechanics.js. */
   mech: { group: 'Learning', label: 'Library', card: x => mechCard_(x) },
   /* CHEMISTRY (550): elements, substances and reactions, Library like the rest; `mKind` says which, js/chemistry.js. */
   chem: { group: 'Learning', label: 'Library', card: x => chemCard_(x) },
@@ -413,7 +413,7 @@ const FACETS = [
     of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
     tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
-  { field: 'kindOwn', label: 'Which', at: 20.5,
+  { field: 'kindOwn', label: 'Which',
     of: x => !kindTop_(x) ? '' : (x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
     tagOf: (x, page) => !kindTop_(x) ? '' : (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
@@ -442,7 +442,7 @@ const FACETS = [
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mMake',     label: 'Make',        of: x => x.mMake || '' },
+  { field: 'mMake',     label: 'Brand',       of: x => x.mMake || '' },
   { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
@@ -484,8 +484,9 @@ const FACETS = [
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  /* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH (545): the owner, "specimen paper should be in past paper", "5 a day should be in worksheet". */
-  { field: 'documentType', label: 'Type',     of: x => docTypeAnswers_(x.documentType) },
+  /* A TYPE UNDER ANOTHER (545, 660): Type offers the one above alone ("spec paper should be in past papers"); Which type, after it, its own. */
+  { field: 'documentType', label: 'Type',     of: x => underTop_(DOC_TYPE_UNDER, x.documentType) },
+  { field: 'typeOwn',      label: 'Which type', of: x => underOwn_(DOC_TYPE_UNDER, x.documentType) },
   /* A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY, each read off its paper id. */
   { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '' },
   { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; } },
@@ -1013,7 +1014,9 @@ const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' 
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library' };
 function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
-function docTypeAnswers_(t) { const up = DOC_TYPE_UNDER[t]; return up ? [up, t] : t; }
+/* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
+function underTop_(table, v) { return (v && table[v]) || v || ''; }
+function underOwn_(table, v) { return v && (table[v] || Object.keys(table).some(k => table[k] === v)) ? v : ''; }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {
@@ -1039,34 +1042,43 @@ function facetWhy_(items, facet, over) {
   const cov = facetCoverage(items, facet);
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
   const echo = facetEcho_(items, facet);
-  if (echo) return 'the same split as ' + echo + ', answered Any — its answers are that question\'s under other names';
+  if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
   const split = facetSplit_(items, facet);
-  if (split < FACET_MIN_MINORITY) {
+  if (split < FACET_MIN_MINORITY && !kindNamed_(all)) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }
   return '';
 }
 
-/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499): each answer sits inside one answer of it, a different one each — Shelf after Any subject
-   is Subject again (Books, Boxing, History). Every facet, by its items; nothing per-facet. */
+/* A QUESTION WHOSE EVERY ANSWER IS A KIND'S NAME (the kinds tab) chooses what a card IS, not how many (660): two answers make it
+   worth asking, however lopsided. Decided by the values, never by the field. */
+function kindNamed_(values) {
+  const m = kindMap_(), names = new Set(Object.keys(m).map(k => spellKey_(m[k].label)).concat(spellKey_(ansKind_())));
+  return values.length > 1 && values.every(v => names.has(spellKey_(v.value)));
+}
+
+/* A QUESTION THAT RE-ASKS ONE ANSWERED ANY (499, 660): every answer sits inside one answer of it — Shelf after Any subject is Subject
+   again; Which or Shelf after Any kind is What kind asked finer. Every facet, by its items. */
 function facetEcho_(items, facet) {
   const skipped = (STUFF.filters || []).filter(f => f.any && f.field !== facet.field);
   for (const g of skipped) {
     const G = facetList().find(f => f.field === g.field);
     if (!G) continue;
-    const to = {}, from = {};
+    const to = {};
     let ok = true;
     for (const x of items) {
       const a = facetOwn_(facet, x);
       if (!a.length) continue;
       const b = facetOwn_(G, x);
-      if (b.length !== 1 || a.length !== 1) { ok = false; break; }
-      const ka = spellKey_(a[0]), kb = spellKey_(b[0]);
-      if ((to[ka] && to[ka] !== kb) || (from[kb] && from[kb] !== ka)) { ok = false; break; }
-      to[ka] = kb; from[kb] = ka;
+      if (b.length !== 1) { ok = false; break; }
+      const kb = spellKey_(b[0]);
+      if (a.some(v => { const ka = spellKey_(v); if (to[ka] && to[ka] !== kb) return true; to[ka] = kb; return false; })) { ok = false; break; }
     }
-    if (ok && Object.keys(to).length > 1) return G.label || G.field;
+    /* A skipped question the list answers one way was never a choice, so nothing re-asks it (a list of projects alone, 660). */
+    const gAll = new Set();
+    if (ok) for (const x of items) { facetOwn_(G, x).forEach(v => gAll.add(spellKey_(v))); if (gAll.size > 1) break; }
+    if (ok && gAll.size > 1 && Object.keys(to).length > 1) return G.label || G.field;
   }
   return '';
 }
@@ -10559,14 +10571,14 @@ const TAG_OF = {
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
-  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type', boutWinner: 'topic', boutEvent: 'board',
+  documentType: 'type', typeOwn: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type', boutWinner: 'topic', boutEvent: 'board',
   fighter: 'topic', boutMonth: 'sitting', boutYear: 'sitting', boutRound: 'paper',
   examBoard: 'board', source: 'board',
   tier: 'tier', division: 'tier',
   topic: 'topic',
   needs: 'needs',
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
-  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
+  forLabel: 'kind', kindLabel: 'kind', kindOwn: 'kind', shelf: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
   histKind: 'type', histEra: 'sitting', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
   histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
@@ -11573,6 +11585,8 @@ on('members-join', () => { if (typeof registerSheet_ === 'function') registerShe
 function finderScreen_() {
   const F = FINDER;
   if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
+  /* THE LIBRARY STILL COMING (670): one wait, and no menu until every card is in, so the first answers shown are the last (546). */
+  if (LIBRARY_LATE) { PAGE_KEEP[F.id] = 1; return pages(F.id, [loading_()]); }
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';

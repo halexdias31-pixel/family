@@ -347,18 +347,22 @@ function levelPriced(name) {
 }
 
 /* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE § */
+/* AN EXTRA SEAT COSTS AT MOST THE FIRST STUDENT (620) — the server's `SEAT_RATE_MAX`, as a share of the rate. */
+const STAFF_SEAT_MAX = 1;
 function seatShare_(tutorRow, c, B) {
   const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
   const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
   if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
   if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
   const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
+  /* THE TUTOR'S SEAT NEVER COSTS MORE THAN THE FIRST STUDENT (620): an older share past 1 prices as 1. */
+  const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
   const own = tutorRow ? seatCutOf_(tutorRow.extraSeatCut) : NaN;
   const cutOwn = !isNaN(own);
   const bRaw = cutOwn ? own : B;
-  return { cRaw, bRaw, seatOwn, cutOwn, cUsed: asFraction(cRaw, 0), bUsed: asFraction(bRaw, 0) };
+  return { cRaw, bRaw, seatOwn, cutOwn, cUsed: seatTop(asFraction(cRaw, 0)), bUsed: asFraction(bRaw, 0) };
 }
 /* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
 function seatCutOf_(v) {

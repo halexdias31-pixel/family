@@ -453,7 +453,7 @@ check('the app loads and draws without throwing', async () => {
   await wait(300);
   const bad = [];
   if (errs.length) bad.push('errors at load: ' + errs.join(' | '));
-  if (!w.__t) return ['nothing was exported — the app did not finish loading'];
+  if (!w.__t) return ['nothing was exported — the app did not finish loading' + (errs.length ? ': ' + errs.join(' | ') : '')];
   if (typeof w.__t.go !== 'function') bad.push('go() is not a function');
   return bad;
 });
@@ -2076,11 +2076,12 @@ const cardOpen_ = async (W, who, more) => {
   return c;
 };
 /* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only (docs/history/339) — the owner, 11 Oct: § */
-const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
 /* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
-const CARD_STAFF_ = ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
-const HUB_OWNS_RE_ = /^(rate_per_hour|extra_seat_rate)$/;
+const CARD_STAFF_ = ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+/* A TUTOR'S CUT IS WORDS, NOT A BOX (620): the one field of theirs the cards show and do not offer. */
+const SHOWN_ONLY_RE_ = /^extra_seat_cut$/;
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
 const cardEditEverything_ = async c => {
   const f = c.form();
@@ -2137,12 +2138,12 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */
   const groups = c.t.DATA().profileFields || {};
   const five = Object.keys(groups).filter(g => !/contact|library/i.test(g)).reduce((a, g) => a.concat(groups[g]), []);
-  const missing = five.filter(f => f !== 'photo' && f !== 'first_name' && f !== 'last_name' && !HUB_OWNS_RE_.test(f) && !c.box(f));
+  const missing = five.filter(f => f !== 'photo' && f !== 'first_name' && f !== 'last_name' && !SHOWN_ONLY_RE_.test(f) && !c.box(f));
   if (!five.length) bad.push('the payload sent no profileFields, so the boxes were NOT checked');
   if (missing.length) bad.push('the cards have no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
   ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('there is no ' + f + ' — where they tutor is not editable'); });
-  /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.card-ed [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate, which the Staff hub edits');
+  /* THE RATE IS ON ITS OWN CARD (620), the hub only tries figures. */
+  if (!form.querySelector('.card-ed[data-sec="seat"] [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor has no rate on its Rate and extra seat card');
   if (!form.querySelector('.card-ed .me-week')) bad.push('Tutor settings has no Available week (487)');
   /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: § */
   const lazy = [...form.querySelectorAll('.card-ed img')].filter(i => i.getAttribute('loading') === 'lazy');
@@ -2715,9 +2716,9 @@ check('Staff hub (405): "Staff hub" is on Tutor settings, "Share my profile" und
 const RANK_COLS_ = [
   ['student@example.org', 'student', 'P-S1'], ['parent@example.org', 'client', 'P-C1'],
   ['tutor@example.org', 'staff', 'P-T1'], ['admin@example.org', 'admin', 'P-A1']];
-/* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, the hub's pricing sliders, the PIN. */
+/* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, and the PIN. */
 const editorsOf_ = (d, into) => {
-  const PV = { rate: 'rate_per_hour', seat: 'extra_seat_rate' };
+  /* (the hub's pricing sliders were here until 620; they save nothing now.) */
   const where = el => { const s = el.closest('section.screen'); return s ? s.id.replace(/^s-/, '') : el.closest('#sheet-body') ? 'staff (hub)' : '?'; };
   const add = (f, el) => {
     /* A PLACE IS A COLUMN AND A CARD'S TITLE — the same card drawn again after a repaint is the same place. */
@@ -2728,7 +2729,7 @@ const editorsOf_ = (d, into) => {
   /* A LOCKED CARD (467) IS SHOWN, NOT EDITED: its boxes are disabled and are no place to edit anything. */
   const live = el => !el.disabled && !el.closest('.is-locked');
   d.querySelectorAll('[data-me]').forEach(el => { if (live(el)) add(el.dataset.me, el); });
-  d.querySelectorAll('input[data-pv]').forEach(el => { if (live(el) && PV[el.dataset.pv]) add(PV[el.dataset.pv], el); });
+  /* THE HUB'S PRICING SLIDERS ONLY TRY FIGURES SINCE 620 (no Save), so they are no place a setting is edited. */
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => { if (live(el)) add('pin', el); });
   return into;
 };
@@ -2821,7 +2822,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       /* 468: YOUR CARD'S PLACE IS A LOCKED CARD PER SECTION, each with its own layout id — never one "Your card". */
       const ownLocks = [...a.d.querySelectorAll('#s-' + col + ' .own-lock.is-locked')].map(x => x.dataset.layCard);
       /* 469: EACH SECTION ON ONE COLUMN ONLY — Tutor settings holds a tutor's alone, Parent settings none of everybody's four. */
-      const wantLocks = (col === 'staff' ? ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
+      const wantLocks = (col === 'staff' ? ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
       if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
     if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
@@ -2941,7 +2942,7 @@ check('Availability on Tutor settings (487): the week a tutor teaches is the Ava
   return bad;
 });
 
-check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; Save writes through updateProfile', async () => {
+check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; nothing is saved here — its tile opens the Rate and class size card (620)', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
@@ -2966,17 +2967,17 @@ check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor
   if (seg() === was) bad.push('the tutor\'s part of the bar did not move with the rate');
   if (say(1).indexOf('family pays £45.00') === -1) bad.push('the rate at £30 does not make one student £45.00: ' + say(1));
   if (S.querySelector('input.pf-num[data-pv="rate"]').value !== '30') bad.push('the number box did not follow the slider');
-  const save = S.querySelector('[data-do="price-save"]');
   a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '500'); await wait(50);
-  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
-  a.A('price-save', save); await wait(200);
-  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('a rate of £500 was posted');
   if (!/at most £200/.test(S.querySelector('.hub-said').textContent)) bad.push('a rate of £500 is not refused in words: ' + S.querySelector('.hub-said').textContent);
-  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '24'); await wait(50);
-  a.A('price-save', save); await wait(500);
-  const post = a.sent.filter(x => x.action === 'updateProfile').pop();
-  if (!post || post.fields.rate_per_hour !== 24 || Math.abs(Number(post.fields.extra_seat_rate) - 10 / 24) > 1e-5) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ', wanted rate 24 and the £10 seat as 10/24');
-  if (Number(W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').rate_per_hour")) !== 24) bad.push('the server row was not written');
+  /* ONE HOME (620): Pricing saves nothing and points to the Rate and class size card. */
+  if (S.querySelector('[data-do="price-save"]')) bad.push('Pricing still has its own Save — the rate card is the one home');
+  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
+  const to = S.querySelector('[data-do="price-card"]');
+  if (!to) return bad.concat(['Pricing has no tile to the Rate and class size card']);
+  a.A('price-card', to); await wait(500);
+  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('opening the card from Pricing posted a change');
+  if (a.d.querySelector('#sheet-body .hub-price')) bad.push('the tile left Pricing open over the card');
+  if (!a.d.querySelector('#s-tutors .card-ed[data-sec="seat"] [data-me="rate_per_hour"], #s-staff [data-me="rate_per_hour"]')) bad.push('no rate box waits where the tile goes');
   return bad;
 });
 
@@ -3131,8 +3132,8 @@ check('no profile card offers Edit to anybody, an admin included (467): your own
 /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT, ON THE TUTOR'S CARD, IN POUNDS (docs/history/345) § */
 const CUT_VARS_ = { c: 0.3, B: 0.1 };
 const seatSaid_ = c => String((c.form() && (c.form().querySelector('.ce-seat') || {}).textContent) || '').trim();
-/* ---------- A TUTOR'S SEAT IS SET IN THE STAFF HUB ALONE (444), AND A FORCED CUT IS STILL REFUSED § */
-check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card offers no rate, seat or cut box — and a forced cut is refused by the server with nothing written', async () => {
+/* ---------- THREE CARDS, EACH ONE HOME (620): rate and seat k, @family.'s share g (words to a tutor), class size; a forced cut is still refused § */
+check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.\'s share as words, class size — each say their effect in pounds by x + k·x·(n−1) + g·x·(n−1); Save writes the class size; a forced cut is refused alone and left out beside another field', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
   const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
   if (h.indexOf('extra_seat_cut') < 0 || ri < 0) return ['the people tab has no extra_seat_cut column or no Ada, so the tutor\'s view was NOT checked'];
@@ -3142,12 +3143,34 @@ check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card 
   const bad = [];
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
   if (!c.form()) return ['Tutor settings draws no editing cards for Ada'];
-  if (c.form().querySelector('[data-pound="extra_seat_rate"], [data-pound="extra_seat_cut"], [data-me="rate_per_hour"], [data-me="extra_seat_rate"]'))
-    bad.push('Ada\'s tutor card offers her rate or seat, which the Staff hub edits');
+  const seat = c.sec('seat'), cut = c.sec('cut'), size = c.sec('size');
+  if (!seat || !cut || !size) return ['Ada\'s settings do not draw the three cards: ' + c.secs().join(', ')];
+  const txt = el => String(el.textContent).replace(/\s+/g, ' ');
+  ['[data-me="rate_per_hour"]', '[data-pound="extra_seat_rate"]'].forEach(q => { if (!seat.querySelector(q)) bad.push('the Rate and extra seat card has no ' + q); });
+  if (!size.querySelector('[data-me="max_students"]') || !size.querySelector('[data-me="min_students"]')) bad.push('the Class size card has no min and max boxes');
+  const cutBox = cut.querySelector('input:not([type="hidden"]), input[type="hidden"][data-me="extra_seat_cut"]');
+  if (cutBox) bad.push('a tutor is offered @family.\'s cut as a box: ' + cutBox.outerHTML.slice(0, 120));
+  if (!/£3\.00\/h of each extra student is @family\.'s — only @family\. sets that/.test(txt(cut))) bad.push('the cut is not said in pounds as words a tutor cannot change: ' + txt(cut).slice(0, 200));
+  if (!/\+£10\.00\/h a seat/.test(txt(seat))) bad.push('the seat card does not say the tutor\'s £10.00 of a £20 rate: ' + txt(seat).slice(0, 200));
+  /* 20 + 0.5·20·3 + 0.15·20·3 = 59 for four. */
+  if (!/4: £59\.00/.test(txt(size))) bad.push('the class size card does not say four students pay £59.00/h: ' + txt(size).slice(0, 200));
+  c.type(size.querySelector('[data-me="max_students"]'), '3'); await wait(50);
+  if (!/3: £46\.00/.test(txt(size))) bad.push('typing 3 did not redraw the class total to £46.00/h: ' + txt(size).slice(0, 200));
+  c.A('card-save', c.tileOn('size', 'card-save')); await wait(600);
+  const post = c.posts().pop();
+  if (!post || 'extra_seat_cut' in post.fields) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ' — wanted the class size and no cut');
+  if (Number(W.real.row('P-T1').max_students) !== 3) bad.push('the class size did not reach the sheet: ' + W.real.row('P-T1').max_students);
   const u = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
   const r = W.real.post({ action: 'updateProfile', token: u.token, name: u.name, personId: 'P-T1', target: 'Ada Tutor', targetId: 'P-T1', fields: { extra_seat_cut: '0' } });
-  if (r.success) bad.push('the server took a tutor\'s forced cut');
+  if (r.success || !/Only @family/.test(r.error || '')) bad.push('the server took a tutor\'s forced cut, or did not say why: ' + JSON.stringify(r));
+  const r2 = W.real.post({ action: 'updateProfile', token: u.token, name: u.name, personId: 'P-T1', target: 'Ada Tutor', targetId: 'P-T1', fields: { extra_seat_cut: '0', headline: 'Partly saved' } });
+  if (!r2.success || !/Not saved: Only @family/.test(r2.said || '') || W.real.row('P-T1').headline !== 'Partly saved') bad.push('a forced cut beside a headline did not save the headline and name the cut: ' + JSON.stringify(r2));
   if (Number(W.real.row('P-T1').extra_seat_cut) !== 0.15) bad.push('a tutor\'s forced cut reached the sheet: ' + W.real.row('P-T1').extra_seat_cut);
+  /* AND THE ADMIN'S OWN CARD, WHERE THE CUT IS A BOX (rankAtLeast_ on both sides). */
+  const a = await cardOpen_(cardWorld_({ vars: CUT_VARS_ }), 'admin@example.org', { col: 'tutors' });
+  if (a.err) return bad.concat([a.err]);
+  for (let k = 0; k < 20 && !a.sec('cut'); k++) await wait(100);
+  if (!a.sec('cut') || !a.sec('cut').querySelector('[data-pound="extra_seat_cut"]')) bad.push('the admin\'s own @family.\'s share card offers no box for the cut: ' + a.secs().join(', '));
   return bad;
 });
 
@@ -14625,28 +14648,28 @@ check('a retry in the air when an admin signs out does not put their payload on 
 });
 
 /* AND THE SAME, WHEN THE REPLY HAS ARRIVED AND IS WAITING FOR THE LIBRARY. § */
-check('an admin who signs out while their payload waits for the question file does not leave it on the phone', async () => {
+/* SINCE 670 THE PAYLOAD DOES NOT WAIT for the question file: it is drawn, and the library merged after. What must hold: the late library never brings the admin's payload back. */
+check('a question file that lands after a sign-out changes nothing the sign-out left', async () => {
   let open;
   const gate = new Promise(r => { open = r; });
-  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true,
-    films: [{ title: 'Held Film', link: 'https://drive.example/held' }] });
+  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true });
   const b = flaky_(n => (n === 0 ? { body: theirs } : undefined), RC_ADMIN_,
     { serve: url => (/data\/questions\.json/.test(url) ? gate.then(() => []) : undefined) });
   await wait(300);
   if (b.asked.length !== 1 || !/token=tk-admin/.test(b.asked[0] || '')) return ['the payload was not asked for as the admin (' + b.asked.length + ' requests), so the race was not run'];
-  if ((b.w.__t.DATA() || {}).version === 'admin-payload') return ['the payload was committed before the question file arrived, so nothing was waiting when the admin signed out'];
+  if ((b.w.__t.DATA() || {}).version !== 'admin-payload') return ['the admin\'s payload was not drawn before the question file (670), so the race was not run'];
   b.w.__t.ACTIONS.signout();
-  await wait(100);
+  await wait(300);
   if (b.w.__t.whoami()) return ['Sign out left somebody signed in, so the race was not run'];
+  const was = b.w.__t.DATA(), asked = b.asked.length;
   open();
   await wait(600);
   const bad = [];
   const D = b.w.__t.DATA() || {};
-  if (D.version === 'admin-payload' || D.viewerIsAdmin) bad.push('the admin\'s payload was committed after they signed out, while it waited for the question file');
-  if (JSON.stringify(D.films || []).indexOf('Held Film') !== -1) bad.push('the admin\'s films are in DATA on the signed-out phone');
-  if (b.asked.length !== 2) bad.push('the visitor was not asked for after the admin\'s payload was dropped (' + b.asked.length + ' requests)');
-  else if (/token=/.test(b.asked[1])) bad.push('the ask after the sign-out still carried a token');
-  if (!b.arrived()) bad.push('the visitor\'s own payload did not arrive');
+  if (D.version !== (was || {}).version) bad.push('the late question file swapped the payload: ' + (was || {}).version + ' became ' + D.version);
+  if (b.asked.length !== asked) bad.push('the late question file asked the backend again (' + asked + ' then ' + b.asked.length + ' requests)');
+  if (b.w.__t.whoami()) bad.push('somebody is signed in again after the question file landed');
+  if (!Array.isArray(D.questions)) bad.push('DATA.questions is not a list after the question file landed');
   return bad;
 });
 
@@ -18069,7 +18092,9 @@ check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the 
     return fields;
   };
   if (look([], 'the first screen').indexOf('required') >= 0) bad.push('the first screen asks Required before Practicals is chosen');
-  const inPaper = look([{ field: 'paperId', value: PID }], 'the chosen paper');
+  /* WHICH FIRST (660): a kind question is asked inside a paper however lopsided, then Question. */
+  let inPaper = look([{ field: 'paperId', value: PID }], 'the chosen paper');
+  if (inPaper[0] === 'kindOwn') inPaper = look([{ field: 'paperId', value: PID }, { field: 'kindOwn', value: 'Questions' }], 'the chosen paper, Questions');
   if (inPaper[0] !== 'qNumber') bad.push('with the paper chosen the funnel asks ' + (inPaper[0] || 'nothing') + ', not Question — a paper is not an end since 396: ' + h.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
   look([{ field: 'fiveDay', value: '1 June' }], 'a 5-a-day chosen by its Day');
   /* THE WORD ON THE CARD: a sub-part's answer is `ii`, never `Ii`. */
@@ -20801,9 +20826,10 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     }
     const mixed = projs.concat(others);
     const nfMixed = w.nextFacet(mixed);
-    if (!nfMixed || nfMixed.field !== 'projectType') {
-      bad.push('Project or coursework is not asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
-        + ' — the list is mostly projects, and the one bar asks it (it asks ' + (nfMixed ? nfMixed.field : 'nothing') + ')');
+    /* ANY WHICH IS NEVER ASKED FINER (660): with Which skipped and other kinds left, Project or coursework would re-ask it. */
+    if (nfMixed && nfMixed.field === 'projectType') {
+      bad.push('Project or coursework is asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
+        + ' after Any which — every answer sits inside Projects, so it is Which asked finer (660)');
     }
     const nfAlone = w.nextFacet(projs);
     if (!nfAlone || nfAlone.field !== 'projectType') bad.push('with the doors skipped, the projects alone ask ' + (nfAlone ? nfAlone.field : 'nothing') + ', not Project or coursework — so the mixed list above proves nothing');
@@ -24241,7 +24267,10 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
   };
   try {
     /* THE WHOLE PAPER: its six questions, each once however many parts — asked, not an end (396). */
-    const all = ask('');
+    /* WHICH FIRST (660): a kind question is asked however lopsided — "why has it not asked me for question or answer?" */
+    const which = ask('');
+    if (which.field !== 'kindOwn' || which.vals.join(' ') !== 'Questions Answers') bad.push('the chosen paper asks ' + (which.field || 'nothing') + ' ' + JSON.stringify(which.vals) + ' first — Which, Questions Answers (660)');
+    const all = ask('', [{ field: 'kindOwn', value: 'Questions' }]);
     if (all.field !== 'qNumber' || all.vals.join(' ') !== 'Q1 Q8 Q14 Q18 Q20 Q21') bad.push('the chosen paper asks ' + (all.field || 'nothing') + ' ' + JSON.stringify(all.vals) + ' — Question, Q1 Q8 Q14 Q18 Q20 Q21');
     /* "q8": Q8's two parts, so the next question splits them. */
     const q8 = ask('q8');
@@ -29026,7 +29055,7 @@ check('Suggest a change takes the place of its thing on every kind -- a widget, 
     const inPlace = (box.parentElement.classList.contains('is-writing')) || (box.classList.contains('is-beside') && tile.closest('.tile-row').hidden);
     if (!inPlace) bad.push(say + ': the box went under the thing, not in its place');
     if (box.querySelector('.ncl-list, [data-do="ncl-done"]')) bad.push(say + ': the box still lists notes or a Done tile');
-    if (!box.querySelector('[data-do="rep-pic"]') || !box.querySelector('input[type=file][accept="image/*"]')) bad.push(say + ': no Add a picture tile');
+    if (!box.querySelector('[data-do="rep-pic"]') || !box.querySelector('input[type=file].rep-pic-in[accept^="image/*"]')) bad.push(say + ': no Add a picture tile');
     if (say === 'a Find card' && !/^Find/.test(box.dataset.path || '')) bad.push('a Find card’s box carries no funnel path: ' + JSON.stringify(box.dataset.path));
     t.ACTIONS['rep-cancel'](box.querySelector('[data-do="rep-cancel"]'));
     await wait(10);
@@ -29101,6 +29130,73 @@ check('Suggest a change takes files and a folder from an admin and not a student
   if (!note) bad.push('no note was sent after the files');
   else if (!note.files || note.files.batch !== 'Edexcel 2023' || note.files.count !== 3 || note.files.names.join() !== 'June/a.pdf,June/b.py,Nov/big.pdf') bad.push('the note does not name the files: ' + JSON.stringify(note.files));
   o.host.remove();
+  return bad;
+});
+
+/* ---------- A VIDEO GOES WITH ITS FRAMES (640): "so Claude can see problems that happen over time" ---------- */
+check('Suggest a change takes a video from the camera roll: it is sent in parts, and the phone makes timestamped frame sheets and a small copy that go beside it; when frames cannot be made the video still goes and the box says so', async () => {
+  const ups = [];
+  const reply = b => {
+    if (b.action === 'suggestUpload') {
+      ups.push(b);
+      const end = b.start + Math.floor(b.data.length * 3 / 4) - (b.data.match(/=*$/)[0].length);
+      return end >= b.size ? { success: true, done: true, id: 'F' + ups.length } : { success: true, next: end };
+    }
+    return b.action === 'suggest' ? { success: true, serious: true, notes: [] } : { success: true, messages: [] };
+  };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  /* JSDOM PLAYS NO VIDEO AND DRAWS NO CANVAS: a stubbed <video> (3 s, 640x360, seeks answer) and a canvas that counts what is drawn. */
+  let drawn = 0;
+  const stamps = [];
+  w.URL.createObjectURL = f => 'blob:' + f.name; w.URL.revokeObjectURL = () => {};
+  const P = w.HTMLMediaElement.prototype, V = w.HTMLVideoElement.prototype;
+  Object.defineProperty(P, 'duration', { get() { return 3; }, configurable: true });
+  Object.defineProperty(V, 'videoWidth', { get() { return 640; }, configurable: true });
+  Object.defineProperty(V, 'videoHeight', { get() { return 360; }, configurable: true });
+  Object.defineProperty(P, 'src', { set(v) { this._src = v; setTimeout(() => this.dispatchEvent(new w.Event(/broken/.test(v) ? 'error' : 'loadeddata')), 1); }, get() { return this._src || ''; }, configurable: true });
+  Object.defineProperty(P, 'currentTime', { set(v) { this._t = v; setTimeout(() => this.dispatchEvent(new w.Event('seeked')), 1); }, get() { return this._t || 0; }, configurable: true });
+  P.load = () => {};
+  w.HTMLCanvasElement.prototype.getContext = () => ({ fillRect() {}, fillText(s) { stamps.push(s); }, measureText: s => ({ width: s.length * 8 }),
+    drawImage(src) { if (src instanceof w.HTMLVideoElement) drawn++; } });
+  w.HTMLCanvasElement.prototype.toDataURL = function () { return 'data:image/jpeg;base64,' + 'A'.repeat(Math.min(100000, this.width * 10)); };
+  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  const host = d.createElement('div');
+  host.className = 'pane';
+  host.innerHTML = '<div class="card"><h3>Past papers</h3></div>' + w.cardReportRow_('ppl:parents:all', '<div class="card"><h3>Past papers</h3></div>');
+  d.body.appendChild(host);
+  t.ACTIONS['rep-box'](host.querySelector('[data-do="rep-box"]'));
+  const box = host.querySelector('.rep-box');
+  if (!box) return ['an admin has no box'];
+  const said = () => (box.querySelector('.rep-vid-said') || {}).textContent || '';
+  const pic = box.querySelector('input.rep-pic-in');
+  if (!pic || pic.getAttribute('accept') !== 'image/*,video/*') bad.push('the camera roll picker does not offer videos: accept=' + JSON.stringify(pic && pic.getAttribute('accept')));
+  const vid = new w.File([new Uint8Array(9 * 1048576)], 'IMG_0001.MOV', { type: 'video/quicktime' });
+  Object.defineProperty(pic, 'files', { value: [vid], configurable: true });
+  pic.dispatchEvent(new w.Event('change', { bubbles: true }));
+  const row = box.querySelector('.rep-vid');
+  if (!row || !row.querySelector('.loading') || !/making its frames/.test(said())) bad.push('no tile says the video is attached, with the dots, while its frames are made');
+  for (let i = 0; i < 100 && /making/.test(said()); i++) await wait(20);
+  if (!/6 frames on 1 sheet/.test(said())) bad.push('the frames were not made: ' + JSON.stringify(said()));
+  if (box.querySelector('.rep-vid .loading')) bad.push('the dots stayed after the frames were made');
+  if (drawn < 6 || !stamps.includes('0:00.0') || !stamps.includes('0:02.5')) bad.push('the frames were not drawn and stamped every half second: ' + drawn + ' ' + JSON.stringify(stamps));
+  /* AND ONE THE BROWSER CANNOT PLAY. */
+  const broken = new w.File([new Uint8Array(500)], 'broken.mp4', { type: 'video/mp4' });
+  Object.defineProperty(pic, 'files', { value: [broken], configurable: true });
+  pic.dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(100);
+  if (!/broken\.mp4 · video attached · no frames: this browser cannot play that video\. The video still goes\./.test(box.querySelector('.rep-vids').textContent)) bad.push('a video without frames is not said plainly before sending');
+  t.ACTIONS['rep-send'](box.querySelector('[data-do="rep-send"]'));
+  for (let i = 0; i < 100 && !sent.some(b => b.action === 'suggest'); i++) await wait(50);
+  const rels = ups.map(u => u.rel + '@' + u.start);
+  const want = ['IMG_0001.MOV@0', 'IMG_0001.MOV@' + 8 * 1048576, 'IMG_0001.frames-1.jpg@0', 'IMG_0001.small.jpg@0', 'broken.mp4@0'];
+  if (rels.join() !== want.join()) bad.push('the uploads went ' + JSON.stringify(rels) + ', wanted ' + JSON.stringify(want));
+  if (ups.some(u => /\.jpg$/.test(u.rel) && (u.mime !== 'image/jpeg' || u.size > 150 * 1024))) bad.push('a frame sheet is not a JPEG under 150 KB');
+  if (!ups.some(u => u.rel === 'IMG_0001.MOV' && u.mime === 'video/quicktime')) bad.push('the video did not go with its own type');
+  const note = sent.find(b => b.action === 'suggest');
+  if (!note || !note.files || note.files.names.join() !== 'IMG_0001.MOV,broken.mp4') bad.push('the note does not name the videos: ' + JSON.stringify(note && note.files));
+  host.remove();
   return bad;
 });
 
@@ -31689,7 +31785,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list (570); Model → BMW → 3 Series (E30) narrows to its cards; a part card draws its words and source', async () => {
+check('Mechanics (548, 650): Library → Mechanics offers Part and Car; Car → Brand BMW → Model E30; Part → Brand Renault → Model Clio narrows to its parts; the Parts tile on a car card opens them; a part card draws its words and source', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -31708,17 +31804,35 @@ check('Mechanics (548): Library → Mechanics offers Part, Model and Parts list 
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Model,Part,Parts list') bad.push('Mechanics → Card type offers ' + kinds);
-  S.filters.push({ field: 'mKind', value: 'Model' }, { field: 'mMake', value: 'BMW' });
-  if (vals('mModel').join() !== '3 Series (E30)') bad.push('Model → BMW offers models ' + vals('mModel').join(', '));
-  if (vals('mEngine').length !== 4) bad.push('BMW models offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  if (kinds !== 'Car,Part') bad.push('Mechanics → Card type offers ' + kinds);
+  const base = S.filters.slice();
+  S.filters.push({ field: 'mKind', value: 'Car' }, { field: 'mMake', value: 'BMW' });
+  if (vals('mModel').join() !== 'E30') bad.push('Car → BMW offers models ' + vals('mModel').join(', '));
+  if (vals('mEngine').length !== 4) bad.push('BMW cars offer ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
+  S.filters = base.concat({ field: 'mKind', value: 'Part' });
+  if (vals('mMake').sort().join() !== 'BMW,Renault') bad.push('Part → Brand offers ' + vals('mMake').join(', '));
+  S.filters.push({ field: 'mMake', value: 'Renault' });
+  /* A part fitting both cars answers both models, so E30 may stay on offer; Clio must be. */
+  if (vals('mModel').indexOf('Clio') < 0) bad.push('Part → Renault offers models ' + vals('mModel').join(', '));
+  S.filters.push({ field: 'mModel', value: 'Clio' });
+  const clio = w.stuffFiltered();
+  if (!clio.length || clio.some(x => (x.mModel || []).indexOf('Clio') < 0)) bad.push('Part → Renault → Clio found ' + clio.length + ', not only Clio parts');
+  if (clio.length >= all.filter(x => x.mKind === 'Part').length) bad.push('Part → Renault → Clio did not narrow');
+  const car = all.find(x => x.mKind === 'Car' && x.mModel === 'E30');
+  const tile = /data-do="mech-parts"[^>]*data-car="E30"/.test(w.mechCard_(car));
+  if (!tile) bad.push('a car card offers no Parts tile');
+  else {
+    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.make = 'BMW'; b.dataset.car = 'E30'; w.document.body.appendChild(b); b.click(); b.remove();
+    const got = t.STUFF().filters.map(c => c.field + '=' + c.value).join();
+    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mMake=BMW,mModel=E30') bad.push('the Parts tile set ' + got);
+  }
   const part = all.find(x => x.mKind === 'Part');
   const html = w.mechCard_(part);
   if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw its words, tags and source');
   /* ITS PICTURE (tools/mech_pixels.py): a part's own, and a model's car. */
   for (let i = 0; i < 40 && !w.mechPic_(part.mech, 'parts'); i++) await wait(25);
-  const model = all.find(x => x.mKind === 'Model');
-  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or model card draws no picture');
+  const model = all.find(x => x.mKind === 'Car');
+  if (!/class="mech-pic"/.test(w.mechCard_(part)) || !/class="mech-pic"/.test(w.mechCard_(model))) bad.push('a part or car card draws no picture');
   return bad;
 });
 
@@ -31843,6 +31957,10 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
   if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
   const said = () => [...d.querySelectorAll('#s-stuff .miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
+  /* ONE LINE FIRST (660): the rows open behind The list. */
+  if (!/papers? missing in \d+ of \d+/.test(said())) bad.push('the card is not one line: ' + said().slice(0, 160));
+  const allTile = d.querySelector('#s-stuff .miss-card [data-do="miss-all"]');
+  if (!allTile) bad.push('no The list tile on the card (660)'); else { allTile.click(); await wait(200); }
   const s0 = said();
   if (!/What.s missing/.test(s0)) bad.push('the card has no title: ' + s0.slice(0, 120));
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
@@ -31850,7 +31968,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/AQA GCSE Geography none yet/.test(s0)) bad.push('a qualification with nothing does not say "none yet"');
   if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
   if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
-  if (!/1 paper waiting for their words/.test(s0)) bad.push('the paper with pending words is not counted');
+  if (!/1 paper waiting for their words|· 1 waiting for words/.test(s0)) bad.push('the paper with pending words is not counted');
   if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
   if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
   if (d.querySelector('#s-stuff .miss-card [aria-busy="true"], #s-stuff .miss-card .loading')) bad.push('the card is still waiting after its list came');
@@ -31948,6 +32066,50 @@ check('Find 2 › Questions › Maths › Past paper › A-Level › Edexcel ›
   if (plain) { W.qtPenSet_(plain, true); if (W.padSource_(plain)) bad.push(plain.key + ': a Pen tap on a part with no figure still lays a blank grid'); W.qtPenSet_(plain, false); }
   const fig = W.stuffItemsAll_().find(x => x.kind === 'question' && x.diagram);
   if (fig && !/data-do="qt-pen"/.test(W.qtRow_(fig))) bad.push(fig.key + ' has a figure and no Pen');
+  return bad;
+});
+
+/* ---------- THE OWNER'S NOTES OF 2 NOV, ON FIND'S FUNNEL (660) ---------- */
+check('Find 2 funnel (owner, 2 Nov, 660): Type under Practice › Maths offers Past paper and Worksheet alone and Which type holds Specimen paper and 5-a-day; Which (a kind question) is asked under Practice and inside one paper however lopsided; Any what kind is never asked finer (Which, Shelf) but Subject; the Hebrew Bible answers Judaism › Tanakh; a path says labels, never field names', async () => {
+  const full = LIB_FULL.rows('questions');
+  const one = await resBoot_({ serve: url => (/data\/questions\.json/.test(url) ? full : undefined), before: signedInAs_(LAY_ADMIN_) });
+  if (!one) return ['the app did not boot — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  for (let i = 0; i < 100 && W.stuffItemsAll_().filter(x => x.kind === 'question').length < 5000; i++) await wait(50);
+  T.go('res'); await wait(80);
+  const R = resView_(W);
+  const ask = fs_ => { T.RES().filters = fs_.map(f => Object.assign({}, f)); const l = R.stuffFiltered(); const n = R.nextFacet(l) || R.overFacet_(l); return { n, vals: n ? R.facetValues(l, n).map(v => v.value) : [], l }; };
+  const P = [{ field: 'kindLabel', value: 'Practice' }];
+  if (R.stuffFiltered && ask(P).l.length < 5000) return ['the library holds ' + ask(P).l.length + ' Practice cards — NOT checked'];
+  /* 1. Which first, then Type with the types above alone, then Which type with the one below. */
+  let s = ask(P);
+  if (!s.n || s.n.field !== 'kindOwn') bad.push('Practice asks ' + (s.n ? s.n.field : 'nothing') + ' first, not Which');
+  s = ask(P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }]));
+  if (!s.n || s.n.field !== 'documentType') bad.push('Practice › Questions › Maths asks ' + (s.n ? s.n.field : 'nothing') + ', not Type');
+  else if (s.vals.some(v => v === 'Specimen paper' || v === '5-a-day') || s.vals.indexOf('Past paper') < 0) bad.push('Type offers ' + s.vals.join(', ') + ' — a specimen or 5-a-day beside the type it is under');
+  s = ask(P.concat([{ field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }]));
+  if (!s.n || s.n.field !== 'typeOwn' || s.vals.indexOf('Specimen paper') < 0) bad.push('after Past paper the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.join(', ') + ')' : 'nothing') + ', not Which type with Specimen paper');
+  /* 3. Inside one paper Questions and Answers are the same cards, and Which is still asked. */
+  const paper = (s.l.find(x => x.kind === 'question' && x.row && x.row.paper_id && R.questionHasAns_(x)) || {}).row;
+  if (paper) {
+    T.RES().filters = [{ field: 'paperId', value: paper.paper_id }];
+    const why = R.facetWhy_(R.stuffFiltered(), R.facetList().find(f => f.field === 'kindOwn'));
+    if (why) bad.push('inside ' + paper.paper_id + ' Which is held back: ' + why);
+  } else bad.push('no past paper with answers — Which inside a paper NOT checked');
+  /* 6. Doesn't matter on What kind: nothing that only re-asks it, Subject instead. */
+  s = ask([{ field: 'kindLabel', any: true }]);
+  if (!s.n || s.n.field !== 'subject') bad.push('after Any what kind the funnel asks ' + (s.n ? s.n.field + ' (' + s.vals.slice(0, 4).join(', ') + ')' : 'nothing') + ', not Subject');
+  /* 3. The path a suggestion carries says labels. */
+  T.RES().filters = [{ field: 'kindLabel', any: true }, { field: 'qNumber', any: true }, { field: 'myResult', any: true }];
+  const said = T.RES().filters.map((f, i) => R.chipText_(f, i)).join(' › ');
+  if (/kindLabel|qNumber|myResult/.test(said)) bad.push('the path says field names: ' + said);
+  /* 4. The Masoretic Hebrew is Judaism's Tanakh too; a translation of it is not. */
+  const heb = { kind: 'bible', topic: 'Christianity', bb: { book: 'Genesis', testament: 'Old Testament', group: 'Law', text: 'Hebrew' }, ch: '1', v: '1' };
+  const kjv = { kind: 'bible', topic: 'Christianity', bb: { book: 'Genesis', testament: 'Old Testament', group: 'Law', text: 'English, King James Version (1611)' }, ch: '1', v: '1' };
+  const at = (x, k) => [].concat(W.writingAt_(x, k) || []);
+  if (at(heb, 'religion').indexOf('Judaism') < 0 || at(heb, 'collection').indexOf('Tanakh') < 0) bad.push('the Hebrew Genesis answers Religion ' + at(heb, 'religion') + ', Collection ' + at(heb, 'collection') + ' — not Judaism, Tanakh');
+  if (at(kjv, 'religion').indexOf('Judaism') >= 0) bad.push('the KJV Genesis answers Judaism — a translation is not the Tanakh');
+  T.RES().filters = [];
   return bad;
 });
 
