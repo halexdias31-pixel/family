@@ -97,16 +97,26 @@ const HIST_DB = [
   { file: 'timeline', prefix: 'EV-', kind: 'event', years: ['date_from', 'date_to'] },
 ];
 
-/* One fetch per tab, all started before this file parsed — see `index.html`. § */
+/* One fetch per tab, started by boot.js once the first screen is drawn (630). § */
 function libraryExtraRows_() {
   if (LIBRARY_EXTRA) return Promise.resolve(LIBRARY_EXTRA);
-  if (!LIBRARY_EXTRA_ASK) LIBRARY_EXTRA_ASK = libraryExtraAsk_().finally(() => { LIBRARY_EXTRA_ASK = null; });
+  if (!LIBRARY_EXTRA_ASK) LIBRARY_EXTRA_ASK = libraryExtraAsk_(LIB_EXTRA).then(out => (LIBRARY_EXTRA = out)).finally(() => { LIBRARY_EXTRA_ASK = null; });
   return LIBRARY_EXTRA_ASK;
 }
-async function libraryExtraAsk_() {
+/* ---------- AND THE SETTINGS TABS, THROUGH THE SAME MACHINE but their own memo (670): a few KB the columns and words need with the payload, never behind the library. */
+let SETTINGS_ROWS = null, SETTINGS_ASK = null;
+function settingsRows_() {
+  if (SETTINGS_ROWS) return Promise.resolve(SETTINGS_ROWS);
+  if (!SETTINGS_ASK) SETTINGS_ASK = libraryExtraAsk_(typeof SETTINGS_TABS === 'undefined' ? [] : SETTINGS_TABS)
+    .then(out => (SETTINGS_ROWS = out)).finally(() => { SETTINGS_ASK = null; });
+  return SETTINGS_ASK;
+}
+/* BOTH LIBRARY FILES ALREADY IN (670) — merged with the payload at once, as before; otherwise after it (`libraryLate_`, shell.js). */
+function libraryHere_() { return !!(LIBRARY_ROWS && LIBRARY_EXTRA); }
+/* THE PAYLOAD IS DRAWN AND THE LIBRARY IS STILL COMING (670): Find and Find 2 wait (546: their first answers never change once shown). */
+let LIBRARY_LATE = false;
+async function libraryExtraAsk_(names) {
   const out = {};
-  /* ---------- AND THE SETTINGS TABS, THROUGH THE SAME MACHINE § */
-  const names = LIB_EXTRA.concat(typeof SETTINGS_TABS === 'undefined' ? [] : SETTINGS_TABS);
   await Promise.all(names.map(async name => {
     let rows = null;
     try {
@@ -119,8 +129,7 @@ async function libraryExtraAsk_() {
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
   }));
-  LIBRARY_EXTRA = out;
-  return LIBRARY_EXTRA;
+  return out;
 }
 
 /* ONE PRACTICAL, AS THE CARD READS IT — a function so a row whose words arrive later (397) is mapped again in place. */

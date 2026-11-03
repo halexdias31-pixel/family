@@ -14648,28 +14648,28 @@ check('a retry in the air when an admin signs out does not put their payload on 
 });
 
 /* AND THE SAME, WHEN THE REPLY HAS ARRIVED AND IS WAITING FOR THE LIBRARY. § */
-check('an admin who signs out while their payload waits for the question file does not leave it on the phone', async () => {
+/* SINCE 670 THE PAYLOAD DOES NOT WAIT for the question file: it is drawn, and the library merged after. What must hold: the late library never brings the admin's payload back. */
+check('a question file that lands after a sign-out changes nothing the sign-out left', async () => {
   let open;
   const gate = new Promise(r => { open = r; });
-  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true,
-    films: [{ title: 'Held Film', link: 'https://drive.example/held' }] });
+  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true });
   const b = flaky_(n => (n === 0 ? { body: theirs } : undefined), RC_ADMIN_,
     { serve: url => (/data\/questions\.json/.test(url) ? gate.then(() => []) : undefined) });
   await wait(300);
   if (b.asked.length !== 1 || !/token=tk-admin/.test(b.asked[0] || '')) return ['the payload was not asked for as the admin (' + b.asked.length + ' requests), so the race was not run'];
-  if ((b.w.__t.DATA() || {}).version === 'admin-payload') return ['the payload was committed before the question file arrived, so nothing was waiting when the admin signed out'];
+  if ((b.w.__t.DATA() || {}).version !== 'admin-payload') return ['the admin\'s payload was not drawn before the question file (670), so the race was not run'];
   b.w.__t.ACTIONS.signout();
-  await wait(100);
+  await wait(300);
   if (b.w.__t.whoami()) return ['Sign out left somebody signed in, so the race was not run'];
+  const was = b.w.__t.DATA(), asked = b.asked.length;
   open();
   await wait(600);
   const bad = [];
   const D = b.w.__t.DATA() || {};
-  if (D.version === 'admin-payload' || D.viewerIsAdmin) bad.push('the admin\'s payload was committed after they signed out, while it waited for the question file');
-  if (JSON.stringify(D.films || []).indexOf('Held Film') !== -1) bad.push('the admin\'s films are in DATA on the signed-out phone');
-  if (b.asked.length !== 2) bad.push('the visitor was not asked for after the admin\'s payload was dropped (' + b.asked.length + ' requests)');
-  else if (/token=/.test(b.asked[1])) bad.push('the ask after the sign-out still carried a token');
-  if (!b.arrived()) bad.push('the visitor\'s own payload did not arrive');
+  if (D.version !== (was || {}).version) bad.push('the late question file swapped the payload: ' + (was || {}).version + ' became ' + D.version);
+  if (b.asked.length !== asked) bad.push('the late question file asked the backend again (' + asked + ' then ' + b.asked.length + ' requests)');
+  if (b.w.__t.whoami()) bad.push('somebody is signed in again after the question file landed');
+  if (!Array.isArray(D.questions)) bad.push('DATA.questions is not a list after the question file landed');
   return bad;
 });
 

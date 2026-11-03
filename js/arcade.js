@@ -506,6 +506,8 @@ function widgetFor_(w) {
 }
 
 function widgetsOf_(kind) {
+  /* THE LIST IS find.js's, which comes after the first screen (670): none yet. */
+  if (typeof allWidgets !== 'function') return [];
   /* THE ADMIN'S LAYOUT FIRST (462, 463): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
   if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
