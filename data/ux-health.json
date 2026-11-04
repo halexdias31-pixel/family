@@ -1,0 +1,142 @@
+{
+ "walked": {
+  "viewport": "390x844 touch",
+  "cpu": "4x (1x for the question sample)",
+  "ms": 159807,
+  "phase": {
+   "loaded": 6873,
+   "signin": 15948,
+   "findUsable": 26584,
+   "clicks": 128357,
+   "questions": 159689
+  }
+ },
+ "firstScreenMs": 500,
+ "findUsableMs": 10636,
+ "signinMs": 8428,
+ "heapMB": 905,
+ "clicks": [
+  {
+   "what": "front menu: first answer",
+   "ms": 56,
+   "shift": 0.008,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "second menu: first answer",
+   "ms": 24,
+   "shift": 0.018,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "third menu: first answer",
+   "ms": 40,
+   "shift": 0.009,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "back: drop the last chip",
+   "ms": 32,
+   "shift": 0,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "menu answer again",
+   "ms": 32,
+   "shift": 0,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "open a question",
+   "ms": 3693,
+   "shift": 0.021,
+   "longs": 1,
+   "by": "frames"
+  },
+  {
+   "what": "Check",
+   "ms": 64,
+   "shift": 0,
+   "longs": 0,
+   "by": "event-timing"
+  },
+  {
+   "what": "Lock the page",
+   "ms": 40,
+   "shift": 0,
+   "longs": 0,
+   "by": "event-timing"
+  },
+  {
+   "what": "Unlock the page",
+   "ms": 32,
+   "shift": 0,
+   "longs": 0,
+   "by": "event-timing"
+  },
+  {
+   "what": "Fold the question",
+   "ms": 48,
+   "shift": 0.002,
+   "longs": 0,
+   "by": "event-timing"
+  },
+  {
+   "what": "Back to the top of Find",
+   "ms": 64,
+   "shift": 0,
+   "longs": 0,
+   "by": "event-timing"
+  },
+  {
+   "what": "front menu again",
+   "missing": true
+  },
+  {
+   "what": "Next answer down",
+   "missing": true
+  },
+  {
+   "what": "Feed tab",
+   "ms": 50,
+   "shift": 0,
+   "longs": 0,
+   "by": "frames"
+  },
+  {
+   "what": "Find tab",
+   "ms": 58,
+   "shift": 0,
+   "longs": 0,
+   "by": "frames"
+  }
+ ],
+ "thresholds": {
+  "clickMs": 100,
+  "shift": 0.05
+ },
+ "slow": [
+  {
+   "what": "open a question",
+   "ms": 3693,
+   "shift": 0.021,
+   "longs": 1,
+   "by": "frames"
+  }
+ ],
+ "missing": [
+  "front menu again",
+  "Next answer down"
+ ],
+ "questions": {
+  "sampled": 30,
+  "types": 24,
+  "broken": []
+ },
+ "errors": []
+}

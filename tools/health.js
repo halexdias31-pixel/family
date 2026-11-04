@@ -71,6 +71,55 @@ function findWork(L) {
 }
 const FIND_PENALTY = { 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
 
+/* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
+function uniformWork() {
+  const W = [], MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+  const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f) && !MAKERS.has(f));
+  const css = read('style.css'), cssLines = css.split('\n');
+  const jsAll = {};
+  app.forEach(f => { const src = blank(read(f)); jsAll[f] = src;
+    src.split('\n').forEach((l, i) => {
+      const at = f + ':' + (i + 1);
+      /* A FORM's or a keypad's button is a button; anything else wearing <button> is a hand-rolled tile. */
+      if (/<button\b/.test(l) && !/\b(?:key|opt|choice|chip|pad|form|dlg|dialog|sheet|close|field)\b|type="submit"/.test(l)) W.push({ kind: 'raw-button', where: at, say: l.trim().slice(0, 120) });
+      if (/class="tile(?:\s|")/.test(l)) W.push({ kind: 'hand-tile', where: at, say: 'a tile written by hand, not tile_(): ' + l.trim().slice(0, 100) });
+      if (/style="[^"$]*[a-z-]+\s*:[^"$]*"/.test(l)) W.push({ kind: 'inline-style', where: at, say: (/style="[^"]*"/.exec(l) || [''])[0].slice(0, 100) });
+      if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
+    }); });
+  /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
+  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + read('js/shell.js');
+  for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
+  const ruled = {};
+  cssLines.forEach((l, i) => { if (/\{/.test(l) && !/^\s*(?:@|--)/.test(l)) for (const m of l.split('{')[0].matchAll(/\.([a-zA-Z][\w-]*)/g)) (ruled[m[1]] = ruled[m[1]] || []).push(i + 1); });
+  Object.keys(ruled).forEach(c => { if (ruled[c].length === 1 && used[c] === 1 && !new RegExp('[\'"`\\s.]' + c + '[\'"`\\s]').test(blob.replace(/class="[^"]*"/g, '')))
+    W.push({ kind: 'once-class', where: 'style.css:' + ruled[c][0], say: `.${c} styles one place only` }); });
+  /* THE SAME CONTROL, DIFFERENT LOOKS: border-radius and font-size of .tile, .chip and button rules. */
+  ['tile', 'chip', 'button'].forEach(ctl => { const seen = {};
+    const re = ctl === 'button' ? /(?:^|[\s,>])button(?=[\s,:{.[]|$)/ : new RegExp('\\.' + ctl + '(?![\\w-])');
+    for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().split('\n').pop(); if (!re.test(sel.split(',').map(x => x.trim().split(/\s+/).pop()).join(','))) continue;
+      for (const d of m[2].matchAll(/(border-radius|font-size|font-family)\s*:\s*([^;]+)/g)) { const k = d[1], v = d[2].trim();
+        (seen[k] = seen[k] || {}); if (!seen[k][v]) seen[k][v] = lineOf(css, m.index + m[0].indexOf(d[0])); } }
+    Object.keys(seen).forEach(k => { const vs = Object.keys(seen[k]); if (vs.length > 1) vs.slice(1).forEach(v => W.push({ kind: 'control-look', where: 'style.css:' + seen[k][v],
+      say: `${ctl} ${k} ${v} (the first ${ctl} rule says ${vs[0]}; ${vs.length} different)` })); }); });
+  return W;
+}
+const UNIFORM_PENALTY = { 'raw-button': [0.02, 5], 'hand-tile': [0.2, 5], 'inline-style': [0.02, 5], 'once-class': [0.005, 5], 'control-look': [0.1, 5], 'own-wait': [0.2, 5] };
+/* UX AND QUESTIONS (920): read from data/ux-health.json, written by tools/ux-health.js (a browser walk); never walked here. */
+function uxWork() {
+  let j = null; try { j = JSON.parse(read('data/ux-health.json')); } catch (e) { return { j: null, work: [] }; }
+  const W = [];
+  (j.slow || []).forEach(c => W.push({ kind: 'ux', where: 'click: ' + c.what, say: `${c.ms} ms, shift ${c.shift}, ${c.longs} long task(s)` + (c.ms > j.thresholds.clickMs ? ' — slower than ' + j.thresholds.clickMs + ' ms' : '') + (c.shift > j.thresholds.shift ? ' — shifts over ' + j.thresholds.shift : '') }));
+  (j.missing || []).forEach(m => W.push({ kind: 'ux', where: 'click: ' + m, say: 'its control was not on the screen to press' }));
+  /* THE BIG WAITS, on a 4x-slow phone: three seconds to Find or to sign in, and 300 MB of heap, are where a phone gives up. */
+  if (j.findUsableMs > 3000 || j.findUsableMs < 0) W.push({ kind: 'ux', where: 'Find usable', say: `${j.findUsableMs} ms from signed in to Find's first menu (budget 3000)` });
+  if (j.signinMs > 3000) W.push({ kind: 'ux', where: 'sign-in', say: `${j.signinMs} ms from the press to signed in (budget 3000)` });
+  if (j.heapMB > 300) W.push({ kind: 'ux', where: 'JS heap after Practice', say: `${j.heapMB} MB (budget 300)` });
+  if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
+  ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
+  return { j, work: W };
+}
+const UX_PENALTY = { ux: [1, 10], question: [0.5, 10] };
+
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [];
@@ -101,7 +150,11 @@ function ui() {
     ['zindex', 'Distinct z-index values (over 5)', zindex, 0.5, 10, 5],
     ['position', 'transform and position:absolute uses', position, 0.01, 10, 0],
   ].map(([id, label, n, w, cap, free]) => ({ id, label, count: n, weight: w, cap, off: r1(Math.min(cap, Math.max(0, n - free) * w)) }));
-  return { score: r1(Math.max(0, 100 - S.reduce((a, s) => a + s.off, 0))), signals: S.sort((a, b) => b.off - a.off) };
+  const work = uniformWork().concat(uxWork().work), k = {};
+  work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
+  const PEN = Object.assign({}, UNIFORM_PENALTY, UX_PENALTY);
+  Object.keys(PEN).forEach(id => S.push({ id, label: id + ' findings', count: k[id] || 0, weight: PEN[id][0], cap: PEN[id][1], off: r1(Math.min(PEN[id][1], (k[id] || 0) * PEN[id][0])) }));
+  return { score: r1(Math.max(0, 100 - S.reduce((a, s) => a + s.off, 0))), signals: S.sort((a, b) => b.off - a.off), work };
 }
 
 /* CODE STRUCTURE (920): where the one-off cases live, line by line, on CORE app files (tiers.json). Capped per signal.
@@ -240,7 +293,7 @@ function health() {
   const off = [];
   sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
     say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
-  U.signals.forEach(s => s.off > 0 && off.push({ part: 'ui', id: s.id, cost: r1(s.off * WEIGHTS.ui), say: SAY[s.id](s.count) }));
+  U.signals.forEach(s => s.off > 0 && off.push({ part: 'ui', id: s.id, cost: r1(s.off * WEIGHTS.ui), say: SAY[s.id] ? SAY[s.id](s.count) : `UI: ${s.count} ${s.id} findings (node tools/health.js --list --kind ${s.id}).` }));
   const q = (L.j && L.j.questions) || 0;
   ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
     cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
@@ -252,7 +305,7 @@ function health() {
     parts: { code, logic: lscore, ui: U.score },
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
-    worklist: S.findings, work,
+    worklist: S.findings, work: work.concat(U.work),
   };
 }
 module.exports = { health };
@@ -326,7 +379,7 @@ else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
     const n = Number(process.argv[at + 1]) || 20, ki = process.argv.indexOf('--kind'), kind = ki >= 0 ? process.argv[ki + 1] : '';
-    const W = structure().findings.concat(findWork(logic()).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
+    const W = structure().findings.concat(findWork(logic()).concat(ui().work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
       .filter(f => !kind || f.kind === kind);
     W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  ${f.text}`));
     console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings, dearest first)`);
