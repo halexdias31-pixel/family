@@ -1672,7 +1672,7 @@ function placeNow_(which, instant, dragPx, id) {
 /* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
 function pageName_(h) {
   const m = /id="wgt-([^"]+)"/.exec(h);
-  const w = m && typeof layoutWidgetOf_ === 'function' ? layoutWidgetOf_(m[1]) : null;
+  const w = m && typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(m[1]) : null;
   if (w) return w.name || '';
   const t = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(String(h || ''));
   return t ? t[1].trim().replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"') : '';

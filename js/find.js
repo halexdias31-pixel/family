@@ -222,7 +222,7 @@ const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 
 /* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
-  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, false);
+  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutTiles_`) */
   return `<div class="card">
     <h3>${esc(x.name)}</h3>
   </div>`;

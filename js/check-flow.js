@@ -176,6 +176,8 @@ function boot(opts) {
       '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
       '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
       /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
+      /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
+      'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
       'findGroupOn: (fid, g, id) => { if (!USER) USER = { name: "Mo Member", personId: "P-MEMBER", role: "parent", roles: ["parent"], rank: "client", token: "t-member", handle: "momember" };' +
       '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }], q: "" }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
       /* `n` IS AN INDEX INTO `widgetsOf_` of the last group, as it was into the column: the page of that widget's card. */
@@ -27426,14 +27428,15 @@ check('a widget drawn ahead with nothing changed is adopted on arrival without s
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.widgetsOf !== 'function') return ['the widgets are not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  /* FIND SHOWING TOOLS, then left (790): its filled cards are what is drawn ahead, as Tools' column was. */
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
   const tools = t.widgetsOf('tool');
   const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
   if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
   const n = { calculator: 0, calendar: 0 };
   [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
-  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.findGroup('Tools'); await wait(LEAVE_MS); await woken_(); };
+  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
   const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
   const slot = id => t.slotOn('stuff', id);
   /* 1. NOTHING MOVED: adopted. */
@@ -27458,7 +27461,7 @@ check('a widget drawn ahead with nothing changed is adopted on arrival without s
   w.__aheadHold = true;
   t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
   await arrive();
-  if (!n.calculator && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
+  if (!n.calculator && slot('calculator') && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
   w.__aheadHold = false;
   t.USER(null);
   return bad;
@@ -27468,7 +27471,7 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.widgetState !== 'function') return ['the widgets\' state is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Games', 'wordgames'); t.go('feed', false, true); t.repaint();   /* Find showing Games, left (790) */
   await aheadQuiet_(t);
   const st = t.widgetState();
   if (st.tt) bad.push('the times-tables sprint is running after being drawn ahead');
@@ -27480,7 +27483,7 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
      box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
   /* VIDEOS LEADS THE REELS NOW (414), and is drawn ahead there. */
-  [['games', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
+  [['stuff', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
     const sl = t.slotOn(col, id);
     if (!sl) bad.push('no ' + id + ' slot on ' + col);
     else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
@@ -27510,7 +27513,7 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.findFillAll('stuff'); t.go('feed', false, true); t.repaint();   /* Find showing Tools, every card filled, then left (790) */
   await aheadQuiet_(t);
   const cal0 = t.slotOn('stuff', 'countdowns'), calc0 = t.slotOn('stuff', 'calculator');
   if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Countdowns was not drawn ahead on Tools — NOT checked']; }
@@ -27538,7 +27541,7 @@ check('signing out puts away what was drawn for the last person, before the repa
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.findFillAll('stuff'); t.go('feed', false, true); t.repaint();   /* Find showing Tools, every card filled, then left (790) */
   await aheadQuiet_(t);
   /* THE NOTEPAD AND THE TIMETABLE, both asked: § */
   const ids = ['notepad', 'timetable'];
@@ -27747,9 +27750,9 @@ check('signing out puts away every drawing the last person had, including the on
   } catch (e) {} } });
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
-  t.go('feed', false, true); t.repaint();
+  t.findGroupOn('stuff', 'Tools', 'flyers'); t.go('feed', false, true); t.repaint();   /* Find showing the admin's tools, left (790) */
   await aheadQuiet_(t);
-  const ask = [['tools', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
+  const ask = [['stuff', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
   const drawn = ask.filter(([c, id]) => { const sl = t.slotOn(c, id); return sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001'; });
   if (drawn.length < ask.length) { return ['not every slot was drawn ahead for the admin (' + drawn.map(x => x.join(':')).join(', ') + ') — NOT checked']; }
   w.signedOut_();
@@ -27829,9 +27832,9 @@ check('a landing that changes nothing keeps the column in front, and an arrival 
   if ((t.paints().account || 0) !== q0 || !same(kids('account'), a0)) bad.push('arriving at Account after a landing that changed nothing wrote it again');
   /* 4. A COLUMN OF WIDGETS IN FRONT IS STILL DRAWN AGAIN AT A LANDING — 331's restart. */
   t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
-  const r0 = t.paints().tools || 0;
+  const r0 = t.paints().stuff || 0;
   t.landRepaint();
-  if ((t.paints().tools || 0) === r0) bad.push('a landing kept Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
+  if ((t.paints().stuff || 0) === r0) bad.push('a landing kept Find › Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
   return bad;
 });
 
@@ -28189,19 +28192,19 @@ check('a column\'s widget slots are drawn before any column further out is paint
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
-  /* SHOP IN FRONT, GAMES BESIDE IT since 392 (Tools before, when Games was its neighbour). */
-  t.USER(SAM_); t.go('saved', false, true); t.go('shop', false, true);
+  /* SAVED IN FRONT, FIND 2 SHOWING TOOLS BESIDE IT (790: the Games column that stood beside Shop is in Find). */
+  t.USER(SAM_); t.findGroupOn('res', 'Tools'); t.go('booking', false, true); t.go('saved', false, true);
   await aheadQuiet_(t);
   const a = w.performance.now();
   t.repaint();
   await aheadQuiet_(t);
-  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('shop');
-  if (Math.abs(ids.indexOf('games') - ti) !== 1) return ['Games is not beside Shop: ' + ids.join(' ') + ' — NOT checked'];
+  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('saved');
+  if (Math.abs(ids.indexOf('res') - ti) !== 1) return ['Find 2 is not beside Saved: ' + ids.join(' ') + ' — NOT checked'];
   const log = t.aheadLog().filter(x => x.t >= a);
-  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:games:/.test(x.key)).map(x => x.key).pop());
-  if (lastGames < 0) return ['no widget on Games was drawn by the builder after the repaint — NOT checked'];
+  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:res:/.test(x.key)).map(x => x.key).pop());
+  if (lastGames < 0) return ['no widget on Find 2 was drawn by the builder after the repaint — NOT checked'];
   const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
-  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Shop, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
+  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Saved, before it had drawn every widget on Find 2 beside it (' + log[lastGames].key + ' came after)');
   t.USER(null);
   return bad;
 });
@@ -30340,11 +30343,12 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
   if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
-  t.findGroup('Tools'); await wait(300);
-  const tools0 = layIds_(t, 'tool');
+  /* TOOLS ARE FIND CARDS, placed by the funnel (790): the Reels column's widgets are the ones that move. */
+  t.go('reel', false, true); await wait(300);
+  const tools0 = layIds_(t, 'reel');
   const [a, b, c] = tools0;
   const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
-  if (!row) return bad.concat(['the first tool has no admin row']);
+  if (!row) return bad.concat(['the first reel widget has no admin row']);
   const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
   ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push('the admin row has no ' + l + ': ' + labels); });
   if (!row.querySelectorAll('.is-admin').length) bad.push('the admin row is not in the admin tone');
@@ -30353,18 +30357,18 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(200);
   let posts = sent.filter(x => x.action === 'layoutSave');
   if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts after one move, not one');
-  if (layIds_(t, 'tool').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Tools ' + layIds_(t, 'tool').join());
-  const drawn = [...d.querySelectorAll('#s-stuff .widget-slot')].map(x => x.id.replace('wgt-', ''));
-  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Tools: ' + drawn.join());
+  if (layIds_(t, 'reel').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Reels ' + layIds_(t, 'reel').join());
+  const drawn = [...d.querySelectorAll('#s-reel .widget-slot')].map(x => x.id.replace('wgt-', ''));
+  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Reels: ' + drawn.join());
   /* UP: back again. */
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '-1')); await wait(200);
-  if (layIds_(t, 'tool').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'tool').join());
+  if (layIds_(t, 'reel').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'reel').join());
   /* ACROSS: to the end of the next widget column. */
-  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('tools') + 1];
+  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('reel') + 1];
   A['lay-w-col'](layTile_(d, c, 'lay-w-col', '1')); await wait(200);
   const kindOf = { reel: 'reel', tools: 'tool', games: 'game', shop: 'shop' };
   const there = layIds_(t, kindOf[next]);
-  if (layIds_(t, 'tool').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
+  if (layIds_(t, 'reel').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
   posts = sent.filter(x => x.action === 'layoutSave');
   if (posts.length !== 3) bad.push(posts.length + ' layoutSave posts after three moves');
   const L = posts[posts.length - 1] && posts[posts.length - 1].layout;
@@ -30380,9 +30384,9 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   if (t2.ACTIONS['layout-reset']) bad.push('a layout-reset handler still exists');
   /* A REFUSAL: drawn at once, then put back with a toast. */
   const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
-  no.w.__t.findGroup('Tools'); await wait(300);
+  no.w.__t.go('reel', false, true); await wait(300);
   no.w.__t.ACTIONS['lay-w-move'](layTile_(no.w.document, a, 'lay-w-move', '1')); await wait(300);
-  if (layIds_(no.w.__t, 'tool').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'tool').join());
+  if (layIds_(no.w.__t, 'reel').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'reel').join());
   return bad;
 });
 
@@ -30391,7 +30395,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-del']) return ['no lay-w-del handler — NOT checked'];
-  t.findGroup('Games'); await wait(300);
+  t.findGroup('Games', 'wordgames'); await wait(300);
   const tile = () => layTile_(d, 'wordgames', 'lay-w-del');
   if (!tile()) return bad.concat(['Word games has no Delete tile — NOT checked']);
   A['lay-w-del'](tile());
@@ -30400,7 +30404,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
   await wait(450); A['lay-w-del'](tile()); await wait(300);
   if (layIds_(t, 'game').indexOf('wordgames') !== -1 || d.querySelector('#wgt-wordgames')) bad.push('the second tap did not delete');
-  if (t.pageCount('games') !== layIds_(t, 'game').length) bad.push('the pager counts ' + t.pageCount('games') + ' pages for ' + layIds_(t, 'game').length + ' widgets');
+  if (w.findWidgetList_().some(x => String(x.id) === 'wordgames')) bad.push('Find still lists the deleted Word games');   /* Find is paged by its cards (790) */
   const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
   if (!L || (L.deleted || []).indexOf('wordgames') === -1) bad.push('the post did not carry deleted');
   /* THE BASKET STAYS. */
@@ -30416,7 +30420,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (/Add back|Reset layout|Deleted cards/.test(d.body.textContent)) bad.push('the page still says Add back, Reset layout or Deleted cards');
   /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
-  for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
+  for (const col of ['stuff', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
   if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
   return bad;
@@ -30431,7 +30435,7 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   const card = () => d.querySelector('#s-biz .deleted-card');
   if (!card()) return ['Business has no Deleted card — NOT checked'];
   if (!/Nothing deleted/.test(card().textContent)) bad.push('an empty Deleted card does not say Nothing deleted');
-  t.findGroup('Tools'); await wait(300);
+  t.findGroup('Tools', 'whiteboard'); await wait(300);
   const x = layTile_(d, 'whiteboard', 'lay-w-del');
   if (!x) return bad.concat(['the whiteboard has no Delete tile — NOT checked']);
   A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
@@ -30445,13 +30449,13 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   A['lay-putback'](put); await wait(300);
   const L = (sent.filter(p => p.action === 'layoutSave').pop() || {}).layout;
   if (!L || (L.deleted || []).indexOf('whiteboard') !== -1) bad.push('the save still carries the whiteboard in deleted');
-  t.findGroup('Tools'); await wait(300);
+  t.findGroup('Tools', 'whiteboard'); await wait(300);
   if (layIds_(t, 'tool').indexOf('whiteboard') === -1 || !d.querySelector('#wgt-whiteboard')) bad.push('the whiteboard was not drawn again');
   t.go('biz', false, true); await wait(300);
   if (card() && card().querySelector('[data-deleted="whiteboard"]')) bad.push('the whiteboard is still listed as deleted');
   /* A REFUSAL: drawn at once, then put back. */
   const no = layBoot_({ reply: b => b.action === 'layoutSave' && (b.layout.deleted || []).indexOf('whiteboard') === -1 ? { success: false, error: 'No.' } : undefined }); await wait(300);
-  no.w.__t.findGroup('Tools'); await wait(300);
+  no.w.__t.findGroup('Tools', 'whiteboard'); await wait(300);
   const y = layTile_(no.w.document, 'whiteboard', 'lay-w-del');
   no.w.__t.ACTIONS['lay-w-del'](y); await wait(450); no.w.__t.ACTIONS['lay-w-del'](y); await wait(300);
   no.w.__t.go('biz', false, true); await wait(300);
@@ -30466,32 +30470,32 @@ check('no undo (477): a deleted widget stays gone for everyone after a reload an
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  t.findGroup('Games'); await wait(300);
+  t.findGroup('Games', 'wordgames'); await wait(300);
   const x = layTile_(d, 'wordgames', 'lay-w-del');
   if (!x) return ['Word games has no Delete tile — NOT checked'];
   A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
-  t.findGroup('Tools'); await wait(300);
-  /* TIMER DOWN, past docket: both seen by a client (some tools are role-gated). */
-  const tools0 = layIds_(t, 'tool'), a = tools0.indexOf('timer') !== -1 ? 'timer' : tools0[1], f = tools0[tools0.indexOf(a) + 1];
+  /* A REELS WIDGET DOWN, past the next (790: tools are Find cards, placed by the funnel). */
+  t.go('reel', false, true); await wait(300);
+  const tools0 = layIds_(t, 'reel'), a = tools0[0], f = tools0[1];
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(300);
   const posts = sent.filter(p => p.action === 'layoutSave'), L = posts.length && posts[posts.length - 1].layout;
   if (!L) return bad.concat(['no layoutSave was posted — NOT checked']);
   if (posts.some(p => p.reset)) bad.push('a layoutSave carried reset');
-  const moved = layIds_(t, 'tool');
+  const moved = layIds_(t, 'reel');
   /* AN ADMIN RELOADS: still gone, nothing to bring it back. */
   const p1 = payload(); p1.layout = L;
   const r = layBoot_({ payload: p1 }); await wait(300);
-  for (const col of ['games', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
+  for (const col of ['stuff', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
   if (layIds_(r.w.__t, 'game').indexOf('wordgames') !== -1 || r.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget came back for the admin');
   if (r.w.__t.ACTIONS['lay-w-undel'] || r.w.__t.ACTIONS['layout-reset'] || /Add back|Reset layout/.test(r.w.document.body.textContent)) bad.push('the admin still has Add back or Reset');
   /* A CLIENT RELOADS: the same layout. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p2 = payload(); p2.layout = L;
   const c = boot({ payload: p2, before: signedInAs_(CL) }); await wait(300);
-  for (const col of ['games', 'tools']) { c.w.__t.go(col, false, true); await wait(200); }
+  for (const col of ['stuff', 'reel']) { c.w.__t.go(col, false, true); await wait(200); }
   if (layIds_(c.w.__t, 'game').indexOf('wordgames') !== -1 || c.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget is drawn for a client');
   /* A CLIENT SEES FEWER TOOLS (role-gated ones), so compare the order of the ones both see — and the moved one must be after its old follower. */
-  const cl = layIds_(c.w.__t, 'tool'), both = moved.filter(x => cl.indexOf(x) !== -1);
+  const cl = layIds_(c.w.__t, 'reel'), both = moved.filter(x => cl.indexOf(x) !== -1);
   if (cl.filter(x => both.indexOf(x) !== -1).join() !== both.join()) bad.push('the move did not keep for a client: ' + cl.join() + ' not ' + both.join());
   if (cl.indexOf(a) === -1 || cl.indexOf(f) === -1) bad.push(a + ' or ' + f + ' is not seen by a client — the move NOT checked');
   else if (cl.indexOf(a) < cl.indexOf(f)) bad.push('the moved tool is not below ' + f + ' for a client: ' + cl.join());
@@ -30582,18 +30586,20 @@ check('split cards (464): an admin\'s Split draws a settings card and a Business
 check('layout tiles (463): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a 462 value\'s columns and hidden ignored, rubbish ignored', async () => {
   const bad = [];
   const base = boot(); await wait(300);
-  const tools0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
+  const tools0 = layIds_(base.w.__t, 'reel'), find0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
   const p = payload();
-  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
+  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { reel: ['ghost', tools0[2]], nowhere: ['calculator'], tools: [find0[3], find0[0]], games: ['wordgames'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
   const r = boot({ payload: p }); await wait(300);
-  const t = r.w.__t, tools = layIds_(t, 'tool'), cols = t.TABS.map(x => x.id);
+  const t = r.w.__t, tools = layIds_(t, 'reel'), cols = t.TABS.map(x => x.id);
   if (tools[0] !== tools0[2] || tools.slice(1).join() !== tools0.filter(x => x !== tools0[2]).join()) bad.push('stale widgets: ' + tools.join());
+  /* A LAYOUT SAVED WHILE TOOLS AND GAMES WERE COLUMNS (before 790) still loads: their lists are ignored, Find's order is the code's. */
+  if (layIds_(t, 'tool').join() !== find0.join()) bad.push('an old layout\'s Tools list reordered Find: ' + layIds_(t, 'tool').join());
   if (cols.join() !== cols0.join()) bad.push('a stored column order was applied: ' + cols.join());
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   for (const junk of ['{not json', 42, [1, 2], { columns: 'feed', widgets: 7 }]) {
     const q = payload(); q.layout = junk;
     const g = boot({ payload: q }); await wait(250);
-    if (layIds_(g.w.__t, 'tool').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
+    if (layIds_(g.w.__t, 'reel').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
     if (g.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + g.errs.join('; '));
   }
   return bad;
@@ -30679,39 +30685,28 @@ check('merge with the card above (480): a profiles card merges with the one abov
   return bad;
 });
 
-check('merge with the card above (480): widgets — Make a flyer has no Merge under the Calculator, nor does the Whiteboard, nor any game; the cheat sheet maker merges with Make a flyer and the timer with both, one frame of three slots each started, one tile row last, the pager one page; a client sees the two parts not admin-only', async () => {
-  const { w, sent } = layBoot_();
+check('merge with the card above (480): widgets — a Find card (790) has no Merge tile, tool or game, and a layout saved with tools merged still loads: each part its own card, started, for an admin and a client', async () => {
+  const { w } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['lay-merge'] || typeof w.widgetPagesOf_ !== 'function') return ['no lay-merge or widgetPagesOf_ — NOT checked'];
-  t.findGroup('Tools'); await wait(300);
-  const tools0 = layIds_(t, 'tool'), n0 = t.pageCount('tools');
-  if (tools0.slice(0, 4).join() !== 'calculator,flyers,mat,timer') return ['Tools does not open calculator, flyers, mat, timer: ' + tools0.join() + ' — NOT checked'];
-  const mt = id => layTile_(d, id, 'lay-merge');
-  if (mt('calculator') || mt('flyers')) bad.push('the calculator, which needs its whole page, can be merged');
-  if (mt('whiteboard')) bad.push('the whiteboard has a Merge tile');
-  t.findGroup('Games'); await wait(300);
-  if (d.querySelector('#s-stuff [data-do="lay-merge"]')) bad.push('a game has a Merge tile');
-  t.findGroup('Tools'); await wait(300);
-  if (!mt('mat')) return bad.concat(['the cheat sheet maker has no Merge tile']);
-  A['lay-merge'](mt('mat')); await wait(250);
-  t.findGroup('Tools'); await wait(300);
-  A['lay-merge'](mt('timer')); await wait(300);
-  t.findGroup('Tools'); await wait(400);
-  const L = layLast_(sent);
-  if (JSON.stringify(L && L.merged) !== JSON.stringify([['flyers', 'mat', 'timer']])) bad.push('the widget merges saved ' + JSON.stringify(L && L.merged));
-  const m = d.querySelector('#wgt-timer')?.closest('.card.is-widget');
-  if (!m || !m.classList.contains('is-merged') || m.querySelectorAll('.widget-slot').length !== 3) bad.push('three widgets are not one frame of three slots');
-  if (m && (m.querySelectorAll('.wgt-foot').length !== 1 || m.lastElementChild !== m.querySelector(':scope > .wgt-foot'))) bad.push('the merged widget has not one tile row, last');
-  if (m && !m.querySelector('.wgt-foot [data-do="lay-unmerge"]')) bad.push('the merged widget has no Split');
-  if (t.pageCount('tools') !== n0 - 2 || layPagesOf_(w, 'tools') !== n0 - 2) bad.push('the pager counts ' + t.pageCount('tools') + ' and Tools draws ' + layPagesOf_(w, 'tools') + ', not ' + (n0 - 2));
-  if (d.querySelector('#wgt-timer')?.getAttribute('aria-busy')) bad.push('the timer in the merged card was never started');
-  const p = payload(); p.layout = L;
-  const c = boot({ member: true, payload: p }); await wait(300);
-  c.w.__t.findGroup('Tools'); await wait(300);
-  const cm = c.w.document.querySelector('#s-stuff .card.is-merged');
-  if (!cm || c.w.document.querySelector('#wgt-flyers') || cm.querySelectorAll('.widget-slot').length !== 2) bad.push('a client does not see the timer and cheat sheet maker merged without Make a flyer');
-  if (c.w.__t.pageCount('tools') !== layPagesOf_(c.w, 'tools')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('tools') + ' for ' + layPagesOf_(c.w, 'tools') + ' pages');
+  if (!A['lay-merge']) return ['no lay-merge — NOT checked'];
+  for (const [g, id] of [['Tools', 'calculator'], ['Tools', 'mat'], ['Tools', 'timer'], ['Games', 'wordgames']]) {
+    t.findGroup(g, id); await wait(300);
+    if (!d.querySelector('#s-stuff #wgt-' + id)) { bad.push('Find › ' + g + ' did not draw ' + id + ' — NOT checked'); continue; }
+    if (d.querySelector('#s-stuff [data-do="lay-merge"]')) bad.push('a Find card (' + id + ') has a Merge tile — Find places its cards, nothing merges them');
+  }
+  /* THE LAYOUT AN ADMIN SAVED WHEN TOOLS WAS A COLUMN: its merge names three tools, and is ignored. */
+  const p = payload(); p.layout = { v: 2, widgets: { tools: ['calculator', 'flyers', 'mat', 'timer'] }, merged: [['flyers', 'mat', 'timer']], deleted: [] };
+  for (const [who, b] of [['an admin', layBoot_({ payload: p })], ['a client', boot({ member: true, payload: p })]]) {
+    await wait(300);
+    if (b.errs && b.errs.length) bad.push(who + ': the old layout threw: ' + b.errs.join('; '));
+    b.w.__t.findGroup('Tools', 'timer'); await wait(400);
+    const bd = b.w.document;
+    if (bd.querySelector('#s-stuff .card.is-merged')) bad.push(who + ': an old merge of tools is drawn merged on Find');
+    const sl = bd.querySelector('#s-stuff #wgt-timer');
+    if (!sl) bad.push(who + ': the timer is not its own Find card under an old merged layout');
+    else { for (let k = 0; k < 40 && sl.getAttribute('aria-busy'); k++) await wait(50); if (sl.getAttribute('aria-busy')) bad.push(who + ': the timer on Find was never started'); }
+  }
   return bad;
 });
 
@@ -31024,15 +31019,13 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   await layPaintAll_(w);
   if (!d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card did not come back');
   /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
-  t.findGroup('Tools'); await wait(300);
-  const tid = layIds_(t, 'tool')[0];
+  /* THE FIRST REELS WIDGET (790: a tool is a Find card, placed by the funnel): ◀ takes it to Spotlight, then past it. */
+  t.go('reel', false, true); await wait(300);
+  const tid = layIds_(t, 'reel')[0];
   const tl = layTile_(d, tid, 'lay-w-col', '-1');
-  if (!tl || tl.disabled) bad.push('the first tool has no live ◀');
+  if (!tl || tl.disabled) bad.push('the first Reels widget has no live ◀');
   else {
-    A['lay-w-col'](tl); await wait(300);
-    if (layIds_(t, 'reel').indexOf(tid) === -1) bad.push('◀ from Tools did not reach Reels: ' + layIds_(t, 'reel').join());
-    try { w.paint('reel'); } catch (e) {}
-    await wait(150);
+    if (tl.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](tl); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
     /* SPOTLIGHT IS THE FIRST COLUMN A UNIT STANDS ON SINCE 730: one more ◀ takes the tool there first. */
     const sp = layTile_(d, tid, 'lay-w-col', '-1');
     if (sp && sp.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](sp); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
@@ -31062,45 +31055,45 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   return bad;
 });
 
-check('layout engine (710): any unit anywhere — a settings card moves into Tools and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
+check('layout engine (710): any unit anywhere — a settings card moves into Reels and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Tools. */
+  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Reels. */
   const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"]`) && !/^own:/.test(x));
   if (!cid) return ['Student settings has no card with an admin row — NOT checked'];
   const CARD_ = `[data-lay-for="${cid}"]`;
   for (let k = 0; k < 12; k++) {
     const col = t.TABS.map(x => x.id).find(c => laySeen_(w, c).indexOf(cid) !== -1 && d.querySelector(`#s-${c} .card-admin[data-lay-for="${cid}"]`));
-    if (col === 'tools' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
+    if (col === 'reel' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
     const lt = d.querySelector(`#s-${col} .card-admin[data-lay-for="${cid}"] [data-do="lay-c-col"][data-d="-1"]`);
     if (!lt || lt.disabled) { bad.push('stuck on ' + col + ': ' + (lt ? lt.getAttribute('aria-label') + ' off' : 'no ◀')); break; }
     A['lay-c-col'](lt); await wait(300);
     try { const to = (layLast_(sent) || {}).cards || {}; Object.keys(to).forEach(c => { try { w.paint(c); } catch (e) {} }); } catch (e) {}
     await wait(150);
   }
-  try { w.__t.findGroup('Tools'); } catch (e) {}
+  try { w.paint('reel'); } catch (e) {}
   await wait(150);
   const L1 = layLast_(sent) || {};
-  if (((L1.cards || {}).tools || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Tools: ' + JSON.stringify(L1.cards));
-  const onTools = d.querySelector(`#s-stuff .card-admin[data-lay-for="${cid}"]`);
-  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Tools with its admin row');
-  if (!d.querySelector('#s-stuff ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Tools');
+  if (((L1.cards || {}).reel || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Reels: ' + JSON.stringify(L1.cards));
+  const onTools = d.querySelector(`#s-reel .card-admin[data-lay-for="${cid}"]`);
+  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Reels with its admin row');
+  if (!d.querySelector('#s-reel ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Reels');
   if (d.querySelector('#s-account ' + CARD_)) bad.push('the card ' + cid + ' is still on Student settings too — two homes');
-  /* ▲ PAST A TOOL: the card is last on Tools, and Move up puts it above the last tool. */
-  const tools0 = layIds_(t, 'tool'), lastTool = tools0[tools0.length - 1];
+  /* ▲ PAST A TOOL: the card is last on Reels, and Move up puts it above the last tool. */
+  const tools0 = layIds_(t, 'reel'), lastTool = tools0[tools0.length - 1];
   const up = onTools && onTools.querySelector('[data-do="lay-c-move"][data-d="-1"]');
-  if (!up || up.disabled) bad.push('the card on Tools has no live Move up');
+  if (!up || up.disabled) bad.push('the card on Reels has no live Move up');
   else {
     A['lay-c-move'](up); await wait(300);
-    const ord = ((layLast_(sent) || {}).cards || {}).tools || [];
+    const ord = ((layLast_(sent) || {}).cards || {}).reel || [];
     if (ord.indexOf(cid) === -1 || ord.indexOf(cid) > ord.indexOf(lastTool)) bad.push('Move up did not put the card above ' + lastTool + ': ' + ord.join());
-    const slots = [...d.querySelectorAll('#s-stuff .widget-slot, #s-stuff .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
+    const slots = [...d.querySelectorAll('#s-reel .widget-slot, #s-reel .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
     if (slots.indexOf(cid) === -1 || slots.indexOf(cid) > slots.indexOf(lastTool)) bad.push('Tools did not redraw the card above ' + lastTool + ': ' + slots.join());
   }
-  /* A TOOL INTO STUDENT SETTINGS: ▶ from Tools until it stands there. */
-  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; }) || tools0[0];
+  /* A TOOL INTO STUDENT SETTINGS: ▶ from Reels until it stands there. */
+  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'reels'; }) || tools0[0];
   for (let k = 0; k < 12; k++) {
     const col = t.TABS.map(x => x.id).find(c => d.querySelector(`#s-${c} #wgt-${tid}`));
     if (col === 'account' || !col) break;
@@ -31108,7 +31101,7 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
     if (!rt || rt.disabled) break;
     A['lay-w-col'](rt); await wait(300);
     await layPaintAll_(w);
-    ['tools', 'shop', 'games'].forEach(c => { try { w.paint(c); } catch (e) {} });
+    ['reel', 'shop'].forEach(c => { try { w.paint(c); } catch (e) {} });
     await wait(150);
   }
   const L2 = layLast_(sent) || {};
@@ -31118,14 +31111,14 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
   else ['Move up', 'Move down', 'Move to previous column', 'Move to next column'].forEach(l => {
     if (!there.querySelector(`.wgt-admin [aria-label="${l}"]`)) bad.push(tid + ' on Student settings has no ' + l);
   });
-  if (d.querySelector(`#s-stuff #wgt-${tid}`)) bad.push(tid + ' is still on Tools too');
+  if (d.querySelector(`#s-reel #wgt-${tid}`)) bad.push(tid + ' is still on Reels too');
   /* A RELOAD keeps both, and the tool starts on its new column. */
   const p = payload(); p.layout = layLast_(sent);
   const r = layBoot_({ payload: p }); await wait(300);
-  await layPaintAll_(r.w); try { r.w.__t.findGroup('Tools'); } catch (e) {}
+  await layPaintAll_(r.w); try { r.w.paint('reel'); } catch (e) {}
   await wait(150);
   const rd = r.w.document;
-  if (!rd.querySelector('#s-stuff ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Tools');
+  if (!rd.querySelector('#s-reel ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Reels');
   if (!rd.querySelector(`#s-account #wgt-${tid}`)) bad.push('a reload lost ' + tid + ' on Student settings');
   r.w.__t.go('account', false, true); await wait(200);
   { const host = rd.getElementById('s-account'), pg = rd.querySelector(`#s-account #wgt-${tid}`)?.closest('.page'); const n = pg ? [...host.querySelectorAll(':scope > .page')].indexOf(pg) : -1; if (n > -1) { try { r.w.goPage('account', n, true); } catch (e) {} } }
@@ -31135,10 +31128,10 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
   /* A CLIENT reloading sees both where they were put, with no admin tiles. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
-  try { c.w.__t.findGroup('Tools'); c.w.paint('account'); } catch (e) {}
+  try { c.w.paint('reel'); c.w.paint('account'); } catch (e) {}
   await wait(150);
   if (!c.w.document.querySelector(`#s-account #wgt-${tid}`)) bad.push('a client does not see ' + tid + ' on Student settings');
-  if (c.w.cardSeen_('tools').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Tools');
+  if (c.w.cardSeen_('reel').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Reels');
   if (c.w.document.querySelector('.wgt-admin')) bad.push('a client sees layout tiles');
   [r, c].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join('; ')); });
   return bad;
@@ -31230,7 +31223,7 @@ check('layout (730): a column between two — Move to a new column here, on the 
   return bad;
 });
 
-check('layout (730): Spotlight and Board games move like any unit — the window is one unit with ▲ ▼ ◀ ▶, and Board games ▶ leaves Games for the next column and is drawn there', async () => {
+check('layout (730): Spotlight and a Reels widget move like any unit (790: the games are Find cards) — the window is one unit with ▲ ▼ ◀ ▶, and Videos ▶ leaves Reels for the next column and is drawn there', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -31238,14 +31231,14 @@ check('layout (730): Spotlight and Board games move like any unit — the window
   const row = d.querySelector('#s-spotlight .card-admin[data-lay-for="spot:list"]');
   if (!row) bad.push('Spotlight has no admin row');
   else ['Move to next column', 'Move this column right'].forEach(l => { if (!row.querySelector(`[aria-label="${l}"]`)) bad.push('Spotlight has no ' + l); });
-  t.findGroup('Games'); await wait(300);
-  const bt = d.querySelector('#s-stuff #wgt-boardgames')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
-  if (!bt || bt.disabled) bad.push('Board games has no live ▶');
+  t.go('reel', false, true); await wait(300);
+  const bt = d.querySelector('#s-reel #wgt-videos')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+  if (!bt || bt.disabled) bad.push('Videos has no live ▶');
   else {
     A['lay-w-col'](bt); await wait(300);
-    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('boardgames') !== -1);
-    if (!to || to === 'games') bad.push('Board games did not leave Games: ' + JSON.stringify(L.widgets));
-    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-boardgames`)) bad.push('Board games is not drawn on ' + to); }
+    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('videos') !== -1);
+    if (!to || to === 'reel') bad.push('Videos did not leave Reels: ' + JSON.stringify(L.widgets));
+    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-videos`)) bad.push('Videos is not drawn on ' + to); }
   }
   return bad;
 });
@@ -31278,24 +31271,24 @@ check('stability (730): Web settings carries the Stability card for an admin —
   return bad;
 });
 
-check('layout (730): pager names for moved units — a tool moved onto Kids settings is named by the pager there, and a card moved onto Tools by its title (Brownie points)', async () => {
+check('layout (730): pager names for moved units — a Reels widget moved onto Kids settings is named by the pager there, and a card moved onto Spotlight by its title (Brownie points)', async () => {
   const { w } = layBoot_();
   await wait(300);
   const t = w.__t, bad = [];
   if (typeof w.pageName_ !== 'function' || !t.PAGER) return ['no pageName_ or PAGER — NOT checked'];
-  const tool = layIds_(t, 'tool').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; });
+  const tool = layIds_(t, 'reel').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'reels'; });
   const name = (w.layoutWidgetOf_(tool) || {}).name;
   const D = w.layoutDraftOf_(null);
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => x !== tool); });
   D.widgets.account = [tool];
-  D.cards = { tools: ['acct:brownie'] };
+  D.cards = { spotlight: ['acct:brownie'] };
   w.layoutSave_(D);
   await wait(300);
   const names = t.PAGER.account();
   if (!Array.isArray(names) || names.indexOf(name) === -1) bad.push('Kids settings\' pager does not name ' + name + ': ' + JSON.stringify(names).slice(0, 300));
-  const tn = t.PAGER.tools();
-  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Tools\' pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
-  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Tools is unnamed');
+  const tn = t.PAGER.spotlight();
+  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Spotlight\'s pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
+  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Spotlight is unnamed');
   return bad;
 });
 
@@ -31566,7 +31559,7 @@ check('the Rewrite coach (519): an admin lists the facts with the AI off; recall
   const open = async (ai, reply) => {
     const p = payload(); p.aiMarking = ai;
     const m = boot({ payload: p, reply: reply, before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
-    await wait(300); m.w.__t.findGroup('Tools'); await wait(200); m.w.initRewrite_(); await wait(50);
+    await wait(300); m.w.__t.findGroup('Tools', 'rewrite'); await wait(200); m.w.initRewrite_(); await wait(50);   /* its own Find card (790) */
     return m;
   };
   const box = m => m.w.document.querySelector('#rw-box');
@@ -31826,28 +31819,29 @@ check('front door (489): an admin\'s door tile on a widget sets layout.front for
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-front']) return ['no lay-front handler — NOT checked'];
-  t.findGroup('Tools'); await wait(300);
-  const ids = layIds_(t, 'tool'), id = ids[2];
+  /* A REELS WIDGET (790: a Find card's place is the funnel's, so it has no door). */
+  t.go('reel', false, true); await wait(300);
+  const ids = layIds_(t, 'reel'), id = ids[1];
   const door = layTile_(d, id, 'lay-front'), home = layTile_(d, id, 'lay-start');
-  if (!door) return ['the third tool has no Front door tile'];
+  if (!door) return ['the second Reels widget has no Front door tile'];
   if (!home) bad.push('a widget has no Start here tile');
   if (home && door.innerHTML === home.innerHTML) bad.push('Front door and Start here look the same');
   A['lay-front'](door); await wait(200);
   const L = layLast_(sent);
-  if (!L || !L.front || L.front.col !== 'tools' || L.front.id !== id) return bad.concat(['the door saved ' + JSON.stringify(L && L.front)]);
+  if (!L || !L.front || L.front.col !== 'reel' || L.front.id !== id) return bad.concat(['the door saved ' + JSON.stringify(L && L.front)]);
   const { backend } = require('./check-gas-load.js');
   const kept = backend().ev('layoutClean_(' + JSON.stringify(L) + ')');
   if (!kept || !kept.front || kept.front.id !== id) bad.push('layoutClean_ dropped front: ' + JSON.stringify(kept && kept.front));
-  /* A MEMBER, the layout in the payload: the app opens on Tools, at that widget. */
+  /* A MEMBER, the layout in the payload: the app opens on Reels, at that widget. */
   const p = payload(); p.layout = L;
   const m = boot({ payload: p, before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(600);
-  if (m.w.__t.AT() !== 'stuff') bad.push('a member opened the app on ' + m.w.__t.AT() + ', not the front door\'s Tools');
+  if (m.w.__t.AT() !== 'reel') bad.push('a member opened the app on ' + m.w.__t.AT() + ', not the front door\'s Reels');
   else {
-    const want = m.w.__t.widgetsOf('tool').map(x => String(x.id)).indexOf(id);
-    if ((m.w.__t.PAGE() || {}).tools !== want) bad.push(`Tools opened on page ${(m.w.__t.PAGE() || {}).tools}, not the door's ${want}`);
+    const want = m.w.__t.widgetsOf('reel').map(x => String(x.id)).indexOf(id);
+    if ((m.w.__t.PAGE() || {}).reel !== want) bad.push(`Reels opened on page ${(m.w.__t.PAGE() || {}).reel}, not the door's ${want}`);
   }
-  t.findGroup('Tools'); await wait(200);
+  t.go('reel', false, true); await wait(200);
   A['lay-front'](layTile_(d, id, 'lay-front')); await wait(200);
   if ((layLast_(sent) || {}).front) bad.push('pressed again, the door did not clear');
   return bad;
@@ -31862,7 +31856,7 @@ check('edit words in place (497): an admin\'s Edit words makes a widget\'s title
   if (!id) return ['no tool has a title marked for words — NOT checked'];
   const tile = layTile_(d, id, 'words-edit');
   if (!tile) return ['the tool has no Edit words tile in its admin group'];
-  A['words-edit'](tile); await wait(50);
+  A['words-edit'](tile); await wait(300);   /* a Find card is filled a moment after its paint (790) */
   const h = d.querySelector(`#wgt-${id} h3[data-wk]`), k = h && h.getAttribute('data-wk');
   if (!h || !/^(true|plaintext-only)$/.test(h.getAttribute('contenteditable') || '')) return bad.concat(['the title did not become editable in place']);
   const said = '<img src=x onerror=alert(1)> New title';

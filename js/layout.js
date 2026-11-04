@@ -175,7 +175,9 @@ function layoutWidgetsIn_(col, all, L) {
 }
 function layoutWidgets_(kind, all) {
   const col = LAYOUT_COL[kind];
-  const L = col ? layoutNow_() : null;
+  /* A KIND WITH NO COLUMN (790, tools and games): the code's order, less what an admin deleted. */
+  if (!col) { const del = (layoutNow_() || {}).deleted || []; return all.filter(w => w.kind === kind && del.indexOf(String(w.id)) === -1); }
+  const L = layoutNow_();
   if (!L) return all.filter(w => w.kind === kind);
   return layoutWidgetsIn_(col, all, L);
 }
@@ -185,7 +187,10 @@ function layoutRelayout_() {
   /* A CUSTOM COLUMN MADE OR GONE (466): the tab list and its sections first, then every column redrawn. */
   try { columnsFor_(); } catch (e) {}
   try { markStale_(TABS.map(t => t.id)); } catch (e) {}
+  /* FIND'S LIST HOLDS THE WIDGET CARDS (790): forgotten, so a deleted or narrowed one leaves it, and a finder in front is drawn again (`repaint` leaves the one in front). */
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) {}
   try { repaint(true); } catch (e) {}
+  try { if (typeof finderOf_ === 'function' && finderOf_(AT)) paint(AT, true); } catch (e) {}
 }
 
 /* THE WIDGETS AN ADMIN ARRANGES: the code's own (not a session's live widget), whatever audience each is for. */
@@ -193,6 +198,8 @@ function layoutAllWidgets_() {
   return (typeof WIDGETS !== 'undefined' ? WIDGETS : []).filter(w => LAYOUT_COL[w.kind]);
 }
 function layoutWidgetOf_(id) { return layoutAllWidgets_().find(w => String(w.id) === id); }
+/* ANY OF THE CODE'S WIDGETS, a Find card's too (790): for naming one and for its gate, never for placing it. */
+function anyWidgetOf_(id) { return (typeof WIDGETS !== 'undefined' ? WIDGETS : []).find(w => String(w.id) === id); }
 function layoutIsAdmin_() { return typeof rankAtLeast_ === 'function' && rankAtLeast_('admin'); }
 
 /* THE WHOLE LAYOUT WRITTEN OUT from the one in force (the code's when `L` is null), so a move is a change to full lists. */
@@ -219,7 +226,14 @@ function layoutColOf_(D, id) { return Object.keys(D.widgets).find(c => D.widgets
 
 /* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutTiles_(w) {
-  if (!w || !LAYOUT_COL[w.kind] || !layoutIsAdmin_()) return '';
+  if (!w || !layoutIsAdmin_()) return '';
+  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
+  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
+    const id = String(w.id);
+    return `<span class="tile-group is-admin wgt-admin">${wordsTiles_('w:' + id, id)}${
+      tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
+  }
+  if (!LAYOUT_COL[w.kind]) return '';
   const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
   if (!col) return '';
   /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
@@ -436,14 +450,14 @@ function layoutSave_(next) {
 
 /* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
 function layoutDeletedName_(id) {
-  const w = layoutWidgetOf_(id);
+  const w = anyWidgetOf_(id);
   return w ? String(w.name || id) : cardLabel_(id);
 }
 /* NOT IN THE REGISTRY on purpose: no Delete tile under it, or the way back could itself be deleted. */
 function deletedCard_() {
   if (!layoutIsAdmin_()) return '';
   const del = ((layoutNow_() || {}).deleted || []);
-  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
+  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${anyWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
   const html = cardSayIn_(`<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`, 'biz:deleted');
   /* EVERY THING HAS THE ADMIN'S TILES (487) and the one Report tile (486) in one row -- here Edit words and Report, never Delete or a move. */

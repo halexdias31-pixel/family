@@ -36,7 +36,9 @@ already reads it. A widget moved out of Find has no column to go to yet: that is
 
 - `tools` and `games` left `TABS`, `TAB_ORDER`, `data/settings/columns.json`, index.html's sections and the two
   `screen()` calls; `tools/columns_gs.js` re-wrote constants.gs's block, so the four stamps were bumped.
-- `LAYOUT_COL` is `{ reel, shop }`: a tool or game has no layout home and no admin layout tiles. A saved layout that
+- `LAYOUT_COL` is `{ reel, shop }`: a tool or game has no layout home and no ▲ ▼ ◀ ▶, Merge, Start here or Front door —
+  the funnel places a Find card. It keeps the admin tiles that are the widget's own: Edit words, Who sees this and
+  Delete (`layoutTiles_`'s first branch); Deleted on Business names it and puts it back (`anyWidgetOf_`). A saved layout that
   names `tools` or `games` still loads — `layoutSane_` drops a column it does not know, `frontGo_` ignores a front
   door on a column that is not there — and the widgets it placed are found in Find. A widget it had moved onto a
   card column is in Find too.
@@ -46,3 +48,17 @@ already reads it. A widget moved out of Find has no column to go to yet: that is
 
 The journeys that opened the Tools and Games columns now reach the same widgets through Find › Tools and
 Find › Games; a new journey plays a game from Find › Games and works the Calculator from Find › Tools.
+
+## Second pass (after the container restarted)
+
+- A sheet's `find` is a string, so `"FALSE"` was truthy and kept a widget in Find; `widgetInFind_` reads TRUE/YES/1.
+- Typing held, as it was on Tools: a library card with typing in it holds Find's repaint and restart
+  (`settingsKeep_`, `startScreen_` ask `stuff` and `res` as they asked `saved`), and a payload landing keeps a widget's
+  box on a Find card (`typingBox_` left out every box on a finder, because the finder's own search box is held by
+  `findKeep_`; a box inside a `.widget-slot` is not the finder's).
+- Journeys: the ones that asked the admin's moves, merges, doors and pager names of a tool now ask them of the Reels
+  widgets, the columns that still arrange widgets; the merge journey asks that a Find card has no Merge and that a
+  layout saved with tools merged, or with a `tools`/`games` list, still loads. Draw-ahead journeys set Find to Tools
+  (or Find 2 beside Saved) before leaving it, since Find draws ahead only the cards it has filled. Find is for members
+  (400), so `findGroup` stands a member in when nobody is signed in; the journeys that asked a signed-out Tools ask
+  the list instead.
