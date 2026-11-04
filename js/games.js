@@ -3335,9 +3335,6 @@ function scrNew_(n) {
   return g;
 }
 
-/* ---------- WHERE THE TILES ARE, ASKED OF THE BOARD RATHER THAN REMEMBERED § */
-function scrAt_(g, i) { return g.board[i]; }
-
 function scrPlace_(g, i, rackIndex) {
   const p = g.players[g.turn];
   const letter = p.rack[rackIndex];
