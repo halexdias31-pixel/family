@@ -588,8 +588,8 @@ function cardSayIn0_(h, id) {
   const say = cardSayOf_(id);
   /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
   if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
-  /* NOR ON A PERSON (a list's first page is somebody, not the list's name) NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
-  if (personOf_(h) || /\bdata-psearch\b/.test(h)) return h;
+  /* NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
+  if (/\bdata-psearch\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
   if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="faint card-say">${esc(say)}</span></button>$1`);
   const p = `<p class="faint card-say">${esc(say)}</p>`;
