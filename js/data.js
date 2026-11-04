@@ -53,25 +53,22 @@ function jsonp(url) {
   });
 }
 
-/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, asked for once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
+/* THE FILES THE FIRST SCREEN DOES NOT NEED (670): index.html's `LATER`, appended in order once the first column is drawn. Never rejects: a file that fails is named by `__missing`. */
 let LATER_ASK = null, LATER_IN = false;
 function laterFiles_() {
   if (LATER_ASK) return LATER_ASK;
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER : [];
   /* IN window.FILES' ORDER, whatever order LATER is written in: that list is the load order. */
   const list = (Array.isArray(window.FILES) ? window.FILES : later).filter(f => later.indexOf(f) !== -1);
-  /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
-  LATER_ASK = !list.length || typeof document === 'undefined' || typeof fetch !== 'function' ? Promise.resolve() : Promise.all(list.map(f =>
-    fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))
-    .then(texts => {
-      texts.forEach((src, i) => {
-        if (src === null) { try { window.__missing(list[i]); } catch (e) { /* no list to name it in */ } return; }
-        const s = document.createElement('script');
-        s.text = src + '\n//# sourceURL=js/' + list[i] + '.js';
-        document.head.appendChild(s);
-      });
-      LATER_IN = true;
-    });
+  const t = window.LOAD ? '?t=' + window.LOAD : '';
+  LATER_ASK = !list.length || typeof document === 'undefined' ? Promise.resolve() : Promise.all(list.map(f => new Promise(done => {
+    const s = document.createElement('script');
+    s.async = false;    /* in the order given, as `defer` keeps the head's */
+    s.src = 'js/' + f + '.js' + t;
+    s.onload = done;
+    s.onerror = () => { try { window.__missing(f); } catch (e) { /* no list to name it in */ } done(); };
+    document.head.appendChild(s);
+  })));
   LATER_ASK = LATER_ASK.then(() => { LATER_IN = true; });
   return LATER_ASK;
 }

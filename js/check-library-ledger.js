@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-library-ledger.js — THE LIBRARY'S PRIVATE HALF IN THE LEDGER (397), asked of the real backend.
    The copy, `libItems` and its cap, the tools' export and import, the Sunday email. `--full` copies the whole library. */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');

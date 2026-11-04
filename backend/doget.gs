@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-04-find-790";
+const DOGET_VERSION = "2026-11-02-seat-620";
 
 
 function doGet(e) {
@@ -903,8 +903,6 @@ function doGet(e) {
 
     /* ---------- THE VIEWER'S OWN FAVOURITE LINKS (509), and nobody else's: fresh every load, never kept in the cached body. */
     try { payload.favLinks = favLinksOf_(meAsked); } catch (err) { payload.favLinks = []; }
-    /* AND THE VIEWER'S MESSAGES (700), so the DMs column lands with the payload instead of a cold second round trip. */
-    try { payload.messages = meAsked ? messagesOf_(meAsked) : []; } catch (err) { payload.messages = []; }
 
     /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE § */
     if (viewerIsAdmin) {
@@ -1028,8 +1026,7 @@ function doGet(e) {
         audience: norm(r.audience) || 'all',
         level: N(r.level_required) || 0,
         slot: S(r.slot), artId: S(r.art_id),
-        /* A THEME IS A TAG (740): history, space…; an empty cell is no tag. */
-        description: S(r.description), image: S(r.photo), theme: S(r.theme),
+        description: S(r.description), image: S(r.photo),
         inStock: ON_(r.active),
         fields: SHOP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
       });
@@ -1048,7 +1045,7 @@ function doGet(e) {
         acquire: 'buy', audience: 'all', level: 0, slot: '', artId: '',
         description: [S(r.description), S(r.place) || S(r.venue), cap ? 'up to ' + cap + ' children' : '']
           .filter(Boolean).join(' · '),
-        image: S(r.photo), theme: '', inStock: true, fields: {}
+        image: S(r.photo), inStock: true, fields: {}
       });
     });
 
@@ -1199,7 +1196,7 @@ function doGet(e) {
       /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
       try { kidPricesOff_(payload); } catch (err) {}
       const fresh = {};
-      ['submissions', 'films', 'favLinks', 'messages', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+      ['submissions', 'films', 'favLinks', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
       return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -1261,7 +1258,6 @@ function freshFor_(viewer) {
   try { out.films = filmsFor_(viewer); } catch (err) { out.films = []; }
   /* AND THE VIEWER'S OWN FAVOURITE LINKS (509), fresh each load and never in the kept body, which is shared by a role. */
   try { out.favLinks = favLinksOf_(viewer); } catch (err) { out.favLinks = []; }
-  try { out.messages = viewer ? messagesOf_(viewer) : []; } catch (err) { out.messages = []; }
   if (admin) {
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
     try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
@@ -1277,7 +1273,6 @@ function payloadWithFresh_(body, fresh, cached) {
     + ',"submissions":' + JSON.stringify(f.submissions || { for: '', mine: {} })
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + ',"favLinks":' + JSON.stringify(Array.isArray(f.favLinks) ? f.favLinks : [])
-    + ',"messages":' + JSON.stringify(Array.isArray(f.messages) ? f.messages : [])
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
     + (f.claudeNotes ? ',"claudeNotes":' + JSON.stringify(f.claudeNotes) : '')

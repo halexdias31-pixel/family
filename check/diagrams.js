@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/diagrams.js EVERY LABEL IN EVERY DRAWING, AGAINST EVERY LINE AND EVERY OTHER LABEL IN IT. § */
-require('./lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

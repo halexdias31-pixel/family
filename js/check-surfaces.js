@@ -69,7 +69,6 @@ const files = fs.readdirSync(DIR)
   .concat([path.join(ROOT, 'index.html')].filter(fs.existsSync));
 
 const bad = [], blanks = [], popups = [];
-const API_HTTPS = (() => { try { return /const API = 'https:\/\//.test(fs.readFileSync(path.join(DIR, 'data.js'), 'utf8')); } catch (e) { return false; } })();
 
 files.forEach(file => {
   const raw = fs.readFileSync(file, 'utf8');
@@ -102,8 +101,7 @@ files.forEach(file => {
   lines.forEach((l, i) => {
     if (!l.includes('_blank')) return;
     const near = lines.slice(Math.max(0, i - 3), i + 1).join(' ');
-    /* `API` IS AN EXTERNAL ADDRESS (data.js, an https constant): the backend link on the boot error was flagged once a comment above it moved. */
-    if (/https?/.test(near) || (API_HTTPS && /href="' \+ esc\(API\)/.test(raw.split('\n')[i] || ''))) return;
+    if (/https?/.test(near)) return;
     blanks.push({ short, line: i + 1, text: l.trim().slice(0, 90) });
   });
 });

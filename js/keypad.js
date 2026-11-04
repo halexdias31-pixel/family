@@ -496,8 +496,6 @@ function kpPadH_(pad) {
 function kpRoom_(inp, pad) {
   kpRoomBack_();
   kpPadH_(pad);
-  /* A FINDER'S CARD IS CENTRED IN WHAT SHOWS ABOVE THE PAD (720), then held there while you type — `glassSeenH_` (shell.js). */
-  if (kpFinderCentre_(inp)) return;
   const box = kpBox_(inp);
   let el = inp.parentNode;
   while (el && el !== document.body) {
@@ -525,27 +523,10 @@ function kpRoomBack_() {
      A swipe away has already let go of it (`placeGrid`), and the card arrived at is centred. */
   const L = KP_LIFT;
   KP_LIFT = null;
-  /* AND A FINDER, ITS PAD GONE, IS CENTRED AGAIN in the whole glass. */
-  if (!(L && L.lift) && typeof finderOf_ === 'function' && finderOf_(AT)) { try { placeCells('y', true, 0, AT); } catch (e) { /* left where it was */ } }
   if (L && L.lift) {
     L.lift = 0;
     try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) {}
   }
-}
-function kpFinderCentre_(inp) {
-  try {
-    if (typeof finderOf_ !== 'function' || !finderOf_(AT)) return false;
-    const pg = inp.closest('#screen .page.on'), host = pg && pg.parentElement;
-    if (!host || host.id !== 's-' + AT) return false;
-    holdHere_(inp);
-    const h = HOLD_AT;
-    if (!h || h.id !== AT) return false;
-    const seen = glassSeenH_(host);
-    if (pg.offsetHeight > seen) return false;   // taller than what shows: the lift below keeps the box clear instead
-    h.lift = 0; h.top = Math.max(0, (seen - pg.offsetHeight) / 2); h.h = pg.offsetHeight;
-    placeCells('y', true, 0, AT);
-    return true;
-  } catch (e) { return false; }
 }
 /* ---------- AND AGAIN AS IT GROWS § */
 function kpKeepClear_(inp) {

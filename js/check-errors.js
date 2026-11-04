@@ -25,16 +25,16 @@ process.on('uncaughtException', e => { if (!/E-timer/.test(e && e.message)) bad.
   if (before.length) bad.push('the fixture already reports: ' + before.join('; '));
 
   /* 1. A DRAW: the screen says so, the next one still draws. */
-  const tools = h.SCREENS.shop;
-  if (!tools) { console.error('no shop screen to break'); process.exit(2); }
+  const tools = h.SCREENS.tools;
+  if (!tools) { console.error('no tools screen to break'); process.exit(2); }
   const keep = tools.draw;
   tools.draw = () => { throw new Error('E-draw at "Ada Pupil"'); };   // a parse error quotes what it choked on
-  h.paint('shop', true); h.paint('shop', true);
+  h.paint('tools', true); h.paint('tools', true);
   tools.draw = keep;
   await tick(50);
   one('draw', /E-draw/);
-  if (undrawn(w, 'shop') !== 'did not draw') bad.push('draw: the shop column shows no fallback');
-  if (/Ada Pupil/.test((w.document.getElementById('s-shop') || {}).textContent || '')) bad.push('draw: the fallback shows the raw message');
+  if (undrawn(w, 'tools') !== 'did not draw') bad.push('draw: the tools column shows no fallback');
+  if (/Ada Pupil/.test((w.document.getElementById('s-tools') || {}).textContent || '')) bad.push('draw: the fallback shows the raw message');
   if (reports(/Ada Pupil/).length) bad.push('draw: quoted text left the client in a report');
 
   /* 2. AN ACT: a tap that throws says so in a toast. */
@@ -61,13 +61,13 @@ process.on('uncaughtException', e => { if (!/E-timer/.test(e && e.message)) bad.
 
   /* AND THE REST STILL WORKS: every other column draws after all of that. */
   for (const t of h.TABS) {
-    if (t.id === 'shop') continue;
+    if (t.id === 'tools') continue;
     try { h.go(t.id, false, true); h.paint(t.id, true); } catch (e) { bad.push(t.id + ' threw ' + e.message); }
     const u = undrawn(w, t.id);
     if (u) bad.push('afterwards ' + t.id + ': ' + u);
   }
-  h.paint('shop', true);
-  if (undrawn(w, 'shop')) bad.push('shop did not draw again once fixed');
+  h.paint('tools', true);
+  if (undrawn(w, 'tools')) bad.push('tools did not draw again once fixed');
   await tick(200);
   const stray = a.posts.filter(p => p.action === 'clientError' && !/E-(draw|act|timer|promise)/.test(p.message || ''));
   stray.forEach(p => bad.push('an unexpected report: ' + p.where + ' — ' + p.message));

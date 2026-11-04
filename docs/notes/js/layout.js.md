@@ -13,12 +13,3 @@ top level, before `splitId_`
    each field keeps its one home, and each piece saves its own boxes. */
 ```
 
-### A LIST OF PEOPLE IS ONE SURFACE (690, 770):
-
-top level, before `grpMark_`
-
-```
-/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): the owner, of the kids' cards, "have them be within a larger widget". Each person stays
-   a page of its own (Start here, its form); `pages()` (shell.js) joins a run of them into one pane by the mark. */
-```
-

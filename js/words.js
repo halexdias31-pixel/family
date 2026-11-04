@@ -91,15 +91,9 @@ function wordsEditSet_(scope) {
   WORDS_EDIT = scope;
   try { layoutRelayout_(); } catch (e) {}
   if (!scope) return;
-  wordsBarOn_(scope, 10);
-}
-/* A FIND CARD (790) IS FILLED A MOMENT AFTER ITS PAINT, so the card is looked for again a few times before giving up. */
-function wordsBarOn_(scope, tries) {
-  if (WORDS_EDIT !== scope) return;
   const t = [...document.querySelectorAll('[data-do="words-edit"]')].find(x => x.getAttribute('data-ws') === scope);
   const root = t && wordsRoot_(t);
   if (root && !root.classList.contains('wk-editing')) wordsEditOn_(root);
-  else if (!root && tries > 0) setTimeout(() => wordsBarOn_(scope, tries - 1), 30);
 }
 on('words-edit', el => {
   if (!layoutIsAdmin_()) return;
@@ -164,7 +158,7 @@ function seenOk_(id) {
 }
 /* THE CODE'S OWN GATE, where it is known: a widget's flags, a card on an admin column; '' when it is for everyone or decided inside its builder. */
 function seenGate_(id) {
-  const w = typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(id) : null;
+  const w = typeof layoutWidgetOf_ === 'function' ? layoutWidgetOf_(id) : null;
   if (w) return w.admin ? 'admin' : w.tutor ? 'staff' : w.signedIn ? 'in' : '';
   try { if (adminCol_(cardHome0_(id))) return 'admin'; } catch (e) {}
   return '';
