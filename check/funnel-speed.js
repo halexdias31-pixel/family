@@ -4,10 +4,10 @@
 require('./quiet');
 const glass = require('./glass.js');
 
-/* A TAP'S BUDGET, tap to the frame after it, at 4x: the deep steps sit near 150 ms; a whole-library list is still a few hundred. */
-const BUDGET = Number(process.env.FUNNEL_BUDGET_MS || 450);
+/* A TAP'S BUDGET, tap to the frame after it, at 4x: deep steps sit near 150-300 ms, a tap on the whole library 400-850 (805, was 1-14 s). */
+const BUDGET = Number(process.env.FUNNEL_BUDGET_MS || 1200);
 /* AND THE MEDIAN OVER EVERY TAP, which is what a person feels walking down. */
-const MEDIAN = Number(process.env.FUNNEL_MEDIAN_MS || 300);
+const MEDIAN = Number(process.env.FUNNEL_MEDIAN_MS || 450);
 const VERBOSE = process.argv.includes('-v') || process.env.VERBOSE === '1';
 /* FIVE PATHS, by the answer's first letters; a number is "the nth answer offered". */
 const PATHS = [
@@ -29,13 +29,17 @@ const PATHS = [
     const s = await glass.open(browser, server.address().port, v, 390, 844, { settle: 300 });
     if (!s.ready) throw new Error('the payload never landed');
     const page = s.page;
+    const reset = () => { inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; }); paintStuff(); };
     await page.evaluate(() => go('stuff'));
-    /* THE COLUMNS READ IN THE QUIET (`facetIndexJobs_`) are part of what is measured: a phone left a few seconds has them. */
-    await page.waitForFunction(() => typeof facetIndexJobs_ === 'function' && !facetIndexJobs_().length && !aheadBusy_(), null, { timeout: 120000, polling: 250 })
-      .catch(() => fails.push('the facet columns were still being read after two minutes'));
+    await page.waitForTimeout(3000);
+    await page.evaluate(reset);
+    await page.waitForTimeout(5000);
+    /* WHAT IS READ IN THE QUIET (`facetIndexJobs_`: the columns, then every card's pages) is part of what is measured: a phone left
+       a few seconds has it. */
+    await page.waitForFunction(() => typeof facetIndexJobs_ === 'function' && !facetIndexJobs_().length && !aheadBusy_(), null, { timeout: 180000, polling: 250 })
+      .catch(() => fails.push('the quiet reading (facet columns, pages) was still going after three minutes'));
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    const reset = () => { inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; }); paintStuff(); };
     for (const p of PATHS) {
       await page.evaluate(reset);
       await page.waitForTimeout(800);

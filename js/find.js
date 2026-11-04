@@ -9863,10 +9863,10 @@ function stuffPages_() {
   /* EACH CARD'S KEPT PAGES ARE KEPT ON IT for the same chips on the page readers (805), so a tap walks the list, not every page. */
   ctx.chips = JSON.stringify(byPage);
   seq.forEach((x, i) => {
-    const prev = seq[i - 1];
+    const prev = seq[i - 1], sh = pagePrevKey_(x, prev);
     const box = x && typeof x === 'object' ? PAGE_KEPT.get(x) : null;
     const had = box && box[ctx.chips];
-    if (had && had.prev === prev && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) {
+    if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) {
       for (let k = 0; k < had.pages.length; k++) pages.push(had.pages[k]);
       return;
     }
@@ -9878,7 +9878,7 @@ function stuffPages_() {
       if (kept(x, part)) mine.push({ x: x, part: part });
     });
     /* ONE ENTRY PER SET OF PAGE CHIPS, so going back up the funnel finds the pages it had. */
-    if (x && typeof x === 'object') (box || (PAGE_KEPT.set(x, {}), PAGE_KEPT.get(x)))[ctx.chips] = { prev: prev, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, pages: mine };
+    if (x && typeof x === 'object') (box || (PAGE_KEPT.set(x, {}), PAGE_KEPT.get(x)))[ctx.chips] = { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, pages: mine };
     for (let k = 0; k < mine.length; k++) pages.push(mine[k]);
   });
   STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
@@ -9889,12 +9889,18 @@ function stuffPages_() {
    hangs off the payload, the Ledger's generation and the whole list. */
 const PAGE_PARTS = new WeakMap(), PAGE_KEPT = new WeakMap();
 const pagePartsCtx_ = () => ({ data: DATA, gen: chunkGen_(), all: stuffItemsAll_(), by: questionParts_() });
+/* ALL A CARD'S PAGES TAKE FROM THE ONE BEFORE IT is which of its stems that one already drew, so that is the key, not which card it was. */
+function pagePrevKey_(x, prev) {
+  if (!x || x.kind !== 'question' || !prev || prev.kind !== 'question' || !(x.stems || []).length || !(prev.stems || []).length) return '';
+  const had = prev.stems.map(stemId_);
+  return x.stems.filter(p => p && had.indexOf(stemId_(p)) >= 0).map(stemId_).join('\u0000');
+}
 function pagePartsMemo_(x, prev, ctx) {
   if (!x || typeof x !== 'object') return pageParts_(x, prev);
-  const had = PAGE_PARTS.get(x);
-  if (had && had.prev === prev && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) return had.parts;
+  const had = PAGE_PARTS.get(x), sh = pagePrevKey_(x, prev);
+  if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) return had.parts;
   const parts = pageParts_(x, prev);
-  PAGE_PARTS.set(x, { prev: prev, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, parts: parts });
+  PAGE_PARTS.set(x, { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, parts: parts });
   return parts;
 }
 
@@ -11538,7 +11544,7 @@ function facetIndexJobs_() {
   let all = null;
   try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
   const f = facetIndexLeft_(all);
-  if (!f) return [];
+  if (!f) return pageWarmJobs_(all);
   const c = facetCol_(f), at = c.from === all ? c.upto : 0;
   /* THE KEY SAYS HOW FAR, so a job left with more to read is a new job, not a stuck one (`aheadStill_`). */
   return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(all) }];
@@ -11553,6 +11559,24 @@ function facetIndexSlice_(all) {
     for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
     col.upto = end;
     if (performance.now() - t0 > FACET_INDEX_MS) return;
+  }
+}
+/* AND THEN EVERY CARD'S PAGES (805), in the library's order, so the first tap on a subject is not every one of its stems measured. */
+let PAGE_WARM = { all: null, ctx: null, upto: 0 };
+function pageWarmJobs_(all) {
+  const ctx = pagePartsCtx_();
+  const w = PAGE_WARM;
+  const fresh = w.all === all && w.ctx && ['data', 'gen', 'all', 'by'].every(k => w.ctx[k] === ctx[k]);
+  if (fresh && w.upto >= all.length) return [];
+  return [{ key: 'index:pages:' + (fresh ? w.upto : 0), kind: 'index', d: 1e6, cold: true, run: () => pageWarmSlice_(all) }];
+}
+function pageWarmSlice_(all) {
+  const ctx = pagePartsCtx_(), t0 = performance.now();
+  if (!(PAGE_WARM.all === all && PAGE_WARM.ctx && ['data', 'gen', 'all', 'by'].every(k => PAGE_WARM.ctx[k] === ctx[k]))) PAGE_WARM = { all: all, ctx: ctx, upto: 0 };
+  const seq = stuffSorted_(all);
+  while (PAGE_WARM.upto < seq.length && performance.now() - t0 < FACET_INDEX_MS) {
+    const i = PAGE_WARM.upto++, x = seq[i];
+    if (x && !libSlim_(x)) pagePartsMemo_(x, seq[i - 1], ctx);
   }
 }
 AHEAD_KINDS.push(facetIndexJobs_);
