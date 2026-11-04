@@ -1,10 +1,6 @@
 /* @family. — collections.js THREE COLUMNS THAT ARE ONE IDEA. § */
 
 
-/* ---------- HOW MANY CARDS TO A PAGE § */
-const COLL_PER = 8;
-
-
 /* ---------- THE SPOTLIT SET § */
 let SPOT = new Set();
 
@@ -84,18 +80,6 @@ function collItems_(has) {
   const kept = all.filter(x => x.key && has(x.key));
   /* AND THE BIBLE'S VERSES, WHICH ARE ON NO LIST HERE. § */
   return typeof bibleKept_ === 'function' ? kept.concat(bibleKept_(has)) : kept;
-}
-
-/* Empty is a SENTENCE, not a blank screen. A column with nothing in it and nothing to say reads as
-   broken — and all three of these are empty for everybody on their first day. */
-function collPages_(items, credits, empty) {
-  if (!items.length) return [`<div class="card"><p class="note">${empty}</p></div>`];
-  const out = [];
-  for (let i = 0; i < items.length; i += COLL_PER) {
-    out.push(items.slice(i, i + COLL_PER)
-      .map(x => stuffCard(x, credits)).join(''));
-  }
-  return out;
 }
 
 const collCredits_ = () => (USER ? (USER.credits || 0) : 0);

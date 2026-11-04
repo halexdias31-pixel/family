@@ -222,7 +222,6 @@ function layoutDraftOf_(L) {
 function layoutSeen_(col, D) {
   return (D.widgets[col] || []).filter(id => { const w = layoutWidgetOf_(id); return w && widgetFor_(w); });
 }
-function layoutColOf_(D, id) { return Object.keys(D.widgets).find(c => D.widgets[c].indexOf(id) !== -1) || ''; }
 
 /* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutTiles_(w) {

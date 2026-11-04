@@ -220,7 +220,7 @@ const WIDGETS = [
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
     <div id="docket-gtasks"></div>
   </div>` },
-  { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, start: () => initPad?.(),
+  { id: 'notepad', kind: 'tool', name: 'Notepad', solid: true, pure: true, start: () => initPad?.(),
     into: 'notepad', what: 'The notepad',
     html: `<div class="card">
     <h3>Notepad</h3>

@@ -14,18 +14,6 @@ const UNREAD_KEPT = {
 };
 /* ---------- ACCEPTED, WITH A REASON EACH § */
 const ACCEPTED = {
-  /* ---------- THE ONE WORTH BUILDING § */
-  columns: 'applyColumns_ decides which screens the app has and in what order, and `doGet` does not '
-         + 'send the key — `data/settings/columns.json` does, through settingsInto_, like the other '
-         + 'nine tabs that left the Settings spreadsheet.',
-  widgetsInFind: 'which widgets are Find cards (790): `doGet` does not send it — `data/settings/widgets-in-find.json` '
-               + 'does, through settingsInto_, as `columns` does; before it comes every tool and game is (`widgetInFind_`).',
-
-  /* ---------- THE FLOOR UNDER A TAB THE BACKEND DOES SEND, WHICH IS WHY IT IS A SECOND KEY § */
-  spotlightFile: 'the committed default under `spotlight`, written by settingsInto_ from '
-               + '`data/settings/spotlight.json`. `doGet` sends `spotlight` and deliberately not '
-               + 'this — see `spotNow_` in collections.js for which of the two wins.',
-
   /* ---------- A KEY ONLY AN OLDER BACKEND SENDS, READ ONCE TO CARRY WHAT IT KNEW ACROSS § */
   attempts: 'sent only by a backend from before 9 Oct; read once by subMigrate_ (js/submit.js) so the '
           + 'questions a child did before the switch to submissions become submissions, not blanks. '
@@ -119,6 +107,15 @@ scanLiteral(gs).forEach(([k, mark]) => {
 
 /* Later assignments and the fill loops: `payload.x = …`, `payload.x.push(…)`. */
 for (const m of gs.matchAll(/\bpayload\s*\.\s*([A-Za-z_][\w]*)/g)) sent.add(m[1]);
+
+/* AND WHAT A COMMITTED SETTINGS FILE SENDS (830): `settingsInto_` writes `d.key` from `extra['settings/<name>']`, sent when data/settings/<name>.json is in the repo. */
+const SETTINGS_SRC = decomment(fs.readFileSync(path.join(__dirname, 'settings.js'), 'utf8'));
+const SENT_BY_FILE = [];
+SETTINGS_SRC.split(/(?=extra\['settings\/)/).forEach(seg => {
+  const f = /^extra\['settings\/([\w-]+)'\]/.exec(seg);
+  if (!f || !fs.existsSync(path.join(__dirname, '..', 'data', 'settings', f[1] + '.json'))) return;
+  for (const m of seg.matchAll(/\bd\.([A-Za-z_]\w*)\s*=(?!=)/g)) { if (!sent.has(m[1])) SENT_BY_FILE.push(m[1] + ' (' + f[1] + '.json)'); sent.add(m[1]); }
+});
 
 /* ---------- AND WHAT THE CHECKS PRETEND IT SENDS § */
 /* ---------- AND THE SHAPE OF A ROW, WHICH IS WHERE IT WAS REALLY WRONG § */
@@ -273,6 +270,7 @@ if (accepted.length) {
 }
 
 console.log('');
+console.log('sent by a committed settings file (`settingsInto_`): ' + SENT_BY_FILE.length + ' — ' + SENT_BY_FILE.join(', '));
 console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size
   + '   shapes doGet states: ' + shapeSent.size + '   keys in the fixture: ' + fxRead);
 /* THE VERDICT MUST NOT OVERSTATE ITSELF. § */

@@ -278,13 +278,6 @@ function blockSay_(list) {
   return out.join(', ');
 }
 
-/* The hours of one block, off `SLOT_HOURS` — never a second list of numbers. */
-function blockHours_(i) {
-  const from = SLOT_BLOCKS[i].from;
-  const to = i + 1 < SLOT_BLOCKS.length ? SLOT_BLOCKS[i + 1].from : 99;
-  return SLOT_HOURS.filter(h => h >= from && h < to);
-}
-
 /* ---------- WHAT IS STORED IS THE SENTENCE, NOT A CODE § */
 const blockPhrase_ = (dayName, b) => dayName + ' ' + b.name.toLowerCase();
 
