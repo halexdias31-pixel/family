@@ -448,11 +448,12 @@ let PORT = 0;
         }
       }
     });
-    /* TOOLS, ARRIVED AT AFTER A LANDING AND THE QUIET THAT FOLLOWS — the builder has drawn what the landing
+    /* FIND SHOWING TOOLS (790: the tools are Find cards), ARRIVED AT AFTER A LANDING AND THE QUIET THAT FOLLOWS — the builder has drawn what the landing
        marked; the arrival must find it drawn. */
     if (want('tools')) await go_(`${at} tools after a landing`, async () => {
-      const i = TABS.findIndex(t => t.id === 'tools');
-      if (i < 1) return { err: 'no column left of Tools to arrive from' };
+      const i = TABS.findIndex(t => t.id === 'stuff');
+      if (i < 1) return { err: 'no column left of Find to arrive from' };
+      finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
       await window.__rc.place(TABS[i - 1].id);
       landRepaint_();
       await window.__rc.still(60000);
@@ -462,11 +463,11 @@ let PORT = 0;
       if (!Rr) throw new Error('no spot at the edge the grid would take');
       const from = await page.evaluate(() => AT);
       /* THE ARRIVAL IS WHAT IS ASKED HERE, NOT THE GESTURE (swipe.js asks that). § */
-      const reached = async () => { for (let k = 0; k < 30; k++) { if (await page.evaluate(() => AT) === 'tools') return true; await sleep(100); } return false; };
+      const reached = async () => { for (let k = 0; k < 30; k++) { if (await page.evaluate(() => AT) === 'stuff') return true; await sleep(100); } return false; };
       await paced(() => finger(cdp, Rr.x, Rr.y, -Math.min(240, Math.round(W * 0.55)), 0));
       if (!(await reached())) await paced(() => finger(cdp, Rr.x, Rr.y, -Math.round(W * 0.55), 0));
-      const there = (await reached()) ? 'tools' : await page.evaluate(() => AT);
-      if (there !== 'tools') throw new Error('the flick across from ' + from + ' (from ' + Rr.x + ',' + Rr.y + ') landed on ' + there + ', not Tools');
+      const there = (await reached()) ? 'stuff' : await page.evaluate(() => AT);
+      if (there !== 'stuff') throw new Error('the flick across from ' + from + ' (from ' + Rr.x + ',' + Rr.y + ') landed on ' + there + ', not Find');
       await vflicks();
     });
     if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
@@ -517,7 +518,7 @@ let PORT = 0;
       const home = await page.evaluate(() => LOADED ? AT : null);
       if (!home) throw new Error(`the payload had not landed at ${IDLE_MS / 1000}s`);
       const far = await page.evaluate(() => { const i = TABS.findIndex(t => t.id === AT); return (i > TABS.length - 1 - i ? TABS[0] : TABS[TABS.length - 1]).id; });
-      for (const col of [...new Set([far, 'games', 'tools', 'saved', 'shop'])]) {
+      for (const col of [...new Set([far, 'stuff', 'res', 'saved', 'shop'])]) {
         const seg = `${where}, then ${col}`;
         await page.evaluate(seg => window.__rc.start(seg), seg);
         await page.evaluate(c => go(c, false, true), col);

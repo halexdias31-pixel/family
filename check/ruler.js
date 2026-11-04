@@ -2,6 +2,7 @@
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/ruler.js TWO FINGERS ON THE RULER (502): a real Chromium with two touch points moves, turns and crosses over the ruler and protractor laid on a figure; each finger's spot must stay under it. */
 /* Flags: --shots=DIR writes PNGs (ruler turned, protractor, compass). Port: RULER_PORT (22811). Needs playwright (npm i). */
+require('./lib-full.js').needWords('a figure question\'s card'); // LIB_PRIVATE=absent (CI, 840): its figure is in the private words
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

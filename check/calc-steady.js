@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
+const { openWidgetCard } = require('./find-card');
 
 const ROOT = path.join(__dirname, '..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
@@ -33,7 +34,7 @@ function serve() {
 
 /* IN THE PAGE: every box that must not move, as text, so two snapshots compare as strings. */
 function snap() {
-  const c = document.querySelector('#s-tools #wgt-calculator .calc');
+  const c = document.querySelector('#s-stuff #wgt-calculator .calc');
   if (!c) return null;
   const R = e => { const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(v => Math.round(v * 10) / 10).join(','); };
   const out = { device: R(c), display: R(c.querySelector('.mc-display')) };
@@ -54,15 +55,22 @@ function snap() {
     await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
     await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 30000 }).catch(() => {});
-    await page.evaluate(() => { try { go('tools'); } catch (e) {} });
-    await page.waitForFunction(() => !!document.querySelector('#s-tools #wgt-calculator #mc-display .mc-out'), null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(openWidgetCard, 'calculator').catch(() => -1);   /* the calculator is a Find card (790) */
+    await page.waitForFunction(() => !!document.querySelector('#s-stuff #wgt-calculator #mc-display .mc-out'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(800);
-    const base = await page.evaluate(snap);
-    if (!base) { console.error('calc-steady: no calculator on Tools — the check cannot see its subject'); process.exit(1); }
+    /* AT REST FIRST: a Find card (790) settles after its page turn, so the base is taken once two reads 300 ms apart agree. */
+    let base = await page.evaluate(snap);
+    for (let i = 0; i < 30 && base; i++) {
+      await page.waitForTimeout(300);
+      const again = await page.evaluate(snap);
+      if (JSON.stringify(again) === JSON.stringify(base)) break;
+      base = again;
+    }
+    if (!base) { console.error('calc-steady: no calculator on its Find card — the check cannot see its subject'); process.exit(1); }
     keys = Object.keys(base).length - 2;
     const cmp = (now, when) => Object.keys(base).forEach(k => { if (now[k] !== base[k]) bad.add(`${when}: ${k} was ${base[k]}, now ${now[k]}`); });
     for (const k of KEYS) {
-      const box = await page.locator(`#s-tools #wgt-calculator [data-mc="${k}"]`).boundingBox();
+      const box = await page.locator(`#s-stuff #wgt-calculator [data-mc="${k}"]`).boundingBox();
       if (!box) { bad.add(`no key "${k}" to press`); continue; }
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();

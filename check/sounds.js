@@ -198,7 +198,10 @@ const LOUD = (() => {
     }
 
     /* ---- A REAL TAP: Q0664, 5/8 of 24, on Find ---- */
-    const open = await page.evaluate(async () => {
+    /* LIB_PRIVATE=absent (CI, 840): its card is drawn from the private words, so the tap is skipped and counted. */
+    const LIB = require('./lib-full.js');
+    if (LIB.ABSENT) LIB.skipParts(['a real tap on Send on Q0664 (its card is its words)']);
+    const open = LIB.ABSENT ? null : await page.evaluate(async () => {
       const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
       if (!it) return 'Q0664 is not in the library';
       try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
@@ -218,7 +221,8 @@ const LOUD = (() => {
       }
       return 'Q0664 never came in front';
     });
-    if (open) bad.push(open + ' — the tap was NOT pressed');
+    if (LIB.ABSENT) { /* skipped above */ }
+    else if (open) bad.push(open + ' — the tap was NOT pressed');
     else {
       const press = async (v, ms) => {
         await page.evaluate(x => { window.__soundsBox.value = x; window.__soundsBox.dispatchEvent(new Event('input', { bubbles: true })); }, v);

@@ -2,6 +2,7 @@
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/boxes.js A QUESTION'S PAGES, LAID OUT (owner, 1 Nov): its answer boxes one a line and one width, and every page's foot -- Help, the star, Suggest a change, Back to top -- last, in that order, on a line of its own. */
 /* Flags: --shots=DIR writes a PNG of each page looked at. Port: BOXES_PORT (22833). Needs playwright. */
+require('./lib-full.js').needWords('a question\'s pages'); // LIB_PRIVATE=absent (CI, 840): every page it lays out is a question's words
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

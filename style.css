@@ -1955,6 +1955,8 @@ button.text-drop { color: var(--bad); }
 .vid-watch.is-fs .vid-under { flex: none; align-self: stretch; justify-content: flex-end; padding: 0 .5rem; }
 .vid-watch.is-fs .vid-now { display: none; }
 .vid-watch.is-fs .vid-under .vid-acts { margin: 0; }
+/* EXIT IS 44px IN FULL SCREEN (321): the one way out of a film over the whole glass, a fingertip's size like a Check. */
+.vid-watch.is-fs .vid-acts .tile { width: var(--tile-send); height: var(--tile-send); }
 @media (orientation: landscape) {
   .vid-watch.on.is-fs { flex-direction: row; }
   .vid-watch.is-fs .vid-stage {

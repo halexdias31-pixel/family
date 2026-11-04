@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
+const { installOpen } = require('./find-card');
 
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.PEN_PORT || 0);
@@ -64,6 +65,7 @@ let reached = 0;
 async function boot(browser, W, H, port, o) {
   const ctx = await browser.newContext(Object.assign({ viewport: { width: W, height: H }, deviceScaleFactor: (o && o.dsf) || 2, isMobile: true, hasTouch: true,
                                          serviceWorkers: 'block' }, o && o.ua ? { userAgent: o.ua } : {}));
+  await installOpen(ctx);
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message).slice(0, 160)));
@@ -189,13 +191,12 @@ const MO = (env, type, x, y, kind, buttons) => env.cdp.send('Input.dispatchMouse
 /* ---------- THE BOARD ------------------------------------------------------------------------------- */
 async function board(env) {
   return env.page.evaluate(async () => {
-    if (AT !== 'tools') go('tools', false, true);
-    goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+    window.__openWidgetCard('whiteboard');   /* a Find card (790) */
     for (let i = 0; i < 100; i++) {
       const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length) || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
         || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
       /* THE PEN'S BLANK SHEET, mounted where the board was: the whiteboard is the maths notebook since 377 (board.js), and this check is the pen's. */
-      const slot = document.querySelector('#s-tools #wgt-whiteboard');
+      const slot = document.querySelector('#s-stuff #wgt-whiteboard');
       if (!busy && i >= 4 && slot && !slot.querySelector('.wb-box')) {
         const nb = slot.querySelector('.nb-box');
         if (nb) nb.style.display = 'none';
@@ -204,14 +205,14 @@ async function board(env) {
         (nb ? nb.parentNode : slot).insertBefore(host, nb ? nb.nextSibling : null);
         initWhiteboard();
       }
-      if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
+      if (!busy && i >= 4 && document.querySelector('#s-stuff #wgt-whiteboard .qpad')) break;
       await new Promise(r => setTimeout(r, 100));
     }
-    const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+    const pad = document.querySelector('#s-stuff #wgt-whiteboard .qpad');
     if (!pad) return null;
     const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top, r: r.right, b: r.bottom }; };
     const card = pad.closest('.card') || pad.closest('#wgt-whiteboard');
-    return { k: pad.getAttribute('data-k'), armed: PAD_ON === pad.getAttribute('data-k'), at: AT, page: PAGE.tools,
+    return { k: pad.getAttribute('data-k'), armed: PAD_ON === pad.getAttribute('data-k'), at: AT, page: PAGE.stuff,
              ink: box(pad.querySelector('.qpad-ink')), art: box(pad.querySelector('.qpad-art')), lock: !!pad.querySelector('.qpad-lock, [data-do="pad-draw"]'),
              undo: box(pad.querySelector('.qpad-undo')), note: box(pad.querySelector('.qpad-note')), card: box(card) };
   });
@@ -249,7 +250,7 @@ const look = (env, k, sel) => env.page.evaluate(([k, sel]) => {
            at: AT, page: Object.assign({}, PAGE), armed: PAD_ON === k, axis: window.__pen.axis,
            busy: typeof padBusy_ === 'function' ? padBusy_() : null, touch: typeof PAD_TOUCH !== 'undefined' ? PAD_TOUCH.size : null };
 }, [k, sel]);
-const BOARD = '#s-tools #wgt-whiteboard .qpad';
+const BOARD = '#s-stuff #wgt-whiteboard .qpad';
 /* WHAT THE PICTURE SHOWED FROM THE SECOND CONTACT'S LANDING, frame by frame (third review): § */
 const shownWatch = env => env.page.evaluate(() => {
   if (!window.__shownOn) {
@@ -282,7 +283,10 @@ const shownRead = env => env.page.evaluate(() => {
 
 /* THE QUESTION CARD, its pen on it -- a question answered by drawing is drawn on its card, with no face to
    turn to (docs/history/356). */
+/* LIB_PRIVATE=absent (CI, 840): a question's card is its private words, so every card asked for is skipped and counted (QSKIP). */
+const LIB = require('./lib-full.js'), QSKIP = new Set();
 async function card(env, row) {
+  if (LIB.ABSENT) { QSKIP.add(row); return null; }
   const k = await env.page.evaluate(async r => {
     go('stuff', false, true);
     const hit = stuffItemsAll_().find(x => x.row && x.row.row_id === r);
@@ -371,7 +375,7 @@ const unmoved = (sec, where, r, b) => {
     if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'grip', 'settle', 'phase', 'types', 'steady', 'inv', 'samples', 'round'].some(want)) break;
     const env = await boot(browser, W, H, port);
     let b = await board(env);
-    if (!b) { fail('REACH', at, 'no whiteboard on Tools'); await env.ctx.close(); continue; }
+    if (!b) { fail('REACH', at, 'no whiteboard on its Find card'); await env.ctx.close(); continue; }
     await reset(env, b.k);
     b = await arm(env, b, board);
     if (!b) { fail('REACH', at, 'the board could not be armed with a real tap on its ink'); await env.ctx.close(); continue; }
@@ -384,7 +388,7 @@ const unmoved = (sec, where, r, b) => {
 
     if (want('inv')) {
       const inv = await env.page.evaluate(() => {
-        const ink = document.querySelector('#s-tools #wgt-whiteboard .qpad-ink');
+        const ink = document.querySelector('#s-stuff #wgt-whiteboard .qpad-ink');
         const zooms = [];
         for (let el = ink; el && el !== document.documentElement; el = el.parentElement) {
           const z = getComputedStyle(el).zoom; if (z && z !== '1' && z !== 'normal') zooms.push(String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className) + ':' + z);
@@ -735,7 +739,7 @@ const unmoved = (sec, where, r, b) => {
       await sleep(300);
       /* MID-STROKE, A FRAME AFTER THE LAST MOVE: the live chunks against `padPath_` of the points so far. */
       const mid = await env.page.evaluate(() => {
-        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+        const pad = document.querySelector('#s-stuff #wgt-whiteboard .qpad');
         const k = Number(pad.getAttribute('data-aspect')) || 1;
         const ch = [...pad.querySelectorAll('.qpad-g [data-live]')].map(p => p.getAttribute('d'));
         const joined = ch.map((d, i) => (i ? d.replace(/^M[^LC]*/, '') : d)).join('');
@@ -746,7 +750,7 @@ const unmoved = (sec, where, r, b) => {
       const tr = await traceEnd(env);
       const m = await env.page.evaluate(k => {
         const M = window.__pm; M.on = false;
-        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+        const pad = document.querySelector('#s-stuff #wgt-whiteboard .qpad');
         const ka = Number(pad.getAttribute('data-aspect')) || 1;
         let st = []; try { st = JSON.parse(ansValue_(k) || '[]'); } catch (e) {}
         const paths = [...pad.querySelectorAll('.qpad-g path')];
@@ -840,8 +844,8 @@ const unmoved = (sec, where, r, b) => {
         await T(env, 'touchEnd', [], 210);
         await sleep(1200);
         const r = await look(env, k, BOARD);
-        if (r.page.tools === p0 && r.at === 'tools') fail('lost', at, 'after a lift that never came, a real swipe down the card did not turn the page — the column is stuck');
-        say(`lost ${at} page ${p0} -> ${r.page.tools}`);
+        if (r.page.stuff === p0 && r.at === 'stuff') fail('lost', at, 'after a lift that never came, a real swipe down the card did not turn the page — the column is stuck');
+        say(`lost ${at} page ${p0} -> ${r.page.stuff}`);
         b = await board(env);
         await reset(env, k);
         b = (await arm(env, b, board)) || b;
@@ -856,12 +860,13 @@ const unmoved = (sec, where, r, b) => {
   for (const [W, H] of [[320, 568], [390, 844], [820, 1180]]) {
     const at = `${W}x${H}`;
     if (!['pinchoff', 'hold', 'inv', 'samples', 'round'].some(want)) break;
+    if (LIB.ABSENT) { QSKIP.add(Q7); break; }
     if (W === 820 && !want('inv')) continue;
     const env = await boot(browser, W, H, port);
     await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), Q7, { timeout: 90000 }).catch(() => {});
     const k = await card(env, Q7);
     let c = k ? await cardBox(env) : null;
-    if (!c) { fail('REACH', at, 'June 2024 1F Q7\'s drawing face is not on the screen'); await env.ctx.close(); continue; }
+    if (!c) { if (!LIB.ABSENT) fail('REACH', at, 'June 2024 1F Q7\'s drawing face is not on the screen'); await env.ctx.close(); continue; }
     c = await arm(env, c, cardBox);
     if (!c) { fail('REACH', at, 'Q7\'s pad could not be armed with a real tap on its ink'); await env.ctx.close(); continue; }
     reached++;
@@ -1267,7 +1272,7 @@ const unmoved = (sec, where, r, b) => {
     await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), row, { timeout: 90000 }).catch(() => {});
     const k = await card(env, row);
     let c = k ? await cardBox(env) : null;
-    if (!c) { fail('REACH', at, row + '\'s pen is not on the screen'); return null; }
+    if (!c) { if (!LIB.ABSENT) fail('REACH', at, row + '\'s pen is not on the screen'); return null; }
     await reset(env, k);
     /* THE TOOLS OUT FIRST, so the card has its final height before anything on it is measured */
     await unfold(env);
@@ -1306,6 +1311,7 @@ const unmoved = (sec, where, r, b) => {
 
   if (PLACE.some(want)) for (const [W, H] of [[390, 844], [320, 568]]) {
     const at = `${W}x${H}`;
+    if (LIB.ABSENT) { [Q7, QUAD, FINE].forEach(r => QSKIP.add(r)); break; }
     if (W === 320 && !want('plotfine')) continue;
     const env = await boot(browser, W, H, port);
     await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
@@ -1861,7 +1867,7 @@ const unmoved = (sec, where, r, b) => {
       const where = `${dev.name} ${what}`;
       const k = await card(env, row);
       let b = k && await cardBox(env);
-      if (!b || !b.ink) { fail('phone', where, `the card or its pen was not reached (${row})`); continue; }
+      if (!b || !b.ink) { if (!LIB.ABSENT) fail('phone', where, `the card or its pen was not reached (${row})`); continue; }
       reached++;
       if (b.lock) fail('phone', where, 'the card still draws a lock tile -- a step before the first mark');
       await reset(env, k); await unarm();
@@ -1898,11 +1904,10 @@ const unmoved = (sec, where, r, b) => {
     {
       const where = `${dev.name} notebook`;
       const nb = await env.page.evaluate(async () => {
-        if (AT !== 'tools') go('tools', false, true);
-        goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
-        for (let i = 0; i < 60 && !document.querySelector('#s-tools #wgt-whiteboard .nb-pad'); i++) await new Promise(r => setTimeout(r, 100));
+        window.__openWidgetCard('whiteboard');   /* a Find card (790) */
+        for (let i = 0; i < 60 && !document.querySelector('#s-stuff #wgt-whiteboard .nb-pad'); i++) await new Promise(r => setTimeout(r, 100));
         await new Promise(r => setTimeout(r, 800));
-        const p = document.querySelector('#s-tools #wgt-whiteboard .nb-pad');
+        const p = document.querySelector('#s-stuff #wgt-whiteboard .nb-pad');
         if (!p) return null;
         NB_STATE.delete(padKey_(WB_ITEM)); try { ansStore_(padKey_(WB_ITEM), null); } catch (e) {}
         initBoard_();
@@ -1939,6 +1944,7 @@ const unmoved = (sec, where, r, b) => {
   await browser.close();
   server.close();
   const secs = ((Date.now() - started) / 1000).toFixed(0);
+  if (QSKIP.size) LIB.skipParts([...QSKIP].map(r => r + '\'s card and pen'));
   if (!reached) found.push('REACH: no board and no card was reached — nothing was checked');
   if (found.length) {
     console.log(`\npen: ${found.length} finding(s) in ${secs}s${ONLY.length ? ' (only ' + ONLY.join(',') + ')' : ''}`);

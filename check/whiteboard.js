@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/whiteboard.js THE MATHS NOTEBOOK UNDER A FINGER (390x844, real touches) AND A MOUSE (1280x800),
-   on the Tools column's whiteboard (board.js, docs/history/377). Each line it prints is one thing it proved. */
+   on its Find card's whiteboard (board.js, docs/history/377). Each line it prints is one thing it proved. */
 /* Flags: --shots writes check/shots/wb-*.png (or WB_SHOTS=dir); -v prints every line. Port: WB_PORT. */
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
+const { openWidgetCard } = require('./find-card');
 
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.WB_PORT || 0);
@@ -57,23 +58,30 @@ async function boot(browser, W, H, port, touch) {
   const cdp = await ctx.newCDPSession(page);
   return { ctx, page, cdp, errs };
 }
-/* TO THE BOARD, AND EMPTY: the Tools column in front, the whiteboard's page turned to, its key and state forgotten. */
+/* TO THE BOARD, AND EMPTY: Find in front, Tools as its answer, the whiteboard's page turned to, its key and state forgotten. */
 async function fresh(env, keep) {
+  await env.page.evaluate(openWidgetCard, 'whiteboard');   /* the whiteboard is a Find card (790) */
   const ok = await env.page.evaluate(async keep => {
-    if (AT !== 'tools') go('tools', false, true);
-    goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
-    for (let i = 0; i < 60 && !document.querySelector('#s-tools #wgt-whiteboard .nb'); i++) await new Promise(r => setTimeout(r, 100));
+    /* AND FIND AT REST: its card is filled after the page turn and the builder's work (as press.js waits), or the board is drawn again under the check. */
+    for (let i = 0; i < 80; i++) {
+      const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length) || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
+        || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until) || (typeof aheadBusy_ === 'function' && aheadBusy_());
+      if (!busy && i >= 4 && document.querySelector('#s-stuff #wgt-whiteboard .nb')) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
     const k = padKey_(WB_ITEM);
     if (!keep) { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); }
     initBoard_();
-    return !!document.querySelector('#s-tools #wgt-whiteboard .nb');
+    const host = () => document.querySelector('#s-stuff #wgt-whiteboard .nb-box');
+    for (let i = 0; i < 30 && !(host() && host().NB); i++) await new Promise(r => setTimeout(r, 100));
+    return !!(host() && host().NB);
   }, !!keep);
   await sleep(500);
   return ok;
 }
 /* WHERE THINGS ARE: the pad's and the page's boxes, the pad's scale, its baseline and x-height in px, the state. */
 const geo = env => env.page.evaluate(() => {
-  const host = document.querySelector('#s-tools #wgt-whiteboard .nb-box');
+  const host = document.querySelector('#s-stuff #wgt-whiteboard .nb-box');
   const b = host && host.NB;
   if (!b) return null;
   const st = nbState_(b.k), m = nbMap_(b, st);
@@ -121,7 +129,7 @@ async function writeX(env, g, x, h) {
 const padX = (g, nx) => (nx - g.x0) / g.S;
 /* THE VIEWS, FRAME BY FRAME, for `ms`: the pad along the line (px), down the page (py), and the page's scroll (ny). Started before the action it watches. */
 const frames = (env, ms) => env.page.evaluate(ms => new Promise(ok => {
-  const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB, out = [], t0 = performance.now();
+  const b = document.querySelector('#s-stuff #wgt-whiteboard .nb-box').NB, out = [], t0 = performance.now();
   const f = now => { out.push({ t: now - t0, px: b.view.px, py: b.view.py, ny: b.view.ny, down: !!NB_G }); if (now - t0 < ms) requestAnimationFrame(f); else ok(out); };
   requestAnimationFrame(f);
 }), ms);
@@ -139,7 +147,7 @@ function glided(fr, key) {
 }
 /* THE DARKEST PIXEL ON THE PAD'S CANVAS ALONG ONE ROW, between two x's (css px), as a 0-255 grey. */
 const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
-  const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB, c = b.pad.c, k = c.width / b.pad.w;
+  const b = document.querySelector('#s-stuff #wgt-whiteboard .nb-box').NB, c = b.pad.c, k = c.width / b.pad.w;
   const d = c.getContext('2d').getImageData(Math.round(x0 * k), Math.round(y * k) - 2, Math.max(1, Math.round((x1 - x0) * k)), 5).data;
   let m = 255;
   for (let i = 0; i < d.length; i += 4) m = Math.min(m, (d[i] + d[i + 1] + d[i + 2]) / 3);
@@ -154,11 +162,11 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
   try {
     /* ==================== A PHONE, ONE FINGER ==================== */
     const env = await boot(browser, 390, 844, port, true);
-    if (!(await fresh(env))) { bad.push('no whiteboard notebook on the Tools column — NOTHING was checked'); throw new Error('stop'); }
+    if (!(await fresh(env))) { bad.push('no whiteboard notebook on its Find card — NOTHING was checked'); throw new Error('stop'); }
     await shot(env.page, '390-empty');
     let g = await geo(env);
     want(g && g.pad.h >= 150 && g.book.h >= 120, 'the pad and the page are both big enough to use at 390x844', JSON.stringify(g && { pad: g.pad, book: g.book }));
-    const free = await env.page.evaluate(() => [axisFree(document.querySelector('#s-tools .nb-pad'), 'x', -1), axisFree(document.querySelector('#s-tools .nb-book'), 'x', -1)]);
+    const free = await env.page.evaluate(() => [axisFree(document.querySelector('#s-stuff .nb-pad'), 'x', -1), axisFree(document.querySelector('#s-stuff .nb-book'), 'x', -1)]);
     want(!free[0] && free[1], 'a drag on the pad never slides the column; a swipe that starts on the page still may', JSON.stringify(free));
 
     /* WRITE BIG, LAND SMALL. */
@@ -279,7 +287,7 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
     g = await geo(env);
     await writeX(env, g, g.pad.w * 0.66);
     {
-      const mid = await env.page.waitForFunction(() => { const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB; return b.tw && b.tw.t > 60 && b.tw.t < 250 ? { F: b.tw.F.px, T: b.tw.T.px } : null; }, null, { polling: 'raf', timeout: 3000 }).then(h => h.jsonValue()).catch(() => null);
+      const mid = await env.page.waitForFunction(() => { const b = document.querySelector('#s-stuff #wgt-whiteboard .nb-box').NB; return b.tw && b.tw.t > 60 && b.tw.t < 250 ? { F: b.tw.F.px, T: b.tw.T.px } : null; }, null, { polling: 'raf', timeout: 3000 }).then(h => h.jsonValue()).catch(() => null);
       const x = g.pad.l + g.pad.w * 0.3, y = g.pad.t + g.py0 - g.xh;
       await T(env, 'touchStart', [P(x, y)]);
       const watch = frames(env, 500);
@@ -308,7 +316,7 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       g = await geo(env);
       const n0 = (await items(env)).length, watch = frames(env, 900);
       if (how === 'tile') {
-        const t = await env.page.evaluate(() => { const r = document.querySelector('#s-tools .nb-line').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
+        const t = await env.page.evaluate(() => { const r = document.querySelector('#s-stuff .nb-line').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
         want(t[2] >= 36 && t[3] >= 36, 'the New line tile is the tile size (36px, 508)', JSON.stringify(t));
         await tapN(env, [t]);
       } else if (how === 'swipe') {
@@ -385,7 +393,7 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
     if (!(await fresh(env))) throw new Error('stop');
     {
       /* No Fraction tile since 491: a board that holds one is still written into, so put it down as the tile did. */
-      await env.page.evaluate(() => { const h = document.querySelector('#s-tools .nb-box'); nbShape_(h.NB, 'frac'); });
+      await env.page.evaluate(() => { const h = document.querySelector('#s-stuff .nb-box'); nbShape_(h.NB, 'frac'); });
       await sleep(300);
       g = await geo(env);
       const at = (nx, ny) => [g.pad.l + (nx - g.x0) / g.S, g.pad.t + (ny - g.y0) / g.S + g.py0];
@@ -495,18 +503,18 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       await sleep(150);
       g = await geo(dk);
       want(g.caret.line === 2, 'a click on the page moves the caret', JSON.stringify(g.caret));
-      await dk.page.click('#s-tools .nb-line');
+      await dk.page.click('#s-stuff .nb-line');
       await sleep(500);
       const nl = await geo(dk);
       want(nl.caret.line === 3 && nl.caret.x < 20, 'a click on the pad\'s New line tile starts the next line', JSON.stringify(nl.caret));
       /* A WORKING TALLER THAN THE PAGE: the wheel scrolls it, and the column stays where it is until the page is at its end. */
       await dk.page.evaluate(() => { const st = nbState_(padKey_(WB_ITEM)); st.caret = { line: 12, x: 20 }; });
-      const page0 = await dk.page.evaluate(() => PAGE.tools);
+      const page0 = await dk.page.evaluate(() => PAGE.stuff);
       await m.move(g.book.l + 50, g.book.t + 50);
       await m.wheel(0, 120);
       await sleep(300);
-      const after = await dk.page.evaluate(() => [nbState_(padKey_(WB_ITEM)).nv.y, PAGE.tools, AT]);
-      want(after[0] > 0 && after[1] === page0 && after[2] === 'tools', 'the wheel scrolls a long page and leaves the column where it is', JSON.stringify({ page0, after }));
+      const after = await dk.page.evaluate(() => [nbState_(padKey_(WB_ITEM)).nv.y, PAGE.stuff, AT]);
+      want(after[0] > 0 && after[1] === page0 && after[2] === 'stuff', 'the wheel scrolls a long page and leaves the column where it is', JSON.stringify({ page0, after }));
       await shot(dk.page, '1280');
     }
     want(!dk.errs.length, 'no page errors on the laptop', dk.errs.join(' | '));

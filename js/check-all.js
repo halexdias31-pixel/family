@@ -213,14 +213,14 @@ const SUITE = [
   /* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED § */
   { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
-  { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
-  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true },
+  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
-  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true },
+  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find and Find 2 centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
@@ -248,9 +248,9 @@ const SUITE = [
   /* THE NUMBER IS NOT IN THIS LINE, AND IT USED TO BE. § */
   /* ---------- IN TWO HALVES, BECAUSE THE NOTE BELOW SAID SO § */
   /* ---------- AND NOW IN THIRDS § */
-  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
-  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
-  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
+  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
+  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS § */
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
@@ -266,12 +266,17 @@ const SUITE = [
 if (process.argv.includes('--fast')) for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].slow) SUITE.splice(i, 1);
 /* `--slow=k/n` (CI, 780): only the slow checks, the k-th of n groups dealt round-robin; check-flow is left to FLOW_PART. */
 const SLOW_PART = /^--slow=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--slow=')) || '');
-if (SLOW_PART) {
-  const k = Number(SLOW_PART[1]), n = Number(SLOW_PART[2]);
-  const mine = SUITE.filter(c => c.slow && c.file !== 'check-flow.js').filter((c, i) => i % n === k - 1);
+/* `--heavy=k/n` (CI, 840): the `heavy` ones — each near the limit on a free runner — dealt the same way, kept out of `--slow`'s parts. */
+const HEAVY_PART = /^--heavy=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--heavy=')) || '');
+for (const [m, heavy, label] of [[SLOW_PART, false, 'slow'], [HEAVY_PART, true, 'heavy']]) {
+  if (!m) continue;
+  const k = Number(m[1]), n = Number(m[2]);
+  const mine = SUITE.filter(c => c.slow && c.file !== 'check-flow.js' && !!c.heavy === heavy).filter((c, i) => i % n === k - 1);
   SUITE.splice(0, SUITE.length, ...mine);
-  console.log('slow part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
+  console.log(label + ' part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
 }
+/* A BROWSER CHECK'S LIMIT, in seconds: 900 here; CI's runners are slower, and its workflow says how long (CHECK_LIMIT_S, 840). */
+const LIMIT_MS = 1000 * (Number(process.env.CHECK_LIMIT_S) || 900);
 let failed = 0, noted = 0;
 const notes = [];
 
@@ -290,7 +295,7 @@ for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) 
     const t0 = Date.now();
     const done = r => { live--; fin(r); pump(); };
     /* TEN MINUTES, NOT FIVE. § */
-    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000, env: childEnv,
+    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: LIMIT_MS, env: childEnv,
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));

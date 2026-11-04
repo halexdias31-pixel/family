@@ -163,8 +163,12 @@ async function boot(browser, reduced) {
   await page.addInitScript(PAGE_KIT);
   await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => typeof placeGrid === 'function' && typeof grabRow_ === 'function' && document.querySelector('#s-tools .page'), null, { timeout: 30000 });
+  await page.waitForFunction(() => typeof placeGrid === 'function' && typeof grabRow_ === 'function' && document.querySelector('#s-stuff .page'), null, { timeout: 30000 });
   await page.waitForFunction(() => typeof AHEAD === 'undefined' || AHEAD.open, null, { timeout: 60000 }).catch(() => {});
+  /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find answers Tools and Find 2 Games, side by side as the two columns were. */
+  await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 }).catch(() => {});
+  await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
+    finderSet_(FINDERS.res, { filters: [{ field: 'forLabel', value: 'Games' }], q: '' }); });
   await sleep(1200);
   return { ctx, page, cdp: await ctx.newCDPSession(page), errs };
 }
@@ -227,19 +231,19 @@ function settleFrames(frames, at) {
 
   /* ---------- 1 AND 2. LANDING AT SEVERAL SPEEDS AND DISTANCES, AND NOTHING LEFT HALF-WAY ---------- */
   const half = Math.min(180, step / 2);
-  await landed('flick left, 40px in 60ms', 'tools', G.flick(-40, 0, 60), nx('tools'));
-  await landed('flick left, 90px in 100ms', 'tools', G.flick(-90, 0, 100), nx('tools'));
-  await landed('flick right, 90px in 100ms', 'games', G.flick(90, 0, 100), nx('games', -1));
-  await landed('drag left 120px and hold — under halfway', 'tools', G.still(-120, 0), 'tools');
-  await landed(`drag left ${Math.round(half * 0.85)}px and hold — just under halfway`, 'tools', G.still(-Math.round(half * 0.85), 0), 'tools');
-  await landed(`drag left ${Math.round(half * 1.25)}px and hold — past halfway`, 'tools', G.still(-Math.round(half * 1.25), 0), nx('tools'));
+  await landed('flick left, 40px in 60ms', 'stuff', G.flick(-40, 0, 60), nx('stuff'));
+  await landed('flick left, 90px in 100ms', 'stuff', G.flick(-90, 0, 100), nx('stuff'));
+  await landed('flick right, 90px in 100ms', 'res', G.flick(90, 0, 100), nx('res', -1));
+  await landed('drag left 120px and hold — under halfway', 'stuff', G.still(-120, 0), 'stuff');
+  await landed(`drag left ${Math.round(half * 0.85)}px and hold — just under halfway`, 'stuff', G.still(-Math.round(half * 0.85), 0), 'stuff');
+  await landed(`drag left ${Math.round(half * 1.25)}px and hold — past halfway`, 'stuff', G.still(-Math.round(half * 1.25), 0), nx('stuff'));
   /* LET GO STILL MOVING at 0.3px/ms — under a flick — from 150px: where it would coast to is past halfway. */
-  await landed('150px at 0.3px/ms, let go moving — coasts past halfway', 'tools', G.even(-150, 0, 500), nx('tools'));
-  await landed('out 200px, pulled back to 130 and let go moving home', 'tools', G.back(-1), 'tools');
+  await landed('150px at 0.3px/ms, let go moving — coasts past halfway', 'stuff', G.even(-150, 0, 500), nx('stuff'));
+  await landed('out 200px, pulled back to 130 and let go moving home', 'stuff', G.back(-1), 'stuff');
 
   /* THE SPRING IS ON THE COLUMNS. */
   {
-    await page.evaluate(() => window.__sl.place('tools'));
+    await page.evaluate(() => window.__sl.place('stuff'));
     const sp = await page.evaluate(() => window.__sl.spot());
     if (sp) {
       await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, G.flick(-90, 0)));
@@ -253,8 +257,13 @@ function settleFrames(frames, at) {
 
   /* ---------- 3. RUBBER BAND AT BOTH ENDS ---------- */
   for (const [col, dir] of [[tabs[0], 1], [tabs[tabs.length - 1], -1]]) {
-    await page.evaluate(c => window.__sl.place(c), col);
-    const sp = await page.evaluate(() => window.__sl.spot());
+    /* ANY PAGE OF THE END COLUMN WITH BARE CARD ON IT: a settings form's first page may be all controls. */
+    let sp = null;
+    const pages = await page.evaluate(c => AXES.y.count(c) || 1, col);
+    for (let p = 0; p < pages && !sp; p++) {
+      await page.evaluate(([c, p]) => window.__sl.place(c, p), [col, p]);
+      sp = await page.evaluate(() => window.__sl.spot());
+    }
     asked++;
     if (!sp) { fail('REACH', `rubber band on ${col}`, 'no bare spot'); continue; }
     await page.evaluate(() => window.__sl.recStart());
@@ -275,7 +284,7 @@ function settleFrames(frames, at) {
 
   /* ---------- 4. INTERRUPT: HELD WHERE IT IS, THEN ON, OR CARRIED ON BY THE FINGER ---------- */
   const catchAt = async (lead = 70) => {
-    await page.evaluate(() => window.__sl.place('tools'));
+    await page.evaluate(() => window.__sl.place('stuff'));
     const sp = await page.evaluate(() => window.__sl.spot());
     if (!sp) return null;
     await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, G.flick(-90, 0, 90)));
@@ -297,7 +306,7 @@ function settleFrames(frames, at) {
       note(`a touch mid-slide: row at ${a}px, ${b}px 120ms later; lifted, it went on to ${r.at}, ${r.worst}px off`);
       if (!(Math.abs(a) > step * 0.04 && Math.abs(a) < step * 0.96)) fail('REACH', 'interrupt', `the row was at ${a}px when the finger landed — not mid-slide`);
       else if (Math.abs(b - a) > 1) fail('INTERRUPT', 'a touch mid-slide', `the row went on ${(b - a).toFixed(1)}px under a still finger — it should be held`);
-      if (r.at !== nx('tools') || r.worst > 0.5 || r.moving) fail('INTERRUPT', 'lifted mid-slide', `it ended on ${r.at}, ${r.worst}px off rest — it should go on to ${nx('tools')}`);
+      if (r.at !== nx('stuff') || r.worst > 0.5 || r.moving) fail('INTERRUPT', 'lifted mid-slide', `it ended on ${r.at}, ${r.worst}px off rest — it should go on to ${nx('stuff')}`);
     }
   }
   {
@@ -325,26 +334,26 @@ function settleFrames(frames, at) {
     else {
       await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, G.flick(-60, 0, 70)));
       const r = await page.evaluate(() => window.__sl.still());
-      note(`a second flick mid-slide: ${r.at} (wanted ${nx('tools', 2)}), ${r.worst}px off`);
-      if (r.at !== nx('tools', 2) || r.worst > 0.5) fail('INTERRUPT', 'a second flick', `landed on ${r.at} ${r.worst}px off — wanted ${nx('tools', 2)} at rest`);
+      note(`a second flick mid-slide: ${r.at} (wanted ${nx('stuff', 2)}), ${r.worst}px off`);
+      if (r.at !== nx('stuff', 2) || r.worst > 0.5) fail('INTERRUPT', 'a second flick', `landed on ${r.at} ${r.worst}px off — wanted ${nx('stuff', 2)} at rest`);
     }
   }
 
   /* ---------- 5. A VERTICAL DRAG NEVER SLIDES THE ROW ---------- */
   for (const [name, g] of [['up 160px drifting 25px sideways', { dur: 300, path: t => [-25 * t, -160 * t] }],
                            ['up 60px, held', G.still(0, -60)]]) {
-    const o = await run('tools', g, { p: 1 });
+    const o = await run('stuff', g, { p: 1 });
     asked++;
     if (o.err) { fail('REACH', name, o.err); continue; }
-    const moved = Math.max(0, ...o.frames.filter(f => f.at === 'tools').map(f => Math.abs(f.x)));
+    const moved = Math.max(0, ...o.frames.filter(f => f.at === 'stuff').map(f => Math.abs(f.x)));
     note(`vertical, ${name}: stayed on ${o.r.at}; the row moved at most ${moved.toFixed(2)}px`);
-    if (o.r.at !== 'tools') fail('VERTICAL', name, `the column changed to ${o.r.at}`);
+    if (o.r.at !== 'stuff') fail('VERTICAL', name, `the column changed to ${o.r.at}`);
     if (moved > 0.5) fail('VERTICAL', name, `the row moved ${moved.toFixed(1)}px sideways during a vertical drag`);
   }
 
   /* ---------- 6. 1:1 UNDER THE FINGER ---------- */
   {
-    await page.evaluate(() => window.__sl.place('tools'));
+    await page.evaluate(() => window.__sl.place('stuff'));
     const sp = await page.evaluate(() => window.__sl.spot());
     asked++;
     if (!sp) fail('REACH', 'tracking', 'no bare spot');
@@ -364,7 +373,7 @@ function settleFrames(frames, at) {
 
   /* ---------- SCREENSHOTS: mid-slide and settled ---------- */
   if (SHOTS) {
-    await page.evaluate(() => window.__sl.place('tools'));
+    await page.evaluate(() => window.__sl.place('stuff'));
     const sp = await page.evaluate(() => window.__sl.spot());
     if (sp) {
       await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, G.flick(-90, 0)));
@@ -380,7 +389,7 @@ function settleFrames(frames, at) {
   /* ---------- 7. LESS MOTION: A FLICK LANDS AT ONCE ---------- */
   {
     const e2 = await boot(browser, true);
-    await e2.page.evaluate(() => window.__sl.place('tools'));
+    await e2.page.evaluate(() => window.__sl.place('stuff'));
     const sp = await e2.page.evaluate(() => window.__sl.spot());
     asked++;
     if (!sp) fail('REACH', 'reduced motion', 'no bare spot');
@@ -390,7 +399,7 @@ function settleFrames(frames, at) {
       const r = await e2.page.evaluate(() => Object.assign(window.__sl.rest(), {
         settle: SETTLE_ON !== null }));
       note(`reduced motion: a flick is on ${r.at} three frames after the lift, ${r.worst}px off, ${r.moving} moving; a settle ${r.settle ? 'booked' : 'not booked'}`);
-      if (r.at !== nx('tools')) fail('LESS MOTION', 'a flick', `landed on ${r.at}`);
+      if (r.at !== nx('stuff')) fail('LESS MOTION', 'a flick', `landed on ${r.at}`);
       else if (r.worst > 0.5 || r.moving) fail('LESS MOTION', 'a flick', `three frames after the lift a column is ${r.worst}px off with ${r.moving} still sliding — it should snap`);
       /* THE STYLESHEET ALREADY CUTS EVERY TRANSITION TO .01ms HERE; the app must not book one either, or `afterSlide_` waits out a settle nobody sees. */
       if (r.settle) fail('LESS MOTION', 'a flick', 'the release booked a settle (`SETTLE_ON`) — a spring nobody sees, and afterSlide_ waits it out');

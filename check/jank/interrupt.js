@@ -10,14 +10,14 @@ module.exports = {
     const got = await page.evaluate(async SPACER => {
       if (typeof layMoveShow_ !== 'function' || typeof layThing_ !== 'function') return null;
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      go('tools', false, true);
+      /* THE CALCULATOR IS A FIND CARD (790): Find › Tools, then its page. */
+      finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
+      go('stuff', false, true);
       await wait(300);
-      const first = layThing_('w', 'calculator', 'tools');
-      const pg = first && first.closest('.page');
-      const host = document.getElementById('s-tools');
-      if (pg && host) { const n = [...host.querySelectorAll('.page')].indexOf(pg); if (n > -1) goPage('tools', n, true); }
+      const at = inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(p => p.x && p.x.widget && String(p.x.widget.id) === 'calculator'));
+      if (at > -1) goPage('stuff', inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + at, true);
       await wait(500);
-      const card = layThing_('w', 'calculator', 'tools');
+      const card = layThing_('w', 'calculator', 'stuff');
       if (!card || !card.parentElement || !card.getClientRects().length) return null;
       const top = () => card.getBoundingClientRect().top;
       const spacer = document.createElement('div');
@@ -27,10 +27,10 @@ module.exports = {
       /* READ JUST AFTER EACH FRAME, so it is what was painted: inside a rAF it could run before the app's own rAF had placed the glide. */
       const tick = () => { setTimeout(() => log.push(top()), 0); if (on) requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
-      layMoveShow_('w', 'calculator', 'tools', () => card.before(spacer));
+      layMoveShow_('w', 'calculator', 'stuff', () => card.before(spacer));
       await wait(120);
       const before = top();
-      layMoveShow_('w', 'calculator', 'tools', () => spacer.remove());
+      layMoveShow_('w', 'calculator', 'stuff', () => spacer.remove());
       /* RAF ASKED AFTER layMoveShow_'s OWN, so it runs after the second glide has started, in the same frame. */
       const after = await new Promise(r => requestAnimationFrame(() => r(top())));
       await wait(900);

@@ -20,7 +20,12 @@ const MOMENTS = [0, 900, 1800, 2700, 3600, 4500];
 const rows = readAnimRows().filter(r => /^(true|yes|1|y|on|)$/i.test(String(r.active == null ? '' : r.active).trim()));
 const asked = process.argv.slice(2).filter(a => /^[a-z0-9]+$/.test(a));
 const SHOTS = process.argv.includes('--shots');
-const want = asked.length ? rows.filter(r => asked.includes(r.anim)) : rows;
+const want0 = asked.length ? rows.filter(r => asked.includes(r.anim)) : rows;
+/* LIB_PRIVATE=absent (CI, 840): a chapter with words in the Ledger (`lib_has`) or awaiting them (`lib_pending`) is one waiting page without them, no animation on it, so those are skipped and counted. */
+const LIB = require('./lib-full.js');
+const waiting = new Set(LIB.ABSENT ? require('../data/textbooks.json').filter(r => !r.anim && (LIB.pending(r) || String(r.lib_has || '').trim())).map(r => r.book_id + '|' + r.chapter) : []);
+const want = want0.filter(r => !waiting.has(r.book_id + '|' + r.chapter));
+if (want.length < want0.length) LIB.skipParts(want0.filter(r => want.indexOf(r) < 0).map(r => r.anim + ' (its chapter is the private words)'));
 if (!want.length) { console.log('COULD NOT RUN — no animation rows in data/textbooks.json' + (asked.length ? ' named ' + asked.join(' ') : '')); process.exit(1); }
 
 const serve = () => new Promise(ok => {

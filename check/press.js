@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
+const { installOpen } = require('./find-card');
 const { statesOf } = require('./states.js');
 /* ---------- THE PAYLOAD AND THE LIBRARY IN, NOT A GUESS AT WHEN THEY WILL BE § */
 const appIn_ = page => page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED
@@ -188,6 +189,7 @@ const PAGE_HELPERS = 'window.stateOf = ' + stateOf + ';\nwindow.aliveIn = ' + al
 
 for (const who of VISITORS) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await installOpen(page);
   raw.length = 0;
   page.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
   page.on('console', m => {
@@ -432,6 +434,7 @@ for (const who of VISITORS) {
   const drops = [];
   if (!process.argv.includes('--no-swipe')) {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await installOpen(page);
     page.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
     await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
     await page.addInitScript(GUARDS);
@@ -643,11 +646,12 @@ for (const who of VISITORS) {
       }
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     };
-    const chainCol = tabs.indexOf('games') !== -1 ? 'games' : null;
+    /* A COLUMN OF GAME CARDS: Find with Games as its answer (790), as the Games column was. */
+    const chainCol = tabs.indexOf('stuff') !== -1 ? 'stuff' : null;
     if (chainCol) {
       /* A SHORT SECOND FLICK, because that is where the fault bites: § */
       for (const [gap, second] of [[20, -40], [40, -40], [40, 40], [400, -40]]) {
-        await page.evaluate(c => { go(c, false, true); goPage(c, 1, true); }, chainCol);
+        await page.evaluate(c => { const g = allWidgets().find(w => w.kind === 'game'); const n = g ? window.__openWidgetCard(g.id) : -1; if (n < 0) { go(c, false, true); goPage(c, 1, true); } else goPage(c, n + 1, true); }, chainCol);
         await page.waitForTimeout(700);
         const spot = await page.evaluate(() => {
           for (const fy of [0.65, 0.55, 0.75, 0.45]) for (const fx of [0.5, 0.3, 0.7]) {
@@ -869,6 +873,7 @@ for (const who of VISITORS) {
     /* AND THE WHITEBOARD, A MATHS NOTEBOOK (377): a swipe on its page is the grid's, a drag on its pad is writing. */
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+      await installOpen(ctx);
       const tp = await ctx.newPage();
       tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
       await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
@@ -896,8 +901,7 @@ for (const who of VISITORS) {
       /* EVERYTHING READ AT ONCE, from the app's own state: where the notebook's page and pad are, and what is stored (377). */
       const wbAt = turn => tp.evaluate(async go_ => {
         if (go_) {
-          if (AT !== 'tools') go('tools', false, true);
-          goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+          window.__openWidgetCard('whiteboard');   /* a Find card (790) */
           for (let i = 0; i < 80; i++) {
             const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
               || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
@@ -907,19 +911,19 @@ for (const who of VISITORS) {
             await new Promise(r => setTimeout(r, 100));
           }
         }
-        const nb = document.querySelector('#s-tools #wgt-whiteboard .nb');
+        const nb = document.querySelector('#s-stuff #wgt-whiteboard .nb');
         if (!nb) return null;
         const k = nb.getAttribute('data-k');
         let n = 0;
         try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
         const c = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }; };
-        return { at: AT, page: PAGE.tools, k, strokes: n, book: c(nb.querySelector('.nb-book')), pad: c(nb.querySelector('.nb-pad')),
-                 next: TABS.map(t => t.id)[TABS.map(t => t.id).indexOf('tools') + 1] };
+        return { at: AT, page: PAGE.stuff, k, strokes: n, book: c(nb.querySelector('.nb-book')), pad: c(nb.querySelector('.nb-pad')),
+                 next: TABS.map(t => t.id)[TABS.map(t => t.id).indexOf(AT) + 1] };
       }, !!turn);
       let b = await wbAt(true);
-      const W_ = 'tools · the whiteboard';
+      const W_ = 'Find · the whiteboard';
       if (!b || b.pad.w < 120 || b.pad.h < 150 || b.book.h < 120) {
-        swipes.push({ from: W_, dir: 'touch', ok: false, got: b ? 'a pad ' + b.pad.w + 'x' + b.pad.h + 'px under a page ' + b.book.w + 'x' + b.book.h + 'px' : 'no board on the Tools column',
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: b ? 'a pad ' + b.pad.w + 'x' + b.pad.h + 'px under a page ' + b.book.w + 'x' + b.book.h + 'px' : 'no board on its Find card',
                       want: 'a pad at least 120x150px to write in, under a page at least 120px tall' });
       } else {
         /* A BLANK BOARD, whatever an earlier press left on it. */
@@ -934,18 +938,18 @@ for (const who of VISITORS) {
         b = await fresh();
         await tt(b.book.x, b.book.y - Math.round(b.book.h * 0.3), 0, Math.round(b.book.h * 0.6));
         a = await wbAt(false);
-        swipes.push({ from: W_ + ', its page', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page - 1 && a.strokes === 0,
-                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s)', want: 'tools page ' + (b.page - 1) + ', 0 stroke(s)' });
+        swipes.push({ from: W_ + ', its page', dir: 'touch down', ok: a.at === 'stuff' && a.page === b.page - 1 && a.strokes === 0,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s)', want: 'stuff page ' + (b.page - 1) + ', 0 stroke(s)' });
         /* ON THE PAD, ACROSS AND DOWN: writing, and the column holds. */
         b = await fresh();
         await tt(b.pad.x - Math.round(b.pad.w * 0.35), b.pad.y, Math.round(b.pad.w * 0.7), 0);
         a = await wbAt(false);
-        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
-                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'stuff' && a.page === b.page && a.strokes === 1,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'stuff page ' + b.page + ', 1 stroke(s) kept' });
         await tt(b.pad.x + Math.round(b.pad.w * 0.3), b.pad.y - Math.round(b.pad.h * 0.3), 0, Math.round(b.pad.h * 0.6));
         a = await wbAt(false);
-        swipes.push({ from: W_ + ', its pad', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page && a.strokes === 2,
-                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 2 stroke(s) kept' });
+        swipes.push({ from: W_ + ', its pad', dir: 'touch down', ok: a.at === 'stuff' && a.page === b.page && a.strokes === 2,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'stuff page ' + b.page + ', 2 stroke(s) kept' });
         await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); }, b.k);
       }
       await ctx.close();
@@ -954,6 +958,7 @@ for (const who of VISITORS) {
     /* ---------- AND ON ITS SIDE: the page over the pad, the tiles beside them ---------- */
     for (const [sw, sh] of [[568, 320], [844, 390]]) {
       const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      await installOpen(ctx);
       const tp = await ctx.newPage();
       tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
       await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
@@ -963,19 +968,18 @@ for (const who of VISITORS) {
       await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
       await tp.waitForTimeout(2200);
       const tc = await ctx.newCDPSession(tp);
-      const W_ = 'tools · the whiteboard at ' + sw + 'x' + sh;
+      const W_ = 'Find · the whiteboard at ' + sw + 'x' + sh;
       const at = () => tp.evaluate(async () => {
-        if (AT !== 'tools') go('tools', false, true);
-        goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+        window.__openWidgetCard('whiteboard');   /* a Find card (790) */
         for (let i = 0; i < 80; i++) {
           const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
             || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
             || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until)
             || (typeof aheadBusy_ === 'function' && aheadBusy_());
-          if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .nb')) break;
+          if (!busy && i >= 4 && document.querySelector('#s-stuff #wgt-whiteboard .nb')) break;
           await new Promise(r => setTimeout(r, 100));
         }
-        const nb = document.querySelector('#s-tools #wgt-whiteboard .nb');
+        const nb = document.querySelector('#s-stuff #wgt-whiteboard .nb');
         if (!nb) return null;
         const k = nb.getAttribute('data-k');
         let n = 0;
@@ -987,11 +991,11 @@ for (const who of VISITORS) {
         const off = tiles.filter(b => b.w < 44 || b.h < 44 || b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
         const pb = box(nb.querySelector('.nb-pad')), bb = box(nb.querySelector('.nb-book'));
         const out = [pb, bb].filter(b => b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
-        return { at: AT, page: PAGE.tools, k, strokes: n, pad: pb, book: bb, tiles: tiles.length, off, out };
+        return { at: AT, page: PAGE.stuff, k, strokes: n, pad: pb, book: bb, tiles: tiles.length, off, out };
       });
       let b = await at();
       if (!b) {
-        swipes.push({ from: W_, dir: 'touch', ok: false, got: 'no board on the Tools column', want: 'a board' });
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: 'no board on its Find card', want: 'a board' });
       } else {
         await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); initBoard_(); }, b.k);
         b = await at();
@@ -1007,9 +1011,9 @@ for (const who of VISITORS) {
         }
         await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await tp.waitForTimeout(520);
-        const a = await tp.evaluate(k => ({ at: AT, page: PAGE.tools, strokes: (() => { try { return (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) { return -1; } })() }), b.k);
-        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
-                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+        const a = await tp.evaluate(k => ({ at: AT, page: PAGE.stuff, strokes: (() => { try { return (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) { return -1; } })() }), b.k);
+        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'stuff' && a.page === b.page && a.strokes === 1,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'stuff page ' + b.page + ', 1 stroke(s) kept' });
         await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); }, b.k);
       }
       await ctx.close();
@@ -1018,6 +1022,7 @@ for (const who of VISITORS) {
     /* ---------- AND A FIGURE UNDER THE PEN ON A PHONE ON ITS SIDE, WHERE IT WAS A FEW PIXELS WIDE § */
     for (const [sw, sh] of [[568, 320], [844, 390]]) {
       const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      await installOpen(ctx);
       const tp = await ctx.newPage();
       tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
       await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
@@ -1082,15 +1087,13 @@ for (const who of VISITORS) {
     /* AND A TAP ON THE GAME FLAPS ON THE FINGER GOING DOWN, NOT ON IT COMING UP. § */
     {
       const at = await page.evaluate(() => {
-        go('games');
-        const i = widgetsOf_('game').findIndex(w => w.id === 'console');
-        if (i >= 0) goPage('games', i, true);
-        const _cp = document.querySelector('#s-games #cs-pick'); if (_cp && _cp.value !== 'flabby') { _cp.value = 'flabby'; ACTIONS['cs-pick'](_cp); }
+        const i = window.__openWidgetCard('console');   /* a Find card (790) */
+        const _cp = document.querySelector('#s-stuff #cs-pick'); if (_cp && _cp.value !== 'flabby') { _cp.value = 'flabby'; ACTIONS['cs-pick'](_cp); }
         return i;
       });
       await page.waitForTimeout(900);
       const box = await page.evaluate(() => {
-        const c = document.querySelector('#s-games .flappy');
+        const c = document.querySelector('#s-stuff .flappy');
         if (!c || typeof flappyState === 'undefined' || !flappyState) return null;
         const r = c.getBoundingClientRect();
         return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
@@ -1215,6 +1218,7 @@ for (const who of VISITORS) {
     /* A DROPDOWN UNDER A FINGER IS THE PLATFORM'S OWN, AND A SWIPE THAT STARTS ON ONE MOVES THE COLUMN § */
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+      await installOpen(ctx);
       const tp = await ctx.newPage();
       tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
       await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);

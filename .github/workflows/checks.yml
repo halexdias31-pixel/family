@@ -24,7 +24,7 @@ jobs:
   check:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +46,13 @@ jobs:
           - { name: 'browser 6/8', cmd: 'node js/check-all.js --slow=6/8 -v', browser: true }
           - { name: 'browser 7/8', cmd: 'node js/check-all.js --slow=7/8 -v', browser: true }
           - { name: 'browser 8/8', cmd: 'node js/check-all.js --slow=8/8 -v', browser: true }
+          # THE SIX THAT EACH NEAR THE 900 s LIMIT ON THIS RUNNER (840): one a job, nothing beside it, CHECK_LIMIT_S below.
+          - { name: 'heavy 1/6', cmd: 'node js/check-all.js --heavy=1/6 -v', browser: true }
+          - { name: 'heavy 2/6', cmd: 'node js/check-all.js --heavy=2/6 -v', browser: true }
+          - { name: 'heavy 3/6', cmd: 'node js/check-all.js --heavy=3/6 -v', browser: true }
+          - { name: 'heavy 4/6', cmd: 'node js/check-all.js --heavy=4/6 -v', browser: true }
+          - { name: 'heavy 5/6', cmd: 'node js/check-all.js --heavy=5/6 -v', browser: true }
+          - { name: 'heavy 6/6', cmd: 'node js/check-all.js --heavy=6/6 -v', browser: true }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,9 +75,13 @@ jobs:
       - name: Run
         env:
           LIB_SKIP_LOG: ${{ runner.temp }}/lib-skipped.txt
+          # A free runner is slower than the machine check-all's 15 minutes were set on: a browser check gets 30 here (840).
+          CHECK_LIMIT_S: '1800'
+          # Anything a check writes to the temp dir lands where the artifact step may read it (/tmp has unreadable dirs).
+          TMPDIR: ${{ runner.temp }}/tmp
         run: |
           set -o pipefail
-          mkdir -p "$RUNNER_TEMP/logs"
+          mkdir -p "$RUNNER_TEMP/logs" "$RUNNER_TEMP/tmp"
           bash -c "${{ matrix.cmd }}" 2>&1 | tee "$RUNNER_TEMP/logs/run.log"
       - name: Summary — what was not checked
         if: always()
@@ -95,7 +106,7 @@ jobs:
           path: |
             ${{ runner.temp }}/logs/
             ${{ runner.temp }}/lib-skipped.txt
-            /tmp/**/*.png
+            ${{ runner.temp }}/tmp/**/*.png
             check/**/*.png
           if-no-files-found: ignore
           retention-days: 14
