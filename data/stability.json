@@ -93,8 +93,8 @@
    "cap": 10,
    "off": 2,
    "where": {
-    "js/find.js": 12204,
-    "js/me.js": 4885,
+    "js/find.js": 12208,
+    "js/me.js": 4888,
     "js/shell.js": 3868,
     "backend/dopost.gs": 4609
    }
