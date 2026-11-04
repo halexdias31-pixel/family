@@ -44,7 +44,6 @@ be a new card with its own level, `FSMQ`, never filed under GCSE.
 
 - `facetNoneHtml_`: a facet not asked because every card here answers it one way, while the whole list has exactly two
   answers, shows the other greyed with 0 — every yes-or-no facet, not only verified tags.
-- `facetTally_` measures a split over the answers not carried by every card.
 - 9MA0's `P-9MA0-2406-31` is Paper 3, Section A: `paperSectionOf_` reads an id ending in the paper's number and a digit,
   the name says `Paper 3, Section A`, and `paperSection` is a facet (a tag on the cards, one answer after Paper).
 

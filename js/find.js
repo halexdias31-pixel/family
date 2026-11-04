@@ -980,9 +980,7 @@ function facetTally_(items, facet) {
     const vals = facetOwn_(facet, x);
     new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
   });
-  /* AN ANSWER EVERY CARD CARRIES IS NOT THE COMMONEST CHOICE BUT DOESN'T MATTER AGAIN (770): the split is measured over the rest — every facet. */
-  const keys = Object.keys(wBy), part = keys.filter(k => wBy[k] < whole);
-  (part.length && part.length < keys.length ? part : keys).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
+  Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
     facet: facet,

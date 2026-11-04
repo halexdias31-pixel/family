@@ -10223,7 +10223,7 @@ check('770: the search card has no Find button; no card is titled with a column\
   if (!d.querySelector('#s-students .ps-card[data-ps-col="students"]')) bad.push('Students has no search card');
   if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is on a search card');
   if (d.querySelector('.ps-card .card-say')) bad.push('the search card carries a sentence above its bar (its placeholder is its label, 469)');
-  const names = new Set(w.TABS.map(x => String(w.tabLabel_(x.id, x.id)).trim().toLowerCase()));
+  const names = new Set((t.TABS || []).map(x => String(x.label || x.id).trim().toLowerCase()));
   d.querySelectorAll('.screen .card > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
   if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
   const row = w.cardAdminRow_('biz:deleted', 'biz', false);
@@ -30684,6 +30684,9 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       ['Move up', 'Move down', 'Move to previous column|Move to a new column on the left', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (!l.split('|').some(x => labels.indexOf(x) !== -1)) bad.push(id + ' has no ' + l); });
     });
   }
+  /* A CARD THAT MOVES BUT IS KEPT (CARD_KEEP, 770: Deleted) has every tile but Delete. */
+  const keep = ['biz:deleted'];
+  for (let i = bad.length - 1; i >= 0; i--) if (keep.some(k => bad[i] === k + ' has no Delete')) bad.splice(i, 1);
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
@@ -32238,7 +32241,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!card) return ['no What’s missing card on Find for an admin — NOT checked'];
   const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
   const cardAt = () => missPages_(d).indexOf(d.querySelector('#s-stuff .miss-card')?.closest('.page'));
-  if (cardAt() !== 0 || qAt() !== 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
+  /* LOGIC HEALTH (770) may sit above it: the card is directly above the question either way. */
+  if (cardAt() !== qAt() - 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
   if (t.PAGE().stuff !== qAt()) bad.push('Find opens on page ' + t.PAGE().stuff + ', not on the question (' + qAt() + ')');
   if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
   if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
@@ -32262,7 +32266,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   /* A CHIP REDRAWS WHAT IS BELOW THE QUESTION, never the card above it. */
   w.paintFinder_('stuff');
   await wait(200);
-  if (cardAt() !== 0 || qAt() !== 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
+  if (cardAt() !== qAt() - 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
   if (t.PAGE().stuff !== qAt()) bad.push('a repaint of the funnel left Find on page ' + t.PAGE().stuff);
   /* BACK TO TOP IS THE QUESTION. */
   t.goPage('stuff', 1 + qAt(), true); await wait(100);
@@ -32276,7 +32280,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
     t.ACTIONS['lay-c-del'](del()); await wait(450); t.ACTIONS['lay-c-del'](del()); await wait(400);   /* sure_'s 400 ms between the two taps (534) */
     if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
-    if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
+    const lead = d.querySelector('#s-stuff .logic-card') ? 1 : 0;
+    if (qAt() !== lead || t.PAGE().stuff !== qAt()) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
   }
   if (errs.length) bad.push('errors: ' + errs.join(' | ').slice(0, 300));
   w.close();
