@@ -1911,6 +1911,8 @@ function studentSetPages_() {
   const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
+  /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */
+  if (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF) return [top];
   return [top].concat(ownCardSetPage_('account'), youSettingsPages_(), soonCards_(),
     /* PHONE NOTIFICATIONS (492), push.js — here because every account has this column. Google Tasks lives in the Docket (491). */
     typeof pushCard_ === 'function' ? [pushCard_()].filter(Boolean) : [], prog, wait);
@@ -1922,7 +1924,8 @@ const SOON_CARDS = [
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => `<div class="card soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`);
-screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
+const SETTINGS_OFF = true;
+screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
