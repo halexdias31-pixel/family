@@ -9,6 +9,7 @@ const dir = __dirname;
 const VERBOSE = process.argv.includes('-v') || process.argv.includes('--verbose')
   || /^(1|true|yes)$/i.test(process.env.VERBOSE || '');
 const childEnv = Object.assign({}, process.env, { VERBOSE: '' });
+const envFor = c => (/check-flow\.js/.test(c.file) && FLOW_TIER ? Object.assign({}, childEnv, { FLOW_TIER }) : childEnv);
 
 /* `soft` — reports rather than fails. See above: these two name things to look at, and treating a
    list to look at as a broken build is how a team learns to ignore the build. */
@@ -50,6 +51,9 @@ const SUITE = [
   { file: 'check-errlog.js',    what: 'the error log: one counted row per distinct error, one note each, throttled, admin-only' },
   /* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN § */
   { file: 'check-widgets.js', what: 'the widget contract, and the roster' },
+  /* THE TWO TIERS (860): data/settings/tiers.json against the code, and a throwing secondary widget leaves Find whole. */
+  { file: 'check-tiers.js', what: 'every screen, widget, file and check has a tier; secondary is guarded and LATER' },
+  { file: 'check/isolation.js', what: 'a secondary widget that throws everywhere: Find still boots, narrows and opens a question (860)', slow: true },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   /* AND WHETHER ANYTHING ASKS FOR IT (433): a handler nothing calls is a door onto nothing from the other side. */
   { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
@@ -262,6 +266,17 @@ const SUITE = [
   { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once, one press look at once on every control, held as long as the finger (536)', slow: true },
 ];
 
+/* TIERS (860): core checks block; secondary ones run only with --all (or --tier=secondary) and report WARN, never FAIL. */
+const TIER_OF = (() => { try { return JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'tiers.json'), 'utf8')).checks || {}; } catch (e) { return {}; } })();
+const TIER_ARG = (/^--tier=(core|secondary|all)$/.exec(process.argv.find(a => a.startsWith('--tier=')) || '') || [])[1]
+  || (process.argv.includes('--all') ? 'all' : 'core');
+SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary') c.report = true; });
+/* OFF (860): a deactivated widget's checks are skipped, and counted, never passed. */
+const OFF_SKIPPED = SUITE.filter(c => c.tier === 'off').map(c => c.file);
+for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].tier === 'off') SUITE.splice(i, 1);
+for (let i = SUITE.length - 1; i >= 0; i--) if (TIER_ARG !== 'all' && SUITE[i].tier !== TIER_ARG) SUITE.splice(i, 1);
+/* check-flow splits its own journeys by the same file: core blocks, secondary warns. */
+const FLOW_TIER = TIER_ARG === 'core' ? '' : TIER_ARG;
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */
 if (process.argv.includes('--fast')) for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].slow) SUITE.splice(i, 1);
 /* `--slow=k/n` (CI, 780): only the slow checks, the k-th of n groups dealt round-robin; check-flow is left to FLOW_PART. */
@@ -272,8 +287,8 @@ if (SLOW_PART) {
   SUITE.splice(0, SUITE.length, ...mine);
   console.log('slow part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
 }
-let failed = 0, noted = 0;
-const notes = [];
+let failed = 0, noted = 0, warned = 0;
+const notes = [], warns = [];
 
 /* ---------- THE ONES THAT DRIVE A BROWSER START AT THE TOP, A FEW AT A TIME § */
 /* AND NOT ALL AT ONCE. § */
@@ -290,7 +305,7 @@ for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) 
     const t0 = Date.now();
     const done = r => { live--; fin(r); pump(); };
     /* TEN MINUTES, NOT FIVE. § */
-    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000, env: childEnv,
+    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000, env: envFor(c),
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));
@@ -322,7 +337,7 @@ pump();
       try {
         /* FIVE MINUTES FOR A FILE CHECK, NOT THREE. § */
         out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
-                                                    timeout: 300000, env: childEnv,
+                                                    timeout: 300000, env: envFor(c),
                                                     stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
@@ -333,6 +348,13 @@ pump();
 
     if (ok) {
       if (VERBOSE) console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+    } else if (c.report) {
+      /* SECONDARY (860): it ran and found something, said with a count, and the suite stays green. */
+      warned++;
+      const lines = out.split('\n').filter(l => /^\s*(FAIL|FAILED|!)\b/.test(l.trim()) || /^\s*FAIL\s/.test(l));
+      console.log('  WARN  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's  (secondary, report-only: ' + Math.max(1, lines.length) + ' finding(s))');
+      warns.push(c.file);
+      (VERBOSE ? lines : lines.slice(0, 3)).forEach(l => console.log('          ' + l.trim().slice(0, 200)));
     } else if (c.soft) {
       noted++;
       if (VERBOSE) console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
@@ -377,13 +399,16 @@ pump();
   }
 
   // session-start.sh reads "OK — nothing is broken (N checks" for its count, so every green ending carries it.
-  if (failed || notes.length || VERBOSE) console.log('');
+  if (failed || notes.length || warned || VERBOSE) console.log('');
+  const tierSay = (TIER_ARG === 'core' ? ' core; --all adds the secondary' : TIER_ARG === 'all' ? ' core and secondary' : ' secondary only') + (OFF_SKIPPED.length ? ', ' + OFF_SKIPPED.length + ' off and skipped' : '');
+  if (OFF_SKIPPED.length && (VERBOSE || TIER_ARG !== 'core')) console.log('note — ' + OFF_SKIPPED.length + ' check(s) skipped, their widgets are off (860): ' + OFF_SKIPPED.join(', '));
+  if (warned) console.log('WARN — ' + warned + ' secondary check(s) found something (report-only, 860): ' + warns.join(', '));
   if (failed) {
-    console.log('FAILED — ' + failed + ' of ' + ran + ' checks found something wrong.');
+    console.log('FAILED — ' + failed + ' of ' + ran + ' checks found something wrong (' + tierSay.trim() + ').');
   } else if (noted) {
-    console.log('OK — nothing is broken (' + ran + ' checks; ' + noted + ' with a note above).');
+    console.log('OK — nothing is broken (' + ran + ' checks;' + tierSay + '; ' + noted + ' with a note above).');
   } else {
-    console.log('OK — nothing is broken (' + ran + ' checks).');
+    console.log('OK — nothing is broken (' + ran + ' checks;' + tierSay + ').');
   }
   process.exit(failed ? 1 : 0);
 

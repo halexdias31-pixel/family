@@ -40,6 +40,64 @@ window.addEventListener('unhandledrejection', e => oops_(e && e.reason, 'promise
 function oopsTry_(where, fn, host) {
   try { return fn(); } catch (err) { oops_(err, where, host); return undefined; }
 }
+/* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
+const TIER_CORE_WIDGETS = [];
+const TIER_OFF_WIDGETS = ['console', 'boardgames', 'wordgames', 'reels', 'videos', 'newspaper', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'termdates', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'verse', 'whiteboard'];
+const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
+const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
+const TIER_RUN = { depth: 0 };
+/* A GUARDED CALL: a throw is oops_'s and gives `fallback`; a timer or frame asked for while it runs is guarded the same way, never rethrown. */
+function tierRun_(where, fn, self, args, fallback, host) {
+  const W = typeof window !== 'undefined' ? window : null;
+  let keep = null;
+  if (W && !TIER_RUN.depth) {
+    keep = { t: W.setTimeout, i: W.setInterval, r: W.requestAnimationFrame };
+    const wrap = real => function (cb) {
+      const a = Array.prototype.slice.call(arguments);
+      if (typeof cb === 'function') a[0] = function () { return tierRun_(where, cb, this, arguments); };
+      return real.apply(W, a);
+    };
+    W.setTimeout = wrap(keep.t); W.setInterval = wrap(keep.i);
+    if (typeof keep.r === 'function') W.requestAnimationFrame = wrap(keep.r);
+  }
+  TIER_RUN.depth++;
+  try { return fn.apply(self, args || []); }
+  catch (err) { oops_(err, where, typeof host === 'function' ? host() : host); return typeof fallback === 'function' ? fallback(err) : fallback; }
+  finally {
+    TIER_RUN.depth--;
+    if (keep) { W.setTimeout = keep.t; W.setInterval = keep.i; if (typeof keep.r === 'function') W.requestAnimationFrame = keep.r; }
+  }
+}
+/* OFF (860): nothing of its own runs; its card is its name, "Coming soon" and Suggest, so a person can still ask for it back. */
+function tierOff_(w) {
+  const name = String(w.name || w.title || w.id);
+  ['start', 'draw', 'stop'].forEach(k => { if (typeof w[k] === 'function') w[k] = () => (k === 'draw' ? false : undefined); });
+  Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
+    const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
+    const sug = typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), name) : '';
+    return `<div class="card widget-off"><h3>${esc(name)}</h3><p class="sub">${esc(say)}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+  } });
+  try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
+}
+/* EVERY SECONDARY WIDGET'S start, draw, stop and markup, guarded once where WIDGETS is written (map.js) — so every caller is covered, whichever file calls. */
+function tierGuardWidgets_(list) {
+  (Array.isArray(list) ? list : []).forEach(w => {
+    if (!w || typeof w !== 'object' || w.__tier || tierCore_('widget', w.id)) return;
+    if (TIER_OFF_WIDGETS.indexOf(String(w.id)) !== -1) return tierOff_(w);
+    const where = 'widget:' + w.id;
+    const slot = () => (w.into && typeof document !== 'undefined' ? document.getElementById(w.into) : null);
+    ['start', 'draw', 'stop'].forEach(k => {
+      const f = w[k];
+      if (typeof f === 'function') w[k] = function () { return tierRun_(where, f, this, arguments, k === 'draw' ? false : undefined, k === 'start' ? slot : null); };
+    });
+    const d = Object.getOwnPropertyDescriptor(w, 'html');
+    if (d && typeof d.get === 'function') {
+      Object.defineProperty(w, 'html', { configurable: true, enumerable: d.enumerable, get() { return tierRun_(where, d.get, this, [], oopsHtml_); } });
+    }
+    try { Object.defineProperty(w, '__tier', { value: 'secondary' }); } catch (e) { /* a frozen widget is still guarded */ }
+  });
+  return list;
+}
 
 /* ---------- THE TABS § */
 const TABS = [

@@ -10,6 +10,7 @@
 // longfns      0.05 per top-level function over 150 lines, cap 10
 // markers      0.20 per TODO / FIXME / HACK / XXX outside the checks, cap 5
 // duplicates   0.02 per repeated non-trivial line (60+ characters, seen 3+ times) in js/, cap 10
+// TIERS (860): the score weighs core files only (data/settings/tiers.json); the secondary files' figures are `secondary`, shown apart.
 // A red check is not scored: check-all fails it outright, and slowness depends on the machine. `--check` compares data/stability.json.
 'use strict';
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
@@ -19,11 +20,22 @@ const list = d => { try { return fs.readdirSync(path.join(ROOT, d)).sort(); } ca
 const jsApp = list('js').filter(f => f.endsWith('.js') && !f.startsWith('check')).map(f => 'js/' + f);
 const jsCheck = list('js').filter(f => /^check.*\.js$/.test(f)).map(f => 'js/' + f).concat(list('check').filter(f => f.endsWith('.js')).map(f => 'check/' + f));
 const gs = list('backend').filter(f => f.endsWith('.gs')).map(f => 'backend/' + f);
+const TIERS = (() => { try { return JSON.parse(read('data/settings/tiers.json')); } catch (e) { return {}; } })();
+/* A FILE'S TIER: an app file by its name, a check by its suite entry; the backend, index.html and style.css are core. */
+const tierOf = f => {
+  let m = /^js\/(?!check)([\w-]+)\.js$/.exec(f);
+  if (m) return (TIERS.files || {})[m[1]] || 'core';
+  m = /^(?:js\/)?(check[\w\/.-]*\.js)$/.exec(f.replace(/^js\/(check)/, '$1'));
+  if (m) { const k = Object.keys(TIERS.checks || {}).find(c => c.split(' ')[0] === m[1]); return k ? TIERS.checks[k] : 'core'; }
+  return 'core';
+};
+let TIER = 'core';
+const mine = f => tierOf(f) === TIER;
 const noComments = s => s.replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g, '$1').replace(/(^|\s)\/\/[^\n]*/g, '$1');
 
 function exceptions() {
   let n = 0; const where = {};
-  jsCheck.forEach(f => {
+  jsCheck.filter(mine).forEach(f => {
     const s = noComments(read(f));
     for (const m of s.matchAll(/const (\w*(?:ACCEPTED|_OK|KNOWN|ALLOW)\w*) = (\[|\{|new Set\(\[)([\s\S]*?)\n\s*(?:\]|\}|\]\))\)?;/g)) {
       const k = m[3].split('\n').filter(l => /^\s*(['"`{\[]|[\w$]+\s*:)/.test(l)).length || (m[3].trim() ? m[3].split(',').filter(x => x.trim()).length : 0);
@@ -32,33 +44,36 @@ function exceptions() {
   });
   return { n, where };
 }
-const catches = () => { const m = /const CEILING = (\d+)/.exec(read('js/check-catches.js')); return { n: m ? Number(m[1]) : 0 }; };
+const catches = () => { if (TIER !== 'core') return { n: 0 }; const m = /const CEILING = (\d+)/.exec(read('js/check-catches.js')); return { n: m ? Number(m[1]) : 0 }; };
 function ceilings() {
   let n = 0; const where = {};
-  jsCheck.forEach(f => { for (const m of read(f).matchAll(/^const (\w+_MAX) = (\d+);/gm)) { n += Number(m[2]); where[f + ' ' + m[1]] = Number(m[2]); } });
+  jsCheck.filter(mine).forEach(f => { for (const m of read(f).matchAll(/^const (\w+_MAX) = (\d+);/gm)) { n += Number(m[2]); where[f + ' ' + m[1]] = Number(m[2]); } });
   return { n, where };
 }
 function special() {
   let n = 0; const where = {};
-  jsApp.forEach(f => { const k = (noComments(read(f)).match(/\b(?:facet|kind)\s*===?\s*'[^']+'/g) || []).length; if (k) { n += k; where[f] = k; } });
+  jsApp.filter(mine).forEach(f => { const k = (noComments(read(f)).match(/\b(?:facet|kind)\s*===?\s*'[^']+'/g) || []).length; if (k) { n += k; where[f] = k; } });
   return { n, where };
 }
+let DEAD = null;
 function dead() {
+  if (TIER !== 'core') return { n: 0 };
+  if (DEAD) return DEAD;
   let out = '';
   try { out = execFileSync(process.execPath, [path.join(ROOT, 'js', 'check-dead.js'), '-v'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); }
   catch (e) { out = String(e.stdout || ''); }
   const names = [];
   out.split('\n').filter(l => /^(frontend|backend): /.test(l)).forEach(l => l.replace(/^\w+: /, '').split(', ').forEach(x => { if (x.trim()) names.push(x.trim()); }));
-  return { n: names.length, where: names.length ? { 'check-dead': names.slice(0, 40).join(', ') } : {} };
+  return (DEAD = { n: names.length, where: names.length ? { 'check-dead': names.slice(0, 40).join(', ') } : {} });
 }
 function longfiles() {
   const where = {};
-  jsApp.concat(gs).forEach(f => { const k = read(f).split('\n').length; if (k > 3000) where[f] = k; });
+  jsApp.concat(gs).filter(mine).forEach(f => { const k = read(f).split('\n').length; if (k > 3000) where[f] = k; });
   return { n: Object.keys(where).length, where };
 }
 function longfns() {
   const where = {};
-  jsApp.concat(gs).forEach(f => {
+  jsApp.concat(gs).filter(mine).forEach(f => {
     const L = read(f).split('\n');
     for (let i = 0; i < L.length; i++) {
       const m = /^(?:async )?function (\w+)/.exec(L[i]);
@@ -73,12 +88,12 @@ function longfns() {
 }
 function markers() {
   let n = 0; const where = {};
-  jsApp.concat(gs, ['index.html', 'style.css']).forEach(f => { const k = (read(f).match(/\b(?:TODO|FIXME|HACK|XXX)\b/g) || []).length; if (k) { n += k; where[f] = k; } });
+  jsApp.concat(gs, ['index.html', 'style.css']).filter(mine).forEach(f => { const k = (read(f).match(/\b(?:TODO|FIXME|HACK|XXX)\b/g) || []).length; if (k) { n += k; where[f] = k; } });
   return { n, where };
 }
 function duplicates() {
   const seen = {};
-  jsApp.forEach(f => noComments(read(f)).split('\n').map(l => l.trim()).filter(l => l.length >= 60).forEach(l => { seen[l] = (seen[l] || 0) + 1; }));
+  jsApp.filter(mine).forEach(f => noComments(read(f)).split('\n').map(l => l.trim()).filter(l => l.length >= 60).forEach(l => { seen[l] = (seen[l] || 0) + 1; }));
   const rep = Object.keys(seen).filter(l => seen[l] >= 3);
   return { n: rep.reduce((a, l) => a + seen[l] - 1, 0), where: { lines: rep.length } };
 }
@@ -94,7 +109,8 @@ const SIGNALS = [
   ['markers', 'TODO / FIXME / HACK markers', 0.20, 5, markers],
   ['duplicates', 'Repeated long lines', 0.02, 10, duplicates],
 ];
-function stability() {
+function scored(tier) {
+  TIER = tier;
   const signals = SIGNALS.map(([id, label, weight, cap, fn]) => {
     const r = fn();
     return { id, label, count: r.n, weight, cap, off: Math.round(Math.min(cap, r.n * weight) * 10) / 10, where: r.where || {} };
@@ -103,7 +119,13 @@ function stability() {
   const score = Math.max(0, Math.round((100 - off) * 10) / 10);
   const verdict = score >= 85 ? 'Solid: little is held together by exceptions.' : score >= 70 ? 'Steady, with duct tape worth paying down.'
     : score >= 50 ? 'Shaky: exceptions and special cases are piling up.' : 'Fragile: the exceptions outweigh the rules.';
-  return { v: 1, score, verdict, signals: signals.slice().sort((a, b) => b.off - a.off || a.id.localeCompare(b.id)) };
+  TIER = 'core';
+  return { score, verdict, signals: signals.slice().sort((a, b) => b.off - a.off || a.id.localeCompare(b.id)) };
+}
+/* THE SCORE IS CORE'S; the secondary tier's is beside it, never in it. */
+function stability() {
+  const core = scored('core'), sec = scored('secondary');
+  return { v: 2, tier: 'core', score: core.score, verdict: core.verdict, signals: core.signals, secondary: sec };
 }
 module.exports = { stability };
 if (require.main === module) {

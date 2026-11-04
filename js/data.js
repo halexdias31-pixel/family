@@ -59,7 +59,8 @@ function laterFiles_() {
   if (LATER_ASK) return LATER_ASK;
   const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER : [];
   /* IN window.FILES' ORDER, whatever order LATER is written in: that list is the load order. */
-  const list = (Array.isArray(window.FILES) ? window.FILES : later).filter(f => later.indexOf(f) !== -1);
+  const off = Array.isArray(window.OFF) ? window.OFF : [];
+  const list = (Array.isArray(window.FILES) ? window.FILES : later).filter(f => later.indexOf(f) !== -1 && off.indexOf(f) === -1);
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
   LATER_ASK = !list.length || typeof document === 'undefined' || typeof fetch !== 'function' ? Promise.resolve() : Promise.all(list.map(f =>
     fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))

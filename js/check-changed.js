@@ -25,7 +25,7 @@ const MAP = [
   ['data/textbooks.json', ['js/check-textbooks.js', 'js/check-anims.js', 'js/check-schema.js', 'js/check-library.js', 'tools/finder-tags.js --check', 'check/anims.js']],
   ['data/practicals.json', ['js/check-practicals.js', 'js/check-schema.js', 'js/check-library.js']],
   ['data/projects.json', ['js/check-projects.js', 'js/check-schema.js', 'js/check-library.js']],
-  ['data/settings/**', ['js/check-settings.js', 'js/check-doors.js', 'js/check-widgets.js']],
+  ['data/settings/**', ['js/check-settings.js', 'js/check-doors.js', 'js/check-widgets.js', 'js/check-tiers.js']],
   ['data/diagrams/**', ['js/check-diagram-png.js']],
   ['data/stability.json', ['js/check-stability.js']],
   ['data/**', ['js/check-payload.js', 'js/check-secrets.js']],
@@ -35,7 +35,7 @@ const MAP = [
   ['js/check-*.js', ['$self']],
   ['check/*.js', ['$self']],
   ['js/*.js', ['js/check-strings.js', 'js/check-scope.js', 'js/check-const.js', 'js/check-payload.js', 'js/check-doors.js', 'js/check-catches.js',
-               'js/check-errors.js', 'js/check-loading.js', 'js/check-flow.js']],
+               'js/check-errors.js', 'js/check-loading.js', 'js/check-tiers.js', 'js/check-flow.js']],
 ];
 const re = g => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$');
 const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { return null; } };
