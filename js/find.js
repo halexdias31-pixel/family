@@ -204,6 +204,8 @@ const KINDS = {
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
+  /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
+  soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 
@@ -226,6 +228,24 @@ function widgetCard_(x) {
   return `<div class="card">
     <h3>${esc(x.name)}</h3>
   </div>`;
+}
+
+/* THE OFF WIDGETS' NAMES (880), for a card whose file is never fetched; which are off is tiers.json's (TIER_OFF_WIDGETS). */
+const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordgames: 'Word & number games', reels: 'One more thing', videos: 'Videos',
+  newspaper: 'Newspaper', calculator: 'Calculator', flyers: 'Make a flyer', mat: 'Cheat sheet maker (maths mat)', timer: 'Timer', docket: 'Docket',
+  notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
+  cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
+  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards' };
+/* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
+function soonItems_() {
+  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
+  const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
+    sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id }));
+  return cols.concat(ws).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
+}
+function soonCard_(x) {
+  const sug = typeof suggestTile_ === 'function' ? suggestTile_(x.soon, String(x.soonId), x.name) : '';
+  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -9148,7 +9168,8 @@ function stuffItemsRaw_() {
     ...(typeof allWidgets === 'function' && typeof widgetInFind_ === 'function' ? findWidgetList_() : []).map(w => ({
       kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
-    })),
+    })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
+    ...soonItems_(),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
     ...(canTrack() ? friendHandles().map(h => {
       const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
