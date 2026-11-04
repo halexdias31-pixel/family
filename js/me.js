@@ -2037,11 +2037,13 @@ function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
-    .concat([stabilityCard_()])
+    .concat(STABILITY_SHOWN ? [stabilityCard_()] : [])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
 
 /* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
+/* ONE SCORE (890): Site health in Find replaces this card; its code stays, switched off. */
+const STABILITY_SHOWN = false;
 const STAB = { got: null, failed: false, asked: false, all: false };
 function stabilityCard_() {
   if (!STAB.asked) {

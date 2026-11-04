@@ -99,6 +99,10 @@ function tierGuardWidgets_(list) {
   return list;
 }
 
+/* ONE SCROLLING PAGE (900): sections in normal flow, scrolled by the browser. false brings back the sideways columns, the pager and the glass. */
+const FLOW_LAYOUT = true;
+if (FLOW_LAYOUT) document.documentElement.classList.add('flow');
+
 /* ---------- THE TABS § */
 const TABS = [
   /* Posts leftmost: the one screen somebody opens with no errand. Every other tab answers a
@@ -363,6 +367,7 @@ function go(id, remember, instant) {
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   /* `true` used to be written here, and it cancelled the slide `placeCells('x', instant)` had started twenty lines above — two correct calls in one turn § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
+  if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
 
   /* `scrollTo` was here, putting the window back to the top on every tab change. § */
 
@@ -819,6 +824,7 @@ let WIDE = false;
 function wideSet_() {
   let w;
   try { w = matchMedia('(min-width: ' + WIDE_FROM + 'px)').matches; } catch (e) { w = innerWidth >= WIDE_FROM; }
+  if (FLOW_LAYOUT) w = false;   /* one centred column at every width (900) */
   if (w !== WIDE || document.documentElement.classList.contains('wide') !== w) {
     WIDE = w;
     document.documentElement.classList.toggle('wide', w);
@@ -1337,6 +1343,7 @@ function glassOffset_(sl, page) {
 }
 
 function placeGrid(instant, drag) {
+  if (FLOW_LAYOUT) return flowPlace_();
   if (drag && dragFast_(drag)) return;
   DRAG_PLAN = null;
   /* Said before anything is measured or moved, so the width the stylesheet draws and the width
@@ -1622,9 +1629,9 @@ function pageWrite_(el, st) {
   if (!was) { el.style.position = 'static'; el.style.transform = 'none'; }
   if (!was || was.on !== st.on) {
     el.classList.toggle('on', st.on);
-    el.style.pointerEvents = st.on ? 'auto' : 'none';
+    el.style.pointerEvents = st.on || FLOW_LAYOUT ? 'auto' : 'none';
     /* AND THE KEYBOARD WITH IT (561, U15): a page a finger cannot reach is out of the Tab order too. */
-    el.inert = !st.on;
+    el.inert = !st.on && !FLOW_LAYOUT;
   }
   if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
   if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
@@ -1632,6 +1639,62 @@ function pageWrite_(el, st) {
   if (!was || was.op !== st.op) el.style.opacity = st.op;
   if (!was || was.vis !== st.vis) el.style.visibility = st.vis;
   el.PG = st;
+}
+
+/* ---------- THE ONE SCROLLING PAGE (900) ---------- */
+/* Find is always shown; another section only while it is the one asked for (the sign-in card, above Find). */
+const flowHome_ = () => (TABS.some(t => t.id === 'stuff') ? 'stuff' : AT);
+/* No transform and no glass: each section's inline placement cleared, every page in flow and touchable; `.on` is the page being read. */
+function flowPlace_() {
+  topbarPaint_();
+  const home = flowHome_();
+  TABS.forEach(t => {
+    const host = $('s-' + t.id);
+    if (!host) return;
+    if (host.style.cssText) host.style.cssText = '';
+    host.classList.toggle('hidden', t.id !== AT && t.id !== home);
+    host.classList.toggle('is-front', t.id === AT);
+    host.PLACED_P = PAGE[t.id] || 0;
+    host.querySelectorAll(':scope > .page').forEach((el, pos) => pageWrite_(el,
+      { on: logIndex_(t.id, pos) === (PAGE[t.id] || 0), far: false, soft: false, dim: null, op: '1', vis: 'visible' }));
+  });
+}
+/* THE PAGE BEING READ is the first whose foot is past a quarter of the window; turning to it is `goPage`, so Find's window and fills follow the scroll. */
+let FLOW_FRAME = 0, FLOW_TURNING = false;
+function flowScrolled_() {
+  FLOW_FRAME = 0;
+  const id = flowHome_(), host = $('s-' + id);
+  if (!host || host.classList.contains('hidden') || !PAGER[id]) return;
+  const pages = host.querySelectorAll(':scope > .page'), line = innerHeight / 4;
+  let at = -1;
+  for (let pos = 0; pos < pages.length && at < 0; pos++) {
+    const r = pages[pos].getBoundingClientRect();
+    if (r.height && r.bottom > line) at = pos;
+  }
+  if (at < 0) return;
+  FLOW_TURNING = true;
+  try { if (logIndex_(id, at) !== (PAGE[id] || 0)) goPage(id, logIndex_(id, at)); } finally { FLOW_TURNING = false; }
+  /* NEAR THE FOOT OF WHAT IS DRAWN, the next few results are drawn (`flowMore_`, find.js). */
+  if (typeof flowMore_ === 'function' && document.documentElement.scrollHeight - window.scrollY - innerHeight < innerHeight) flowMore_(id);
+}
+addEventListener('scroll', () => { if (FLOW_LAYOUT && !FLOW_FRAME) FLOW_FRAME = requestAnimationFrame(flowScrolled_); }, { passive: true });
+/* A PAGE TURNED TO BY A TAP (a question opened, its answer shown) is scrolled to, once the turn's fills have run. */
+function flowShow_(id, n) {
+  if (FLOW_TURNING) return;
+  afterSlide_(() => {
+    const host = $('s-' + id), el = host && host.querySelectorAll(':scope > .page')[domIndex_(id, n)];
+    if (el && (PAGE[id] || 0) === n) el.scrollIntoView({ block: 'start' });
+  }, 'flow-show');
+}
+
+/* THE TOP BAR (900): the brand, and who is signed in with Sign out, or a Sign in tile that shows the sign-in card above Find. */
+function topbarPaint_() {
+  const bar = $('topbar-who');
+  if (!bar || typeof tile_ !== 'function') return;
+  const who = USER ? String(USER.name || USER.handle || '').trim() : '';
+  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}`
+    : AT === 'account' ? '' : tile_({ icon: 'in', label: 'Sign in', act: 'topbar-signin' });
+  if (bar.innerHTML !== html) bar.innerHTML = html;
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */
@@ -1962,7 +2025,7 @@ function afterSlide_(fn, key) {
       if (typeof aheadKick_ === 'function') aheadKick_();
     };
     next();
-  }, 300);
+  }, FLOW_LAYOUT ? 0 : 300);
 }
 
 /* AHEAD: WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE § */
@@ -2221,6 +2284,7 @@ function goPage(id, to, instant) {
      carries the page across the glass, loader and all (`camRest_`, posts.js; docs/history/341). */
   if (id === 'feed' && n !== 0 && typeof camRest_ === 'function') camRest_();
   paintPager(id);
+  if (FLOW_LAYOUT) flowShow_(id, n);
 }
 
 /* Wrap a screen's cards into a vertical strip of pages. § */
@@ -2897,6 +2961,7 @@ const ACTIONS = {};
 function on(name, fn) {
   ACTIONS[name] = function () { ACT_EPOCH++; return fn.apply(this, arguments); };
 }
+on('topbar-signin', () => go('account'));
 
 /* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
    reload is the thing most likely to lose whatever was half-typed on another screen. */
@@ -2998,7 +3063,7 @@ function wideHit_(x, y) {
   return null;
 }
 addEventListener('click', e => {
-  if (!WIDE || PRESS_MOVED || PRESS_SLIDING) return;
+  if (FLOW_LAYOUT || !WIDE || PRESS_MOVED || PRESS_SLIDING) return;
   /* ---------- A CLICK WITH NO POINTER UNDER IT IS NOT A PRESS BESIDE THE CARD § */
   if (!e.detail) return;
   const t = e.target;
@@ -3147,7 +3212,7 @@ addEventListener('keydown', e => {
   /* ESCAPE SHUT `#drop` FIRST while there was one. § */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
-  const arrow = ARROWS[e.key];
+  const arrow = !FLOW_LAYOUT && ARROWS[e.key];
   if (!arrow) return;
   if (typeof padlocked_ === 'function' && padlocked_()) return;   // the padlock (457)
   /* A modifier means the key belongs to the browser — ⌘← is back, alt+arrow is word-by-word. */

@@ -591,6 +591,8 @@ function kpSheetFit_(pane) {
 /* ---------- A CARD WITH NOTHING TO SCROLL IS LIFTED WHOLE § */
 let KP_LIFT = null;
 function kpLift_(inp, pad) {
+  /* ONE SCROLLING PAGE (900): the page scrolls the box above the pad; the body's foot makes the room (style.css, `.kp-up`). */
+  if (FLOW_LAYOUT) { try { window.scrollBy(0, kpBox_(inp).getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12)); } catch (e) { /* left where it is */ } return; }
   try {
     const pg = inp.closest('#screen .page.on');
     const host = pg && pg.parentElement;
@@ -1066,7 +1068,8 @@ function kpSiteLayer_(el) {
 }
 /* THE ONE BINDING: the face read from the markup, then the phone's keyboard shut out. The only script in js/ that writes `inputmode`, and only ever "none" (check-flow). No `readonly`: a reader still hears a field. */
 function kpBind_(el) {
-  if (!kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
+  /* THE ONE SCROLLING PAGE (900): an ordinary box keeps the phone's own keyboard; the pad is the answer boxes' alone. */
+  if (FLOW_LAYOUT || !kpTakesText_(el) || el.hasAttribute('data-kpb')) return;
   el.setAttribute('data-kpb', kpSiteLayer_(el));
   el.setAttribute('inputmode', 'none');
 }

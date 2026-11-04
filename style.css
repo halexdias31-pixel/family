@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-03-770";
+  --css-version: "2026-11-04-900";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -2192,6 +2192,24 @@ button.text-drop { color: var(--bad); }
 /* ---------- WIDGETS AS PAGES § */
 /* THE WRAPPERS ARE GONE. § */
 .screen.paged { padding: 0; }
+
+/* ---------- THE ONE SCROLLING PAGE (900, `FLOW_LAYOUT` in shell.js): the grid above undone — one centred column in flow, scrolled by the browser. */
+#topbar { display: none; }
+html.flow body { max-width: 40rem; padding: var(--safe-top) 16px calc(var(--s4) + var(--safe-bottom)); box-shadow: none; }
+/* THE PAD'S ROOM: the last answer box can still scroll above it. */
+html.flow.kp-up body { padding-bottom: calc(var(--kp-h, 50dvh) + var(--s4)); }
+html.flow #topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: 48px; }
+html.flow #topbar-who { display: flex; align-items: center; gap: var(--s2); color: var(--dim); }
+html.flow #screen { height: auto; overflow: visible; touch-action: auto; background: none; display: flex; flex-direction: column; }
+html.flow .screen { gap: 0; position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
+html.flow #s-account { order: -1; }
+html.flow .page { width: 100%; }
+/* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small grey line. */
+html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
+html.flow #screen .page + .page { border-top: 1px solid var(--line); }
+html.flow .qcard-tags .qtag { color: var(--faint); border-color: transparent; background: none; padding: 0; }
+/* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
+html.flow .page.is-res:not([data-filled]) { display: none; }
 
 
 /* ---------- ONE DIAL, AND THE FRONT OF IT § */
@@ -6317,7 +6335,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .wb .qpad-prot :is(.qprot-nums text, .qprot-pin) { fill: var(--paper-ink); }
 /* ---------- THE LOUPE (357, `padLoupe_`) § */
 .pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: 50%; overflow: hidden;
-  pointer-events: none; z-index: 9000; display: none; contain: strict; background: var(--raised); color: var(--ink);
+  pointer-events: none; z-index: 9999; display: none; contain: strict; background: var(--raised); color: var(--ink);
   border: 2px solid var(--gold); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
 .pad-loupe.on { display: block; }
 .pad-loupe.is-paper { background: var(--paper); color: var(--paper-ink); }

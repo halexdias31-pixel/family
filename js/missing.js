@@ -33,20 +33,46 @@ function missingLeadCards_() {
   const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
   return out.concat([typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h]);
 }
-const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
+const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
 /* ONE CARD EACH, for Find: `logic` or `missing`, the same markup the lead page drew. */
+/* ONE SCORE (890): `health` is Site health; the Logic health card stays written but is off behind LOGIC_SHOWN. */
+const LOGIC_SHOWN = false;
 function healthCardOf_(which) {
+  if (which === 'health') { try { return siteHealthCard_(); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
-  const l = logicFor_() ? 1 : 0;
+  const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
   return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card"><p class="sub">Nothing to show yet.</p></div>';
 }
+
+/* ---------- SITE HEALTH (890): data/health.json, written by tools/health.js — code 40%, Find logic 35%, UI 25%, mechanical ---------- */
+const HEALTH = { got: null, failed: false, asked: false, all: false };
+function siteHealthCard_() {
+  if (!HEALTH.asked && typeof fetch === 'function') {
+    HEALTH.asked = true;
+    Promise.resolve()
+      .then(() => fetch('data/health.json' + deployStamp_(), { cache: 'default' }))
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(j => { HEALTH.got = j && typeof j.score === 'number' ? j : null; HEALTH.failed = !HEALTH.got; })
+      .catch(() => { HEALTH.failed = true; })
+      .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
+  }
+  const s = HEALTH.got, head = '<h3>Site health</h3>';
+  if (!s) return `<div class="card logic-card">${head}${HEALTH.failed ? '<p class="muted">The score could not be read. Run node tools/health.js and push.</p>' : loading_()}</div>`;
+  const p = s.parts || {}, list = (HEALTH.all ? s.all : s.top) || [];
+  const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
+  return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
+    <p class="sub">Code ${esc(String(p.code))}% · Find logic ${esc(String(p.logic))}%${s.logicStale ? ' (stale)' : ''} · UI ${esc(String(p.ui))}%</p>
+    <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="faint">(${esc(said[t.part] || t.part)}, −${esc(String(t.cost))})</span></li>`).join('')}</ol>
+    ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top five' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
+}
+on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
 /* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
 const LOGIC_ID = 'item:stuff:logic-health';
 const LOGIC = { got: null, failed: false, asked: false, all: false };
 const logicFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
 function logicLead_() {
-  if (!logicFor_()) return [];
+  if (!LOGIC_SHOWN || !logicFor_()) return [];
   const h = typeof itemMark_ === 'function' ? itemMark_(LOGIC_ID, '', logicCard_()) : logicCard_();
   return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'logic-health', 'Logic health') : h];
 }

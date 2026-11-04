@@ -206,8 +206,18 @@ const KINDS = {
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
+  /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
+  person: { group: 'People', label: 'People', card: x => (KINDS.tutor && KINDS.tutor.card ? KINDS.tutor.card({ kind: 'tutor', row: x.row }) : `<div class="card"><h3>${esc(x.name)}</h3></div>`) },
+  /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
+  setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
+  /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
+  msg: { group: 'Messages', label: 'Messages', card: x => soonCard_(x) },
+  /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
+  offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
+  offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
+  offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
-  health: { group: 'Site health', label: 'Site health', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
+  health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
   post: { group: 'Posts', label: 'Posts', card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<div class="card"><p>${esc(x.name)}</p></div>`) },
 
@@ -242,13 +252,13 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
   rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards' };
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
-  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
+  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id }));
   /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
   const set = (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF ? [['picture', 'Picture'], ['figure', 'Your figure'], ['name', 'Name'], ['handle', 'Handle'],
     ['settings', 'Your settings'], ['push', 'Phone notifications'], ['progress', 'Progress'], ['brownie', 'Brownie points'], ['roadmap', 'Roadmap'], ['conduct', 'Code of conduct']] : [])
-    .map(([id, n]) => ({ kind: 'soon', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
+    .map(([id, n]) => ({ kind: 'setting', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
@@ -892,7 +902,9 @@ function kindRank_() {
   return { labels, groups };
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
-const ANSWER_ORDERS = [];
+/* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
+const FRONT_ORDER = ['Practice', 'Library', 'Coming soon', 'Posts', 'Messages', 'People', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
+const ANSWER_ORDERS = [FRONT_ORDER];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
   if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);
@@ -1078,7 +1090,11 @@ function facetSplit_(items, facet) {
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): "questions and answers should be under practice … practicals … projects too", "timeline should be in library under history". */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library' };
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library',
+  /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
+  tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
+  friend: 'People', person: 'People', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
+  post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
@@ -2414,10 +2430,10 @@ function bibleEnd_(items) {
       ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
       : loading_();
   }
-  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>Swipe up for it.</b></p>`;
+  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>${SWIPE_UP} for it.</b></p>`;
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
   return `<p class="find-end">${esc(first.name)} to ${esc(to)}.
-      <b>Swipe up for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
+      <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
@@ -9178,8 +9194,11 @@ function stuffItemsRaw_() {
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     ...soonItems_(),
-    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['logic', 'Logic health'], ['missing', 'What’s missing']].map(([w, n]) => ({
-      kind: 'health', name: n, key: 'health:' + w, sub: 'Site health', image: '', which: w, text: n + ' site health' })) : []),
+    ...(typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title).map(p => ({
+      kind: 'person', name: p.title, key: 'person:' + (p.personId || p.title), sub: p.role || 'Client', image: p.image || '', row: p,
+      text: [p.title, p.handle, p.role].filter(Boolean).join(' ') })),
+    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['health', 'Site health'], ['missing', 'What’s missing']].map(([w, n]) => ({
+      kind: 'health', name: n, key: 'health:' + w, sub: 'Settings', image: '', which: w, text: n + ' site health' })) : []),
     ...((DATA && DATA.posts) || []).filter(p => p && p.id).map(p => ({ kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80),
       key: 'post:' + p.id, sub: p.handle || p.author || '', image: '', row: p, text: [p.text, p.caption, p.title, p.handle, p.author].filter(Boolean).join(' ') })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
@@ -9334,7 +9353,14 @@ function stuffItemsRaw_() {
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
     ...questionItems(),
-  ];
+  ].filter(x => !x || OFF_KINDS[x.kind] === undefined).concat(offKindCards_());
+}
+/* SWITCHED OFF (owner, 4 Nov): these kinds' items leave Find; each area keeps one Coming soon card under its own answer. */
+const OFF_KINDS = { post: 'Posts', shop: 'Shop', tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking' };
+function offKindCards_() {
+  const seen = {};
+  return Object.keys(OFF_KINDS).filter(k => !seen[OFF_KINDS[k]] && (seen[OFF_KINDS[k]] = true)).map(k => ({
+    kind: 'off' + OFF_KINDS[k], name: OFF_KINDS[k], sub: OFF_KINDS[k], image: '', key: 'off:' + OFF_KINDS[k], soon: 'column', soonId: OFF_KINDS[k].toLowerCase(), text: OFF_KINDS[k] }));
 }
 
 /* THE YEAR OF A THING, from the column or from the wave. § */
@@ -10830,6 +10856,7 @@ function stuffWindow_(mode) {
 /* WHERE A PAGE SITS, TO THE FRACTION OF A PIXEL. § */
 function stuffTop_(el) { return el.getBoundingClientRect().top; }
 function stuffKeepPlace_(host, d) {
+  if (FLOW_LAYOUT) { if (d) window.scrollBy(0, -d); return; }
   try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
 
@@ -11462,6 +11489,27 @@ function fillStuffPages(all) {
   settle_(changed);
 }
 
+/* THE WORD FOR GOING ON TO THE RESULTS: a scroll on the one page (900), a swipe on the columns. */
+const SWIPE_UP = FLOW_LAYOUT ? 'Scroll down' : 'Swipe up';
+/* THE ONE SCROLLING PAGE (900): near the foot of what is drawn, the next three results of the window are drawn. */
+function flowMore_(id) {
+  const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
+  if (!F) return;
+  inFinder_(F, () => {
+    const host = $('s-' + id);
+    if (!host) return;
+    const pages = host.querySelectorAll(':scope > .page'), first = stuffFirstResult_(), items = stuffFiltered();
+    const last = first + stuffPages_().length - 1;
+    let n = 0;
+    for (let i = Math.max(first, PAGE[id] || 0); i <= last && n < 3; i++) {
+      const el = pages[domIndex_(id, i)];
+      if (!el) break;
+      if (el.dataset.filled !== '1' && stuffFillOne_(i, { pages: pages, first: first, items: items })) n++;
+    }
+    if (n) { libAhead_(); settle_(true); }
+  });
+}
+
 /* The grid measures the panes again and puts everything where it now belongs. § */
 /* ---------- HELD, NOT PLACED § */
 function settle_(changed) {
@@ -11554,7 +11602,7 @@ function stuffQuestion() {
     const be = bibleEnd_(items);
     if (be) return be + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + adding;
+      <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
