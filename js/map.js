@@ -258,7 +258,6 @@ const WIDGETS = [
 
   /* ---------- TOUCH TYPING § */
   { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
-    pure: true,
     start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },
