@@ -9854,13 +9854,26 @@ function stuffPages_() {
     return !v.length || v.some(t => spellKey_(t) === f.key);
   });
   const ctx = pagePartsCtx_();
+  /* EACH CARD'S KEPT PAGES ARE KEPT ON IT for the same chips on the page readers (800), so a tap walks the list, not every page. */
+  ctx.chips = JSON.stringify(byPage);
   seq.forEach((x, i) => {
+    const prev = seq[i - 1];
+    const box = x && typeof x === 'object' ? PAGE_KEPT.get(x) : null;
+    const had = box && box[ctx.chips];
+    if (had && had.prev === prev && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) {
+      for (let k = 0; k < had.pages.length; k++) pages.push(had.pages[k]);
+      return;
+    }
+    const mine = [];
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
-    if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
-    pagePartsMemo_(x, seq[i - 1], ctx).forEach(part => {
-      if (kept(x, part)) pages.push({ x: x, part: part });
+    if (libSlim_(x)) mine.push({ x: x, part: null, slim: true });
+    else pagePartsMemo_(x, prev, ctx).forEach(part => {
+      if (kept(x, part)) mine.push({ x: x, part: part });
     });
+    /* ONE ENTRY PER SET OF PAGE CHIPS, so going back up the funnel finds the pages it had. */
+    if (x && typeof x === 'object') (box || (PAGE_KEPT.set(x, {}), PAGE_KEPT.get(x)))[ctx.chips] = { prev: prev, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, pages: mine };
+    for (let k = 0; k < mine.length; k++) pages.push(mine[k]);
   });
   STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
@@ -9868,7 +9881,7 @@ function stuffPages_() {
 
 /* A CARD'S PAGES, kept per card with the card before it while nothing they are read from changes (800): every tap asked it of
    every result again. Everything `pageParts_` reads hangs off the payload, the Ledger's generation and the whole list. */
-const PAGE_PARTS = new WeakMap();
+const PAGE_PARTS = new WeakMap(), PAGE_KEPT = new WeakMap();
 const pagePartsCtx_ = () => ({ data: DATA, gen: chunkGen_(), all: stuffItemsAll_(), by: questionParts_() });
 function pagePartsMemo_(x, prev, ctx) {
   if (!x || typeof x !== 'object') return pageParts_(x, prev);
@@ -9940,8 +9953,18 @@ function verifyTags_(x) {
 
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
-const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+const qIdOf_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
   ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+/* MEMOISED PER CARD while its row and number stand (800): every tap asked it of every result twice. */
+const QID = new WeakMap();
+const qId_ = x => {
+  if (!x || typeof x !== 'object' || x.kind !== 'question') return qIdOf_(x);
+  const had = QID.get(x);
+  if (had && had.row === x.row && had.q === x.qNumber) return had.id;
+  const id = qIdOf_(x);
+  QID.set(x, { row: x.row, q: x.qNumber, id: id });
+  return id;
+};
 const WHOLE_MEMO = new WeakMap();
 function questionParts_() {
   const all = stuffSorted_(stuffItems());
@@ -9952,19 +9975,26 @@ function questionParts_() {
   WHOLE_MEMO.set(all, by);
   return by;
 }
+/* EVERY PART THE FUNNEL'S LIST HOLDS, as one set per grouping, so "is this one of them" is not a walk of its siblings (800). */
+const WHOLE_HELD = new WeakMap();
+function wholeHeld_(by) {
+  let h = WHOLE_HELD.get(by);
+  if (!h) { h = new Set(); Object.keys(by).forEach(k => by[k].forEach(x => h.add(x))); WHOLE_HELD.set(by, h); }
+  return h;
+}
 function wholeQuestions_(items) {
-  const out = [], done = {};
-  let by = null;
+  const out = [], done = new Set();
+  let by = null, held = null;
   (items || []).forEach(x => {
     const k = qId_(x);
     if (!k) { out.push(x); return; }
-    by = by || questionParts_();
-    const sib = by[k] || [];
+    if (!by) { by = questionParts_(); held = wholeHeld_(by); }
     /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
-    if (sib.indexOf(x) < 0) { out.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
-    sib.forEach(s => out.push(s));
+    if (!held.has(x)) { out.push(x); return; }
+    if (done.has(k)) return;
+    done.add(k);
+    const sib = by[k];
+    for (let i = 0; i < sib.length; i++) out.push(sib[i]);
   });
   return out;
 }
@@ -11495,24 +11525,29 @@ AHEAD_KINDS.push(stuffWarmJobs_);
 
 /* ---------- EVERY FACET'S COLUMN READ IN THE QUIET (800), a few thousand cards a slice, so the first tap on a list nobody has
    narrowed yet counts numbers instead of asking every card every facet. Last of all the jobs, and only once the payload is in. */
-const FACET_INDEX_STEP = 3000;
+const FACET_INDEX_STEP = 2000, FACET_INDEX_MS = 25;
+const facetIndexLeft_ = all => facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
 function facetIndexJobs_() {
   if (typeof awaiting_ === 'function' && awaiting_()) return [];
   let all = null;
   try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
-  const f = facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
+  const f = facetIndexLeft_(all);
   if (!f) return [];
   const c = facetCol_(f), at = c.from === all ? c.upto : 0;
   /* THE KEY SAYS HOW FAR, so a job left with more to read is a new job, not a stuck one (`aheadStill_`). */
-  return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(f, all) }];
+  return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(all) }];
 }
-function facetIndexSlice_(f, all) {
-  const col = facetCol_(f);
-  if (!col) return;
-  if (col.from !== all) { col.from = all; col.upto = 0; }
-  const end = Math.min(all.length, col.upto + FACET_INDEX_STEP);
-  for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
-  col.upto = end;
+/* AS MANY CARDS AS FIT IN A SHORT SLICE, facet after facet, so nothing in the quiet is a long task. */
+function facetIndexSlice_(all) {
+  const t0 = performance.now();
+  for (let f = facetIndexLeft_(all); f; f = facetIndexLeft_(all)) {
+    const col = facetCol_(f);
+    if (col.from !== all) { col.from = all; col.upto = 0; }
+    const end = Math.min(all.length, col.upto + FACET_INDEX_STEP);
+    for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
+    col.upto = end;
+    if (performance.now() - t0 > FACET_INDEX_MS) return;
+  }
 }
 AHEAD_KINDS.push(facetIndexJobs_);
 
