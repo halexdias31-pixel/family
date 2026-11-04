@@ -27432,32 +27432,33 @@ check('a widget drawn ahead with nothing changed is adopted on arrival without s
   t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
   const tools = t.widgetsOf('tool');
-  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'mat');
   if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
-  const n = { calculator: 0, calendar: 0 };
+  const n = { calculator: 0, mat: 0 };
   [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
-  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
+  const arrive = async () => { n.calculator = 0; n.mat = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
   const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
   const slot = id => t.slotOn('stuff', id);
   /* 1. NOTHING MOVED: adopted. */
   if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
   await arrive();
-  if (n.calculator || n.calendar) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (n.calculator || n.mat) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
   if (!t.running().some(e => e.id === 'calculator' && e.col === 'stuff')) bad.push('the adopted calculator is not entered as running');
   /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
-  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
+  /* ANY PRESS (`on`'s wrapper bumps ACT_EPOCH): Clear done on the docket, which changes nothing Find shows — the funnel's Clear would empty Find's Tools answer (790). */
+  try { t.ACTIONS['dock-clear'](w.document.createElement('button')); } catch (e) {}
   await arrive();
-  if (!n.calendar) bad.push('after a press the calendar drawn before it was adopted, not started');
+  if (!n.mat) bad.push('after a press the cheat sheet maker (beside the calculator on Find) drawn before it was adopted, not started');
   /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   const before = slot('calculator');
   t.repaint(); await aheadQuiet_(t);
   if (slot('calculator') !== before) bad.push('the pure calculator was not carried through the paint — its drawing was thrown away');
   await arrive();
   if (!n.calculator) bad.push('a calculator drawn before a repaint and carried through it was adopted rather than started');
   /* 4. A CHANGE OF PERSON, with the builder held so nothing is drawn again: started, never adopted. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   w.__aheadHold = true;
   t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
   await arrive();
@@ -28203,7 +28204,9 @@ check('a column\'s widget slots are drawn before any column further out is paint
   const log = t.aheadLog().filter(x => x.t >= a);
   const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:res:/.test(x.key)).map(x => x.key).pop());
   if (lastGames < 0) return ['no widget on Find 2 was drawn by the builder after the repaint — NOT checked'];
-  const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
+  /* A FINDER'S SLOTS EXIST ONCE ITS PAINT OR A LATER FILL HAS MADE THEIR PAGES (790), so the race is counted from Find 2's last such job. */
+  let from = 0; log.forEach((x, i) => { if (i < lastGames && /res/.test(x.key) && !/^widget:/.test(x.key)) from = i; });
+  const far = log.findIndex((x, i) => i > from && /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
   if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Saved, before it had drawn every widget on Find 2 beside it (' + log[lastGames].key + ' came after)');
   t.USER(null);
   return bad;
