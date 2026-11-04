@@ -278,7 +278,50 @@ function changed() {
   bad.forEach(b => console.log(b));
   console.log(`health --changed: ${bad.length} new finding(s) (${s})`); process.exit(1);
 }
-if (require.main === module && process.argv.includes('--changed')) changed();
+/* --where WORD (920): every definition, then every use, of a name across the app, backend, settings and style — a start line, not a search. */
+function where(word) {
+  const t0 = Date.now(), esc = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const DEF = new RegExp(`(?:function\\s+${esc}\\b|(?:const|let|var)\\s+${esc}\\b|\\b(?:field|id|kind|screen|key|act|name)\\s*:\\s*['"]${esc}['"]|screen\\(\\s*['"]${esc}['"]|^\\s*['"]?${esc}['"]?\\s*:|--${esc}\\s*:|\\.${esc}\\s*\\{)`);
+  const USE = new RegExp(`(?<![\\w-])${esc}(?![\\w-])`);
+  const files = git(['ls-files', 'js/*.js', 'backend/*.gs', 'data/settings/*.json', 'style.css', 'index.html', 'check/*.js'])
+    .split('\n').filter(f => f && !/^js\/check|^check\//.test(f));
+  const defs = [], uses = [];
+  files.forEach(f => read(f).split('\n').forEach((l, i) => { if (!USE.test(l)) return;
+    (DEF.test(l) ? defs : uses).push(`${f}:${i + 1}  ${l.trim().slice(0, 140)}`); }));
+  console.log(`defined (${defs.length}):`); defs.forEach(d => console.log('  ' + d));
+  console.log(`used (${uses.length}):`); uses.slice(0, 200).forEach(u => console.log('  ' + u));
+  if (uses.length > 200) console.log(`  … ${uses.length - 200} more`);
+  console.log(`(${files.length} files, ${Date.now() - t0} ms)`);
+}
+/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. A colour literal in a rule that equals a token
+   defined ONCE (never re-themed) becomes var(--token); check-catches' ceiling drops to the count. Empty catches are listed, not
+   rewritten: oops_ reports to the backend, which would change what the site does. */
+function fix() {
+  const t0 = Date.now(), done = [];
+  let css = read('style.css');
+  const defs = {};
+  /* Only a token every scope can see (on :root) and that nothing anywhere redefines. */
+  for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)) (defs[m[1]] = defs[m[1]] || []).push(m[2].trim().toLowerCase());
+  const root = new Set(); for (const r of css.matchAll(/(^|\})\s*:root\s*\{([^{}]*)\}/g)) for (const d of r[2].matchAll(/(--[\w-]+)\s*:/g)) root.add(d[1]);
+  Object.keys(defs).forEach(k => { if (!root.has(k) || !/^#[0-9a-f]{3,8}$/.test(defs[k][0])) delete defs[k]; });
+  const tok = {};
+  Object.keys(defs).forEach(k => { if (defs[k].length === 1) { const v = defs[k][0]; tok[v] = tok[v] ? null : k; } });
+  let n = 0;
+  css = css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => /^\s*:root\b|^\s*@/.test(sel.split('\n').pop()) || /:root/.test(sel) ? all
+    : sel + '{' + body.replace(/(^|;)(\s*)(?!--)([\w-]+\s*:[^;]*)/g, (d, a, w, decl) => a + w + /var\(/.test(decl) ? decl : decl.replace(/#[0-9a-fA-F]{3,8}\b/g, h => tok[h.toLowerCase()] ? (n++, `var(${tok[h.toLowerCase()]})`) : h)) + '}');
+  if (n) { fs.writeFileSync(path.join(ROOT, 'style.css'), css); done.push(`style.css: ${n} colour literal(s) → their single-definition token`); }
+  const cc = read('js/check-catches.js'), m = /const CEILING = (\d+);/.exec(cc);
+  if (m) { const now = Number((/(\d+) empty catch blocks/.exec(execFileSync(process.execPath, ['js/check-catches.js'], { cwd: ROOT, encoding: 'utf8' })) || [])[1]);
+    if (now && now < Number(m[1])) { fs.writeFileSync(path.join(ROOT, 'js/check-catches.js'), cc.replace(m[0], `const CEILING = ${now};`)); done.push(`check-catches ceiling ${m[1]} → ${now}`); } }
+  const empty = structure().findings.filter(f => f.kind === 'catch').length;
+  done.forEach(d => console.log('fixed: ' + d));
+  console.log(`not fixed (would change behaviour): ${empty} empty catches — node tools/health.js --list 400 --kind catch`);
+  try { execFileSync(process.execPath, ['js/check.js'], { cwd: ROOT, stdio: 'inherit' }); } catch (e) { console.log('js/check.js FAILED after --fix'); process.exit(1); }
+  console.log(`health --fix: ${done.length} change(s) (${Date.now() - t0} ms)`);
+}
+if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
+else if (require.main === module && process.argv.includes('--fix')) fix();
+else if (require.main === module && process.argv.includes('--changed')) changed();
 else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
