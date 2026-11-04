@@ -385,23 +385,75 @@ const facetRaw_ = field => {
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
-  const E = FACET_EPOCH;
-  if (!E || !x || typeof x !== 'object' || E.data !== DATA || E.gen !== facetGen_() || E.my !== MY_RESULT.gen) return asList_(facet.of(x));
-  let c = x._fv;
-  /* NOT ENUMERABLE, so nothing that copies or serialises a card ever carries it. */
-  if (!c || c.e !== E) { c = { e: E }; if (Object.isExtensible(x)) Object.defineProperty(x, '_fv', { value: c, writable: true, configurable: true }); }
-  const had = c[facet.field];
-  return had !== undefined ? had : (c[facet.field] = asList_(facet.of(x)));
+  const col = facetCol_(facet);
+  if (!col || !x || typeof x !== 'object') return asList_(facet.of(x));
+  const i = itemIx_(x);
+  if (col.id[i] === undefined) facetRead_(col, facet, x, i);
+  return col.vals[i];
+}
+/* ONE CARD READ INTO A COLUMN: its values, and each value as a number (`id`: -1 none, -2 several, kept in `many`), so a tally counts
+   into arrays rather than hashing the same strings for every card on every tap. `kid` is each value's spelling key, numbered too. */
+function facetRead_(col, facet, x, i) {
+  const vals = asList_(facet.of(x));
+  col.vals[i] = vals;
+  if (!vals.length) { col.id[i] = -1; return; }
+  if (vals.length === 1) { col.id[i] = facetIntern_(col, vals[0]); return; }
+  const ids = [], kids = [];
+  vals.forEach(v => {
+    const d = facetIntern_(col, v);
+    if (ids.indexOf(d) < 0) ids.push(d);
+    const k = col.kid[d];
+    if (k >= 0 && kids.indexOf(k) < 0) kids.push(k);
+  });
+  col.many[i] = { ids: ids, kids: kids };
+  col.id[i] = -2;
+}
+function facetIntern_(col, v) {
+  const name = String(v);
+  let d = col.ids.get(name);
+  if (d !== undefined) return d;
+  d = col.names.length;
+  col.names.push(name);
+  col.ids.set(name, d);
+  const k = spellKey_(v);
+  let kd = -1;
+  if (k) { kd = col.kids.get(k); if (kd === undefined) { kd = col.keys.length; col.keys.push(k); col.kids.set(k, kd); } }
+  col.kid.push(kd);
+  return d;
 }
 /* ---------- EVERY VALUE A CARD GIVES, READ ONCE PER EPOCH (800) ----------------------------------
-   A tap re-tallied the same thousands of cards over the same facets; each card keeps what each facet said on itself (`_fv`) until
-   anything a reader can see changes: the payload, the facets tab, the Ledger's words, your results, the viewer, a writing's index. */
+   A tap re-tallied the same thousands of cards over the same facets. Each card has a number (`itemIx_`) and each facet a column
+   indexed by it, kept until anything a reader can see changes: the payload, the facets tab, the Ledger, your results, the viewer. */
+const ITEM_IX = new WeakMap();
+let ITEM_N = 0;
+function itemIx_(x) {
+  let i = ITEM_IX.get(x);
+  if (i === undefined) { i = ITEM_N++; ITEM_IX.set(x, i); }
+  return i;
+}
+/* A LIST'S NUMBERS, once per list: a tally walks them for every facet it asks. */
+const LIST_IX = new WeakMap();
+function listIx_(items) {
+  let a = LIST_IX.get(items);
+  if (a && a.length === items.length) return a;
+  a = new Int32Array(items.length);
+  for (let i = 0; i < items.length; i++) a[i] = items[i] && typeof items[i] === 'object' ? itemIx_(items[i]) : -1;
+  LIST_IX.set(items, a);
+  return a;
+}
+/* THIS FACET'S COLUMN while the epoch holds, else null (read afresh). The cheap half of the epoch is checked on every read. */
+function facetCol_(facet) {
+  const E = FACET_EPOCH;
+  if (!E || E.data !== DATA || E.gen !== facetGen_() || E.my !== MY_RESULT.gen) return null;
+  return E.cols[facet.field] || (E.cols[facet.field] = { vals: [], id: [], many: [], names: [], ids: new Map(), kid: [], keys: [], kids: new Map() });
+}
 let FACET_EPOCH = null;
 const facetGen_ = () => (typeof LIB !== 'undefined' && LIB ? LIB.gen : 0);
 function facetEpochFresh_() {
   const now = { data: DATA, facets: facetList(), gen: facetGen_(), my: MY_RESULT.gen, who: itemMemoKey_(), came: writingNow_() };
   const E = FACET_EPOCH;
   if (E && Object.keys(now).every(k => E[k] === now[k])) return E;
+  now.cols = {};
   FACET_EPOCH = now;
   return now;
 }
@@ -960,14 +1012,39 @@ function facetTally_(items, facet) {
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. § */
   if (had && had.facet === facet) return had;
 
-  const by = {};
+  let by = {};
   let answered = 0;
   /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`writingKey_`) weighs one however many verses it is, so the
      Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. Read in the same walk as the counts (800). */
   const wt = writingWeights_(items);
   let top = 0, whole = 0;
-  const wBy = {};
-  for (let i = 0; i < items.length; i++) {
+  let wBy = {};
+  const col = facetCol_(facet);
+  if (col) {
+    /* COUNTED BY NUMBER, in the order this list first meets each value, as the string walk below counts (800). */
+    const ixs = listIx_(items), cnt = [], kw = [], order = [];
+    for (let i = 0; i < items.length; i++) {
+      const w = wt[i];
+      whole += w;
+      const j = ixs[i];
+      if (j < 0) continue;
+      if (col.id[j] === undefined) facetRead_(col, facet, items[i], j);
+      const d = col.id[j];
+      if (d === -1) continue;
+      answered++;
+      if (d >= 0) {
+        if (cnt[d] === undefined) { cnt[d] = 1; order.push(d); } else cnt[d]++;
+        const k = col.kid[d];
+        if (k >= 0) kw[k] = (kw[k] || 0) + w;
+        continue;
+      }
+      const m = col.many[j];
+      m.ids.forEach(e => { if (cnt[e] === undefined) { cnt[e] = 1; order.push(e); } else cnt[e]++; });
+      m.kids.forEach(k => { kw[k] = (kw[k] || 0) + w; });
+    }
+    order.forEach(d => { by[col.names[d]] = (by[col.names[d]] || 0) + cnt[d]; });
+    for (let k = 0; k < kw.length; k++) if (kw[k] !== undefined) wBy[col.keys[k]] = kw[k];
+  } else for (let i = 0; i < items.length; i++) {
     whole += wt[i];
     /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. § */
     const vals = facetOwn_(facet, items[i]);
@@ -9648,7 +9725,11 @@ function stuffNarrow_(out, filters, words, credits) {
   });
   Object.keys(byField).forEach(field => {
     const list = byField[field];
-    out = out.filter(x => list.some(f => filterHit(x, f, credits)));
+    /* `filterHit`'s rule with the chip's facet and key read once, not once per card (800). */
+    const facet = facetBy(field);
+    if (!facet) return;
+    const keys = list.map(f => spellKey_(f.value));
+    out = out.filter(x => facetOwn_(facet, x).some(v => keys.indexOf(spellKey_(v)) >= 0));
   });
   /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS § */
   const ref = words.length ? qRef_(words.join('')) : null;
@@ -9772,16 +9853,30 @@ function stuffPages_() {
     try { v = asList_(f.facet.tagOf(x, part)); } catch (e) { v = []; }
     return !v.length || v.some(t => spellKey_(t) === f.key);
   });
+  const ctx = pagePartsCtx_();
   seq.forEach((x, i) => {
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
     if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
-    pageParts_(x, seq[i - 1]).forEach(part => {
+    pagePartsMemo_(x, seq[i - 1], ctx).forEach(part => {
       if (kept(x, part)) pages.push({ x: x, part: part });
     });
   });
   STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
+}
+
+/* A CARD'S PAGES, kept per card with the card before it while nothing they are read from changes (800): every tap asked it of
+   every result again. Everything `pageParts_` reads hangs off the payload, the Ledger's generation and the whole list. */
+const PAGE_PARTS = new WeakMap();
+const pagePartsCtx_ = () => ({ data: DATA, gen: chunkGen_(), all: stuffItemsAll_(), by: questionParts_() });
+function pagePartsMemo_(x, prev, ctx) {
+  if (!x || typeof x !== 'object') return pageParts_(x, prev);
+  const had = PAGE_PARTS.get(x);
+  if (had && had.prev === prev && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) return had.parts;
+  const parts = pageParts_(x, prev);
+  PAGE_PARTS.set(x, { prev: prev, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, parts: parts });
+  return parts;
 }
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
@@ -11397,6 +11492,29 @@ function stuffWarm_(F, ask, step) {
   });
 }
 AHEAD_KINDS.push(stuffWarmJobs_);
+
+/* ---------- EVERY FACET'S COLUMN READ IN THE QUIET (800), a few thousand cards a slice, so the first tap on a list nobody has
+   narrowed yet counts numbers instead of asking every card every facet. Last of all the jobs, and only once the payload is in. */
+const FACET_INDEX_STEP = 3000;
+function facetIndexJobs_() {
+  if (typeof awaiting_ === 'function' && awaiting_()) return [];
+  let all = null;
+  try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
+  const f = facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
+  if (!f) return [];
+  const c = facetCol_(f), at = c.from === all ? c.upto : 0;
+  /* THE KEY SAYS HOW FAR, so a job left with more to read is a new job, not a stuck one (`aheadStill_`). */
+  return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(f, all) }];
+}
+function facetIndexSlice_(f, all) {
+  const col = facetCol_(f);
+  if (!col) return;
+  if (col.from !== all) { col.from = all; col.upto = 0; }
+  const end = Math.min(all.length, col.upto + FACET_INDEX_STEP);
+  for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
+  col.upto = end;
+}
+AHEAD_KINDS.push(facetIndexJobs_);
 
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT § */
 function stuffPin_(el, pane) {
