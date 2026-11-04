@@ -206,6 +206,8 @@ const KINDS = {
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
+  /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
+  person: { group: 'People', label: 'People', card: x => (KINDS.tutor && KINDS.tutor.card ? KINDS.tutor.card({ kind: 'tutor', row: x.row }) : `<div class="card"><h3>${esc(x.name)}</h3></div>`) },
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
@@ -9180,6 +9182,9 @@ function stuffItemsRaw_() {
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     ...soonItems_(),
+    ...(typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title).map(p => ({
+      kind: 'person', name: p.title, key: 'person:' + (p.personId || p.title), sub: p.role || 'Client', image: p.image || '', row: p,
+      text: [p.title, p.handle, p.role].filter(Boolean).join(' ') })),
     ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['logic', 'Logic health'], ['missing', 'What’s missing']].map(([w, n]) => ({
       kind: 'health', name: n, key: 'health:' + w, sub: 'Site health', image: '', which: w, text: n + ' site health' })) : []),
     ...((DATA && DATA.posts) || []).filter(p => p && p.id).map(p => ({ kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80),
