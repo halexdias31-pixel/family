@@ -44,7 +44,7 @@ const RULES = {
     ev('inFinder_(FINDERS.stuff, () => stuffItems())');
   }
   if (process.env.LH_DEBUG) console.error('settled in ' + (Date.now() - t0) + 'ms');
-  const got = JSON.parse(ev(`(() => {
+  let got = JSON.parse(ev(`(() => {
     USER = Object.assign({ name: 'T', personId: 'P-T' }, { role: 'Admin', roles: ['admin'] });
     stuffForget_();
     const RAW = /^(?:RS\\d{6,}|[A-Z]{1,3}-[A-Z0-9]+-|[a-z]+_[a-z_]+$|[a-z]+[A-Z][A-Za-z]*$)/;
@@ -89,7 +89,10 @@ const RULES = {
         sig.forEach((h, i) => sig.forEach((g, j) => { if (j > i && g === h && values[i].n > 1) tw.push((values[i].show || values[i].value) + ' = ' + (values[j].show || values[j].value)); }));
         if (tw.length) bad.twins = tw.slice(0, 3);
         const askable = facetList().filter(G => asked.indexOf(G.field) === -1 && !facetWhy_(S, G)).map(G => G.field);
-        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable };
+        /* MENU RULE (920): how well each askable question splits the sample, in bits; the asked one is judged on the same sample. */
+        const bits = G => { const vs = facetValues(S, G), t = vs.reduce((a, v) => a + v.n, 0); return t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0; };
+        const split = {}; askable.concat([f.field]).forEach(k => { const G = facetBy(k); if (G) split[k] = Math.round(bits(G) * 100) / 100; });
+        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -97,10 +100,15 @@ const RULES = {
         r.answers.slice().sort((a, b) => b[2] - a[2]).slice(0, ${MAX_CHILDREN})
           .forEach(a => queue.push(filters.concat([{ field: r.field, value: a[0] }])));
     }
+    /* TAG ASKED (920): every facet a front-page card carries as a tag, with its label, to compare with the questions ever asked. */
+    const carried = inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; const all = stuffFiltered();
+      return facetList().map(G => ({ field: G.field, label: G.label, cards: all.filter(x => { try { return asList_(G.tagOf ? G.tagOf(x, '') : facetOwn_(G, x)).some(v => String(v == null ? '' : v).trim()); } catch (e) { return false; } }).length }))
+        .filter(c => c.cards > 0); });
     inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; });
-    return JSON.stringify(nodes);
+    return JSON.stringify({ nodes, carried });
   })()`));
   A.close();
+  const carried = got.carried; got = got.nodes;
   if (process.env.LH_DEBUG) got.slice().sort((a, b) => b.ms - a.ms).slice(0, 8).forEach(nd => console.error(nd.ms + 'ms', nd.n, nd.label, JSON.stringify(nd.path)));
   got.forEach(nd => { delete nd.ms; });
 
@@ -128,11 +136,19 @@ const RULES = {
   const top = sick.slice().sort((a, b) => Object.keys(b.bad).length - Object.keys(a.bad).length || b.n - a.n || (where(a) < where(b) ? -1 : 1))
     .slice(0, 25).map(nd => ({ where: where(nd), asks: nd.label, cards: nd.n,
       why: Object.keys(nd.bad).map(k => RULES[k] + ': ' + nd.bad[k].join('; ')) }));
+  /* MENU RULE (920): a node whose asked question splits worse than the best askable one by over a tenth of a bit. */
+  const menuRule = asked.filter(nd => nd.split).map(nd => { let b = nd.field;
+    Object.keys(nd.split).forEach(k => { if (nd.split[k] > nd.split[b]) b = k; });
+    return { where: where(nd), asks: nd.field, bits: nd.split[nd.field], best: b, bestBits: nd.split[b], cards: nd.n }; })
+    .filter(m => m.bestBits - m.bits > 0.1).sort((a, b) => (b.bestBits - b.bits) * b.cards - (a.bestBits - a.bits) * a.cards);
+  const everAsked = new Set(asked.map(nd => nd.field));
+  const tagAsked = carried.filter(c => !everAsked.has(c.field)).sort((a, b) => b.cards - a.cards);
+  got.forEach(nd => { delete nd.split; });
   const out = { score, questions: asked.length, healthy: asked.length - sick.length,
     walked: { nodes: got.length, maxNodes: MAX_NODES, maxDepth: MAX_DEPTH, maxChildren: MAX_CHILDREN, sample: SAMPLE },
     rules: Object.keys(RULES).map(k => ({ id: k, label: RULES[k], count: counts[k] })),
     cannot: 'Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.',
-    top };
+    top, menuRule, tagAsked };
   const text = JSON.stringify(out, null, 1) + '\n';
   if (CHECK) {
     if (text === had) { console.log('logic-health: data/logic-health.json is current (' + score + '%, ' + asked.length + ' questions)'); process.exit(0); }

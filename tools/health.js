@@ -13,6 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
+// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet.
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -24,7 +25,7 @@ const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
 const { execFileSync } = require('child_process');
-const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8' }).trimEnd(); } catch (e) { return ''; } };
+const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd(); } catch (e) { return ''; } };
 const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean).map(l => l.slice(3)));
 const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--format=%ct', '--', f])) * 1000 || 0;
 
@@ -37,6 +38,38 @@ function logic() {
   const newer = dirty.has('data/logic-health.json') ? [] : LOGIC_INPUTS.filter(f => mtime(f) > at);
   return { j, stale: !j || newer.length > 0, newer };
 }
+
+/* FIND-LOGIC WORKLIST (920): four kinds, each located; their penalty comes off the walk's score, each capped. */
+const lineOf = (src, i) => src.slice(0, i).split('\n').length;
+const blank = src => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '));
+function findWork(L) {
+  const fsrc = read('js/find.js'), work = [];
+  const at = {};
+  for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
+  /* tag-colour: TAG_OF colours a FIELD, so every answer of one menu wears the same colour. */
+  const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
+  for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
+  Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
+    say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
+  const nf = /function nextFacet\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
+  if (nf && /for \(const facet of facetList\(\)\)[\s\S]*return facet/.test(nf[0]))
+    work.push({ kind: 'menu-rule', where: 'js/find.js:' + lineOf(fsrc, nf.index), say: 'nextFacet asks the FIRST question in the facets tab\'s sort_order that facetWhy_ lets through, not the best-splitting one' });
+  const fl = /\.sort\(\(a, b\) => a\.at - b\.at\)/.exec(fsrc);
+  if (fl) work.push({ kind: 'menu-rule', where: 'js/find.js:' + lineOf(fsrc, fl.index), say: 'facetList orders the menus by the tab\'s sort_order — a hardcoded order over the split rule' });
+  ((L.j && L.j.menuRule) || []).forEach(m => work.push({ kind: 'menu-rule', where: m.where,
+    say: `asks ${m.asks} (${m.bits} bits) but ${m.best} splits the ${m.cards} cards better (${m.bestBits} bits)` }));
+  /* tag-asked: a facet some card carries as a tag that no walked node ever asks. */
+  ((L.j && L.j.tagAsked) || []).forEach(t => work.push({ kind: 'tag-asked', where: 'js/find.js:' + ((at[t.field] || {}).line || '?'),
+    say: `tag "${t.label}" (${t.field}) is on ${t.cards} cards but no menu in the walk asks it` }));
+  /* one-off: a literal kind/facet/finder test in the funnel code, bypassing a shared rule. */
+  /* A CARD's kind (x, it, item, card or a bare kind), any facet's field, a facet key, or one finder by name; keys and mark parts are not cards. */
+  const ONE = /(?<![\w.])(?:(?:x|it|item|card|y)\.)?kind\s*[!=]==?\s*'[^']+'|\b(?:\w+\.)?field\s*[!=]==?\s*'[^']+'|(?<![\w.])(?:facet|key)\s*[!=]==?\s*'[^']+'|\b(?:F|finder)\s*[!=]==?\s*(?:RES|FINDERS\.\w+)\b/g;
+  ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
+    for (const m of src.matchAll(ONE)) work.push({ kind: 'one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
+  return work;
+}
+const FIND_PENALTY = { 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'one-off': [0.02, 10] };
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -93,7 +126,11 @@ const SAY = {
 function health() {
   const st = require('./stability.js').stability();
   const L = logic(), U = ui();
-  const lscore = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
+  const work = findWork(L), kinds = {};
+  work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });
+  const fpen = Object.keys(FIND_PENALTY).map(k => ({ id: k, count: kinds[k] || 0, off: r1(Math.min(FIND_PENALTY[k][1], (kinds[k] || 0) * FIND_PENALTY[k][0])) }));
+  const walk = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
+  const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0)));
   const overall = r1(WEIGHTS.code * st.score + WEIGHTS.logic * lscore + WEIGHTS.ui * U.score);
   const off = [];
   (st.signals || []).forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
@@ -102,18 +139,50 @@ function health() {
   const q = (L.j && L.j.questions) || 0;
   ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
     cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
+  fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
   return {
     v: 1, score: overall, weights: WEIGHTS,
     parts: { code: st.score, logic: lscore, ui: U.score },
-    logicStale: L.stale, ui: U.signals,
-    top: off.slice(0, 5), all: off,
+    logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals,
+    top: off.slice(0, 5), all: off, work,
   };
 }
 module.exports = { health };
-if (require.main === module) {
+/* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
+function changed() {
+  const t0 = Date.now();
+  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(Boolean));
+  const bad = [];
+  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
+  if (['js/find.js', 'js/shell.js', 'data/logic-health.json'].some(f => files.has(f))) {
+    let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
+    const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
+    findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
+  }
+  const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
+  [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {
+    const now = read(f), was = git(['show', 'HEAD:' + f]);
+    const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
+    if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
+  });
+  const s = ((Date.now() - t0) / 1000).toFixed(1) + 's';
+  if (!bad.length) { console.log(`health --changed: no new findings in ${files.size} changed file(s) (${s})`); process.exit(0); }
+  bad.forEach(b => console.log(b));
+  console.log(`health --changed: ${bad.length} new finding(s) (${s})`); process.exit(1);
+}
+if (require.main === module && process.argv.includes('--changed')) changed();
+else if (require.main === module) {
   const h = health(), want = JSON.stringify(h, null, 1) + '\n';
   const L = logic();
+  const li = process.argv.indexOf('--list');
+  if (li !== -1) {
+    const n = Number(process.argv[li + 1]) || Infinity, ki = process.argv.indexOf('--kind'), k = ki !== -1 ? process.argv[ki + 1] : '';
+    const w = h.work.filter(x => !k || x.kind === k);
+    w.slice(0, n).forEach(x => console.log(`${x.kind}\t${x.where}\t${x.say}`));
+    console.log(`${w.length} item(s)` + (k ? ' of ' + k : '') + ': ' + Object.keys(FIND_PENALTY).map(id => id + ' ' + h.work.filter(x => x.kind === id).length).join(', '));
+    process.exit(0);
+  }
   if (CHECK) {
     if (L.stale) { console.log('STALE — data/logic-health.json is older than ' + (L.newer.join(', ') || 'missing') + ': run node tools/logic-health.js'); process.exit(1); }
     const now = read('data/health.json');

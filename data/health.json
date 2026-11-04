@@ -1,6 +1,6 @@
 {
  "v": 1,
- "score": 76.1,
+ "score": 67.5,
  "weights": {
   "code": 0.4,
   "logic": 0.35,
@@ -8,10 +8,33 @@
  },
  "parts": {
   "code": 69.5,
-  "logic": 84.6,
+  "logic": 60.1,
   "ui": 74.7
  },
- "logicStale": true,
+ "logicStale": false,
+ "logicWalk": 84.6,
+ "find": [
+  {
+   "id": "tag-colour",
+   "count": 82,
+   "off": 8.2
+  },
+  {
+   "id": "menu-rule",
+   "count": 80,
+   "off": 4
+  },
+  {
+   "id": "tag-asked",
+   "count": 38,
+   "off": 10
+  },
+  {
+   "id": "one-off",
+   "count": 114,
+   "off": 2.3
+  }
+ ],
  "ui": [
   {
    "id": "zindex",
@@ -78,28 +101,28 @@
    "say": "Find: 27 of 214 questions break a rule — a finer question asked before its coarser one."
   },
   {
+   "part": "logic",
+   "id": "tag-asked",
+   "cost": 3.5,
+   "say": "Find: 38 tag-asked findings (node tools/health.js --list --kind tag-asked)."
+  },
+  {
    "part": "code",
    "id": "special",
    "cost": 3,
    "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
   },
   {
+   "part": "logic",
+   "id": "tag-colour",
+   "cost": 2.9,
+   "say": "Find: 82 tag-colour findings (node tools/health.js --list --kind tag-colour)."
+  },
+  {
    "part": "code",
    "id": "catches",
    "cost": 2.8,
    "say": "346 empty catches are allowed by check-catches; each one hides an error."
-  },
-  {
-   "part": "code",
-   "id": "exceptions",
-   "cost": 2.4,
-   "say": "59 written exceptions let checks pass despite a known problem."
-  },
-  {
-   "part": "code",
-   "id": "dead",
-   "cost": 1.8,
-   "say": "15 functions nothing calls."
   }
  ],
  "all": [
@@ -110,10 +133,22 @@
    "say": "Find: 27 of 214 questions break a rule — a finer question asked before its coarser one."
   },
   {
+   "part": "logic",
+   "id": "tag-asked",
+   "cost": 3.5,
+   "say": "Find: 38 tag-asked findings (node tools/health.js --list --kind tag-asked)."
+  },
+  {
    "part": "code",
    "id": "special",
    "cost": 3,
    "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
+  },
+  {
+   "part": "logic",
+   "id": "tag-colour",
+   "cost": 2.9,
+   "say": "Find: 82 tag-colour findings (node tools/health.js --list --kind tag-colour)."
   },
   {
    "part": "code",
@@ -132,6 +167,12 @@
    "id": "dead",
    "cost": 1.8,
    "say": "15 functions nothing calls."
+  },
+  {
+   "part": "logic",
+   "id": "menu-rule",
+   "cost": 1.4,
+   "say": "Find: 80 menu-rule findings (node tools/health.js --list --kind menu-rule)."
   },
   {
    "part": "ui",
@@ -177,6 +218,12 @@
   },
   {
    "part": "logic",
+   "id": "one-off",
+   "cost": 0.8,
+   "say": "Find: 114 one-off findings (node tools/health.js --list --kind one-off)."
+  },
+  {
+   "part": "logic",
    "id": "twins",
    "cost": 0.8,
    "say": "Find: 5 of 214 questions break a rule — two answers that keep exactly the same cards."
@@ -210,6 +257,1578 @@
    "id": "longfns",
    "cost": 0.2,
    "say": "10 functions are over 150 lines."
+  }
+ ],
+ "work": [
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10640",
+   "say": "menu \"What for\" (forLabel): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10640",
+   "say": "menu \"What kind\" (kindLabel): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10640",
+   "say": "menu \"Which\" (kindOwn): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Project or coursework\" (projectType): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10630",
+   "say": "menu \"Subject\" (subject): every answer is coloured \"subject\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10640",
+   "say": "menu \"Shelf\" (shelf): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Religion\" (wReligion): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Collection\" (wCollection): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Work\" (wWork): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Section\" (wSection): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Source text\" (wSource): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Language\" (wLanguage): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Translation\" (wText): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Tradition\" (wTradition): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10649",
+   "say": "menu \"Book\" (wBook): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10650",
+   "say": "menu \"Chapter\" (wChapter): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10650",
+   "say": "menu \"Unit\" (wUnit): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10650",
+   "say": "menu \"Author\" (wAuthor): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10650",
+   "say": "menu \"Kind of writing\" (wForm): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10651",
+   "say": "menu \"Card type\" (mKind): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10651",
+   "say": "menu \"System\" (mSystem): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10651",
+   "say": "menu \"Engine\" (mEngine): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10652",
+   "say": "menu \"Chemical type\" (cCategory): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10652",
+   "say": "menu \"Group\" (cGroup): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10652",
+   "say": "menu \"Period\" (cPeriod): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10652",
+   "say": "menu \"State\" (cState): every answer is coloured \"tier\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Boxers or fights\" (boxKind): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10634",
+   "say": "menu \"Fighter\" (fighter): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10634",
+   "say": "menu \"Month\" (boutMonth): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10634",
+   "say": "menu \"Year\" (boutYear): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10632",
+   "say": "menu \"Decade\" (decade): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10636",
+   "say": "menu \"Division\" (division): every answer is coloured \"tier\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10634",
+   "say": "menu \"Round\" (boutRound): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Result\" (boutMethod): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Winner\" (boutWinner): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Event\" (boutEvent): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10642",
+   "say": "menu \"Manuscripts, figures, works or events\" (histKind): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10642",
+   "say": "menu \"Era\" (histEra): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10642",
+   "say": "menu \"Material\" (histMaterial): every answer is coloured \"tier\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10643",
+   "say": "menu \"Format\" (histFormat): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10643",
+   "say": "menu \"Genre\" (histGenre): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10643",
+   "say": "menu \"Role\" (histRole): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10643",
+   "say": "menu \"Theme\" (histTheme): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10642",
+   "say": "menu \"Held at\" (histRepository): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10642",
+   "say": "menu \"Side\" (histSide): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10643",
+   "say": "menu \"Theatre\" (histTheatre): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"Category\" (shopKind): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"How you get it\" (shopHow): every answer is coloured \"check\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"Price\" (shopPrice): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"Brand\" (shopBrand): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"For\" (shopFor): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10653",
+   "say": "menu \"Theme\" (shopTheme): every answer is coloured \"kind\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Experiment or build\" (practicalType): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10645",
+   "say": "menu \"Required\" (required): every answer is coloured \"check\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Type\" (documentType): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10633",
+   "say": "menu \"Which type\" (typeOwn): every answer is coloured \"type\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10631",
+   "say": "menu \"Level\" (fiveLevel): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10632",
+   "say": "menu \"Month\" (fiveMonth): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10628",
+   "say": "menu \"Day\" (fiveDay): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10631",
+   "say": "menu \"Level\" (level): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10631",
+   "say": "menu \"Key stage\" (keystage): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10631",
+   "say": "menu \"School year\" (yearGroup): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10631",
+   "say": "menu \"Grade\" (bandValue): every answer is coloured \"level\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10637",
+   "say": "menu \"Topic\" (topic): every answer is coloured \"topic\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10635",
+   "say": "menu \"Exam board\" (examBoard): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10636",
+   "say": "menu \"Tier\" (tier): every answer is coloured \"tier\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10632",
+   "say": "menu \"Year\" (examYear): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10632",
+   "say": "menu \"Month\" (examMonth): every answer is coloured \"sitting\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10645",
+   "say": "menu \"Accuracy\" (accuracy): every answer is coloured \"check\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10645",
+   "say": "menu \"Function\" (function): every answer is coloured \"check\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10628",
+   "say": "menu \"Paper\" (paperId): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:552",
+   "say": "menu \"Paper section\" (paperSection): every answer is coloured \"other\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Question\" (qNumber): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Part\" (qPart): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Sub-part\" (qSub): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Page\" (qPage): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Pages\" (qPages): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10629",
+   "say": "menu \"Marks\" (marks): every answer is coloured \"paper\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10635",
+   "say": "menu \"Source\" (source): every answer is coloured \"board\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10638",
+   "say": "menu \"What you need\" (needs): every answer is coloured \"needs\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10647",
+   "say": "menu \"Your result\" (myResult): every answer is coloured \"mine\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "tag-colour",
+   "where": "js/find.js:10190",
+   "say": "menu \"Sitting\" (sitting): every answer is coloured \"other\" — the colour is per facet, not per answer"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "js/find.js:1179",
+   "say": "nextFacet asks the FIRST question in the facets tab's sort_order that facetWhy_ lets through, not the best-splitting one"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "js/find.js:695",
+   "say": "facetList orders the menus by the tab's sort_order — a hardcoded order over the split rule"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find",
+   "say": "asks kindLabel (0.47 bits) but wCollection splits the 278932 cards better (2.78 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library",
+   "say": "asks subject (0.33 bits) but wText splits the 250350 cards better (2.89 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity › Old Testament",
+   "say": "asks wSection (2.47 bits) but wChapter splits the 116363 cards better (5.91 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies",
+   "say": "asks wReligion (1.27 bits) but wCollection splits the 239972 cards better (2.73 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity",
+   "say": "asks wCollection (1.8 bits) but wSection splits the 169963 cards better (3.07 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice",
+   "say": "asks kindOwn (1.01 bits) but qNumber splits the 28536 cards better (4.35 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Judaism › Tanakh",
+   "say": "asks wSection (2.15 bits) but wChapter splits the 23213 cards better (5.91 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity › New Testament",
+   "say": "asks wSection (1.93 bits) but wUnit splits the 23872 cards better (5.55 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity › Deuterocanon / Apocrypha / Anagignoskomena",
+   "say": "asks wLanguage (0.93 bits) but wUnit splits the 16502 cards better (5.66 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Judaism",
+   "say": "asks wCollection (1.77 bits) but wSection splits the 46528 cards better (2.86 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions",
+   "say": "asks subject (3.09 bits) but qNumber splits the 28445 cards better (4.36 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity › Psalter",
+   "say": "asks wLanguage (0 bits) but wChapter splits the 5054 cards better (6.82 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Judaism › Rabbinic",
+   "say": "asks wWork (1 bits) but wChapter splits the 10106 cards better (3.73 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Maths",
+   "say": "asks documentType (0.99 bits) but examYear splits the 10717 cards better (3.16 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
+   "say": "asks wWork (1.75 bits) but wUnit splits the 5455 cards better (5.24 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Maths",
+   "say": "asks documentType (1 bits) but marks splits the 9633 cards better (2.25 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Biology",
+   "say": "asks level (0.96 bits) but qNumber splits the 3115 cards better (4.29 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Biology",
+   "say": "asks level (0.96 bits) but qNumber splits the 3115 cards better (4.29 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Physics",
+   "say": "asks level (0.98 bits) but qNumber splits the 2933 cards better (4.31 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Physics",
+   "say": "asks level (0.98 bits) but qNumber splits the 2933 cards better (4.31 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Chemistry",
+   "say": "asks level (0.99 bits) but qNumber splits the 2968 cards better (4.17 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Chemistry",
+   "say": "asks level (0.99 bits) but qNumber splits the 2968 cards better (4.17 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers",
+   "say": "asks subject (3.13 bits) but qPart splits the 27282 cards better (3.34 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › History",
+   "say": "asks wWork (2.61 bits) but wBook splits the 3527 cards better (4.21 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature",
+   "say": "asks wText (2.53 bits) but wAuthor splits the 5213 cards better (3.49 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Christianity › Apostolic Fathers",
+   "say": "asks wLanguage (1 bits) but wUnit splits the 2237 cards better (3.07 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Combined Science",
+   "say": "asks tier (1 bits) but examYear splits the 2345 cards better (2.95 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Combined Science",
+   "say": "asks tier (1 bits) but examYear splits the 2345 cards better (2.95 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Psychology",
+   "say": "asks level (1 bits) but marks splits the 1187 cards better (3.02 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Psychology",
+   "say": "asks level (1 bits) but marks splits the 1187 cards better (3.02 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Religious Studies",
+   "say": "asks level (1.12 bits) but marks splits the 1004 cards better (3.23 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Religious Studies",
+   "say": "asks level (1.12 bits) but marks splits the 1004 cards better (3.23 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › English Literature",
+   "say": "asks level (0.9 bits) but paperId splits the 522 cards better (4.91 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › English Literature",
+   "say": "asks level (0.9 bits) but paperId splits the 522 cards better (4.91 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › Geography",
+   "say": "asks level (0.99 bits) but paperId splits the 522 cards better (4.95 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › Geography",
+   "say": "asks level (0.99 bits) but paperId splits the 522 cards better (4.95 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Questions › History",
+   "say": "asks level (0.85 bits) but examYear splits the 944 cards better (2.58 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Answers › History",
+   "say": "asks level (0.85 bits) but examYear splits the 944 cards better (2.58 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › History › The Lives of the Twelve Caesars",
+   "say": "asks wChapter (3.32 bits) but wUnit splits the 485 cards better (6.21 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Physical Education",
+   "say": "asks boxKind (0.97 bits) but boutYear splits the 269 cards better (6.09 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › History › The Gallic War",
+   "say": "asks wBook (2.91 bits) but wUnit splits the 384 cards better (6.1 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904)",
+   "say": "asks wBook (2.56 bits) but wUnit splits the 728 cards better (4.04 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Physical Education › Fights",
+   "say": "asks boutMonth (3.26 bits) but boutYear splits the 157 cards better (6.09 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › History › Germania and Agricola",
+   "say": "asks wBook (1 bits) but wUnit splits the 92 cards better (5.52 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Blake’s",
+   "say": "asks wBook (0.97 bits) but wUnit splits the 201 cards better (2.95 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › First edition (1861)",
+   "say": "asks wWork (0.83 bits) but wChapter splits the 80 cards better (5.8 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Mechanics",
+   "say": "asks mKind (0.31 bits) but mSystem splits the 72 cards better (3.78 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › History › The Genuine Works of Hippocrates",
+   "say": "asks wBook (1.99 bits) but wUnit splits the 86 cards better (4.55 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Science",
+   "say": "asks level (1.56 bits) but topic splits the 62 cards better (4.41 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "say": "asks wBook (1.58 bits) but wChapter splits the 61 cards better (4.45 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion",
+   "say": "asks wWork (0.94 bits) but wUnit splits the 37 cards better (4.86 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Chemistry › Element",
+   "say": "asks cCategory (2.98 bits) but cGroup splits the 118 cards better (4.13 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Practicals › Physics",
+   "say": "asks practicalType (0.74 bits) but topic splits the 29 cards better (3.98 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Practicals › Chemistry",
+   "say": "asks required (1.38 bits) but topic splits the 31 cards better (4.2 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "say": "asks wBook (0.95 bits) but wChapter splits the 27 cards better (4.01 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › First edition (1861) › Silas Marner",
+   "say": "asks wBook (0.86 bits) but wChapter splits the 21 cards better (4.39 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Antony and Cleopatra",
+   "say": "asks wChapter (2.06 bits) but wUnit splits the 42 cards better (3.76 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1818",
+   "say": "asks wChapter (3.42 bits) but wUnit splits the 81 cards better (4.29 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Chemistry",
+   "say": "asks mKind (1.47 bits) but cState splits the 451 cards better (1.62 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1822",
+   "say": "asks wChapter (3.11 bits) but wUnit splits the 66 cards better (3.89 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Practicals › Biology",
+   "say": "asks required (0.65 bits) but topic splits the 12 cards better (4.22 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Projects",
+   "say": "asks projectType (0.5 bits) but topic splits the 9 cards better (4.25 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Maths › SATs",
+   "say": "asks keystage (0.98 bits) but yearGroup splits the 33 cards better (1.96 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Henry V",
+   "say": "asks wChapter (2.16 bits) but wUnit splits the 28 cards better (3.14 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Coriolanus",
+   "say": "asks wChapter (2.17 bits) but wUnit splits the 29 cards better (3.1 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Maths",
+   "say": "asks level (2.02 bits) but keystage splits the 109 cards better (2.26 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Projects › Project",
+   "say": "asks subject (0.95 bits) but topic splits the 8 cards better (4.1 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Practice › Practicals › Maths",
+   "say": "asks level (1.84 bits) but topic splits the 10 cards better (4.35 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1817",
+   "say": "asks wChapter (3.71 bits) but wUnit splits the 83 cards better (3.94 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Religious Studies › Mesopotamian religion",
+   "say": "asks wBook (1 bits) but wChapter splits the 12 cards better (2.58 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Henry VI, Part 3",
+   "say": "asks wChapter (2.24 bits) but wUnit splits the 28 cards better (2.87 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Macbeth",
+   "say": "asks wChapter (2.24 bits) but wUnit splits the 28 cards better (2.87 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Cymbeline",
+   "say": "asks wChapter (2.28 bits) but wUnit splits the 29 cards better (2.84 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Pericles",
+   "say": "asks wChapter (2.32 bits) but wUnit splits the 26 cards better (2.81 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › King Lear",
+   "say": "asks wChapter (2.25 bits) but wUnit splits the 26 cards better (2.72 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1816",
+   "say": "asks wChapter (2.15 bits) but wUnit splits the 19 cards better (2.73 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › English Literature › Complete Works › Henry VI, Part 1",
+   "say": "asks wChapter (2.3 bits) but wUnit splits the 27 cards better (2.66 bits)"
+  },
+  {
+   "kind": "menu-rule",
+   "where": "Find › Library › Chemistry › Element › Post-transition metal",
+   "say": "asks cGroup (1.89 bits) but cPeriod splits the 12 cards better (2.08 bits)"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:448",
+   "say": "tag \"What for\" (forLabel) is on 278932 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:461",
+   "say": "tag \"Shelf\" (shelf) is on 248883 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:471",
+   "say": "tag \"Source text\" (wSource) is on 179952 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:546",
+   "say": "tag \"Accuracy\" (accuracy) is on 28445 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:547",
+   "say": "tag \"Function\" (function) is on 28445 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:549",
+   "say": "tag \"Paper\" (paperId) is on 28445 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:554",
+   "say": "tag \"Question\" (qNumber) is on 28445 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:571",
+   "say": "tag \"Your result\" (myResult) is on 28445 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:565",
+   "say": "tag \"Marks\" (marks) is on 25642 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:540",
+   "say": "tag \"Exam board\" (examBoard) is on 23943 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:543",
+   "say": "tag \"Year\" (examYear) is on 23137 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:544",
+   "say": "tag \"Month\" (examMonth) is on 23137 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:479",
+   "say": "tag \"Author\" (wAuthor) is on 19431 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:480",
+   "say": "tag \"Kind of writing\" (wForm) is on 19431 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:556",
+   "say": "tag \"Part\" (qPart) is on 18432 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:475",
+   "say": "tag \"Tradition\" (wTradition) is on 10437 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:569",
+   "say": "tag \"What you need\" (needs) is on 6884 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:568",
+   "say": "tag \"Source\" (source) is on 4653 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:557",
+   "say": "tag \"Sub-part\" (qSub) is on 2467 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:538",
+   "say": "tag \"Grade\" (bandValue) is on 1959 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:528",
+   "say": "tag \"Which type\" (typeOwn) is on 1843 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:530",
+   "say": "tag \"Level\" (fiveLevel) is on 1355 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:531",
+   "say": "tag \"Month\" (fiveMonth) is on 1355 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:532",
+   "say": "tag \"Day\" (fiveDay) is on 1355 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:537",
+   "say": "tag \"School year\" (yearGroup) is on 1348 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:504",
+   "say": "tag \"Era\" (histEra) is on 621 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:503",
+   "say": "tag \"Manuscripts, figures, works or events\" (histKind) is on 168 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:498",
+   "say": "tag \"Result\" (boutMethod) is on 157 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:500",
+   "say": "tag \"Winner\" (boutWinner) is on 150 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:513",
+   "say": "tag \"Theatre\" (histTheatre) is on 111 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:497",
+   "say": "tag \"Round\" (boutRound) is on 80 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:552",
+   "say": "tag \"Paper section\" (paperSection) is on 74 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:501",
+   "say": "tag \"Event\" (boutEvent) is on 46 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:508",
+   "say": "tag \"Role\" (histRole) is on 45 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:505",
+   "say": "tag \"Material\" (histMaterial) is on 12 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:506",
+   "say": "tag \"Format\" (histFormat) is on 12 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:510",
+   "say": "tag \"Held at\" (histRepository) is on 12 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "tag-asked",
+   "where": "js/find.js:512",
+   "say": "tag \"Side\" (histSide) is on 3 cards but no menu in the walk asks it"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:275",
+   "say": "x.kind === 'shop'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:279",
+   "say": "x.kind !== 'shop'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:290",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:295",
+   "say": "x.kind === 'topic'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:307",
+   "say": "x.kind === 'shop'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:319",
+   "say": "x.kind === 'shop'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:456",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:492",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:492",
+   "say": "x.kind === 'boxer'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:497",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:498",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:501",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:525",
+   "say": "x.kind !== 'practical'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:555",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1261",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1269",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1290",
+   "say": "x.kind !== 'boxer'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1290",
+   "say": "x.kind !== 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1293",
+   "say": "x.kind === 'fight'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1656",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1798",
+   "say": "x.kind === 'figure'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1832",
+   "say": "kind === 'figure'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1835",
+   "say": "kind === 'event'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1838",
+   "say": "kind === 'writing'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1839",
+   "say": "kind === 'manuscript'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1841",
+   "say": "kind === 'writing'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1849",
+   "say": "kind === 'manuscript'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:1998",
+   "say": "x.kind === 'manuscript'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2000",
+   "say": "x.kind === 'manuscript'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2016",
+   "say": "x.kind === 'writing'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2023",
+   "say": "x.kind === 'manuscript'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2296",
+   "say": "x.field === 'wBook'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2304",
+   "say": "x.field === 'wText'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2304",
+   "say": "x.field === 'wLanguage'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2386",
+   "say": "x.kind === 'bible'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2466",
+   "say": "f.field === 'wUnit'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2467",
+   "say": "f.field === 'wBook'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2468",
+   "say": "f.field === 'wChapter'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2579",
+   "say": "x.kind === 'bible'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2610",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2629",
+   "say": "x.kind === 'project'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2638",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2648",
+   "say": "x.kind === 'boxer'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2650",
+   "say": "x.kind !== 'practical'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2695",
+   "say": "x.kind === 'project'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2696",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2697",
+   "say": "x.kind === 'boxer'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2699",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2700",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2704",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:2706",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3596",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3867",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3868",
+   "say": "x.kind === 'practical'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3868",
+   "say": "x.kind === 'project'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3868",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3873",
+   "say": "x.kind === 'practical'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3874",
+   "say": "x.kind === 'project'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3875",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3876",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:3908",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:4051",
+   "say": "it.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:4127",
+   "say": "it.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7790",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7795",
+   "say": "y.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7885",
+   "say": "kind === 'grid'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7885",
+   "say": "kind === 'coord'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7891",
+   "say": "kind === 'coord'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:7904",
+   "say": "kind === 'blank'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8069",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8071",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8272",
+   "say": "y.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8282",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8298",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8458",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8472",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8489",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8506",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8531",
+   "say": "it.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8575",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8575",
+   "say": "x.kind === 'me'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8675",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8722",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8724",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8725",
+   "say": "x.kind === 'practical'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8725",
+   "say": "x.kind === 'project'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8725",
+   "say": "x.kind === 'bible'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8769",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8793",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8793",
+   "say": "x.kind !== 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:8794",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9068",
+   "say": "f.field === 'string'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9089",
+   "say": "f.field === 'wText'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9097",
+   "say": "f.field !== 'string'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9098",
+   "say": "f.field === 'shelf'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9338",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9632",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9685",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9707",
+   "say": "x.kind === 'content'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9709",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9791",
+   "say": "f.field === 'kindLabel'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9791",
+   "say": "f.field === 'kindOwn'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9810",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9839",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9850",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9944",
+   "say": "f.field === 'forLabel'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:9953",
+   "say": "f.field === 'kindLabel'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10157",
+   "say": "x.kind !== 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10200",
+   "say": "field === 'examMonth'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10200",
+   "say": "field === 'examYear'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10211",
+   "say": "field === 'sitting'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10218",
+   "say": "field === 'documentType'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10256",
+   "say": "x.kind === 'question'"
+  },
+  {
+   "kind": "one-off",
+   "where": "js/find.js:10326",
+   "say": "x.kind === 'question'"
   }
  ]
 }
