@@ -1,6 +1,6 @@
 {
  "v": 1,
- "score": 74.4,
+ "score": 74.5,
  "weights": {
   "code": 0.4,
   "logic": 0.35,
@@ -9,22 +9,22 @@
  "parts": {
   "code": 65.6,
   "logic": 84.6,
-  "ui": 74.2
+  "ui": 74.7
  },
- "logicStale": false,
+ "logicStale": true,
  "ui": [
   {
    "id": "zindex",
    "label": "Distinct z-index values (over 5)",
-   "count": 17,
+   "count": 16,
    "weight": 0.5,
    "cap": 10,
-   "off": 6
+   "off": 5.5
   },
   {
    "id": "pxlit",
    "label": "Hard-coded px literals outside the tokens",
-   "count": 1180,
+   "count": 1183,
    "weight": 0.004,
    "cap": 15,
    "off": 4.7
@@ -32,7 +32,7 @@
   {
    "id": "selectors",
    "label": "style.css selectors (over 1500)",
-   "count": 3510,
+   "count": 3523,
    "weight": 0.002,
    "cap": 15,
    "off": 4
@@ -64,7 +64,7 @@
   {
    "id": "position",
    "label": "transform and position:absolute uses",
-   "count": 239,
+   "count": 240,
    "weight": 0.01,
    "cap": 10,
    "off": 2.4
@@ -136,20 +136,20 @@
   {
    "part": "ui",
    "id": "zindex",
-   "cost": 1.5,
-   "say": "17 different z-index values stack the screen."
+   "cost": 1.4,
+   "say": "16 different z-index values stack the screen."
   },
   {
    "part": "ui",
    "id": "pxlit",
    "cost": 1.2,
-   "say": "1180 pixel sizes are written by hand instead of as tokens."
+   "say": "1183 pixel sizes are written by hand instead of as tokens."
   },
   {
    "part": "ui",
    "id": "selectors",
    "cost": 1,
-   "say": "style.css has 3510 selectors; every one is something to keep in mind."
+   "say": "style.css has 3523 selectors; every one is something to keep in mind."
   },
   {
    "part": "code",
@@ -197,13 +197,13 @@
    "part": "ui",
    "id": "position",
    "cost": 0.6,
-   "say": "239 transforms and absolute positions place boxes by hand."
+   "say": "240 transforms and absolute positions place boxes by hand."
   },
   {
    "part": "code",
    "id": "duplicates",
    "cost": 0.4,
-   "say": "54 long lines are copied three or more times."
+   "say": "56 long lines are copied three or more times."
   },
   {
    "part": "code",
