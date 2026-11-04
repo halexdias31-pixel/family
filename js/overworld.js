@@ -295,7 +295,7 @@ function swipeDrop_() {
 
 /* POINTER EVENTS, NOT TOUCH EVENTS. § */
 addEventListener('pointerdown', e => {
-  if (!e.isPrimary) return;                            // a second finger is a pinch, not a swipe
+  if (FLOW_LAYOUT || !e.isPrimary) return;                            // a second finger is a pinch, not a swipe
   /* A mouse only counts while a button is down. Without this, moving the cursor across the page
      would drag the grid. */
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
@@ -535,6 +535,7 @@ const wheelWin = [];
 const WHEEL_RISE = 3, WHEEL_FRESH = 30, WHEEL_GAP_MS = 300;
 
 addEventListener('wheel', e => {
+  if (FLOW_LAYOUT) return;   /* the browser scrolls the one page (900) */
   const axis = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.4 ? 'x' : 'y';
   const delta = axis === 'x' ? e.deltaX : e.deltaY;
   if (!AXES[axis].count()) return;

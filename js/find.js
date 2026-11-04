@@ -2430,10 +2430,10 @@ function bibleEnd_(items) {
       ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
       : loading_();
   }
-  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>Swipe up for it.</b></p>`;
+  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>${SWIPE_UP} for it.</b></p>`;
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
   return `<p class="find-end">${esc(first.name)} to ${esc(to)}.
-      <b>Swipe up for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
+      <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
@@ -10856,6 +10856,7 @@ function stuffWindow_(mode) {
 /* WHERE A PAGE SITS, TO THE FRACTION OF A PIXEL. § */
 function stuffTop_(el) { return el.getBoundingClientRect().top; }
 function stuffKeepPlace_(host, d) {
+  if (FLOW_LAYOUT) { if (d) window.scrollBy(0, -d); return; }
   try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
 
@@ -11488,6 +11489,27 @@ function fillStuffPages(all) {
   settle_(changed);
 }
 
+/* THE WORD FOR GOING ON TO THE RESULTS: a scroll on the one page (900), a swipe on the columns. */
+const SWIPE_UP = FLOW_LAYOUT ? 'Scroll down' : 'Swipe up';
+/* THE ONE SCROLLING PAGE (900): near the foot of what is drawn, the next three results of the window are drawn. */
+function flowMore_(id) {
+  const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
+  if (!F) return;
+  inFinder_(F, () => {
+    const host = $('s-' + id);
+    if (!host) return;
+    const pages = host.querySelectorAll(':scope > .page'), first = stuffFirstResult_(), items = stuffFiltered();
+    const last = first + stuffPages_().length - 1;
+    let n = 0;
+    for (let i = Math.max(first, PAGE[id] || 0); i <= last && n < 3; i++) {
+      const el = pages[domIndex_(id, i)];
+      if (!el) break;
+      if (el.dataset.filled !== '1' && stuffFillOne_(i, { pages: pages, first: first, items: items })) n++;
+    }
+    if (n) { libAhead_(); settle_(true); }
+  });
+}
+
 /* The grid measures the panes again and puts everything where it now belongs. § */
 /* ---------- HELD, NOT PLACED § */
 function settle_(changed) {
@@ -11580,7 +11602,7 @@ function stuffQuestion() {
     const be = bibleEnd_(items);
     if (be) return be + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + adding;
+      <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
