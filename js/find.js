@@ -212,6 +212,10 @@ const KINDS = {
   setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
   /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
   msg: { group: 'Messages', label: 'Messages', card: x => soonCard_(x) },
+  /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
+  offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
+  offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
+  offBooking: { group: 'Booking', label: 'Booking', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
@@ -1090,7 +1094,7 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
   friend: 'People', person: 'People', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
-  post: 'Posts', tool: 'Tools', game: 'Games' };
+  post: 'Posts', tool: 'Tools', game: 'Games', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
@@ -9349,7 +9353,14 @@ function stuffItemsRaw_() {
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
     ...questionItems(),
-  ];
+  ].filter(x => !x || OFF_KINDS[x.kind] === undefined).concat(offKindCards_());
+}
+/* SWITCHED OFF (owner, 4 Nov): these kinds' items leave Find; each area keeps one Coming soon card under its own answer. */
+const OFF_KINDS = { post: 'Posts', shop: 'Shop', tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking' };
+function offKindCards_() {
+  const seen = {};
+  return Object.keys(OFF_KINDS).filter(k => !seen[OFF_KINDS[k]] && (seen[OFF_KINDS[k]] = true)).map(k => ({
+    kind: 'off' + OFF_KINDS[k], name: OFF_KINDS[k], sub: OFF_KINDS[k], image: '', key: 'off:' + OFF_KINDS[k], soon: 'column', soonId: OFF_KINDS[k].toLowerCase(), text: OFF_KINDS[k] }));
 }
 
 /* THE YEAR OF A THING, from the column or from the wave. § */
