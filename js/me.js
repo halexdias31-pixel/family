@@ -231,10 +231,10 @@ on('apply-send', el => {
   send_(body, { button: el, where: f.querySelector('.apply-said'), saying: 'Sending…' })
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
       closeSheet();
       toast('Application sent');
-      try { paint('staff'); } catch (e) {}
+      try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
     })
     .catch(() => {});
 });
@@ -351,7 +351,7 @@ on('do-signin', el => {
       if (!box) return;
       if (id === 'in-pin') box.value = '';
       box.setAttribute('aria-invalid', 'true');
-      try { box.focus(); if (id === 'in-name') box.select(); } catch (e) {}
+      try { box.focus(); if (id === 'in-name') box.select(); } catch (e) { /* focus and scrolling are niceties */ }
     });
 });
 /* THE MARK COMES OFF AT THE NEXT KEYSTROKE — a red edge round a box being corrected is the app still
@@ -375,7 +375,7 @@ on('signout', () => {
   /* ---------- SIGNING OUT ENDS THE SESSION ON THE SERVER TOO § */
   const tok = USER && USER.token;
   let last = Promise.resolve();
-  try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
+  try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) { oops_(err, 'me:googleSignedIn_') }
   /* AND THE PRESSES, WHICH SINCE 9 OCT ARE HOW A TYPED ANSWER REACHES THE ACCOUNT AT ALL — the one in flight and every one queued behind it, on this token, before § */
   let subs = Promise.resolve();
   try {
@@ -383,7 +383,7 @@ on('signout', () => {
   } catch (err) {}
   /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up (`keepDue_`, data.js) — each is sent only while somebody is signed § */
   let due = Promise.resolve();
-  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) {}
+  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
   Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
   signedOut_();
   toast('Signed out');
@@ -395,9 +395,9 @@ function signedOut_(opts) {
   /* WHO IS LEAVING, AND WHETHER THEY WERE AN ADMIN — read before they are forgotten, for `ended` below. */
   const was = USER;
   let wasAdmin = false;
-  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) {}
+  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null;
-  try { localStorage.removeItem('familyUser'); } catch (e) {}
+  try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()
@@ -416,17 +416,17 @@ function signedOut_(opts) {
      person's, and `loadMessages` drops it when it lands for somebody else. */
   MESSAGES = null; MSG_FAILED = false; MSG_PENDING = []; MSG_ASKING = null;
   Object.keys(MSG_QUEUE).forEach(k => { delete MSG_QUEUE[k]; });
-  try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) {}
+  try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
-  try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) {}
+  try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */
-  try { if (typeof subForget_ === 'function') subForget_(); } catch (e) {}
-  try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  try { if (typeof subForget_ === 'function') subForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE CAMERA, which is kept parked while the app is open (427) — the next person's phone light is not this one's. */
-  try { if (typeof camStop_ === 'function') camStop_(); } catch (e) {}
+  try { if (typeof camStop_ === 'function') camStop_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). § */
-  try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) {}
-  try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
+  try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
   try {
@@ -435,10 +435,10 @@ function signedOut_(opts) {
     DATA.favourites = []; DATA.everyone = [];
   } catch (e) {}
   /* ---------- AND THE FILMS, WHICH HAVE NO `for` CHECK AT ALL § */
-  try { DATA.films = []; delete DATA.filmsSync; } catch (e) {}
+  try { DATA.films = []; delete DATA.filmsSync; } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE LIBRARY'S WORDS AND ANSWERS THIS VISIT FETCHED (397) — the next person signs in for their own. */
-  try { if (typeof libForget_ === 'function') libForget_(); } catch (e) {}
-  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) {}
+  try { if (typeof libForget_ === 'function') libForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   try {
     if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
     if (typeof VID !== 'undefined') VID.q = '';
@@ -447,16 +447,16 @@ function signedOut_(opts) {
     if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
   } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
-  try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
+  try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
      board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
-  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
-  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) {}
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) { oops_(e, 'me:signedOut_') }
+  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE DEAD KEY OF THE DRAW/TYPE SWITCH, which face each drawing question was left on (327, 337). § */
-  try { localStorage.removeItem('surfaceFace'); } catch (e) {}
+  try { localStorage.removeItem('surfaceFace'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
      docs/history/317). `typeof`, because book.js loads after this file. */
-  try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) {}
+  try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) { oops_(e, 'me:signedOut_') }
   if (!opts.quiet) repaint();
 }
 
@@ -483,14 +483,14 @@ function signedIn_(d, typed) {
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED § */
-  try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) {}
+  try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) { oops_(e, 'me:signedIn_') }
   /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
-  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
-  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) {}
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) { oops_(e, 'me:signedIn_') }
+  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) { oops_(e, 'me:signedIn_') }
   /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
-  try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) {}
+  try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) { oops_(e, 'me:signedIn_') }
   try {
     if (got.submissions && typeof got.submissions === 'object' && String(got.submissions.for || '') === pid) DATA.submissions = got.submissions;
     if (Array.isArray(got.favourites)) {
@@ -501,13 +501,13 @@ function signedIn_(d, typed) {
   } catch (e) {}
   /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
      sends whatever this device has had waiting for this person (js/answers.js). */
-  try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
+  try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) { oops_(e, 'me:signedIn_') }
   /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. § */
-  try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) {}
-  try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
+  try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) { oops_(e, 'me:signedIn_') }
+  try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) { oops_(e, 'me:signedIn_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
-  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
+  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'me:signedIn_') }
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
@@ -529,7 +529,7 @@ function signedIn_(d, typed) {
 
 /* NOTHING ABOUT WHO SIGNED IN IS KEPT ON THE DEVICE — the owner did not want recent usernames offered (docs/history/383). Old keys are wiped. */
 function signInForgetOld_() {
-  try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) {}
+  try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 signInForgetOld_();
 /* DOTS ON A TEXT BOX, WHERE THE BROWSER CAN DRAW THEM — see `.pin-dots` and the PIN box above. Asked of
@@ -765,7 +765,7 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
-      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) {} });
+      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerSheet_') } });
       closeSheet();
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the email — is sign in with it, and they have just typed it once. § */
       const handle = String((d && d.handle) || '');
@@ -802,7 +802,7 @@ function verifyFromLink_(again) {
         if (USER) {
           USER.profile = Object.assign({}, USER.profile || {}, { email: String(d.email || ''), email_moving: '' });
           try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-          try { repaint(true); } catch (e) {}
+          try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Your email is ' + (d.email || 'changed') + ' now — sign in with it from here on.');
         return;
@@ -824,12 +824,12 @@ function verifyFromLink_(again) {
           <p class="faint">Did you never make an account here? Then somebody else did, with your email. Use
             "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
           <button class="btn quiet" data-do="sheet-done">Done</button>`);
-        try { if (USER) load(); } catch (e) {}
+        try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
               + (d.handle ? ' as @' + d.handle : '') + ' with their PIN'
               + (d.linkedTo ? ', and is on your account.' : '.'));
-        try { if (USER) load(); } catch (e) {}
+        try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else {
         /* ---------- AND YOUR OWN, OPENED ON THE PHONE YOU ARE SIGNED IN ON § */
         const me = !!(USER && d && ((d.handle && d.handle === USER.handle) || (d.name && d.name === USER.name)));
@@ -838,21 +838,21 @@ function verifyFromLink_(again) {
           accountChanged_();
           USER.pendingEmail = '';
           try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-          try { repaint(true); } catch (e) {}
+          try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
               + (!me ? ' — now sign in with it and your PIN.'
                  : mayAddChild_() ? ' — you can add your child on Student profiles now.' : '.'));
       }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
-      try { if (!USER) go('account'); } catch (e) {}
+      try { if (!USER) go('account'); } catch (e) { oops_(e, 'me:verifyFromLink_') }
     })
     /* ---------- "SIGN IN, AND IT WILL FINISH BY ITSELF" § */
     .catch(err => {
       const d = err && err.reply;
       if (!d || d.why !== 'sign-in-first') return;    // `send_` has already toasted the server's sentence
-      try { sessionStorage.setItem('familyVerify', token); } catch (e) {}
-      try { go('account'); } catch (e) {}
+      try { sessionStorage.setItem('familyVerify', token); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      try { go('account'); } catch (e) { oops_(e, 'me:verifyFromLink_') }
     });
 }
 
@@ -870,10 +870,10 @@ function afterSignIn_(d) {
        <button class="btn quiet" data-do="sheet-done">Done</button>`);
   }
   let waiting = '';
-  try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) {}
+  try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
   if (waiting) verifyFromLink_(waiting);
   /* AND A CARD PAYMENT THAT CAME BACK BEFORE ANYBODY WAS SIGNED IN — see `paidFromLink_`. */
-  try { if (sessionStorage.getItem(PAID_KEY_)) paidFromLink_(); } catch (e) {}
+  try { if (sessionStorage.getItem(PAID_KEY_)) paidFromLink_(); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 /* ---------- AND THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL § */
@@ -913,20 +913,20 @@ function paidFromLink_() {
       const rest = q.toString();
       history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
       if (paid !== '1' || !ref) { toast('Payment cancelled — nothing was charged. Your booking is still waiting.'); return; }
-      try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) {}
+      try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
     }
   } catch (e) {}
-  if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) {}
+  if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
     toast('Sign in to finish your booking — your payment is safe.');
-    try { go('account'); } catch (e) {}
+    try { go('account'); } catch (e) { oops_(e, 'me:paidFromLink_') }
     return;
   }
   /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
   if (childView_()) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
   PAID_ASKING_ = ref;
-  const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) {} };
+  const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) { /* storage can be blocked; the app runs without it */ } };
   api({ action: 'finalizePayment', ref })
     .then(d => {
       PAID_ASKING_ = '';
@@ -1135,7 +1135,7 @@ on('msg-attach', el => {
 on('msg-unqueue', el => {
   const q = MSG_QUEUE[el.dataset.k] || [];
   const gone = q.splice(+el.dataset.i, 1)[0];
-  if (gone) { try { URL.revokeObjectURL(gone.url); } catch (e) {} }
+  if (gone) { try { URL.revokeObjectURL(gone.url); } catch (e) { /* already stopped is fine */ } }
   msgQueueDraw_(el.closest('.msg-form'));
 });
 
@@ -1161,7 +1161,7 @@ function msgPost_(p) {
   p.state = 'sending'; p.err = ''; p.why = '';
   /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server is still answering drew these
      words back in the composer, after the server had them, for a second Send (`draftSent_`, data.js). */
-  try { if (typeof draftSent_ === 'function') draftSent_('msg', p.withId, p.body); } catch (e) {}
+  try { if (typeof draftSent_ === 'function') draftSent_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
   const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
   return files.then(read => {
     /* ---------- A FILE THAT COULD NOT BE READ IS NEVER LEFT OUT IN SILENCE § */
@@ -1181,18 +1181,18 @@ function msgPost_(p) {
   }).then(d => {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
-    try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) {}
+    try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
     toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
         MSG_PENDING = MSG_PENDING.filter(x => x !== p);
-        p.queue.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) {} });
+        p.queue.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) { /* already stopped is fine */ } });
       }
     });
   }).catch(err => {
     p.state = 'failed';
     /* NOT SENT, SO A DRAFT AGAIN — kept for a reload, as the bubble keeps it for this page. */
-    try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
+    try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
     p.err = why_(err);
@@ -1209,7 +1209,7 @@ function dmRedraw_(key) {
   paint('dm');
   const at = messageThreads_().findIndex(t => t.id === key);
   /* ONE MORE THAN THE THREAD: Daive is page 0 (449). */
-  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at + 1, true); } catch (e) {} }
+  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at + 1, true); } catch (e) { oops_(e, 'me:dmRedraw_') } }
   setTimeout(() => { if (typeof dmFoot_ === 'function') dmFoot_(); }, 0);
 }
 
@@ -1504,7 +1504,7 @@ function uploadsPaint_() {
   document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
   /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note over `paneWatch_`. § */
   if (typeof placeCells === 'function' && (AT === 'stuff' || AT === 'res' || AT === 'saved')) {
-    try { placeCells('y', true, 0, AT); } catch (e) {}
+    try { placeCells('y', true, 0, AT); } catch (e) { oops_(e, 'me:uploadsPaint_') }
   }
 }
 
@@ -1656,7 +1656,7 @@ function heldBy_(err) {
   if (!USER || !d || d.why !== 'unconfirmed' || !d.pendingEmail) return;
   USER.pendingEmail = String(d.pendingEmail);
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-  try { repaint(true); } catch (e) {}
+  try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
 }
 
 on('resend-link', el => {
@@ -1670,7 +1670,7 @@ on('resend-link', el => {
         accountChanged_();
         USER.pendingEmail = '';
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-        try { repaint(true); } catch (e) {}
+        try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
       }
     })
     .catch(() => {});      // `send_` has already said why
@@ -2132,7 +2132,7 @@ on('roles-save', el => {
       toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
-      if (d.changed) { try { repaint(true); } catch (e) {} try { load(); } catch (e) {} }
+      if (d.changed) { try { repaint(true); } catch (e) { oops_(e, 'me:rolesCard_') } try { load(); } catch (e) { oops_(e, 'me:rolesCard_') } }
       const now = document.querySelector('.roles-card .roles-said');
       if (now) now.textContent = d.changed && rolesPickable_() && !USER.tutorPending ? 'Saved.' : rolesSaid_();
     })
@@ -2324,7 +2324,7 @@ function send_(body, o) {
     /* ONLY IF THE PAGE STILL HOLDS IT. A reply that repaints the card replaces the element that
        had the caret, and focusing a detached node moves focus to the body -- which is worse than
        leaving it where the repaint put it. */
-    if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) {} }
+    if (had && had.focus && document.contains(had)) { try { had.focus(); } catch (e) { /* focus and scrolling are niceties */ } }
     if (!btn) return;
     btn.disabled = false;
     btn.classList.remove('is-busy');
@@ -2920,7 +2920,7 @@ function qualRedraw_(shelf, over, open) {
   if (again) {
     qualOpen_(again);
     if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) {} }
-  } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) {} }
+  } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) { oops_(e, 'me:qualRedraw_') } }
   /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no
      `input` reports — a line put back to the pool, a removal — so the draft is written again here. */
   const ed = next.closest('.card-ed .me-form');
@@ -2934,7 +2934,7 @@ function qualOver_(shelf) {
   const over = {};
   shelf.querySelectorAll('.q-slot.is-open').forEach(s => {
     if (s.dataset.new) return Object.assign(over, qualBlank_(s));
-    try { Object.assign(over, JSON.parse(s.dataset.was || '{}')); } catch (e) {}
+    try { Object.assign(over, JSON.parse(s.dataset.was || '{}')); } catch (e) { /* a bad stored value reads as none */ }
   });
   return over;
 }
@@ -2946,7 +2946,7 @@ function qualOpen_(slot) {
   if (line) line.setAttribute('aria-expanded', 'true');
   if (!slot.dataset.was) slot.dataset.was = JSON.stringify(slot.dataset.new ? qualBlank_(slot) : qualValues_(slot));
   qualDirty_(slot);
-  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(slot)); } catch (e) {} }
+  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(slot)); } catch (e) { oops_(e, 'me:qualOpen_') } }
 }
 /* THE LINE OPENS — and whatever else was open shuts first, as it was last saved. § */
 on('qual-open', el => {
@@ -3026,7 +3026,7 @@ function qualCommit_(slot, after) {
   }
   if (JSON.stringify(qualValues_(slot)) === slot.dataset.was) { if (after) after(); return; }
   let was = {};
-  try { was = JSON.parse(slot.dataset.was || '{}'); } catch (e) {}
+  try { was = JSON.parse(slot.dataset.was || '{}'); } catch (e) { /* a bad stored value reads as none */ }
   const moved = !!slot.dataset.new || norm(was['qual_' + i] || '') !== norm(q.subject);
   qualSave_(slot.querySelector('[data-do="qual-done"]') || slot).then(ok => {
     if (!ok || !slot.isConnected) return;
@@ -3122,7 +3122,7 @@ on('qual-drop', el => {
   if (slot.dataset.new) { qualClean_(shelf); qualRedraw_(shelf, qualBlank_(slot)); return; }
   const q = qualRead_(slot);
   let was = {};
-  try { was = JSON.parse(slot.dataset.was || '{}'); } catch (e) {}
+  try { was = JSON.parse(slot.dataset.was || '{}'); } catch (e) { /* a bad stored value reads as none */ }
   const i = slot.dataset.slot;
   /* NAMED BY WHAT WAS SAVED, which is what is being removed — not by a half-changed box. */
   const name = [was['qual_' + i] || q.subject, was['qual_' + i + '_level'] || q.level].filter(Boolean).join(' ');
@@ -3349,7 +3349,7 @@ function pfpTake_(box, url, said) {
   if (!USER) return;
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
   USER.photo = url;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
   const fig = picKind_(url) === 'avatar';
   ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
@@ -3361,9 +3361,9 @@ function pfpTake_(box, url, said) {
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
   if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
-  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) {}
+  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) { oops_(e, 'me:pfpTake_') }
   if (onCard) return;
-  try { if (typeof paint === 'function') paint('account'); } catch (e) {}
+  try { if (typeof paint === 'function') paint('account'); } catch (e) { oops_(e, 'me:pfpTake_') }
 }
 
 on('pfp-pick', el => {
@@ -3563,7 +3563,7 @@ function meSave_(el) {
       /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you (`progressRedraw_`, js/arcade.js) — not left to the payload this § */
       if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
-      Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) {} });
+      Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) { oops_(e, 'me:meSave_') } });
       if (d && d.name) USER.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
       if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
@@ -3585,7 +3585,7 @@ function meSave_(el) {
         : (document.querySelectorAll('#s-' + col + ' .me-form')[at] || {}).querySelector?.('.me-said');
       /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing else repaints § */
       if (d && d.said) {
-        try { paint(col); placeCells('y', true, 0, col); } catch (e) {}
+        try { paint(col); placeCells('y', true, 0, col); } catch (e) { oops_(e, 'me:meSave_') }
         const el2 = lineAt(); if (el2) el2.textContent = word;
       }
       /* THE PUBLIC CARD IS BUILT BY `doGet`, so it only moves when the payload does — but only when something was written. § */
@@ -3705,7 +3705,7 @@ function profileRefresh_(loud, onOld) {
       /* ---------- AND THE HANDLE, WHICH THE BUSINESS MAY HAVE MOVED UNDER THIS PHONE (342) § */
       if (d.handle && USER.handle && String(d.handle) !== String(USER.handle)) {
         HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
-        try { toast('Your handle is @' + d.handle + ' now'); } catch (e) {}
+        try { toast('Your handle is @' + d.handle + ' now'); } catch (e) { oops_(e, 'me:profileRefresh_') }
         /* AND THE FACE THE OLD ONE DREW (round 2): the move wrote it into a blank look on the server
            (`handleFaceKept_`), and this phone's blank copy would draw the new handle's colours instead. */
         if (!String(USER.avatar || '').trim() && d.profile && d.profile.avatar) USER.avatar = String(d.profile.avatar);
@@ -3715,16 +3715,16 @@ function profileRefresh_(loud, onOld) {
         USER.friends = d.friends;
         /* THE FRIENDS LIST ON BOTH FINDERS IS MEMOISED — told, as `friendsSave` tells it. Not drawn
            here: the `landRepaint_` below draws the column in front. */
-        try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) {}
+        try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) { oops_(e, 'me:profileRefresh_') }
       }
       const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
-      if (roleMoved) { try { land(); } catch (e) {} return; }
+      if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
-      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) {} }
+      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
@@ -3732,10 +3732,10 @@ function profileRefresh_(loud, onOld) {
       });
       /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
          copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */
-      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) {} }
+      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') } }
       /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this
          column repaints (docs/history/339). `libCardsDraw_` leaves a copy with typing in it alone. */
-      try { land(() => libCardsRedraw_()); } catch (e) {}
+      try { land(() => libCardsRedraw_()); } catch (e) { oops_(e, 'me:profileRefresh_') }
     })
     .catch(() => { PROFILE_ASKING = false; });
 }
@@ -3894,9 +3894,9 @@ function cardRemember_(e) {
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
   /* NOT THE HANDLE (383): nothing about who signed in is kept beside it — it cannot change while the card is open, so the live one is the same. */
   if (typeof e.cr0 === 'number') k.cr = e.cr0;
-  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) {}
+  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) { /* storage can be blocked; the app runs without it */ }
 }
-function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) {} }
+function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) { /* storage can be blocked; the app runs without it */ } }
 
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
@@ -4047,7 +4047,7 @@ function cardFetch_(e) {
       cardRepaint_();
     });
 }
-function cardRepaint_() { PEOPLE_COLS_.concat(Object.keys(FACE_OF_SET_)).forEach(c => { try { paint(c); } catch (x) {} }); }
+function cardRepaint_() { PEOPLE_COLS_.concat(Object.keys(FACE_OF_SET_)).forEach(c => { try { paint(c); } catch (x) { oops_(x, 'me:cardRepaint_') } }); }
 
 /* ---------- THE CARD, AS ITS OWN FORM § */
 function cardEditHtml_(t) {
@@ -4391,7 +4391,7 @@ function cardQualHole_(form, base) {
 
 /* ---------- AND THE CARD IS A CARD AGAIN -------------------------------------------------------------------- */
 function cardClose_(e, pane, sec) {
-  try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) {}
+  try { draftDrop_('card', e.pid + (sec ? ':' + sec : '')); } catch (x) { oops_(x, 'me:cardClose_') }
   /* YOUR OWN STAYS OPEN (468) — the column is its editor — and what it would put back is what is there now. */
   if (CARD_EDIT === e && e.own && USER) {
     Object.assign(e, { pic0: cardPicNow_(), fig0: String(USER.avatar || ''), cr0: Number(USER.credits || 0), h0: String(USER.handle || USER.name || '') });
@@ -4499,7 +4499,7 @@ on('card-save', el => {
       if (e.own) {
         USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
         if (d && d.name) USER.name = d.name;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) {}
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
         /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
         if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
@@ -4512,7 +4512,7 @@ on('card-save', el => {
       const part = (d && d.refused) || seatNo;
       if (!d || d.changed === undefined || d.changed > 0) {
         if (part) sayAfterLoad_(() => document.querySelector('.card-ed[data-pid="' + e.pid + '"][data-sec="' + sec + '"] .me-said'), word);
-        else { try { load(); } catch (x) {} }
+        else { try { load(); } catch (x) { oops_(x, 'me:cardSelfSay_') } }
       }
     })
     .catch(() => { /* `send_` has written the refusal under the form, which is still open. */ });
@@ -4529,7 +4529,7 @@ function figPutBack_(look, seed, el, pane, said) {
       USER.avatar = d.avatar != null ? d.avatar : look;
       if (typeof d.credits === 'number') USER.credits = d.credits;
       if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) { /* storage can be blocked; the app runs without it */ }
       return true;
     }, () => false);
 }
@@ -4693,7 +4693,7 @@ function psPaint_(col) {
   const c = col || 'students';
   document.querySelectorAll('.ps-card[data-ps-col="' + c + '"] .ps-out').forEach(out => { out.innerHTML = psResults_(c); });
   clearTimeout(PS_PLACE_T_);
-  PS_PLACE_T_ = setTimeout(() => { try { if (typeof placeCells === 'function') placeCells(); } catch (e) {} }, 300);
+  PS_PLACE_T_ = setTimeout(() => { try { if (typeof placeCells === 'function') placeCells(); } catch (e) { oops_(e, 'me:psPaint_') } }, 300);
 }
 document.addEventListener('input', e => {
   const t = e.target;

@@ -1,13 +1,13 @@
 {
  "v": 1,
- "score": 74.5,
+ "score": 76.1,
  "weights": {
   "code": 0.4,
   "logic": 0.35,
   "ui": 0.25
  },
  "parts": {
-  "code": 65.6,
+  "code": 69.5,
   "logic": 84.6,
   "ui": 74.7
  },
@@ -79,15 +79,15 @@
   },
   {
    "part": "code",
-   "id": "catches",
-   "cost": 4.2,
-   "say": "526 empty catches are allowed by check-catches; each one hides an error."
-  },
-  {
-   "part": "code",
    "id": "special",
    "cost": 3,
    "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
+  },
+  {
+   "part": "code",
+   "id": "catches",
+   "cost": 2.8,
+   "say": "346 empty catches are allowed by check-catches; each one hides an error."
   },
   {
    "part": "code",
@@ -98,8 +98,8 @@
   {
    "part": "code",
    "id": "dead",
-   "cost": 1.9,
-   "say": "16 functions nothing calls."
+   "cost": 1.8,
+   "say": "15 functions nothing calls."
   }
  ],
  "all": [
@@ -111,15 +111,15 @@
   },
   {
    "part": "code",
-   "id": "catches",
-   "cost": 4.2,
-   "say": "526 empty catches are allowed by check-catches; each one hides an error."
-  },
-  {
-   "part": "code",
    "id": "special",
    "cost": 3,
    "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
+  },
+  {
+   "part": "code",
+   "id": "catches",
+   "cost": 2.8,
+   "say": "346 empty catches are allowed by check-catches; each one hides an error."
   },
   {
    "part": "code",
@@ -130,8 +130,8 @@
   {
    "part": "code",
    "id": "dead",
-   "cost": 1.9,
-   "say": "16 functions nothing calls."
+   "cost": 1.8,
+   "say": "15 functions nothing calls."
   },
   {
    "part": "ui",

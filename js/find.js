@@ -1199,45 +1199,6 @@ function overFacet_(items) {
   return best ? best.facet : null;
 }
 
-/* `whyThisQuestion()` — THE FUNNEL, SHOWING ITS WORKING. § */
-function whyThisQuestion(all) {
-  const items = all ? stuffItems() : stuffFiltered();
-  const asked = STUFF.filters.map(f => f.field);
-  /* BUILT AS STRINGS, NOT WITH `%s`. § */
-  const pad = (v, n) => (String(v) + '                  ').slice(0, n);
-  const num = (v, n) => ('        ' + String(v)).slice(-n);
-  console.log('');
-  console.log(items.length + ' result(s) in hand'
-              + (asked.length ? '   answered: ' + asked.join(', ') : '   nothing answered yet'));
-  console.log('');
-  console.log('  ' + pad('field', 14) + pad('label', 18)
-              + num('answers', 8) + num('cover', 7) + '  why');
-  let chosen = null;
-  facetList().forEach(f => {
-    const vals = facetValues(items, f);
-    const cov = facetCoverage(items, f);
-    let why = asked.indexOf(f.field) !== -1 ? 'asked already' : facetWhy_(items, f);
-    if (!why) { why = chosen ? 'would do, but comes after ' + chosen : '← THIS ONE'; chosen = chosen || f.field; }
-    console.log('  ' + pad(f.field + (f.fromSheet ? ' *' : ''), 14) + pad(f.label, 18)
-                + num(vals.length, 8) + num(Math.round(cov * 100) + '%', 7) + '  ' + why);
-  });
-  if (!chosen) console.log('\n  nothing left to ask — the list is the answer');
-  if (facetList().some(f => f.fromSheet)) {
-    console.log('  * invented in the `facets` tab rather than written in code — see facetFromSheet_');
-  }
-  console.log('');
-  /* THE VALUES TOO, for the one it chose, because "seven answers" and WHICH seven are different
-     facts and the second is the one you act on. */
-  if (chosen) {
-    const f = facetList().find(x => x.field === chosen);
-    console.log('  ' + f.label + ': ' + facetValues(items, f)
-      .map(v => (v.show || v.value) + ' (' + v.n + ')').join(', '));
-    console.log('');
-  }
-  return chosen;
-}
-
-
 /* THE RESOURCES, flattened out of where the payload actually puts them. § */
 /* WALKED ONCE PER PAYLOAD, not once per caller. § */
 let TOPICS_MEMO = { from: null, list: null };
@@ -2225,8 +2186,8 @@ const SCRIPTURE_WAIT_MS = 20000;
 function scriptureFetch_(ask) {
   return new Promise(done => {
     let over = false, ab = null;
-    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) {}
-    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) {} done(null); }, SCRIPTURE_WAIT_MS);
+    try { if (typeof AbortController === 'function') ab = new AbortController(); } catch (e) { oops_(e, 'find:scriptureFetch_') }
+    const t = setTimeout(() => { over = true; try { if (ab) ab.abort(); } catch (e) { /* already stopped is fine */ } done(null); }, SCRIPTURE_WAIT_MS);
     Promise.resolve().then(() => ask(ab ? { cache: 'default', signal: ab.signal } : { cache: 'default' }))
       .then(res => (res && res.ok) ? res.json() : null)
       .catch(() => null)
@@ -2540,7 +2501,7 @@ function bibleRedraw_(n) {
     const tiles = wrap ? cardTiles_(x) : '';
     if (row) { if (tiles) row.outerHTML = tiles; else row.remove(); }
     else if (wrap && tiles) wrap.insertAdjacentHTML('afterend', tiles);
-    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
+    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) { oops_(e, 'find:bibleRedraw_') } }
   });
 }
 
@@ -3915,7 +3876,7 @@ function libIdsFor_(x) {
   if (x.kind !== 'question') return [];
   const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
   const k = qId_(x);
-  try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) {}
+  try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) { oops_(e, 'find:libIdsFor_') }
   return [...new Set(rows.filter(libWaits_).map(libWireQ_))];
 }
 /* ASK FOR ONE CARD'S WORDS (nothing, signed out — the card says so). */
@@ -4007,7 +3968,7 @@ function libRepaintFinder_(F) {
 /* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
    where things stand without being rebuilt. */
 function libLanded_() {
-  try { insLanded_(); } catch (e) {}
+  try { insLanded_(); } catch (e) { oops_(e, 'find:libLanded_') }
   try {
     document.querySelectorAll('.lib-wait').forEach(el => {
       const x = libItemByKey_(el.getAttribute('data-lib') || '');
@@ -4035,7 +3996,7 @@ function libLanded_() {
     const x = libItemByKey_(el.getAttribute('data-lib') || '');
     return x && !libSlim_(x);
   });
-  if (ready) { try { repaint(true); } catch (e) {} }
+  if (ready) { try { repaint(true); } catch (e) { oops_(e, 'find:libLanded_') } }
 }
 on('lib-retry', el => {
   libRetry_();
@@ -6833,7 +6794,7 @@ function padStraighten_(g) {
   g.shaped = sh.kind;
   PAD_ST = out;
   padLiveShow_();
-  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* the browser may refuse this; nothing depends on it */ }
   return true;
 }
 
@@ -7491,7 +7452,7 @@ document.addEventListener('pointerdown', e => {
   }
   e.preventDefault();
   padLand_(e, ink, k);
-  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
+  try { ink.setPointerCapture(e.pointerId); } catch (err) { /* focus and scrolling are niceties */ }
 });
 
 document.addEventListener('pointermove', e => {
@@ -7676,7 +7637,7 @@ document.addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation();
   const st = padProtOf_(k), r = art.getBoundingClientRect();
   PROT_GO = { id: e.pointerId, el, k, r, turn: !!(e.target.closest('[data-prot="turn"]')), x0: e.clientX, y0: e.clientY, sx: st.x, sy: st.y };
-  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+  try { el.setPointerCapture(e.pointerId); } catch (err) { /* focus and scrolling are niceties */ }
 }, true);
 document.addEventListener('pointermove', e => {
   const g = PROT_GO;
@@ -9840,7 +9801,7 @@ function myResults_() {
   const key = who + '|' + MY_RESULT.gen;
   if (MY_RESULT.key === key && MY_RESULT.from === (DATA && DATA.submissions)) return MY_RESULT.map;
   const map = new Map();
-  try { (typeof progressPresses_ === 'function' ? progressPresses_() : []).forEach(p => map.set(p.key, p.v)); } catch (e) {}
+  try { (typeof progressPresses_ === 'function' ? progressPresses_() : []).forEach(p => map.set(p.key, p.v)); } catch (e) { oops_(e, 'find:myResults_') }
   MY_RESULT.key = key; MY_RESULT.from = DATA && DATA.submissions; MY_RESULT.map = map;
   return map;
 }
@@ -9858,7 +9819,7 @@ function myResultOf_(x) {
 /* A PRESS CHANGES IT AT ONCE: every finder forgets what it found, and the tags on the pressed question's own page are said again. */
 function myResultNew_(k) {
   MY_RESULT.gen++;
-  try { finderForgetFound_(); } catch (e) {}
+  try { finderForgetFound_(); } catch (e) { oops_(e, 'find:myResultNew_') }
   try {
     const x = stuffItemsAll_().find(i => i && i.kind === 'question' && ansKey_(i) === k);
     if (!x) return;
@@ -10519,7 +10480,7 @@ function adoptFavourites_() {
   if (!DATA || !DATA.favourites) return;
   FAVS = new Set(DATA.favourites.map(String));
   favsMerged_();
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 /* A STAR ON A WIDGET THAT WAS FOLDED INTO ANOTHER (441) lands on the one it went into, with that game chosen — the choice set once per device, so a later pick stands. */
@@ -10540,7 +10501,7 @@ const isFav = k => FAVS.has(String(k));
 function toggleFav(k, kind) {
   const key = String(k);
   if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
+  try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* SAVED QUIETLY. A star is not worth a toast or a spinner — and if the save fails the star is
      still right on this device, which is the part that matters in the moment. */
   if (USER) {
@@ -10557,8 +10518,8 @@ function toggleFav(k, kind) {
     }).catch(err => {
       /* PUT THE STAR BACK. `.catch(() => {})` was the other half of the disguise: § */
       if (FAVS.has(key)) FAVS.delete(key); else FAVS.add(key);
-      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
-      if (typeof repaint === 'function') { try { repaint(); } catch (e) {} }
+      try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) { /* storage can be blocked; the app runs without it */ }
+      if (typeof repaint === 'function') { try { repaint(); } catch (e) { oops_(e, 'find:toggleFav') } }
       toast(why_(err));
     });
   }
@@ -11256,7 +11217,7 @@ function paneWatch_(host) {
     const kids = [].slice.call(panes).map(p => p.firstElementChild).filter(Boolean);
     const had = host.PANE_KIDS || [];
     const now = new Set(kids);
-    had.forEach(k => { if (!now.has(k)) { try { PANE_WATCH.unobserve(k); } catch (e) {} } });
+    had.forEach(k => { if (!now.has(k)) { try { PANE_WATCH.unobserve(k); } catch (e) { /* already stopped is fine */ } } });
     const old = new Set(had);
     kids.forEach(k => { if (!old.has(k)) PANE_WATCH.observe(k); });
     host.PANE_KIDS = kids;
@@ -12196,7 +12157,7 @@ document.addEventListener('pointerdown', e => {
   if (!ov) return;
   e.preventDefault();
   e.stopPropagation();
-  try { ov.setPointerCapture(e.pointerId); } catch (err) {}
+  try { ov.setPointerCapture(e.pointerId); } catch (err) { /* focus and scrolling are niceties */ }
   const p = measAt_(ov, e);
   MEAS_PT.set(e.pointerId, { p, l: measLocal_(p) });
   measAnchor_();

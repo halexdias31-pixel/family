@@ -85,8 +85,8 @@ function subRequeue_(who) {
     if (!e || typeof e !== 'object' || !e.q || !e.id || ids.has(e.id) || typeof e.a !== 'string' || !e.a.trim()) return;
     const k = 'ans:' + who + ':' + key;
     const ev = { id: String(e.id), key: key, answer: e.a, verdict: String(e.v || ''), at: Number(e.at) || Date.now() };
-    try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) {}
-    try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) {}
+    try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) { oops_(err, 'submit:subRequeue_') }
+    try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) { oops_(err, 'submit:subRequeue_') }
     lost.push(ev);
   });
   if (lost.length) subQueueKeep_(who, queue.concat(lost));
@@ -119,8 +119,8 @@ function subRecord_(k, answer, verdict, sound) {
       /* `at` IS THE PRESS'S OWN MOMENT, and the server orders "latest" by it (`pressed_at`, clamped to its
          own clock) — not by when the request arrived, which the rollout's queue would scramble. */
       const ev = { id: e.id, key: key, answer: answer, verdict: e.v, at: e.at };
-      try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) {}
-      try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) {}
+      try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) { oops_(err, 'submit:subRecord_') }
+      try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) { oops_(err, 'submit:subRecord_') }
       const q = subQueue_(who);
       q.push(ev);
       subQueueKeep_(who, q);
@@ -268,7 +268,7 @@ function subAdopt_() {
     }
     subPaintAll_();
   } catch (e) {}
-  try { subMigrate_(); } catch (e) {}
+  try { subMigrate_(); } catch (e) { oops_(e, 'submit:subAdopt_') }
   subPush_(true);
 }
 
@@ -292,7 +292,7 @@ function subClaimOver_(k, was, at) {
   held[key] = { a: String(was), at: Number(at) || 0 };
   const raw = JSON.stringify(held);
   if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), raw, 'record');
-  else { try { localStorage.setItem(subBeforeKey_(who), raw); } catch (e) {} }
+  else { try { localStorage.setItem(subBeforeKey_(who), raw); } catch (e) { /* storage can be blocked; the app runs without it */ } }
 }
 function subMigrateId_(pid, key) {
   /* TWO 32-BIT FNV-1a PASSES IN BASE 36 — `SUBMISSION_ID`'s shape, `<digits>-<letters and digits>`, with an
@@ -390,8 +390,8 @@ function subMigrate_() {
     else {
       e.q = 1;
       const ev = { id: e.id, key: key, answer: m.a, verdict: m.v, at: e.at };
-      try { const l = doneLabel_(k, index); if (l) ev.label = l; } catch (err) {}
-      try { const w = doneWords_(k, index); if (w) ev.words = w; } catch (err) {}
+      try { const l = doneLabel_(k, index); if (l) ev.label = l; } catch (err) { oops_(err, 'submit:subMigrate_') }
+      try { const w = doneWords_(k, index); if (w) ev.words = w; } catch (err) { oops_(err, 'submit:subMigrate_') }
       queue.push(ev);
     }
     all[key] = e;
@@ -406,10 +406,10 @@ function subMigrate_() {
     subPaintAll_();
   }
   if (!stored) return;
-  try { localStorage.setItem(flag, String(Date.now())); } catch (e) {}
+  try { localStorage.setItem(flag, String(Date.now())); } catch (e) { /* storage can be blocked; the app runs without it */ }
   /* AND WHAT THE CLAIM WROTE OVER IS NOBODY'S BUSINESS ANY MORE. */
   if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), null, 'record');
-  else { try { localStorage.removeItem(subBeforeKey_(who)); } catch (e) {} }
+  else { try { localStorage.removeItem(subBeforeKey_(who)); } catch (e) { /* storage can be blocked; the app runs without it */ } }
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
@@ -563,7 +563,7 @@ function markHush_() {
       n.out.gain.setValueAtTime(1, t);
       n.out.gain.linearRampToValueAtTime(0, t + 0.015);
     }
-    setTimeout(() => { try { n.out.disconnect(); } catch (e) {} }, 60);
+    setTimeout(() => { try { n.out.disconnect(); } catch (e) { /* already stopped is fine */ } }, 60);
   } catch (e) {}
 }
 function markPlay_(v, late) {
@@ -869,7 +869,7 @@ document.addEventListener('change', e => {
   if (!i || !i.classList || !(i.classList.contains('rep-files-in') || i.classList.contains('rep-dir-in'))) return;
   const form = i.closest('.rep-box');
   if (form) repFilesAdd_(form, i.files, i.classList.contains('rep-dir-in'));
-  try { i.value = ''; } catch (err) {}
+  try { i.value = ''; } catch (err) { oops_(err, 'submit:repFilesAdd_') }
 });
 /* ---------- A VIDEO ALSO GOES AS FRAMES (640): Claude reads Drive through a connector that cannot watch video, so the phone makes `<name>.frames-N.jpg` contact sheets and a `.small.jpg`. */
 const REP_FRAMES_MAX = 24, REP_FRAMES_STEP = 0.5, REP_SHEET_W = 1280, REP_SHEET_COLS = 4, REP_SHEET_PER = 12, REP_SHEET_BYTES = 150 * 1024, REP_SEEK_MS = 8000;
@@ -1022,7 +1022,7 @@ on('rep-send', el => {
         { button: el, where: said })
     .then(d => {
       /* SENT, SO THE DRAFT GOES — a reload must not bring back words already in the sheet. */
-      try { draftDrop_('rep', kind + '|' + id); } catch (e) {}
+      try { draftDrop_('rep', kind + '|' + id); } catch (e) { oops_(e, 'submit:repFilesSend_') }
       if (box) box.value = '';
       boxOut_(form);
       if (d && d.serious && DATA) {

@@ -34,7 +34,7 @@ function ansValue_(k) {
      older, or nothing, and drawing it is how the next key saved it over the newer one (317). */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
   if (held !== undefined) return held;
-  try { return localStorage.getItem(k); } catch (e) {}
+  try { return localStorage.getItem(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
 /* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
@@ -49,22 +49,22 @@ function ansLocalPut_(k, v, words) {
   if (mark) ansGoneMark_(k, v, words, was);
   /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. § */
   if (typeof keepPut_ === 'function') keepPut_(k, v);
-  else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* storage can be blocked; the app runs without it */ } }
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
-    try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) {}
+    try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) { /* a bad stored value reads as none */ }
   }
 }
 /* WHEN THE ANSWER IN THIS KEY WAS LAST EDITED, in ms — by this device's child, or by whichever device
    the server's copy came from. 0 is "never stamped": a value from before this file existed. */
 const ANS_AT_MEM = new Map();
 function ansAt_(k) {
-  try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) {}
+  try { return Number(localStorage.getItem('ansAt:' + k)) || 0; } catch (e) { /* storage can be blocked; the app runs without it */ }
   return ANS_AT_MEM.get(k) || 0;
 }
 function ansAtSet_(k, at) {
   ANS_AT_MEM.set(k, at);
-  try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) {}
+  try { localStorage.setItem('ansAt:' + k, String(at)); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* WHICH KEYS STILL HAVE TO GO UP, per person. A Set held for the visit and written through to storage,
    so the list survives a reload, a crash and a sign-out — and goes up the next time that person signs
@@ -74,7 +74,7 @@ function ansDirtySet_(who) {
   let s = ANS_DIRTY.get(who);
   if (!s) {
     s = new Set();
-    try { (JSON.parse(localStorage.getItem('ansDirty:' + who) || '[]') || []).forEach(k => s.add(String(k))); } catch (e) {}
+    try { (JSON.parse(localStorage.getItem('ansDirty:' + who) || '[]') || []).forEach(k => s.add(String(k))); } catch (e) { /* storage can be blocked; the app runs without it */ }
     ANS_DIRTY.set(who, s);
   }
   return s;
@@ -369,7 +369,7 @@ function answersClaim_(pid, ownOnly) {
     /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, joined, or the older of two. */
     ansLocalPut_(bare, null);
     ANS_AT_MEM.delete(bare);
-    try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
+    try { localStorage.removeItem('ansAt:' + bare); } catch (e) { /* storage can be blocked; the app runs without it */ }
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
     /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on this device — and that pass reads the box, so it was § */
@@ -481,7 +481,7 @@ const ANS_GONE_MS = 60 * 60 * 1000;
 const ansRec_ = name => ansValue_(name);
 function ansRecPut_(name, v) {
   if (typeof keepPut_ === 'function') { keepPut_(name, v, 'record'); return; }
-  try { if (v === null) localStorage.removeItem(name); else localStorage.setItem(name, v); } catch (e) {}
+  try { if (v === null) localStorage.removeItem(name); else localStorage.setItem(name, v); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 function ansGone_() {
   try {
@@ -585,7 +585,7 @@ function ansSwitched_() {
   return /^u:[^:]+$/.test(v) ? v : '';
 }
 function ansSwitchedIn_(pid) {
-  try { ansRecPut_(ANS_SWITCHED, pid ? 'u:' + String(pid) : null); } catch (e) {}
+  try { ansRecPut_(ANS_SWITCHED, pid ? 'u:' + String(pid) : null); } catch (e) { oops_(e, 'answers:ansSwitchedIn_') }
 }
 function ansMayMove_(bare, k) {
   const m = ansGoneOf_(bare);
@@ -748,7 +748,7 @@ function answersForget_() {
   clearTimeout(ANS_RETRY);
   ANS_BACKOFF = 0;
   /* AND THE NOTE OF A SESSION THE SERVER ENDED (`ansGoneSay_`): § */
-  try { ansRecPut_('familyGone', null); } catch (e) {}
+  try { ansRecPut_('familyGone', null); } catch (e) { oops_(e, 'answers:answersForget_') }
   /* AND WHO ARRIVED OVER SOMEBODY ELSE (`ansMayMove_`): the next arrival says again how it came. */
-  try { ansRecPut_(ANS_SWITCHED, null); } catch (e) {}
+  try { ansRecPut_(ANS_SWITCHED, null); } catch (e) { oops_(e, 'answers:answersForget_') }
 }

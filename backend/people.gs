@@ -591,12 +591,6 @@ function typedKids_(personRow) {
   });
 }
 
-/* ---------- WHO A FAMILY SAYS IT IS BRINGING, AS OTHER FAMILIES MAY READ IT (342, the review) § */
-function typedFirstWords_(s) {
-  return S(s).split(/(\s*(?:,|;|\/|&|\+|\n|\band\b)\s*)/i)
-    .map((part, i) => (i % 2 ? part : S(part).split(/\s+/)[0] || '')).join('').trim();
-}
-
 /* `for_children` AS IT MAY BE KEPT: each name the phone sent that is one of the booker's typed-only
    children (`typedKids_`) becomes what `childNamesOf` offers for her; the rest as sent. Empty stays
    empty — a booking for yourself. */

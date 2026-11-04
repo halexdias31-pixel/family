@@ -12,7 +12,7 @@ try {
   bootFailed(err, 'drawing the first screen');
 
   /* AND THEN CARRY ON AS FAR AS IT CAN. § */
-  try { placeCells('x', true); } catch (err2) {}
+  try { placeCells('x', true); } catch (err2) { oops_(err2, 'boot:top') }
 }
 
 /* THE REST OF THE CODE FIRST (670), then the payload's wait and the library share the wire with nothing the first screen needs. */
@@ -27,11 +27,11 @@ bootIdle_(() => aheadPreOpen_());
 bootIdle_(() => splashForget_());
 
 /* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD § */
-try { watchBuild_(); } catch (e) {}
+try { watchBuild_(); } catch (e) { oops_(e, 'boot:top') }
 
 /* ---------- AND AN ACCOUNT ARRIVING FROM ITS CONFIRMATION EMAIL § */
-try { verifyFromLink_(); } catch (e) {}
+try { verifyFromLink_(); } catch (e) { oops_(e, 'boot:top') }
 /* AND `?signin=<key>`, the link in a forgotten-PIN email — see `pinFromLink_` in me.js. Same reasons. */
-try { pinFromLink_(); } catch (e) {}
+try { pinFromLink_(); } catch (e) { oops_(e, 'boot:top') }
 /* AND `?paid=1&ref=…`, a card payment coming back from Stripe — see `paidFromLink_` in me.js (430). */
-try { paidFromLink_(); } catch (e) {}
+try { paidFromLink_(); } catch (e) { oops_(e, 'boot:top') }
