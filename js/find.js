@@ -210,6 +210,8 @@ const KINDS = {
   person: { group: 'People', label: 'People', card: x => (KINDS.tutor && KINDS.tutor.card ? KINDS.tutor.card({ kind: 'tutor', row: x.row }) : `<div class="card"><h3>${esc(x.name)}</h3></div>`) },
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
+  /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
+  msg: { group: 'Messages', label: 'Messages', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
@@ -246,7 +248,7 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
   rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards' };
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
-  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
+  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id }));
   /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
@@ -896,7 +898,9 @@ function kindRank_() {
   return { labels, groups };
 }
 /* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
-const ANSWER_ORDERS = [];
+/* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
+const FRONT_ORDER = ['Practice', 'Library', 'Coming soon', 'Posts', 'Messages', 'People', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
+const ANSWER_ORDERS = [FRONT_ORDER];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
   if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);
@@ -1082,7 +1086,11 @@ function facetSplit_(items, facet) {
 const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
 /* KINDS UNDER KINDS (546, 610): "questions and answers should be under practice … practicals … projects too", "timeline should be in library under history". */
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
-const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library' };
+const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Practice', timeline: 'Library',
+  /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
+  tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
+  friend: 'People', person: 'People', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
+  post: 'Posts', tool: 'Tools', game: 'Games' };
 function kindTop_(x) { return (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
