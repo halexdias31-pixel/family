@@ -188,9 +188,9 @@ function layoutRelayout_() {
   try { columnsFor_(); } catch (e) {}
   try { markStale_(TABS.map(t => t.id)); } catch (e) {}
   /* FIND'S LIST HOLDS THE WIDGET CARDS (790): forgotten, so a deleted or narrowed one leaves it, and a finder in front is drawn again (`repaint` leaves the one in front). */
-  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) {}
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) { /* find.js not in yet (670): nothing is memoised */ }
   try { repaint(true); } catch (e) {}
-  try { if (typeof finderOf_ === 'function' && finderOf_(AT)) paint(AT, true); } catch (e) {}
+  try { if (typeof finderOf_ === 'function' && finderOf_(AT)) paint(AT, true); } catch (e) { /* paint reports its own draw errors */ }
 }
 
 /* THE WIDGETS AN ADMIN ARRANGES: the code's own (not a session's live widget), whatever audience each is for. */
