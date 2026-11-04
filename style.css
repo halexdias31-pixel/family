@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-03-merge-10";
+  --css-version: "2026-11-03-770";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3567,7 +3567,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .ps-bar { display: flex; gap: .4rem; align-items: stretch; }
 .ps-bar > .search-pill { flex: 1; min-width: 0; }
 .ps-bar .search-pill > input { min-height: 44px; }
-.ps-bar > .ps-go { flex: none; width: auto; margin: 0; min-height: 44px; padding: 0 1rem; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and
@@ -5226,6 +5225,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .row.tap.counted[data-tag]:not(:active):not(.is-pressed) { border-color: var(--tag); }
 .row.tap.counted[data-tag] .k { color: var(--tag); }
 .row.tap.counted.is-skip { background: none; border-style: dashed; }
+/* THE OTHER HALF OF A YES-OR-NO AT 0 (770, `facetNoneHtml_`): greyed words, never a chip a finger presses. */
+.facet-none { display: flex; flex-wrap: wrap; gap: .4rem .6rem; margin: .5rem 0 0; }
+.facet-none .none-chip { color: var(--dim); font-size: var(--fs-xs, .8rem); }
 .row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
 @media (hover: hover) {
   .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
@@ -7204,6 +7206,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
 
 /* STABILITY (730): the score big, the signals as a short list. */
-.stability-card .stab-score { font-size: 2.6rem; line-height: 1; margin: .4rem 0; color: var(--gold); }
-.stability-card .stab-top { margin: .5rem 0 .6rem 1.1rem; padding: 0; }
-.stability-card .stab-top li { font-size: .9rem; }
+.stability-card .stab-score, .logic-card .stab-score { font-size: 2.6rem; line-height: 1; margin: .4rem 0; color: var(--gold); }
+.stability-card .stab-top, .logic-card .stab-top { margin: .5rem 0 .6rem 1.1rem; padding: 0; }
+.stability-card .stab-top li, .logic-card .stab-top li { font-size: .9rem; }

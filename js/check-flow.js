@@ -2925,7 +2925,8 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
       else if (say.length > 90) bad.push(col + ': ' + id + '\'s line is ' + say.length + ' characters');
     });
     const says = a.d.querySelectorAll('#s-' + col + ' .card-say').length;
-    const empty = a.d.querySelectorAll('#s-' + col + ' .card.is-empty').length;
+    /* A SEARCH CARD'S PLACEHOLDER IS ITS LINE (469, 770), so it owes none. */
+    const empty = a.d.querySelectorAll('#s-' + col + ' .card.is-empty, #s-' + col + ' .card.ps-card').length;
     /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414), so it owes no line. */
     if (says < seen.size - empty) bad.push(col + ': ' + says + ' lines drawn for ' + (seen.size - empty) + ' cards with something in them');
   }
@@ -10057,7 +10058,8 @@ const psBoot_ = async user => {
   await wait(150);
   const type = async q => { const box = d.querySelector('#s-students [data-psearch]'); box.value = q;
     box.dispatchEvent(new r.w.Event('input', { bubbles: true })); await wait(30); return box; };
-  const find = async () => { t.ACTIONS['ps-find'](d.querySelector('#s-students [data-do="ps-find"]')); await wait(300); };
+  /* RETURN IN THE BOX (770: no Find button). */
+  const find = async () => { r.w.psFind_(d.querySelector('#s-students [data-psearch]')); await wait(300); };
   return Object.assign(r, { t, d, draw, type, find, out: () => d.querySelector('#s-students .ps-out') });
 };
 const PS_PAT = { name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', profile: { first_name: 'Pat', last_name: 'Parent' } };
@@ -10202,14 +10204,35 @@ check('442: "Add as my child" sends the family request by handle through claimCh
   return bad;
 });
 check('442: a student sees the search but no Find and no tile, and posts no lookup', async () => {
-  const { sent, t, d, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
+  const { sent, t, d, w, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
   if (!d.querySelector('#s-students .ps-card')) bad.push('a student has no search');
-  if (d.querySelector('#s-students [data-do="ps-find"]')) bad.push('a student is offered Find, which looks up children');
+  if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is back on the search card (770: the owner, "remove find button")');
   await type('wren_kind43');
-  t.ACTIONS['ps-find'](d.createElement('button'));
+  w.psFind_(d.querySelector('#s-students [data-psearch]'));
   await wait(200);
   if (sent.some(b => b.action === 'findChild')) bad.push('a student posted findChild');
   if (d.querySelector('#s-students [data-do="ps-add-child"]')) bad.push('a student sees "Add as my child"');
+  return bad;
+});
+
+/* ---------- 770: NO FIND BUTTON, NO COLUMN NAMED, SIGN IN ONE UNIT, DELETED MOVES ---------- */
+check('770: the search card has no Find button; no card is titled with a column\'s name; Sign in is acct:signed-in; Deleted moves', async () => {
+  const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' }), bad = [];
+  try { t.repaint(true); ['tutors', 'students', 'parents', 'account', 'family', 'staff', 'biz'].forEach(id => w.paint(id)); } catch (e) {}
+  await wait(150);
+  if (!d.querySelector('#s-students .ps-card[data-ps-col="students"]')) bad.push('Students has no search card');
+  if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is on a search card');
+  if (d.querySelector('.ps-card .card-say')) bad.push('the search card carries a sentence above its bar (its placeholder is its label, 469)');
+  const names = new Set((t.TABS || []).map(x => String(x.label || x.id).trim().toLowerCase()));
+  /* AN EMPTY LIST'S CARD (`emptyCard_`, 414) keeps its title by its own rule. */
+  d.querySelectorAll('.screen .card:not(.is-empty) > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
+  if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
+  const row = w.cardAdminRow_('biz:deleted', 'biz', false);
+  if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');
+  if (/lay-c-del/.test(row)) bad.push('the Deleted card can be deleted');
+  t.USER(null);
+  const out = w.studentSetPages_();
+  if (w.cardIdOf_(out[0]) !== 'acct:signed-in') bad.push('signed out, the Sign in card is ' + JSON.stringify(w.cardIdOf_(out[0])) + ', not acct:signed-in — moved signed in, it would jump back');
   return bad;
 });
 
@@ -30662,6 +30685,9 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       ['Move up', 'Move down', 'Move to previous column|Move to a new column on the left', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (!l.split('|').some(x => labels.indexOf(x) !== -1)) bad.push(id + ' has no ' + l); });
     });
   }
+  /* A CARD THAT MOVES BUT IS KEPT (CARD_KEEP, 770: Deleted) has every tile but Delete. */
+  const keep = ['biz:deleted'];
+  for (let i = bad.length - 1; i >= 0; i--) if (keep.some(k => bad[i] === k + ' has no Delete')) bad.splice(i, 1);
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
@@ -32216,7 +32242,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!card) return ['no What’s missing card on Find for an admin — NOT checked'];
   const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
   const cardAt = () => missPages_(d).indexOf(d.querySelector('#s-stuff .miss-card')?.closest('.page'));
-  if (cardAt() !== 0 || qAt() !== 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
+  /* LOGIC HEALTH (770) may sit above it: the card is directly above the question either way. */
+  if (cardAt() !== qAt() - 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
   if (t.PAGE().stuff !== qAt()) bad.push('Find opens on page ' + t.PAGE().stuff + ', not on the question (' + qAt() + ')');
   if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
   if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
@@ -32240,7 +32267,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   /* A CHIP REDRAWS WHAT IS BELOW THE QUESTION, never the card above it. */
   w.paintFinder_('stuff');
   await wait(200);
-  if (cardAt() !== 0 || qAt() !== 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
+  if (cardAt() !== qAt() - 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
   if (t.PAGE().stuff !== qAt()) bad.push('a repaint of the funnel left Find on page ' + t.PAGE().stuff);
   /* BACK TO TOP IS THE QUESTION. */
   t.goPage('stuff', 1 + qAt(), true); await wait(100);
@@ -32254,7 +32281,8 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
     t.ACTIONS['lay-c-del'](del()); await wait(450); t.ACTIONS['lay-c-del'](del()); await wait(400);   /* sure_'s 400 ms between the two taps (534) */
     if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
-    if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
+    const lead = d.querySelector('#s-stuff .logic-card') ? 1 : 0;
+    if (qAt() !== lead || t.PAGE().stuff !== qAt()) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
   }
   if (errs.length) bad.push('errors: ' + errs.join(' | ').slice(0, 300));
   w.close();

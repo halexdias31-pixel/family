@@ -494,7 +494,8 @@ const FACETS = [
   { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
-  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : '' },
+  /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
+  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
@@ -508,6 +509,8 @@ const FACETS = [
   /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id) },
+  /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
+  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -724,8 +727,16 @@ const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document'
 /* WHAT A PAPER ID IS CALLED: its document row's name, or the id itself — an unreadable button beats a blank one. */
 const paperLabel_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null;
-  return String((d && d.name) || id || '').trim();
+  const name = String((d && d.name) || id || '').trim(), sec = paperSectionOf_(d);
+  /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
+  return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
+/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
+function paperSectionOf_(row) {
+  const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
+  if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || '').trim() };
+}
 
 /* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip
    and the card alike (396). Sets `show` on each value in place; the last rung is the full name. */
@@ -1580,7 +1591,7 @@ function contentItem_(b, c) {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
-    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics,
+    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
@@ -9290,6 +9301,7 @@ const LEVEL_TABLE = [
   { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
   { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
   { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
+  { level: 'Level 2 Certificate', rung: 0, stages: ['KS4'], tiers: [], says: ['L2 Certificate'] },
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
@@ -10031,6 +10043,8 @@ function accountPages_(col) {
   /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_(col)].filter(Boolean) : [];
   const fam = famIn(col).map(famCard_);
+  /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
+  const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
   if (col === 'tutors') {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
@@ -10040,7 +10054,6 @@ function accountPages_(col) {
   } else if (col === 'students') {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
-    const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
     /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
     const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
@@ -11539,7 +11552,23 @@ function stuffQuestion() {
   const values = facetValues(items, facet);
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const sw = scriptureWait_(items);
-  return facetAnswersHtml_(facet, values, sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '');
+  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
+}
+/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
+function facetNoneHtml_(items, shown) {
+  try {
+    const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];
+    facetList().forEach(facet => {
+      if (facet === shown || asked.indexOf(facet.field) !== -1) return;
+      const here = facetValues(items, facet);
+      if (here.length !== 1 || facetCoverage(items, facet) < 1) return;
+      const every = facetValues(all, facet);
+      if (every.length !== 2) return;
+      const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
+      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(other.show || other.value)} <b>0</b></span>`);
+    });
+    return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
+  } catch (e) { return ''; }
 }
 /* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
 function facetAnswersHtml_(facet, values, more) {
