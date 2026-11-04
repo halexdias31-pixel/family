@@ -1646,6 +1646,7 @@ function pageWrite_(el, st) {
 const flowHome_ = () => (TABS.some(t => t.id === 'stuff') ? 'stuff' : AT);
 /* No transform and no glass: each section's inline placement cleared, every page in flow and touchable; `.on` is the page being read. */
 function flowPlace_() {
+  topbarPaint_();
   const home = flowHome_();
   TABS.forEach(t => {
     const host = $('s-' + t.id);

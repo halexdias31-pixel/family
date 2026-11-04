@@ -16123,6 +16123,11 @@ check('signing in types on the @family keypad: the handle on the letters with @ 
   t.USER(null); t.go('account', false, true); w.paint('account');
   await wait(20);
   const nm = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  /* ONE SCROLLING PAGE (900): the sign-in boxes keep the phone's own keyboard — never bound to the pad. */
+  if (d.documentElement.classList.contains('flow')) {
+    [nm, pin].forEach(b => { if (!b) bad.push('the sign-in card drew no box'); else if (b.hasAttribute('data-kpb') || b.getAttribute('inputmode') === 'none') bad.push('#' + b.id + ' was bound to the pad'); });
+    return bad;
+  }
   bad.push(...kpBoundSays_(w, nm, 'mail', 'the handle box'), ...kpBoundSays_(w, pin, 'num', 'the PIN box'));
   if (!nm || !pin) return bad;
   if (pin.getAttribute('autocomplete') !== 'one-time-code') bad.push('the PIN box lost its autocomplete="one-time-code"');

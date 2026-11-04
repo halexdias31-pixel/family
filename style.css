@@ -2200,11 +2200,14 @@ html.flow body { max-width: 40rem; padding: var(--safe-top) 16px calc(var(--s4) 
 html.flow.kp-up body { padding-bottom: calc(var(--kp-h, 50dvh) + var(--s4)); }
 html.flow #topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: 48px; }
 html.flow #topbar-who { display: flex; align-items: center; gap: var(--s2); color: var(--dim); }
-html.flow #screen { height: auto; overflow: visible; touch-action: auto; background: none; display: flex; flex-direction: column; gap: var(--s4); }
-html.flow .screen { position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
+html.flow #screen { height: auto; overflow: visible; touch-action: auto; background: none; display: flex; flex-direction: column; }
+html.flow .screen { gap: 0; position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; }
-html.flow .pane { max-height: none; touch-action: auto; }
+/* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small grey line. */
+html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
+html.flow #screen .page + .page { border-top: 1px solid var(--line); }
+html.flow .qcard-tags .qtag { color: var(--faint); border-color: transparent; background: none; padding: 0; }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 
