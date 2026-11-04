@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-bundle.js A BUNDLE NAMES EXACTLY THE PAPERS THE LIST IS, AND THE ORDER REACHES THE OWNER. § */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');

@@ -2,6 +2,7 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* check-qtypes.js — EVERY QUESTION PART HAS ONE INTERACTION TYPE, AND EVERY TYPE A PROTOCOL (375).
    Fails on a part with no type, a protocol missing a field, or a fixture typed wrong. Gaps are a report. */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 /* Flags: --type=<id> lists that type's incomplete parts; --all lists every one. */
 const fs = require('fs');
 const path = require('path');

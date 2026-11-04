@@ -165,7 +165,18 @@ function writingAt_(x, k) {
   /* THE ORIGINAL ONLY: a text with a translator (KJV's Old Testament) is a translation of it, not it. */
   if (!also || !also[k] || writingAt1_(x, 'work') !== also.work || writingVersionOf_(writingAt1_(x, 'text'))) return v;
   const had = [].concat(v || []);
+  /* A COLLECTION IS NAMED BY THE RELIGION ASKED (770): under Judaism the Masoretic books are the Tanakh and never the Old Testament;
+     under Christianity the other way; with no religion chosen, both. */
+  if (k === 'collection') {
+    const rel = writingReligionAsked_();
+    if (rel && spellKey_(rel) === spellKey_(also.religion)) return also[k];
+    if (rel) return v;
+  }
   return had.indexOf(also[k]) === -1 ? had.concat(also[k]) : v;
+}
+/* THE RELIGION THIS FINDER'S FUNNEL HAS ANSWERED (not Any), or ''. */
+function writingReligionAsked_() {
+  try { const f = (STUFF.filters || []).find(g => g && g.field === 'wReligion' && !g.any); return f ? String(f.value || '') : ''; } catch (e) { return ''; }
 }
 function writingOf_(x) {
   if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return null;

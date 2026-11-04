@@ -258,7 +258,6 @@ const WIDGETS = [
 
   /* ---------- TOUCH TYPING § */
   { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
-    pure: true,
     start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },
@@ -333,7 +332,6 @@ const WIDGETS = [
     <div id="pxe-box"></div>
   </div>` },
   { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
-    pure: true,
     draw: () => paintEink_?.(),
     into: 'eink-box', what: 'The e-ink screen',
     html: `<h3>E-ink screen</h3>

@@ -25,11 +25,45 @@ const missingFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('ad
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
 function missingLead_() {
-  if (!missingFor_()) return [];
+  const out = logicLead_();
+  if (!missingFor_()) return out;
   const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
-  return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h];
+  return out.concat([typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h]);
 }
-const missingLeadN_ = () => (missingFor_() ? 1 : 0);
+const missingLeadN_ = () => (logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
+
+/* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
+const LOGIC_ID = 'item:stuff:logic-health';
+const LOGIC = { got: null, failed: false, asked: false, all: false };
+const logicFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') && !(typeof itemGone_ === 'function' && itemGone_(LOGIC_ID));
+function logicLead_() {
+  if (!logicFor_()) return [];
+  const h = typeof itemMark_ === 'function' ? itemMark_(LOGIC_ID, '', logicCard_()) : logicCard_();
+  return [typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'logic-health', 'Logic health') : h];
+}
+function logicCard_() {
+  if (!LOGIC.asked && typeof fetch === 'function') {
+    LOGIC.asked = true;
+    Promise.resolve()
+      .then(() => fetch('data/logic-health.json' + deployStamp_(), { cache: 'default' }))
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(j => { LOGIC.got = j && typeof j.score === 'number' ? j : null; LOGIC.failed = !LOGIC.got; })
+      .catch(() => { LOGIC.failed = true; })
+      .then(() => { try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
+  }
+  const s = LOGIC.got, head = '<h3>Logic health</h3>';
+  if (!s) return `<div class="card logic-card">${head}${LOGIC.failed ? '<p class="muted">The score could not be read. Run node tools/logic-health.js and push.</p>' : loading_()}</div>`;
+  const rules = (s.rules || []).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
+  const top = (s.top || []).slice(0, LOGIC.all ? 25 : 3);
+  const line = t => `<li><b>${esc(t.where)}</b> · ${esc(t.asks || '')}<br><span class="faint">${esc((t.why || []).join(' · '))}</span></li>`;
+  return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
+    <p class="sub">${esc(String(s.healthy))} of ${esc(String(s.questions))} questions break no rule.</p>
+    <p class="faint">${rules.map(r => esc(r.label) + ': ' + esc(String(r.count))).join(' · ') || 'Every rule holds.'}</p>
+    <ol class="stab-top">${top.map(line).join('')}</ol>
+    <p class="faint">${esc(s.cannot || '')}</p>
+    ${(s.top || []).length > 3 ? tileRow_(tile_({ icon: LOGIC.all ? 'hide' : 'show', label: LOGIC.all ? 'Show the top three' : 'Show the worst ' + Math.min(25, s.top.length), act: 'logic-all' }), '', true) : ''}</div>`;
+}
+on('logic-all', () => { LOGIC.all = !LOGIC.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
 /* ---------- THE LIST, FETCHED WHEN THE CARD IS FIRST DRAWN — never in the boot payload; absent or broken is an empty list ---------- */
 function missingAsk_() {

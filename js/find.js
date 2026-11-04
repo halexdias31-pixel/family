@@ -220,8 +220,9 @@ const KINDS = {
 /* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */
 const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 
+/* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
-  /* NO LONGER A TAP TARGET. § */
+  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutTiles_`) */
   return `<div class="card">
     <h3>${esc(x.name)}</h3>
   </div>`;
@@ -385,7 +386,76 @@ const facetRaw_ = field => {
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
-  return asList_(facet.of(x));
+  const col = facetCol_(facet);
+  if (!col || !x || typeof x !== 'object') return asList_(facet.of(x));
+  const i = itemIx_(x);
+  if (col.id[i] === undefined) facetRead_(col, facet, x, i);
+  return col.vals[i];
+}
+/* ONE CARD READ INTO A COLUMN: its values, and each as a number (`id`: -1 none, -2 several, in `many`; `kid` its spelling key's
+   number), so a tally counts into arrays instead of hashing strings (805). */
+function facetRead_(col, facet, x, i) {
+  const vals = asList_(facet.of(x));
+  col.vals[i] = vals;
+  if (!vals.length) { col.id[i] = -1; return; }
+  if (vals.length === 1) { col.id[i] = facetIntern_(col, vals[0]); return; }
+  const ids = [], kids = [];
+  vals.forEach(v => {
+    const d = facetIntern_(col, v);
+    if (ids.indexOf(d) < 0) ids.push(d);
+    const k = col.kid[d];
+    if (k >= 0 && kids.indexOf(k) < 0) kids.push(k);
+  });
+  col.many[i] = { ids: ids, kids: kids };
+  col.id[i] = -2;
+}
+function facetIntern_(col, v) {
+  const name = String(v);
+  let d = col.ids.get(name);
+  if (d !== undefined) return d;
+  d = col.names.length;
+  col.names.push(name);
+  col.ids.set(name, d);
+  const k = spellKey_(v);
+  let kd = -1;
+  if (k) { kd = col.kids.get(k); if (kd === undefined) { kd = col.keys.length; col.keys.push(k); col.kids.set(k, kd); } }
+  col.kid.push(kd);
+  return d;
+}
+/* ---------- EVERY VALUE A CARD GIVES, READ ONCE PER EPOCH (805) ----------------------------------
+   Each card has a number (`itemIx_`), each facet a column by it, kept until the payload, facets tab, Ledger, results or viewer change. */
+const ITEM_IX = new WeakMap();
+let ITEM_N = 0;
+function itemIx_(x) {
+  let i = ITEM_IX.get(x);
+  if (i === undefined) { i = ITEM_N++; ITEM_IX.set(x, i); }
+  return i;
+}
+/* A LIST'S NUMBERS, once per list: a tally walks them for every facet it asks. */
+const LIST_IX = new WeakMap();
+function listIx_(items) {
+  let a = LIST_IX.get(items);
+  if (a && a.length === items.length) return a;
+  a = new Int32Array(items.length);
+  for (let i = 0; i < items.length; i++) a[i] = items[i] && typeof items[i] === 'object' ? itemIx_(items[i]) : -1;
+  LIST_IX.set(items, a);
+  return a;
+}
+/* THIS FACET'S COLUMN while the epoch holds, else null (read afresh). The cheap half of the epoch is checked on every read. */
+function facetCol_(facet) {
+  const E = FACET_EPOCH;
+  if (!E || E.data !== DATA || E.gen !== facetGen_() || E.my !== MY_RESULT.gen) return null;
+  return E.cols[facet.field] || (E.cols[facet.field] = { vals: [], id: [], many: [], names: [], ids: new Map(), kid: [], keys: [], kids: new Map() });
+}
+let FACET_EPOCH = null;
+const facetGen_ = () => (typeof LIB !== 'undefined' && LIB ? LIB.gen : 0);
+function facetEpochFresh_() {
+  const now = { data: DATA, facets: facetList(), gen: facetGen_(), my: MY_RESULT.gen, who: itemMemoKey_(), came: writingNow_() };
+  const E = FACET_EPOCH;
+  if (E && Object.keys(now).every(k => E[k] === now[k])) return E;
+  now.cols = {};
+  FACET_EPOCH = now;
+  return now;
 }
 
 /* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH § */
@@ -442,8 +512,6 @@ const FACETS = [
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mMake',     label: 'Brand',       of: x => x.mMake || '' },
-  { field: 'mModel',    label: 'Model',       of: x => x.mModel || '' },
   { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
   { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
@@ -481,6 +549,8 @@ const FACETS = [
   { field: 'shopPrice', label: 'Price',       of: x => x.shopPrice || '' },
   { field: 'shopBrand', label: 'Brand',       of: x => x.shopBrand || '' },
   { field: 'shopFor',   label: 'For',         of: x => x.shopFor || '' },
+  /* A THEME (740): "just tags for items in shops… like history", from the shop tab's `theme` column. */
+  { field: 'shopTheme', label: 'Theme',       of: x => x.shopTheme || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -494,7 +564,8 @@ const FACETS = [
   { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
   /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
   { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
-  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : '' },
+  /* A CHAPTER TAUGHT OVER SEVERAL YEARS ANSWERS EACH (770: "it should ask what year, no?" under KS2). */
+  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : (x.years || []).map(y => 'Year ' + y) },
   { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
   { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   { field: 'examBoard', label: 'Exam board',  of: x => boardOf_(x) },
@@ -508,6 +579,8 @@ const FACETS = [
   /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id) },
+  /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
+  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -724,8 +797,16 @@ const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document'
 /* WHAT A PAPER ID IS CALLED: its document row's name, or the id itself — an unreadable button beats a blank one. */
 const paperLabel_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null;
-  return String((d && d.name) || id || '').trim();
+  const name = String((d && d.name) || id || '').trim(), sec = paperSectionOf_(d);
+  /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
+  return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
+/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
+function paperSectionOf_(row) {
+  const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
+  if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: String(row.section || '').trim() };
+}
 
 /* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip
    and the card alike (396). Sets `show` on each value in place; the last rung is the full name. */
@@ -912,34 +993,84 @@ function tellApart_(items, facet, values) {
 const FACET_TALLY = new WeakMap();
 
 /* Each item's weight in a split: 1, or 1/n for the n cards of one writing. Memoised per list. */
+/* A WRITING IS ITS WORK IN ONE TEXT (520's keys, not the retired `libBook`): "Bible · King James Version" however many verses. Memoised per card. */
+const WRITING_KEY = new WeakMap();
+function writingKey_(x) {
+  if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return '';
+  let k = WRITING_KEY.get(x);
+  if (k === undefined) {
+    const work = String(writingAt1_(x, 'work') || ''), text = String(writingAt1_(x, 'text') || '');
+    k = work || text ? work + '\u0000' + text : '';
+    WRITING_KEY.set(x, k);
+  }
+  return k;
+}
 const WRITING_WEIGHTS = new WeakMap();
 function writingWeights_(items) {
   let w = WRITING_WEIGHTS.get(items);
   if (w) return w;
-  const n = {};
-  items.forEach(x => { if (x && x.libBook) n[x.libBook] = (n[x.libBook] || 0) + 1; });
-  w = items.map(x => x && x.libBook ? 1 / n[x.libBook] : 1);
+  const n = {}, ks = items.map(writingKey_);
+  ks.forEach(k => { if (k) n[k] = (n[k] || 0) + 1; });
+  w = ks.map(k => k ? 1 / n[k] : 1);
   WRITING_WEIGHTS.set(items, w);
   return w;
 }
 function facetTally_(items, facet) {
+  facetEpochFresh_();
   let perList = FACET_TALLY.get(items);
   if (!perList) { perList = {}; FACET_TALLY.set(items, perList); }
   const had = perList[facet.field];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. § */
   if (had && had.facet === facet) return had;
 
-  const by = {};
+  let by = {};
   let answered = 0;
-  items.forEach(x => {
+  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`writingKey_`) weighs one however many verses it is, so the
+     Bible cannot make Subject look lopsided. Every facet, one rule; read in the counts' walk (805). */
+  const wt = writingWeights_(items);
+  let top = 0, whole = 0;
+  let wBy = {};
+  const col = facetCol_(facet);
+  if (col) {
+    /* COUNTED BY NUMBER, in the order this list first meets each value, as the string walk below counts (805). */
+    const ixs = listIx_(items), cnt = [], kw = [], order = [];
+    for (let i = 0; i < items.length; i++) {
+      const w = wt[i];
+      whole += w;
+      const j = ixs[i];
+      if (j < 0) continue;
+      if (col.id[j] === undefined) facetRead_(col, facet, items[i], j);
+      const d = col.id[j];
+      if (d === -1) continue;
+      answered++;
+      if (d >= 0) {
+        if (cnt[d] === undefined) { cnt[d] = 1; order.push(d); } else cnt[d]++;
+        const k = col.kid[d];
+        if (k >= 0) kw[k] = (kw[k] || 0) + w;
+        continue;
+      }
+      const m = col.many[j];
+      m.ids.forEach(e => { if (cnt[e] === undefined) { cnt[e] = 1; order.push(e); } else cnt[e]++; });
+      m.kids.forEach(k => { kw[k] = (kw[k] || 0) + w; });
+    }
+    order.forEach(d => { by[col.names[d]] = (by[col.names[d]] || 0) + cnt[d]; });
+    for (let k = 0; k < kw.length; k++) if (kw[k] !== undefined) wBy[col.keys[k]] = kw[k];
+  } else for (let i = 0; i < items.length; i++) {
+    whole += wt[i];
     /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. § */
-    const vals = facetOwn_(facet, x);
-    if (!vals.length) return;
+    const vals = facetOwn_(facet, items[i]);
+    if (!vals.length) continue;
     answered++;
     /* ONE VALUE IS THE OVERWHELMING CASE and a `Set` of one is an allocation to prove it. § */
-    if (vals.length === 1) { by[vals[0]] = (by[vals[0]] || 0) + 1; return; }
+    if (vals.length === 1) {
+      by[vals[0]] = (by[vals[0]] || 0) + 1;
+      const k = spellKey_(vals[0]);
+      if (k) wBy[k] = (wBy[k] || 0) + wt[i];
+      continue;
+    }
     new Set(vals).forEach(v => { by[v] = (by[v] || 0) + 1; });
-  });
+    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
+  }
 
   /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM § */
   const folded = {};
@@ -959,16 +1090,6 @@ function facetTally_(items, facet) {
   shortLabels_(values);
   tellApart_(items, facet, values);
 
-  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
-     Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
-  const wt = writingWeights_(items);
-  let top = 0, whole = 0;
-  const wBy = {};
-  items.forEach((x, i) => {
-    whole += wt[i];
-    const vals = facetOwn_(facet, x);
-    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
-  });
   Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
@@ -1580,7 +1701,7 @@ function contentItem_(b, c) {
     kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
     sub: [c.subject, c.level].filter(Boolean).join(' · '),
     image: '',
-    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics,
+    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics, years: c.years || [],
     examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
     text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
     row: c,
@@ -8249,6 +8370,15 @@ function stemCarried_(x) {
 }
 /* THE QUESTION'S OWN OPENING ON EVERY PART'S CARD (500): a short stem with a figure is read with
    each part, its figure too, so 16(a) and 16(b) both have the graph they ask about. Outer stems stay pages. */
+/* A STEM'S WEIGHT, once per stem per library generation (805): every part of a question asks it of the same stem. */
+const STEM_WEIGHT = new WeakMap();
+function stemWeight_(p) {
+  const had = STEM_WEIGHT.get(p), gen = chunkGen_();
+  if (had && had.gen === gen) return had.w;
+  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
+  STEM_WEIGHT.set(p, { gen: gen, w: w });
+  return w;
+}
 function stemOnCard_(x) {
   const pen = stemCarried_(x);
   if (pen) return pen;
@@ -8256,8 +8386,7 @@ function stemOnCard_(x) {
   const p = st[st.length - 1];
   if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
   if (!(p.q !== undefined && p.q !== null && p.q !== '') && !(p.row && p.row.question)) return null;
-  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
-  return w <= CHUNK_PAGE ? p : null;
+  return stemWeight_(p) <= CHUNK_PAGE ? p : null;
 }
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
@@ -8980,6 +9109,7 @@ function stuffItemsAll_() {
 
 /* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE § */
 function stuffForget_() {
+  FACET_EPOCH = null;
   ALL_MEMO = { key: null, from: null, items: null };
   FUNNEL_MEMO = { key: null, from: null, items: null };
   /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left Find 2's would
@@ -9106,7 +9236,11 @@ function stuffItemsRaw_() {
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
     })),
     /* The widgets, findable like everything else. § */
-    /* ---------- THE WIDGETS ARE NOT IN THE FUNNEL, AND THIS IS THE SECOND DECISION ON IT § */
+    /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): each one data/settings/widgets-in-find.json names is a card, its kind's group (Tools, Games) its first answer. */
+    ...(typeof allWidgets === 'function' && typeof widgetInFind_ === 'function' ? findWidgetList_() : []).map(w => ({
+      kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
+      groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
+    })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
     ...(canTrack() ? friendHandles().map(h => {
       const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
@@ -9290,6 +9424,7 @@ const LEVEL_TABLE = [
   { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
   { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
   { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
+  { level: 'Level 2 Certificate', rung: 0, stages: ['KS4'], tiers: [], says: ['L2 Certificate'] },
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
@@ -9589,6 +9724,7 @@ const stuffKeyCmp_ = (a, b) => {
 /* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
 const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
 function stuffNarrow_(out, filters, words, credits) {
+  facetEpochFresh_();
   const byField = {};
   filters.forEach(f => {
     if (f.any) return;
@@ -9596,7 +9732,27 @@ function stuffNarrow_(out, filters, words, credits) {
   });
   Object.keys(byField).forEach(field => {
     const list = byField[field];
-    out = out.filter(x => list.some(f => filterHit(x, f, credits)));
+    /* `filterHit`'s rule with the chip's facet and key read once, not once per card (805). */
+    const facet = facetBy(field);
+    if (!facet) return;
+    const keys = list.map(f => spellKey_(f.value));
+    const col = facetCol_(facet);
+    if (!col) { out = out.filter(x => list.some(f => filterHit(x, f))); return; }
+    /* BY NUMBER: the chips' spelling keys as the column numbers them, and each card's value numbers checked against them. */
+    const want = new Set(keys.filter(Boolean).map(k => {
+      if (!col.kids.has(k)) { col.kids.set(k, col.keys.length); col.keys.push(k); }
+      return col.kids.get(k);
+    }));
+    const ixs = listIx_(out);
+    out = out.filter((x, i) => {
+      const j = ixs[i];
+      if (j < 0) return list.some(f => filterHit(x, f));
+      if (col.id[j] === undefined) facetRead_(col, facet, x, j);
+      const d = col.id[j];
+      if (d === -1) return false;
+      if (d >= 0) return want.has(col.kid[d]);
+      return col.many[j].kids.some(k => want.has(k));
+    });
   });
   /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS § */
   const ref = words.length ? qRef_(words.join('')) : null;
@@ -9713,21 +9869,56 @@ function stuffPages_() {
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
   const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
-  const kept = (x, part) => byPage.every(f => {
+  /* EACH CHIP'S FACET AND KEY READ ONCE, not once per page of every result (805). */
+  const byPageAt = byPage.map(f => ({ facet: facetBy(f.field), key: spellKey_(f.value) }));
+  const kept = !byPageAt.length ? () => true : (x, part) => byPageAt.every(f => {
     let v = [];
-    try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
-    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+    try { v = asList_(f.facet.tagOf(x, part)); } catch (e) { v = []; }
+    return !v.length || v.some(t => spellKey_(t) === f.key);
   });
+  const ctx = pagePartsCtx_();
+  /* EACH CARD'S KEPT PAGES ARE KEPT ON IT for the same chips on the page readers (805), so a tap walks the list, not every page. */
+  ctx.chips = JSON.stringify(byPage);
   seq.forEach((x, i) => {
+    const prev = seq[i - 1], sh = pagePrevKey_(x, prev);
+    const box = x && typeof x === 'object' ? PAGE_KEPT.get(x) : null;
+    const had = box && box[ctx.chips];
+    if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) {
+      for (let k = 0; k < had.pages.length; k++) pages.push(had.pages[k]);
+      return;
+    }
+    const mine = [];
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
-    if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
-    pageParts_(x, seq[i - 1]).forEach(part => {
-      if (kept(x, part)) pages.push({ x: x, part: part });
+    if (libSlim_(x)) mine.push({ x: x, part: null, slim: true });
+    else pagePartsMemo_(x, prev, ctx).forEach(part => {
+      if (kept(x, part)) mine.push({ x: x, part: part });
     });
+    /* ONE ENTRY PER SET OF PAGE CHIPS, so going back up the funnel finds the pages it had. */
+    if (x && typeof x === 'object') (box || (PAGE_KEPT.set(x, {}), PAGE_KEPT.get(x)))[ctx.chips] = { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, pages: mine };
+    for (let k = 0; k < mine.length; k++) pages.push(mine[k]);
   });
   STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
+}
+
+/* A CARD'S PAGES, kept per card with the card before it (805): every tap asked it of every result again. What `pageParts_` reads
+   hangs off the payload, the Ledger's generation and the whole list. */
+const PAGE_PARTS = new WeakMap(), PAGE_KEPT = new WeakMap();
+const pagePartsCtx_ = () => ({ data: DATA, gen: chunkGen_(), all: stuffItemsAll_(), by: questionParts_() });
+/* ALL A CARD'S PAGES TAKE FROM THE ONE BEFORE IT is which of its stems that one already drew, so that is the key, not which card it was. */
+function pagePrevKey_(x, prev) {
+  if (!x || x.kind !== 'question' || !prev || prev.kind !== 'question' || !(x.stems || []).length || !(prev.stems || []).length) return '';
+  const had = prev.stems.map(stemId_);
+  return x.stems.filter(p => p && had.indexOf(stemId_(p)) >= 0).map(stemId_).join('\u0000');
+}
+function pagePartsMemo_(x, prev, ctx) {
+  if (!x || typeof x !== 'object') return pageParts_(x, prev);
+  const had = PAGE_PARTS.get(x), sh = pagePrevKey_(x, prev);
+  if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) return had.parts;
+  const parts = pageParts_(x, prev);
+  PAGE_PARTS.set(x, { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, parts: parts });
+  return parts;
 }
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
@@ -9791,8 +9982,18 @@ function verifyTags_(x) {
 
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
-const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+const qIdOf_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
   ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+/* MEMOISED PER CARD while its row and number stand (805): every tap asked it of every result twice. */
+const QID = new WeakMap();
+const qId_ = x => {
+  if (!x || typeof x !== 'object' || x.kind !== 'question') return qIdOf_(x);
+  const had = QID.get(x);
+  if (had && had.row === x.row && had.q === x.qNumber) return had.id;
+  const id = qIdOf_(x);
+  QID.set(x, { row: x.row, q: x.qNumber, id: id });
+  return id;
+};
 const WHOLE_MEMO = new WeakMap();
 function questionParts_() {
   const all = stuffSorted_(stuffItems());
@@ -9803,19 +10004,26 @@ function questionParts_() {
   WHOLE_MEMO.set(all, by);
   return by;
 }
+/* EVERY PART THE FUNNEL'S LIST HOLDS, as one set per grouping, so "is this one of them" is not a walk of its siblings (805). */
+const WHOLE_HELD = new WeakMap();
+function wholeHeld_(by) {
+  let h = WHOLE_HELD.get(by);
+  if (!h) { h = new Set(); Object.keys(by).forEach(k => by[k].forEach(x => h.add(x))); WHOLE_HELD.set(by, h); }
+  return h;
+}
 function wholeQuestions_(items) {
-  const out = [], done = {};
-  let by = null;
+  const out = [], done = new Set();
+  let by = null, held = null;
   (items || []).forEach(x => {
     const k = qId_(x);
     if (!k) { out.push(x); return; }
-    by = by || questionParts_();
-    const sib = by[k] || [];
+    if (!by) { by = questionParts_(); held = wholeHeld_(by); }
     /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
-    if (sib.indexOf(x) < 0) { out.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
-    sib.forEach(s => out.push(s));
+    if (!held.has(x)) { out.push(x); return; }
+    if (done.has(k)) return;
+    done.add(k);
+    const sib = by[k];
+    for (let i = 0; i < sib.length; i++) out.push(sib[i]);
   });
   return out;
 }
@@ -9850,11 +10058,6 @@ function stuffBackTo_(id, keep) {
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST § */
 
 
-/* ARE WE LOOKING AT WIDGETS AND NOTHING ELSE? § */
-const showingWidgets = () => {
-  const items = stuffFiltered();
-  return items.length > 0 && items.every(x => x.kind === 'tool' || x.kind === 'game');
-};
 
 /* ONE THING TO A PAGE, ALWAYS. § */
 const stuffPerPage = () => 1;
@@ -10031,6 +10234,8 @@ function accountPages_(col) {
   /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_(col)].filter(Boolean) : [];
   const fam = famIn(col).map(famCard_);
+  /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
+  const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
   if (col === 'tutors') {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
@@ -10040,7 +10245,6 @@ function accountPages_(col) {
   } else if (col === 'students') {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
-    const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
     /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
     const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
@@ -10397,12 +10601,6 @@ function stuffPageHtml(n) {
   /* Cards, in order, and nothing between them. § */
   /* A WHOLE SCREEN EACH. The widget's own markup rather than a card standing in for it — the
      card was only ever a door, and there is nothing behind that door which could not be here. */
-  if (showingWidgets()) {
-    const wgt = items[n] && items[n].row;
-    /* A SOLID WIDGET SAYS SO ON THE PAGE, so the stylesheet can turn the glass off underneath it
-       without knowing which widget it is. */
-    return wgt ? `<div class="widget-full${wgt.solid ? ' solid' : ''}">${wgt.html}</div>` : '';
-  }
 
   /* ONE PAGE IS ONE ENTRY OF `stuffPages_`, which is the results with each practical expanded into its four parts. § */
   const pg = stuffPages_()[n];
@@ -10518,6 +10716,7 @@ function shopTags_(r) {
   const who = String(r.audience || 'all').trim().toLowerCase();
   return { shopKind: SHOP_KIND_SAY[k] || (k.charAt(0).toUpperCase() + k.slice(1)), shopHow: SHOP_HOW[how] || '', shopPrice: band,
            shopBrand: String((r.fields && r.fields.brand) || r.brand || '').trim(),
+           shopTheme: String(r.theme || (r.fields && r.fields.theme) || '').trim(),
            shopFor: who === 'all' ? '' : who === 'tutor' ? 'Tutors' : who === 'admin' ? 'Admins' : who.charAt(0).toUpperCase() + who.slice(1) };
 }
 
@@ -10599,9 +10798,9 @@ const TAG_OF = {
   /* EVERY WRITING'S (520), in kinds that already have colours. */
   wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
   wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
-  mKind: 'type', mSystem: 'topic', mMake: 'board', mModel: 'board', mEngine: 'level',
+  mKind: 'type', mSystem: 'topic', mEngine: 'level',
   cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
-  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper',
+  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper', shopTheme: 'kind',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -11193,13 +11392,14 @@ function stuffFillOne_(i, ctx) {
   /* WHICH CARD THIS IS, AND FOR WHICH QUESTION — so a redraw over a changed list can find it again
      (`stuffHeld_`). An expando, as `pane.LAST_H` is: nothing reads it out of the markup. */
   el.FIND_AT = { ask: stuffAsk_(), id: stuffPageId_(stuffPages_()[i - first]) };
+  if (pane.querySelector('.widget-slot')) {
+    /* A WIDGET THAT WAS RUNNING BEFORE THE PAINT gets its own slot back, its game and clock as they were (`WIDGET_HELD`, arcade.js). */
+    if ((WIDGET_HELD[FINDER.id] || []).length) WIDGET_HELD[FINDER.id] = widgetsBack_(FINDER.id, WIDGET_HELD[FINDER.id]);
+    finderWake_(FINDER.id);
+  }
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
-  /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. § */
-  const items = c.items || stuffFiltered();
-  const w = showingWidgets() && items[i - first] && items[i - first].row;
-  if (w && !w.stop) drawWidget_(w);
   return true;
 }
 
@@ -11343,6 +11543,55 @@ function stuffWarm_(F, ask, step) {
 }
 AHEAD_KINDS.push(stuffWarmJobs_);
 
+/* ---------- EVERY FACET'S COLUMN READ IN THE QUIET (805), a short slice at a time, so a first tap on a big list counts numbers
+   instead of asking every card every facet. Last of all the jobs. */
+const FACET_INDEX_STEP = 2000, FACET_INDEX_MS = 25;
+const facetIndexLeft_ = all => facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
+function facetIndexJobs_() {
+  if (typeof awaiting_ === 'function' && awaiting_()) return [];
+  /* ONLY OVER LISTS ALREADY BUILT: the reading never builds one, so a landing's lists are still the warm's to make (341). */
+  const who = itemMemoKey_();
+  if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === who && ALL_MEMO.from === DATA && ALL_MEMO.key === who)) return [];
+  let all = null;
+  try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
+  const f = facetIndexLeft_(all);
+  if (!f) return pageWarmJobs_(all);
+  const c = facetCol_(f), at = c.from === all ? c.upto : 0;
+  /* THE KEY SAYS HOW FAR, so a job left with more to read is a new job, not a stuck one (`aheadStill_`). */
+  return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(all) }];
+}
+/* AS MANY CARDS AS FIT IN A SHORT SLICE, facet after facet, so nothing in the quiet is a long task. */
+function facetIndexSlice_(all) {
+  const t0 = performance.now();
+  for (let f = facetIndexLeft_(all); f; f = facetIndexLeft_(all)) {
+    const col = facetCol_(f);
+    if (col.from !== all) { col.from = all; col.upto = 0; }
+    const end = Math.min(all.length, col.upto + FACET_INDEX_STEP);
+    for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
+    col.upto = end;
+    if (performance.now() - t0 > FACET_INDEX_MS) return;
+  }
+}
+/* AND THEN EVERY CARD'S PAGES (805), in the library's order, so the first tap on a subject is not every one of its stems measured. */
+let PAGE_WARM = { all: null, ctx: null, upto: 0 };
+function pageWarmJobs_(all) {
+  const ctx = pagePartsCtx_();
+  const w = PAGE_WARM;
+  const fresh = w.all === all && w.ctx && ['data', 'gen', 'all', 'by'].every(k => w.ctx[k] === ctx[k]);
+  if (fresh && w.upto >= all.length) return [];
+  return [{ key: 'index:pages:' + (fresh ? w.upto : 0), kind: 'index', d: 1e6, cold: true, run: () => pageWarmSlice_(all) }];
+}
+function pageWarmSlice_(all) {
+  const ctx = pagePartsCtx_(), t0 = performance.now();
+  if (!(PAGE_WARM.all === all && PAGE_WARM.ctx && ['data', 'gen', 'all', 'by'].every(k => PAGE_WARM.ctx[k] === ctx[k]))) PAGE_WARM = { all: all, ctx: ctx, upto: 0 };
+  const seq = stuffSorted_(all);
+  while (PAGE_WARM.upto < seq.length && performance.now() - t0 < FACET_INDEX_MS) {
+    const i = PAGE_WARM.upto++, x = seq[i];
+    if (x && !libSlim_(x)) pagePartsMemo_(x, seq[i - 1], ctx);
+  }
+}
+AHEAD_KINDS.push(facetIndexJobs_);
+
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT § */
 function stuffPin_(el, pane) {
   const h = pane && pane.LAST_H;
@@ -11396,22 +11645,7 @@ function fillStuffPages(all) {
   /* AND THE WORDS OF THE CARD IN FRONT AND THE NEXT FEW, from the Ledger (397) — asked here, where a turn lands. */
   libAhead_();
 
-  /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs. § */
-  if (!FINDER.widgets) { settle_(changed); return; }
-  if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
-  const wgt = items[at - first] && items[at - first].row;
-  if (!wgt) { stopWidget_(); settle_(changed); return; }
-  if (!wgt.stop) {
-    /* Already drawn with its page. Landing on a still widget still has to stop whatever was running
-       on the page you came from, or Flabby Pird goes on drawing behind the calendar. */
-    stopWidget_();
-    settle_(changed);
-    return;
-  }
-  startWidget_(wgt);
-  /* A widget that has just started may have sized itself — a canvas takes its box — so the telling
-     comes after that too, not before. */
-  settle_(true);
+  settle_(changed);
 }
 
 /* The grid measures the panes again and puts everything where it now belongs. § */
@@ -11423,32 +11657,6 @@ function settle_(changed) {
   if (!holdColumn_(FINDER.id)) placeCells('y', true, 0, FINDER.id);
 }
 
-/* BRING ONE WIDGET TO LIFE, and say so in its own space if it does not. § */
-/* ---------- A WIDGET THAT IS NOT BEING LOOKED AT MUST NOT BE RUNNING § */
-let WIDGET_ON = null;
-
-function stopWidget_() {
-  if (!WIDGET_ON) return;
-  const was = WIDGET_ON;
-  WIDGET_ON = null;
-  try { if (was.stop) was.stop(); } catch (e) { console.warn('[widget stop]', was.id, e); }
-}
-
-/* ---------- DRAWING ONE IS NOT THE SAME AS RUNNING ONE § */
-function drawWidget_(wgt) {
-  let err = null;
-  try { wgt.start(); } catch (e) { err = e; console.warn('[widget]', wgt.id, e); }
-
-  const into = $(wgt.into);
-  if (!into) { console.warn('[widget]', wgt.id, 'has nowhere to draw: #' + wgt.into); return; }
-  /* A canvas and a textarea draw into themselves, so their emptiness says nothing about them. */
-  if (wgt.into === 'flappy-canvas' || wgt.into === 'notepad') return;
-  if (String(into.innerHTML || '').trim()) return;
-  into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
-    ${esc(wgt.what)} did not start.<br>
-    <span class="faint">${esc(err ? why_(err) : 'It drew nothing.')}</span></p>`;
-}
-
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
 function allWidgets() {
   /* THE STATIC ONES, THEN THE TWO SETS THAT ARE MADE FROM DATA — a widget per conversation and a widget per session you are in. § */
@@ -11457,15 +11665,19 @@ function allWidgets() {
     .concat(typeof liveWidgets_ === 'function' ? liveWidgets_() : []);
 }
 
-function startWidget_(wgt) {
-  /* NOT ONE THIS PERSON MAY NOT OPEN, whoever handed it here — see `widgetFor_` in arcade.js. */
-  if (typeof widgetFor_ === 'function' && !widgetFor_(wgt)) return;
-  /* The same one again is already running — restarting would throw away a game in progress and a
-     clock somebody is watching. */
-  if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
-  stopWidget_();
-  WIDGET_ON = wgt;
-  drawWidget_(wgt);
+/* A WIDGET CARD WAS FILLED ON A FINDER (790): once the fill is done its widgets are woken as a column's are (`widgetsWake_`) — what runs is kept, what is near starts, the rest waits. */
+/* THE FINDER'S ID IS CAPTURED, because the timer runs outside every binding (`inFinder_`). */
+const FINDER_WAKE = {};
+function finderWake_(id) {
+  if (FINDER_WAKE[id] || typeof widgetsWake_ !== 'function') return;
+  FINDER_WAKE[id] = setTimeout(() => {
+    FINDER_WAKE[id] = 0;
+    if (AT !== id) return;
+    const ws = finderWidgets_(id);
+    if (!ws.length) return;
+    widgetsWake_(ws, id, true);
+    placeCells('y', true, 0, id);
+  }, 0);
 }
 
 /* THE QUESTION, ON THE PAGE. § */
@@ -11538,7 +11750,23 @@ function stuffQuestion() {
   const values = facetValues(items, facet);
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const sw = scriptureWait_(items);
-  return facetAnswersHtml_(facet, values, sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '');
+  return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
+}
+/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
+function facetNoneHtml_(items, shown) {
+  try {
+    const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];
+    facetList().forEach(facet => {
+      if (facet === shown || asked.indexOf(facet.field) !== -1) return;
+      const here = facetValues(items, facet);
+      if (here.length !== 1 || facetCoverage(items, facet) < 1) return;
+      const every = facetValues(all, facet);
+      if (every.length !== 2) return;
+      const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
+      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(other.show || other.value)} <b>0</b></span>`);
+    });
+    return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
+  } catch (e) { return ''; }
 }
 /* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
 function facetAnswersHtml_(facet, values, more) {

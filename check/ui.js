@@ -44,7 +44,7 @@ function dealt_(list, n) {
 }
 
 /* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE § */
-const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'tools', 'games', 'reel', 'dm'];
+const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'reel', 'dm'];
 
 /* THE SIZES THAT EXIST, AND THE HEIGHT IS HALF OF EACH ONE. § */
 /* AND 1920x1080, ADDED 6 OCTOBER WITH THE WIDE WINDOW (THE GRID SHOWS MORE OF ITSELF, shell.js). § */

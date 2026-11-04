@@ -1,8 +1,6 @@
 [
 {"field": "mKind", "label": "Card type", "sort_order": 24.59, "note": "a Library card's kind: mechanics (548, 650) Part or Car; chemistry (550) Element, Substance or Reaction", "active": true},
 {"field": "mSystem", "label": "System", "sort_order": 24.6, "note": "a mechanics card (548): the car system a part, job or symptom belongs to", "active": true},
-{"field": "mMake", "label": "Brand", "sort_order": 24.61, "note": "a mechanics card (548, 650): the car's brand, or the brands of the cars a part fits", "active": true},
-{"field": "mModel", "label": "Model", "sort_order": 24.62, "note": "a mechanics card (650): the car's model, or the models a part fits", "active": true},
 {"field": "mEngine", "label": "Engine", "sort_order": 24.63, "note": "a mechanics card (548): the engine, as sold", "active": true},
 {"field": "cCategory", "label": "Chemical type", "sort_order": 24.65, "note": "a chemistry card (550): an element's category, a substance's or a reaction's type", "active": true},
 {"field": "cGroup", "label": "Group", "sort_order": 24.66, "note": "a chemistry element (550): its group in the periodic table", "active": true},
@@ -55,6 +53,7 @@
 {"field": "examYear", "label": "Year", "sort_order": 130, "note": "the year of the sitting, newest first", "active": true},
 {"field": "examMonth", "label": "Month", "sort_order": 132, "note": "May, June, November — the month and never the season", "active": true},
 {"field": "paperId", "label": "Paper", "sort_order": 140, "note": "the id decides who answers; the document's name is what is said, shortened against the names beside it", "active": true},
+{"field": "paperSection", "label": "Paper section", "sort_order": 141, "note": "a paper sat in sections (9MA0 Paper 3: A Statistics, B Mechanics); asked after Paper, so it is a tag, not a question", "active": true},
 {"field": "qNumber", "label": "Question", "sort_order": 142, "note": "Q1, Q2 …; the coverage and 40-answer rules hold it back until a paper or a day is chosen", "active": true},
 {"field": "qPart", "label": "Part", "sort_order": 144, "note": "the part's letter, as the paper prints it", "active": true},
 {"field": "qSub", "label": "Sub-part", "sort_order": 145, "note": "the roman numeral, as the paper prints it", "active": true},
@@ -80,5 +79,6 @@
 {"field": "shopHow", "label": "How you get it", "sort_order": 38.2, "note": "shop items only (499): buy, earn with ticks, unlock by level, borrow", "active": true},
 {"field": "shopPrice", "label": "Price", "sort_order": 38.3, "note": "shop items only (499): a band from its price", "active": true},
 {"field": "shopBrand", "label": "Brand", "sort_order": 38.4, "note": "shop items only (499): its maker", "active": true},
-{"field": "shopFor", "label": "For", "sort_order": 38.5, "note": "shop items only (499): who it is for when not everybody", "active": true}
+{"field": "shopFor", "label": "For", "sort_order": 38.5, "note": "shop items only (499): who it is for when not everybody", "active": true},
+{"field": "shopTheme", "label": "Theme", "sort_order": 38.6, "note": "shop items only (740): its theme, from the shop tab's theme column; empty is no tag", "active": true}
 ]

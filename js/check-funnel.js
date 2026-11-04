@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 /* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');

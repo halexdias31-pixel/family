@@ -214,6 +214,23 @@ node check/ui.js --payload=/tmp/p.json                 # and the real app render
 node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails over the REAL sheet, each verdict as recorded, nothing sent
 ```
 
+### CI, quick mode and the live smoke test (780)
+
+- `.github/workflows/checks.yml`, every push and every PR to main, 17 jobs in parallel: `fast` (`check.js` + `check-all.js --fast`),
+  `flow k/8` (`FLOW_PART=k/8 node --max-old-space-size=3000 js/check-flow.js`), `browser k/8` (`check-all.js --slow=k/8`: the
+  slow checks but check-flow, dealt round-robin), and on a PR the `stability guard` (`check/stability-guard.js .base`: fails if
+  tools/stability.js scores lower than on the base, the moved signals in the summary). About 15 minutes of wall time.
+- **CI has no private words.** It sets `LIB_PRIVATE=absent`: check/lib-full.js then never seeds data-private/ from history,
+  and every read of the words throws `LIB_ABSENT`. A check that needs them whole calls `needWords()` (prints "skipped 1
+  library check", exits 0); check-flow skips and counts each such journey (`skipParts`); a read a check swallowed is still
+  said at exit. Every skip goes to `$LIB_SKIP_LOG` and each job's summary lists it. Skipped is not green: those still need
+  `npm run check` on a machine with the words. Locally nothing changes.
+- `npm run check:changed` (`js/check-changed.js`): only the checks a change affects (against origin/main, plus uncommitted
+  files), from its glob map; a file it does not know runs everything. `--list` prints, `--base=REF`.
+- `.github/workflows/live.yml`, nightly, by hand and 30 minutes after a push to main: `check/live-smoke.js` loads
+  https://atfamily.co.uk/ signed out at 390 and 1440 px, visits every column in `TABS`, fails on a console error, page error or
+  failed same-origin request, and on a live `--css-version` that is not main's. Screenshots are an artifact.
+
 ## House style
 
 Follow it. It is unusual and it is deliberate.
