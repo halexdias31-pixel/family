@@ -798,8 +798,8 @@ function facetShort_(facet, v, items) {
 /* A CARD'S TAG IS SAID AS ITS BUTTON WOULD BE ONCE EVERY QUESTION BEFORE IT WAS ANSWERED THE CARD'S WAY (396) — the
    paper among the papers sharing its level, board, tier and sitting is `Paper 1`, wherever the card is drawn. */
 let CARD_LISTS = { from: null, at: new Map(), of: new Map() };
-/* ONE LABELLER FOR A THING (830): an answer that differs among the cards wearing this value (one question's Accuracy) never
-   changes what the value is called, so a paper is named by its paper's answers alone, as the Sunday email names it. */
+/* ONE LABELLER FOR A THING (830): an answer that differs among the cards wearing this value (one question's Accuracy)
+   never changes what it is called, so a paper is named by its paper's answers, as the email names it. */
 function cardThingOwn_(facet, x, g) {
   const own = asList_(facet.of(x)).map(spellKey_).join('|');
   const key = facet.field + '\u0001' + own + '\u0001' + g.field;
