@@ -98,10 +98,10 @@
    "cap": 10,
    "off": 2.5,
    "where": {
-    "js/find.js": 12175,
+    "js/find.js": 12206,
     "js/games.js": 6449,
-    "js/me.js": 4872,
-    "js/shell.js": 3822,
+    "js/me.js": 4885,
+    "js/shell.js": 3824,
     "backend/dopost.gs": 4609
    }
   },
@@ -143,7 +143,7 @@
     "js/find.js typeset_": 230,
     "js/find.js drawMarker_": 644,
     "js/find.js stuffItemsRaw_": 166,
-    "js/library.js libraryExtras_": 178,
+    "js/library.js libraryExtras_": 180,
     "js/mat.js matPaint": 158,
     "js/racer.js raceMesh_": 151,
     "js/receipt.js flappyStill_": 304,

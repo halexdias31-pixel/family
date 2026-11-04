@@ -510,7 +510,7 @@ const FACETS = [
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id) },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
-  { field: 'paperSection', label: 'Section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
+  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -731,8 +731,7 @@ const paperLabel_ = id => {
   /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
   return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
-/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): an id ending in the paper's own number and a digit (`P-9MA0-2406-31`, `paper` 3) is
-   that paper's section, 1 = A, 2 = B — 9MA0 Paper 3 is Statistics (Section A) and Mechanics (Section B). Any board, one rule. */
+/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
 function paperSectionOf_(row) {
   const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
   if (!m || String(row.paper || '') !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
@@ -9304,6 +9303,7 @@ const LEVEL_TABLE = [
   { level: 'KS3',         rung: 2, stages: ['KS3'],        tiers: [], says: [] },
   { level: 'GCSE',        rung: 3, stages: ['KS4'],        tiers: ['Foundation', 'Higher', 'Foundation Plus', 'Higher Plus'], says: ['KS4'] },
   { level: 'Functional Skills L2', rung: 0, stages: [],    tiers: [], says: [] },
+  { level: 'Level 2 Certificate', rung: 0, stages: ['KS4'], tiers: [], says: ['L2 Certificate'] },
   { level: 'A-Level',     rung: 4, stages: ['KS5'],        tiers: [], says: ['Alevel', 'A level', 'KS5'] },
   { level: 'AS',          rung: 0, stages: ['KS5'],        tiers: [], says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, stages: [],             tiers: [], says: [] },
@@ -11556,9 +11556,7 @@ function stuffQuestion() {
   const sw = scriptureWait_(items);
   return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
 }
-/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): the owner, "why isn't there an Accuracy verified option?" — every facet, one rule. A
-   question not asked because all of these answer it one way, while the whole list has exactly two answers, says the other greyed
-   with its 0 rather than vanishing. Never pressable, never in `.answers`. */
+/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
 function facetNoneHtml_(items, shown) {
   try {
     const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];

@@ -53,7 +53,7 @@
 {"field": "examYear", "label": "Year", "sort_order": 130, "note": "the year of the sitting, newest first", "active": true},
 {"field": "examMonth", "label": "Month", "sort_order": 132, "note": "May, June, November — the month and never the season", "active": true},
 {"field": "paperId", "label": "Paper", "sort_order": 140, "note": "the id decides who answers; the document's name is what is said, shortened against the names beside it", "active": true},
-{"field": "paperSection", "label": "Section", "sort_order": 141, "note": "a paper sat in sections (9MA0 Paper 3: A Statistics, B Mechanics); asked after Paper, so it is a tag, not a question", "active": true},
+{"field": "paperSection", "label": "Paper section", "sort_order": 141, "note": "a paper sat in sections (9MA0 Paper 3: A Statistics, B Mechanics); asked after Paper, so it is a tag, not a question", "active": true},
 {"field": "qNumber", "label": "Question", "sort_order": 142, "note": "Q1, Q2 …; the coverage and 40-answer rules hold it back until a paper or a day is chosen", "active": true},
 {"field": "qPart", "label": "Part", "sort_order": 144, "note": "the part's letter, as the paper prints it", "active": true},
 {"field": "qSub", "label": "Sub-part", "sort_order": 145, "note": "the roman numeral, as the paper prints it", "active": true},

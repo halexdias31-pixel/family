@@ -778,8 +778,7 @@ function cardsOf_(col) {
   if (!out.length && !kind) return [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
   return out;
 }
-/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): the owner, of the kids' cards, "have them be within a larger widget". Each person stays
-   a page of its own (Start here, its form); `pages()` (shell.js) joins a run of them into one pane by the mark. */
+/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): § */
 function grpMark_(g, i, page) {
   const n = g.pages.length;
   if (n < 2 || !g.pages.every(personOf_)) return page;
