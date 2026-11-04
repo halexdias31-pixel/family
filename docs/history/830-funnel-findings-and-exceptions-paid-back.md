@@ -45,4 +45,6 @@ Measured with tools/stability.js on the tree before 790 (f127556^) and after it:
   (collections.js), `scrAt_` (games.js) and `layoutColOf_` (layout.js) are deleted. Nothing called them. The other
   names check-dead lists are still read by a check, or are instruments (`whyThisQuestion`).
 
+Stability (tools/stability.js) went from 45.8% to 47.5%: written exceptions dropped from 202 to 198 and dead names from 21 to 16.
+
 The feed-as-one-unit job was dropped on the owner's word ("only Find really matters").
