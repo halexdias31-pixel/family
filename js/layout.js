@@ -34,6 +34,8 @@ function ownIdNow_(x) {
 }
 /* THE LAYOUT'S SHAPE NUMBER: 2 since 489's one-off repair below; `layoutClean_` (backend/core.gs) keeps the same rule. */
 const LAYOUT_V = 2;
+/* LAYOUT EDITING IS OFF (880): no move, merge, new-column, door or column tiles, and a saved `layout` is ignored on load. The code stays; true turns it back on. */
+const LAYOUT_EDIT = false;
 /* WHERE A CUSTOM COLUMN STANDS: `admin` last, `left` before Parent settings (600), `first` before the first column a unit stands on (710), else before Business. */
 const customFlag_ = x => x.admin === true ? { admin: true } : x.left === true ? { left: true } : x.first === true ? { first: true } : {};
 /* WHO SEES WHAT (497): the levels an admin may narrow a widget or card to, lowest first; `seenOk_` (words.js) asks them. */
@@ -114,6 +116,7 @@ function layoutKeep_(L) {
   try { if (L) localStorage.setItem(LAYOUT_STORE, JSON.stringify(L)); else localStorage.removeItem(LAYOUT_STORE); } catch (e) {}
 }
 function layoutNow_() {
+  if (!LAYOUT_EDIT) return null;
   let sent = false, src;
   try { sent = !!DATA && Object.prototype.hasOwnProperty.call(DATA, 'layout'); src = sent ? DATA.layout : undefined; } catch (e) { sent = false; }
   if (!sent) return layoutKept_();
@@ -232,7 +235,7 @@ function layoutTiles_(w) {
     return `<span class="tile-group is-admin wgt-admin">${wordsTiles_('w:' + id, id)}${
       tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
   }
-  if (!LAYOUT_COL[w.kind]) return '';
+  if (!LAYOUT_EDIT || !LAYOUT_COL[w.kind]) return '';
   const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
   if (!col) return '';
   /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
@@ -807,7 +810,7 @@ function cardRowIn_(h, row) {
   return h + row;
 }
 function cardAdminRow_(id, col, mergeable) {
-  if (!layoutIsAdmin_()) return '';
+  if (!LAYOUT_EDIT || !layoutIsAdmin_()) return '';
   const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L);
   const start = cardStartOf_(col, layoutNow_());
@@ -842,7 +845,7 @@ function itemMark_(id, col, html) {
   /* A RULE (496), locked: `items-no-move` — Delete and the door only, marked `no-move`. */
   const still = typeof ruleOn_ !== 'function' || ruleOn_('items-no-move');
   return cardRowIn_(h, `<div class="tile-row wgt-admin card-admin item-admin${still ? ' no-move' : ''}" data-lay-for="${esc(id)}">${
-    frontTile_(col, id)}${wordsTiles_(id, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
+    LAYOUT_EDIT ? frontTile_(col, id) : ''}${wordsTiles_(id, id)}${tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`);
 }
 
 /* ---------- FRONT DOOR (489): `front: {col, id}`, one for the site; the door tile on every widget, card and item sets it, again clears it ---------- */

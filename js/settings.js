@@ -121,6 +121,9 @@ function settingsInto_(d, extra) {
       .map(x => ({ screen: libS(x.r.screen), label: libS(x.r.label), icon: libS(x.r.icon) }));
     /* AND NOT AN EMPTY LIST. § */
     if (live.length) d.columns = live;
+    /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
+    d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active) && libS(r.screen) !== 'res')
+      .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }
 
   /* ---------- THE SHOP WINDOW'S FLOOR, AND IT IS `spotlightFile` RATHER THAN `spotlight` § */
