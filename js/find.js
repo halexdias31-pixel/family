@@ -385,7 +385,76 @@ const facetRaw_ = field => {
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
-  return asList_(facet.of(x));
+  const col = facetCol_(facet);
+  if (!col || !x || typeof x !== 'object') return asList_(facet.of(x));
+  const i = itemIx_(x);
+  if (col.id[i] === undefined) facetRead_(col, facet, x, i);
+  return col.vals[i];
+}
+/* ONE CARD READ INTO A COLUMN: its values, and each as a number (`id`: -1 none, -2 several, in `many`; `kid` its spelling key's
+   number), so a tally counts into arrays instead of hashing strings (805). */
+function facetRead_(col, facet, x, i) {
+  const vals = asList_(facet.of(x));
+  col.vals[i] = vals;
+  if (!vals.length) { col.id[i] = -1; return; }
+  if (vals.length === 1) { col.id[i] = facetIntern_(col, vals[0]); return; }
+  const ids = [], kids = [];
+  vals.forEach(v => {
+    const d = facetIntern_(col, v);
+    if (ids.indexOf(d) < 0) ids.push(d);
+    const k = col.kid[d];
+    if (k >= 0 && kids.indexOf(k) < 0) kids.push(k);
+  });
+  col.many[i] = { ids: ids, kids: kids };
+  col.id[i] = -2;
+}
+function facetIntern_(col, v) {
+  const name = String(v);
+  let d = col.ids.get(name);
+  if (d !== undefined) return d;
+  d = col.names.length;
+  col.names.push(name);
+  col.ids.set(name, d);
+  const k = spellKey_(v);
+  let kd = -1;
+  if (k) { kd = col.kids.get(k); if (kd === undefined) { kd = col.keys.length; col.keys.push(k); col.kids.set(k, kd); } }
+  col.kid.push(kd);
+  return d;
+}
+/* ---------- EVERY VALUE A CARD GIVES, READ ONCE PER EPOCH (805) ----------------------------------
+   Each card has a number (`itemIx_`), each facet a column by it, kept until the payload, facets tab, Ledger, results or viewer change. */
+const ITEM_IX = new WeakMap();
+let ITEM_N = 0;
+function itemIx_(x) {
+  let i = ITEM_IX.get(x);
+  if (i === undefined) { i = ITEM_N++; ITEM_IX.set(x, i); }
+  return i;
+}
+/* A LIST'S NUMBERS, once per list: a tally walks them for every facet it asks. */
+const LIST_IX = new WeakMap();
+function listIx_(items) {
+  let a = LIST_IX.get(items);
+  if (a && a.length === items.length) return a;
+  a = new Int32Array(items.length);
+  for (let i = 0; i < items.length; i++) a[i] = items[i] && typeof items[i] === 'object' ? itemIx_(items[i]) : -1;
+  LIST_IX.set(items, a);
+  return a;
+}
+/* THIS FACET'S COLUMN while the epoch holds, else null (read afresh). The cheap half of the epoch is checked on every read. */
+function facetCol_(facet) {
+  const E = FACET_EPOCH;
+  if (!E || E.data !== DATA || E.gen !== facetGen_() || E.my !== MY_RESULT.gen) return null;
+  return E.cols[facet.field] || (E.cols[facet.field] = { vals: [], id: [], many: [], names: [], ids: new Map(), kid: [], keys: [], kids: new Map() });
+}
+let FACET_EPOCH = null;
+const facetGen_ = () => (typeof LIB !== 'undefined' && LIB ? LIB.gen : 0);
+function facetEpochFresh_() {
+  const now = { data: DATA, facets: facetList(), gen: facetGen_(), my: MY_RESULT.gen, who: itemMemoKey_(), came: writingNow_() };
+  const E = FACET_EPOCH;
+  if (E && Object.keys(now).every(k => E[k] === now[k])) return E;
+  now.cols = {};
+  FACET_EPOCH = now;
+  return now;
 }
 
 /* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH § */
@@ -923,34 +992,84 @@ function tellApart_(items, facet, values) {
 const FACET_TALLY = new WeakMap();
 
 /* Each item's weight in a split: 1, or 1/n for the n cards of one writing. Memoised per list. */
+/* A WRITING IS ITS WORK IN ONE TEXT (520's keys, not the retired `libBook`): "Bible · King James Version" however many verses. Memoised per card. */
+const WRITING_KEY = new WeakMap();
+function writingKey_(x) {
+  if (!x || !(x.w || (x.kind === 'bible' && x.bb))) return '';
+  let k = WRITING_KEY.get(x);
+  if (k === undefined) {
+    const work = String(writingAt1_(x, 'work') || ''), text = String(writingAt1_(x, 'text') || '');
+    k = work || text ? work + '\u0000' + text : '';
+    WRITING_KEY.set(x, k);
+  }
+  return k;
+}
 const WRITING_WEIGHTS = new WeakMap();
 function writingWeights_(items) {
   let w = WRITING_WEIGHTS.get(items);
   if (w) return w;
-  const n = {};
-  items.forEach(x => { if (x && x.libBook) n[x.libBook] = (n[x.libBook] || 0) + 1; });
-  w = items.map(x => x && x.libBook ? 1 / n[x.libBook] : 1);
+  const n = {}, ks = items.map(writingKey_);
+  ks.forEach(k => { if (k) n[k] = (n[k] || 0) + 1; });
+  w = ks.map(k => k ? 1 / n[k] : 1);
   WRITING_WEIGHTS.set(items, w);
   return w;
 }
 function facetTally_(items, facet) {
+  facetEpochFresh_();
   let perList = FACET_TALLY.get(items);
   if (!perList) { perList = {}; FACET_TALLY.set(items, perList); }
   const had = perList[facet.field];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. § */
   if (had && had.facet === facet) return had;
 
-  const by = {};
+  let by = {};
   let answered = 0;
-  items.forEach(x => {
+  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`writingKey_`) weighs one however many verses it is, so the
+     Bible cannot make Subject look lopsided. Every facet, one rule; read in the counts' walk (805). */
+  const wt = writingWeights_(items);
+  let top = 0, whole = 0;
+  let wBy = {};
+  const col = facetCol_(facet);
+  if (col) {
+    /* COUNTED BY NUMBER, in the order this list first meets each value, as the string walk below counts (805). */
+    const ixs = listIx_(items), cnt = [], kw = [], order = [];
+    for (let i = 0; i < items.length; i++) {
+      const w = wt[i];
+      whole += w;
+      const j = ixs[i];
+      if (j < 0) continue;
+      if (col.id[j] === undefined) facetRead_(col, facet, items[i], j);
+      const d = col.id[j];
+      if (d === -1) continue;
+      answered++;
+      if (d >= 0) {
+        if (cnt[d] === undefined) { cnt[d] = 1; order.push(d); } else cnt[d]++;
+        const k = col.kid[d];
+        if (k >= 0) kw[k] = (kw[k] || 0) + w;
+        continue;
+      }
+      const m = col.many[j];
+      m.ids.forEach(e => { if (cnt[e] === undefined) { cnt[e] = 1; order.push(e); } else cnt[e]++; });
+      m.kids.forEach(k => { kw[k] = (kw[k] || 0) + w; });
+    }
+    order.forEach(d => { by[col.names[d]] = (by[col.names[d]] || 0) + cnt[d]; });
+    for (let k = 0; k < kw.length; k++) if (kw[k] !== undefined) wBy[col.keys[k]] = kw[k];
+  } else for (let i = 0; i < items.length; i++) {
+    whole += wt[i];
     /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. § */
-    const vals = facetOwn_(facet, x);
-    if (!vals.length) return;
+    const vals = facetOwn_(facet, items[i]);
+    if (!vals.length) continue;
     answered++;
     /* ONE VALUE IS THE OVERWHELMING CASE and a `Set` of one is an allocation to prove it. § */
-    if (vals.length === 1) { by[vals[0]] = (by[vals[0]] || 0) + 1; return; }
+    if (vals.length === 1) {
+      by[vals[0]] = (by[vals[0]] || 0) + 1;
+      const k = spellKey_(vals[0]);
+      if (k) wBy[k] = (wBy[k] || 0) + wt[i];
+      continue;
+    }
     new Set(vals).forEach(v => { by[v] = (by[v] || 0) + 1; });
-  });
+    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
+  }
 
   /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM § */
   const folded = {};
@@ -970,16 +1089,6 @@ function facetTally_(items, facet) {
   shortLabels_(values);
   tellApart_(items, facet, values);
 
-  /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
-     Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
-  const wt = writingWeights_(items);
-  let top = 0, whole = 0;
-  const wBy = {};
-  items.forEach((x, i) => {
-    whole += wt[i];
-    const vals = facetOwn_(facet, x);
-    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
-  });
   Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
@@ -8260,6 +8369,15 @@ function stemCarried_(x) {
 }
 /* THE QUESTION'S OWN OPENING ON EVERY PART'S CARD (500): a short stem with a figure is read with
    each part, its figure too, so 16(a) and 16(b) both have the graph they ask about. Outer stems stay pages. */
+/* A STEM'S WEIGHT, once per stem per library generation (805): every part of a question asks it of the same stem. */
+const STEM_WEIGHT = new WeakMap();
+function stemWeight_(p) {
+  const had = STEM_WEIGHT.get(p), gen = chunkGen_();
+  if (had && had.gen === gen) return had.w;
+  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
+  STEM_WEIGHT.set(p, { gen: gen, w: w });
+  return w;
+}
 function stemOnCard_(x) {
   const pen = stemCarried_(x);
   if (pen) return pen;
@@ -8267,8 +8385,7 @@ function stemOnCard_(x) {
   const p = st[st.length - 1];
   if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
   if (!(p.q !== undefined && p.q !== null && p.q !== '') && !(p.row && p.row.question)) return null;
-  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
-  return w <= CHUNK_PAGE ? p : null;
+  return stemWeight_(p) <= CHUNK_PAGE ? p : null;
 }
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
@@ -8991,6 +9108,7 @@ function stuffItemsAll_() {
 
 /* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE § */
 function stuffForget_() {
+  FACET_EPOCH = null;
   ALL_MEMO = { key: null, from: null, items: null };
   FUNNEL_MEMO = { key: null, from: null, items: null };
   /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left Find 2's would
@@ -9601,6 +9719,7 @@ const stuffKeyCmp_ = (a, b) => {
 /* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
 const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
 function stuffNarrow_(out, filters, words, credits) {
+  facetEpochFresh_();
   const byField = {};
   filters.forEach(f => {
     if (f.any) return;
@@ -9608,7 +9727,27 @@ function stuffNarrow_(out, filters, words, credits) {
   });
   Object.keys(byField).forEach(field => {
     const list = byField[field];
-    out = out.filter(x => list.some(f => filterHit(x, f, credits)));
+    /* `filterHit`'s rule with the chip's facet and key read once, not once per card (805). */
+    const facet = facetBy(field);
+    if (!facet) return;
+    const keys = list.map(f => spellKey_(f.value));
+    const col = facetCol_(facet);
+    if (!col) { out = out.filter(x => list.some(f => filterHit(x, f))); return; }
+    /* BY NUMBER: the chips' spelling keys as the column numbers them, and each card's value numbers checked against them. */
+    const want = new Set(keys.filter(Boolean).map(k => {
+      if (!col.kids.has(k)) { col.kids.set(k, col.keys.length); col.keys.push(k); }
+      return col.kids.get(k);
+    }));
+    const ixs = listIx_(out);
+    out = out.filter((x, i) => {
+      const j = ixs[i];
+      if (j < 0) return list.some(f => filterHit(x, f));
+      if (col.id[j] === undefined) facetRead_(col, facet, x, j);
+      const d = col.id[j];
+      if (d === -1) return false;
+      if (d >= 0) return want.has(col.kid[d]);
+      return col.many[j].kids.some(k => want.has(k));
+    });
   });
   /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS § */
   const ref = words.length ? qRef_(words.join('')) : null;
@@ -9725,21 +9864,56 @@ function stuffPages_() {
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
   const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
-  const kept = (x, part) => byPage.every(f => {
+  /* EACH CHIP'S FACET AND KEY READ ONCE, not once per page of every result (805). */
+  const byPageAt = byPage.map(f => ({ facet: facetBy(f.field), key: spellKey_(f.value) }));
+  const kept = !byPageAt.length ? () => true : (x, part) => byPageAt.every(f => {
     let v = [];
-    try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
-    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+    try { v = asList_(f.facet.tagOf(x, part)); } catch (e) { v = []; }
+    return !v.length || v.some(t => spellKey_(t) === f.key);
   });
+  const ctx = pagePartsCtx_();
+  /* EACH CARD'S KEPT PAGES ARE KEPT ON IT for the same chips on the page readers (805), so a tap walks the list, not every page. */
+  ctx.chips = JSON.stringify(byPage);
   seq.forEach((x, i) => {
+    const prev = seq[i - 1], sh = pagePrevKey_(x, prev);
+    const box = x && typeof x === 'object' ? PAGE_KEPT.get(x) : null;
+    const had = box && box[ctx.chips];
+    if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) {
+      for (let k = 0; k < had.pages.length; k++) pages.push(had.pages[k]);
+      return;
+    }
+    const mine = [];
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
-    if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
-    pageParts_(x, seq[i - 1]).forEach(part => {
-      if (kept(x, part)) pages.push({ x: x, part: part });
+    if (libSlim_(x)) mine.push({ x: x, part: null, slim: true });
+    else pagePartsMemo_(x, prev, ctx).forEach(part => {
+      if (kept(x, part)) mine.push({ x: x, part: part });
     });
+    /* ONE ENTRY PER SET OF PAGE CHIPS, so going back up the funnel finds the pages it had. */
+    if (x && typeof x === 'object') (box || (PAGE_KEPT.set(x, {}), PAGE_KEPT.get(x)))[ctx.chips] = { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, pages: mine };
+    for (let k = 0; k < mine.length; k++) pages.push(mine[k]);
   });
   STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
+}
+
+/* A CARD'S PAGES, kept per card with the card before it (805): every tap asked it of every result again. What `pageParts_` reads
+   hangs off the payload, the Ledger's generation and the whole list. */
+const PAGE_PARTS = new WeakMap(), PAGE_KEPT = new WeakMap();
+const pagePartsCtx_ = () => ({ data: DATA, gen: chunkGen_(), all: stuffItemsAll_(), by: questionParts_() });
+/* ALL A CARD'S PAGES TAKE FROM THE ONE BEFORE IT is which of its stems that one already drew, so that is the key, not which card it was. */
+function pagePrevKey_(x, prev) {
+  if (!x || x.kind !== 'question' || !prev || prev.kind !== 'question' || !(x.stems || []).length || !(prev.stems || []).length) return '';
+  const had = prev.stems.map(stemId_);
+  return x.stems.filter(p => p && had.indexOf(stemId_(p)) >= 0).map(stemId_).join('\u0000');
+}
+function pagePartsMemo_(x, prev, ctx) {
+  if (!x || typeof x !== 'object') return pageParts_(x, prev);
+  const had = PAGE_PARTS.get(x), sh = pagePrevKey_(x, prev);
+  if (had && had.sh === sh && had.data === ctx.data && had.gen === ctx.gen && had.all === ctx.all && had.by === ctx.by) return had.parts;
+  const parts = pageParts_(x, prev);
+  PAGE_PARTS.set(x, { sh: sh, data: ctx.data, gen: ctx.gen, all: ctx.all, by: ctx.by, parts: parts });
+  return parts;
 }
 
 /* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
@@ -9803,8 +9977,18 @@ function verifyTags_(x) {
 
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
-const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+const qIdOf_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
   ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+/* MEMOISED PER CARD while its row and number stand (805): every tap asked it of every result twice. */
+const QID = new WeakMap();
+const qId_ = x => {
+  if (!x || typeof x !== 'object' || x.kind !== 'question') return qIdOf_(x);
+  const had = QID.get(x);
+  if (had && had.row === x.row && had.q === x.qNumber) return had.id;
+  const id = qIdOf_(x);
+  QID.set(x, { row: x.row, q: x.qNumber, id: id });
+  return id;
+};
 const WHOLE_MEMO = new WeakMap();
 function questionParts_() {
   const all = stuffSorted_(stuffItems());
@@ -9815,19 +9999,26 @@ function questionParts_() {
   WHOLE_MEMO.set(all, by);
   return by;
 }
+/* EVERY PART THE FUNNEL'S LIST HOLDS, as one set per grouping, so "is this one of them" is not a walk of its siblings (805). */
+const WHOLE_HELD = new WeakMap();
+function wholeHeld_(by) {
+  let h = WHOLE_HELD.get(by);
+  if (!h) { h = new Set(); Object.keys(by).forEach(k => by[k].forEach(x => h.add(x))); WHOLE_HELD.set(by, h); }
+  return h;
+}
 function wholeQuestions_(items) {
-  const out = [], done = {};
-  let by = null;
+  const out = [], done = new Set();
+  let by = null, held = null;
   (items || []).forEach(x => {
     const k = qId_(x);
     if (!k) { out.push(x); return; }
-    by = by || questionParts_();
-    const sib = by[k] || [];
+    if (!by) { by = questionParts_(); held = wholeHeld_(by); }
     /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
-    if (sib.indexOf(x) < 0) { out.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
-    sib.forEach(s => out.push(s));
+    if (!held.has(x)) { out.push(x); return; }
+    if (done.has(k)) return;
+    done.add(k);
+    const sib = by[k];
+    for (let i = 0; i < sib.length; i++) out.push(sib[i]);
   });
   return out;
 }
@@ -11356,6 +11547,55 @@ function stuffWarm_(F, ask, step) {
   });
 }
 AHEAD_KINDS.push(stuffWarmJobs_);
+
+/* ---------- EVERY FACET'S COLUMN READ IN THE QUIET (805), a short slice at a time, so a first tap on a big list counts numbers
+   instead of asking every card every facet. Last of all the jobs. */
+const FACET_INDEX_STEP = 2000, FACET_INDEX_MS = 25;
+const facetIndexLeft_ = all => facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
+function facetIndexJobs_() {
+  if (typeof awaiting_ === 'function' && awaiting_()) return [];
+  /* ONLY OVER LISTS ALREADY BUILT: the reading never builds one, so a landing's lists are still the warm's to make (341). */
+  const who = itemMemoKey_();
+  if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === who && ALL_MEMO.from === DATA && ALL_MEMO.key === who)) return [];
+  let all = null;
+  try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
+  const f = facetIndexLeft_(all);
+  if (!f) return pageWarmJobs_(all);
+  const c = facetCol_(f), at = c.from === all ? c.upto : 0;
+  /* THE KEY SAYS HOW FAR, so a job left with more to read is a new job, not a stuck one (`aheadStill_`). */
+  return [{ key: 'index:' + f.field + ':' + at, kind: 'index', d: 1e6, cold: true, run: () => facetIndexSlice_(all) }];
+}
+/* AS MANY CARDS AS FIT IN A SHORT SLICE, facet after facet, so nothing in the quiet is a long task. */
+function facetIndexSlice_(all) {
+  const t0 = performance.now();
+  for (let f = facetIndexLeft_(all); f; f = facetIndexLeft_(all)) {
+    const col = facetCol_(f);
+    if (col.from !== all) { col.from = all; col.upto = 0; }
+    const end = Math.min(all.length, col.upto + FACET_INDEX_STEP);
+    for (let i = col.upto; i < end; i++) facetOwn_(f, all[i]);
+    col.upto = end;
+    if (performance.now() - t0 > FACET_INDEX_MS) return;
+  }
+}
+/* AND THEN EVERY CARD'S PAGES (805), in the library's order, so the first tap on a subject is not every one of its stems measured. */
+let PAGE_WARM = { all: null, ctx: null, upto: 0 };
+function pageWarmJobs_(all) {
+  const ctx = pagePartsCtx_();
+  const w = PAGE_WARM;
+  const fresh = w.all === all && w.ctx && ['data', 'gen', 'all', 'by'].every(k => w.ctx[k] === ctx[k]);
+  if (fresh && w.upto >= all.length) return [];
+  return [{ key: 'index:pages:' + (fresh ? w.upto : 0), kind: 'index', d: 1e6, cold: true, run: () => pageWarmSlice_(all) }];
+}
+function pageWarmSlice_(all) {
+  const ctx = pagePartsCtx_(), t0 = performance.now();
+  if (!(PAGE_WARM.all === all && PAGE_WARM.ctx && ['data', 'gen', 'all', 'by'].every(k => PAGE_WARM.ctx[k] === ctx[k]))) PAGE_WARM = { all: all, ctx: ctx, upto: 0 };
+  const seq = stuffSorted_(all);
+  while (PAGE_WARM.upto < seq.length && performance.now() - t0 < FACET_INDEX_MS) {
+    const i = PAGE_WARM.upto++, x = seq[i];
+    if (x && !libSlim_(x)) pagePartsMemo_(x, seq[i - 1], ctx);
+  }
+}
+AHEAD_KINDS.push(facetIndexJobs_);
 
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT § */
 function stuffPin_(el, pane) {
