@@ -131,6 +131,10 @@ node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   #
 
 Each check's header says what it proves, its flags and its port variable. The full list: `docs/map-detail.md`.
 
+**CI** (780): `.github/workflows/checks.yml` runs the suite on every push and PR to main in 17 parallel jobs (~15 min), with
+`LIB_PRIVATE=absent` — no private words there, so the checks that need them skip, counted in each job's summary (skipped is
+not green). `npm run check:changed` runs only what a change touches. `live.yml` smoke-tests the live site nightly.
+
 ## House style
 
 - **Comments say WHY, in a line or two** (≤ 240 characters; `check-comments` enforces). The story — what

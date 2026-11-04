@@ -261,6 +261,14 @@ const SUITE = [
 
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */
 if (process.argv.includes('--fast')) for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].slow) SUITE.splice(i, 1);
+/* `--slow=k/n` (CI, 780): only the slow checks, the k-th of n groups dealt round-robin; check-flow is left to FLOW_PART. */
+const SLOW_PART = /^--slow=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--slow=')) || '');
+if (SLOW_PART) {
+  const k = Number(SLOW_PART[1]), n = Number(SLOW_PART[2]);
+  const mine = SUITE.filter(c => c.slow && c.file !== 'check-flow.js').filter((c, i) => i % n === k - 1);
+  SUITE.splice(0, SUITE.length, ...mine);
+  console.log('slow part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
+}
 let failed = 0, noted = 0;
 const notes = [];
 

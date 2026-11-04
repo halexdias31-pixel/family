@@ -32397,11 +32397,16 @@ if (FLOW_PART_) {
 }
 (async () => {
   let failed = 0;
+  const skipped = [];
   console.log('');
   for (const c of checks) {
     let bad;
     try { bad = await c.fn(); }
-    catch (e) { bad = ['the check itself threw: ' + e.message]; }
+    catch (e) {
+      /* LIB_PRIVATE=absent (780): a journey that reads the library's words is skipped and counted, never passed. */
+      if (LIB_FULL.isAbsent(e)) { skipped.push(c.name); console.log('  skip  ' + c.name); continue; }
+      bad = ['the check itself threw: ' + e.message];
+    }
     if (bad && bad.length) {
       failed++;
       console.log('  FAIL  ' + c.name);
@@ -32411,7 +32416,9 @@ if (FLOW_PART_) {
     }
   }
   console.log('');
-  console.log(failed ? 'FAILED — ' + failed + ' of ' + checks.length + ' journeys are broken'
-                     : 'OK — all ' + checks.length + ' journeys work.');
+  LIB_FULL.skipParts(skipped);
+  const ran = checks.length - skipped.length;
+  console.log(failed ? 'FAILED — ' + failed + ' of ' + ran + ' journeys are broken'
+                     : 'OK — all ' + ran + ' journeys work' + (skipped.length ? ' (' + skipped.length + ' skipped: no private words).' : '.'));
   process.exit(failed ? 1 : 0);
 })();
