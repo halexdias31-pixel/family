@@ -797,12 +797,33 @@ function facetShort_(facet, v, items) {
 
 /* A CARD'S TAG IS SAID AS ITS BUTTON WOULD BE ONCE EVERY QUESTION BEFORE IT WAS ANSWERED THE CARD'S WAY (396) — the
    paper among the papers sharing its level, board, tier and sitting is `Paper 1`, wherever the card is drawn. */
-let CARD_LISTS = { from: null, at: new Map() };
+let CARD_LISTS = { from: null, at: new Map(), of: new Map() };
+/* ONE LABELLER FOR A THING (830): an answer that differs among the cards wearing this value (one question's Accuracy) never
+   changes what the value is called, so a paper is named by its paper's answers alone, as the Sunday email names it. */
+function cardThingOwn_(facet, x, g) {
+  const own = asList_(facet.of(x)).map(spellKey_).join('|');
+  const key = facet.field + '\u0001' + own + '\u0001' + g.field;
+  let hit = CARD_LISTS.of.get(key);
+  if (hit === undefined) {
+    let by = CARD_LISTS.of.get(facet.field);
+    if (!by) {
+      by = new Map();
+      stuffItems().forEach(y => { let k = ''; try { k = asList_(facet.of(y)).map(spellKey_).join('|'); } catch (e) { k = ''; } if (k) { if (!by.has(k)) by.set(k, []); by.get(k).push(y); } });
+      CARD_LISTS.of.set(facet.field, by);
+    }
+    const said = y => { try { return asList_(g.of(y)).map(spellKey_).sort().join('|'); } catch (e) { return ''; } };
+    const mates = by.get(own) || [x], first = said(mates[0]);
+    hit = mates.every(y => said(y) === first);
+    CARD_LISTS.of.set(key, hit);
+  }
+  return hit;
+}
 function cardList_(facet, x) {
-  if (CARD_LISTS.from !== DATA) CARD_LISTS = { from: DATA, at: new Map() };
+  if (CARD_LISTS.from !== DATA) CARD_LISTS = { from: DATA, at: new Map(), of: new Map() };
   const chips = [];
   for (const g of facetList()) {
     if (g.field === facet.field) break;
+    if (!cardThingOwn_(facet, x, g)) continue;
     let vals = [];
     try { vals = asList_(g.of(x)); } catch (e) { vals = []; }
     vals.forEach(v => chips.push({ field: g.field, value: v }));
@@ -995,8 +1016,13 @@ function facetTally_(items, facet) {
 }
 
 /** The distinct values of one facet across a set, with how many each would leave. */
+/* AN ANSWER SPELT LIKE A CHOSEN CHIP IS NEVER OFFERED (830), under any question: the chip already says it (680 is the chips' side). */
 function facetValues(items, facet) {
-  return facetTally_(items, facet).values;
+  const all = facetTally_(items, facet).values;
+  const chips = ((STUFF && STUFF.filters) || []).filter(c => c && !c.any && c.field !== facet.field).map(c => spellKey_(c.value));
+  if (!chips.length) return all;
+  const said = v => chips.includes(spellKey_(v.value)) || chips.includes(spellKey_(v.show || v.text || v.value));
+  return all.some(said) ? all.filter(v => !said(v)) : all;
 }
 
 /* HOW MANY OF THESE COULD EVEN ANSWER IT. Not how many distinct answers there are — how many
@@ -9542,13 +9568,6 @@ function sittingOf_(x) {
     : { series: w, year: '' };
   SITTING_MEMO.set(x, out);
   return out;
-}
-
-/* THE SERIES IN THE ORDER THEY COME IN A YEAR, not the alphabet: § */
-function seriesCmp_(a, b) {
-  const at = v => SERIES_AT[v] !== undefined ? SERIES_AT[v]
-    : MONTH_NAMES.indexOf(v) >= 0 ? MONTH_NAMES.indexOf(v) + 1 : 99;
-  return (at(a) - at(b)) || cmpText(a, b);
 }
 
 /* Numeric-aware, so Grade 2 comes before Grade 10. Plain alphabetical put Grade 10 first, and that

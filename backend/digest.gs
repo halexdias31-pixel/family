@@ -1191,7 +1191,7 @@ function digestLibrary_(site) {
 /* `function` is not here: Function verified is read off the question type's protocol by qtypes.js, in the browser, and the email says no Function tag. */
 const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
   ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
-  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['accuracy', 'check'], ['paperId', 'paper'], ['qNumber', 'paper'],
+  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['accuracy', 'check'], ['paperId', 'paper'], ['paperSection', 'other'], ['qNumber', 'paper'],
   ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['source', 'board']];
 /* `DOC_TYPE_UNDER` (find.js, 545): a type that is a kind of another answers both, on the card and so in the email. */
 const DIGEST_DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' };
@@ -1427,13 +1427,23 @@ function digestTagBefore_(it, T) {
            examBoard: digestList_(it.examBoard), tier: digestList_(it.tier), examYear: digestList_(digestTagYear_(it, T)), examMonth: digestList_(digestTagMonth_(it, T)) };
 }
 const digestTagKeystage_ = it => { const s = digestTagSats_(it); return s.length ? s : digestTagStages_(it); };
+/* `paperLabel_` and `paperSectionOf_` (find.js, 770): a paper sat in sections is its real number — Paper 3, Section A, never Paper 31. */
+function digestPaperSection_(row) {
+  const m = /-(\d)(\d)$/.exec(S((row && (row.paper_id || row.paperId)) || ''));
+  if (!m || S(row.paper) !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: S(row.section).trim() };
+}
+function digestPaperLabel_(id, d) {
+  const name = String((d && d.name) || id || '').trim(), sec = digestPaperSection_(d);
+  return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
+}
 /* `cardList_` + `facetShort_`: the paper said as its Paper button would be once every question before it was answered the card's way — `Paper 1`. */
 function digestTagPaper_(it, T) {
   const pid = S(it.src.paper_id);
   if (!pid) return '';
   T.paperSaid = T.paperSaid || {};
   if (pid in T.paperSaid) return T.paperSaid[pid];
-  const nameOf = id => digestSay_(String((T.docs[id] || {}).name || id).trim());
+  const nameOf = id => digestSay_(digestPaperLabel_(id, T.docs[id]));
   const forms0 = digestTagForms_(nameOf(pid));
   if (forms0.length < 2) return (T.paperSaid[pid] = nameOf(pid));
   if (!T.before) { T.before = {}; Object.keys(T.heads).forEach(p => { T.before[p] = digestTagBefore_(digestTagItem_(T.heads[p]), T); }); }
@@ -1495,7 +1505,7 @@ function digestCardTags_(q, T) {
     bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
     examBoard: () => it.examBoard, tier: () => it.tier,
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
-    paperId: () => pid, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
+    paperId: () => pid, paperSection: () => { const r = digestPaperSection_(T.docs[pid]); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; }, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
     accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), source: () => digestTagSource_(q),
   };
