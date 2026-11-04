@@ -26,6 +26,8 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # The browser groups report but do not block (owner, 4 Nov: Find first; 870 routes core browser checks back to blocking).
+    continue-on-error: ${{ startsWith(matrix.name, 'browser') }}
     strategy:
       fail-fast: false
       matrix:
