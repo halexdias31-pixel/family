@@ -211,7 +211,7 @@ const KINDS = {
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
-  health: { group: 'Site health', label: 'Site health', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
+  health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
   post: { group: 'Posts', label: 'Posts', card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<div class="card"><p>${esc(x.name)}</p></div>`) },
 
@@ -9186,7 +9186,7 @@ function stuffItemsRaw_() {
       kind: 'person', name: p.title, key: 'person:' + (p.personId || p.title), sub: p.role || 'Client', image: p.image || '', row: p,
       text: [p.title, p.handle, p.role].filter(Boolean).join(' ') })),
     ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['logic', 'Logic health'], ['missing', 'What’s missing']].map(([w, n]) => ({
-      kind: 'health', name: n, key: 'health:' + w, sub: 'Site health', image: '', which: w, text: n + ' site health' })) : []),
+      kind: 'health', name: n, key: 'health:' + w, sub: 'Settings', image: '', which: w, text: n + ' site health' })) : []),
     ...((DATA && DATA.posts) || []).filter(p => p && p.id).map(p => ({ kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80),
       key: 'post:' + p.id, sub: p.handle || p.author || '', image: '', row: p, text: [p.text, p.caption, p.title, p.handle, p.author].filter(Boolean).join(' ') })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
