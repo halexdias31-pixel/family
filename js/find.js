@@ -206,6 +206,8 @@ const KINDS = {
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
+  /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
+  post: { group: 'Posts', label: 'Posts', card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<div class="card"><p>${esc(x.name)}</p></div>`) },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 
@@ -9174,6 +9176,8 @@ function stuffItemsRaw_() {
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     ...soonItems_(),
+    ...((DATA && DATA.posts) || []).filter(p => p && p.id).map(p => ({ kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80),
+      key: 'post:' + p.id, sub: p.handle || p.author || '', image: '', row: p, text: [p.text, p.caption, p.title, p.handle, p.author].filter(Boolean).join(' ') })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
     ...(canTrack() ? friendHandles().map(h => {
       const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
