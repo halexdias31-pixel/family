@@ -11541,6 +11541,9 @@ const FACET_INDEX_STEP = 2000, FACET_INDEX_MS = 25;
 const facetIndexLeft_ = all => facetList().find(f => { const c = facetCol_(f); return c && (c.from !== all || c.upto < all.length); });
 function facetIndexJobs_() {
   if (typeof awaiting_ === 'function' && awaiting_()) return [];
+  /* ONLY OVER LISTS ALREADY BUILT: the reading never builds one, so a landing's lists are still the warm's to make (341). */
+  const who = itemMemoKey_();
+  if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === who && ALL_MEMO.from === DATA && ALL_MEMO.key === who)) return [];
   let all = null;
   try { facetEpochFresh_(); all = stuffItems(); } catch (e) { return []; }
   const f = facetIndexLeft_(all);
