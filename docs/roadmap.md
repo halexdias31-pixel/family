@@ -28,6 +28,9 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
    when an answer is pressed; the card sits at 183px instead of 300 after clearing.
 
 ## Paused, to come back to
+- **One scrolling page instead of sideways columns** (owner agreed it's the long-term move, 4 Nov): the browser's own
+  scrolling, cards loaded as they scroll in, the @family keypad only in maths answer boxes. Its own careful job, with
+  the question pages checked first; not while things are settling.
 - **Fast Find that fits a phone** (805 was reverted: an iPhone tab ran out of memory on Practice). Needs a phone-memory
   check, then a lighter index (typed arrays, lazy columns, only the visible window).
 - **First-moment check** — every screen with the later files held back (the finderPageCount_ crash on 4 Nov).
