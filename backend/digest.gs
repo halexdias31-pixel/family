@@ -1428,10 +1428,10 @@ function digestTagBefore_(it, T) {
 }
 const digestTagKeystage_ = it => { const s = digestTagSats_(it); return s.length ? s : digestTagStages_(it); };
 /* `paperLabel_` and `paperSectionOf_` (find.js, 770): a paper sat in sections is its real number — Paper 3, Section A, never Paper 31. */
-function digestPaperSection_(row) {
-  const m = /-(\d)(\d)$/.exec(S((row && (row.paper_id || row.paperId)) || ''));
-  if (!m || S(row.paper) !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
-  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: S(row.section).trim() };
+function digestPaperSection_(doc) {
+  const m = /-(\d)(\d)$/.exec(S((doc && (doc.paper_id || doc.paperId)) || ''));
+  if (!m || S(doc.paper) !== m[1] || Number(m[2]) < 1 || Number(m[2]) > 6) return null;
+  return { paper: m[1], section: 'Section ' + 'ABCDEF'[Number(m[2]) - 1], topic: S(doc.section).trim() };
 }
 function digestPaperLabel_(id, d) {
   const name = String((d && d.name) || id || '').trim(), sec = digestPaperSection_(d);
@@ -1505,7 +1505,7 @@ function digestCardTags_(q, T) {
     bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
     examBoard: () => it.examBoard, tier: () => it.tier,
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
-    paperId: () => pid, paperSection: () => { const r = digestPaperSection_(T.docs[pid]); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; }, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
+    paperId: () => pid, paperSection: () => { const sec = digestPaperSection_(T.docs[pid]); return sec ? sec.section + (sec.topic ? ': ' + sec.topic : '') : ''; }, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
     accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), source: () => digestTagSource_(q),
   };

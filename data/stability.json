@@ -1,15 +1,15 @@
 {
  "v": 1,
- "score": 45.8,
+ "score": 47.5,
  "verdict": "Fragile: the exceptions outweigh the rules.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 202,
+   "count": 198,
    "weight": 0.1,
    "cap": 20,
-   "off": 20,
+   "off": 19.8,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -18,7 +18,7 @@
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 1,
-    "js/check-payload.js ACCEPTED": 4,
+    "js/check-payload.js ACCEPTED": 1,
     "js/check-reels.js VIDEO_OK": 6,
     "js/check-settings.js ACCEPTED_GONE": 3,
     "js/check-strings.js ROLE_OK": 1,
@@ -26,7 +26,7 @@
     "js/check-widgets.js ACCEPTED_ENGINE": 13,
     "js/check-widgets.js CAT_WORD_OK": 9,
     "js/check-widgets.js NEAR_OK": 22,
-    "js/check-widgets.js ACCEPTED_IMPURE": 6,
+    "js/check-widgets.js ACCEPTED_IMPURE": 5,
     "check/cascade.js ACCEPTED": 28,
     "check/diagrams.js ACCEPTED": 4,
     "check/motion.js ACCEPTED": 18,
@@ -82,12 +82,12 @@
   {
    "id": "dead",
    "label": "Code nothing calls",
-   "count": 21,
+   "count": 16,
    "weight": 0.3,
    "cap": 10,
-   "off": 6.3,
+   "off": 4.8,
    "where": {
-    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), blockHours_ (book.js), nextBookStep (book.js), collPages_ (collections.js), whyThisQuestion (find.js), insertsFor_ (find.js), initWhiteboard (find.js), seriesCmp_ (find.js), scrAt_ (games.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), layoutColOf_ (layout.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), typedFirstWords_ (people.gs)"
+    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), whyThisQuestion (find.js), insertsFor_ (find.js), initWhiteboard (find.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), typedFirstWords_ (people.gs)"
    }
   },
   {
@@ -98,8 +98,8 @@
    "cap": 10,
    "off": 2.5,
    "where": {
-    "js/find.js": 12162,
-    "js/games.js": 6449,
+    "js/find.js": 12181,
+    "js/games.js": 6446,
     "js/me.js": 4885,
     "js/shell.js": 3810,
     "backend/dopost.gs": 4609
