@@ -1,15 +1,15 @@
 {
  "v": 1,
- "score": 46,
+ "score": 45.8,
  "verdict": "Fragile: the exceptions outweigh the rules.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 199,
+   "count": 202,
    "weight": 0.1,
    "cap": 20,
-   "off": 19.9,
+   "off": 20,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -18,7 +18,7 @@
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 1,
-    "js/check-payload.js ACCEPTED": 3,
+    "js/check-payload.js ACCEPTED": 4,
     "js/check-reels.js VIDEO_OK": 6,
     "js/check-settings.js ACCEPTED_GONE": 3,
     "js/check-strings.js ROLE_OK": 1,
@@ -26,7 +26,7 @@
     "js/check-widgets.js ACCEPTED_ENGINE": 13,
     "js/check-widgets.js CAT_WORD_OK": 9,
     "js/check-widgets.js NEAR_OK": 22,
-    "js/check-widgets.js ACCEPTED_IMPURE": 4,
+    "js/check-widgets.js ACCEPTED_IMPURE": 6,
     "check/cascade.js ACCEPTED": 28,
     "check/diagrams.js ACCEPTED": 4,
     "check/motion.js ACCEPTED": 18,
@@ -49,17 +49,17 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 230,
+   "count": 224,
    "weight": 0.05,
    "cap": 10,
    "off": 10,
    "where": {
-    "js/arcade.js": 9,
+    "js/arcade.js": 7,
     "js/board.js": 20,
     "js/cards.js": 4,
     "js/collections.js": 7,
     "js/data.js": 4,
-    "js/find.js": 96,
+    "js/find.js": 94,
     "js/games.js": 11,
     "js/keypad.js": 5,
     "js/layout.js": 1,
@@ -75,7 +75,7 @@
     "js/records.js": 1,
     "js/resource.js": 4,
     "js/submit.js": 7,
-    "js/tiles.js": 16,
+    "js/tiles.js": 14,
     "js/writings.js": 3
    }
   },
@@ -98,10 +98,10 @@
    "cap": 10,
    "off": 2.5,
    "where": {
-    "js/find.js": 12444,
+    "js/find.js": 12402,
     "js/games.js": 6449,
     "js/me.js": 4885,
-    "js/shell.js": 3822,
+    "js/shell.js": 3810,
     "backend/dopost.gs": 4609
    }
   },
@@ -123,12 +123,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 97,
+   "count": 99,
    "weight": 0.02,
    "cap": 10,
-   "off": 1.9,
+   "off": 2,
    "where": {
-    "lines": 34
+    "lines": 35
    }
   },
   {
@@ -142,7 +142,7 @@
     "js/core.js priceFrom": 251,
     "js/find.js typeset_": 230,
     "js/find.js drawMarker_": 644,
-    "js/find.js stuffItemsRaw_": 166,
+    "js/find.js stuffItemsRaw_": 170,
     "js/library.js libraryExtras_": 180,
     "js/mat.js matPaint": 158,
     "js/racer.js raceMesh_": 151,

@@ -167,6 +167,22 @@ function boot(opts) {
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
+      /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find › Tools or Find › Games pressed as the funnel's first answer, then the first card; `findPage` counts from it. */
+      /* `id`: that widget's card, not the first. */
+      /* NOBODY SIGNED IN IS A MEMBER HERE: Find is for members (400), and a journey that opened Tools signed out asked about the widget, not the gate. */
+      'findGroup: (g, id) => { window.__findKind = g === "Games" ? "game" : "tool";' +
+      '  if (!USER) USER = { name: "Mo Member", personId: "P-MEMBER", role: "parent", roles: ["parent"], rank: "client", token: "t-member", handle: "momember" };' +
+      '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], q: "" }); go("stuff", false, true);' +
+      '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
+      '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
+      /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
+      /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
+      'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
+      'findGroupOn: (fid, g, id) => { if (!USER) USER = { name: "Mo Member", personId: "P-MEMBER", role: "parent", roles: ["parent"], rank: "client", token: "t-member", handle: "momember" };' +
+      '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }], q: "" }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
+      /* `n` IS AN INDEX INTO `widgetsOf_` of the last group, as it was into the column: the page of that widget's card. */
+      'findPage: (n, ...a) => inFinder_(FINDERS.stuff, () => { const w0 = widgetsOf_(window.__findKind || "tool")[n]; const at = w0 ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(w0.id)) : -1;' +
+      '  return goPage("stuff", stuffFirstResult_() + (at < 0 ? n : at), ...a); }),' +
       'pressForget: () => PRESS_LAST_.clear(),' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_` below. § */
       'quiet: () => !PLACE_FRAME && !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
@@ -721,7 +737,7 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   /* LEAVING THE COLUMN TAKES IT DOWN TOO. */
   await turn(n);
   if (frames().length !== 1) bad.push('turning back to the Short did not build its player again');
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
   if (host.querySelector('iframe')) bad.push('leaving the Reels column left a YouTube player in it');
 
@@ -1019,7 +1035,7 @@ check('the cheat sheet has a negative number line, and its piece list does not s
   if (t.matShown(c)) bad.push('the negative number line is offered at A-level, which does not ask for it');
   t.matSet('Maths', 'all');
 
-  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  try { t.findGroup('Tools'); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
   const doc = w.document;
   for (let n = 0; n < 20 && !doc.getElementById('mat-list'); n++) await wait(50);
   const list = doc.getElementById('mat-list');
@@ -1115,7 +1131,7 @@ check('the cheat sheet lists a topic at a time, eight rows at most, and keeps ti
   if (views < 50) bad.push('only ' + views + ' views were walked — the subject or level lists came back short');
   t.matSet('Maths', 'all');
 
-  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  try { t.findGroup('Tools'); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
   const doc = w.document;
   for (let n = 0; n < 20 && !doc.getElementById('mat-group'); n++) await wait(50);
   const grp = doc.getElementById('mat-group');
@@ -1155,7 +1171,7 @@ check('the cheat sheet opens on the signed-in student\'s own level, and on every
     t.matFresh();
     /* `repaint`, NOT `paint`: `go` starts a column's widgets after its 300ms slide and `repaint`
        starts them at once, and `initMat` — where the opening view is decided — is a widget start. */
-    try { t.go('tools', false, true); t.repaint(); } catch (e) { bad.push('drawing tools threw: ' + e.message); }
+    try { t.findGroup('Tools', 'mat'); t.repaint(); } catch (e) { bad.push('drawing tools threw: ' + e.message); }
     await wait(100);
     return t.matNow();
   };
@@ -1182,7 +1198,7 @@ check('a cheat sheet goes into the basket, laminates, and the order names its pi
   const doc = w.document;
   t.setCart([]);
   t.matFresh();
-  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  try { t.findGroup('Tools'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
   for (let n = 0; n < 20 && !doc.querySelector('[data-do="mat-cart"]'); n++) await wait(50);
   const trolley = doc.querySelector('#mat-box [data-do="mat-cart"]');
   if (!trolley) return ['there is no basket tile beside Print the sheet'];
@@ -1243,7 +1259,7 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   const doc = w.document;
   t.setCart([]);
   t.matFresh();
-  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  try { t.findGroup('Tools'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
   for (let n = 0; n < 20 && !doc.getElementById('mat-subject'); n++) await wait(50);
   /* THE KINDS ARE A "Practice paper" GROUP IN THE SUBJECT SELECT — a select of their own was the 44px
      the card did not have at 320x568 (see `initMat`). */
@@ -3470,7 +3486,7 @@ check('the imposter game tells everybody the word but one, and hides it between 
   await wait(300);
   const t = w.__t;
   try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {}
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
@@ -3578,7 +3594,8 @@ check('the imposter game tells everybody the word but one, and hides it between 
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
-      t.go('games', false, true);
+      t.findGroup('Games', 'wordgames');
+      for (let n = 0; n < 50 && !(card() && said()); n++) await wait(100);   /* Find redraws the card it lands on (790) */
       if (said() !== 'Player 2 Show') {
         bad.push('leaving the column with a word up does not hide it: the game reads "' + said() + '"');
       }
@@ -3613,7 +3630,7 @@ check('imposter: every card in the deck has a picture, thirty to a category, non
   const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t = w.__t;
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
@@ -3691,10 +3708,11 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
       getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }],
     };
   };
-  const { w } = boot({ before: w => { voiced(w); try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  /* A MEMBER (400): Find, where the games are since 790, is for members. */
+  const { w } = boot({ before: w => { signedInAs_(MEMBER_)(w); voiced(w); try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t = w.__t;
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games', 'wordgames'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
@@ -3756,12 +3774,14 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   exactly('the setup screen', 'Players − ' + N + ' + Deal');
   t.repaint(true);
   await wait(50);
+  /* FIND FILLS THE PAGE IN FRONT AFTER ITS PAINT (790), so the card is waited for. */
+  for (let n = 0; n < 60 && !card(); n++) await wait(50);
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
   readAloudSays_(sw(), true, 'the setup screen after a repaint').forEach(x => bad.push(x));
 
   /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
   const start = said.length;
-  const round = (cat, word) => {
+  const round = async (cat, word) => {
     const S = t.IMP();
     if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
     const pic = (t.impCards().find(x => x[0] === cat && x[1] === word) || [])[2], catPic = t.impCatSym(cat);
@@ -3773,6 +3793,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
         /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
         mark('repaint');
         t.repaint(true);
+        for (let n = 0; n < 60 && !(card() && text()); n++) await wait(50);   /* Find fills its page after the paint (790) */
         quiet('a repaint');
         if (text() !== 'Player 3 Show') bad.push('a repaint lost the round: "' + text() + '"');
       }
@@ -3806,7 +3827,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
         const first = since()[0];
         if (!first || !first.cancel) bad.push('leaving the column did not stop the voice first (next: ' + JSON.stringify(first) + ')');
         mark('go');
-        t.go('games', false, true);
+        t.findGroup('Games');
         quiet('coming back to the column');
         press('imp-show', { i: i, me: me });
         quiet('player 2\'s card coming up again');
@@ -3824,12 +3845,12 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   };
   t.impStack('At the seaside', 'octopus');
   press('imp-start');
-  round('At the seaside', 'octopus');
+  await round('At the seaside', 'octopus');
   t.impStack('Music', 'trumpet');
   press('imp-again');
   const again = since();
   if (!again.length || !again[0].cancel) bad.push('the reveal\'s Deal did not stop the voice before anything else (next: ' + JSON.stringify(again[0]) + ')');
-  round('Music', 'trumpet');
+  await round('Music', 'trumpet');
   press('imp-players');
   const back = since();
   if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
@@ -3880,7 +3901,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   const mute = boot({ before: w2 => { try { w2.localStorage.setItem('imp-aloud', '1'); w2.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t2 = mute.w.__t;
-  try { t2.go('games', false, true); } catch (e) { return bad.concat(['go("games") threw with no voice: ' + e.message]); }
+  try { t2.findGroup('Games'); } catch (e) { return bad.concat(['go("games") threw with no voice: ' + e.message]); }
   await wait(700);
   const card2 = mute.w.document.getElementById('imp-card');
   if (!card2) return bad.concat(['with no voice the imposter game did not draw']);
@@ -3897,7 +3918,7 @@ check('imposter takes a double tap on Show, Hide, Reveal or the reveal\'s button
   const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t = w.__t;
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(700);
   const d = w.document;
   if (!d.getElementById('imp-card')) return ['the imposter game did not draw on the Games column'];
@@ -3972,7 +3993,7 @@ check('the sentence scramble marks the right order right, every stated order, an
   await wait(300);
   const t = w.__t;
   if (!t.ss || !t.setSs || !t.SS_SENTENCES) return ['the sentence scramble is not exported'];
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(300);
   const d = w.document;
   if (!d.getElementById('ss-box')) return ['the sentence scramble did not draw on the Games column'];
@@ -4060,7 +4081,7 @@ check('the word search hides every word where it says, and two taps find it', as
   await wait(300);
   const t = w.__t;
   if (!t.wsBuild || !t.WS_THEMES) return ['the word search is not exported'];
-  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  try { t.findGroup('Games'); } catch (e) { return ['go("games") threw: ' + e.message]; }
   await wait(300);
   const d = w.document;
   if (!d.getElementById('ws-grid')) return ['the word search did not draw on the Games column'];
@@ -4164,8 +4185,8 @@ const nbEdge_ = w => {
 };
 /* THE PEN ON A BLANK SHEET, which the pen's journeys below draw on: mounted in the whiteboard's slot, which holds the notebook since 377. */
 async function penSheet_(w, d) {
-  for (let i = 0; i < 100 && !d.querySelector('#s-tools #wgt-whiteboard'); i++) await wait(100);
-  const slot = d.querySelector('#s-tools #wgt-whiteboard');
+  for (let i = 0; i < 100 && !d.querySelector('#s-stuff #wgt-whiteboard'); i++) await wait(100);
+  const slot = d.querySelector('#s-stuff #wgt-whiteboard');
   if (!slot) return false;
   if (!slot.querySelector('.wb-box')) { const host = d.createElement('div'); host.className = 'wb-box'; slot.appendChild(host); }
   w.initWhiteboard();
@@ -4192,11 +4213,11 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
   t.USER(sam);
   const roster = t.widgetsOf('tool').map(x => String(x.id));
   if (roster.slice(-2).join(' ') !== 'whiteboard libcards') bad.push('the whiteboard is not the last page but the library cards of a student\'s Tools column: ' + roster.join(', '));
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const slot = () => d.querySelector('#s-tools #wgt-whiteboard');
-  const nb = () => d.querySelector('#s-tools #wgt-whiteboard .nb');
+  t.findPage(roster.indexOf('whiteboard'), true);
+  const slot = () => d.querySelector('#s-stuff #wgt-whiteboard');
+  const nb = () => d.querySelector('#s-stuff #wgt-whiteboard .nb');
   for (let i = 0; i < 100 && !nb(); i++) await wait(100);
   await woken_();
   if (!nb()) return bad.concat(['the whiteboard did not draw a notebook on the Tools column']);
@@ -4279,11 +4300,11 @@ check('the whiteboard notebook keeps one finger to a stroke, is not cut by a rep
   const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
   t.USER(sam);
   const roster = t.widgetsOf('tool').map(x => String(x.id));
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const slot = () => d.querySelector('#s-tools #wgt-whiteboard');
-  const nb = () => d.querySelector('#s-tools #wgt-whiteboard .nb');
+  t.findPage(roster.indexOf('whiteboard'), true);
+  const slot = () => d.querySelector('#s-stuff #wgt-whiteboard');
+  const nb = () => d.querySelector('#s-stuff #wgt-whiteboard .nb');
   for (let i = 0; i < 100 && !nb(); i++) await wait(100);
   await woken_();
   if (!nb()) { w.toast = realToast; return ['the whiteboard did not draw a notebook on the Tools column']; }
@@ -4312,7 +4333,7 @@ check('the whiteboard notebook keeps one finger to a stroke, is not cut by a rep
   fire('pointerdown', 50, 200, 1);
   fire('pointermove', 100, 205, 1);
   const was = nb();
-  if (!w.boardHold_('tools')) bad.push('a finger on the board does not hold the Tools column against a repaint');
+  if (!w.boardHold_('stuff')) bad.push('a finger on the board does not hold the Tools column against a repaint');
   const realStart = w.toolsStart_, restarted = [];
   w.toolsStart_ = function (kind) { restarted.push(kind); return realStart.apply(this, arguments); };
   try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
@@ -4588,16 +4609,16 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
   t.USER(sam);
   const roster = t.widgetsOf('tool').map(x => String(x.id));
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  t.findPage(roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-stuff #wgt-whiteboard .qpad');
   await penSheet_(w, d);
   for (let i = 0; i < 100 && !pad(); i++) await wait(100);
   await woken_();
   if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
   const k = pad().getAttribute('data-k');
-  const page0 = t.PAGE.tools;
+  const page0 = t.PAGE.stuff;
   /* THE BOARD AT (20, 100), 300 x 400 -- note 310's. */
   const L = 20, T = 100, W = 300, H = 400;
   const ink = () => pad().querySelector('.qpad-ink');
@@ -4609,7 +4630,7 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
   const paths = () => pad().querySelectorAll('.qpad-g path').length;
   const still = (what) => {
-    if (t.screenAt() !== 'tools' || t.PAGE.tools !== page0) bad.push(what + ': the column or page moved — now ' + t.screenAt() + ' page ' + t.PAGE.tools);
+    if (t.screenAt() !== 'stuff' || t.PAGE.stuff !== page0) bad.push(what + ': the column or page moved — now ' + t.screenAt() + ' page ' + t.PAGE.stuff);
     if (t.padNow() !== k) bad.push(what + ': the board is no longer armed');
   };
   const clean = (what, want) => {
@@ -4681,7 +4702,7 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   fire('pointerdown', 1, 50, 140, 1000, { prim: true });
   fire('pointerdown', 2, 280, 470, 1040);
   const was = ink();
-  if (!w.padHold_('tools')) bad.push('a stroke held by a second finger does not hold the Tools column against a repaint');
+  if (!w.padHold_('stuff')) bad.push('a stroke held by a second finger does not hold the Tools column against a repaint');
   try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
   await wait(50);
   if (ink() !== was) { bad.push('a repaint replaced the board under a held stroke'); fix(); }
@@ -4737,10 +4758,10 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   }
   t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
   const roster = t.widgetsOf('tool').map(x => String(x.id));
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  t.findPage(roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-stuff #wgt-whiteboard .qpad');
   await penSheet_(w, d);
   for (let i = 0; i < 100 && !pad(); i++) await wait(100);
   await woken_();
@@ -6107,10 +6128,10 @@ check('the videos widget leads the Reels column: the bar alone, at most four res
     if (!exit || box.querySelector('.vid-acts [data-do="vid-full"]')) bad.push('full screen did not swap Full screen for an Exit full screen tile');
     if (box.querySelector('.vid-stage iframe.vid-player') !== frame) bad.push('going full screen rebuilt the player — the film restarts');
     /* THE ARROWS DO NOT TURN THE GRID UNDER THE FILM. */
-    const before = JSON.stringify([t.screenAt(), t.PAGE.games]);
+    const before = JSON.stringify([t.screenAt(), t.PAGE.stuff]);
     d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
     d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
-    if (JSON.stringify([t.screenAt(), t.PAGE.games]) !== before) bad.push('an arrow key turned the column under the full-screen film');
+    if (JSON.stringify([t.screenAt(), t.PAGE.stuff]) !== before) bad.push('an arrow key turned the column under the full-screen film');
     /* ESCAPE GIVES THE SCREEN BACK. */
     pops.length = 0;
     d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
@@ -6141,10 +6162,10 @@ check('the videos widget leads the Reels column: the bar alone, at most four res
   }
   w.toast = realToast;
   /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at, and no full screen. */
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
-  if (t.vidFs() || d.querySelector('#s-games .vid-watch.is-fs')) bad.push('leaving the Games column left the app\'s full screen on');
+  if (d.querySelector('#s-stuff .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
+  if (t.vidFs() || d.querySelector('#s-stuff .vid-watch.is-fs')) bad.push('leaving the Games column left the app\'s full screen on');
   return bad;
 });
 
@@ -6325,24 +6346,24 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the results read ' + JSON.stringify(got) + ', not the one row "volc" finds');
 
   /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED § */
-  const tools = a.w.document.getElementById('s-tools');
+  const tools = a.w.document.getElementById('s-shop');
   const waiting = tools ? [...tools.querySelectorAll('.widget-slot[aria-busy="true"]')] : [];
-  if (!waiting.length) bad.push('the Tools column, drawn and not started, has no widget waiting under the loader');
+  if (!waiting.length) bad.push('the Shop column, drawn and not started (Tools went into Find, 790), has no widget waiting under the loader');
   waiting.forEach(sl => {
     if (sl.querySelectorAll(':scope > .loading').length !== 1) bad.push('#' + sl.id + ', waiting to start, has ' + sl.querySelectorAll(':scope > .loading').length + ' loaders over it');
     if (sl.lastElementChild && !sl.lastElementChild.classList.contains('loading')) bad.push('#' + sl.id + '\'s loader is not over its markup (the last child)');
   });
-  a.w.__t.go('tools', false, true);
+  a.w.__t.findGroup('Tools');
   await wait(LEAVE_MS);
   /* EVERY WIDGET ON THE COLUMN, NOT JUST THE ONES IN VIEW — so the queue is waited for to the end, for
      longer than `woken_`'s eight seconds: a slow machine is a late start, not a loader left on. */
   for (let k = 0; k < 300 && !a.w.__t.quiet(); k++) await wait(100);
-  const still = [...a.w.document.querySelectorAll('#s-tools .widget-slot[aria-busy], #s-tools .widget-slot > .loading')]
+  const still = [...a.w.document.querySelectorAll('#s-stuff .widget-slot[aria-busy], #s-stuff .widget-slot > .loading')]
     .map(el => (el.closest('.widget-slot') || el).id);
   /* A WIDGET WHOSE OWN CONTENT IS STILL OUT SHOWS ITS OWN LOADER INSIDE — that is a wait, not a widget
      left unstarted; only the veil over the slot itself is asked about here. */
   if (still.length) bad.push('arriving on Tools left ' + [...new Set(still)].join(', ') + ' under the loader');
-  if (!a.w.document.querySelector('#s-tools #wgt-calculator #mc-display')) bad.push('the calculator did not start when Tools was arrived at');
+  if (!a.w.document.querySelector('#s-stuff #wgt-calculator #mc-display')) bad.push('the calculator did not start when Tools was arrived at');
 
   /* ---------- 3. OVER THE BOXES: THE BUSINESS RECORDS WHILE `listRecords` IS OUT ------------------------- */
   let answer = null;
@@ -6401,11 +6422,11 @@ const wideBoot_ = (opts) => {
    whether it still holds the loader that stands for "not started", and whether it is running there. */
 const toolsSlots_ = (w) => {
   const t = w.__t, g = t.glass(), run = t.running();
-  return [...w.document.querySelectorAll('#s-tools .widget-slot')].map(sl => ({
+  return [...w.document.querySelectorAll('#s-res .widget-slot')].map(sl => ({
     id: sl.id.slice(4),
     lit: g.pages.indexOf(sl.closest('.page')) !== -1,
     veiled: sl.getAttribute('aria-busy') === 'true' || !!sl.querySelector(':scope > .loading'),
-    on: run.some(r => r.id === sl.id.slice(4) && r.col === 'tools'),
+    on: run.some(r => r.id === sl.id.slice(4) && r.col === 'res'),
   }));
 };
 const settle_ = async () => { await wait(LEAVE_MS); await woken_(); };
@@ -6422,20 +6443,21 @@ check('a wide window starts the widgets on the glass beside the column in front,
   let stops = 0;
   const realStop = calc.stop;
   calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
+  t.findGroupOn('res', 'Tools');   /* Find 2 showing Tools stands beside Find as Tools did (790) */
   t.go('stuff', false, true);
   await settle_();
   await until_(() => toolsSlots_(w).filter(x => x.lit).every(x => x.on && !x.veiled));
   const bad = [];
   const g = t.glass();
   if (t.AT() !== 'stuff') return ['Find did not come in front, so nothing was asked'];
-  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Find in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
+  if (g.cols.indexOf('res') === -1) return ['at 1194 with Find in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
   let s = toolsSlots_(w);
   const lit = s.filter(x => x.lit), dark = s.filter(x => !x.lit);
   if (!lit.length) return ['no Tools card is on the glass beside Find, so nothing was asked'];
   lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find and still holds the loader — it was never started'));
   lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find and is not running on Tools'));
   /* AND ONLY THOSE. A column beside you is not a column you arrived at; what is off the glass on it waits. */
-  if (!dark.length) bad.push('every Tools card counted as on the glass, so whether it starts ONLY what is on it was not asked');
+  /* A FINDER FILLS ONLY THE PAGES NEAR THE GLASS (790), so a card off it may have no slot at all: what has one and is off the glass is asked below. */
   dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Find and was started anyway'));
   if (!lit.some(x => x.id === 'calculator')) bad.push('the calculator — the first Tools card — is not among the cards on the glass');
   if (t.AT() !== 'stuff') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
@@ -6443,27 +6465,27 @@ check('a wide window starts the widgets on the glass beside the column in front,
   const before = stops;
   w.__width(390);
   await wait(400); await woken_();
-  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
+  await until_(() => !t.running().some(r => r.col === 'res'), 5000);
   const g2 = t.glass();
   if (g2.cols.join() !== 'stuff') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Find is on a phone\'s');
-  const still = t.running().filter(r => r.col === 'tools').map(r => r.id);
+  const still = t.running().filter(r => r.col === 'res').map(r => r.id);
   if (still.length) bad.push('narrowed to 390, ' + still.join(', ') + ' went on running on Tools, which is no longer on the glass');
   if (stops === before) bad.push('narrowed to 390, the calculator\'s stop was never called');
   /* AND WIDENED AGAIN, it is back on the glass and started again. */
   w.__width(1194);
   await wait(400); await woken_();
-  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'res'));
   s = toolsSlots_(w);
   if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Find is not running again');
-  /* SWIPED OFF THE GLASS: Find 2 in front puts Tools two columns away, an 8px edge at 1194 (Tools beside Find since 444; Find is its other side). */
+  /* SWIPED OFF THE GLASS: Book in front puts Find 2 two columns away (790: Find 2 showing Tools is what Tools beside Find was). */
   const before2 = stops;
-  t.go('res', false, true);
+  t.go('booking', false, true);
   await settle_();
-  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
-  const still2 = t.running().filter(r => r.col === 'tools').map(r => r.id);
-  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with Find 2 in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
-  if (still2.length) bad.push('with Find 2 in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
-  if (stops === before2) bad.push('going to Find 2, the calculator\'s stop was never called');
+  await until_(() => !t.running().some(r => r.col === 'res'), 5000);
+  const still2 = t.running().filter(r => r.col === 'res').map(r => r.id);
+  if (t.glass().cols.indexOf('res') !== -1) bad.push('with Book in front, Find 2 still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
+  if (still2.length) bad.push('with Book in front, ' + still2.join(', ') + ' went on running on Find 2, two columns away and off the glass');
+  if (stops === before2) bad.push('going to Book, the calculator\'s stop was never called');
   return bad;
 });
 
@@ -6492,11 +6514,13 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
   if (t.running().some(r => r.id === 'calculator')) return ['the calculator was already running with Shop in front, so nothing was asked'];
   /* FIND 2 IN FRONT ON A 1920 WINDOW (444): Tools left of Find and Saved right of Find 2, both on the glass, both with the calculator. */
   w.__width(1920); await wait(300);
+  /* FIND SHOWING TOOLS (790) is what Tools left of Find was: Find 2 in front has it on one side and Saved on the other. */
+  t.findGroupOn('stuff', 'Tools', 'calculator');
   t.go('res', false, true);
   await settle_();
   await until_(() => t.running().some(r => r.id === 'calculator'));
   const g = t.glass();
-  if (g.cols.indexOf('tools') === -1 || g.cols.indexOf('saved') === -1) return ['with Find 2 in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
+  if (g.cols.indexOf('stuff') === -1 || g.cols.indexOf('saved') === -1) return ['with Find 2 in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
   let on = copies();
   if (starts !== 1) bad.push('with both of its copies on the glass the calculator was started ' + starts + ' time(s), not once');
   if (on.length !== 1) bad.push('the calculator is running ' + on.length + ' time(s) at once: ' + JSON.stringify(on));
@@ -6506,10 +6530,10 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
   if (on[0] && !drawn(on[0].col)) bad.push('the calculator is running on ' + on[0].col + '\'s copy and that copy\'s display was never drawn');
   /* TO THE COPY IT RUNS ON: arriving there starts nothing again — unless the column was `STALE` and drawn again on the way in § */
   /* SINCE 392 Saved and Tools sit either side of Progress, so which copy runs first is the app's to choose; the journey follows it. */
-  const NAME_ = { tools: 'Tools', saved: 'Saved', res: 'Find 2', booking: 'Book', reel: 'Reels' };
-  const ran = on[0] ? on[0].col : 'tools', other = ran === 'tools' ? 'saved' : 'tools';
+  const NAME_ = { stuff: 'Find', tools: 'Tools', saved: 'Saved', res: 'Find 2', booking: 'Book', reel: 'Reels' };
+  const ran = on[0] ? on[0].col : 'stuff', other = ran === 'stuff' ? 'saved' : 'stuff';
   /* FIVE ON THE GLASS AT 1920: two past the other copy, the one that ran is off and the other still on. */
-  const away = other === 'saved' ? 'booking' : 'reel';
+  const away = other === 'saved' ? 'booking' : 'dm';
   const startsAtRan = starts;
   const slotWas = d.querySelector('#s-' + ran + ' #wgt-calculator');
   t.go(ran, false, true);
@@ -6548,16 +6572,17 @@ check('arriving at a column on a wide window leaves what already runs on it, and
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
+  t.findGroupOn('res', 'Tools');   /* Find 2 showing Tools stands beside Find as Tools did (790) */
   t.go('stuff', false, true);
   await settle_();
   const bad = [];
   const ws = t.widgetsOf('tool').filter(x => typeof x.start === 'function');
-  const runningBefore = new Set(t.running().filter(r => r.col === 'tools').map(r => r.id));
+  const runningBefore = new Set(t.running().filter(r => r.col === 'res').map(r => r.id));
   if (!runningBefore.size) return ['nothing was running on Tools beside Find, so nothing was asked'];
   /* THE SLOTS AS THEY ARE, because a column marked `STALE` is drawn again on the way in and what ran in
      the old markup is rightly started again; only a widget whose slot is the same element must not be. */
   const slotWas = {};
-  runningBefore.forEach(id => { slotWas[id] = w.document.querySelector('#s-tools #wgt-' + id); });
+  runningBefore.forEach(id => { slotWas[id] = w.document.querySelector('#s-res #wgt-' + id); });
   let n = 0, most = 0, booked = false;
   const seen = {};
   const real = new Map();
@@ -6570,13 +6595,14 @@ check('arriving at a column on a wide window leaves what already runs on it, and
       return f.apply(this, arguments);
     };
   });
-  t.go('tools', false, true);
-  for (let k = 0; k < 150 && !(t.quiet() && ws.every(x => t.running().some(r => r.id === String(x.id)))); k++) await wait(100);
+  t.go('res', false, true);
+  for (let k = 0; k < 150 && !(t.quiet() && ws.every(x => !w.document.querySelector('#s-res #wgt-' + x.id) || t.running().some(r => r.id === String(x.id)))); k++) await wait(100);
   await wait(50);
-  const kept = [...runningBefore].filter(id => w.document.querySelector('#s-tools #wgt-' + id) === slotWas[id]);
+  const kept = [...runningBefore].filter(id => w.document.querySelector('#s-res #wgt-' + id) === slotWas[id]);
   if (!kept.length) bad.push('Tools was drawn again on the way in, so leaving what already ran was not asked');
   kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Find and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
-  const never = ws.filter(x => !t.running().some(r => r.id === String(x.id) && r.col === 'tools')).map(x => x.id);
+  /* ONLY WHAT HAS A CARD DRAWN: a finder fills the pages near the glass (790), and a card not drawn has nothing to start. */
+  const never = ws.filter(x => w.document.querySelector('#s-res #wgt-' + x.id) && !t.running().some(r => r.id === String(x.id) && r.col === 'res')).map(x => x.id);
   if (never.length) bad.push('arriving at Tools left ' + never.join(', ') + ' never started');
   if (most > 3) bad.push(most + ' widgets started in one task on arrival — a swipe would wait behind every one');
   const far = ws.filter(x => !runningBefore.has(String(x.id)));
@@ -6597,15 +6623,16 @@ check('a widget beside the column in front that waits for the payload is drawn w
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
+  t.findGroupOn('res', 'Tools', 'flyers');   /* Find 2 showing Tools stands beside Find as Tools did (790) */
   t.go('stuff', false, true);
   await settle_();
   const bad = [];
   if (!release) return ['the payload was never asked for, so nothing was held'];
-  if (t.glass().cols.indexOf('tools') === -1) return ['with Find in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
-  const card = () => w.document.querySelector('#s-tools #wgt-flyers');
+  if (t.glass().cols.indexOf('res') === -1) return ['with Find in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
+  const card = () => w.document.querySelector('#s-res #wgt-flyers');
   if (!card()) return ['an admin\'s Tools has no flyer maker, so nothing was asked'];
-  await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'tools'));
-  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside Find was never started, so its wait for the payload was not asked'];
+  await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'res'));
+  if (!t.running().some(r => r.id === 'flyers' && r.col === 'res')) return ['the flyer maker beside Find was never started, so its wait for the payload was not asked'];
   if (!card().querySelector('.loading')) return ['the flyer maker beside Find shows no loader with the payload held, so nothing was waiting'];
   if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
   const was = card();
@@ -6613,7 +6640,7 @@ check('a widget beside the column in front that waits for the payload is drawn w
   let bare = 0;
   const look = () => { const sl = card(); if (sl && sl !== was && !sl.getAttribute('aria-busy') && !t.running().some(r => r.slot === sl)) bare++; };
   const mo = new w.MutationObserver(look);
-  mo.observe(w.document.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+  mo.observe(w.document.getElementById('s-res'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
   release();
   /* WAITED FOR UNTIL IT IS DRAWN, NOT UNTIL `quiet()`: the after-slide jobs run one per task from a
      list `afterSlide_` has already emptied, so `quiet()` says yes while the restart is still in it. */
@@ -6637,13 +6664,14 @@ check('a repaint and then an arrival keep the widget running beside the column i
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
+  t.findGroupOn('res', 'Tools');   /* Find 2 showing Tools stands beside Find as Tools did (790) */
   t.go('stuff', false, true);
   await settle_();
   const d = w.document;
-  const slot = () => d.querySelector('#s-tools #wgt-calculator');
-  const shown = () => { const el = d.querySelector('#s-tools #wgt-calculator #mc-display'); return el ? el.textContent : null; };
-  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools') && slot() && !slot().getAttribute('aria-busy'));
-  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Find never started, so nothing was asked'];
+  const slot = () => d.querySelector('#s-res #wgt-calculator');
+  const shown = () => { const el = d.querySelector('#s-res #wgt-calculator #mc-display'); return el ? el.textContent : null; };
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'res') && slot() && !slot().getAttribute('aria-busy'));
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'res')) return ['the calculator beside Find never started, so nothing was asked'];
   if (typeof w._mcClick !== 'function') return ['the calculator set no `_mcClick`, so nothing could be typed into it'];
   ['7', '+', '5'].forEach(k => w._mcClick(k));
   if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Find and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
@@ -6658,66 +6686,72 @@ check('a repaint and then an arrival keep the widget running beside the column i
   let veiled = 0;
   const look = () => { const sl = slot(); if (!sl || sl.getAttribute('aria-busy') === 'true' || sl.querySelector(':scope > .loading')) veiled++; };
   const mo = new w.MutationObserver(look);
-  mo.observe(d.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+  mo.observe(d.getElementById('s-res'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
   const bad = [];
   t.repaint();
-  if (!t.stale('tools')) bad.push('the repaint did not leave Tools stale, so its first arrival did not draw it again and nothing was asked');
+  if (!t.stale('res')) bad.push('the repaint did not leave Tools stale, so its first arrival did not draw it again and nothing was asked');
   await wait(300);
-  t.go('tools', false, true);
+  t.go('res', false, true);
   await settle_();
-  await until_(() => t.AT() === 'tools' && t.quiet());
+  await until_(() => t.AT() === 'res' && t.quiet());
   look();
   mo.disconnect();
   calc.start = realStart;
-  if (t.stale('tools')) bad.push('Tools is still stale after arriving at it — the column was not drawn again, so keeping the slot through a paint was not asked');
+  if (t.stale('res')) bad.push('Tools is still stale after arriving at it — the column was not drawn again, so keeping the slot through a paint was not asked');
   else if (star() === starWas) bad.push('the calculator\'s star is the element it was before the arrival — the column was not drawn again, so keeping the slot through a paint was not asked');
   if (slot() !== was) bad.push('arriving at Tools after a repaint threw away the slot the calculator was running in and drew a new one');
   if (veiled) bad.push('between the repaint and arriving at Tools the calculator\'s slot was gone or held the loader ' + veiled + ' time(s): drawn, the dots, drawn');
   if (shown() !== '7+5') bad.push('the sum typed beside Find reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
   if (starts) bad.push('arriving at Tools started the calculator ' + starts + ' time(s) more, though it was running on Tools\' own copy');
   const on = t.running().filter(r => r.id === 'calculator');
-  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
+  if (on.length !== 1 || on[0].col !== 'res') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
   return bad;
 });
 
 /* ---------- AND NOT FOR THE PERSON WHO HAS GONE § */
-check('a sign-out stops what its column no longer draws beside the column in front, and nothing runs on for the last person', async () => {
+check('a change of person stops what its column no longer draws beside the column in front, and nothing runs on for the last person', async () => {
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't-ann' };
   const { w } = wideBoot_({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
+  t.findGroupOn('res', 'Tools', 'flyers');   /* Find 2 showing Tools stands beside Find as Tools did (790) */
   t.go('stuff', false, true);
   await settle_();
-  const runs = id => t.running().find(r => r.id === id && r.col === 'tools');
-  await until_(() => runs('calculator') && runs('flyers'));
-  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Find (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
-  if (runs('calculator').who !== 'P001') return ['the calculator beside Find says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
+  /* THE STUDENT SIGNED IN, FIND IS FOR MEMBERS (400), so since 790 the change of person asked is to a student; the typing tutor is the card beside the flyer maker. */
+  const kid = { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 't-s' };
+  const runs = id => t.running().find(r => r.id === id && r.col === 'res');
+  await until_(() => runs('typing') && runs('flyers'));
+  if (!runs('flyers') || !runs('typing')) return ['with the admin signed in, the typing tutor and the flyer maker are not both running beside Find (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
+  if (runs('typing').who !== 'P001') return ['the typing tutor beside Find says it was started for ' + JSON.stringify(runs('typing').who) + ', not for the admin, so nothing was asked'];
   const bad = [];
   if (typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function') return ['signedOut_ / signedIn_ are not globals, so a change of person was NOT asked'];
-  /* SIGNED OUT WITH BOOK IN FRONT, and nobody goes anywhere. */
-  try { w.signedOut_(); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
+  /* THE STUDENT SIGNED IN WITH BOOK IN FRONT, and nobody goes anywhere. */
+  try { w.signedIn_(Object.assign({}, kid)); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
   await settle_();
-  await until_(() => !runs('flyers') && runs('calculator') && runs('calculator').who === '');
-  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Find was running in markup it would not draw now');
-  if (runs('flyers')) bad.push('signed out with Find in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
-  if (!runs('calculator')) bad.push('signed out with Find in front, the calculator on Tools beside it stopped and was not started again');
-  else if (runs('calculator').who !== '') bad.push('signed out with Find in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
+  await until_(() => !runs('flyers') && runs('typing') && runs('typing').who === 'P-S1');
+  if (!t.stale('res')) bad.push('the sign-out did not leave Tools stale, so nothing beside Find was running in markup it would not draw now');
+  if (runs('flyers')) bad.push('the student signed in with Find in front, the admin\'s flyer maker went on running on Tools beside it — a student\'s Tools does not draw it');
+  if (!runs('typing')) bad.push('the student signed in with Find in front, the typing tutor on Tools beside it stopped and was not started again');
+  else if (runs('typing').who !== 'P-S1') bad.push('the student signed in with Find in front, the typing tutor beside it is still the one started for ' + JSON.stringify(runs('typing').who));
   /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Find has been started
      again — so the arrival's paint meets a slot started for the admin. It must not carry it. */
   try { w.signedIn_(Object.assign({}, admin)); } catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
   await settle_();
-  await until_(() => runs('calculator') && runs('calculator').who === 'P001');
-  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Find was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
-  const adminSlot = runs('calculator').slot;
-  try { w.signedOut_(); t.go('tools', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
-  const now = w.document.querySelector('#s-tools #wgt-calculator');
-  if (now === adminSlot) bad.push('signed out and straight to Tools, the new Tools markup holds the calculator slot that was started for the admin — carried across a change of person');
+  await until_(() => runs('typing') && runs('typing').who === 'P001');
+  if (!runs('typing') || runs('typing').who !== 'P001') return bad.concat(['signed in again, the typing tutor beside Find was not started for the admin (' + JSON.stringify(runs('typing') && runs('typing').who) + '), so carrying a slot across a change of person was not asked']);
+  const adminSlot = runs('typing').slot;
+  try { w.signedIn_(Object.assign({}, kid)); t.go('res', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
+  const now = w.document.querySelector('#s-res #wgt-typing');
+  if (now === adminSlot) bad.push('the student signed in and straight to Tools, the new Tools markup holds the typing tutor slot that was started for the admin — carried across a change of person');
   await settle_();
-  await until_(() => t.AT() === 'tools' && runs('calculator') && runs('calculator').who === '' && t.quiet());
-  if (!runs('calculator')) bad.push('signed out and at Tools, the calculator is not running');
-  else if (runs('calculator').who !== '') bad.push('signed out and at Tools, the calculator in front is the one started for ' + JSON.stringify(runs('calculator').who) + ' — nothing started it again for nobody');
-  if (runs('flyers')) bad.push('signed out and at Tools, the admin\'s flyer maker is running');
+  /* THE STUDENT'S LIST HAS NO FLYER MAKER, so the page in front is turned to the typing tutor's card. */
+  t.findGroupOn('res', 'Tools', 'typing');
+  await settle_();
+  await until_(() => t.AT() === 'res' && runs('typing') && runs('typing').who === 'P-S1' && t.quiet());
+  if (!runs('typing')) bad.push('the student signed in and at Tools, the typing tutor is not running');
+  else if (runs('typing').who !== 'P-S1') bad.push('the student signed in and at Tools, the typing tutor in front is the one started for ' + JSON.stringify(runs('typing').who) + ' — nothing started it again for the student');
+  if (runs('flyers')) bad.push('the student signed in and at Tools, the admin\'s flyer maker is running');
   return bad;
 });
 
@@ -6727,19 +6761,19 @@ check('a column left before its placement has happened starts nothing more of it
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('tools', false, true);
-  await until_(() => t.waiting().filter(q => q.col === 'tools').length >= 3, 8000);
-  const queued = t.waiting().filter(q => q.col === 'tools').length;
+  t.findGroup('Tools');
+  await until_(() => t.waiting().filter(q => q.col === 'stuff').length >= 3, 8000);
+  const queued = t.waiting().filter(q => q.col === 'stuff').length;
   if (queued < 3) return ['arriving at Tools left ' + queued + ' widget(s) queued, so a queue running behind a column change was not asked'];
   const raf = w.requestAnimationFrame;
   w.requestAnimationFrame = () => 0;
   /* A FRAME ALREADY BOOKED STILL RUNS — let it, on Tools, before the column changes. */
   await wait(60);
-  const before = t.running().filter(r => r.col === 'tools').length;
-  const left = t.waiting().filter(q => q.col === 'tools').length;
+  const before = t.running().filter(r => r.col === 'stuff').length;
+  const left = t.waiting().filter(q => q.col === 'stuff').length;
   t.go('account', false, true);
   await wait(600);
-  const after = t.running().filter(r => r.col === 'tools').length;
+  const after = t.running().filter(r => r.col === 'stuff').length;
   const bad = [];
   if (t.glass().at === 'account') bad.push('Settings was placed although no frame could run, so the gap before the placement was not made and nothing was asked');
   else if (!left) bad.push('nothing was left in the queue when Tools was left, so nothing was asked');
@@ -6747,9 +6781,9 @@ check('a column left before its placement has happened starts nothing more of it
   w.requestAnimationFrame = raf;
   w.placeCells('x');
   await settle_();
-  await until_(() => !t.running().some(r => r.col === 'tools') && !t.waiting().some(q => q.col === 'tools'), 5000);
-  if (t.running().some(r => r.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets running: ' + t.running().filter(r => r.col === 'tools').map(r => r.id).join(', '));
-  if (t.waiting().some(q => q.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets queued to start');
+  await until_(() => !t.running().some(r => r.col === 'stuff') && !t.waiting().some(q => q.col === 'stuff'), 5000);
+  if (t.running().some(r => r.col === 'stuff')) bad.push('once placed, Settings in front still has Tools widgets running: ' + t.running().filter(r => r.col === 'stuff').map(r => r.id).join(', '));
+  if (t.waiting().some(q => q.col === 'stuff')) bad.push('once placed, Settings in front still has Tools widgets queued to start');
   return bad;
 });
 
@@ -6934,8 +6968,8 @@ check('the videos card syncs an admin’s films from Drive on its own when never
     if (n) bad.push('Find has ' + n + ' film(s) after the sync — films are found in Games → Videos and nowhere in Find');
   } catch (e) { bad.push('could not ask Find for its items: ' + e.message); }
   /* ONCE A VISIT: a repaint of the column does not sync again. */
-  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
-  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Games'); await wait(LEAVE_MS); await woken_();
   if (sent.filter(b => b.action === 'filmsSync').length !== 2) bad.push('coming back to the card synced again in the same visit');
   /* THE TILE, BY HAND: busy while it asks, and the list refreshed when it answers. */
   const tile = box.querySelector('.vid-admin [data-do="vid-sync"]');
@@ -6981,8 +7015,8 @@ check('the videos card says a failed sync in the admin’s line and does not ask
   const line = () => (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
   if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('a never-synced admin’s card posted filmsSync ' + sent.filter(b => b.action === 'filmsSync').length + ' time(s), wanted once');
   if (!/Not synced — No folder named Notflix/.test(line())) bad.push('the refusal is not said beside the tile: "' + line() + '"');
-  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
-  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Games'); await wait(LEAVE_MS); await woken_();
   await wait(120);
   if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('coming back to the card posted a failing sync again — once a visit, or it is a refusal on every swipe');
   return bad;
@@ -7014,7 +7048,7 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
   await wait(50);
   t.USER(null);
   t.repaint && t.repaint(true);
-  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
   t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
   look('a stranger', w.document.querySelector('#s-reel #wgt-videos .vid-box'));
   if (sent.some(b => b.action === 'filmsSync')) bad.push('a student’s or a stranger’s phone posted filmsSync');
@@ -7070,7 +7104,7 @@ check('signing out takes an admin’s films off the device, and a student signin
              named: FILMS_.filter(f => html.indexOf(f.title) !== -1).length };
   };
   const away = async t => {
-    t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+    t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
     t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
   };
   /* ---- THE SIGN OUT TILE ---- */
@@ -7204,7 +7238,7 @@ check('the videos card syncs an admin’s films on its own once the last whole p
 
 /* ---------- A SPACE TYPED INTO A SEARCH BOX IS A SPACE, AFTER THE GAMES COLUMN HAS BEEN OPENED § */
 check('a Space typed into the videos search box is not eaten by Flappy Bird, and still flaps everywhere else', async () => {
-  const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? [] : undefined), before: win => {
+  const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? [] : undefined), before: win => { signedInAs_(MEMBER_)(win);
     const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : () => ({ width: 10 })), set: (o, k, v) => { o[k] = v; return true; } });
     win.HTMLCanvasElement.prototype.getContext = function () { return ctx; };
     const r0 = win.HTMLElement.prototype.getBoundingClientRect;
@@ -7216,8 +7250,9 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
   const { box, q } = await vidCard_(w);
   const d = w.document;
   if (!box || !q) return ['the videos card did not draw'];
-  /* FLABBY PIRD IS A CHOICE ON THE CONSOLE (441). */
-  const csp = d.querySelector('#s-games #cs-pick');
+  /* FLABBY PIRD IS A CHOICE ON THE CONSOLE (441), a Find card since 790. */
+  w.__t.findGroup('Games', 'console'); await wait(LEAVE_MS); await woken_();
+  const csp = d.querySelector('#s-stuff #cs-pick');
   if (csp && csp.value !== 'flabby') { csp.value = 'flabby'; w.__t.ACTIONS['cs-pick'](csp); }
   const flappy = d.getElementById('flappy-canvas');
   if (!flappy) return ['there is no Flappy Bird canvas on the Games column, so this asked nothing'];
@@ -7244,13 +7279,13 @@ check('the board games are one widget: five games in its picker (461 added Chess
   const bad = [];
   const ids = t.allWidgets().map(x => String(x.id));
   ['connect4', 'othello', 'scrabble', 'chess', 'maze'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
   if (at < 0) return bad.concat(['there is no Board games widget on the Games column']);
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
-  const pick = d.querySelector('#s-games #bg-pick');
+  const pick = d.querySelector('#s-stuff #bg-pick');
   if (!pick) return bad.concat(['the Board games widget has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
   if (opts.join('|') !== 'Connect 4|Othello|Scrabble|Chess|Maze') bad.push('the picker offers ' + JSON.stringify(opts));
@@ -7258,12 +7293,12 @@ check('the board games are one widget: five games in its picker (461 added Chess
   for (const k of Object.keys(boards)) {
     pick.value = k; t.ACTIONS['bg-pick'](pick);
     await wait(50);
-    const here = Object.keys(boards).filter(b => d.querySelector('#s-games ' + boards[b]));
+    const here = Object.keys(boards).filter(b => d.querySelector('#s-stuff ' + boards[b]));
     if (here.join() !== k) bad.push('choosing ' + k + ' drew ' + JSON.stringify(here));
     let kept = ''; try { kept = w.localStorage.getItem('bg-game'); } catch (e) {}
     if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
   }
-  if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
+  if (!d.querySelector('#s-stuff #wgt-boardgames h3') || d.querySelector('#s-stuff #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
   return bad;
 });
 
@@ -7274,11 +7309,11 @@ check('every game widget has the one padlock (461); locked, no drag, flick, two 
   const t = w.__t, d = w.document, A = t.ACTIONS;
   const bad = [];
   if (!A['game-lock'] || !t.padlock) return ['there is no game-lock handler or PADLOCK is not reachable'];
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const games = t.widgetsOf('game');
   games.forEach(g => {
-    const card = d.querySelector('#s-games #wgt-' + g.id);
+    const card = d.querySelector('#s-stuff #wgt-' + g.id);
     const n = card ? card.closest('.is-widget').querySelectorAll('.game-lock').length : 0;
     if (n !== 1) bad.push(g.id + ' has ' + n + ' padlock tiles, not one');
   });
@@ -7298,16 +7333,16 @@ check('every game widget has the one padlock (461); locked, no drag, flick, two 
   for (const id of ['console', 'boardgames', 'wordgames']) {
     const at = games.findIndex(x => String(x.id) === id);
     if (at < 0) { bad.push('there is no ' + id + ' on the Games column'); continue; }
-    t.goPage('games', at, true);
+    t.findPage(at, true);
     await wait(80); await woken_();
-    const card = d.querySelector('#s-games #wgt-' + id).closest('.is-widget');
+    const card = d.querySelector('#s-stuff #wgt-' + id).closest('.is-widget');
     A['game-lock'](card.querySelector('.game-lock'));
     const tile = card.querySelector('.game-lock');
     if (!t.padlock().game || t.padlock().game.split('@')[0] !== id) { bad.push(id + ': the padlock did not lock'); continue; }
     if (tile.getAttribute('aria-pressed') !== 'true' || !tile.classList.contains('on') || !card.classList.contains('is-locked')) bad.push(id + ': locked, the tile or the card does not show it');
     if (!d.documentElement.classList.contains('padlocked')) bad.push(id + ': locked, the page is not marked to hold every pan');
     const game = card.querySelector('#nes-pad, #bg-slot, #wg-slot, .widget-slot') || card;
-    const where = () => t.screenAt() + ':' + t.PAGE().games;
+    const where = () => t.screenAt() + ':' + t.PAGE().stuff;
     const here = where();
     const moves = [
       ['a drag on the game', () => drag(game, 300, 300, 40, 300, 12)],
@@ -7319,7 +7354,7 @@ check('every game widget has the one padlock (461); locked, no drag, flick, two 
         for (let i = 1; i <= 8; i++) { ptr('pointermove', card, 300 - 30 * i, 300, 1, true); ptr('pointermove', card, 300 - 30 * i, 360, 2, false); }
         ptr('pointerup', card, 60, 360, 2, false); ptr('pointerup', card, 60, 300, 1, true); }],
     ];
-    for (const [say, fn] of moves) { fn(); await wait(30); if (where() !== here) { bad.push(id + ': locked, ' + say + ' moved the column to ' + where()); t.go('games', false, true); t.goPage('games', at, true); } }
+    for (const [say, fn] of moves) { fn(); await wait(30); if (where() !== here) { bad.push(id + ': locked, ' + say + ' moved the column to ' + where()); t.findGroup('Games'); t.findPage(at, true); } }
     if (!ev(game, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': locked, a touchmove was left to pan the page');
     const wh = new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 300 });
     if (!ev(card, wh)) bad.push(id + ': locked, a wheel was left to scroll the page');
@@ -7333,23 +7368,23 @@ check('every game widget has the one padlock (461); locked, no drag, flick, two 
     if (where() !== here) bad.push(id + ': locked, a wheel or an arrow key moved the column to ' + where());
     if (!t.padlock().game) bad.push(id + ': the lock was lost during the gestures');
     /* AND IT LETS GO WHEN THE PERSON LEAVES: another page of the column, then a tab. */
-    t.goPage('games', at ? at - 1 : at + 1, true);
+    t.findPage(at ? at - 1 : at + 1, true);
     await wait(80);
     if (t.padlock().game) bad.push(id + ': another page of the column left the padlock on');
     if (d.documentElement.classList.contains('padlocked')) bad.push(id + ': let go, the page still holds every pan');
     if (ev(d.body, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': let go, a touchmove is still refused');
-    t.goPage('games', at, true);
+    t.findPage(at, true);
     await wait(80);
   }
   /* A TAB AND A HIDDEN APP LET GO TOO. */
-  const card = d.querySelector('#s-games #wgt-console').closest('.is-widget');
-  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
+  const card = d.querySelector('#s-stuff #wgt-console').closest('.is-widget');
+  t.findPage(games.findIndex(x => x.id === 'console'), true); await wait(80);
   A['game-lock'](card.querySelector('.game-lock'));
-  t.go('stuff', false, true); await wait(LEAVE_MS);
+  t.go('booking', false, true); await wait(LEAVE_MS);
   if (t.padlock().game) bad.push('a tab to another column left the game padlock on');
-  t.go('games', false, true); await wait(LEAVE_MS);
-  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
-  A['game-lock'](d.querySelector('#s-games #wgt-console').closest('.is-widget').querySelector('.game-lock'));
+  t.findGroup('Games'); await wait(LEAVE_MS);
+  t.findPage(games.findIndex(x => x.id === 'console'), true); await wait(80);
+  A['game-lock'](d.querySelector('#s-stuff #wgt-console').closest('.is-widget').querySelector('.game-lock'));
   Object.defineProperty(d, 'hidden', { value: true, configurable: true });
   d.dispatchEvent(new w.Event('visibilitychange'));
   delete d.hidden;
@@ -7370,21 +7405,21 @@ check('chess and the maze are board games and the times tables sprint a word & n
   if (!t.isFav('w:wordgames') || t.isFav('w:tables')) bad.push('a star on the sprint did not move to Word & number games');
   if (ls('bg-game') !== 'chess') bad.push('the chess star did not choose Chess: ' + ls('bg-game'));
   if (ls('wg-game') !== 'tt') bad.push('the sprint star did not choose the sprint: ' + ls('wg-game'));
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const wg = t.widgetsOf('game').findIndex(x => String(x.id) === 'wordgames');
-  t.goPage('games', wg, true);
+  t.findPage(wg, true);
   await woken_();
-  const h = d.querySelector('#s-games #wgt-wordgames h3');
+  const h = d.querySelector('#s-stuff #wgt-wordgames h3');
   if (!h || h.textContent.trim() !== 'Word & number games') bad.push('the widget is headed ' + JSON.stringify(h && h.textContent));
-  const opts = [...(d.querySelector('#s-games #wg-pick') || { options: [] }).options].map(o => o.textContent.trim());
+  const opts = [...(d.querySelector('#s-stuff #wg-pick') || { options: [] }).options].map(o => o.textContent.trim());
   if (opts.indexOf('Times Tables Sprint') < 0) bad.push('Word & number games does not offer the sprint: ' + JSON.stringify(opts));
-  if (!d.querySelector('#s-games #wg-slot #tt-play') || !d.querySelector('#s-games #wg-slot #tt-board')) bad.push('the sprint is not drawn with its Start and its high scores');
+  if (!d.querySelector('#s-stuff #wg-slot #tt-play') || !d.querySelector('#s-stuff #wg-slot #tt-board')) bad.push('the sprint is not drawn with its Start and its high scores');
   const bg = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
-  t.goPage('games', bg, true);
+  t.findPage(bg, true);
   await woken_(); await wait(50);
-  if (d.querySelectorAll('#s-games #bg-slot #chess-board .chess-sq').length !== 64) bad.push('Chess in Board games did not draw its 64 squares');
-  if (!d.querySelector('#s-games #bg-slot .chess-ctl [data-do="chess-undo"]')) bad.push('Chess in Board games lost its Undo, turn and New game tiles');
+  if (d.querySelectorAll('#s-stuff #bg-slot #chess-board .chess-sq').length !== 64) bad.push('Chess in Board games did not draw its 64 squares');
+  if (!d.querySelector('#s-stuff #bg-slot .chess-ctl [data-do="chess-undo"]')) bad.push('Chess in Board games lost its Undo, turn and New game tiles');
   return bad;
 });
 
@@ -7401,13 +7436,13 @@ check('the console is one widget for every game (441): game files, Flabby Pird a
   if (!t.isFav('w:wordgames') || t.isFav('w:scramble')) bad.push('a star on Sentence Scramble did not move to Word games');
   if (ls('cs-game') !== 'racer') bad.push('the racer star did not choose the racer on the Console: ' + ls('cs-game'));
   if (ls('wg-game') !== 'ss') bad.push('the scramble star did not choose Sentence Scramble: ' + ls('wg-game'));
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
   if (at < 0) return bad.concat(['there is no Console on the Games column']);
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
-  const pick = d.querySelector('#s-games #cs-pick');
+  const pick = d.querySelector('#s-stuff #cs-pick');
   if (!pick) return bad.concat(['the Console has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
   if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer|Linked pictures|I can guess') bad.push('the picker offers ' + JSON.stringify(opts));
@@ -7415,17 +7450,17 @@ check('the console is one widget for every game (441): game files, Flabby Pird a
   for (const k of ['flabby', 'racer', 'file']) {
     pick.value = k; t.ACTIONS['cs-pick'](pick);
     await wait(50);
-    const here = Object.keys(bodies).filter(b => d.querySelector('#s-games ' + bodies[b]));
+    const here = Object.keys(bodies).filter(b => d.querySelector('#s-stuff ' + bodies[b]));
     if (here.join() !== k) bad.push('choosing ' + k + ' drew ' + JSON.stringify(here));
     if (ls('cs-game') !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(ls('cs-game')));
   }
-  const wg = d.querySelector('#s-games #wg-pick');
+  const wg = d.querySelector('#s-stuff #wg-pick');
   const wopts = wg ? [...wg.options].map(o => o.textContent.trim()) : [];
   ['Word Search', 'Sentence Scramble'].forEach(n => { if (wopts.indexOf(n) === -1) bad.push('Word games does not offer ' + n); });
   if (wg) for (const [k, sel] of [['ws', '#ws-grid'], ['ss', '#ss-box']]) {
     wg.value = k; t.ACTIONS['wg-pick'](wg);
     await wait(50);
-    if (!d.querySelector('#s-games #wg-slot ' + sel)) bad.push('choosing ' + k + ' in Word games drew no ' + sel);
+    if (!d.querySelector('#s-stuff #wg-slot ' + sel)) bad.push('choosing ' + k + ' in Word games drew no ' + sel);
   }
   return bad;
 });
@@ -7436,13 +7471,13 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
   const bad = [];
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
   if (at < 0) return ['there is no Console widget on the Games column'];
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
-  if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
+  if (!d.querySelector('#s-stuff #nes-wrap')) return ['the console was not drawn'];
   /* A FINE POINTER STARTS ON KEYS: the list is shown and the touch pad is not, before any game. */
   if (ev('NES_.mode') !== 'keys') bad.push('a mouse-and-keyboard device started in ' + ev('NES_.mode') + ' mode');
   if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows before its Keys tile asked (478)');
@@ -7541,13 +7576,13 @@ check('console DS (478, 481): a DS Lite — two halves, a hinge, D-pad left and 
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
   const bad = [];
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
   if (at < 0) return ['there is no Console widget on the Games column'];
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
-  if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
+  if (!d.querySelector('#s-stuff #nes-wrap')) return ['the console was not drawn'];
   ev('nesSysSet_("nds")');
   const wrap = d.querySelector('#nes-wrap'), pad = d.querySelector('#nes-pad');
   if (wrap.dataset.sys !== 'nds') bad.push('the body does not say nds');
@@ -7617,13 +7652,13 @@ check('console saves (446): a game file\'s battery save and state are kept at a 
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
   const bad = [];
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
   if (at < 0) return ['there is no Console widget on the Games column'];
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
-  if (!d.querySelector('#s-games #nes-kept')) return ['the console has no line for when the game was saved'];
+  if (!d.querySelector('#s-stuff #nes-kept')) return ['the console has no line for when the game was saved'];
   if (!d.querySelector('#nes-kept').hidden) bad.push('the saved line shows before any game was played');
   /* A STAND-IN EMULATORJS with EmulatorJS's own names: getSaveFile, getState, loadState, the save path and loadSaveFiles. */
   ev(`window.__gm = { loaded: [], written: [], big: 0,
@@ -7677,16 +7712,16 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   const t = w.__t;
   const d = w.document;
   const W = 7, H = 6;
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   /* CONNECT 4 IS A GAME INSIDE BOARD GAMES (414), reached through its picker. */
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
   if (at < 0) return ['there is no Board games widget on the Games column'];
-  t.goPage('games', at, true);
-  const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  t.findPage(at, true);
+  const cells = () => [...d.querySelectorAll('#s-stuff #c4-board .c4-cell')];
   /* TURNING TO THE PAGE STARTS THE WIDGET, IT DOES NOT FINISH IT — `woken_()` above says why. § */
   await woken_();
-  const pick = d.querySelector('#s-games #bg-pick');
+  const pick = d.querySelector('#s-stuff #bg-pick');
   if (!pick) return ['the Board games widget has no picker'];
   pick.value = 'c4'; t.ACTIONS['bg-pick'](pick);
   for (let k = 0; k < 30 && cells().length !== W * H; k++) await wait(100);
@@ -7695,7 +7730,7 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
   const lowest = x => { for (let y = H - 1; y >= 0; y--) { const c = cells()[y * W + x]; if (!c.classList.contains('p1') && !c.classList.contains('p2')) return y; } return -1; };
   const fallen = () => cells().map((c, i) => c.classList.contains('c4-new') ? i : -1).filter(i => i >= 0);
-  const said = () => d.querySelector('#s-games #c4-said');
+  const said = () => d.querySelector('#s-stuff #c4-said');
 
   /* ONE TAP, ONE COUNTER FALLING, WHERE GRAVITY PUTS IT — twice in one column, so "lowest empty"
      is asked of a column that is not empty. */
@@ -7742,14 +7777,14 @@ const RACE_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles:
 /* To the racer's page of Games, waiting for the card to settle: `want` is 'world' (the map adopted) or 'idle' (nothing asked). */
 const raceOpen_ = async (w, want) => {
   const t = w.__t;
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
   if (at < 0) return 'there is no console on the Games column';
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await woken_();
   /* THE RACER IS A CHOICE ON THE CONSOLE (441). */
-  const pick = w.document.querySelector('#s-games #cs-pick');
+  const pick = w.document.querySelector('#s-stuff #cs-pick');
   if (!pick) return 'the console has no picker';
   if (pick.value !== 'racer') { pick.value = 'racer'; t.ACTIONS['cs-pick'](pick); }
   for (let k = 0; k < 60; k++) {
@@ -7778,7 +7813,7 @@ check('racer (464, 500): before the backend has built a map the shipped Colliers
     if (said) return [who + ': ' + said];
     if (gets.filter(u => /[?&]race=1/.test(u)).length !== 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
     if (!gets.some(u => /data\/race-map\.json/.test(u))) bad.push(who + ': the shipped map was never asked for');
-    const card = w.document.querySelector('#s-games #race-box');
+    const card = w.document.querySelector('#s-stuff #race-box');
     if (!card) { bad.push(who + ': no #race-box on Games'); continue; }
     const h3 = card.closest('.card').querySelector('h3');
     if (!h3 || h3.textContent !== 'Console') bad.push(who + ': the racer is not inside the Console card (441)');
@@ -7804,7 +7839,7 @@ check('racer (464): with neither a built map nor the shipped file the card still
   await wait(300);
   const said = await raceOpen_(w, 'idle');
   if (said) return [said];
-  const card = w.document.querySelector('#s-games #race-box');
+  const card = w.document.querySelector('#s-stuff #race-box');
   const words = card ? card.textContent.trim() : '';
   return /could not be opened/.test(words) ? [] : ['no map anywhere drew ' + JSON.stringify(words.slice(0, 120))];
 });
@@ -7825,12 +7860,12 @@ check('racer (464): an admin\'s build replaces the practice streets with the bui
   if (sent.some(b => b.action === 'raceBuild')) bad.push('built by itself although the device built today');
   w.raceGo_();
   if (!R.running) bad.push('Drive did not start the practice streets');
-  w.document.querySelector('#s-games #race-box [data-do="race-build"]').click();
+  w.document.querySelector('#s-stuff #race-box [data-do="race-build"]').click();
   for (let k = 0; k < 40 && (R.building || !R.world || R.map.practice); k++) await wait(100);
   if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
   if (!R.world || R.map.practice || R.map.built !== FIX.built) bad.push('after the build the card is not on the built map');
   if (R.running) bad.push('the lap carried on into the new map');
-  const attr = (w.document.querySelector('#s-games #race-box .race-attr') || {}).textContent || '';
+  const attr = (w.document.querySelector('#s-stuff #race-box .race-attr') || {}).textContent || '';
   if (!/OpenStreetMap contributors/.test(attr) || !attr.includes(FIX.dem)) bad.push('the built map\'s attribution is not on the card: ' + attr);
   if (!/Map built: 6 roads, 62 buildings, 12–21 m/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('no toast saying what was built');
   return bad;
@@ -7843,7 +7878,7 @@ check('racer (426): the map loads from the fixture, the road mesh stands at the 
   const said = await raceOpen_(w, 'world');
   if (said) return [said];
   const bad = [], t = w.__t, d = w.document, R = w.racer_();
-  const box = d.querySelector('#s-games #race-box');
+  const box = d.querySelector('#s-stuff #race-box');
   if (!box.querySelector('canvas.race-gl')) bad.push('no 3D canvas drawn');
   if (!/OpenStreetMap contributors/.test(box.textContent) || !box.textContent.includes(FIX.dem)) bad.push('the attribution or the DEM source is not on the card: ' + (box.querySelector('.race-attr') || {}).textContent);
   if (!box.querySelector('[data-do="race-go"].tile')) bad.push('no Drive tile');
@@ -7875,7 +7910,7 @@ check('racer (426): the map loads from the fixture, the road mesh stands at the 
   if (!(flatSpan < 0.2)) bad.push('with every height 12 m the road mesh still rises ' + flatSpan.toFixed(2) + ' m — it is not drawn from the heights');
 
   /* 2. KEYS: Drive, then ↑ moves the car forward, ← turns it, Space slows it — and the column stays where it is. */
-  const c = R.car, at0 = t.AT(), page0 = t.PAGE().games;
+  const c = R.car, at0 = t.AT(), page0 = t.PAGE().stuff;
   box.querySelector('[data-do="race-go"].tile').click();
   await wait(50);
   if (!R.running) bad.push('Drive did not start the car');
@@ -7897,7 +7932,7 @@ check('racer (426): the map loads from the fixture, the road mesh stands at the 
   for (let k = 0; k < 30 && Math.abs(c.v) >= Math.abs(v1) - 1.5; k++) await wait(100);
   key('keyup', ' ');
   if (!(Math.abs(c.v) < Math.abs(v1) - 1)) bad.push('Space did not brake: ' + v1.toFixed(2) + ' → ' + c.v.toFixed(2) + ' m/s');
-  if (t.AT() !== at0 || t.PAGE().games !== page0) bad.push('driving turned the app: ' + at0 + '/' + page0 + ' → ' + t.AT() + '/' + t.PAGE().games);
+  if (t.AT() !== at0 || t.PAGE().stuff !== page0) bad.push('driving turned the app: ' + at0 + '/' + page0 + ' → ' + t.AT() + '/' + t.PAGE().stuff);
   if (!/mph/.test((box.querySelector('[data-hud="mph"]') || {}).textContent || '')) bad.push('the speed is not on the HUD');
 
   /* 3. THE HILL, one step at a time: the same throttle for five seconds is slower up Christchurch Road than along flat Merantun Way, and a car let go on the slope rolls back. */
@@ -7926,17 +7961,17 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   if (!t.maze || !t.widgetsOf) return ['the maze is not exported'];
   const d = w.document;
   const N = 11;
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   /* THE MAZE IS A GAME INSIDE BOARD GAMES (461), reached through its picker; no card of its own. */
   if (t.allWidgets().some(x => String(x.id) === 'maze')) return ['the maze is still a widget of its own'];
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
   if (at < 0) return ['there is no Board games widget on the Games column'];
-  t.goPage('games', at, true);
-  const grid = () => d.querySelector('#s-games #maze-grid');
+  t.findPage(at, true);
+  const grid = () => d.querySelector('#s-stuff #maze-grid');
   /* The board waited for, not guessed at — the same race as Connect 4's above. */
   await woken_();
-  { const pick = d.querySelector('#s-games #bg-pick');
+  { const pick = d.querySelector('#s-stuff #bg-pick');
     if (!pick) return ['the Board games widget has no picker'];
     pick.value = 'maze'; t.ACTIONS['bg-pick'](pick); }
   for (let k = 0; k < 30 && !(grid() && grid().children.length === N * N); k++) await wait(100);
@@ -8015,26 +8050,27 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   /* 2. THE KEYS, ON THE MAZE'S PAGE AND OFF IT. ArrowUp from the top left is always a wall: the
      maze must not move, and the press must not reach the pager either. */
   const key = k => d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
-  const page = () => t.PAGE().games;
+  /* THE MAZE'S PAGE ON FIND (790), read as the index it was on the Games column. */
+  const page0 = t.PAGE().stuff, page = () => (t.PAGE().stuff === page0 ? at : t.PAGE().stuff);
   const m0 = t.maze();
   key('ArrowUp');
   if (t.maze().moves !== 0) bad.push('ArrowUp into the outer wall counted a move');
   if (page() !== at) bad.push('ArrowUp on the maze page turned the column from the maze to page ' + page());
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   const open0 = walls()[0] & 2 ? 'ArrowDown' : 'ArrowRight';
   key(open0);
   if (t.maze().moves !== 1) bad.push(open0 + ' on the maze page did not move the walker');
   if (page() !== at) bad.push(open0 + ' on the maze page also turned the column, to page ' + page());
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
-  t.go('stuff', false, true);
+  t.go('booking', false, true);
   await wait(LEAVE_MS); await woken_();
   const was = t.maze().moves;
   ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
   if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   await wait(50);
 
   /* 3. A REPAINT KEEPS THE WALK. */
@@ -8059,14 +8095,14 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   await wait(50);
   if (t.maze() !== m1 || t.maze().moves !== half) bad.push('a repaint halfway threw the walk away');
   way.slice(half).forEach(press);
-  const said = String((d.querySelector('#s-games #maze-said') || {}).textContent || '');
+  const said = String((d.querySelector('#s-stuff #maze-said') || {}).textContent || '');
   if (!t.maze().over || t.maze().moves !== m1.best) bad.push('the shortest route did not finish the maze in ' + m1.best);
   if (!/the shortest way there is/.test(said)) bad.push('finishing in the fewest moves says "' + said + '"');
 
   /* 5. A FINISHED MAZE GIVES THE KEYS BACK, and the next start deals another. */
   key('ArrowUp');
   if (page() === at) bad.push('ArrowUp on a finished maze still did not reach the pager');
-  t.goPage('games', at, true);
+  t.findPage(at, true);
   t.repaint(true);
   await wait(50);
   if (t.maze() === m1 || t.maze().over) bad.push('a finished maze was not replaced at the next start');
@@ -8090,11 +8126,11 @@ const woken_ = async () => {
 /* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. § */
 /* AND THE GAME'S OWN CARD IS WAITED FOR, NOT GUESSED AT. § */
 const partyBoot_ = async (k) => {
-  const { w } = boot();
+  const { w } = boot({ member: true });   /* Find is for members (400), and the games are on Find since 790 */
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   if (k) { try { w.localStorage.setItem('wg-game', k); } catch (e) {} }
-  t.go('games', false, true);
+  t.findGroup('Games', 'wordgames');
   await wait(LEAVE_MS); await woken_();
   const d = w.document;
   for (let n = 0; n < 80; n++) {
@@ -8136,13 +8172,13 @@ check('just a minute keeps its round through a repaint and pauses when the colum
   if (!r || !r.ends) bad.push('a repaint left the clock stopped with the Games column still in front');
   if (text('jam').indexOf(topic) === -1) bad.push('after a repaint the card reads "' + text('jam') + '"');
   /* AWAY: the clock holds, and stays held on the way back. */
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
   const held = P().jam;
   if (held.ends || held.run) bad.push('leaving the column left the clock running');
   const left = held.left;
   await wait(1200);
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   if (P().jam.ends) bad.push('coming back started the clock without anybody pressing Resume');
   if (P().jam.left !== left) bad.push('the minute went on running while the column was away: ' + left + ' became ' + P().jam.left);
@@ -8177,7 +8213,7 @@ check('taboo shows a word with four or five forbidden words, and Correct and Pas
   await wait(50);
   if (P().tab !== s || !P().tab.ends) bad.push('a repaint stopped or replaced the round');
   /* PAUSED, THE WORD IS NOT ON THE CARD — whoever picks the phone up next may be on the other side. */
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
   if (text('tab').indexOf(s.card[0]) !== -1) bad.push('a paused card still shows the word');
   return bad;
@@ -8215,9 +8251,9 @@ check('hot seat shows its word only once the phone faces the class, and hides it
   press('hot-next', { 'data-got': '1' });
   if (s.score !== 1) bad.push('Got it did not count');
   const word = s.word;
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   if (text('hot').indexOf(word) !== -1) bad.push('the word is still up after leaving the column and coming back');
   if (P().hot.ends) bad.push('coming back started the clock by itself');
@@ -8235,9 +8271,9 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
   press('twq-show');
   if (text('twq').indexOf(s.word) === -1) bad.push('Show me did not show the secret');
   /* LEAVING WITH THE SECRET UP HIDES IT. */
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is still up after leaving the column');
   press('twq-show');
@@ -8245,11 +8281,66 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
   if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is on the screen while the class asks');
   for (let i = 0; i < 5; i++) press('twq-ask');
   t.repaint(true);
-  await wait(50);
+  for (let n = 0; n < 60 && !text('twq'); n++) await wait(50);   /* Find fills its page after the paint (790) */
   if (P().twq.asked !== 5 || !/5 of 20/.test(text('twq'))) bad.push('five questions and a repaint read "' + text('twq') + '"');
   for (let i = 0; i < 20; i++) press('twq-ask');
   if (P().twq.asked !== 20 || P().twq.phase !== 'done') bad.push('the count went past twenty or did not end: ' + P().twq.asked);
   if (text('twq').indexOf(s.word) === -1 || !/Out of questions/.test(text('twq'))) bad.push('the end does not reveal the secret: "' + text('twq') + '"');
+  return bad;
+});
+
+/* ---------- TOOLS AND GAMES ARE FIND CARDS (790) ---------- */
+check('790: Find › Games is an answer and a game on it opens and plays; Find › Tools › Calculator adds up; no Tools or Games column', async () => {
+  const { w } = boot({ member: true });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('tools') !== -1 || ids.indexOf('games') !== -1) bad.push('the columns still include ' + ids.filter(x => x === 'tools' || x === 'games').join(', '));
+  if (d.getElementById('s-tools') || d.getElementById('s-games')) bad.push('index.html still has a Tools or Games section');
+  /* THE FIRST QUESTION OFFERS BOTH, as ordinary answers. */
+  t.go('stuff', false, true);
+  await wait(LEAVE_MS);
+  const first = [...d.querySelectorAll('#s-stuff [data-do="facet-pick"], #s-stuff .fc-ans, #s-stuff button')].map(b => b.textContent.trim());
+  ['Tools', 'Games'].forEach(g => { if (!first.some(s => s.indexOf(g) === 0)) bad.push('Find\'s first question does not offer ' + g); });
+  /* A GAME: Word games, Herd Mentality, Next question deals another. */
+  t.findGroup('Games');
+  await wait(LEAVE_MS); await woken_();
+  const games = t.widgetsOf('game').map(x => String(x.id));
+  const n = games.indexOf('wordgames');
+  if (n < 0) return bad.concat(['Word games is not a Find card: ' + games.join(', ')]);
+  t.findPage(n, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let i = 0; i < 40 && !d.querySelector('#s-stuff #wg-pick'); i++) await wait(50);
+  const sel = d.querySelector('#s-stuff #wg-pick');
+  if (!sel) return bad.concat(['Find › Games › Word games did not start: no game dropdown in its card']);
+  if (!d.querySelector('#s-stuff #wgt-wordgames').closest('.card').querySelector('[data-do="rep-box"]')) bad.push('the Word games card has no Suggest tile');
+  sel.value = 'herd'; t.ACTIONS['wg-pick'](sel);
+  const q1 = String((d.getElementById('herd-q') || {}).textContent || '').trim();
+  const next = d.querySelector('#s-stuff [data-do="herd-next"]');
+  if (!q1 || !next) bad.push('Herd Mentality dealt nothing on Find');
+  else {
+    t.ACTIONS['herd-next'](next);
+    const q2 = String((d.getElementById('herd-q') || {}).textContent || '').trim();
+    if (!q2 || q2 === q1) bad.push('Next question did not deal another on Find: "' + q1 + '" then "' + q2 + '"');
+  }
+  /* A TOOL: the calculator, started by Find as Tools started it, works its keys. */
+  t.findGroup('Tools');
+  await wait(LEAVE_MS); await woken_();
+  const tools = t.widgetsOf('tool').map(x => String(x.id));
+  const c = tools.indexOf('calculator');
+  if (c < 0) return bad.concat(['the Calculator is not a Find card under Tools']);
+  t.findPage(c, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let i = 0; i < 40 && !d.querySelector('#s-stuff #wgt-calculator #mc-display .mc-out'); i++) await wait(50);
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'stuff')) bad.push('the calculator is not running on Find: ' + JSON.stringify(t.running()));
+  const key = k => { const b = d.querySelector('#s-stuff #wgt-calculator [data-mc="' + k + '"]'); if (b) b.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); return !!b; };
+  if (!['7', '+', '8', '='].every(key)) return bad.concat(['the calculator card on Find has no keys']);
+  const out = String((d.querySelector('#s-stuff #wgt-calculator .mc-out') || {}).textContent || '');
+  if (out.trim() !== '15') bad.push('7 + 8 = on Find › Tools › Calculator reads "' + out + '"');
+  /* LEAVING FIND STOPS IT, as leaving Tools did. */
+  t.go('booking', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.running().some(r => r.col === 'stuff')) bad.push('leaving Find left ' + t.running().filter(r => r.col === 'stuff').map(r => r.id).join(', ') + ' running');
   return bad;
 });
 
@@ -8313,7 +8404,7 @@ check('alibi is gone from the Games column, its handlers and its round state', a
   ['alb-start', 'alb-next'].forEach(a => { if (t.ACTIONS[a]) bad.push(a + ' still has a handler'); });
   const P = t.PARTY();
   if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
-  t.go('games', false, true);
+  t.findGroup('Games');
   await wait(LEAVE_MS); await woken_();
   if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
@@ -8331,8 +8422,8 @@ check('the timetable keeps a week per person, one colour a subject, through a re
   const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
   const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
   t.USER(sam);
-  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
-  await wait(300);
+  try { t.findGroup('Tools', 'timetable'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  for (let n = 0; n < 60 && !d.querySelector('#s-stuff #wgt-timetable'); n++) await wait(50);
   w.localStorage.removeItem(t.tmtKey());
   w.initTimetable();
   const box = () => d.querySelector('.tmt-box');
@@ -8375,14 +8466,17 @@ check('the timetable keeps a week per person, one colour a subject, through a re
 
   /* A REPAINT REBUILDS THE MARKUP, and a timetable held only in it would be gone. § */
   try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  for (let n = 0; n < 60 && !box(); n++) await wait(50);   /* Find fills its page after the paint (790) */
   if (rows().length !== 3) bad.push('after a repaint the timetable holds ' + rows().length + ' lessons, not 3');
 
   /* SOMEBODY ELSE ON THE SAME PHONE GETS THEIR OWN — again through the repaint a sign-in does. */
   t.USER(kit);
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 60 && !box(); n++) await wait(50);
   if (rows().length) bad.push('a second person signed in on the phone sees the first one\'s timetable');
   t.USER(sam);
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 60 && !box(); n++) await wait(50);
   if (rows().length !== 3) bad.push('signing back in does not bring the timetable back');
 
   /* A LESSON ADDED AND SHUT WITH NOTHING IN IT GOES, rather than leaving an `Untitled` line that only
@@ -8446,13 +8540,13 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
   t.USER(kit); w.localStorage.removeItem(w.ktKey_());
   t.USER(sam); w.localStorage.removeItem(w.ktKey_());
-  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  try { t.findGroup('Tools'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
   await wait(300);
   /* TO ITS OWN PAGE, the way a swipe arrives: the Tools column keeps only the pages near the one
      being looked at in the document, and this card is tenth. */
   const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === 'typing');
   if (n < 0) return ['there is no typing widget in the Tools roster'];
-  try { t.goPage('tools', n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
+  try { t.findPage(n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
   const box = () => d.querySelector('.kt-box');
   /* WAITED FOR, NOT SLEPT FOR. § */
   for (let i = 0; i < 40 && !(box() && box().querySelector('.kt-in')); i++) await wait(50);
@@ -13111,7 +13205,7 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
   const bad = [];
   const settle = async () => { await wait(LEAVE_MS); await woken_(); };
   const go = async id => { t.go(id, false, true); await settle(); };
-  const prog = () => d.getElementById('s-tools');
+  const prog = () => d.getElementById('s-stuff');
   /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
      the function the column is drawn from rather than whether it was drawn again. */
   const seen = () => {
@@ -13122,7 +13216,8 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
              pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
   };
   /* THE WIDGET ON ITS OWN PAGE OF TOOLS, as a swipe arrives at it (466). */
-  const look = async () => { await toolBox_(w, 'countdowns', '.cd-box'); return seen(); };
+  /* FIND IS FOR MEMBERS (400): signed out, `findGroup` stands a member in to look, and stands them down after (790). */
+  const look = async () => { const was = t.whoami(); await toolBox_(w, 'countdowns', '.cd-box'); const s0 = seen(); if (!was && t.whoami()) t.USER(null); return s0; };
   const signIn = async (u, as) => {
     next = u;
     await go('account');
@@ -13272,7 +13367,7 @@ check('progress, empty: a signed-in learner with nothing answered sees each widg
   /* ITS ONE ROW IS EVERY CARD'S (Suggest a change, the padlock), nothing of its own (1 Nov). */
   if (d.querySelector('#s-account .prog-w [data-do]:not([data-do="rep-box"]):not([data-do="game-lock"])')) bad.push('the empty Progress has a control on it');
   if (d.querySelector('#s-account .prog-w .loading')) bad.push('the empty Progress is still waiting with the payload in');
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
   const rec = w.subRecord_('ans:u:P7:q:Q-PA', '4', 'right', 'none');
   if (!rec) return bad.concat(['subRecord_ recorded nothing — the press was NOT checked']);
@@ -13415,14 +13510,14 @@ check('progress, grade estimate: a GCSE grade from the share of marks on past pa
 /* ---------- A TOOLS WIDGET, ON ITS OWN PAGE, THE WAY A SWIPE ARRIVES (466): its box once drawn, or null ---------- */
 async function toolBox_(w, id, sel) {
   const t = w.__t, d = w.document;
-  t.go('tools', false, true);
+  t.findGroup('Tools');
   await wait(LEAVE_MS); await woken_();
   const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === id);
   if (n < 0) return null;
-  t.goPage('tools', n, true);
+  t.findPage(n, true);
   await wait(LEAVE_MS); await woken_();
-  for (let i = 0; i < 40 && !d.querySelector('#s-tools ' + sel); i++) await wait(50);
-  return d.querySelector('#s-tools ' + sel);
+  for (let i = 0; i < 40 && !d.querySelector('#s-stuff ' + sel); i++) await wait(50);
+  return d.querySelector('#s-stuff ' + sel);
 }
 
 /* ---------- COUNTDOWNS ---------- */
@@ -13446,11 +13541,11 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
   if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
   t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
   const bad = [];
-  const c = await toolBox_(w, 'countdowns', '.cd-box');
+  let c = await toolBox_(w, 'countdowns', '.cd-box');
   if (!c) return ['the Countdowns widget did not draw on Tools — NOT checked'];
   t.go('account', false, true); await wait(LEAVE_MS); await woken_(); w.paint('account');
   if (progCard_(d, 'Countdowns') || /Countdowns/.test((d.getElementById('s-account') || {}).textContent || '')) bad.push('Countdowns is still on Student settings — one home, Tools (466)');
-  await toolBox_(w, 'countdowns', '.cd-box');
+  c = (await toolBox_(w, 'countdowns', '.cd-box')) || c;   /* Find draws its card afresh on the way back (790) */
   const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
   const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
   if (rows.join(' | ') !== want.join(' | ')) bad.push('Countdowns reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
@@ -13459,11 +13554,13 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
   t.DATA().intervals = [];
   delete t.DATA().constants.vars.exam_gcse_start;
   w.paintCountdowns_();
+  c = d.querySelector('#s-stuff .cd-box') || c;
   const rows2 = [...c.querySelectorAll('.row')].map(progRow_);
   if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
   if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
   t.USER(null);
   w.paintCountdowns_();
+  c = d.querySelector('#s-stuff .cd-box') || c;
   /* SIGNED OUT (466): everyone has the widget — the holiday needs no account, the exam does. */
   const rows3 = [...c.querySelectorAll('.row')].map(progRow_);
   if (rows3.length !== 1 || !/(half-term|holidays) (\d+ days?|today)$/.test(rows3[0] || '')) bad.push('signed out, Countdowns reads ' + JSON.stringify(rows3) + ' — wanted the next holiday alone');
@@ -13641,8 +13738,9 @@ const bizSwipe_ = async (w, from) => {
 /* THE FILE WAS READ: since 392 TAB_ORDER and columns.json agree, so the order cannot tell them apart and the payload is asked. */
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
-const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(11));  /* the owner's eleven since 730, as columns.json lists them */
+/* TOOLS AND GAMES LEFT THE ROW FOR FIND IN 790. */
+const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'stuff', 'res', 'saved',
+                    'booking', 'shop'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(9));  /* the owner's eleven since 730, as columns.json lists them */
 
 check('business: an admin has a Business column last, straight after Apprentice settings (730), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -13720,7 +13818,7 @@ check('business: an admin has a Business column last, straight after Apprentice 
   }
   if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
   /* THE VERSE SCREEN IS THE E-INK WIDGET ON TOOLS (470): no link away to the install page, anywhere. */
-  try { w.paint('tools'); } catch (e) {}
+  try { w.__t.findGroup('Tools'); } catch (e) {}
   if (d.querySelector('a[href*="epaper-verse/install.html"]')) bad.push('a tile still opens the verse screen\'s install page in another window — the owner: "Keep it in the widget" (470)');
   { const sp = [...d.querySelectorAll('#s-site > .page')];
     if (!sp.length || !sp[sp.length - 1].querySelector('.me-build')) bad.push('the last Site page is not the build stamps (491)'); }
@@ -14135,9 +14233,9 @@ check('a qualification is written like an isotope: the level raised, the grade l
 const libOpen_ = async (w, who) => {
   const t = w.__t;
   if (who) t.USER(who);
-  try { t.go('tools', false, true); t.repaint(true); } catch (e) { return null; }
+  try { t.findGroup('Tools', 'libcards'); } catch (e) { return null; }   /* its own card: Find fills the pages near the glass (790) */
   for (let k = 0; k < 30; k++) {
-    const f = w.document.querySelector('#s-tools #wgt-libcards #lib-box .me-form');
+    const f = w.document.querySelector('#s-stuff #wgt-libcards #lib-box .me-form');
     if (f) return f;
     await wait(100);
   }
@@ -14315,10 +14413,10 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   const ids = () => (typeof w.widgetsOf_ === 'function' ? w.widgetsOf_('tool') : []).map(x => x.id);
+  /* SIGNED OUT, Find is not offered (400, 790), so the list is asked: a visitor's tools hold no library cards. */
   t.USER(null);
-  try { t.go('tools', false, true); t.repaint(true); } catch (e) {}
   await wait(200);
-  if (ids().indexOf('libcards') !== -1 || d.querySelector('#s-tools #wgt-libcards')) bad.push('a visitor signed out is shown the library cards on Tools');
+  if (ids().indexOf('libcards') !== -1) bad.push('a visitor signed out is shown the library cards on Tools');
   for (const [role, roles] of [['client', ['client']], ['student', ['student']], ['tutor', ['tutor']], ['admin', ['admin']]]) {
     const form = await libOpen_(w, { name: 'Lee Reader', personId: 'P-L' + role, role, roles, token: 'tk',
                                      profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
@@ -14337,6 +14435,7 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   if (!form) return bad.concat(['the admin has no library cards on Tools, so the hold was NOT checked']);
   const box = form.querySelector('[data-me="lib1_name"]');
   draftType_(w, box, 'Merton, typed');
+  await woken_();   /* Find starts its near cards one per task (790): those queued by the arrival are not a restart */
   /* AND THE REST OF THE COLUMN IS NOT RESTARTED OVER ITS OWN MARKUP (`startScreen_`'s hold, shell.js) — a repaint `paint` declined, so what runs on Tools is still § */
   const calc = w.initMiniCalc;
   let restarts = 0;
@@ -14345,26 +14444,26 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   await wait(200);
   w.initMiniCalc = calc;
   if (restarts) bad.push('a repaint held for a library card\'s typing restarted the rest of Tools (the calculator started ' + restarts + ' time(s))');
-  const now = d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]');
+  const now = d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_name"]');
   if (now !== box || !now || now.value !== 'Merton, typed') bad.push('a repaint of Tools threw away what was typed on a library card (' + JSON.stringify(now && now.value) + ')');
   try { w.initLibCards_(); } catch (e) {}
-  if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton, typed') bad.push('starting the widget again drew over a card with typing in it');
+  if ((d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton, typed') bad.push('starting the widget again drew over a card with typing in it');
   /* AND A CLEAN ONE TAKES THE SHEET'S COPY WHEN `myProfile` LANDS. */
   delete form.dataset.dirty;
   mine = Object.assign({}, mine, { lib1_name: 'Merton from the sheet' });
   try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
   await wait(400);
-  if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton from the sheet') bad.push('myProfile landed and the library cards on Tools still show ' + JSON.stringify((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value));
+  if ((d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton from the sheet') bad.push('myProfile landed and the library cards on Tools still show ' + JSON.stringify((d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_name"]') || {}).value));
   /* BUT NOT UNDER THE CARET — a box focused and not yet typed into is not dirty, and redrawing it takes the caret
      away (`libCardsRedraw_`). It keeps its element; it is drawn from the sheet the next time it starts. */
-  const focused = d.querySelector('#s-tools #wgt-libcards [data-me="lib1_no"]');
+  const focused = d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_no"]');
   if (!focused) return bad.concat(['no second library card box to focus — the caret was NOT checked']);
   focused.focus();
   if (d.activeElement !== focused) return bad.concat(['the box could not be focused here — the caret was NOT checked']);
   mine = Object.assign({}, mine, { lib1_no: '2000000000009' });
   try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
   await wait(400);
-  if (d.querySelector('#s-tools #wgt-libcards [data-me="lib1_no"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
+  if (d.querySelector('#s-stuff #wgt-libcards [data-me="lib1_no"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
   return bad;
 });
 
@@ -14374,32 +14473,27 @@ check('review 339: somebody on a Tools page keeps that tool when they sign in an
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   if (typeof w.signedIn_ !== 'function') return ['signedIn_ is not reachable — NOT checked'];
-  const front = () => { const p = d.querySelector('#s-tools > .page.on [id^="wgt-"]'); return p ? p.id : null; };
-  t.go('tools', false, true); t.repaint(true);
+  const front = () => { const p = d.querySelector('#s-stuff > .page.on [id^="wgt-"]'); return p ? p.id : null; };
+  t.findGroup('Tools'); t.repaint(true);
   await wait(300);
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   if (tools[tools.length - 1] !== 'libcards') bad.push('the library cards are not the last tool: ' + tools.join(', '));
+  /* FIND IS FOR MEMBERS (790): the one standing on the tool is a member, and another signing in on the phone keeps it; signing out leaves Find. */
   for (const id of ['calendar', 'whiteboard']) {
-    t.USER(null);
-    t.go('tools', false, true); t.repaint(true);
-    await wait(300);
-    const at = [...d.querySelectorAll('#s-tools > .page')].findIndex(p => p.querySelector('#wgt-' + id));
-    if (at < 0) { bad.push('no ' + id + ' on a visitor\'s Tools column — NOT checked'); continue; }
-    w.goPage('tools', at, true);
-    await wait(200);
+    t.findGroup('Tools', id);
+    await wait(400);
     if (front() !== 'wgt-' + id) { bad.push('could not stand on the ' + id + ' (' + front() + ') — NOT checked'); continue; }
     try { w.signedIn_({ success: true, name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
                         profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } }, 'parent@example.org'); } catch (e) { bad.push('signedIn_ threw ' + e.message); }
     await wait(400);
-    t.go('tools', false, true);
+    t.findGroup('Tools', id);
     await wait(400);
-    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Tools to ' + front());
-    if (!d.querySelector('#s-tools #wgt-libcards')) bad.push('signed in, Tools has no library cards');
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Find to ' + front());
+    t.findGroup('Tools', 'libcards');
+    await wait(400);
+    if (!d.querySelector('#s-stuff #wgt-libcards')) bad.push('signed in, Find › Tools has no library cards');
     try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { bad.push('Sign out threw ' + e.message); }
     await wait(400);
-    t.go('tools', false, true);
-    await wait(400);
-    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing out turned Tools to ' + front());
   }
   return bad;
 });
@@ -14414,10 +14508,10 @@ check('review 339: a server that sends no library group is said to be older, not
     const t = w.__t, d = w.document;
     t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
              profile: { first_name: 'Test', last_name: 'Admin', phone_cc: '+44' } });
-    try { t.go('tools', false, true); t.repaint(true); } catch (e) {}
+    try { t.findGroup('Tools', 'libcards'); } catch (e) {}
     let said = '';
     for (let k = 0; k < 30; k++) {
-      said = String((d.querySelector('#s-tools #wgt-libcards #lib-box') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      said = String((d.querySelector('#s-stuff #wgt-libcards #lib-box') || {}).textContent || '').replace(/\s+/g, ' ').trim();
       if (said) break;
       await wait(100);
     }
@@ -14805,11 +14899,11 @@ check('while a failed first payload is asked for again, the score board and the 
   const bad = [];
   const words = /have not arrived|Scores have not|from the server yet/;
   const turnTo = async (col, id, sel) => {
-    t.go(col, false, true);
-    await wait(LEAVE_MS); await woken_();
+    /* A TOOL OR GAME IS ITS OWN FIND CARD (790). */
     const n = t.widgetsOf(col === 'games' ? 'game' : 'tool').findIndex(x => String(x.id) === id);
     if (n < 0) { bad.push(`no "${id}" widget on ${col} for an admin`); return null; }
-    b.w.goPage(col, n, true);
+    t.findGroup(col === 'games' ? 'Games' : 'Tools', id);
+    await wait(LEAVE_MS); await woken_();
     for (let k = 0; k < 150; k++) {
       const el = d.querySelector(sel);
       if (el && el.innerHTML.trim() && !el.closest('[aria-busy="true"]')) return el;
@@ -14820,11 +14914,11 @@ check('while a failed first payload is asked for again, the score board and the 
   };
   /* THE SPRINT LIVES IN WORD GAMES NOW (461): open that widget and pick the sprint. */
   let board = null;
-  if (await turnTo('games', 'wordgames', '#s-games #wg-pick')) {
+  if (await turnTo('games', 'wordgames', '#s-stuff #wg-pick')) {
     const pick = d.getElementById('wg-pick');
     pick.value = 'tt'; pick.dispatchEvent(new b.w.Event('change', { bubbles: true }));
-    for (let k = 0; k < 150 && !board; k++) { board = d.querySelector('#s-games #tt-board'); if (!board || !board.innerHTML.trim()) { board = null; await wait(100); } }
-    if (!board) bad.push('the Times Tables board never drew after picking the sprint in Word games (pick=' + pick.value + ', slot=' + ((d.querySelector('#s-games #wg-slot')||{}).innerHTML||'').slice(0,160) + ')');
+    for (let k = 0; k < 150 && !board; k++) { board = d.querySelector('#s-stuff #tt-board'); if (!board || !board.innerHTML.trim()) { board = null; await wait(100); } }
+    if (!board) bad.push('the Times Tables board never drew after picking the sprint in Word games (pick=' + pick.value + ', slot=' + ((d.querySelector('#s-stuff #wg-slot')||{}).innerHTML||'').slice(0,160) + ')');
   }
   if (board) {
     if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
@@ -14834,8 +14928,8 @@ check('while a failed first payload is asked for again, the score board and the 
   open();
   for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
   if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
-  for (let k = 0; k < 50 && d.querySelector('#s-games #tt-board .loading'); k++) await wait(100);
-  const bb = d.querySelector('#s-games #tt-board');
+  for (let k = 0; k < 50 && d.querySelector('#s-stuff #tt-board .loading'); k++) await wait(100);
+  const bb = d.querySelector('#s-stuff #tt-board');
   if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
   if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
   return bad;
@@ -14873,18 +14967,14 @@ check('a retry that succeeds does not rebuild the box somebody is typing in, and
   const b = flaky_(['fetch', gate], RC_KID_);
   await wait(300);
   const d = b.w.document;
-  b.w.__t.go('tools', false, true);
-  await wait(300);
   /* ON ITS OWN PAGE, IN FRONT — a field on a page that is not the one in front is let go of by
-     `placeGrid`, which is a different rule and a right one. */
-  const pages = [...d.querySelectorAll('#s-tools > .page')];
-  const at = pages.findIndex(p => p.querySelector('#notepad'));
-  if (at < 0) return ['the Tools column has no notepad to type in, so nothing was tested'];
-  b.w.goPage('tools', at, true);
+     `placeGrid`, which is a different rule and a right one. Its own Find card (790). */
+  b.w.__t.findGroup('Tools', 'notepad');
   await wait(300);
+  if (!d.querySelector('#s-stuff #notepad')) return ['Find › Tools has no notepad to type in, so nothing was tested'];
   /* AND NOTHING IS TYPED UNTIL THE NOTEPAD HAS STARTED — its veil off, which `widgetUp_` does after its `start`. § */
   await woken_();
-  await until_(() => { const sl = d.querySelector('#s-tools #wgt-notepad'); return !!sl && !sl.getAttribute('aria-busy'); }, 8000);
+  await until_(() => { const sl = d.querySelector('#s-stuff #wgt-notepad'); return !!sl && !sl.getAttribute('aria-busy'); }, 8000);
   const box = d.getElementById('notepad');
   box.focus();
   box.value = 'half a thought';
@@ -19632,7 +19722,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
   w.__t.USER(Object.assign({}, ANS_ADA));
   /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved do. § */
-  const COL = 'tools';
+  const COL = 'shop';   /* Tools went into Find (790); the shop is a column of pages too */
   w.__t.go(COL, false, true);
   await wait(60);
   const pageAt = n => d.querySelectorAll('#s-' + COL + ' > .page')[n];
@@ -20833,7 +20923,8 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     }
     return false;
   };
-  if (!(await press('forLabel', 'Learning')) || !(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
+  /* WHAT FOR IS NOT ASKED WHEN WHAT KIND ANSWERS IT (790: Tools and Games are kinds too), so Practice comes first. */
+  if (!(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
 
   /* THE NEXT QUESTION IS PROJECT OR COURSEWORK, AND ITS TWO ANSWERS ARE THE TWO WORDS. Asked of the
      buttons drawn, not of `nextFacet`, because the claim is what a person sees after pressing
@@ -23561,8 +23652,8 @@ check('466: the timetable holds only its own lessons — a booked session is not
   w.localStorage.setItem('tmt:u:P9', JSON.stringify({ weekend: false,
     days: [[{ id: 'L1', at: '09:00', subject: 'Maths', note: '' }, { id: 'L2', at: '13:00', subject: 'Art', note: '' }], [], [], [], [], [], []] }));
   t.USER(sam);
-  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
-  await wait(300);
+  try { t.findGroup('Tools', 'timetable'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  for (let n = 0; n < 40 && !d.querySelector('.tmt-box'); n++) await wait(50);
   if (d.querySelector('#week-body')) bad.push('`Your week` is still a widget on the Tools column — it is folded into the Timetable');
   const box = () => d.querySelector('.tmt-box');
   if (!box()) return bad.concat('the timetable did not draw on the Tools column');
@@ -23601,10 +23692,15 @@ check('466: the timetable holds only its own lessons — a booked session is not
   const onAccount = JSON.stringify({ weekend: false, days: [[{ id: 'L9', at: '15:00', subject: 'Greek', note: '' }], [], [], [], [], [], []] });
   t.USER(Object.assign({}, sam, { timetable: onAccount }));
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 40 && !(box() && /Greek/.test(box().textContent)); n++) await wait(50);   /* Find fills its card after the paint (790) */
+  if (!box()) return bad.concat(['the repaint left no timetable on Find']);
   if (!/Greek/.test(box().textContent) || /Maths/.test(box().textContent)) bad.push('a phone with nothing on it did not draw the week kept on the account');
   /* SIGNED OUT: the device's own, under the bare key, and nothing is sent. */
+  /* SIGNED OUT, Find is not offered (400, 790): a visitor reaches no timetable, so the device-only half is asked only when one is still drawn. */
   t.USER(null);
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 40 && !box(); n++) await wait(50);
+  if (!box()) return bad;
   sent.length = 0;
   w.localStorage.removeItem('tmt');
   t.ACTIONS['tmt-add'](d.createElement('button'));
@@ -26363,19 +26459,18 @@ check('signing in on the account column goes back where you came from — and Fi
     t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
     await wait(300);
   };
-  t.USER(null);
-  t.go('tools', false, true); t.go('account', false, true); w.paint('account');
+  /* FIND STANDS A MEMBER IN TO LOOK (790), and the child signs in after: signed out again first. */
+  t.findGroup('Tools'); t.USER(null); t.go('account', false, true); w.paint('account');
   await signIn();
-  if (t.AT() !== 'tools') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
+  if (t.AT() !== 'stuff') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
   /* SIGNED IN WHILE ANOTHER COLUMN IS IN FRONT — the emailed link at start-up, Google's own button — the
      child is left where they are: only a sign-in made ON the account column goes back. */
   t.ACTIONS.signout(d.createElement('button'));
-  t.go('account', false, true); w.paint('account');
+  t.findGroup('Games'); t.USER(null); w.paint('account');
   d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
-  t.go('games', false, true);
   t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
   await wait(300);
-  if (t.AT() !== 'games') bad.push('signed in with Games in front, the child was moved to ' + t.AT());
+  if (t.AT() !== 'stuff') bad.push('signed in with Games in front, the child was moved to ' + t.AT());
   /* OPENED ON THE ACCOUNT COLUMN, NOTHING BEFORE IT: a child goes to Find. */
   const b2 = boot({ reply, before: win => { win.localStorage.setItem('familyTab', 'account'); win.localStorage.setItem('familyTabAt', String(Date.now())); } });
   await wait(300);
@@ -27342,7 +27437,7 @@ check('a paint the builder is refused (a Settings form being edited) stays stale
   if (!t.stale('account')) bad.push('Settings was drawn again while a form on it was being edited — the typing would be lost');
   const tries = t.aheadLog().filter(x => x.key === 'paint:settings').length;
   if (tries > 3) bad.push('the refused paint was tried ' + tries + ' times — it should wait for its reason to change, not loop');
-  if (t.stale('tools')) bad.push('Tools was left stale too — one refused column held up the rest');
+  if (t.stale('stuff')) bad.push('Tools was left stale too — one refused column held up the rest');
   const f2 = w.document.querySelector('#s-account .me-form[data-dirty]');
   if (f2) f2.removeAttribute('data-dirty');
   w.document.dispatchEvent(new w.Event('focusout'));
@@ -27356,39 +27451,41 @@ check('a widget drawn ahead with nothing changed is adopted on arrival without s
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.widgetsOf !== 'function') return ['the widgets are not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  /* FIND SHOWING TOOLS, then left (790): its filled cards are what is drawn ahead, as Tools' column was. */
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
   const tools = t.widgetsOf('tool');
-  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'mat');
   if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
-  const n = { calculator: 0, calendar: 0 };
+  const n = { calculator: 0, mat: 0 };
   [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
-  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('tools', false, true); await wait(LEAVE_MS); await woken_(); };
+  const arrive = async () => { n.calculator = 0; n.mat = 0; t.go('stuff', false, true); await wait(LEAVE_MS); await woken_(); };
   const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
-  const slot = id => t.slotOn('tools', id);
+  const slot = id => t.slotOn('stuff', id);
   /* 1. NOTHING MOVED: adopted. */
   if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
   await arrive();
-  if (n.calculator || n.calendar) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
-  if (!t.running().some(e => e.id === 'calculator' && e.col === 'tools')) bad.push('the adopted calculator is not entered as running');
+  if (n.calculator || n.mat) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (!t.running().some(e => e.id === 'calculator' && e.col === 'stuff')) bad.push('the adopted calculator is not entered as running');
   /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
-  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
+  /* ANY PRESS (`on`'s wrapper bumps ACT_EPOCH): Clear done on the docket, which changes nothing Find shows — the funnel's Clear would empty Find's Tools answer (790). */
+  try { t.ACTIONS['dock-clear'](w.document.createElement('button')); } catch (e) {}
   await arrive();
-  if (!n.calendar) bad.push('after a press the calendar drawn before it was adopted, not started');
+  if (!n.mat) bad.push('after a press the cheat sheet maker (beside the calculator on Find) drawn before it was adopted, not started');
   /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   const before = slot('calculator');
   t.repaint(); await aheadQuiet_(t);
   if (slot('calculator') !== before) bad.push('the pure calculator was not carried through the paint — its drawing was thrown away');
   await arrive();
   if (!n.calculator) bad.push('a calculator drawn before a repaint and carried through it was adopted rather than started');
   /* 4. A CHANGE OF PERSON, with the builder held so nothing is drawn again: started, never adopted. */
-  await leave(); t.repaint(); await aheadQuiet_(t);
+  await leave(); t.repaint(); t.findGroupOn('stuff', 'Tools'); await aheadQuiet_(t);   /* Find back on Tools while away (790) */
   w.__aheadHold = true;
   t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
   await arrive();
-  if (!n.calculator && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
+  if (!n.calculator && slot('calculator') && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
   w.__aheadHold = false;
   t.USER(null);
   return bad;
@@ -27398,7 +27495,7 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.widgetState !== 'function') return ['the widgets\' state is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Games', 'wordgames'); t.go('feed', false, true); t.repaint();   /* Find showing Games, left (790) */
   await aheadQuiet_(t);
   const st = t.widgetState();
   if (st.tt) bad.push('the times-tables sprint is running after being drawn ahead');
@@ -27410,7 +27507,7 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
      box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
   /* VIDEOS LEADS THE REELS NOW (414), and is drawn ahead there. */
-  [['games', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
+  [['stuff', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
     const sl = t.slotOn(col, id);
     if (!sl) bad.push('no ' + id + ' slot on ' + col);
     else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
@@ -27440,9 +27537,9 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.findFillAll('stuff'); t.go('feed', false, true); t.repaint();   /* Find showing Tools, every card filled, then left (790) */
   await aheadQuiet_(t);
-  const cal0 = t.slotOn('tools', 'countdowns'), calc0 = t.slotOn('tools', 'calculator');
+  const cal0 = t.slotOn('stuff', 'countdowns'), calc0 = t.slotOn('stuff', 'calculator');
   if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Countdowns was not drawn ahead on Tools — NOT checked']; }
   w.__aheadHold = true;
   /* COUNTDOWNS READ FACTS (Term dates is the school year's own rules since 491) (the calendar is plain and `pure` since 466): a term the landing brings. */
@@ -27451,15 +27548,15 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   const D = t.DATA();
   D.intervals = [{ term: 'Landed term', label: 'Landed term', kind: 'holiday', startDate: dd, endDate: dd }].concat(D.intervals || []);
   t.landRepaint();
-  const cal1 = t.slotOn('tools', 'countdowns');
+  const cal1 = t.slotOn('stuff', 'countdowns');
   if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('Countdowns drawn from the old facts is still showing after the landing');
-  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
+  if (t.slotOn('stuff', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
   w.__aheadHold = false; t.aheadKick();
   await aheadQuiet_(t);
-  const cal2 = t.slotOn('tools', 'countdowns');
+  const cal2 = t.slotOn('stuff', 'countdowns');
   if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('Countdowns was not drawn again from the new facts in the quiet');
   else if (!/Landed term/.test(cal2.textContent)) bad.push('Countdowns drawn again does not show the term the landing brought');
-  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
+  if (t.slotOn('stuff', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
   t.USER(null);
   return bad;
 });
@@ -27468,15 +27565,15 @@ check('signing out puts away what was drawn for the last person, before the repa
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  t.USER(SAM_); t.findGroupOn('stuff', 'Tools'); t.findFillAll('stuff'); t.go('feed', false, true); t.repaint();   /* Find showing Tools, every card filled, then left (790) */
   await aheadQuiet_(t);
   /* THE NOTEPAD AND THE TIMETABLE, both asked: § */
   const ids = ['notepad', 'timetable'];
-  const drawn = ids.filter(id => { const sl = t.slotOn('tools', id); return sl && !sl.getAttribute('aria-busy'); });
+  const drawn = ids.filter(id => { const sl = t.slotOn('stuff', id); return sl && !sl.getAttribute('aria-busy'); });
   if (drawn.length < 2) { t.USER(null); return ['the notepad and the timetable were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
   w.signedOut_();
   ids.forEach(id => {
-    const now = t.slotOn('tools', id);
+    const now = t.slotOn('stuff', id);
     if (now && !now.getAttribute('aria-busy') && now.WHO === 'P9') bad.push('the ' + id + ' drawn for Sam is still drawn after signing out');
   });
   return bad;
@@ -27677,9 +27774,9 @@ check('signing out puts away every drawing the last person had, including the on
   } catch (e) {} } });
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
-  t.go('feed', false, true); t.repaint();
+  t.findGroupOn('stuff', 'Tools', 'flyers'); t.go('feed', false, true); t.repaint();   /* Find showing the admin's tools, left (790) */
   await aheadQuiet_(t);
-  const ask = [['tools', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
+  const ask = [['stuff', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
   const drawn = ask.filter(([c, id]) => { const sl = t.slotOn(c, id); return sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001'; });
   if (drawn.length < ask.length) { return ['not every slot was drawn ahead for the admin (' + drawn.map(x => x.join(':')).join(', ') + ') — NOT checked']; }
   w.signedOut_();
@@ -27695,7 +27792,7 @@ check('a column marked stale by a press with no finger lifted — a star from th
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.aheadKick !== 'function') return ['the builder is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('tools', false, true); t.repaint();
+  t.USER(SAM_); t.findGroup('Tools'); t.repaint();
   await aheadQuiet_(t);
   const star = w.document.createElement('button');
   star.setAttribute('data-key', 'w:timer'); star.setAttribute('data-kind', 'widget');
@@ -27758,10 +27855,10 @@ check('a landing that changes nothing keeps the column in front, and an arrival 
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   if ((t.paints().account || 0) !== q0 || !same(kids('account'), a0)) bad.push('arriving at Account after a landing that changed nothing wrote it again');
   /* 4. A COLUMN OF WIDGETS IN FRONT IS STILL DRAWN AGAIN AT A LANDING — 331's restart. */
-  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
-  const r0 = t.paints().tools || 0;
+  t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
+  const r0 = t.paints().stuff || 0;
   t.landRepaint();
-  if ((t.paints().tools || 0) === r0) bad.push('a landing kept Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
+  if ((t.paints().stuff || 0) === r0) bad.push('a landing kept Find › Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
   return bad;
 });
 
@@ -27778,7 +27875,7 @@ check('a landing that brings a fact draws it: a new post is in the Feed once the
   await wait(600);
   const t = w.__t, bad = [];
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
-  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.findGroup('Tools'); await wait(LEAVE_MS); await woken_();
   t.paint('feed');
   if (!/Post 1/.test(w.document.getElementById('s-feed').textContent)) return ['the Feed does not show its first post, so a new one proves nothing — NOT checked'];
   const D = t.DATA();
@@ -27843,7 +27940,7 @@ check('the builder waits for the hand: no slice within 400ms of a key or a point
   {
     const box = w.document.createElement('input');
     box.type = 'text';
-    w.document.getElementById('s-tools').appendChild(box);
+    w.document.getElementById('s-stuff').appendChild(box);
     box.focus();
     if (w.document.activeElement !== box) bad.push('the box would not take the focus, so the typing gate was NOT asked');
     const a = work();
@@ -28119,19 +28216,21 @@ check('a column\'s widget slots are drawn before any column further out is paint
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
-  /* SHOP IN FRONT, GAMES BESIDE IT since 392 (Tools before, when Games was its neighbour). */
-  t.USER(SAM_); t.go('saved', false, true); t.go('shop', false, true);
+  /* SAVED IN FRONT, FIND 2 SHOWING TOOLS BESIDE IT (790: the Games column that stood beside Shop is in Find). */
+  t.USER(SAM_); t.findGroupOn('res', 'Tools'); t.go('booking', false, true); t.go('saved', false, true);
   await aheadQuiet_(t);
   const a = w.performance.now();
   t.repaint();
   await aheadQuiet_(t);
-  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('shop');
-  if (Math.abs(ids.indexOf('games') - ti) !== 1) return ['Games is not beside Shop: ' + ids.join(' ') + ' — NOT checked'];
+  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('saved');
+  if (Math.abs(ids.indexOf('res') - ti) !== 1) return ['Find 2 is not beside Saved: ' + ids.join(' ') + ' — NOT checked'];
   const log = t.aheadLog().filter(x => x.t >= a);
-  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:games:/.test(x.key)).map(x => x.key).pop());
-  if (lastGames < 0) return ['no widget on Games was drawn by the builder after the repaint — NOT checked'];
-  const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
-  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Shop, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
+  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:res:/.test(x.key)).map(x => x.key).pop());
+  if (lastGames < 0) return ['no widget on Find 2 was drawn by the builder after the repaint — NOT checked'];
+  /* A FINDER'S SLOTS EXIST ONCE ITS PAINT OR A LATER FILL HAS MADE THEIR PAGES (790), so the race is counted from Find 2's last such job. */
+  let from = 0; log.forEach((x, i) => { if (i < lastGames && /res/.test(x.key) && !/^widget:/.test(x.key)) from = i; });
+  const far = log.findIndex((x, i) => i > from && /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
+  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Saved, before it had drawn every widget on Find 2 beside it (' + log[lastGames].key + ' came after)');
   t.USER(null);
   return bad;
 });
@@ -30270,11 +30369,12 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
   if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
-  t.go('tools', false, true); await wait(300);
-  const tools0 = layIds_(t, 'tool');
+  /* TOOLS ARE FIND CARDS, placed by the funnel (790): the Reels column's widgets are the ones that move. */
+  t.go('reel', false, true); await wait(300);
+  const tools0 = layIds_(t, 'reel');
   const [a, b, c] = tools0;
   const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
-  if (!row) return bad.concat(['the first tool has no admin row']);
+  if (!row) return bad.concat(['the first reel widget has no admin row']);
   const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
   ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push('the admin row has no ' + l + ': ' + labels); });
   if (!row.querySelectorAll('.is-admin').length) bad.push('the admin row is not in the admin tone');
@@ -30283,18 +30383,18 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(200);
   let posts = sent.filter(x => x.action === 'layoutSave');
   if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts after one move, not one');
-  if (layIds_(t, 'tool').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Tools ' + layIds_(t, 'tool').join());
-  const drawn = [...d.querySelectorAll('#s-tools .widget-slot')].map(x => x.id.replace('wgt-', ''));
-  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Tools: ' + drawn.join());
+  if (layIds_(t, 'reel').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Reels ' + layIds_(t, 'reel').join());
+  const drawn = [...d.querySelectorAll('#s-reel .widget-slot')].map(x => x.id.replace('wgt-', ''));
+  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Reels: ' + drawn.join());
   /* UP: back again. */
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '-1')); await wait(200);
-  if (layIds_(t, 'tool').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'tool').join());
+  if (layIds_(t, 'reel').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'reel').join());
   /* ACROSS: to the end of the next widget column. */
-  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('tools') + 1];
+  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('reel') + 1];
   A['lay-w-col'](layTile_(d, c, 'lay-w-col', '1')); await wait(200);
   const kindOf = { reel: 'reel', tools: 'tool', games: 'game', shop: 'shop' };
   const there = layIds_(t, kindOf[next]);
-  if (layIds_(t, 'tool').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
+  if (layIds_(t, 'reel').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
   posts = sent.filter(x => x.action === 'layoutSave');
   if (posts.length !== 3) bad.push(posts.length + ' layoutSave posts after three moves');
   const L = posts[posts.length - 1] && posts[posts.length - 1].layout;
@@ -30310,9 +30410,9 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   if (t2.ACTIONS['layout-reset']) bad.push('a layout-reset handler still exists');
   /* A REFUSAL: drawn at once, then put back with a toast. */
   const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
-  no.w.__t.go('tools', false, true); await wait(300);
+  no.w.__t.go('reel', false, true); await wait(300);
   no.w.__t.ACTIONS['lay-w-move'](layTile_(no.w.document, a, 'lay-w-move', '1')); await wait(300);
-  if (layIds_(no.w.__t, 'tool').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'tool').join());
+  if (layIds_(no.w.__t, 'reel').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'reel').join());
   return bad;
 });
 
@@ -30321,7 +30421,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-del']) return ['no lay-w-del handler — NOT checked'];
-  t.go('games', false, true); await wait(300);
+  t.findGroup('Games', 'wordgames'); await wait(300);
   const tile = () => layTile_(d, 'wordgames', 'lay-w-del');
   if (!tile()) return bad.concat(['Word games has no Delete tile — NOT checked']);
   A['lay-w-del'](tile());
@@ -30330,7 +30430,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
   await wait(450); A['lay-w-del'](tile()); await wait(300);
   if (layIds_(t, 'game').indexOf('wordgames') !== -1 || d.querySelector('#wgt-wordgames')) bad.push('the second tap did not delete');
-  if (t.pageCount('games') !== layIds_(t, 'game').length) bad.push('the pager counts ' + t.pageCount('games') + ' pages for ' + layIds_(t, 'game').length + ' widgets');
+  if (w.findWidgetList_().some(x => String(x.id) === 'wordgames')) bad.push('Find still lists the deleted Word games');   /* Find is paged by its cards (790) */
   const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
   if (!L || (L.deleted || []).indexOf('wordgames') === -1) bad.push('the post did not carry deleted');
   /* THE BASKET STAYS. */
@@ -30346,7 +30446,7 @@ check('layout tiles (463): Delete asks twice in place and is final (477), the de
   if (/Add back|Reset layout|Deleted cards/.test(d.body.textContent)) bad.push('the page still says Add back, Reset layout or Deleted cards');
   /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
-  for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
+  for (const col of ['stuff', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
   if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
   return bad;
@@ -30361,7 +30461,7 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   const card = () => d.querySelector('#s-biz .deleted-card');
   if (!card()) return ['Business has no Deleted card — NOT checked'];
   if (!/Nothing deleted/.test(card().textContent)) bad.push('an empty Deleted card does not say Nothing deleted');
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools', 'whiteboard'); await wait(300);
   const x = layTile_(d, 'whiteboard', 'lay-w-del');
   if (!x) return bad.concat(['the whiteboard has no Delete tile — NOT checked']);
   A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
@@ -30375,13 +30475,13 @@ check('Deleted on Business: the whiteboard deleted is listed by name with Put ba
   A['lay-putback'](put); await wait(300);
   const L = (sent.filter(p => p.action === 'layoutSave').pop() || {}).layout;
   if (!L || (L.deleted || []).indexOf('whiteboard') !== -1) bad.push('the save still carries the whiteboard in deleted');
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools', 'whiteboard'); await wait(300);
   if (layIds_(t, 'tool').indexOf('whiteboard') === -1 || !d.querySelector('#wgt-whiteboard')) bad.push('the whiteboard was not drawn again');
   t.go('biz', false, true); await wait(300);
   if (card() && card().querySelector('[data-deleted="whiteboard"]')) bad.push('the whiteboard is still listed as deleted');
   /* A REFUSAL: drawn at once, then put back. */
   const no = layBoot_({ reply: b => b.action === 'layoutSave' && (b.layout.deleted || []).indexOf('whiteboard') === -1 ? { success: false, error: 'No.' } : undefined }); await wait(300);
-  no.w.__t.go('tools', false, true); await wait(300);
+  no.w.__t.findGroup('Tools', 'whiteboard'); await wait(300);
   const y = layTile_(no.w.document, 'whiteboard', 'lay-w-del');
   no.w.__t.ACTIONS['lay-w-del'](y); await wait(450); no.w.__t.ACTIONS['lay-w-del'](y); await wait(300);
   no.w.__t.go('biz', false, true); await wait(300);
@@ -30396,32 +30496,32 @@ check('no undo (477): a deleted widget stays gone for everyone after a reload an
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  t.go('games', false, true); await wait(300);
+  t.findGroup('Games', 'wordgames'); await wait(300);
   const x = layTile_(d, 'wordgames', 'lay-w-del');
   if (!x) return ['Word games has no Delete tile — NOT checked'];
   A['lay-w-del'](x); await wait(450); A['lay-w-del'](x); await wait(300);
-  t.go('tools', false, true); await wait(300);
-  /* TIMER DOWN, past docket: both seen by a client (some tools are role-gated). */
-  const tools0 = layIds_(t, 'tool'), a = tools0.indexOf('timer') !== -1 ? 'timer' : tools0[1], f = tools0[tools0.indexOf(a) + 1];
+  /* A REELS WIDGET DOWN, past the next (790: tools are Find cards, placed by the funnel). */
+  t.go('reel', false, true); await wait(300);
+  const tools0 = layIds_(t, 'reel'), a = tools0[0], f = tools0[1];
   A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(300);
   const posts = sent.filter(p => p.action === 'layoutSave'), L = posts.length && posts[posts.length - 1].layout;
   if (!L) return bad.concat(['no layoutSave was posted — NOT checked']);
   if (posts.some(p => p.reset)) bad.push('a layoutSave carried reset');
-  const moved = layIds_(t, 'tool');
+  const moved = layIds_(t, 'reel');
   /* AN ADMIN RELOADS: still gone, nothing to bring it back. */
   const p1 = payload(); p1.layout = L;
   const r = layBoot_({ payload: p1 }); await wait(300);
-  for (const col of ['games', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
+  for (const col of ['stuff', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
   if (layIds_(r.w.__t, 'game').indexOf('wordgames') !== -1 || r.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget came back for the admin');
   if (r.w.__t.ACTIONS['lay-w-undel'] || r.w.__t.ACTIONS['layout-reset'] || /Add back|Reset layout/.test(r.w.document.body.textContent)) bad.push('the admin still has Add back or Reset');
   /* A CLIENT RELOADS: the same layout. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const p2 = payload(); p2.layout = L;
   const c = boot({ payload: p2, before: signedInAs_(CL) }); await wait(300);
-  for (const col of ['games', 'tools']) { c.w.__t.go(col, false, true); await wait(200); }
+  for (const col of ['stuff', 'reel']) { c.w.__t.go(col, false, true); await wait(200); }
   if (layIds_(c.w.__t, 'game').indexOf('wordgames') !== -1 || c.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget is drawn for a client');
   /* A CLIENT SEES FEWER TOOLS (role-gated ones), so compare the order of the ones both see — and the moved one must be after its old follower. */
-  const cl = layIds_(c.w.__t, 'tool'), both = moved.filter(x => cl.indexOf(x) !== -1);
+  const cl = layIds_(c.w.__t, 'reel'), both = moved.filter(x => cl.indexOf(x) !== -1);
   if (cl.filter(x => both.indexOf(x) !== -1).join() !== both.join()) bad.push('the move did not keep for a client: ' + cl.join() + ' not ' + both.join());
   if (cl.indexOf(a) === -1 || cl.indexOf(f) === -1) bad.push(a + ' or ' + f + ' is not seen by a client — the move NOT checked');
   else if (cl.indexOf(a) < cl.indexOf(f)) bad.push('the moved tool is not below ' + f + ' for a client: ' + cl.join());
@@ -30512,18 +30612,20 @@ check('split cards (464): an admin\'s Split draws a settings card and a Business
 check('layout tiles (463): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a 462 value\'s columns and hidden ignored, rubbish ignored', async () => {
   const bad = [];
   const base = boot(); await wait(300);
-  const tools0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
+  const tools0 = layIds_(base.w.__t, 'reel'), find0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
   const p = payload();
-  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
+  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { reel: ['ghost', tools0[2]], nowhere: ['calculator'], tools: [find0[3], find0[0]], games: ['wordgames'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
   const r = boot({ payload: p }); await wait(300);
-  const t = r.w.__t, tools = layIds_(t, 'tool'), cols = t.TABS.map(x => x.id);
+  const t = r.w.__t, tools = layIds_(t, 'reel'), cols = t.TABS.map(x => x.id);
   if (tools[0] !== tools0[2] || tools.slice(1).join() !== tools0.filter(x => x !== tools0[2]).join()) bad.push('stale widgets: ' + tools.join());
+  /* A LAYOUT SAVED WHILE TOOLS AND GAMES WERE COLUMNS (before 790) still loads: their lists are ignored, Find's order is the code's. */
+  if (layIds_(t, 'tool').join() !== find0.join()) bad.push('an old layout\'s Tools list reordered Find: ' + layIds_(t, 'tool').join());
   if (cols.join() !== cols0.join()) bad.push('a stored column order was applied: ' + cols.join());
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   for (const junk of ['{not json', 42, [1, 2], { columns: 'feed', widgets: 7 }]) {
     const q = payload(); q.layout = junk;
     const g = boot({ payload: q }); await wait(250);
-    if (layIds_(g.w.__t, 'tool').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
+    if (layIds_(g.w.__t, 'reel').join() !== tools0.join() || g.w.__t.TABS.map(x => x.id).join() !== cols0.join()) bad.push(JSON.stringify(junk) + ' was not ignored');
     if (g.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + g.errs.join('; '));
   }
   return bad;
@@ -30609,39 +30711,28 @@ check('merge with the card above (480): a profiles card merges with the one abov
   return bad;
 });
 
-check('merge with the card above (480): widgets — Make a flyer has no Merge under the Calculator, nor does the Whiteboard, nor any game; the cheat sheet maker merges with Make a flyer and the timer with both, one frame of three slots each started, one tile row last, the pager one page; a client sees the two parts not admin-only', async () => {
-  const { w, sent } = layBoot_();
+check('merge with the card above (480): widgets — a Find card (790) has no Merge tile, tool or game, and a layout saved with tools merged still loads: each part its own card, started, for an admin and a client', async () => {
+  const { w } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['lay-merge'] || typeof w.widgetPagesOf_ !== 'function') return ['no lay-merge or widgetPagesOf_ — NOT checked'];
-  t.go('tools', false, true); await wait(300);
-  const tools0 = layIds_(t, 'tool'), n0 = t.pageCount('tools');
-  if (tools0.slice(0, 4).join() !== 'calculator,flyers,mat,timer') return ['Tools does not open calculator, flyers, mat, timer: ' + tools0.join() + ' — NOT checked'];
-  const mt = id => layTile_(d, id, 'lay-merge');
-  if (mt('calculator') || mt('flyers')) bad.push('the calculator, which needs its whole page, can be merged');
-  if (mt('whiteboard')) bad.push('the whiteboard has a Merge tile');
-  t.go('games', false, true); await wait(300);
-  if (d.querySelector('#s-games [data-do="lay-merge"]')) bad.push('a game has a Merge tile');
-  t.go('tools', false, true); await wait(300);
-  if (!mt('mat')) return bad.concat(['the cheat sheet maker has no Merge tile']);
-  A['lay-merge'](mt('mat')); await wait(250);
-  t.go('tools', false, true); await wait(300);
-  A['lay-merge'](mt('timer')); await wait(300);
-  t.go('tools', false, true); await wait(400);
-  const L = layLast_(sent);
-  if (JSON.stringify(L && L.merged) !== JSON.stringify([['flyers', 'mat', 'timer']])) bad.push('the widget merges saved ' + JSON.stringify(L && L.merged));
-  const m = d.querySelector('#wgt-timer')?.closest('.card.is-widget');
-  if (!m || !m.classList.contains('is-merged') || m.querySelectorAll('.widget-slot').length !== 3) bad.push('three widgets are not one frame of three slots');
-  if (m && (m.querySelectorAll('.wgt-foot').length !== 1 || m.lastElementChild !== m.querySelector(':scope > .wgt-foot'))) bad.push('the merged widget has not one tile row, last');
-  if (m && !m.querySelector('.wgt-foot [data-do="lay-unmerge"]')) bad.push('the merged widget has no Split');
-  if (t.pageCount('tools') !== n0 - 2 || layPagesOf_(w, 'tools') !== n0 - 2) bad.push('the pager counts ' + t.pageCount('tools') + ' and Tools draws ' + layPagesOf_(w, 'tools') + ', not ' + (n0 - 2));
-  if (d.querySelector('#wgt-timer')?.getAttribute('aria-busy')) bad.push('the timer in the merged card was never started');
-  const p = payload(); p.layout = L;
-  const c = boot({ member: true, payload: p }); await wait(300);
-  c.w.__t.go('tools', false, true); await wait(300);
-  const cm = c.w.document.querySelector('#s-tools .card.is-merged');
-  if (!cm || c.w.document.querySelector('#wgt-flyers') || cm.querySelectorAll('.widget-slot').length !== 2) bad.push('a client does not see the timer and cheat sheet maker merged without Make a flyer');
-  if (c.w.__t.pageCount('tools') !== layPagesOf_(c.w, 'tools')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('tools') + ' for ' + layPagesOf_(c.w, 'tools') + ' pages');
+  if (!A['lay-merge']) return ['no lay-merge — NOT checked'];
+  for (const [g, id] of [['Tools', 'calculator'], ['Tools', 'mat'], ['Tools', 'timer'], ['Games', 'wordgames']]) {
+    t.findGroup(g, id); await wait(300);
+    if (!d.querySelector('#s-stuff #wgt-' + id)) { bad.push('Find › ' + g + ' did not draw ' + id + ' — NOT checked'); continue; }
+    if (d.querySelector('#s-stuff [data-do="lay-merge"]')) bad.push('a Find card (' + id + ') has a Merge tile — Find places its cards, nothing merges them');
+  }
+  /* THE LAYOUT AN ADMIN SAVED WHEN TOOLS WAS A COLUMN: its merge names three tools, and is ignored. */
+  const p = payload(); p.layout = { v: 2, widgets: { tools: ['calculator', 'flyers', 'mat', 'timer'] }, merged: [['flyers', 'mat', 'timer']], deleted: [] };
+  for (const [who, b] of [['an admin', layBoot_({ payload: p })], ['a client', boot({ member: true, payload: p })]]) {
+    await wait(300);
+    if (b.errs && b.errs.length) bad.push(who + ': the old layout threw: ' + b.errs.join('; '));
+    b.w.__t.findGroup('Tools', 'timer'); await wait(400);
+    const bd = b.w.document;
+    if (bd.querySelector('#s-stuff .card.is-merged')) bad.push(who + ': an old merge of tools is drawn merged on Find');
+    const sl = bd.querySelector('#s-stuff #wgt-timer');
+    if (!sl) bad.push(who + ': the timer is not its own Find card under an old merged layout');
+    else { for (let k = 0; k < 40 && sl.getAttribute('aria-busy'); k++) await wait(50); if (sl.getAttribute('aria-busy')) bad.push(who + ': the timer on Find was never started'); }
+  }
   return bad;
 });
 
@@ -30957,15 +31048,13 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   await layPaintAll_(w);
   if (!d.querySelector('#s-apprentice .appr-set')) bad.push('the Apprentice settings card did not come back');
   /* ◀ FROM THE FIRST COLUMN A UNIT STANDS ON (Reels) MAKES ONE ON THE FAR LEFT (710); ▶ back empties it and it goes. */
-  t.go('tools', false, true); await wait(300);
-  const tid = layIds_(t, 'tool')[0];
+  /* THE FIRST REELS WIDGET (790: a tool is a Find card, placed by the funnel): ◀ takes it to Spotlight, then past it. */
+  t.go('reel', false, true); await wait(300);
+  const tid = layIds_(t, 'reel')[0];
   const tl = layTile_(d, tid, 'lay-w-col', '-1');
-  if (!tl || tl.disabled) bad.push('the first tool has no live ◀');
+  if (!tl || tl.disabled) bad.push('the first Reels widget has no live ◀');
   else {
-    A['lay-w-col'](tl); await wait(300);
-    if (layIds_(t, 'reel').indexOf(tid) === -1) bad.push('◀ from Tools did not reach Reels: ' + layIds_(t, 'reel').join());
-    try { w.paint('reel'); } catch (e) {}
-    await wait(150);
+    if (tl.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](tl); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
     /* SPOTLIGHT IS THE FIRST COLUMN A UNIT STANDS ON SINCE 730: one more ◀ takes the tool there first. */
     const sp = layTile_(d, tid, 'lay-w-col', '-1');
     if (sp && sp.getAttribute('aria-label') === 'Move to previous column') { A['lay-w-col'](sp); await wait(300); try { w.paint('spotlight'); } catch (e) {} await wait(150); }
@@ -30995,45 +31084,45 @@ check('layout engine (466, 710): ▶ on the last right-hand column makes a new c
   return bad;
 });
 
-check('layout engine (710): any unit anywhere — a settings card moves into Tools and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
+check('layout engine (710): any unit anywhere — a settings card moves into Reels and a tool into Student settings, each with the same ▲ ▼ ◀ ▶ as its neighbours, up and down past a unit of the other kind; a reload keeps both where they were put and the tool is started there', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   await layPaintAll_(w);
-  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Tools. */
+  /* A SETTINGS CARD INTO TOOLS: ◀ from Student settings until it stands on Reels. */
   const cid = laySeen_(w, 'account').find(x => d.querySelector(`#s-account .card-admin[data-lay-for="${x}"]`) && !/^own:/.test(x));
   if (!cid) return ['Student settings has no card with an admin row — NOT checked'];
   const CARD_ = `[data-lay-for="${cid}"]`;
   for (let k = 0; k < 12; k++) {
     const col = t.TABS.map(x => x.id).find(c => laySeen_(w, c).indexOf(cid) !== -1 && d.querySelector(`#s-${c} .card-admin[data-lay-for="${cid}"]`));
-    if (col === 'tools' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
+    if (col === 'reel' || !col) { if (!col) bad.push('the card ' + cid + ' is on no column, step ' + k); break; }
     const lt = d.querySelector(`#s-${col} .card-admin[data-lay-for="${cid}"] [data-do="lay-c-col"][data-d="-1"]`);
     if (!lt || lt.disabled) { bad.push('stuck on ' + col + ': ' + (lt ? lt.getAttribute('aria-label') + ' off' : 'no ◀')); break; }
     A['lay-c-col'](lt); await wait(300);
     try { const to = (layLast_(sent) || {}).cards || {}; Object.keys(to).forEach(c => { try { w.paint(c); } catch (e) {} }); } catch (e) {}
     await wait(150);
   }
-  try { w.paint('tools'); } catch (e) {}
+  try { w.paint('reel'); } catch (e) {}
   await wait(150);
   const L1 = layLast_(sent) || {};
-  if (((L1.cards || {}).tools || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Tools: ' + JSON.stringify(L1.cards));
-  const onTools = d.querySelector(`#s-tools .card-admin[data-lay-for="${cid}"]`);
-  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Tools with its admin row');
-  if (!d.querySelector('#s-tools ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Tools');
+  if (((L1.cards || {}).reel || []).indexOf(cid) === -1) bad.push('the card ' + cid + ' never reached Reels: ' + JSON.stringify(L1.cards));
+  const onTools = d.querySelector(`#s-reel .card-admin[data-lay-for="${cid}"]`);
+  if (!onTools) bad.push('the card ' + cid + ' is not drawn on Reels with its admin row');
+  if (!d.querySelector('#s-reel ' + CARD_)) bad.push('nothing of ' + cid + ' is drawn on Reels');
   if (d.querySelector('#s-account ' + CARD_)) bad.push('the card ' + cid + ' is still on Student settings too — two homes');
-  /* ▲ PAST A TOOL: the card is last on Tools, and Move up puts it above the last tool. */
-  const tools0 = layIds_(t, 'tool'), lastTool = tools0[tools0.length - 1];
+  /* ▲ PAST A TOOL: the card is last on Reels, and Move up puts it above the last tool. */
+  const tools0 = layIds_(t, 'reel'), lastTool = tools0[tools0.length - 1];
   const up = onTools && onTools.querySelector('[data-do="lay-c-move"][data-d="-1"]');
-  if (!up || up.disabled) bad.push('the card on Tools has no live Move up');
+  if (!up || up.disabled) bad.push('the card on Reels has no live Move up');
   else {
     A['lay-c-move'](up); await wait(300);
-    const ord = ((layLast_(sent) || {}).cards || {}).tools || [];
+    const ord = ((layLast_(sent) || {}).cards || {}).reel || [];
     if (ord.indexOf(cid) === -1 || ord.indexOf(cid) > ord.indexOf(lastTool)) bad.push('Move up did not put the card above ' + lastTool + ': ' + ord.join());
-    const slots = [...d.querySelectorAll('#s-tools .widget-slot, #s-tools .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
+    const slots = [...d.querySelectorAll('#s-reel .widget-slot, #s-reel .card-admin' + CARD_)].map(x => x.matches(CARD_) ? cid : x.id.slice(4));
     if (slots.indexOf(cid) === -1 || slots.indexOf(cid) > slots.indexOf(lastTool)) bad.push('Tools did not redraw the card above ' + lastTool + ': ' + slots.join());
   }
-  /* A TOOL INTO STUDENT SETTINGS: ▶ from Tools until it stands there. */
-  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; }) || tools0[0];
+  /* A TOOL INTO STUDENT SETTINGS: ▶ from Reels until it stands there. */
+  const tid = tools0.find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'reels'; }) || tools0[0];
   for (let k = 0; k < 12; k++) {
     const col = t.TABS.map(x => x.id).find(c => d.querySelector(`#s-${c} #wgt-${tid}`));
     if (col === 'account' || !col) break;
@@ -31041,7 +31130,7 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
     if (!rt || rt.disabled) break;
     A['lay-w-col'](rt); await wait(300);
     await layPaintAll_(w);
-    ['tools', 'shop', 'games'].forEach(c => { try { w.paint(c); } catch (e) {} });
+    ['reel', 'shop'].forEach(c => { try { w.paint(c); } catch (e) {} });
     await wait(150);
   }
   const L2 = layLast_(sent) || {};
@@ -31051,14 +31140,14 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
   else ['Move up', 'Move down', 'Move to previous column', 'Move to next column'].forEach(l => {
     if (!there.querySelector(`.wgt-admin [aria-label="${l}"]`)) bad.push(tid + ' on Student settings has no ' + l);
   });
-  if (d.querySelector(`#s-tools #wgt-${tid}`)) bad.push(tid + ' is still on Tools too');
+  if (d.querySelector(`#s-reel #wgt-${tid}`)) bad.push(tid + ' is still on Reels too');
   /* A RELOAD keeps both, and the tool starts on its new column. */
   const p = payload(); p.layout = layLast_(sent);
   const r = layBoot_({ payload: p }); await wait(300);
-  await layPaintAll_(r.w); try { r.w.paint('tools'); } catch (e) {}
+  await layPaintAll_(r.w); try { r.w.paint('reel'); } catch (e) {}
   await wait(150);
   const rd = r.w.document;
-  if (!rd.querySelector('#s-tools ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Tools');
+  if (!rd.querySelector('#s-reel ' + CARD_)) bad.push('a reload lost the card ' + cid + ' on Reels');
   if (!rd.querySelector(`#s-account #wgt-${tid}`)) bad.push('a reload lost ' + tid + ' on Student settings');
   r.w.__t.go('account', false, true); await wait(200);
   { const host = rd.getElementById('s-account'), pg = rd.querySelector(`#s-account #wgt-${tid}`)?.closest('.page'); const n = pg ? [...host.querySelectorAll(':scope > .page')].indexOf(pg) : -1; if (n > -1) { try { r.w.goPage('account', n, true); } catch (e) {} } }
@@ -31068,10 +31157,10 @@ check('layout engine (710): any unit anywhere — a settings card moves into Too
   /* A CLIENT reloading sees both where they were put, with no admin tiles. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
-  try { c.w.paint('tools'); c.w.paint('account'); } catch (e) {}
+  try { c.w.paint('reel'); c.w.paint('account'); } catch (e) {}
   await wait(150);
   if (!c.w.document.querySelector(`#s-account #wgt-${tid}`)) bad.push('a client does not see ' + tid + ' on Student settings');
-  if (c.w.cardSeen_('tools').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Tools');
+  if (c.w.cardSeen_('reel').indexOf(cid) === -1) bad.push('a client does not see the card ' + cid + ' on Reels');
   if (c.w.document.querySelector('.wgt-admin')) bad.push('a client sees layout tiles');
   [r, c].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join('; ')); });
   return bad;
@@ -31163,7 +31252,7 @@ check('layout (730): a column between two — Move to a new column here, on the 
   return bad;
 });
 
-check('layout (730): Spotlight and Board games move like any unit — the window is one unit with ▲ ▼ ◀ ▶, and Board games ▶ leaves Games for the next column and is drawn there', async () => {
+check('layout (730): Spotlight and a Reels widget move like any unit (790: the games are Find cards) — the window is one unit with ▲ ▼ ◀ ▶, and Videos ▶ leaves Reels for the next column and is drawn there', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -31171,14 +31260,14 @@ check('layout (730): Spotlight and Board games move like any unit — the window
   const row = d.querySelector('#s-spotlight .card-admin[data-lay-for="spot:list"]');
   if (!row) bad.push('Spotlight has no admin row');
   else ['Move to next column', 'Move this column right'].forEach(l => { if (!row.querySelector(`[aria-label="${l}"]`)) bad.push('Spotlight has no ' + l); });
-  t.go('games', false, true); await wait(300);
-  const bt = d.querySelector('#s-games #wgt-boardgames')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
-  if (!bt || bt.disabled) bad.push('Board games has no live ▶');
+  t.go('reel', false, true); await wait(300);
+  const bt = d.querySelector('#s-reel #wgt-videos')?.closest('.card')?.querySelector('.wgt-admin [data-do="lay-w-col"][data-d="1"]');
+  if (!bt || bt.disabled) bad.push('Videos has no live ▶');
   else {
     A['lay-w-col'](bt); await wait(300);
-    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('boardgames') !== -1);
-    if (!to || to === 'games') bad.push('Board games did not leave Games: ' + JSON.stringify(L.widgets));
-    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-boardgames`)) bad.push('Board games is not drawn on ' + to); }
+    const L = layLast_(sent) || {}, to = Object.keys(L.widgets || {}).find(c => (L.widgets[c] || []).indexOf('videos') !== -1);
+    if (!to || to === 'reel') bad.push('Videos did not leave Reels: ' + JSON.stringify(L.widgets));
+    else { try { w.paint(to); } catch (e) {} await wait(150); if (!d.querySelector(`#s-${to} #wgt-videos`)) bad.push('Videos is not drawn on ' + to); }
   }
   return bad;
 });
@@ -31211,24 +31300,24 @@ check('stability (730): Web settings carries the Stability card for an admin —
   return bad;
 });
 
-check('layout (730): pager names for moved units — a tool moved onto Kids settings is named by the pager there, and a card moved onto Tools by its title (Brownie points)', async () => {
+check('layout (730): pager names for moved units — a Reels widget moved onto Kids settings is named by the pager there, and a card moved onto Spotlight by its title (Brownie points)', async () => {
   const { w } = layBoot_();
   await wait(300);
   const t = w.__t, bad = [];
   if (typeof w.pageName_ !== 'function' || !t.PAGER) return ['no pageName_ or PAGER — NOT checked'];
-  const tool = layIds_(t, 'tool').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'calculator' && x !== 'whiteboard'; });
+  const tool = layIds_(t, 'reel').find(x => { const o = w.layoutWidgetOf_(x); return o && !o.admin && !o.tutor && !o.signedIn && x !== 'reels'; });
   const name = (w.layoutWidgetOf_(tool) || {}).name;
   const D = w.layoutDraftOf_(null);
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => x !== tool); });
   D.widgets.account = [tool];
-  D.cards = { tools: ['acct:brownie'] };
+  D.cards = { spotlight: ['acct:brownie'] };
   w.layoutSave_(D);
   await wait(300);
   const names = t.PAGER.account();
   if (!Array.isArray(names) || names.indexOf(name) === -1) bad.push('Kids settings\' pager does not name ' + name + ': ' + JSON.stringify(names).slice(0, 300));
-  const tn = t.PAGER.tools();
-  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Tools\' pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
-  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Tools is unnamed');
+  const tn = t.PAGER.spotlight();
+  if (!Array.isArray(tn) || tn.indexOf('Brownie points') === -1) bad.push('Spotlight\'s pager does not name the moved Brownie points card: ' + JSON.stringify(tn).slice(0, 300));
+  if (Array.isArray(tn) && tn.some(x => x === '')) bad.push('a page on Spotlight is unnamed');
   return bad;
 });
 
@@ -31319,7 +31408,7 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
     const { p, before } = gtWorld_(false);
     const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
     if (m.w.document.querySelector('#s-account .gtasks-card')) bad.push('Google Tasks is still in Student settings (491: one home, the Docket)');
-    m.w.paint('tools'); await wait(200); m.w.paintDocket(); const c = m.w.document.querySelector('#docket-gtasks .gtasks-card');
+    m.w.__t.findGroup('Tools'); await wait(200); m.w.paintDocket(); const c = m.w.document.querySelector('#docket-gtasks .gtasks-card');
     if (!c) bad.push('no Google Tasks block under the Docket');
     else {
       if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
@@ -31328,7 +31417,7 @@ check('Google Tasks (475): Connect asks Google for the tasks scope, one sync mak
     }
   }
   const { T, p, before } = gtWorld_(true);
-  const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.paintDocket(); await wait(200);
+  const m = boot({ payload: p, before }); await wait(300); m.w.__t.findGroup('Tools'); await wait(200); m.w.paintDocket(); await wait(200);
   const d = m.w.document, card = () => d.querySelector('#docket-gtasks .gtasks-card');
   const tap = act => { const el = d.querySelector('#docket-gtasks [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile'); return false; } el.click(); return true; };
   const settle = async ms => { await wait(ms); m.w.paintDocket(); await wait(100); };
@@ -31394,7 +31483,7 @@ check('Spotify (510): no client id says not switched on; Connect builds a PKCE a
   const card = d => d.querySelector('#sp-box .sp-card');
   {
     const { p, before } = spWorld_({});
-    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    const m = boot({ payload: p, before }); await wait(300); m.w.__t.findGroup('Tools'); await wait(200); m.w.initSpotify();
     const c = card(m.w.document);
     if (!c) bad.push('no Spotify widget on Tools');
     else {
@@ -31405,7 +31494,7 @@ check('Spotify (510): no client id says not switched on; Connect builds a PKCE a
   }
   {
     const { p, before } = spWorld_({ cid: true });
-    const m = boot({ payload: p, before }); await wait(300); m.w.paint('tools'); await wait(200); m.w.initSpotify();
+    const m = boot({ payload: p, before }); await wait(300); m.w.__t.findGroup('Tools'); await wait(200); m.w.initSpotify();
     let went = '';
     m.w.spGo_ = u => { went = u; };
     const t = m.w.document.querySelector('#sp-box [data-do="sp-connect"]');
@@ -31425,7 +31514,7 @@ check('Spotify (510): no client id says not switched on; Connect builds a PKCE a
   const pkce = { v: 'verifier-test', state: 'st-1', cid: 'sp-cid-test', back: 'https://example.org/?spotify=cb' };
   const { T, p, before } = spWorld_({ cid: true, pkce });
   const m = boot({ payload: p, before, url: 'https://example.org/?spotify=cb&code=CODE1&state=st-1' }); await wait(400);
-  m.w.paint('tools'); await wait(300); m.w.spPaint_();
+  m.w.__t.findGroup('Tools'); await wait(300); m.w.spPaint_();
   const d = m.w.document;
   if (/spotify=cb|code=/.test(m.w.location.href)) bad.push('the address still carries the code: ' + m.w.location.href);
   const tb = T.token[0] ? new URLSearchParams(T.token[0]) : null;
@@ -31499,7 +31588,7 @@ check('the Rewrite coach (519): an admin lists the facts with the AI off; recall
   const open = async (ai, reply) => {
     const p = payload(); p.aiMarking = ai;
     const m = boot({ payload: p, reply: reply, before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
-    await wait(300); m.w.paint('tools'); await wait(200); m.w.initRewrite_(); await wait(50);
+    await wait(300); m.w.__t.findGroup('Tools', 'rewrite'); await wait(200); m.w.initRewrite_(); await wait(50);   /* its own Find card (790) */
     return m;
   };
   const box = m => m.w.document.querySelector('#rw-box');
@@ -31643,7 +31732,7 @@ check('notes for Claude by Suggest a change (494): an admin has one Suggest tile
   if (!A['rep-box'] || !A['rep-send']) return ['no rep-box / rep-send — NOT checked'];
   if (A['ncl-done']) bad.push('Done is still wired — Claude marks notes done by data/notes-done.json (498)');
   if (A['ncl-open'] || A['ncl-send']) bad.push('the old Note for Claude box is still wired');
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools'); await wait(300);
   const a = layIds_(t, 'tool')[0];
   const row = cnRow_(w, a);
   const tiles = row ? row.querySelectorAll('[data-do="rep-box"]') : [];
@@ -31682,9 +31771,9 @@ check('notes for Claude by Suggest a change (494): an admin has one Suggest tile
   if (boxOf()?.querySelector('.ncl-item, [data-do="ncl-done"]')) bad.push('the box lists notes or a Done tile — the owner: "I don\'t even need to be able to tick or see old tasks"');
   const c = boot({ before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(300);
-  c.w.__t.go('tools', false, true); await wait(200); await layPaintAll_(c.w);
+  c.w.__t.findGroup('Tools'); await wait(200); await layPaintAll_(c.w);
   if (c.w.document.querySelector('[data-do="ncl-open"]')) bad.push('a client has a Note for Claude tile');
-  if (!c.w.document.querySelector('#s-tools [data-do="rep-box"]')) bad.push('a client has no Suggest a change tile on Tools');
+  if (!c.w.document.querySelector('#s-stuff [data-do="rep-box"]')) bad.push('a client has no Suggest a change tile on Tools');
   return bad;
 });
 check('notes for Claude (484), the real backend: claudeNoteAdd keeps a row with the item id and title and rewrites the Drive file "Notes for Claude"; a client is refused; doGet sends open notes to an admin only; Done takes it out of both', async () => {
@@ -31759,28 +31848,29 @@ check('front door (489): an admin\'s door tile on a widget sets layout.front for
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-front']) return ['no lay-front handler — NOT checked'];
-  t.go('tools', false, true); await wait(300);
-  const ids = layIds_(t, 'tool'), id = ids[2];
+  /* A REELS WIDGET (790: a Find card's place is the funnel's, so it has no door). */
+  t.go('reel', false, true); await wait(300);
+  const ids = layIds_(t, 'reel'), id = ids[1];
   const door = layTile_(d, id, 'lay-front'), home = layTile_(d, id, 'lay-start');
-  if (!door) return ['the third tool has no Front door tile'];
+  if (!door) return ['the second Reels widget has no Front door tile'];
   if (!home) bad.push('a widget has no Start here tile');
   if (home && door.innerHTML === home.innerHTML) bad.push('Front door and Start here look the same');
   A['lay-front'](door); await wait(200);
   const L = layLast_(sent);
-  if (!L || !L.front || L.front.col !== 'tools' || L.front.id !== id) return bad.concat(['the door saved ' + JSON.stringify(L && L.front)]);
+  if (!L || !L.front || L.front.col !== 'reel' || L.front.id !== id) return bad.concat(['the door saved ' + JSON.stringify(L && L.front)]);
   const { backend } = require('./check-gas-load.js');
   const kept = backend().ev('layoutClean_(' + JSON.stringify(L) + ')');
   if (!kept || !kept.front || kept.front.id !== id) bad.push('layoutClean_ dropped front: ' + JSON.stringify(kept && kept.front));
-  /* A MEMBER, the layout in the payload: the app opens on Tools, at that widget. */
+  /* A MEMBER, the layout in the payload: the app opens on Reels, at that widget. */
   const p = payload(); p.layout = L;
   const m = boot({ payload: p, before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(600);
-  if (m.w.__t.AT() !== 'tools') bad.push('a member opened the app on ' + m.w.__t.AT() + ', not the front door\'s Tools');
+  if (m.w.__t.AT() !== 'reel') bad.push('a member opened the app on ' + m.w.__t.AT() + ', not the front door\'s Reels');
   else {
-    const want = m.w.__t.widgetsOf('tool').map(x => String(x.id)).indexOf(id);
-    if ((m.w.__t.PAGE() || {}).tools !== want) bad.push(`Tools opened on page ${(m.w.__t.PAGE() || {}).tools}, not the door's ${want}`);
+    const want = m.w.__t.widgetsOf('reel').map(x => String(x.id)).indexOf(id);
+    if ((m.w.__t.PAGE() || {}).reel !== want) bad.push(`Reels opened on page ${(m.w.__t.PAGE() || {}).reel}, not the door's ${want}`);
   }
-  t.go('tools', false, true); await wait(200);
+  t.go('reel', false, true); await wait(200);
   A['lay-front'](layTile_(d, id, 'lay-front')); await wait(200);
   if ((layLast_(sent) || {}).front) bad.push('pressed again, the door did not clear');
   return bad;
@@ -31790,12 +31880,12 @@ check('edit words in place (497): an admin\'s Edit words makes a widget\'s title
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['words-edit'] || typeof w.wordsIn_ !== 'function') return ['no words-edit handler or wordsIn_ — NOT checked'];
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools'); await wait(300);
   const id = layIds_(t, 'tool').find(x => d.querySelector(`#wgt-${x} h3[data-wk]`));
   if (!id) return ['no tool has a title marked for words — NOT checked'];
   const tile = layTile_(d, id, 'words-edit');
   if (!tile) return ['the tool has no Edit words tile in its admin group'];
-  A['words-edit'](tile); await wait(50);
+  A['words-edit'](tile); await wait(300);   /* a Find card is filled a moment after its paint (790) */
   const h = d.querySelector(`#wgt-${id} h3[data-wk]`), k = h && h.getAttribute('data-wk');
   if (!h || !/^(true|plaintext-only)$/.test(h.getAttribute('contenteditable') || '')) return bad.concat(['the title did not become editable in place']);
   const said = '<img src=x onerror=alert(1)> New title';
@@ -31810,7 +31900,7 @@ check('edit words in place (497): an admin\'s Edit words makes a widget\'s title
   const p = payload(); p.words = { [k]: said };
   const m = boot({ payload: p, before: signedInAs_({ name: 'Cal Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'calclient' }) });
   await wait(400);
-  m.w.__t.go('tools', false, true); await wait(300);
+  m.w.__t.findGroup('Tools'); await wait(300);
   const mh = m.w.document.querySelector(`#wgt-${id} h3[data-wk]`);
   if (!mh || mh.textContent !== said) bad.push('a client saw the title as ' + (mh && mh.textContent));
   if (m.w.document.querySelector(`#wgt-${id} img[onerror]`)) bad.push('typed markup became markup');
@@ -31830,7 +31920,7 @@ check('who sees this (497): an admin narrows a widget to Tutors in place; a stud
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['seen-open'] || !A['seen-set']) return ['no seen-open or seen-set handler — NOT checked'];
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools'); await wait(300);
   const ids = layIds_(t, 'tool'), id = ids.find(x => x !== 'flyers' && !w.seenGate_(x));
   const tile = layTile_(d, id, 'seen-open');
   if (!tile) return ['the tool has no Who sees this tile'];
@@ -31851,7 +31941,7 @@ check('who sees this (497): an admin narrows a widget to Tutors in place; a stud
   const sIds = s.w.__t.widgetsOf('tool').map(x => String(x.id)), tIds = tu.w.__t.widgetsOf('tool').map(x => String(x.id));
   if (sIds.indexOf(id) !== -1) bad.push('a student still sees ' + id);
   if (tIds.indexOf(id) === -1) bad.push('a tutor does not see ' + id);
-  s.w.__t.go('tools', false, true); await wait(300);
+  s.w.__t.findGroup('Tools'); await wait(300);
   if (s.w.document.querySelector(`#wgt-${id}`)) bad.push('the student\'s Tools column still draws ' + id);
   /* AN ADMIN-ONLY WIDGET: Students, Parents and Tutors are not offered; Everyone and Admin only are. */
   if (ids.indexOf('flyers') !== -1) {
@@ -31866,7 +31956,7 @@ check('suggest a change (489, 494): one tile with that name on a widget, the boo
   const { w, sent } = layBoot_({ reply: b => (b.action === 'suggest' ? { success: true } : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  t.go('tools', false, true); await wait(300);
+  t.findGroup('Tools'); await wait(300);
   const id = layIds_(t, 'tool')[0];
   const card = d.querySelector(`#wgt-${id}`)?.closest('.card');
   const tile = card && card.querySelector('[data-do="rep-box"]');
@@ -32433,7 +32523,7 @@ if (FLOW_PART_) {
     catch (e) {
       /* LIB_PRIVATE=absent (780): a journey that reads the library's words is skipped and counted, never passed. */
       if (LIB_FULL.isAbsent(e)) { skipped.push(c.name); console.log('  skip  ' + c.name); continue; }
-      bad = ['the check itself threw: ' + e.message];
+      bad = ['the check itself threw: ' + e.message + (process.env.FLOW_STACK ? ' ' + e.stack : '')];
     }
     if (bad && bad.length) {
       failed++;

@@ -220,8 +220,9 @@ const KINDS = {
 /* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */
 const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 
+/* A WIDGET'S FIND CARD (790) IS THE CARD ITS COLUMN DREW — slot, star, padlock, Suggest — started and stopped by arcade.js as a column's are (`finderWidgets_`). */
 function widgetCard_(x) {
-  /* NO LONGER A TAP TARGET. § */
+  if (x.widget && typeof widgetOnColumn_ === 'function') return widgetOnColumn_(x.widget, true);   /* `true`: with the admin's group, which a Find card keeps short (`layoutTiles_`) */
   return `<div class="card">
     <h3>${esc(x.name)}</h3>
   </div>`;
@@ -9235,7 +9236,11 @@ function stuffItemsRaw_() {
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
     })),
     /* The widgets, findable like everything else. § */
-    /* ---------- THE WIDGETS ARE NOT IN THE FUNNEL, AND THIS IS THE SECOND DECISION ON IT § */
+    /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): each one data/settings/widgets-in-find.json names is a card, its kind's group (Tools, Games) its first answer. */
+    ...(typeof allWidgets === 'function' && typeof widgetInFind_ === 'function' ? findWidgetList_() : []).map(w => ({
+      kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
+      groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
+    })),
     /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
     ...(canTrack() ? friendHandles().map(h => {
       const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
@@ -10053,11 +10058,6 @@ function stuffBackTo_(id, keep) {
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST § */
 
 
-/* ARE WE LOOKING AT WIDGETS AND NOTHING ELSE? § */
-const showingWidgets = () => {
-  const items = stuffFiltered();
-  return items.length > 0 && items.every(x => x.kind === 'tool' || x.kind === 'game');
-};
 
 /* ONE THING TO A PAGE, ALWAYS. § */
 const stuffPerPage = () => 1;
@@ -10601,12 +10601,6 @@ function stuffPageHtml(n) {
   /* Cards, in order, and nothing between them. § */
   /* A WHOLE SCREEN EACH. The widget's own markup rather than a card standing in for it — the
      card was only ever a door, and there is nothing behind that door which could not be here. */
-  if (showingWidgets()) {
-    const wgt = items[n] && items[n].row;
-    /* A SOLID WIDGET SAYS SO ON THE PAGE, so the stylesheet can turn the glass off underneath it
-       without knowing which widget it is. */
-    return wgt ? `<div class="widget-full${wgt.solid ? ' solid' : ''}">${wgt.html}</div>` : '';
-  }
 
   /* ONE PAGE IS ONE ENTRY OF `stuffPages_`, which is the results with each practical expanded into its four parts. § */
   const pg = stuffPages_()[n];
@@ -11398,13 +11392,14 @@ function stuffFillOne_(i, ctx) {
   /* WHICH CARD THIS IS, AND FOR WHICH QUESTION — so a redraw over a changed list can find it again
      (`stuffHeld_`). An expando, as `pane.LAST_H` is: nothing reads it out of the markup. */
   el.FIND_AT = { ask: stuffAsk_(), id: stuffPageId_(stuffPages_()[i - first]) };
+  if (pane.querySelector('.widget-slot')) {
+    /* A WIDGET THAT WAS RUNNING BEFORE THE PAINT gets its own slot back, its game and clock as they were (`WIDGET_HELD`, arcade.js). */
+    if ((WIDGET_HELD[FINDER.id] || []).length) WIDGET_HELD[FINDER.id] = widgetsBack_(FINDER.id, WIDGET_HELD[FINDER.id]);
+    finderWake_(FINDER.id);
+  }
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
-  /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. § */
-  const items = c.items || stuffFiltered();
-  const w = showingWidgets() && items[i - first] && items[i - first].row;
-  if (w && !w.stop) drawWidget_(w);
   return true;
 }
 
@@ -11650,22 +11645,7 @@ function fillStuffPages(all) {
   /* AND THE WORDS OF THE CARD IN FRONT AND THE NEXT FEW, from the Ledger (397) — asked here, where a turn lands. */
   libAhead_();
 
-  /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs. § */
-  if (!FINDER.widgets) { settle_(changed); return; }
-  if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
-  const wgt = items[at - first] && items[at - first].row;
-  if (!wgt) { stopWidget_(); settle_(changed); return; }
-  if (!wgt.stop) {
-    /* Already drawn with its page. Landing on a still widget still has to stop whatever was running
-       on the page you came from, or Flabby Pird goes on drawing behind the calendar. */
-    stopWidget_();
-    settle_(changed);
-    return;
-  }
-  startWidget_(wgt);
-  /* A widget that has just started may have sized itself — a canvas takes its box — so the telling
-     comes after that too, not before. */
-  settle_(true);
+  settle_(changed);
 }
 
 /* The grid measures the panes again and puts everything where it now belongs. § */
@@ -11677,32 +11657,6 @@ function settle_(changed) {
   if (!holdColumn_(FINDER.id)) placeCells('y', true, 0, FINDER.id);
 }
 
-/* BRING ONE WIDGET TO LIFE, and say so in its own space if it does not. § */
-/* ---------- A WIDGET THAT IS NOT BEING LOOKED AT MUST NOT BE RUNNING § */
-let WIDGET_ON = null;
-
-function stopWidget_() {
-  if (!WIDGET_ON) return;
-  const was = WIDGET_ON;
-  WIDGET_ON = null;
-  try { if (was.stop) was.stop(); } catch (e) { console.warn('[widget stop]', was.id, e); }
-}
-
-/* ---------- DRAWING ONE IS NOT THE SAME AS RUNNING ONE § */
-function drawWidget_(wgt) {
-  let err = null;
-  try { wgt.start(); } catch (e) { err = e; console.warn('[widget]', wgt.id, e); }
-
-  const into = $(wgt.into);
-  if (!into) { console.warn('[widget]', wgt.id, 'has nowhere to draw: #' + wgt.into); return; }
-  /* A canvas and a textarea draw into themselves, so their emptiness says nothing about them. */
-  if (wgt.into === 'flappy-canvas' || wgt.into === 'notepad') return;
-  if (String(into.innerHTML || '').trim()) return;
-  into.innerHTML = `<p class="note" style="padding:1rem;text-align:center">
-    ${esc(wgt.what)} did not start.<br>
-    <span class="faint">${esc(err ? why_(err) : 'It drew nothing.')}</span></p>`;
-}
-
 /* ---------- EVERY WIDGET, FIXED AND MADE § */
 function allWidgets() {
   /* THE STATIC ONES, THEN THE TWO SETS THAT ARE MADE FROM DATA — a widget per conversation and a widget per session you are in. § */
@@ -11711,15 +11665,19 @@ function allWidgets() {
     .concat(typeof liveWidgets_ === 'function' ? liveWidgets_() : []);
 }
 
-function startWidget_(wgt) {
-  /* NOT ONE THIS PERSON MAY NOT OPEN, whoever handed it here — see `widgetFor_` in arcade.js. */
-  if (typeof widgetFor_ === 'function' && !widgetFor_(wgt)) return;
-  /* The same one again is already running — restarting would throw away a game in progress and a
-     clock somebody is watching. */
-  if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
-  stopWidget_();
-  WIDGET_ON = wgt;
-  drawWidget_(wgt);
+/* A WIDGET CARD WAS FILLED ON A FINDER (790): once the fill is done its widgets are woken as a column's are (`widgetsWake_`) — what runs is kept, what is near starts, the rest waits. */
+/* THE FINDER'S ID IS CAPTURED, because the timer runs outside every binding (`inFinder_`). */
+const FINDER_WAKE = {};
+function finderWake_(id) {
+  if (FINDER_WAKE[id] || typeof widgetsWake_ !== 'function') return;
+  FINDER_WAKE[id] = setTimeout(() => {
+    FINDER_WAKE[id] = 0;
+    if (AT !== id) return;
+    const ws = finderWidgets_(id);
+    if (!ws.length) return;
+    widgetsWake_(ws, id, true);
+    placeCells('y', true, 0, id);
+  }, 0);
 }
 
 /* THE QUESTION, ON THE PAGE. § */

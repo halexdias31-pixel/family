@@ -2349,9 +2349,9 @@ function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
-  dm: 'messages, one conversation per page; Daive is the first', tools: 'the widgets: whiteboard, calculator, planners and more',
-  stuff: 'pick answers to narrow down questions, papers and lessons', res: 'a second finder that keeps its own place',
-  saved: 'what you starred', booking: 'book a session', shop: 'the shop', games: 'games',
+  dm: 'messages, one conversation per page; Daive is the first',
+  stuff: 'pick answers to narrow down questions, papers, lessons, tools and games', res: 'a second finder that keeps its own place',
+  saved: 'what you starred', booking: 'book a session', shop: 'the shop',
   family: 'a parent account\'s settings', staff: 'a tutor account\'s settings', account: 'a student account\'s settings: sign in, PIN, progress',
   tutors: 'a card per tutor', students: 'a card per student', parents: 'a card per parent',
 };
@@ -2359,7 +2359,7 @@ const ASST_NAV = {
 function asstFacts_() {
   const out = ['swipe left and right to move between columns; the bar at the bottom jumps to one'];
   try { TABS.forEach(t => out.push('column "' + t.title + '": ' + (ASST_NAV[t.id] || t.title))); } catch (e) { /* no columns yet: the map is shorter, not broken */ }
-  try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools widgets: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
+  try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools in Find: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
   out.push('to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }

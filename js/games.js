@@ -4701,7 +4701,7 @@ on('kt-lesson', el => {
 const VID_KINDS = ['film', 'clip'];
 let VIDEOS_LIST = null;          // null: not asked yet. []: asked, and there is nothing in it
 let VIDEOS_ASKED = null;         // the one request in flight, so two copies of the card ask once
-/* `in` IS WHICH COPY OF THE CARD PLAYS IT — the id of the column the tapped copy is on (`s-games`, `s-saved`). § */
+/* `in` IS WHICH COPY OF THE CARD PLAYS IT — the id of the column the tapped copy is on (`s-stuff`, `s-saved`). § */
 const VID = { q: '', at: '', in: '' };   // what is typed, the key of the row in the player, and whose player
 /* AT MOST FOUR RESULTS — *"max 4 results show."* (10 Oct). */
 const VID_MAX = 4;

@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = '39b6b9c794c7';
+  var BUILD_STAMP = '17b674a0bb2a';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -201,8 +201,6 @@
   <section class="screen" id="s-stuff"></section>
   <section class="screen hidden" id="s-res"></section>
   <section class="screen hidden" id="s-account"></section>
-  <section class="screen hidden" id="s-tools"></section>
-  <section class="screen hidden" id="s-games"></section>
   <section class="screen hidden" id="s-saved"></section>
   <section class="screen hidden" id="s-tutors"></section>
   <section class="screen hidden" id="s-students"></section>
