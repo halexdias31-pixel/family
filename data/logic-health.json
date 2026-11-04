@@ -1,7 +1,7 @@
 {
- "score": 79.1,
- "questions": 201,
- "healthy": 159,
+ "score": 80.9,
+ "questions": 188,
+ "healthy": 152,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 31
+   "count": 28
   },
   {
    "id": "siblings",
@@ -43,7 +43,7 @@
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
-   "count": 8
+   "count": 5
   }
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
@@ -132,22 +132,6 @@
    ]
   },
   {
-   "where": "Find › Practice › Questions › Combined Science › Foundation",
-   "asks": "Year",
-   "cards": 1226,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Combined Science › Higher",
-   "asks": "Year",
-   "cards": 1119,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
-   ]
-  },
-  {
    "where": "Find › Practice › Answers › Religious Studies",
    "asks": "Level",
    "cards": 1004,
@@ -177,14 +161,6 @@
    "cards": 783,
    "why": [
     "a finer question asked before its coarser one: Work before Author"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Religious Studies › GCSE",
-   "asks": "Year",
-   "cards": 420,
-   "why": [
-    "a finer question asked before its coarser one: Year before Month"
    ]
   },
   {
@@ -247,6 +223,30 @@
    "where": "Find › Library › Physical Education › Boxers › 1970s",
    "asks": "Fighter",
    "cards": 24,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1960s",
+   "asks": "Fighter",
+   "cards": 20,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1950s",
+   "asks": "Fighter",
+   "cards": 16,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 2020s",
+   "asks": "Fighter",
+   "cards": 15,
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]

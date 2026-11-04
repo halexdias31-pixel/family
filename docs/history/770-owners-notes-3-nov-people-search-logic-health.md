@@ -60,5 +60,5 @@ echoing the one above, two answers keeping the same cards. The card shows the %,
 The first run timed out at 1200 s: at the root the funnel has ~279 000 items and measuring 81 facets over them took 33 s
 per place, the subtype rule walked every item twice per facet pair, and twins filtered the list once per answer. Now the
 other facets are judged on an even sample of 3000 (`SAMPLE`; the asked facet stays exact) and twins hash in one pass. The
-root place is ~5 s and the walk 300 places, about 260 s (201 questions, 79.1% at the time); `--check` is `slow`, so not
+root place is ~5 s and the walk 300 places, 160–270 s (188 questions, 80.9% at the time); `--check` is `slow`, so not
 in `--fast`. `LH_NODES` and `LH_DEBUG=1` (the slowest places) for a quicker or a probing run.
