@@ -8,7 +8,7 @@ The owner (4 Nov) asked for four more Find-logic signals in `tools/health.js`, e
   asks the first in the tab's sort_order that `facetWhy_` passes, so the order itself is listed, plus every walked node
   (tools/logic-health.js now records each askable facet's entropy in bits) where another askable facet splits better by > 0.1 bit.
 - `tag-asked` (1 each, cap 10): a facet carried as a tag by a front-page card that no walked node ever asks.
-- `one-off` (0.02 each, cap 10): a literal card-kind, field, facet/key or named-finder test in js/find.js or js/shell.js.
+- `find-one-off` (0.02 each, cap 10): a literal card-kind, field, facet/key or named-finder test in js/find.js or js/shell.js.
   Keyboard keys and mark-protocol/row-part kinds are left out to keep false positives low.
 
 The walk still runs only in tools/logic-health.js (slow); health.js reads its `menuRule` and `tagAsked` lists.

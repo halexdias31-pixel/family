@@ -63,7 +63,16 @@ function siteHealthCard_() {
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <p class="sub">Code ${esc(String(p.code))}% · Find logic ${esc(String(p.logic))}%${s.logicStale ? ' (stale)' : ''} · UI ${esc(String(p.ui))}%</p>
     <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="faint">(${esc(said[t.part] || t.part)}, −${esc(String(t.cost))})</span></li>`).join('')}</ol>
+    ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top five' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
+}
+/* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
+const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',
+  dup: 'A copied block', nest: 'Code nested too deep', catch: 'An error swallowed silently' };
+function healthWork_(w) {
+  const top = (Array.isArray(w) ? w : []).slice(0, 5);
+  if (!top.length) return '';
+  return `<p class="sub">Fix first</p><ol class="stab-top">${top.map(f => `<li><b>${esc(String(f.file))}:${esc(String(f.line))}</b> · ${esc(HEALTH_SAY[f.kind] || String(f.kind))}<br><span class="faint">${esc(String(f.text || ''))}</span></li>`).join('')}</ol>`;
 }
 on('health-all', () => { HEALTH.all = !HEALTH.all; try { markStale_(['stuff']); paint('stuff'); } catch (e) { /* the finder redraws on its next paint anyway */ } });
 
