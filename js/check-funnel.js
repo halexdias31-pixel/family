@@ -2,7 +2,7 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
 require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
-/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
+/* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules, =email the email's tags; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -99,6 +99,7 @@ boot(f => {
   const facets = f.facetList();
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
   if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
+  if (process.env.FUNNEL_ONLY === 'email') { emailTags_(f); return done('the Sunday email\'s tags against the card\'s alone (380)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1146,6 +1147,15 @@ boot(f => {
     });
   } else bad.push('the second finder (`inFinder_`, `finderOf_`, `RES_ST`) is not exported, so Find 2 was NOT checked — not a pass');
 
+  emailTags_(f);
+
+  done();
+});
+
+  /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
+  /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
+/* THE EMAIL'S TAGS AGAINST THE CARD'S; FUNNEL_ONLY=email runs it alone (830). */
+function emailTags_(f) {
   /* ---------- THE SUNDAY EMAIL'S TAGS ARE THE CARD'S (docs/history/380): backend/digest.gs ports `tagRow_`, asked of every question § */
   try {
     const b = require('./check-gas-load.js').backend();
@@ -1170,11 +1180,7 @@ boot(f => {
     bad.push('the email\'s tags could not be compared with the card\'s: ' + e.message + ' — not a pass');
   }
 
-  done();
-});
-
-  /* ---------- 7. RANDOM FUNNELS, WALKED AS A PERSON WOULD (522): the invariants every step must keep ---------- */
-  /* Seeded, so a red run is the same run again: FUNNEL_SEED and FUNNEL_RUNS change it. Each step answers, says Doesn't matter, goes back or types a word. */
+}
 let WALKED = 'not walked';
 /* A TYPE THAT IS A KIND OF ANOTHER ANSWERS BOTH, AND A TIMELINE IS A Timeline (545). FUNNEL_ONLY=under runs it alone. */
 function underTypes_(f, items) {

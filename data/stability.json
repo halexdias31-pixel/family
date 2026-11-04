@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 63.8,
+ "score": 65.6,
  "verdict": "Shaky: exceptions and special cases are piling up.",
  "signals": [
   {
@@ -35,23 +35,12 @@
    }
   },
   {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 21,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 6.3,
-   "where": {
-    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), blockHours_ (book.js), nextBookStep (book.js), collPages_ (collections.js), whyThisQuestion (find.js), insertsFor_ (find.js), initWhiteboard (find.js), seriesCmp_ (find.js), scrAt_ (games.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), layoutColOf_ (layout.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), typedFirstWords_ (people.gs)"
-   }
-  },
-  {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 62,
+   "count": 59,
    "weight": 0.1,
    "cap": 20,
-   "off": 6.2,
+   "off": 5.9,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
@@ -60,13 +49,24 @@
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
     "js/check-loading.js ACCEPTED_KEYFRAMES": 1,
-    "js/check-payload.js ACCEPTED": 4,
+    "js/check-payload.js ACCEPTED": 1,
     "js/check-settings.js ACCEPTED_GONE": 3,
     "js/check-strings.js ROLE_OK": 1,
     "js/check-surfaces.js POPUP_OK": 2,
     "check/diagrams.js ACCEPTED": 4,
     "check/motion.js ACCEPTED": 18,
     "check/types.js ACCEPTED": 2
+   }
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 16,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 4.8,
+   "where": {
+    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), whyThisQuestion (find.js), insertsFor_ (find.js), initWhiteboard (find.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), typedFirstWords_ (people.gs)"
    }
   },
   {
@@ -93,7 +93,7 @@
    "cap": 10,
    "off": 2,
    "where": {
-    "js/find.js": 12164,
+    "js/find.js": 12183,
     "js/me.js": 4885,
     "js/shell.js": 3868,
     "backend/dopost.gs": 4609
@@ -141,22 +141,22 @@
   }
  ],
  "secondary": {
-  "score": 82,
+  "score": 82.1,
   "verdict": "Steady, with duct tape worth paying down.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 140,
+    "count": 139,
     "weight": 0.1,
     "cap": 20,
-    "off": 14,
+    "off": 13.9,
     "where": {
      "js/check-reels.js VIDEO_OK": 6,
      "js/check-widgets.js ACCEPTED_ENGINE": 13,
      "js/check-widgets.js CAT_WORD_OK": 9,
      "js/check-widgets.js NEAR_OK": 22,
-     "js/check-widgets.js ACCEPTED_IMPURE": 6,
+     "js/check-widgets.js ACCEPTED_IMPURE": 5,
      "check/cascade.js ACCEPTED": 28,
      "check/press-twice.js ACCEPTED": 2,
      "check/press.js ACCEPTED_QUIET": 21,
@@ -204,7 +204,7 @@
     "cap": 10,
     "off": 0.5,
     "where": {
-     "js/games.js": 6449
+     "js/games.js": 6446
     }
    },
    {

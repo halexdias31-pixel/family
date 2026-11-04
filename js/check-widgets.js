@@ -677,7 +677,6 @@ const ACCEPTED_IMPURE = {
   reels: 'reads the facts tab through `factsNow_`, which the fixture leaves empty, so both payloads deal the built-in facts',
   videos: 'a typed search lists the owner\'s list and an admin\'s films (`DATA.films`); the bar drawn ahead with nothing typed reads neither',
   favlinks: 'reads the viewer\'s own links (`DATA.favLinks`, 509), which the fixture leaves out, so every scenario draws the empty list',
-  notepad: 'its text is the account\'s own notes (`USER.notepad`), which no fixture person has, so every scenario draws it empty; first drawn here once Find filled every card (790)',
   console: 'first drawn here once Find filled every card (790); left unmarked until somebody reads what its games list depends on, since a wrong pure carries a stale drawing',
 };
 async function drawAheadRuntime_() {
