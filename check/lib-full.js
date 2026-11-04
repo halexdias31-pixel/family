@@ -5,6 +5,50 @@ const fs = require('fs'), path = require('path'), vm = require('vm'), cp = requi
 const ROOT = path.resolve(__dirname, '..');
 const PRIVATE_DIR = path.join(ROOT, 'data-private');
 
+/* LIB_PRIVATE=absent (CI, 780): no words here and none seeded from history; every read of them throws LIB_ABSENT, counted. */
+const ABSENT = String(process.env.LIB_PRIVATE || '').toLowerCase() === 'absent';
+const SKIPS = [], SERVED = new Set();
+let skipDeclared = false;
+function skipLog(lines) {
+  const f = process.env.LIB_SKIP_LOG;
+  if (f) try { fs.appendFileSync(f, lines.map(l => l + '\n').join('')); } catch (e) { /* the log is a report, not the check */ }
+}
+const me = () => path.relative(ROOT, process.argv[1] || '?').split(path.sep).join('/');
+function absentError(what) {
+  const e = new Error('LIB_PRIVATE=absent: ' + what + ' needs the library\'s private words, and there are none here');
+  e.code = 'LIB_ABSENT';
+  SKIPS.push(what);
+  return e;
+}
+/* A READ THAT THREW AND WAS NOT DECLARED A SKIP IS STILL SAID, so a check that swallowed it cannot pass in silence. */
+if (ABSENT) process.on('exit', code => {
+  if (SERVED.size && !skipDeclared) {
+    console.log('served ' + [...SERVED].join(', ') + ' without words in ' + me() + ': the app saw metadata only (LIB_PRIVATE=absent)');
+    skipLog([me() + '\tran on metadata only: ' + [...SERVED].join(', ') + ' served without words']);
+  }
+  if (skipDeclared || !SKIPS.length) return;
+  const n = new Set(SKIPS).size;
+  console.log('skipped ' + n + ' library file read(s) in ' + me() + ': no private words (LIB_PRIVATE=absent)');
+  skipLog([me() + '\t' + n + ' library file read(s) not checked' + (code ? ' (and the check failed)' : '')]);
+});
+/* THE WHOLE CHECK NEEDS THE WORDS: say so, count it, exit 0. Locally (words here) it returns and the check runs. */
+function needWords(what) {
+  if (!ABSENT) return;
+  skipDeclared = true;
+  console.log('skipped 1 library check (' + me() + (what ? ': ' + what : '') + '): no private words (LIB_PRIVATE=absent)');
+  skipLog([me() + '\twhole check' + (what ? ': ' + what : '')]);
+  process.exit(0);
+}
+/* SOME PARTS NEED THEM (a journey, a section): counted under one heading. */
+function skipParts(names) {
+  if (!names.length) return;
+  skipDeclared = true;
+  console.log('skipped ' + names.length + ' library check(s) in ' + me() + ': no private words (LIB_PRIVATE=absent)');
+  names.forEach(n => console.log('  skipped  ' + n));
+  skipLog(names.map(n => me() + '\t' + n));
+}
+const isAbsent = e => !!(e && (e.code === 'LIB_ABSENT' || /^LIB_PRIVATE=absent:/.test(String(e.message || ''))));
+
 /* LIB_FILES AND THE PINNED COMMIT, read out of backend/constants.gs — one definition, the backend's. */
 let DEFS = null;
 function defs() {
@@ -91,6 +135,7 @@ const pending = r => /^true$/i.test(String((r && r.lib_pending) || '').trim());
 const MEMO = {};
 function stamp(p) { try { const s = fs.statSync(p); return s.mtimeMs + ':' + s.size; } catch (e) { return '-'; } }
 function text(name) {
+  if (ABSENT && defs().files[name]) throw absentError(name);
   const def = defs().files[name];
   const file = path.join(ROOT, def.file);
   const key = stamp(file) + '|' + stamp(privatePath(name));
@@ -137,6 +182,8 @@ const waits = (name, r) => pending(r) && behind(name).has(idOf(defs().files[name
 function serve(p) {
   const rel = path.relative(ROOT, path.resolve(String(p))).split(path.sep).join('/');
   const name = NAMES().find(n => defs().files[n].file === rel);
+  /* ABSENT: the repository's metadata-only file, as GitHub Pages serves it; counted, since the words are not under test. */
+  if (name && ABSENT) { SERVED.add(name); return null; }
   return name ? text(name) : null;
 }
 
@@ -151,5 +198,5 @@ function pendingTwins(rows, nameOf) {
   const mine = new Set(rows.filter(r => pending(r) && typeof r.diagram === 'string' && /^\s*<svg\b/i.test(r.diagram)).map(r => nameOf(r.diagram)));
   return { blind, listed: new Set(Array.isArray(listed) ? listed : []), mine, file: TWIN_LIST };
 }
-module.exports = { behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
+module.exports = { ABSENT, needWords, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };

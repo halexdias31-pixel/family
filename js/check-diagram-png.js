@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-diagram-png.js — EVERY DRAWING IN THE LIBRARY HAS ITS PNG TWIN, AND EVERY TWIN A DRAWING § */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path'), crypto = require('crypto');

@@ -15,6 +15,12 @@ const favList_ = () => (typeof DATA === 'object' && DATA && Array.isArray(DATA.f
   .filter(x => x && favUrlOk_(x.url)).slice(0, FAV_MAX_);
 let FAV_SAID_ = '';
 let FAV_BUSY_ = false;
+let FAV_EDIT_ = false;
+/* THE SITE'S OWN ICON, from its own origin; an address by number or a bare name has none worth asking for. */
+const favIco_ = u => { try { return new URL(u).origin + '/favicon.ico'; } catch (e) { return ''; } };
+const favIcoOk_ = h => /\.[a-z]{2,}$/i.test(String(h).replace(/:\d+$/, ''));
+/* AN ICON THAT IS NOT THERE goes, and the letter under it shows. */
+document.addEventListener('error', e => { const t = e.target; if (t && t.classList && t.classList.contains('fav-img')) t.remove(); }, true);
 
 function favDraw_(into) {
   if (!into) return;
@@ -24,16 +30,24 @@ function favDraw_(into) {
   const keepT = (into.querySelector('[data-fav="title"]') || {}).value || '';
   const keepU = (into.querySelector('[data-fav="url"]') || {}).value || '';
   const list = favList_();
-  const rows = list.map((l, i) => { const httpUrl = favUrlOk_(l.url); return `<div class="fav-row">
-      <a class="fav-a" href="${esc(httpUrl)}" target="_blank" rel="noopener noreferrer">${esc(l.title || favHost_(l.url))}<span class="fav-host">${esc(favHost_(l.url))}</span></a>
+  /* A GRID OF THE SITES (720), each its own icon: the site's /favicon.ico, asked of that site alone (no icon service learns what you keep), over its first letter. */
+  const grid = list.map(l => { const httpUrl = favUrlOk_(l.url), host = favHost_(l.url), name = l.title || host;
+    return `<a class="fav-cell" href="${esc(httpUrl)}" target="_blank" rel="noopener noreferrer" title="${esc(host)}">
+      <span class="fav-ico" aria-hidden="true"><span class="fav-letter">${esc((name.replace(/^www\./i, '').match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase())}</span>${
+        favIcoOk_(host) ? `<img class="fav-img" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="${esc(favIco_(httpUrl))}">` : ''}</span>
+      <span class="fav-name">${esc(name)}</span></a>`; }).join('');
+  const rows = !FAV_EDIT_ ? '' : list.map((l, i) => `<div class="fav-row">
+      <span class="fav-a">${esc(l.title || favHost_(l.url))}<span class="fav-host">${esc(favHost_(l.url))}</span></span>
       <div class="tile-row fav-tiles">${
         tile_({ icon: 'up', label: 'Move up', act: 'fav-move', data: { i: i, by: -1 }, off: !i || FAV_BUSY_ })
       }${tile_({ icon: 'down', label: 'Move down', act: 'fav-move', data: { i: i, by: 1 }, off: i === list.length - 1 || FAV_BUSY_ })
       }${tile_({ icon: 'bin', label: 'Remove', note: l.title, act: 'fav-del', data: { i: i }, off: FAV_BUSY_ })}</div>
-    </div>`; }).join('');
+    </div>`).join('');
   const full = list.length >= FAV_MAX_;
   into.innerHTML = `<div class="fav">
-    ${rows || '<p class="note">No links yet. Add the sites you use most.</p>'}
+    ${grid ? `<div class="fav-grid">${grid}</div>` : '<p class="note">No links yet. Add the sites you use most.</p>'}
+    ${list.length ? `<div class="tile-row">${tile_({ icon: 'edit', label: FAV_EDIT_ ? 'Done' : 'Edit links', act: 'fav-edit', on: FAV_EDIT_ })}</div>` : ''}
+    ${rows}
     ${full ? `<p class="note">That is ${FAV_MAX_} — remove one to add another.</p>` : `<div class="fav-new">
       <label class="fav-line"><span>Title</span><input data-fav="title" maxlength="80" placeholder="e.g. BBC Bitesize" autocomplete="off"></label>
       <label class="fav-line"><span>Address</span><input data-fav="url" type="url" inputmode="url" maxlength="2000" placeholder="https://…" autocomplete="off"></label>
@@ -67,6 +81,8 @@ function favSave_(next, said) {
   };
   api({ action: 'favLinksSave', personId: USER.personId, links: next }).then(done, () => done(null));
 }
+
+on('fav-edit', () => { FAV_EDIT_ = !FAV_EDIT_; favRedraw_(true); });
 
 on('fav-add', el => {
   const box = el.closest('.fav');

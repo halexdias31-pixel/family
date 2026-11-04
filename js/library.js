@@ -274,7 +274,9 @@ function libraryExtras_(d, extra) {
         return;
       }
       b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
-                                      topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()) },
+                                      topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()),
+                                      /* THE SCHOOL YEARS A CHAPTER IS TAUGHT IN (770), `3, 4, 5, 6`: a key stage spans years, so the funnel can ask which. */
+                                      years: libS(r.year_group).split(',').map(t => t.trim()).filter(t => /^\d{1,2}$/.test(t)) },
                                     libChapterBody_(r), { animations: [] }));
     });
     /* IN FILE ORDER, which is page order: § */

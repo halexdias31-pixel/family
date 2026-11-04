@@ -2,7 +2,8 @@
 /* One JSON value, config's `layout` row (`layoutSave`), sent as `layout`: unknown ids ignored, missing ones appended, a broken value ignored. */
 
 /* ---------- WHICH COLUMN A WIDGET OF EACH KIND LIVES ON BY DEFAULT — the only columns that draw widgets ---------- */
-const LAYOUT_COL = { reel: 'reel', tool: 'tools', game: 'games', shop: 'shop' };
+/* A tool and a game have no column since 790: each is a Find card (`widgetInFind_`, arcade.js), arranged by the funnel, not here. */
+const LAYOUT_COL = { reel: 'reel', shop: 'shop' };
 /* THE DEVICE'S COPY of the last layout the payload sent, so the first paint before the payload is already arranged. */
 const LAYOUT_STORE = 'familyLayout';
 /* `#` joins a split card's piece to its card (`set:account:contact#email`, 466): a piece is a card of its own. */
@@ -11,7 +12,7 @@ const LAYOUT_ID = /^[A-Za-z0-9_:.#-]{1,64}$/;
 const LAYOUT_KEEP = ['cart'];
 /* A SPLITTABLE CARD'S ID: `set:<column>:<group>` for a settings card, `biz:<card>` for a Business one (464). */
 const LAYOUT_SPLIT_ID = /^(set|biz):[A-Za-z0-9_:.-]{1,60}$/;
-/* AN ADMIN'S OWN COLUMN (466): `custom-N`, made by ▶ on the last right-hand column, before Business; at most twelve. */
+/* AN ADMIN'S OWN COLUMN (466, 710): `custom-N`, made by ◀ or ▶ past an edge; at most twelve. It has no name: its tab says its first unit. */
 const CUSTOM_ID = /^custom-\d{1,3}$/;
 const CUSTOM_MAX = 12;
 /* NEVER MERGED — each needs the whole page: it is sized, zoomed or scrolled to the pane, and a second thing under it would be cut off or squeezed. */
@@ -33,6 +34,8 @@ function ownIdNow_(x) {
 }
 /* THE LAYOUT'S SHAPE NUMBER: 2 since 489's one-off repair below; `layoutClean_` (backend/core.gs) keeps the same rule. */
 const LAYOUT_V = 2;
+/* WHERE A CUSTOM COLUMN STANDS: `admin` last, `left` before Parent settings (600), `first` before the first column a unit stands on (710), else before Business. */
+const customFlag_ = x => x.admin === true ? { admin: true } : x.left === true ? { left: true } : x.first === true ? { first: true } : {};
 /* WHO SEES WHAT (497): the levels an admin may narrow a widget or card to, lowest first; `seenOk_` (words.js) asks them. */
 const SEEN_ORDER = ['out', 'in', 'student', 'client', 'staff', 'admin'];
 /* ONE-OFF (489): a layout older than v2 gets the camera back and the festive card deleted, as the owner meant; saved as v2, it never runs again. */
@@ -61,12 +64,13 @@ function layoutSane_(v) {
   /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}`, only the columns that hold cards. */
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};
-  /* CUSTOM COLUMNS (466): `custom: [{id: 'custom-N', title}]`, made by ▶ past the last right-hand column. */
+  /* CUSTOM COLUMNS (466): `custom: [{id: 'custom-N', admin?|left?|first?}]`; a saved `title` (before 710) is dropped — a column is a position. */
   const cu = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && CUSTOM_ID.test(String(x.id)))
-    .map(x => Object.assign({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }, x.admin === true ? { admin: true } : x.left === true ? { left: true } : {}))
+    .map(x => Object.assign({ id: String(x.id) }, customFlag_(x)))
     .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, CUSTOM_MAX);
   if (cu.length) out.custom = cu;
-  const colOk = k => CARD_COLS.indexOf(k) !== -1 || cu.some(x => x.id === k);
+  /* ANY UNIT ON ANY COLUMN (710): `cards` may name a widget column, and its list may name widgets too — the column's one order. */
+  const colOk = k => CARD_COLS.indexOf(k) !== -1 || cu.some(x => x.id === k) || Object.keys(LAYOUT_COL).some(x => LAYOUT_COL[x] === k);
   Object.keys(c).forEach(k => { if (colOk(k)) cards[k] = ids(c[k]).slice(0, 300); });
   /* A WIDGET COLUMN HAS A START HERE TOO (489): "why can't I make the 1st widget… for this page". */
   const startOk = k => colOk(k) || Object.keys(LAYOUT_COL).some(x => LAYOUT_COL[x] === k);
@@ -85,6 +89,9 @@ function layoutSane_(v) {
   const sn = o.seen && typeof o.seen === 'object' && !Array.isArray(o.seen) ? o.seen : {}, seen = {};
   Object.keys(sn).filter(k => LAYOUT_ID.test(k) && SEEN_ORDER.indexOf(sn[k]) !== -1).slice(0, 300).forEach(k => { seen[k] = sn[k]; });
   if (Object.keys(seen).length) out.seen = seen;
+  /* A COLUMN ORDER (730): `order: [ids]` laid over TAB_ORDER; `layoutClean_` keeps the same rule. */
+  const ord = ids(o.order).filter(x => TAB_ORDER.indexOf(x) !== -1 || cu.some(y => y.id === x)).slice(0, 60);
+  if (ord.length > 1) out.order = ord;
   return out;
 }
 const MERGE_MAX = 12;
@@ -126,14 +133,31 @@ function layoutWidgetCols_() {
   return cols.slice().sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
 }
 
+/* ---------- WHAT DOES NOT MOVE, EACH WITH ITS REASON (730): every other column is a host, its units moved by their rows; check-doors keeps this list whole ---------- */
+const LAYOUT_FIXED = {
+  feed: "the posts page by post and the camera is the page above the newest (`feedCamAt_`); moving them as one unit needs the feed's paging to stop assuming its column",
+  dm: 'one conversation per page, drawn by the messages code',
+  stuff: "Find's own funnel: its words, chips and page are the finder's state",
+  res: "Find 2's own funnel, the same finder again",
+  saved: 'what you starred, drawn from your own stars',
+  booking: 'the booking form and its receipts are one flow',
+};
+/* ---------- EVERY COLUMN A UNIT MAY STAND ON (710): the widget columns, the card columns and an admin's own ---------- */
+function hostCols_(L) {
+  const cu = ((L === undefined ? layoutNow_() : L) || {}).custom || [];
+  return Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]).concat(CARD_COLS, cu.map(x => x.id));
+}
+const hostIs_ = (c, L) => hostCols_(L).indexOf(c) !== -1;
+const isWidgetId_ = id => !!layoutWidgetOf_(id);
+
 /* ---------- WHICH COLUMN A WIDGET IS ON ---------- */
 function layoutHome_(w, L) {
   const def = LAYOUT_COL[w && w.kind];
   if (!def) return '';
   if (L) {
     const id = String(w.id);
-    const cols = Object.keys(LAYOUT_COL).map(k => LAYOUT_COL[k]);
-    for (const c of Object.keys(L.widgets || {})) if (cols.indexOf(c) !== -1 && L.widgets[c].indexOf(id) !== -1) return c;
+    /* ANY COLUMN A UNIT STANDS ON (710), a card column too; never an admin's column. */
+    for (const c of Object.keys(L.widgets || {})) if (L.widgets[c].indexOf(id) !== -1 && hostIs_(c, L) && adminKeep_(c, id)) return c;
   }
   return def;
 }
@@ -151,7 +175,9 @@ function layoutWidgetsIn_(col, all, L) {
 }
 function layoutWidgets_(kind, all) {
   const col = LAYOUT_COL[kind];
-  const L = col ? layoutNow_() : null;
+  /* A KIND WITH NO COLUMN (790, tools and games): the code's order, less what an admin deleted. */
+  if (!col) { const del = (layoutNow_() || {}).deleted || []; return all.filter(w => w.kind === kind && del.indexOf(String(w.id)) === -1); }
+  const L = layoutNow_();
   if (!L) return all.filter(w => w.kind === kind);
   return layoutWidgetsIn_(col, all, L);
 }
@@ -161,7 +187,10 @@ function layoutRelayout_() {
   /* A CUSTOM COLUMN MADE OR GONE (466): the tab list and its sections first, then every column redrawn. */
   try { columnsFor_(); } catch (e) {}
   try { markStale_(TABS.map(t => t.id)); } catch (e) {}
+  /* FIND'S LIST HOLDS THE WIDGET CARDS (790): forgotten, so a deleted or narrowed one leaves it, and a finder in front is drawn again (`repaint` leaves the one in front). */
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) { /* find.js not in yet (670): nothing is memoised */ }
   try { repaint(true); } catch (e) {}
+  try { if (typeof finderOf_ === 'function' && finderOf_(AT)) paint(AT, true); } catch (e) { /* paint reports its own draw errors */ }
 }
 
 /* THE WIDGETS AN ADMIN ARRANGES: the code's own (not a session's live widget), whatever audience each is for. */
@@ -169,20 +198,24 @@ function layoutAllWidgets_() {
   return (typeof WIDGETS !== 'undefined' ? WIDGETS : []).filter(w => LAYOUT_COL[w.kind]);
 }
 function layoutWidgetOf_(id) { return layoutAllWidgets_().find(w => String(w.id) === id); }
+/* ANY OF THE CODE'S WIDGETS, a Find card's too (790): for naming one and for its gate, never for placing it. */
+function anyWidgetOf_(id) { return (typeof WIDGETS !== 'undefined' ? WIDGETS : []).find(w => String(w.id) === id); }
 function layoutIsAdmin_() { return typeof rankAtLeast_ === 'function' && rankAtLeast_('admin'); }
 
 /* THE WHOLE LAYOUT WRITTEN OUT from the one in force (the code's when `L` is null), so a move is a change to full lists. */
 function layoutDraftOf_(L) {
   const widgets = {}, all = layoutAllWidgets_();
-  layoutWidgetCols_().forEach(c => { widgets[c] = layoutWidgetsIn_(c, all, L).map(w => String(w.id)); });
+  const own = layoutWidgetCols_(), cols = own.concat(Object.keys((L && L.widgets) || {}).filter(c => own.indexOf(c) === -1 && hostIs_(c, L)));
+  cols.forEach(c => { const l = layoutWidgetsIn_(c, all, L).map(w => String(w.id)); if (l.length || own.indexOf(c) !== -1) widgets[c] = l; });
   const out = { v: LAYOUT_V, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
   if (L && L.front) out.front = Object.assign({}, L.front);
   if (L && L.split && L.split.length) out.split = L.split.slice();
   if (L && L.start) out.start = Object.assign({}, L.start);
   if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
-  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id, title: x.title }, x.admin ? { admin: true } : x.left ? { left: true } : {}));
+  if (L && L.custom && L.custom.length) out.custom = L.custom.map(x => Object.assign({ id: x.id }, customFlag_(x)));
   if (L && L.merged && L.merged.length) out.merged = L.merged.map(g => g.slice());
   if (L && L.seen) out.seen = Object.assign({}, L.seen);
+  if (L && L.order) out.order = L.order.slice();
   return out;
 }
 /* WHAT THE ADMIN SEES ON A COLUMN — a move steps over a widget they cannot see, or it would look like nothing happened. */
@@ -193,24 +226,65 @@ function layoutColOf_(D, id) { return Object.keys(D.widgets).find(c => D.widgets
 
 /* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutTiles_(w) {
-  if (!w || !LAYOUT_COL[w.kind] || !layoutIsAdmin_()) return '';
-  const id = String(w.id), D = layoutDraftOf_(layoutNow_()), col = layoutColOf_(D, id);
+  if (!w || !layoutIsAdmin_()) return '';
+  /* A FIND CARD (790) IS PLACED BY THE FUNNEL, so it has no ▲ ▼ ◀ ▶: its words, who sees it and Delete, which are the widget's own. */
+  if (typeof widgetInFind_ === 'function' && widgetInFind_(w)) {
+    const id = String(w.id);
+    return `<span class="tile-group is-admin wgt-admin">${wordsTiles_('w:' + id, id)}${
+      tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' })}</span>`;
+  }
+  if (!LAYOUT_COL[w.kind]) return '';
+  const id = String(w.id), L = layoutNow_(), col = layoutHome_(w, L);
   if (!col) return '';
-  const units = mergeUnits_(layoutSeen_(col, D), D), ui = units.findIndex(u => u.indexOf(id) !== -1), cols = layoutWidgetCols_(), ci = cols.indexOf(col);
-  const i = ui, seen = units, grp = mergedOf_(id, D);
-  const up = ui > 0 && mergeOk_(units[ui - 1].concat(grp || [id]));
+  /* THE COLUMN'S UNITS AS DRAWN (710), widgets and cards together, so ▲ ▼ step over a card as over a widget. */
+  const units = mergeUnits_(CARD_SEEN[col] || layoutSeen_(col, layoutDraftOf_(L)), L), ui = units.findIndex(u => u.indexOf(id) !== -1);
+  const grp = mergedOf_(id, L), above = ui > 0 ? units[ui - 1] : null;
+  /* A MERGE IS OF ONE KIND: a widget with the widget above, never with a card. */
+  const up = above && above.every(isWidgetId_) && mergeOk_(mergeAll_(above[0], L).concat(grp || [id]));
   return `<span class="tile-group is-admin wgt-admin">${
-    tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: i <= 0 })}${
-    tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: -1 }, off: ci <= 0 })}${
-    tile_({ icon: 'right', label: 'Move to next column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: 1 }, off: ci >= cols.length - 1 })}${
+    tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: ui <= 0 })}${
+    tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: ui === -1 || ui >= units.length - 1 })}${
+    acrossTiles_(id, col, true, { w: id })}${colTiles_(col, id)}${
     up ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col, w: 1 } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
-    startTile_(col, id, ((layoutNow_() || {}).start || {})[col] || '')}${
+    startTile_(col, id, ((L || {}).start || {})[col] || '')}${
     frontTile_(col, id)}${wordsTiles_('w:' + id, id)}${
     notePair_(!(grp || [id]).some(basketKept_) ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : '',
       '')}</span>`;
 }
+/* ◀ ▶ FOR EVERY UNIT (710): the neighbouring column whatever it holds; past an edge, a new column. */
+function acrossTiles_(id, col, isW, data) {
+  /* EACH ACT SPELT AS check-doors reads it, so both pair with their handlers. */
+  const act = isW ? { act: 'lay-w-col' }.act : { act: 'lay-c-col' }.act;
+  const cols = cardColsFor_(id), ci = cols.indexOf(col), last = ci !== -1 && ci >= cols.length - 1, adm = adminCol_(col), room = customRoom_();
+  return tile_({ icon: 'left', label: ci === 0 && !adm ? 'Move to a new column on the left' : 'Move to previous column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || (ci === 0 && (adm || !room)) }) +
+    tile_({ icon: 'right', label: last ? (adm ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: act, tone: 'admin',
+      data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || (last && !room) }) +
+    /* A NEW COLUMN BETWEEN TWO (730): the owner, "insert a column in between two columns" — made here, beside this one, holding this unit. */
+    tile_({ icon: 'plus', label: 'Move to a new column here, on the left', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: -1 }, data), off: ci === -1 || !room }) +
+    tile_({ icon: 'plus', label: 'Move to a new column here, on the right', act: 'lay-newcol', tone: 'admin', data: Object.assign({ col: col, d: 1 }, data), off: ci === -1 || !room });
+}
+/* THE NEW COLUMN STANDS BESIDE `col` by the saved `order` (colOrderApply_); empty again, it goes like any custom column. */
+function layNewCol_(id, col, d, kind) {
+  if (!customRoom_() || cardColsFor_(id).indexOf(col) === -1) return;
+  const L = layoutNow_(), D = layoutDraftOf_(L), cu = D.custom || [];
+  const to = 'custom-' + (cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1);
+  D.custom = cu.concat([adminCol_(col) ? { id: to, admin: true } : { id: to }]);
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, all);
+  const ord = COLUMNS.map(t => t.id).filter(x => x !== to), at = ord.indexOf(col);
+  ord.splice(d < 0 ? at : at + 1, 0, to);
+  D.order = ord;
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
+on('lay-newcol', el => {
+  const w = el.getAttribute('data-w'), c = el.getAttribute('data-lc');
+  layNewCol_(w || c || '', el.getAttribute('data-col') || '', Number(el.getAttribute('data-d')) || 0, w ? 'w' : 'c');
+});
 
 /* ---------- A MOVE YOU CAN SEE (498): "add a transition so I can see where it goes" ----------
    Up or down: FLIP, drawn where it was and slid to where it is. Across: the column slides there and the thing is lit. */
@@ -235,8 +309,30 @@ function layLight_(el) {
   el.layLitT = setTimeout(off, MOTION_.mark + 200);
 }
 /* SAVE, THEN SHOW IT: `before` is where it stood; `to` the column it went to, when it went across. */
+/* THE OTHERS MAKE ROOM (710): "I should see the other widgets moving out of the way" — every unit on the column, read before and glided after. */
+function layUnitsAt_(col) {
+  const host = col && document.getElementById('s-' + col), out = new Map();
+  if (!host) return out;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const el = x.closest('.card') || x.closest('.page'), k = x.getAttribute('data-lay-for') || x.id;
+    if (el && !out.has(k)) out.set(k, el.getBoundingClientRect());
+  });
+  return out;
+}
+function layMakeRoom_(col, before, skip) {
+  if (layCalm_() || !before.size) return;
+  const host = document.getElementById('s-' + col);
+  if (!host) return;
+  host.querySelectorAll('.card-admin[data-lay-for], .widget-slot[id^="wgt-"]').forEach(x => {
+    const k = x.getAttribute('data-lay-for') || x.id, r0 = before.get(k), el = x.closest('.card') || x.closest('.page');
+    if (!r0 || !el || el === skip || typeof el.animate !== 'function') return;
+    const r1 = el.getBoundingClientRect(), dx = r0.left - r1.left, dy = r0.top - r1.top, z = el.currentCSSZoom || 1;
+    if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || Math.abs(dx) > innerWidth) return;
+    el.animate([{ translate: `${dx / z}px ${dy / z}px` }, { translate: '0 0' }], { duration: MOTION_.move, easing: MOTION_.spring });
+  });
+}
 function layMoveShow_(kind, id, col, save, to) {
-  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect();
+  const was = layThing_(kind, id, col), r0 = was && was.getBoundingClientRect(), room = layUnitsAt_(col);
   save();
   const after = () => {
     if (to && to !== col) {
@@ -252,6 +348,7 @@ function layMoveShow_(kind, id, col, save, to) {
     }
     const el = layThing_(kind, id, col);
     if (!el) return;
+    layMakeRoom_(col, room, el);
     if (!r0 || layCalm_()) { layLight_(el); return; }
     /* ONE GLIDE AT A TIME, WAAPI (537): a move during a move starts from where the eye sees it (`r0`, read with the old glide running) and the old one is cancelled before the new place is read. */
     if (el.layGlide) { try { el.layGlide.cancel(); } catch (e) { /* already gone */ } el.layGlide = null; }
@@ -265,29 +362,57 @@ function layMoveShow_(kind, id, col, save, to) {
   try { requestAnimationFrame(after); } catch (e) { after(); }
 }
 
-/* ---------- THE MOVES: each one a change to the whole layout, saved at once ---------- */
+/* ---------- THE MOVES: each one a change to the whole layout, saved at once — the same two for a widget and a card (710) ---------- */
 on('lay-w-move', el => {
   if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-w'), d = Number(el.getAttribute('data-d'));
-  const D = layoutDraftOf_(layoutNow_()), col = layoutColOf_(D, id);
-  const units = mergeUnits_(layoutSeen_(col, D), D), ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
-  if (!col || ui === -1 || !next) return;
-  D.widgets[col] = unitPlace_(D.widgets[col], mergeAll_(id, D), next, d);
-  layMoveShow_('w', id, col, () => layoutSave_(D));
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layUpDown_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
-/* ACROSS: to the end of the neighbouring widget column. */
 on('lay-w-col', el => {
   if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-w'), d = Number(el.getAttribute('data-d'));
-  const D = layoutDraftOf_(layoutNow_()), col = layoutColOf_(D, id), cols = layoutWidgetCols_();
-  const to = cols[cols.indexOf(col) + d];
-  if (!col || !to || !D.widgets[to]) return;
-  /* A MERGED CARD MOVES WHOLE (480). */
-  const all = mergeAll_(id, D);
-  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  D.widgets[to] = D.widgets[to].concat(all);
-  layMoveShow_('w', id, col, () => layoutSave_(D), to);
+  const id = el.getAttribute('data-w'), w = layoutWidgetOf_(id || '');
+  if (w) layAcross_(id, layoutHome_(w, layoutNow_()), Number(el.getAttribute('data-d')), 'w');
 });
+/* A COLUMN'S ORDER WRITTEN BACK (710): its widgets to `widgets[col]`, and the whole mixed order to `cards[col]` when it holds a card. */
+function colOrderSet_(D, col, order) {
+  const wl = order.filter(isWidgetId_);
+  if (wl.length || layoutWidgetCols_().indexOf(col) !== -1) D.widgets[col] = wl; else delete D.widgets[col];
+  D.cards = D.cards || {};
+  if (order.some(x => !isWidgetId_(x))) D.cards[col] = order.slice(); else delete D.cards[col];
+  if (!Object.keys(D.cards).length) delete D.cards;
+}
+/* UP OR DOWN past the neighbouring unit, widget or card. */
+function layUpDown_(id, col, d, kind) {
+  const L = layoutNow_();
+  if (!col || !hostIs_(col, L)) return;
+  const list = cardListOf_(col, L), units = mergeUnits_(CARD_SEEN[col] || [], L);
+  const ui = units.findIndex(u => u.indexOf(id) !== -1), next = units[ui + d];
+  if (ui === -1 || !next) return;
+  const D = layoutDraftOf_(L);
+  colOrderSet_(D, col, unitPlace_(list, mergeAll_(id, L), next, d));
+  layMoveShow_(kind, id, col, () => layoutSave_(D));
+}
+/* ACROSS: to the end of the neighbouring column, whatever it holds; past an edge a new unnamed column (466, 600, 710). */
+function layAcross_(id, col, d, kind) {
+  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
+  if (cols.indexOf(col) === -1) return;
+  let to = cols[cols.indexOf(col) + d], fresh = false;
+  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
+    fresh = true;
+    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
+    to = 'custom-' + n;
+    const made = d < 0 ? { id: to, first: true } : adminCol_(col) ? { id: to, admin: true } : { id: to };
+    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
+  }
+  if (!to) return;
+  /* A MERGED CARD MOVES WHOLE (480). */
+  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
+  all.forEach(x => cardUnlist_(D, x));
+  Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
+  colOrderSet_(D, col, from);
+  colOrderSet_(D, to, there.concat(all));
+  layMoveShow_(kind, id, col, () => layoutSave_(D), to);
+}
 /* ASKED TWICE THROUGH sure_ (534), so its 400 ms rule holds here too: the tile keeps its mark, the question is its label and, with `word`, a word beside it. */
 function layArm_(el, say, rest, word) {
   return sure_(el, say, { ms: 3000,
@@ -307,7 +432,7 @@ on('lay-w-del', el => {
   if (!layArm_(el, all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete', 'Delete', true)) return;
   const D = layoutDraftOf_(layoutNow_());
   Object.keys(D.widgets).forEach(c => { D.widgets[c] = D.widgets[c].filter(x => all.indexOf(x) === -1); });
-  all.forEach(x => { if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
+  all.forEach(x => { cardUnlist_(D, x); if (D.deleted.indexOf(x) === -1) D.deleted.push(x); });
   layoutSave_(D);
 });
 /* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
@@ -325,21 +450,21 @@ function layoutSave_(next) {
 
 /* ---------- DELETED, PUT BACK (an admin deleted the whiteboard and had no way back): every deleted widget and card on Business, a Put back tile each ---------- */
 function layoutDeletedName_(id) {
-  const w = layoutWidgetOf_(id);
+  const w = anyWidgetOf_(id);
   return w ? String(w.name || id) : cardLabel_(id);
 }
-/* NOT IN THE REGISTRY on purpose: no Delete tile under it, or the way back could itself be deleted. */
+/* A CARD LIKE ANY OTHER (770: the owner, "why is this not movable"): registered, so it moves; `CARD_KEEP` takes Delete off it alone. */
 function deletedCard_() {
   if (!layoutIsAdmin_()) return '';
   const del = ((layoutNow_() || {}).deleted || []);
-  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${layoutWidgetOf_(id) ? 'widget' : 'card'}</p>
+  const rows = del.map(id => `<div class="lay-deleted-row" data-deleted="${esc(id)}"><p><strong>${esc(layoutDeletedName_(id))}</strong> · ${anyWidgetOf_(id) ? 'widget' : 'card'}</p>
 <div class="tile-row">${tile_({ icon: 'undo', label: 'Put back', act: 'lay-putback', tone: 'admin', data: { del: id } })}</div></div>`).join('');
-  const html = cardSayIn_(`<div class="card biz deleted-card"><h3>Deleted</h3>${rows || '<p class="muted">Nothing deleted</p>'}</div>`, 'biz:deleted');
-  /* EVERY THING HAS THE ADMIN'S TILES (487) and the one Report tile (486) in one row -- here Edit words and Report, never Delete or a move. */
-  return cardRowIn_(html, `<div class="tile-row wgt-admin card-admin no-move" data-lay-for="biz:deleted">${
-    tile_({ icon: 'edit', label: 'Edit words', note: 'type over this card\'s words, for everyone', act: 'words-edit', tone: 'admin', data: { ws: 'biz:deleted' } })}${
-    typeof suggestTile_ === 'function' ? suggestTile_('card', 'deleted-card', 'Deleted') : ''}</div>`);
+  return '<!--card:biz:deleted--><div class="card biz deleted-card"><h3>Deleted</h3>' + (rows || '<p class="muted">Nothing deleted</p>') + '</div>';
 }
+/* CARDS THAT MOVE BUT ARE NEVER DELETED, each with its reason. */
+const CARD_KEEP = {
+  'biz:deleted': 'the way back to every deleted widget and card; deleted, it would leave no way back',
+};
 on('lay-putback', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-del'), D = layoutDraftOf_(layoutNow_());
@@ -381,9 +506,9 @@ on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
 
 /* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
 /* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
-const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz', 'site'];
-/* THE ADMIN'S TWO COLUMNS (491): Business and Site; a card moves between them, and no other card moves onto either. */
-const ADMIN_COLS_ = ['biz', 'site'];
+/* `CARD_COLS` IS shell.js's (730): TAB_ORDER's tabs marked `cards`, as columns.json marks them. */
+/* THE ADMIN'S CARD COLUMNS (491, 730): Biz and Web settings, the card columns marked `admin`; a card moves between them, no other onto either. */
+const ADMIN_COLS_ = CARD_COLS.filter(c => TABS_BUILT.some(t => t.id === c && t.admin));
 /* AND AN ADMIN-ONLY CUSTOM COLUMN (508, `admin: true`), made by ▶ past Site: Business and Site cards move onto it, nothing else. */
 const adminCol_ = c => ADMIN_COLS_.indexOf(c) !== -1 || customAdmin_(c);
 function customAdmin_(c) {
@@ -394,7 +519,7 @@ const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(ty
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
-  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Who you are signed in as on this phone, and Sign out.' },
+  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
   { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
@@ -422,10 +547,16 @@ const CARD_REG = [
   { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
   { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
+  /* NO `say` ON THE TWO PUBLIC FACES (730): the web card and the window are read by everybody, and a line about the card is for an admin. */
+  { id: 'web:card', col: 'web', label: 'Web profile', re: /^<div class="card web-card/, say: '' },
+  { id: 'spot:list', col: 'spotlight', label: 'Spotlight', say: '' },
+  { id: 'ppl:apprentices:all', col: 'apprentices', label: 'Apprentices', re: /^<div class="card appr-card/, say: 'A card per apprentice.' },
+  { id: 'appr:blurb', col: 'apprentice', label: 'Apprentice settings', re: /^<div class="card appr-set/, say: 'Work experience with us: a placeholder until it is built.' },
   { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
   { id: 'biz:setup', col: 'site', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
   { id: 'biz:posts', col: 'site', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
   { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
+  { id: 'biz:deleted', col: 'biz', label: 'Deleted', re: /^<div class="card biz deleted-card/, say: 'Every deleted widget and card, each with Put back.' },
   { id: 'biz:errs', col: 'biz', label: 'Error log', re: /^<div class="card biz errs/, say: 'What broke on people\'s screens, counted once per error.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
   { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
@@ -433,6 +564,7 @@ const CARD_REG = [
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
   { id: 'site:digest-words', col: 'site', label: 'Weekly email\'s words', re: /^<div class="card biz digest-words/, only: 'the weekly email\'s words', say: 'The subject, greeting, first and last lines of Sunday\'s email.' },
   { id: 'site:rules', col: 'site', label: 'Rules', re: /^<div class="card biz rules-card/, only: 'the site\'s rules', say: 'Where the site does something differently. Universal makes it behave like everywhere else, for everybody; Undo takes back the last change.' },
+  { id: 'site:stability', col: 'site', label: 'Stability', re: /^<div class="card biz stability-card/, say: 'How stable the code is, scored from its exceptions, special cases and dead code.' },
   { id: 'site:inbox', col: 'site', label: 'Email', re: /^<div class="card biz inbox-card/, say: 'The admin Gmail, read-only.' },
   { id: 'biz:build', col: 'site', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
@@ -447,7 +579,7 @@ function ownSecReg_() {
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
-  const where = { account: 'Student settings', family: 'Parent settings', staff: 'Tutor settings' };
+  const where = { account: 'Kids settings', family: 'Parent settings', staff: 'Tutor settings' };
   return [].concat(...Object.keys(of).map(c => of[c].map(k => ({ id: 'own:' + c + ':' + k, col: c, label: S[k][0] + ' (' + where[c] + ')', only: S[k][1], say: S[k][2] }))));
 }
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
@@ -471,8 +603,10 @@ function cardSayIn0_(h, id) {
   const say = cardSayOf_(id);
   /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
   if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
+  /* NOR ON A SEARCH BAR, whose placeholder is its label (469, 770). */
+  if (/\bdata-psearch\b/.test(h)) return h;
   const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
-  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>\s*$/, `<span class="faint card-say">${esc(say)}</span></button>`);
+  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>(\s*(?:<div class="tile-row rep-row">[\s\S]*<\/div>)?\s*)$/, `<span class="faint card-say">${esc(say)}</span></button>$1`);
   const p = `<p class="faint card-say">${esc(say)}</p>`;
   if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, '</h3>' + p);
   return head + body.replace(/^(\s*<div\b[^>]*>)/, '$1' + p);
@@ -493,11 +627,8 @@ function cardHome0_(id) {
 /* A PIECE'S CARD: `set:account:contact#email` is a piece of `set:account:contact`; '' for a whole card. */
 const cardBase_ = id => { const i = String(id || '').indexOf('#'); return i === -1 ? '' : String(id).slice(0, i); };
 const pieceId_ = (id, key) => id + '#' + (String(key || '').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'x');
-/* EVERY COLUMN A CARD MAY STAND ON: the seven, then an admin's own (466). */
-function cardCols_(L) {
-  const cu = ((L === undefined ? layoutNow_() : L) || {}).custom || [];
-  return CARD_COLS.concat(cu.map(x => x.id));
-}
+/* EVERY COLUMN A CARD MAY STAND ON (710): every column a widget may — the widget columns, the card columns, an admin's own. */
+const cardCols_ = L => hostCols_(L);
 /* ITS NAME: the registry's, else the title it was last drawn with, else its id in words. */
 const CARD_TITLE = {};
 function cardLabel_(id) {
@@ -539,6 +670,7 @@ const CARD_BUILD = {
   family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
   tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
   biz: () => adminPages_(), site: () => sitePages_(),
+  web: () => webProfilePages_(), spotlight: () => cardMark_('spot:list', spotlightCards_()), apprentices: () => apprenticeProfilePages_(), apprentice: () => apprenticePages_(),
 };
 /* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
 function cardColsFor_(id) {
@@ -589,28 +721,50 @@ function cardArrange_(col, raw) {
 /* WHERE A COLUMN OPENS (Start here), as a page number of the column last drawn — `PAGE_HOME` asks. */
 const CARD_START_AT = {};
 const cardStartOf_ = (col, L) => { const s = L && L.start && L.start[col]; return typeof s === 'string' ? s : L && L.front && L.front.col === col ? L.front.id : ''; };
-/* THE COLUMN DRAWN: unchanged when there is no layout of cards and nobody to arrange them; else arranged, an admin's row on each card. */
+/* ONE COLUMN'S UNITS IN ORDER (710): its widgets and its cards, wherever each came from, by the one list `cards[col]` where it names them. */
+const WIDGET_COL_OF_ = col => Object.keys(LAYOUT_COL).find(k => LAYOUT_COL[k] === col) || '';
+function colEntries_(col, raw) {
+  const L = layoutNow_(), wcol = !!WIDGET_COL_OF_(col);
+  const ws = layoutMergeWidgets_(layoutWidgetsIn_(col, layoutAllWidgets_(), L).filter(widgetFor_))
+    .map(w => ({ id: String(w.id), w: w, ids: (w.parts || [w]).map(x => String(x.id)) }));
+  const gs = cardArrange_(col, raw).map(g => ({ id: g.id, g: g, ids: g.parts ? g.parts.map(p => p.id) : g.id ? [g.id] : [] }));
+  /* A COLUMN'S OWN THINGS FIRST (its widgets on a widget column, its cards on a card column), then what was moved in, until the order says otherwise. */
+  const all = (wcol ? ws.concat(gs) : gs.concat(ws)).map((e, i) => Object.assign(e, { i: i }));
+  const ord = (L && L.cards && L.cards[col]) || [];
+  const at = e => { const k = e.ids.map(x => ord.indexOf(x)).filter(x => x !== -1); return k.length ? Math.min(...k) : ord.length + e.i; };
+  const out = all.sort((x, y) => at(x) - at(y) || x.i - y.i);
+  CARD_SEEN[col] = [].concat(...out.map(e => e.ids));
+  return out;
+}
+/* THE COLUMN DRAWN: unchanged when there is no layout and nobody to arrange it; else arranged, an admin's row on each unit. A widget column asks here too (710). */
 function cardsOf_(col) {
   const raw = (CARD_BUILD[col] ? CARD_BUILD[col]() : []).filter(Boolean);
-  const L = layoutNow_(), admin = layoutIsAdmin_();
+  const L = layoutNow_(), admin = layoutIsAdmin_(), kind = WIDGET_COL_OF_(col);
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
-  if (!admin && !(L && (L.cards || L.start || L.merged || L.seen || (L.deleted || []).some(cardIs_))))
+  const guests = !!(L && ((L.cards && (L.cards[col] || []).length) || (!kind && L.widgets && (L.widgets[col] || []).length)));
+  if (!admin && !guests && kind) return widgetPagesOf_(kind).map(w => widgetOnColumn_(w, true));
+  if (!admin && !guests && !(L && (L.cards || L.start || L.merged || L.seen || (L.deleted || []).some(cardIs_))))
     return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => {
       const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
       const rep = g.id && i === g.pages.length - 1 && !personOf_(h) ? cardReportRow_(g.id, page) : '';
       return rep ? cardRowIn_(page, rep) : page;
     })), []);
-  const groups = cardArrange_(col, raw);
+  const entries = colEntries_(col, raw);
   const start = cardStartOf_(col, L);
   const out = [];
   let firstP = -1;
-  /* AN ADMIN'S OWN COLUMN OPENS ON ITS NAME, with Rename and Delete column (466); nobody else sees the line. */
-  if (admin && cardCustom_(col)) out.push(customHead_(col));
-  groups.forEach((g, gi) => {
-    /* MERGE WITH THE CARD ABOVE (480): only a card of one page, under a card of one page — a page a person cannot be stacked. */
-    const above = groups.slice(0, gi).reverse().find(x => x.id), one = x => x && (x.parts || x.pages.length === 1 || !(typeof ruleOn_ !== 'function' || ruleOn_('people-no-merge')));
+  entries.forEach((e, ei) => {
+    if (e.w) {
+      if (start && e.ids.indexOf(start) !== -1) CARD_START_AT[col] = out.length;
+      out.push(widgetOnColumn_(e.w, true));
+      return;
+    }
+    const g = e.g;
+    /* MERGE WITH THE CARD ABOVE (480): only a card of one page, under a card of one page — a page a person cannot be stacked; never under a widget (710). */
+    const prev = entries.slice(0, ei).reverse().find(x => x.id), above = prev && prev.g;
+    const one = x => x && (x.parts || x.pages.length === 1 || !(typeof ruleOn_ !== 'function' || ruleOn_('people-no-merge')));
     const row = admin && g.id ? cardAdminRow_(g.id, col, one(g) && one(above)) : '';
     if (g.parts) {
       if (start && g.merged.indexOf(start) !== -1) CARD_START_AT[col] = out.length;
@@ -633,7 +787,8 @@ function cardsOf_(col) {
     });
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
-  if (!out.length) return [`<div class="card"><h3>${esc(typeof tabLabel_ === 'function' ? tabLabel_(col, col) : col)}</h3></div>`];
+  /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
+  if (!out.length && !kind) return [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
   return out;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
@@ -654,22 +809,20 @@ function cardRowIn_(h, row) {
 }
 function cardAdminRow_(id, col, mergeable) {
   if (!layoutIsAdmin_()) return '';
-  const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1), cols = cardColsFor_(id), ci = cols.indexOf(col);
+  const L = layoutNow_(), seen = mergeUnits_(CARD_SEEN[col] || [], L), i = seen.findIndex(u => u.indexOf(id) !== -1);
   const grp = mergedOf_(id, L);
   const start = cardStartOf_(col, layoutNow_());
   return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
-    tile_({ icon: 'left', label: ci === 0 && !adminCol_(col) ? 'Move to a new column on the left' : 'Move to previous column', act: 'lay-c-col', tone: 'admin',
-      data: { lc: id, col: col, d: -1 }, off: ci === -1 || (ci === 0 && (adminCol_(col) || !customRoom_())) })}${
-    tile_({ icon: 'right', label: ci !== -1 && ci >= cols.length - 1 ? (adminCol_(col) ? 'Move to a new admin-only column' : 'Move to a new column') : 'Move to next column', act: 'lay-c-col', tone: 'admin',
-      data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && !customRoom_()) })}${
+    acrossTiles_(id, col, false, { lc: id })}${colTiles_(col, id)}${
     startTile_(col, id, start)}${
     frontTile_(col, id)}${wordsTiles_(id, id)}${
     mergeable && i > 0 ? tile_({ icon: 'merge', label: 'Merge with the card above', act: 'lay-merge', tone: 'admin', data: { m: id, col: col } }) : ''}${
     grp ? tile_({ icon: 'split', label: 'Split', note: 'back into its ' + grp.length + ' cards', act: 'lay-unmerge', tone: 'admin', data: { m: id } }) : ''}${
     typeof gameLockTile_ === 'function' ? gameLockTile_('k:' + id) : ''}${
-    notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
+    CARD_KEEP[id] ? (typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')
+      : notePair_(tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' }),
       typeof suggestTile_ === 'function' ? suggestTile_('card', id, CARD_TITLE[id] || id) : '')}</div>`;
 }
 /* A CARD'S REPORT ROW FOR SOMEBODY WHO DOES NOT ARRANGE CARDS (486); an admin's is in `cardAdminRow_`. */
@@ -716,6 +869,8 @@ function frontPageOf_(col) {
   /* A WIDGET COLUMN'S OWN START HERE when the door is elsewhere. */
   const f = fr && fr.col === col ? fr : kind && st ? { col: col, id: st } : null;
   if (!f) return -1;
+  /* A COLUMN DRAWN ARRANGED (710) counted its own pages, widgets and cards together. */
+  if (typeof CARD_START_AT[col] === 'number' && CARD_START_AT[col] >= 0) return CARD_START_AT[col];
   if (kind && typeof widgetPagesOf_ === 'function') {
     const n = widgetPagesOf_(kind).findIndex(w => String(w.id) === f.id || (w.parts || []).some(p => String(p.id) === f.id));
     if (n !== -1) return n;
@@ -789,10 +944,12 @@ function boxOut_(box) {
     thing.style.removeProperty('--writing-h');
   }
 }
+/* A COLUMN'S WHOLE ORDER (710): what it drew, then what it holds and did not draw for this admin (a widget for tutors), so a move never sends those home. */
 function cardListOf_(col, L) {
-  if (!CARD_SEEN[col]) { try { cardArrange_(col, (CARD_BUILD[col]() || []).filter(Boolean)); } catch (e) {} }
-  const seen = (CARD_SEEN[col] || []).slice(), had = (L && L.cards && L.cards[col]) || [];
-  return seen.concat(had.filter(x => seen.indexOf(x) === -1));
+  if (!CARD_SEEN[col]) { try { colEntries_(col, CARD_BUILD[col] ? (CARD_BUILD[col]() || []).filter(Boolean) : []); } catch (e) { /* a column whose code has not loaded yet is built when it lands */ } }
+  const seen = (CARD_SEEN[col] || []).slice(), here = x => !isWidgetId_(x) || layoutHome_(layoutWidgetOf_(x), L) === col;
+  const had = ((L && L.cards && L.cards[col]) || []).concat(layoutWidgetsIn_(col, layoutAllWidgets_(), L).map(w => String(w.id)));
+  return seen.concat(had.filter((x, i) => seen.indexOf(x) === -1 && had.indexOf(x) === i && here(x)));
 }
 function cardUnlist_(D, id) {
   Object.keys(D.cards || {}).forEach(c => { D.cards[c] = D.cards[c].filter(x => x !== id); if (!D.cards[c].length) delete D.cards[c]; });
@@ -800,47 +957,19 @@ function cardUnlist_(D, id) {
 }
 on('lay-c-move', el => {
   if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col'), d = Number(el.getAttribute('data-d'));
-  const L = layoutNow_(), list = cardListOf_(col, L), seen = mergeUnits_(CARD_SEEN[col] || [], L);
-  const ui = seen.findIndex(u => u.indexOf(id) !== -1), next = seen[ui + d];
-  if (cardCols_(L).indexOf(col) === -1 || ui === -1 || !next) return;
-  const D = layoutDraftOf_(L);
-  D.cards = D.cards || {};
-  D.cards[col] = unitPlace_(list, mergeAll_(id, L), next, d);
-  layMoveShow_('c', id, col, () => layoutSave_(D));
+  layUpDown_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
-/* ACROSS: to the end of the neighbouring card column — the same card, its one home moved with it. */
+/* ACROSS: the same card, its one home moved with it — onto any column, a widget column too (710). */
 on('lay-c-col', el => {
   if (!layoutIsAdmin_()) return;
-  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col'), d = Number(el.getAttribute('data-d'));
-  const cols = cardColsFor_(id), L = layoutNow_(), D = layoutDraftOf_(L);
-  let to = cols[cols.indexOf(col) + d];
-  if (cols.indexOf(col) === -1) return;
-  /* ▶ PAST THE LAST RIGHT-HAND COLUMN MAKES A NEW ONE (466), before Business; past Site, an admin-only one after it (508). */
-  /* ◀ PAST THE FIRST MAKES ONE ON THE LEFT (600), before Parent settings: "I want to move this to the left even more". */
-  /* A NEW COLUMN STARTS EMPTY (`fresh`): an id used before keeps its old drawn list in CARD_SEEN, which would come back with it. */
-  let fresh = false;
-  if (!to && customRoom_() && (d > 0 || !adminCol_(col))) {
-    fresh = true;
-    const cu = D.custom || [], n = cu.reduce((m, x) => Math.max(m, Number(x.id.slice(7)) || 0), 0) + 1;
-    to = 'custom-' + n;
-    const made = d < 0 ? { id: to, title: 'New column', left: true } : adminCol_(col) ? { id: to, title: 'New admin column', admin: true } : { id: to, title: 'New column' };
-    D.custom = d < 0 ? [made].concat(cu) : cu.concat([made]);
-  }
-  if (!to) return;
-  const all = mergeAll_(id, L), from = cardListOf_(col, L).filter(x => all.indexOf(x) === -1), there = fresh ? [] : cardListOf_(to, L).filter(x => all.indexOf(x) === -1);
-  all.forEach(x => cardUnlist_(D, x));
-  D.cards = D.cards || {};
-  D.cards[col] = from;
-  D.cards[to] = there.concat(all);
-  layMoveShow_('c', id, col, () => layoutSave_(D), to);
+  layAcross_(el.getAttribute('data-lc'), el.getAttribute('data-col'), Number(el.getAttribute('data-d')), 'c');
 });
 /* DELETE ASKS TWICE, IN PLACE; the second step says when it is the only place a setting is edited — still one tap, never a pop-up. */
 on('lay-c-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-lc');
-  if (!cardIs_(id)) return;
-  const all = mergeAll_(id, layoutNow_());
+  if (!cardIs_(id) || CARD_KEEP[id]) return;
+  const all = mergeAll_(id, layoutNow_()).filter(x => !CARD_KEEP[x]);
   const only = all.map(cardOnly_).filter(Boolean).join(', ');
   const say = only ? 'Tap again — this removes the only place to edit ' + only : all.length > 1 ? 'Tap again to delete all ' + all.length + ' of its parts' : 'Tap again to delete';
   if (!layArm_(el, say, 'Delete', true)) return;
@@ -852,7 +981,7 @@ on('lay-c-del', el => {
 on('lay-start', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
-  if ((cardCols_().indexOf(col) === -1 && !Object.keys(LAYOUT_COL).some(k => LAYOUT_COL[k] === col)) || !LAYOUT_START_ID.test(id || '')) return;
+  if (!hostIs_(col) || !LAYOUT_START_ID.test(id || '')) return;
   const D = layoutDraftOf_(layoutNow_());
   const s = Object.assign({}, D.start || {});
   if (s[col] === id) delete s[col]; else s[col] = id;
@@ -877,67 +1006,89 @@ try { const f = frontNow_(); if (f && !FRONT_KEPT && TABS.some(t => t.id === f.c
 function cardSeen_(col) { return (CARD_SEEN[col] || []).slice(); }
 function cardStartAt_(col) { try { return PAGE_HOME[col](); } catch (e) { return 0; } }
 
-/* ---------- AN ADMIN'S OWN COLUMNS (466): ▶ past the last right-hand column makes one, before Business, for everybody ---------- */
-/* The owner: "moving right, right, right should eventually go into a new column." Its cards keep their own role gates. */
+/* ---------- AN ADMIN'S OWN COLUMNS (466, 710): ◀ or ▶ past an edge makes one, for everybody; it has no name, only a place ---------- */
+/* The owner: "there shouldn't really be a name distinguisher for the column." Its units keep their own role gates. */
 const CUSTOM_TABS = {};
 const cardCustom_ = col => CUSTOM_ID.test(String(col || ''));
 const customRoom_ = () => (((layoutNow_() || {}).custom) || []).length < CUSTOM_MAX;
-/* INTO `COLUMNS` BEFORE BUSINESS, as the layout in force names them — `columnsFor_` (shell.js) asks first, every time. */
+/* ITS TAB SAYS ITS FIRST UNIT (710): the pager and the tab list need a word, and the column's top thing is the one it opens on. */
+function customTitle_(id, L) {
+  const del = (L && L.deleted) || [], first = (((L && L.cards) || {})[id] || []).concat(((L && L.widgets) || {})[id] || []).find(x => del.indexOf(x) === -1);
+  try { return first ? layoutDeletedName_(first) : 'Column'; } catch (e) { return 'Column'; }
+}
+/* INTO `COLUMNS` as the layout in force places them — `columnsFor_` (shell.js) asks first, every time. */
 function customTabsSync_() {
-  const want = ((layoutNow_() || {}).custom) || [];
+  const L = layoutNow_(), want = (L || {}).custom || [];
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
-  /* A `left` ONE (600) stands before Parent settings, the others before Business; an admin-only one (508) after Site, `admin`, so `columnsFor_` leaves it out for everybody else. */
+  /* `first` (710) before the first column a unit stands on, `left` (600) before Parent settings, an admin-only one (508) last, the rest before Business. */
   const before = id => { const i = COLUMNS.findIndex(t => t.id === id); return i === -1 ? COLUMNS.length : i; };
-  let atL = before('family');
-  want.filter(c => c.left).concat(want.filter(c => !c.admin && !c.left), want.filter(c => c.admin)).forEach(c => {
+  const hosts = hostCols_(null), f0 = COLUMNS.findIndex(t => hosts.indexOf(t.id) !== -1);
+  let atF = f0 === -1 ? 0 : f0;
+  const place = c => {
     const t = CUSTOM_TABS[c.id] || (CUSTOM_TABS[c.id] = { id: c.id, icon: '▦', custom: true });
-    t.label = t.title = c.title;
+    t.label = t.title = customTitle_(c.id, L);
     t.admin = !!c.admin;
     if (c.admin) COLUMNS.push(t);
-    else if (c.left) COLUMNS.splice(atL++, 0, t);
+    else if (c.first) COLUMNS.splice(atF++, 0, t);
+    else if (c.left) COLUMNS.splice(before('family'), 0, t);
     else COLUMNS.splice(before('biz'), 0, t);
     if (!SCREENS[c.id]) screen(c.id, () => pages(c.id, cardsOf_(c.id)));
     if (!PAGE_HOME[c.id]) PAGE_HOME[c.id] = () => { const n = CARD_START_AT[c.id]; return typeof n === 'number' && n >= 0 ? n : 0; };
-  });
+    if (WIDGET_COLS.indexOf(c.id) === -1) WIDGET_COLS.push(c.id);
+  };
+  want.filter(c => c.first).forEach(place);
+  want.filter(c => c.left).forEach(place);
+  want.filter(c => !c.admin && !c.left && !c.first).forEach(place);
+  want.filter(c => c.admin).forEach(place);
+  colOrderApply_(L);
 }
-/* AN EMPTY CUSTOM COLUMN GOES, at every save: the last card moved or deleted out of it takes the column with it. */
+/* ---------- WHOLE COLUMNS MOVE (730): the columns `order` names take the places they already fill, in its order; the rest stay put ---------- */
+function colOrderApply_(L) {
+  const ord = ((L || {}).order || []).filter(id => COLUMNS.some(t => t.id === id));
+  if (ord.length < 2) return;
+  const slots = COLUMNS.map((t, i) => (ord.indexOf(t.id) !== -1 ? i : -1)).filter(i => i !== -1);
+  const tabs = ord.map(id => COLUMNS.find(t => t.id === id));
+  slots.forEach((at, k) => { COLUMNS[at] = tabs[k]; });
+}
+/* ◀ ▶ ON A COLUMN: on its first unit's admin row, beside that unit's own; `lay-col` swaps it with the neighbouring column this admin sees. */
+function colTiles_(col, id) {
+  if (!layoutIsAdmin_() || (CARD_SEEN[col] || [])[0] !== id) return '';
+  let seq = [];
+  try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
+  const i = seq.indexOf(col);
+  if (i === -1) return '';
+  return `<span class="tile-group is-admin col-move">${
+    tile_({ icon: 'col-left', label: 'Move this column left', act: 'lay-col', tone: 'admin', data: { col: col, d: -1 }, off: i <= 0 })}${
+    tile_({ icon: 'col-right', label: 'Move this column right', act: 'lay-col', tone: 'admin', data: { col: col, d: 1 }, off: i >= seq.length - 1 })}</span>`;
+}
+on('lay-col', el => {
+  const col = el.getAttribute('data-col') || '', d = Number(el.getAttribute('data-d')) || 0;
+  let seq = [];
+  try { seq = TABS.map(t => t.id); } catch (e) { seq = []; }
+  const i = seq.indexOf(col), j = i + d;
+  if (i === -1 || j < 0 || j >= seq.length) return;
+  /* THE WHOLE ROW AS THIS ADMIN SEES IT, written down, so a later column added to the code still has a place (TAB_ORDER's). */
+  const all = COLUMNS.map(t => t.id), a = all.indexOf(col), b = all.indexOf(seq[j]);
+  [all[a], all[b]] = [all[b], all[a]];
+  const D = layoutDraftOf_(layoutNow_());
+  D.order = all;
+  layoutSave_(D);
+  try { go(col); } catch (e) { /* a column that cannot open now stays where it was */ }
+});
+/* A WIDGET ON A CARD COLUMN IS STARTED THERE (710): every column a unit may stand on is one `widgetsOn_` (arcade.js) is asked about. */
+CARD_COLS.forEach(c => { if (WIDGET_COLS.indexOf(c) === -1) WIDGET_COLS.push(c); });
+/* AN EMPTY CUSTOM COLUMN GOES, at every save: the last unit moved or deleted out of it takes the column with it. */
 function customPrune_(D) {
   if (!D || !D.custom) return D;
   const del = D.deleted || [];
-  D.custom = D.custom.filter(x => ((D.cards || {})[x.id] || []).some(id => del.indexOf(id) === -1));
+  D.custom = D.custom.filter(x => ((D.cards || {})[x.id] || []).concat((D.widgets || {})[x.id] || []).some(id => del.indexOf(id) === -1));
   const gone = id => !D.custom.some(x => x.id === id) && cardCustom_(id);
   Object.keys(D.cards || {}).forEach(c => { if (gone(c)) delete D.cards[c]; });
+  Object.keys(D.widgets || {}).forEach(c => { if (gone(c)) delete D.widgets[c]; });
   if (D.start) Object.keys(D.start).forEach(c => { if (gone(c)) delete D.start[c]; });
   if (!D.custom.length) delete D.custom;
   return D;
 }
-/* ITS FIRST LINE, AN ADMIN'S: the name as a one-line form, Rename, and Delete column (its cards go home). */
-function customHead_(col) {
-  const c = (((layoutNow_() || {}).custom) || []).find(x => x.id === col) || { title: 'New column' };
-  return `<div class="card custom-head" data-custom-col="${esc(col)}"><label class="field"><span>Column name</span>
-    <input class="lay-col-name" maxlength="40" value="${esc(c.title)}" aria-label="Column name"></label>
-    <div class="tile-row wgt-admin card-admin">${
-      tile_({ icon: 'edit', label: 'Rename', note: 'this column', act: 'lay-col-rename', tone: 'admin', data: { col: col } })}${
-      tile_({ icon: 'bin', label: 'Delete column', note: 'its cards go back home', act: 'lay-col-del', tone: 'admin', data: { col: col }, cls: 'lay-del' })}</div></div>`;
-}
-on('lay-col-rename', el => {
-  if (!layoutIsAdmin_()) return;
-  const col = el.getAttribute('data-col'), box = el.closest('.custom-head')?.querySelector('.lay-col-name');
-  const title = String((box && box.value) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
-  const D = layoutDraftOf_(layoutNow_()), c = (D.custom || []).find(x => x.id === col);
-  if (!c || !title || title === c.title) return;
-  c.title = title;
-  layoutSave_(D);
-});
-on('lay-col-del', el => {
-  if (!layoutIsAdmin_()) return;
-  const col = el.getAttribute('data-col'), D = layoutDraftOf_(layoutNow_());
-  if (!(D.custom || []).some(x => x.id === col)) return;
-  if (!layArm_(el, 'Tap again to delete this column', 'Delete column', false)) return;
-  if (D.cards) delete D.cards[col];
-  D.custom = D.custom.filter(x => x.id !== col);
-  layoutSave_(D);
-});
 
 /* ---------- MERGE WITH THE CARD ABOVE (480): any two neighbours in a column become one card, for everybody; again, and three are one */
 /* The owner: "each item to be mergeable with another item… merge with the item above only, and then once that becomes one widget, I can merge with the item above again". */
@@ -1008,9 +1159,10 @@ on('lay-merge', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-m'), col = el.getAttribute('data-col'), isW = el.getAttribute('data-w') === '1';
   const L = layoutNow_(), D = layoutDraftOf_(L);
-  const seen = isW ? layoutSeen_(col, D) : (CARD_SEEN[col] || []);
+  const seen = CARD_SEEN[col] || (isW ? layoutSeen_(col, D) : []);
   const units = mergeUnits_(seen, D), ui = units.findIndex(u => u.indexOf(id) !== -1), above = units[ui - 1];
-  if (ui < 1 || !above) return;
+  /* ONE KIND TO A MERGE (710): a widget's frame cannot hold a card's page, nor the other way. */
+  if (ui < 1 || !above || above.every(isWidgetId_) !== isWidgetId_(id)) return;
   const up = mergeAll_(above[0], D), mine = mergeAll_(id, D), g = up.concat(mine.filter(x => up.indexOf(x) === -1));
   if (!mergeOk_(g)) return;
   D.merged = (D.merged || []).filter(x => !x.some(y => g.indexOf(y) !== -1)).concat([g]);

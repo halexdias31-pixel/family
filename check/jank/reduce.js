@@ -43,8 +43,11 @@ module.exports = {
         const ids = typeof widgetsOf_ === 'function' ? widgetsOf_('tool').map(x => String(x.id)) : [];
         const n = ids.indexOf('whiteboard');
         if (n < 0) return { bad, board: 'no whiteboard among the tools' };
-        go('tools', false, true); await wait(300);
-        goPage('tools', n, true);
+        /* A FIND CARD (790): Find › Tools, then its page. */
+        finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
+        go('stuff', false, true); await wait(300);
+        const at = inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(p => p.x && p.x.widget && String(p.x.widget.id) === 'whiteboard'));
+        if (at > -1) goPage('stuff', inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + at, true);
         for (let i = 0; i < 60 && !(typeof NB_LIVE !== 'undefined' && NB_LIVE.size); i++) await wait(100);
         const b = typeof NB_LIVE !== 'undefined' && [...NB_LIVE].find(x => x.el.isConnected);
         if (!b) return { bad, board: 'the whiteboard drew no notebook' };

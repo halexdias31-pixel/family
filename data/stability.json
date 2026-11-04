@@ -1,0 +1,261 @@
+{
+ "v": 2,
+ "tier": "core",
+ "score": 63.8,
+ "verdict": "Shaky: exceptions and special cases are piling up.",
+ "signals": [
+  {
+   "id": "catches",
+   "label": "Empty catches allowed (check-catches ceiling)",
+   "count": 526,
+   "weight": 0.02,
+   "cap": 15,
+   "off": 10.5,
+   "where": {}
+  },
+  {
+   "id": "special",
+   "label": "Per-facet and per-kind special cases",
+   "count": 147,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 7.4,
+   "where": {
+    "js/cards.js": 4,
+    "js/data.js": 4,
+    "js/find.js": 93,
+    "js/keypad.js": 5,
+    "js/links.js": 3,
+    "js/me.js": 7,
+    "js/price-rows.js": 2,
+    "js/qtools.js": 4,
+    "js/resource.js": 4,
+    "js/submit.js": 7,
+    "js/tiles.js": 14
+   }
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 21,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 6.3,
+   "where": {
+    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), blockHours_ (book.js), nextBookStep (book.js), collPages_ (collections.js), whyThisQuestion (find.js), insertsFor_ (find.js), initWhiteboard (find.js), seriesCmp_ (find.js), scrAt_ (games.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), layoutColOf_ (layout.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), typedFirstWords_ (people.gs)"
+   }
+  },
+  {
+   "id": "exceptions",
+   "label": "Written exceptions in the checks",
+   "count": 62,
+   "weight": 0.1,
+   "cap": 20,
+   "off": 6.2,
+   "where": {
+    "js/check-answerable.js ACCEPTED": 6,
+    "js/check-answers.js ACCEPTED": 1,
+    "js/check-css.js DIM_OK": 10,
+    "js/check-dropdowns.js PICKER_OK": 1,
+    "js/check-library.js KNOWN_F": 1,
+    "js/check-loading.js PHRASE_OK": 8,
+    "js/check-loading.js ACCEPTED_KEYFRAMES": 1,
+    "js/check-payload.js ACCEPTED": 4,
+    "js/check-settings.js ACCEPTED_GONE": 3,
+    "js/check-strings.js ROLE_OK": 1,
+    "js/check-surfaces.js POPUP_OK": 2,
+    "check/diagrams.js ACCEPTED": 4,
+    "check/motion.js ACCEPTED": 18,
+    "check/types.js ACCEPTED": 2
+   }
+  },
+  {
+   "id": "ceilings",
+   "label": "Raised ratchet ceilings (*_MAX)",
+   "count": 1098,
+   "weight": 0.002,
+   "cap": 10,
+   "off": 2.2,
+   "where": {
+    "js/check-library.js NOT_DRAWN_MAX": 410,
+    "js/check-library.js STEM_NOT_DRAWN_MAX": 658,
+    "js/check-practicals.js QTY_MAX": 12,
+    "js/check-projects.js QTY_MAX": 12,
+    "js/check-tiers.js EAGER_SECONDARY_MAX": 4,
+    "check/pen.js FRAME_WRITES_MAX": 2
+   }
+  },
+  {
+   "id": "longfiles",
+   "label": "Files over 3000 lines",
+   "count": 4,
+   "weight": 0.5,
+   "cap": 10,
+   "off": 2,
+   "where": {
+    "js/find.js": 12164,
+    "js/me.js": 4885,
+    "js/shell.js": 3868,
+    "backend/dopost.gs": 4609
+   }
+  },
+  {
+   "id": "duplicates",
+   "label": "Repeated long lines",
+   "count": 54,
+   "weight": 0.02,
+   "cap": 10,
+   "off": 1.1,
+   "where": {
+    "lines": 20
+   }
+  },
+  {
+   "id": "longfns",
+   "label": "Functions over 150 lines",
+   "count": 10,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 0.5,
+   "where": {
+    "js/core.js priceFrom": 251,
+    "js/find.js typeset_": 230,
+    "js/find.js drawMarker_": 644,
+    "js/find.js stuffItemsRaw_": 170,
+    "js/library.js libraryExtras_": 180,
+    "js/shell.js placeGrid": 163,
+    "js/shell.js loadOnce_": 252,
+    "backend/doget.gs doGet": 1204,
+    "backend/dopost.gs doPost": 3590,
+    "backend/setup.gs dataProblems": 282
+   }
+  },
+  {
+   "id": "markers",
+   "label": "TODO / FIXME / HACK markers",
+   "count": 0,
+   "weight": 0.2,
+   "cap": 5,
+   "off": 0,
+   "where": {}
+  }
+ ],
+ "secondary": {
+  "score": 82,
+  "verdict": "Steady, with duct tape worth paying down.",
+  "signals": [
+   {
+    "id": "exceptions",
+    "label": "Written exceptions in the checks",
+    "count": 140,
+    "weight": 0.1,
+    "cap": 20,
+    "off": 14,
+    "where": {
+     "js/check-reels.js VIDEO_OK": 6,
+     "js/check-widgets.js ACCEPTED_ENGINE": 13,
+     "js/check-widgets.js CAT_WORD_OK": 9,
+     "js/check-widgets.js NEAR_OK": 22,
+     "js/check-widgets.js ACCEPTED_IMPURE": 6,
+     "check/cascade.js ACCEPTED": 28,
+     "check/press-twice.js ACCEPTED": 2,
+     "check/press.js ACCEPTED_QUIET": 21,
+     "check/ui.js ACCEPTED_NEST": 9,
+     "check/ui.js ACCEPTED_TAP": 24
+    }
+   },
+   {
+    "id": "special",
+    "label": "Per-facet and per-kind special cases",
+    "count": 56,
+    "weight": 0.05,
+    "cap": 10,
+    "off": 2.8,
+    "where": {
+     "js/arcade.js": 7,
+     "js/collections.js": 7,
+     "js/games.js": 11,
+     "js/layout.js": 1,
+     "js/mat.js": 3,
+     "js/orthodox.js": 2,
+     "js/posts.js": 7,
+     "js/racer.js": 3,
+     "js/reader.js": 11,
+     "js/records.js": 1,
+     "js/writings.js": 3
+    }
+   },
+   {
+    "id": "duplicates",
+    "label": "Repeated long lines",
+    "count": 27,
+    "weight": 0.02,
+    "cap": 10,
+    "off": 0.5,
+    "where": {
+     "lines": 11
+    }
+   },
+   {
+    "id": "longfiles",
+    "label": "Files over 3000 lines",
+    "count": 1,
+    "weight": 0.5,
+    "cap": 10,
+    "off": 0.5,
+    "where": {
+     "js/games.js": 6449
+    }
+   },
+   {
+    "id": "longfns",
+    "label": "Functions over 150 lines",
+    "count": 3,
+    "weight": 0.05,
+    "cap": 10,
+    "off": 0.2,
+    "where": {
+     "js/mat.js matPaint": 158,
+     "js/racer.js raceMesh_": 151,
+     "js/receipt.js flappyStill_": 304
+    }
+   },
+   {
+    "id": "catches",
+    "label": "Empty catches allowed (check-catches ceiling)",
+    "count": 0,
+    "weight": 0.02,
+    "cap": 15,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "ceilings",
+    "label": "Raised ratchet ceilings (*_MAX)",
+    "count": 0,
+    "weight": 0.002,
+    "cap": 10,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "dead",
+    "label": "Code nothing calls",
+    "count": 0,
+    "weight": 0.3,
+    "cap": 10,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "markers",
+    "label": "TODO / FIXME / HACK markers",
+    "count": 0,
+    "weight": 0.2,
+    "cap": 5,
+    "off": 0,
+    "where": {}
+   }
+  ]
+ }
+}

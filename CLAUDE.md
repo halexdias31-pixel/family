@@ -36,10 +36,9 @@ reports any name used but never declared. **Run it after every change.**
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
 | `js/book.js` | Sessions, seats, payment. |
 
-Screens, in `TAB_ORDER` (392, 461): `spotlight feed reel dm | tools stuff res saved | booking shop | games |
-family staff account | tutors students parents | biz`; `data/settings/columns.json` must list the same order
-(`check-doors`); an admin's layout (config `layout`, js/layout.js, 462-463) is laid over this default. `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `family staff account` are
-Parent, Tutor and Student settings, `tutors students parents` the three profile columns; every setting has one home. `biz` is admin-only — a tab marked
+Screens, in `TAB_ORDER` (392, 461, 730, 790): `spotlight feed reel dm | stuff res saved | booking shop |
+web tutors students parents apprentices | staff site account family apprentice biz`; `data/settings/columns.json` must list the same order
+and mark the same card columns (`cards`, read into `CARD_COLS`; backend's copy in constants.gs is written by `tools/columns_gs.js`) (`check-doors`); an admin's layout (config `layout`, js/layout.js, 462-463, 710, 730) is laid over this default, its `order` over TAB_ORDER. `feed` is where the app opens (`TAB_HOME`). `stuff` is Find, whose cards include every tool and game (kinds `tool`, `game`; which ones is data/settings/widgets-in-find.json, 790); `res` is Find 2; the five profiles are Web, Tutor, Student, Parent and Apprentice profile; the six settings Tutor (`staff`), Web (`site`), Kids (`account`), Parent (`family`), Apprentice and Biz (`biz`) settings; every setting has one home. `biz` and `site` are admin-only — a tab marked
 `admin: true` is left out of `TABS` by `columnsFor_` (shell.js), which also makes and removes its `<section>`.
 
 **One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the same list and ask the same
@@ -123,14 +122,20 @@ only when the real files are green again.
 
 ```bash
 node js/check.js                  # names used but never declared. Run after every change.
-npm run check                     # everything (js/check-all.js); -v for a line per check. Before pushing.
+npm run check                     # the core checks (js/check-all.js); --all adds secondary; -v per check. Before pushing.
 FLOW_PART=1/4 node js/check-flow.js   # the journeys through the real app, in four parts
 node check/ui.js --screen=tools   # one screen of the layout check; --shots writes PNGs
 node check/live.js --sheets s.json --out /tmp/p.json && node check/ui.js --payload=/tmp/p.json
 node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails, nothing sent
 ```
 
+**Two tiers** (860): only Find must never break. `data/settings/tiers.json` marks each screen, widget, kind, file and check
+core or secondary; core checks and journeys block, secondary ones (`--all`, `FLOW_TIER=all`) only print WARN.
 Each check's header says what it proves, its flags and its port variable. The full list: `docs/map-detail.md`.
+
+**CI** (780): `.github/workflows/checks.yml` runs the suite on every push and PR to main in 17 parallel jobs (~15 min), with
+`LIB_PRIVATE=absent` — no private words there, so the checks that need them skip, counted in each job's summary (skipped is
+not green). `npm run check:changed` runs only what a change touches. `live.yml` smoke-tests the live site nightly.
 
 ## House style
 

@@ -182,7 +182,7 @@ function postCard_(p, i) {
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES § */
     const acts = reacts(p) || (isAdmin()
       ? '<span class="faint">No reactions — this payload predates them. '
-        + 'Check the build stamp on Business.</span>'
+        + 'Check the build stamp on Web settings.</span>'
       : '');
     const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
 
@@ -1832,6 +1832,7 @@ function reelTurn_(n) {
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. § */
   /* AND NOT WHILE THE COLUMN IS STILL WAITING. § */
   if (LOADED && n - REEL_LEAD >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
+  ytSweep_();
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen rather than gone, because the column peeks above and below. § */
   host.querySelectorAll('.reel').forEach(el => {
@@ -1932,6 +1933,12 @@ function ytClocksOff_(box) {
   clearTimeout(o.clock); clearTimeout(o.lap);
   o.clock = o.lap = 0;
   o.st = null;
+  YT_WOUND.delete(box);
+}
+/* A REPAINT THROWS A SLIDE AWAY WITHOUT DROPPING IT (750), and its clock ran on beside the new slide's: two clocks for one Short. Stopped before any clock is wound. */
+const YT_WOUND = new Set();
+function ytSweep_() {
+  YT_WOUND.forEach(box => { if (!box.isConnected) ytClocksOff_(box); });
 }
 function ytBox_(box) {
   let o = YT_BOX.get(box);
@@ -1988,7 +1995,9 @@ function reelYtBuild_(box) {
 function reelYtClock_(box) {
   const f = box.querySelector('iframe.feed-yt-frame');
   const o = ytBox_(box);
+  ytSweep_();
   if (!f || f.dataset.played || o.clock) return;
+  YT_WOUND.add(box);
   o.clock = setTimeout(() => {
     o.clock = 0;
     if (!f.isConnected || f.dataset.played) return;
@@ -2083,7 +2092,7 @@ function reelYtHeard_(f, d) {
   } else if (st === 3) {
     /* buffering: as it is */
   } else if ((st === 0 || st === -1) && box.dataset.want === 'play' && box.classList.contains('is-live')) {
-    if (!o.lap) o.lap = setTimeout(() => {
+    if (!o.lap) YT_WOUND.add(box), o.lap = setTimeout(() => {
       o.lap = 0;
       if (o.st !== 1 && o.st !== 3) box.classList.remove('is-live');
     }, YT_LAP);
@@ -2232,6 +2241,13 @@ function dmSync_(force) {
   });
 }
 
+/* THE PAYLOAD'S COPY (700): taken as the first answer, and the 20 s poll keeps it fresh from there. A backend that sends none leaves the ask as it was. */
+function dmAdopt_(d) {
+  if (!USER || !d || !Array.isArray(d.messages) || DM_BUSY) return;
+  MESSAGES = d.messages; MSG_FAILED = false;
+  DM_ASKED = true; DM_DONE = true; DM_LAST = Date.now();
+}
+
 /* STARTED WHEN THE COLUMN ARRIVES AND STOPPED WHEN IT LEAVES, from `startScreen_` and `paint` — the one list that exists for exactly this. § */
 function dmPoll_() {
   clearInterval(DM_TIMER);
@@ -2333,9 +2349,9 @@ function asstPut_(s) { ASST_MEM = { key: asstKey_(), s: s }; try { localStorage.
 /* WHAT EACH COLUMN IS FOR, in plain words, so Daive can say where things are. Site help only: nothing about the business (547). */
 const ASST_NAV = {
   spotlight: 'what is pinned in the window', feed: 'posts; the camera is the page above the newest post', reel: 'short videos, one per page',
-  dm: 'messages, one conversation per page; Daive is the first', tools: 'the widgets: whiteboard, calculator, planners and more',
-  stuff: 'pick answers to narrow down questions, papers and lessons', res: 'a second finder that keeps its own place',
-  saved: 'what you starred', booking: 'book a session', shop: 'the shop', games: 'games',
+  dm: 'messages, one conversation per page; Daive is the first',
+  stuff: 'pick answers to narrow down questions, papers, lessons, tools and games', res: 'a second finder that keeps its own place',
+  saved: 'what you starred', booking: 'book a session', shop: 'the shop',
   family: 'a parent account\'s settings', staff: 'a tutor account\'s settings', account: 'a student account\'s settings: sign in, PIN, progress',
   tutors: 'a card per tutor', students: 'a card per student', parents: 'a card per parent',
 };
@@ -2343,7 +2359,7 @@ const ASST_NAV = {
 function asstFacts_() {
   const out = ['swipe left and right to move between columns; the bar at the bottom jumps to one'];
   try { TABS.forEach(t => out.push('column "' + t.title + '": ' + (ASST_NAV[t.id] || t.title))); } catch (e) { /* no columns yet: the map is shorter, not broken */ }
-  try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools widgets: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
+  try { const ws = widgetsOf_('tool').map(x => x.name || x.id).filter(Boolean); if (ws.length) out.push('Tools in Find: ' + ws.join(', ')); } catch (e) { /* no widgets yet: the columns alone */ }
   out.push('to message a tutor: the Message tile on their card');
   return out.join('\n').slice(0, 4000);
 }

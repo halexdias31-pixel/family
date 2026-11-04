@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-02-seat-620";
+const DOPOST_VERSION = "2026-11-04-find-790";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1413,35 +1413,7 @@ function doPost(e) {
     if (action === 'messages') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
-      const mine = S(me.person_id);
-      /* A THREAD WITH SOMEBODY THEY MAY NO LONGER SEE IS NOT SENT (386) — staff threads always are (`seesPerson_`). */
-      const vis = seesWhom_(me);
-
-      const rows = read(TAB.messages).rows
-        .filter(r => S(r.from_id) === mine || S(r.to_id) === mine)
-        .filter(r => seesPerson_(vis, findPerson('', S(r.from_id) === mine ? S(r.to_id) : S(r.from_id))))
-        .map(r => {
-          /* ---------- WHO THE OTHER PERSON IS § */
-          const other = S(r.from_id) === mine ? S(r.to_id) : S(r.from_id);
-          const who = findPerson('', other);
-          return {
-            id: S(r.message_id),
-            fromId: S(r.from_id), toId: S(r.to_id),
-            mine: S(r.from_id) === mine,
-            withId: other,
-            /* `nameFor_`: a child in somebody's inbox is their first name, and two children called
-               Sam are two threads told apart by their handles (the owner, 10 Oct). */
-            withName: who ? nameFor_(who) : '',
-            /* THEIR FACE, from the people tab — so a parent's or a child's head is their picture, not only a tutor's (413). */
-            withFace: msgFace_(who),
-            fromName: S(r.from_id) === mine ? nameFor_(me)
-                                            : (who ? nameFor_(who) : ''),
-            at: fmtDateTime(r.sent_at),
-            body: S(r.body),
-            attachments: msgAttachOut_(r.attachments),
-            read: !!sheetDate(r.read_at),
-          };
-        });
+      const rows = messagesOf_(me);
       return jsonOut({ success: true, messages: rows, gapMs: MESSAGE_GAP_MS });
     }
 
@@ -4600,4 +4572,37 @@ function clientErrorsList_() {
     id: S(r.error_id), first: at(r.first_at), last: at(r.last_at), count: Number(r.count) || 0, devices: Number(r.devices) || 0,
     message: S(r.message), where: S(r.where), version: S(r.version), screen: S(r.screen),
   })).sort((a, b) => b.last - a.last).slice(0, 50);
+}
+
+/* ONE PERSON'S MESSAGES — asked by `messages`, and sent in the payload so the DMs column draws with the others (700). */
+function messagesOf_(me) {
+  const mine = S(me.person_id);
+  /* A THREAD WITH SOMEBODY THEY MAY NO LONGER SEE IS NOT SENT (386) — staff threads always are (`seesPerson_`). */
+  const vis = seesWhom_(me);
+
+  return read(TAB.messages).rows
+    .filter(r => S(r.from_id) === mine || S(r.to_id) === mine)
+    .filter(r => seesPerson_(vis, findPerson('', S(r.from_id) === mine ? S(r.to_id) : S(r.from_id))))
+    .map(r => {
+      /* ---------- WHO THE OTHER PERSON IS § */
+      const other = S(r.from_id) === mine ? S(r.to_id) : S(r.from_id);
+      const who = findPerson('', other);
+      return {
+        id: S(r.message_id),
+        fromId: S(r.from_id), toId: S(r.to_id),
+        mine: S(r.from_id) === mine,
+        withId: other,
+        /* `nameFor_`: a child in somebody's inbox is their first name, and two children called
+           Sam are two threads told apart by their handles (the owner, 10 Oct). */
+        withName: who ? nameFor_(who) : '',
+        /* THEIR FACE, from the people tab — so a parent's or a child's head is their picture, not only a tutor's (413). */
+        withFace: msgFace_(who),
+        fromName: S(r.from_id) === mine ? nameFor_(me)
+                                        : (who ? nameFor_(who) : ''),
+        at: fmtDateTime(r.sent_at),
+        body: S(r.body),
+        attachments: msgAttachOut_(r.attachments),
+        read: !!sheetDate(r.read_at),
+      };
+    });
 }

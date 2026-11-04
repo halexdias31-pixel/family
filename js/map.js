@@ -239,12 +239,12 @@ const WIDGETS = [
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
   { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
     into: 'sr-text', what: 'The speed reader',
-    html: `<div class="card">
+    get html() { return `<div class="card">
     <h3>Speed reader</h3>
     <p class="sub">Paste anything; it is shown a word at a time, the eye kept still on the gold letter.</p>
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
-    <button class="btn" data-do="sr-read">Read it</button>
-  </div>` },
+    ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
+  </div>`; } },
   /* ---------- `Your week` WAS HERE, AND IS IN THE TIMETABLE NOW § */
   /* ---------- THE `live` WIDGET WAS HERE § */
 
@@ -258,7 +258,6 @@ const WIDGETS = [
 
   /* ---------- TOUCH TYPING § */
   { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
-    pure: true,
     start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },
@@ -333,7 +332,6 @@ const WIDGETS = [
     <div id="pxe-box"></div>
   </div>` },
   { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
-    pure: true,
     draw: () => paintEink_?.(),
     into: 'eink-box', what: 'The e-ink screen',
     html: `<h3>E-ink screen</h3>
@@ -357,6 +355,8 @@ const WIDGETS = [
     <div id="lib-box"></div>
   </div>` },
 ];
+/* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
+tierGuardWidgets_(WIDGETS);
 
 
 

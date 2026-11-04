@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-11-02-merge-7";
+  --css-version: "2026-11-03-770";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -392,8 +392,8 @@ html.wide body { max-width: none; box-shadow: none; }
 .card:last-child { border-bottom: 0; }
 /* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it and it took the browser's own h3 margin — 17px above the § */
 .card > h3, .card > .me-form > h3:first-child {
-  margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
-.card .sub { color: var(--dim); font-size: .82rem; margin: -.25rem 0 .5rem; }
+  margin: 0 0 .5rem; font-size: var(--fs-md); font-weight: var(--fw-title, 600); line-height: var(--lh-tight); letter-spacing: -.01em; }
+.card .sub { color: var(--dim); font-size: var(--fs-sm); margin: -.25rem 0 .5rem; }
 
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
    and it must SAY something happened the instant it is touched. */
@@ -530,7 +530,7 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
 label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
-  font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
+  font-size: var(--fs-xs); letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
 /* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
    the label, so it does not get the label's uppercase treatment. */
@@ -1506,7 +1506,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   color: var(--faint); font-size: .8rem;
 }
 .thing-body { min-width: 0; flex: 1; }
-.thing-body h3 { margin: 0 0 .15rem; font-size: .92rem; }
+.thing-body h3 { margin: 0 0 .15rem; font-size: var(--fs-md); }
 .thing-body .sub { margin: 0 0 .3rem; }
 
 /* The price. Always shown, even when it is nothing — "0 credits" tells somebody it is free, and a
@@ -1705,10 +1705,16 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* ONLY THE CARD IN FRONT MOVES. § */
 .page:not(.on) .loading, .page:not(.on) .loading > span { animation: none; }
 /* A WHOLE PAGE WAITING: § */
-.pane:has(> .loading:only-child) {
+.pane:not([data-keep]):has(> .loading:only-child) {
   min-height: 6rem;
   background: none; border-color: transparent; box-shadow: none;
 }
+/* ITS SIZE KNOWN (700, `shapeHold_`): the pane's own quiet surface at the height it landed at last visit, so nothing moves when it fills. */
+.pane[data-keep]:has(> .loading:only-child) { min-height: var(--keep-h); }
+/* WHAT TOOK THE DOTS' PLACE FADES IN (`arrive_`, 700): opacity only, so it is one soft fade and no layout. */
+.arrive { animation: arrive calc(var(--dur-enter) * 2) var(--ease-out) both; }
+@keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }
 .pane > .loading:only-child { flex: 1 1 auto; }
 /* OVER WHAT IS ALREADY DRAWN: § */
 [aria-busy="true"]:has(> .loading) { position: relative; min-height: 3rem; }
@@ -1847,6 +1853,7 @@ button.text-drop { color: var(--bad); }
 @media (hover: none) { .dock-row .text-drop { opacity: .5; } }
 
 .dock-new { display: flex; gap: .4rem; align-items: stretch; margin-top: .5rem; }
+.dock-new[hidden] { display: none; }
 .dock-new input { flex: 1; min-width: 0; }
 /* `.btn.tiny` AND THIS RULE ARE BOTH TWO CLASSES, so the one written later wins — and `.btn.tiny` is ninety lines below, setting `font-size: .8rem`. § */
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
@@ -1948,6 +1955,8 @@ button.text-drop { color: var(--bad); }
 .vid-watch.is-fs .vid-under { flex: none; align-self: stretch; justify-content: flex-end; padding: 0 .5rem; }
 .vid-watch.is-fs .vid-now { display: none; }
 .vid-watch.is-fs .vid-under .vid-acts { margin: 0; }
+/* EXIT IS 44px IN FULL SCREEN (321): the one way out of a film over the whole glass, a fingertip's size like a Check. */
+.vid-watch.is-fs .vid-acts .tile { width: var(--tile-send); height: var(--tile-send); }
 @media (orientation: landscape) {
   .vid-watch.on.is-fs { flex-direction: row; }
   .vid-watch.is-fs .vid-stage {
@@ -2161,7 +2170,7 @@ button.text-drop { color: var(--bad); }
                 color: var(--c); }
 .feed-art.has-photo .feed-subject { color: color-mix(in srgb, var(--over-ink) 80%, transparent); }
 /* A FACT ABOUT THE LONGEST WORD IN THE DICTIONARY CONTAINS IT, which is the one thing a slide's own text can do that its box cannot survive: § */
-.feed-head { margin: .3rem 0 .45rem; font-size: 1.25rem; line-height: 1.2; font-weight: 640;
+.feed-head { margin: .3rem 0 .45rem; font-size: var(--fs-xl); line-height: var(--lh-tight); font-weight: 700;
              overflow-wrap: anywhere; }
 .feed-body { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--dim);
              overflow-wrap: anywhere; }
@@ -3398,7 +3407,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
-.prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
+/* NO STRONGER OUTLINE FOR "Teaches" (720, owner: "one of the tags is harder outlined"): the caption over the row says which they teach; every chip is drawn alike. */
 .prof-tags + .prof-teach { margin-top: .35rem; }
 /* THE LEVELS, RAISED AFTER THE SUBJECT — `teachChip_` in cards.js. § */
 .prof-lv {
@@ -3560,7 +3569,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .ps-bar { display: flex; gap: .4rem; align-items: stretch; }
 .ps-bar > .search-pill { flex: 1; min-width: 0; }
 .ps-bar .search-pill > input { min-height: 44px; }
-.ps-bar > .ps-go { flex: none; width: auto; margin: 0; min-height: 44px; padding: 0 1rem; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and
@@ -3717,7 +3725,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   color: var(--on-gold); background: var(--gold); padding: .12rem .38rem; border-radius: 2px;
   font-weight: 700;
 }
-.cpn-l h3 { margin: .4rem 0 .15rem; font-size: .92rem; font-weight: 700; color: var(--ink); }
+.cpn-l h3 { margin: .4rem 0 .15rem; font-size: var(--fs-md); font-weight: 700; color: var(--ink); }
 .cpn-l p  { margin: 0; font-size: .72rem; color: var(--dim); }
 /* THE SCARCITY, and it is the only thing on the card allowed to be loud besides the price. */
 .cpn-left {
@@ -4483,7 +4491,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN § */
 .fc-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
 /* ONE TITLE SIZE FOR A CARD THAT OWNS A PAGE, and a part page's title is one too — "Steps" under its kicker is the page's name exactly as § */
-.fc .fc-head h3, .fc.prac-part > h3 { font-size: 1.1rem; font-weight: 650; line-height: 1.3;
+.fc .fc-head h3, .fc.prac-part > h3 { font-size: var(--fs-lg); font-weight: 600; line-height: 1.3;
                                       letter-spacing: -.01em; }
 /* THE LINE UNDER THE TITLE SITS UNDER IT. § */
 .fc .fc-head + .sub { margin: var(--fc-in) 0 0; }
@@ -5219,6 +5227,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .row.tap.counted[data-tag]:not(:active):not(.is-pressed) { border-color: var(--tag); }
 .row.tap.counted[data-tag] .k { color: var(--tag); }
 .row.tap.counted.is-skip { background: none; border-style: dashed; }
+/* THE OTHER HALF OF A YES-OR-NO AT 0 (770, `facetNoneHtml_`): greyed words, never a chip a finger presses. */
+.facet-none { display: flex; flex-wrap: wrap; gap: .4rem .6rem; margin: .5rem 0 0; }
+.facet-none .none-chip { color: var(--dim); font-size: var(--fs-xs, .8rem); }
 .row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
 @media (hover: hover) {
   .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
@@ -5355,7 +5366,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* THE TITLE IS THE THING BEING CHOSEN, so it carries the weight — and it sits tight under the
    breadcrumb, because the two are one block and the space belongs below them, not between. */
-.card .crumb + h3 { margin-top: 0; font-size: 1rem; font-weight: 600; }
+.card .crumb + h3 { margin-top: 0; font-size: var(--fs-md); font-weight: 600; }
 
 /* ---------- A BUNDLE: THE PAPERS ON THE SCREEN, LISTED § */
 .card.bundle .bundle-list {
@@ -5373,7 +5384,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 }
 /* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
    the header's word on every card in this family. It wraps on its middots, which is where it reads. */
-.card.bundle .bundle-title { margin: .6rem 0 0; font: 600 .95rem/1.35 var(--font); color: var(--ink); }
+.card.bundle .bundle-title { margin: .6rem 0 0; font: 600 var(--fs-md)/1.35 var(--font); color: var(--ink); }
 .card.bundle .bundle-sub { margin: .3rem 0 .4rem; font: 500 .7rem/1.4 var(--mono); color: var(--dim); }
 
 /* ---------- EACH WIDGET IS ITS OWN THING § */
@@ -5418,9 +5429,15 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-height: 8rem;
   overflow-y: auto;
 }
+/* NO TITLE ON A WIDGET (720, owner: "none of the widgets need titles"): its heading stays for a screen reader, and its slot is a region named for it. */
+.card.is-widget .widget-slot > h3:first-child,
+.card.is-widget .widget-slot > .card:first-child > h3:first-child {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 .card.is-widget > h3 {
   margin: 0 0 .6rem;
-  font: 700 .72rem/1 var(--mono);
+  font: 700 var(--fs-xs)/1 var(--mono);
   letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
 }
 /* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
@@ -5432,6 +5449,12 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .cs-one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card.is-widget > .wgt-foot > .tile-group { display: contents; }
 .card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
+
+/* ---------- ONE SURFACE, AND IT IS THE PANE (690): what sits in it is flat, set apart by space and a hairline, as an iOS grouped list. */
+.pane :is(.card.is-widget, .qcard, .card:has(> .msg-body)) {
+  background: none; border: 0; border-radius: 0; padding-inline: 0; margin-inline: 0; }
+.pane :is(.card.is-widget, .qcard) + :is(.card.is-widget, .qcard) {
+  border-top: 1px solid var(--line-soft); padding-top: var(--s4); margin-top: var(--s2); }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
 .cam-card .cam-stage {
@@ -6551,7 +6574,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .rep-who { margin: 0 0 .3rem; font-size: .7rem; }
 /* THE REPORT BOX IN PLACE under a tile row (486), and the two heads of the admin's Reports card. */
 .rep-box { margin: .5rem 0; padding-top: .5rem; border-top: 1px solid var(--line); }
-.rep-head { margin: .6rem 0 .3rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.rep-head { margin: .6rem 0 .3rem; font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 
 /* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393): the sum, its figures, two charts, a control per term. */
 .profit { --pf-cost: var(--dim); }
@@ -6595,10 +6618,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pf-var input[type="range"]:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
 .pf-said { margin-top: .4rem; font-size: .72rem; }
 .pf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; margin: 0 0 .7rem; padding-bottom: .5rem; border-bottom: 1px solid var(--line); }
-.pf-head .pf-k { color: var(--dim); font-size: .78rem; }
-.pf-head .pf-v { color: var(--good); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.pf-head .pf-k { color: var(--dim); font-size: var(--fs-xs); }
+.pf-head .pf-v { color: var(--good); font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
 .pf-head .pf-v.is-bad { color: var(--bad); }
-.pf-head .pf-sum { flex-basis: 100%; color: var(--faint); font-size: .72rem; }
+.pf-head .pf-sum { flex-basis: 100%; color: var(--faint); font-size: var(--fs-xs); }
 
 /* ---------- THE STAFF HUB (405): terms, pricing with where an hour's money goes, the monthly statement — staff.js ---------- */
 .hub { --pb-tutor: var(--gold); --pb-room: #6f8fb3; --pb-fees: var(--dim); --pb-business: var(--good); }
@@ -6606,7 +6629,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .hub-body h3 { margin: 0 0 .3rem; }
 .hub-ver, .hub-lead, .hub-note { margin: 0 0 .6rem; font-size: .74rem; }
 .hub-terms .doc { font-size: .78rem; line-height: 1.45; color: var(--ink); }
-.hub-terms .doc h4 { margin: .9rem 0 .25rem; font-size: .8rem; color: var(--gold); }
+.hub-terms .doc h4 { margin: .9rem 0 .25rem; font-size: var(--fs-sm); color: var(--gold); }
 .hub-terms .doc ul { margin: .2rem 0; padding-left: 1.1rem; }
 .hub-terms .doc li + li { margin-top: .25rem; }
 .hub-terms .doc p { margin: .2rem 0; }
@@ -6888,7 +6911,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   border: 1px solid var(--line); margin: .4rem auto .6rem; max-width: calc(400px + 1.4rem);
 }
 .eink-panel { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: var(--eink-white); color: var(--eink-black); }
-.eink-px { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+/* SIZED BY einkDraw_ to whole device pixels per panel pixel (720), and centred in the panel; never resampled. */
+.eink-px { display: block; margin: auto; max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.eink-panel { display: grid; place-items: center; }
 .eink-words { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .eink-words p { margin: 0; }
 .eink-none { margin: 0; padding: 1rem; font-size: .9rem; }
@@ -7107,6 +7132,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
 .sp-q { flex: 1; min-width: 0; min-height: 44px; border-radius: 999px; padding: 0 1rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
 /* ---------- FAVOURITE LINKS (509): one line per link, its tiles on the same line ---------- */
+/* A GRID OF THE SITES (720): icon over name; the letter sits under the icon and shows when the site has none. */
+.fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .6rem .4rem; margin: .2rem 0 .6rem; }
+.fav-cell { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-width: 0; min-height: 44px; padding: .35rem .1rem;
+  border-radius: 10px; color: var(--ink); text-decoration: none; }
+.fav-ico { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); overflow: hidden; --fav-plate: #fff; }
+/* A SITE'S OWN ICON IS DRAWN FOR A WHITE PAGE, so it sits on a white plate; the letter alone keeps the screen's own colours. */
+.fav-ico:has(.fav-img) { background: var(--fav-plate); }
+.fav-letter { font-weight: 700; font-size: 1.1rem; color: var(--dim); }
+.fav-img { position: absolute; inset: 9px; width: 26px; height: 26px; object-fit: contain; background: var(--fav-plate); }
+.fav-name { max-width: 100%; font-size: .72rem; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-row { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--line); }
 .fav-a { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fav-host { margin-left: .4rem; color: var(--faint); font-size: .72rem; }
@@ -7155,7 +7191,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hy-verse + .hy-verse { margin-top: .6rem; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
-.mech-pic { display: block; width: 8rem; height: 8rem; margin: 0 0 0.5rem; padding: 0.25rem; background: var(--paper); border-radius: 8px; image-rendering: pixelated; }
 
 /* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
 .tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }
@@ -7168,3 +7203,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
 .rep-vids { margin: .4rem 0; }
 .rep-vid { align-items: center; }
+
+/* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
+.web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
+
+/* STABILITY (730): the score big, the signals as a short list. */
+.stability-card .stab-score, .logic-card .stab-score { font-size: 2.6rem; line-height: 1; margin: .4rem 0; color: var(--gold); }
+.stability-card .stab-top, .logic-card .stab-top { margin: .5rem 0 .6rem 1.1rem; padding: 0; }
+.stability-card .stab-top li, .logic-card .stab-top li { font-size: .9rem; }

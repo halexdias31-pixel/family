@@ -5,7 +5,7 @@
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
-                       'settings/spotlight'];
+                       'settings/spotlight', 'settings/widgets-in-find'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -129,6 +129,12 @@ function settingsInto_(d, extra) {
     d.spotlightFile = spot
       .filter(r => libS(r.item_id) && libOn(r.on))
       .map(r => libS(r.item_id));
+  }
+
+  /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
+  const inFind = extra['settings/widgets-in-find'];
+  if (inFind && inFind.length) {
+    d.widgetsInFind = inFind.filter(r => libS(r.widget).trim()).map(r => ({ widget: libS(r.widget).trim(), find: libOn(r.find) }));
   }
 
   return d;

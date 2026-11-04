@@ -1503,7 +1503,7 @@ function uploadsHtml_(d) {
 function uploadsPaint_() {
   document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
   /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note over `paneWatch_`. § */
-  if (typeof placeCells === 'function' && (AT === 'tools' || AT === 'saved')) {
+  if (typeof placeCells === 'function' && (AT === 'stuff' || AT === 'res' || AT === 'saved')) {
     try { placeCells('y', true, 0, AT); } catch (e) {}
   }
 }
@@ -1556,7 +1556,7 @@ function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
     <p class="sub">Your child makes their own account (Make an account). Then search their handle at the top of
-      ${esc(tabLabel_('students', 'Student profiles'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
+      ${esc(tabLabel_('students', 'Student profile'))} and tap Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
 
@@ -1695,7 +1695,7 @@ on('kid-pin-go', el => {
       const body = $('sheet-body');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
         + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Student settings once they are in.</p>'
+        + 'under Kids settings once they are in.</p>'
         + '<button class="btn quiet" data-do="sheet-done">Done</button>';
     })
     .catch(() => {});
@@ -1895,7 +1895,9 @@ function studentSetPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean).concat(lockedPages_('account'));
+    /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
+    const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(lockedPages_('account'));
   }
   const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
@@ -1931,13 +1933,13 @@ function voiceCard_() {
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
 
-/* A COLUMN ABOVE YOUR RANK: its title, that it is not for your account, and the next step if there is one. */
-const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc(title)}</h3>
+/* A COLUMN ABOVE YOUR RANK, OR EMPTY: one line and the next step. Never the column's name (710, 770: "columns don't need names or a widget for the name"). */
+const rankOffCard_ = (title, say, more) => `<div class="card rank-off">
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
 /* A SETTINGS COLUMN FOR A ROLE YOU DO NOT HOLD (464): a padlock and one short line, and nothing else — the owner, "it will just show a padlock". */
 const padlockCard_ = (say, more) => `<div class="card rank-off col-lock"><span class="col-lock-i" aria-hidden="true">${tileIcon_('lock')}</span>
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
-const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Student settings') + ' first.');
+const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Kids settings') + ' first.');
 
 /* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
 /* A placeholder of the column's role draws the column's real cards, so nobody's data is in them; each is then shut (`lockCard_`). */
@@ -1977,7 +1979,7 @@ function familyPages_() {
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
   /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
-  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Student settings') + '.').replace('rank-off', 'set-none')];
+  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Kids settings') + '.').replace('rank-off', 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -1991,15 +1993,36 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
+  return out.length ? out : [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
-screen('apprentice', () => pages('apprentice', [`<div class="card"><h3>${esc(tabLabel_('apprentice', 'Apprentice'))}</h3><p class="muted">${
-  esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p>${
-  /* ITS REPORT TILE (486): this column draws its own card, so it carries the row `cardReportRow_` gives a laid-out one. */
-  typeof suggestTile_ === 'function' ? `<div class="tile-row card-rep">${suggestTile_('card', 'apprentice', tabLabel_('apprentice', 'Apprentice'))}</div>` : ''}</div>`]));
+function apprenticePages_() {
+  return [`<div class="card appr-set"><p class="muted">${
+    esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`];
+}
+screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
+
+/* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
+function webProfilePages_() {
+  const b = typeof matBrand === 'function' ? matBrand() : {};
+  const name = b.name || brand('name', '@family.'), logo = brand('logo_square', '') || brand('logo_circle', '');
+  const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
+    b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
+  return [`<div class="card web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${
+    lines.map(l => `<p class="sub">${esc(l)}</p>`).join('')}</div>`];
+}
+screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web') : webProfilePages_()));
+
+/* ---------- APPRENTICE PROFILE (730): a card per apprentice an admin is sent (`everyone`, role Apprentice); none yet is a line from brand() ---------- */
+function apprenticeProfilePages_() {
+  const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
+  if (all.length) return all.map(p => `<div class="card appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="sub prof-handle">@${esc(p.handle)}</p>` : ''}</div>`);
+  return [`<div class="card appr-card people-none"><p class="muted">${
+    esc(brand('apprentices_none', 'No apprentices yet.'))}</p></div>`];
+}
+screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
@@ -2011,8 +2034,32 @@ function sitePages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof siteBizPages_ === 'function' ? siteBizPages_() : [])
     .concat(typeof inboxCard_ === 'function' ? [inboxCard_()] : [])
+    .concat([stabilityCard_()])
     .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
+
+/* ---------- STABILITY (730): data/stability.json, written by tools/stability.js, read the first time the card is drawn ---------- */
+const STAB = { got: null, failed: false, asked: false, all: false };
+function stabilityCard_() {
+  if (!STAB.asked) {
+    STAB.asked = true;
+    try {
+      fetch('data/stability.json' + (typeof deployStamp_ === 'function' ? deployStamp_() : ''), { cache: 'default' })
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+        .then(j => { STAB.got = j && typeof j.score === 'number' ? j : null; STAB.failed = !STAB.got; })
+        .catch(() => { STAB.failed = true; })
+        .then(() => { try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
+    } catch (e) { STAB.failed = true; }
+  }
+  const s = STAB.got, head = '<h3>Stability</h3>';
+  if (!s) return `<div class="card biz stability-card">${head}${STAB.failed ? '<p class="muted">The score could not be read. Run node tools/stability.js and push.</p>' : loading_()}</div>`;
+  const sig = (s.signals || []).filter(x => x.off > 0);
+  const line = x => `<li>${esc(x.label)}: ${esc(String(x.count))} <span class="faint">(−${esc(String(x.off))})</span></li>`;
+  return `<div class="card biz stability-card">${head}<p class="stab-score">${esc(String(s.score))}%</p><p class="sub">${esc(s.verdict || '')}${s.secondary && typeof s.secondary.score === 'number' ? ' Core only (860); the secondary tier is ' + esc(String(s.secondary.score)) + '%.' : ''}</p>
+    <ol class="stab-top">${(STAB.all ? sig : sig.slice(0, 3)).map(line).join('')}</ol>
+    ${sig.length > 3 ? tileRow_(tile_({ icon: STAB.all ? 'hide' : 'show', label: STAB.all ? 'Show the top three' : 'Show every signal', act: 'stab-all' }), '', true) : ''}</div>`;
+}
+on('stab-all', () => { STAB.all = !STAB.all; try { markStale_(['site']); paint('site'); } catch (e) { /* the column redraws on its next paint anyway */ } });
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
@@ -3573,7 +3620,7 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
 /* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a
    widget's slot, kept by the same two lines for the same reason: they were a Settings card until 11 Oct. */
-const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-tools .widget-slot .me-form, #s-saved .widget-slot .me-form';
+const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-res .widget-slot .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
@@ -3589,9 +3636,9 @@ function settingsKeep_(id) {
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
   }
-  /* AND TOOLS AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
+  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
      widget slot holds. The rest of the column waits with it, as the rest of Settings waits with a card. */
-  if ((id === 'tools' || id === 'saved') && USER) {
+  if (['saved', 'stuff', 'res'].indexOf(id) !== -1 && USER) {   /* Find's too: the library cards are a Find card (790) */
     const col = $('s-' + id);
     return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
   }
@@ -4581,9 +4628,13 @@ function peopleAddPage_(col) {
   if (F && !F.id) return personFormHtml_(F);
   return plus;
 }
-/* ---------- FIND BY HANDLE, THE FIRST THING ON THE PEOPLE COLUMN (442) ---------- */
-/* `q` typed; `child` the one card `findChild` answered for that exact handle (null: none), `asked` that handle. */
-let PSEARCH_ = { q: '', asked: '', child: null, busy: false };
+/* ---------- FIND BY HANDLE, THE FIRST THING ON EVERY PEOPLE COLUMN (442, 770) ---------- */
+/* One search state per column (770: "add this search widget to the column to the right of it"), so typing on one card never
+   repaints another's results. `q` typed; `child` the card `findChild` answered for `asked` (Students only). */
+const PSEARCH_ALL_ = {};
+const psState_ = col => PSEARCH_ALL_[col] || (PSEARCH_ALL_[col] = { q: '', asked: '', child: null, busy: false });
+/* THE OLD NAME, Students' state, for anything that still reads it. */
+const PSEARCH_ = psState_('students');
 const psFold_ = v => String(v || '').trim().replace(/^@/, '').toLowerCase();
 /* EVERY CARD THE COLUMN ALREADY SHOWS THIS PERSON — public, so a prefix may find them. Never a child's. */
 function psPublic_() {
@@ -4601,16 +4652,19 @@ function psCard_(who, tiles) {
     ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
   </div>`;
 }
-function psResults_() {
-  const q = psFold_(PSEARCH_.q);
+/* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. Only on Students: the lookup's one use is Add as my child. */
+const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
+const psChildCol_ = col => col === 'students' && psMayChild_();
+function psResults_(col) {
+  const S = psState_(col || 'students'), q = psFold_(S.q);
   if (!q) return '';
   const pub = psPublic_().filter(p => psFold_(p.handle).indexOf(q) === 0).slice(0, 8);
   const out = pub.map(p => psCard_(p, p.personId && typeof tile_ === 'function' ? tile_({ icon: 'chat', label: 'Message',
     note: 'a note to them', act: 'msg-open', data: { to: p.title, id: p.personId } }) : ''));
-  const exact = PSEARCH_.asked && PSEARCH_.asked === q;
-  if (PSEARCH_.busy) out.push(loading_());
-  else if (exact && PSEARCH_.child) {
-    const c = PSEARCH_.child, linked = kidsLinked_().some(f => String(f.personId) === String(c.personId));
+  const exact = S.asked && S.asked === q;
+  if (S.busy) out.push(loading_());
+  else if (exact && S.child) {
+    const c = S.child, linked = kidsLinked_().some(f => String(f.personId) === String(c.personId));
     out.push(psCard_({ title: c.first, handle: c.handle, avatar: c.avatar, personId: c.personId, role: 'Student' },
       linked ? '' : tile_({ icon: 'join', label: 'Add as my child', note: 'they say yes first', act: 'ps-add-child',
                             data: { handle: c.handle } })));
@@ -4618,54 +4672,58 @@ function psResults_() {
   if (!out.length) out.push(`<p class="faint ps-none">${exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'}</p>`);
   return out.join('');
 }
-/* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. */
-const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
-function peopleSearchPage_() {
+/* ONE SEARCH BAR AND NOTHING ELSE (469, 770): the owner, "remove find button" — Return asks, on Students, for a child's exact handle. */
+function peopleSearchPage_(col) {
   if (!USER) return '';
-  /* ONE SEARCH BAR, THE FIND INLINE (469) — the owner: "it just needs to be a search bar widget"; the placeholder is its label. */
-  return `<div class="card ps-card">
-    <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" value="${esc(PSEARCH_.q)}"`)}
-    ${psMayChild_() ? `<button class="btn quiet ps-go" data-do="ps-find" aria-label="Find">Find</button>` : ''}</div>
-    <div class="ps-out" aria-live="polite">${psResults_()}</div>
+  const c = col || 'students', S = psState_(c);
+  return `<div class="card ps-card" data-ps-col="${esc(c)}">
+    <div class="ps-bar">${searchPill_(`data-psearch aria-label="Find someone by handle" placeholder="@handle" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(S.q)}"`)}</div>
+    <div class="ps-out" aria-live="polite">${psResults_(c)}</div>
   </div>`;
 }
-function psPaint_() {
-  const out = document.querySelector('.ps-card .ps-out');
-  if (out) out.innerHTML = psResults_();
-  try { if (typeof placeCells === 'function') placeCells(); } catch (e) {}
+const psColOf_ = el => { const card = el && el.closest ? el.closest('.ps-card') : null; return (card && card.getAttribute('data-ps-col')) || 'students'; };
+/* ITS OWN CARD'S RESULTS, AND ONE RELAYOUT WHEN THE TYPING STOPS (770): re-placing every column on each key was the jump the owner saw. */
+let PS_PLACE_T_ = 0;
+function psPaint_(col) {
+  const c = col || 'students';
+  document.querySelectorAll('.ps-card[data-ps-col="' + c + '"] .ps-out').forEach(out => { out.innerHTML = psResults_(c); });
+  clearTimeout(PS_PLACE_T_);
+  PS_PLACE_T_ = setTimeout(() => { try { if (typeof placeCells === 'function') placeCells(); } catch (e) {} }, 300);
 }
 document.addEventListener('input', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('[data-psearch]')) return;
-  PSEARCH_.q = t.value;
-  psPaint_();
+  const col = psColOf_(t);
+  psState_(col).q = t.value;
+  psPaint_(col);
 });
 document.addEventListener('keydown', e => {
   const t = e.target;
   if (e.key !== 'Enter' || !t || !t.matches || !t.matches('[data-psearch]')) return;
   e.preventDefault();
-  const b = document.querySelector('.ps-card [data-do="ps-find"]');
-  if (b) b.click();
+  psFind_(t);
 });
-on('ps-find', el => {
-  if (!USER || !psMayChild_()) return;
-  const card = el.closest('.ps-card'), box = card && card.querySelector('[data-psearch]');
-  const q = psFold_(box ? box.value : PSEARCH_.q);
-  PSEARCH_.q = box ? box.value : PSEARCH_.q;
+/* RETURN IN THE BOX (no button since 770): the exact handle looked up, for Add as my child. */
+function psFind_(el) {
+  const col = psColOf_(el);
+  if (!USER || !psChildCol_(col)) return;
+  const S = psState_(col), card = el && el.closest ? el.closest('.ps-card') : null, box = card && card.querySelector('[data-psearch]');
+  if (box) S.q = box.value;
+  const q = psFold_(S.q);
   if (q.length < 3) { toast('A handle is at least 3 letters'); return; }
-  Object.assign(PSEARCH_, { asked: q, child: null, busy: true });
-  psPaint_();
-  send_({ action: 'findChild', personId: USER.personId || '', handle: q }, { button: el })
-    .then(d => { PSEARCH_.child = (d && d.child && d.child.handle) ? d.child : null; })
-    .catch(() => { PSEARCH_.asked = ''; })
-    .then(() => { PSEARCH_.busy = false; psPaint_(); });
-});
+  Object.assign(S, { asked: q, child: null, busy: true });
+  psPaint_(col);
+  send_({ action: 'findChild', personId: USER.personId || '', handle: q }, { button: box || el })
+    .then(d => { S.child = (d && d.child && d.child.handle) ? d.child : null; })
+    .catch(() => { S.asked = ''; })
+    .then(() => { S.busy = false; psPaint_(col); });
+}
 on('ps-add-child', el => {
   if (!USER || !psMayChild_()) { toast('Sign in first'); return; }
   const handle = el.getAttribute('data-handle') || '';
   if (!handle) return;
   send_({ action: 'claimChild', name: USER.name, personId: USER.personId || '', handle }, { button: el })
-    .then(() => { toast('Asked. They will see it when they next sign in.'); PSEARCH_.child = null; PSEARCH_.asked = ''; psPaint_(); load(); })
+    .then(() => { toast('Asked. They will see it when they next sign in.'); PSEARCH_.child = null; PSEARCH_.asked = ''; psPaint_('students'); load(); })
     .catch(heldBy_);
 });
 

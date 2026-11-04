@@ -40,6 +40,64 @@ window.addEventListener('unhandledrejection', e => oops_(e && e.reason, 'promise
 function oopsTry_(where, fn, host) {
   try { return fn(); } catch (err) { oops_(err, where, host); return undefined; }
 }
+/* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
+const TIER_CORE_WIDGETS = [];
+const TIER_OFF_WIDGETS = ['console', 'boardgames', 'wordgames', 'reels', 'videos', 'newspaper', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'termdates', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'verse', 'whiteboard'];
+const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
+const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
+const TIER_RUN = { depth: 0 };
+/* A GUARDED CALL: a throw is oops_'s and gives `fallback`; a timer or frame asked for while it runs is guarded the same way, never rethrown. */
+function tierRun_(where, fn, self, args, fallback, host) {
+  const W = typeof window !== 'undefined' ? window : null;
+  let keep = null;
+  if (W && !TIER_RUN.depth) {
+    keep = { t: W.setTimeout, i: W.setInterval, r: W.requestAnimationFrame };
+    const wrap = real => function (cb) {
+      const a = Array.prototype.slice.call(arguments);
+      if (typeof cb === 'function') a[0] = function () { return tierRun_(where, cb, this, arguments); };
+      return real.apply(W, a);
+    };
+    W.setTimeout = wrap(keep.t); W.setInterval = wrap(keep.i);
+    if (typeof keep.r === 'function') W.requestAnimationFrame = wrap(keep.r);
+  }
+  TIER_RUN.depth++;
+  try { return fn.apply(self, args || []); }
+  catch (err) { oops_(err, where, typeof host === 'function' ? host() : host); return typeof fallback === 'function' ? fallback(err) : fallback; }
+  finally {
+    TIER_RUN.depth--;
+    if (keep) { W.setTimeout = keep.t; W.setInterval = keep.i; if (typeof keep.r === 'function') W.requestAnimationFrame = keep.r; }
+  }
+}
+/* OFF (860): nothing of its own runs; its card is its name, "Coming soon" and Suggest, so a person can still ask for it back. */
+function tierOff_(w) {
+  const name = String(w.name || w.title || w.id);
+  ['start', 'draw', 'stop'].forEach(k => { if (typeof w[k] === 'function') w[k] = () => (k === 'draw' ? false : undefined); });
+  Object.defineProperty(w, 'html', { configurable: true, enumerable: true, get() {
+    const say = typeof brand === 'function' ? brand('widgetOff', 'Coming soon') : 'Coming soon';
+    const sug = typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), name) : '';
+    return `<div class="card widget-off"><h3>${esc(name)}</h3><p class="sub">${esc(say)}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+  } });
+  try { Object.defineProperty(w, '__tier', { value: 'off' }); } catch (e) { /* a frozen widget is still off */ }
+}
+/* EVERY SECONDARY WIDGET'S start, draw, stop and markup, guarded once where WIDGETS is written (map.js) — so every caller is covered, whichever file calls. */
+function tierGuardWidgets_(list) {
+  (Array.isArray(list) ? list : []).forEach(w => {
+    if (!w || typeof w !== 'object' || w.__tier || tierCore_('widget', w.id)) return;
+    if (TIER_OFF_WIDGETS.indexOf(String(w.id)) !== -1) return tierOff_(w);
+    const where = 'widget:' + w.id;
+    const slot = () => (w.into && typeof document !== 'undefined' ? document.getElementById(w.into) : null);
+    ['start', 'draw', 'stop'].forEach(k => {
+      const f = w[k];
+      if (typeof f === 'function') w[k] = function () { return tierRun_(where, f, this, arguments, k === 'draw' ? false : undefined, k === 'start' ? slot : null); };
+    });
+    const d = Object.getOwnPropertyDescriptor(w, 'html');
+    if (d && typeof d.get === 'function') {
+      Object.defineProperty(w, 'html', { configurable: true, enumerable: d.enumerable, get() { return tierRun_(where, d.get, this, [], oopsHtml_); } });
+    }
+    try { Object.defineProperty(w, '__tier', { value: 'secondary' }); } catch (e) { /* a frozen widget is still guarded */ }
+  });
+  return list;
+}
 
 /* ---------- THE TABS § */
 const TABS = [
@@ -48,29 +106,31 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '⚙', label: 'Student settings', title: 'Student settings' },
+  { id: 'account', icon: '⚙', label: 'Kids settings', title: 'Kids settings', cards: true },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
   { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
-  { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
-  { id: 'games',   icon: '🎮', label: 'Games',   title: 'Games' },
+  /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
   { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
-  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
+  { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight', cards: true },
   /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
-  { id: 'tutors',   icon: '🎓', label: 'Tutor profiles',   title: 'Tutor profiles' },
-  { id: 'students', icon: '👤', label: 'Student profiles', title: 'Student profiles' },
-  { id: 'parents',  icon: '👪', label: 'Parent profiles',  title: 'Parent profiles' },
-  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
-  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
+  /* THE OWNER'S ELEVEN (730): five profiles, then six settings; `cards` marks a card column (columns.json says the same; check-doors). */
+  { id: 'web',      icon: '🌍', label: 'Web profile',        title: 'Web profile', cards: true },
+  { id: 'tutors',   icon: '🎓', label: 'Tutor profile',      title: 'Tutor profile', cards: true },
+  { id: 'students', icon: '👤', label: 'Student profile',    title: 'Student profile', cards: true },
+  { id: 'parents',  icon: '👪', label: 'Parent profile',     title: 'Parent profile', cards: true },
+  { id: 'apprentices', icon: '🧰', label: 'Apprentice profile', title: 'Apprentice profile', cards: true },
+  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings', cards: true },
+  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings', cards: true },
   /* APPRENTICE: work experience, a placeholder column beside Tutor settings until it is built (docs/history/570). */
-  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice', title: 'Apprentice' },
+  { id: 'apprentice', icon: '🧑‍🔧', label: 'Apprentice settings', title: 'Apprentice settings', cards: true },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -78,24 +138,24 @@ const TABS = [
   /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND § */
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
-  { id: 'biz', icon: '📋', label: 'Business', title: 'Business', admin: true },
+  { id: 'biz', icon: '📋', label: 'Biz settings', title: 'Biz settings', admin: true, cards: true },
   /* ---------- AND THE SITE'S OWN SETTINGS, SPLIT FROM BUSINESS (491), FOR AN ADMIN AND NOBODY ELSE ---------- */
-  { id: 'site', icon: '🌐', label: 'Site', title: 'Site', admin: true },
+  { id: 'site', icon: '🌐', label: 'Web settings', title: 'Web settings', admin: true, cards: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social (392); Spotlight left of the posts (461) */
-                   'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
+                   'stuff', 'res', 'saved',                           /* learning; Tools and Games are Find cards (790); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
-                   'games',
-                   'family', 'staff', 'apprentice', 'account',                    /* Parent, Tutor and Student account settings (461) */
-                   'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
-                   'biz', 'site'];                                    /* the admin's two: Business, then Site (491) */
+                   'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
+                   'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
 const TABS_BUILT = TABS.slice();
+/* THE CARD COLUMNS (730), left to right: TAB_ORDER and each tab's `cards`, which data/settings/columns.json repeats (check-doors). */
+const CARD_COLS = TAB_ORDER.filter(id => TABS_BUILT.some(t => t.id === id && t.cards));
 const COLUMNS = TABS.slice();
 
 /* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT § */
@@ -320,20 +380,22 @@ function startScreen_(id, arriving) {
   if (typeof padHold_ === 'function' && padHold_(id)) return;
   if (typeof boardHold_ === 'function' && boardHold_(id)) return;
   /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
-  if (!arriving && (id === 'tools' || id === 'saved') && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
+  if (!arriving && ['saved', 'stuff', 'res'].indexOf(id) !== -1 && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
-  else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
-    toolsStart_(id === 'tools' ? 'tool' : 'game', arriving);
-  }
   /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
      Without this the basket arrived as a heading over an empty box. */
   else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
   /* AND THE WIDGETS LEADING THE REELS (414) — Videos and One more thing, the pages before the first reel. */
   else if (id === 'reel' && typeof toolsStart_ === 'function') { toolsStart_('reel', arriving); }
+  /* AND A WIDGET MOVED ONTO ANY OTHER COLUMN (710, layout.js). */
+  else if (typeof WIDGET_COLS !== 'undefined' && WIDGET_COLS.indexOf(id) !== -1 && typeof widgetsWake_ === 'function') {
+    const ws = widgetsOn_(id);
+    if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
+  }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
-  if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop' || id === 'reel') && id === AT) {
+  if ((id === 'saved' || id === 'shop' || id === 'reel') && id === AT) {
     placeCells('y', true, 0, id);
   }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. § */
@@ -463,10 +525,10 @@ function paint(id, fresh, o) {
   let html;
   try {
     /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
-    html = s ? s.draw() : (LATER_IN ? null : loading_());
+    html = s ? s.draw() : (LATER_IN ? null : waitShape_(id));
   } catch (err) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
-    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = loading_(); STALE[id] = 1; return; }
+    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
@@ -493,7 +555,11 @@ function paint(id, fresh, o) {
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
-  if (held.length) widgetsBack_(id, held);
+  if (held.length) {
+    const left = widgetsBack_(id, held);
+    if (typeof finderOf_ === 'function' && finderOf_(id)) WIDGET_HELD[id] = left;
+  }
+  shapeHold_(el, id);
   arrivePages_(el, waited);
   if (kept) placeBack_(el, kept);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
@@ -539,6 +605,41 @@ function nothingHere(whenEmpty, needsLibrary) {
 function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
+}
+
+/* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
+const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
+const shapeWidth_ = () => { try { return WIDE ? 'w' + Math.round(wideCard_().card) : 'n' + innerWidth; } catch (e) { return ''; } };
+function shapeAll_() { try { return JSON.parse(localStorage.getItem(SHAPE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+/* A SHAPE WITH NO HEIGHT IN IT (nothing laid out, as under jsdom) is no shape: the column keeps its one waiting page. */
+function shapeOf_(id) { const w = shapeWidth_(), all = shapeAll_(), hs = all.at === w && all[id]; return Array.isArray(hs) && hs.some(h => h > 0) ? hs : null; }
+/* A COLUMN WITH NO DRAWER YET: its remembered pages, each a quiet surface round the one loader; one page when it was never seen. */
+function waitShape_(id) {
+  const hs = shapeOf_(id) || [0];
+  return hs.map(h => `<section class="page"><div class="pane"${h ? ` data-keep style="--keep-h:${h}px"` : ''}>${loading_()}</div></section>`).join('');
+}
+/* AND A PANE A DRAWER LEFT WAITING gets the height its page had last time. */
+function shapeHold_(el, id) {
+  const hs = shapeOf_(id);
+  if (!hs || !el || (LOADED && LATER_IN)) return;   /* the arrival only: a column paging itself later is its own business */
+  el.querySelectorAll(':scope > .page > .pane').forEach((p, i) => {
+    if (hs[i] && p.querySelector(':scope > .loading:only-child')) { p.setAttribute('data-keep', ''); p.style.setProperty('--keep-h', hs[i] + 'px'); }
+  });
+}
+/* WRITTEN ONCE THE COLUMNS HAVE LANDED, and again after the library. */
+function shapeSave_() {
+  try {
+    const w = shapeWidth_(), old = shapeAll_(), out = { at: w };
+    TABS.forEach(t => {
+      const el = $('s-' + t.id);
+      const panes = el ? [].slice.call(el.querySelectorAll(':scope > .page > .pane'), 0, SHAPE_PAGES) : [];
+      const was = (old.at === w && old[t.id]) || [];
+      /* A PANE STILL ONLY WAITING says nothing of its size: the last good height stands, or none. */
+      const hs = panes.map((p, i) => (p.querySelector(':scope > .loading:only-child') ? (was[i] || 0) : Math.round(p.getBoundingClientRect().height)));
+      if (hs.some(h => h > 0)) out[t.id] = hs;
+    });
+    keepPut_(SHAPE_KEY, JSON.stringify(out), true);
+  } catch (e) {}
 }
 
 /* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
@@ -749,13 +850,27 @@ const CELL_GAP   = 16;        // pixels between one card and the next, going DOW
 /* HOW FAR APART TWO PANES SIT, so that the gap between what you SEE is `CELL_GAP`. § */
 /* ---------- THE BROWSER STACKS THE COLUMN, NOT THIS FILE § */
 /* ---------- THE CARD YOU ARE ON SITS IN THE MIDDLE OF THE SCREEN § */
+/* THE PART OF A COLUMN'S GLASS THAT CAN BE SEEN (720): all of it, or only what is above the keypad while it is up, so a card is centred where it shows. */
+function glassSeenH_(host) {
+  const boxH = host.clientHeight || innerHeight;
+  if (!document.documentElement.classList.contains('kp-up')) return boxH;
+  try {
+    const pad = document.getElementById('kp');
+    if (!pad || pad.hidden) return boxH;
+    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
+    const seen = pad.getBoundingClientRect().top - 12 - base;
+    return seen > 120 ? Math.min(boxH, seen) : boxH;
+  } catch (e) { return boxH; }
+}
 function columnShift_(host, at) {
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
   if (!cur) return 0;
-  const boxH = host.clientHeight || innerHeight;
+  const boxH = glassSeenH_(host);
   const h = HOLD_AT;
-  if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
+  /* A FINDER IS NOT HELD ONCE NOTHING IN IT HAS FOCUS (720, owner: "the finder widget should always stay centred"): the hold is for typing, and typing is over. */
+  const loose = h && typeof finderOf_ === 'function' && finderOf_(h.id) && !(document.activeElement && host.contains(document.activeElement));
+  if (h && !loose && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
       && h.vp === innerWidth + 'x' + innerHeight) {
     const room = boxH - cur.offsetHeight;
     /* HELD ONLY WHILE IT GROWS (508): a card that shrank (words or chips cleared) is centred again, and held from there. */
@@ -1612,8 +1727,22 @@ function placeNow_(which, instant, dragPx, id) {
 }
 
 /* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
+/* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
+function pageName_(h) {
+  const m = /id="wgt-([^"]+)"/.exec(h);
+  const w = m && typeof anyWidgetOf_ === 'function' ? anyWidgetOf_(m[1]) : null;
+  if (w) return w.name || '';
+  const t = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(String(h || ''));
+  return t ? t[1].trim().replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"') : '';
+}
+/* A CARD COLUMN'S PAGER: a count, or (730) every page's name once a unit has been moved onto it, so the guest is named. */
 function cardCount_(col, raw, none) {
-  try { return typeof cardsOf_ === 'function' ? cardsOf_(col).length : raw(); } catch (e) { return none === undefined ? 1 : none; }
+  try {
+    if (typeof cardsOf_ !== 'function') return raw();
+    const L = typeof layoutNow_ === 'function' ? layoutNow_() : null, pages = cardsOf_(col);
+    const guests = L && (((L.cards || {})[col] || []).length || ((L.widgets || {})[col] || []).length);
+    return guests ? pages.map(pageName_) : pages.length;
+  } catch (e) { return none === undefined ? 1 : none; }
 }
 /* ---------- WIDGETS AS PAGES § */
 const PAGER = {
@@ -1629,17 +1758,16 @@ const PAGER = {
   /* The ＋ card is a page and everybody signed in has one, so everybody's count includes it. § */
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
-  /* ---------- TOOLS AND GAMES PAGE NOW, SO THEY NEED NAMING § */
-  tools:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('tool') : []).map(w => w.name || ''),
-  games:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('game') : []).map(w => w.name || ''),
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
-  spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
+  spotlight: () => cardCount_('spotlight', () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1)),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => cardCount_('family', () => familyPages_().length),
   staff: () => cardCount_('staff', () => staffPages_().length),
-  apprentice: () => [tabLabel_('apprentice', 'Apprentice')],
+  apprentice: () => cardCount_('apprentice', () => apprenticePages_().length),
+  web: () => cardCount_('web', () => webProfilePages_().length),
+  apprentices: () => cardCount_('apprentices', () => apprenticeProfilePages_().length),
   tutors: () => cardCount_('tutors', () => peoplePages_('tutors').length),
   students: () => cardCount_('students', () => peoplePages_('students').length),
   parents: () => cardCount_('parents', () => peoplePages_('parents').length),
@@ -1684,10 +1812,10 @@ const PAGER = {
   /* ---------- THE FIND PAGER COUNTS EVERY PAGE, NOT JUST THE RESULTS § */
   /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. § */
   /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE § */
-  stuff:  () => finderPageCount_('stuff'),
+  stuff:  () => (typeof finderPageCount_ === 'function' ? finderPageCount_('stuff') : 1),
   /* THE SECOND FINDER, counted by the same engine in its own binding (`finderPageCount_` in find.js)
      — the question, then its results; it has no pages in front of the question. */
-  res:    () => finderPageCount_('res'),
+  res:    () => (typeof finderPageCount_ === 'function' ? finderPageCount_('res') : 1),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -1742,7 +1870,7 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
+const PAGE = { feed: 0, stuff: 0, account: 0, reel: 0, booking: 0, dm: 0, make: 0,
                saved: 0, family: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
@@ -2970,17 +3098,38 @@ document.addEventListener('click', e => {
       if (CLICK_LOG) console.log('[click] dropped — the same control again, or its request is still out');
       return;
     }
-    const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
-    /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
-    try {
-      const got = ACTIONS[doer.dataset.do](doer, e);
-      if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
-    } catch (err) {
-      oops_(err, 'act:' + doer.dataset.do);
-      toast('That did not work. Everything else still works.');
-    } finally { PRESS_ACTING_ = null; }
+    /* A HEAVY PRESS BY A REAL FINGER WAITS ONE FRAME (720): the pressed mark is painted first, then the work — a chip on Find took 3 s at 4x CPU with nothing drawn. */
+    if (e.isTrusted && PRESS_AFTER_PAINT_.has(doer.dataset.do)) { pressAfterPaint_(doer, e); return; }
+    pressAct_(doer, e);
   }
 });
+/* THE ACTIONS WHOSE WORK IS A WHOLE REDRAW (the funnel's answers and chips): `pressAfterPaint_` lets the frame showing the press go first. */
+const PRESS_AFTER_PAINT_ = new Set(['facet-pick', 'facet-skip', 'filter-drop', 'filter-clear']);
+let PRESS_SOON_ = null;   // the one press waiting for its frame: { el, key }
+function pressAfterPaint_(doer, e) {
+  const key = pressKey_(doer);
+  /* ONE AT A TIME: a second tap in the same frame is the first one's, already on its way. */
+  if (PRESS_SOON_) return;
+  PRESS_SOON_ = { el: doer, key };
+  doer.classList.add('is-pressed');
+  requestAnimationFrame(() => setTimeout(() => {
+    PRESS_SOON_ = null;
+    /* REDRAWN AWAY MEANWHILE (a payload landing): the press was on something no longer there, so nothing is done. */
+    if (doer.isConnected) pressAct_(doer, e);
+    else if (CLICK_LOG) console.log('[click] dropped — its control was redrawn before its frame came');
+  }, 0));
+}
+function pressAct_(doer, e) {
+  const acting = PRESS_ACTING_ = { key: pressKey_(doer), el: doer };
+  /* CAUGHT HERE, WHERE THE MESSAGE STILL EXISTS. § */
+  try {
+    const got = ACTIONS[doer.dataset.do](doer, e);
+    if (got && typeof got.then === 'function' && PRESS_ACTING_ === acting) pressOut_(acting.key, doer, got);
+  } catch (err) {
+    oops_(err, 'act:' + doer.dataset.do);
+    toast('That did not work. Everything else still works.');
+  } finally { PRESS_ACTING_ = null; }
+}
 
 /* Swiping between tabs is further down, with the gesture handling it belongs to — I wrote a second, cruder version here before noticing the first. § */
 
@@ -3206,7 +3355,9 @@ function typingBox_() {
   if (!a || !a.matches || !a.matches(TYPING_)) return null;
   const s = a.closest ? a.closest('.screen') : null;
   const id = s ? String(s.id).replace(/^s-/, '') : '';
-  return (typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff') ? null : a;
+  /* A FINDER HOLDS ITS OWN TYPING (`findKeep_`) — but not a widget's box on a Find card (790), which is held here as a column's was. */
+  const finder = typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff';
+  return finder && !(a.closest && a.closest('.widget-slot')) ? null : a;
 }
 /* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own settings once per app open is the other one, and it rebuilt § */
 function landRepaint_(draw) {
@@ -3297,6 +3448,7 @@ async function libraryLate_(d) {
   /* THE CARRY-OVER WAITS FOR THE QUESTIONS (`subMigrate_`, submit.js), so it runs again now they are here. */
   try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); if (typeof subMigrate_ === 'function') { subMigrate_(); subPush_(true); } landRepaint_(); if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_(); }
   catch (e) { oops_(e, 'load:library-paint'); }
+  setTimeout(shapeSave_, 4000);
 }
 
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
@@ -3409,6 +3561,10 @@ async function loadOnce_(again, n) {
       got = true;
       RECONNECT.shown = n; RECONNECT.shownFor = who;
 
+      /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
+      if (typeof dmAdopt_ === 'function') dmAdopt_(d);
+      /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
+      setTimeout(shapeSave_, 4000);
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
       adoptMarks_();
       /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you

@@ -44,7 +44,7 @@ function dealt_(list, n) {
 }
 
 /* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE § */
-const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'tools', 'games', 'reel', 'dm'];
+const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'reel', 'dm'];
 
 /* THE SIZES THAT EXIST, AND THE HEIGHT IS HALF OF EACH ONE. § */
 /* AND 1920x1080, ADDED 6 OCTOBER WITH THE WIDE WINDOW (THE GRID SHOWS MORE OF ITSELF, shell.js). § */
@@ -83,6 +83,20 @@ const ZOOM_LADDER = [1, 0.875, 0.75];
 const MIN_TAP = 44;
 /* AN iPHONE'S SAFE AREA (542): 47 under the notch and 34 over the home bar upright; turned, 47 each side and 21 below. */
 const SAFE_AT = (w, h) => (w < h ? { top: 47, bottom: 34 } : { left: 47, right: 47, bottom: 21 });
+
+/* A BOX INSIDE A BOX (690): the pane is the only surface; these draw a second one on purpose, each for a reason. */
+const ACCEPTED_NEST = [
+  ['.feed, .feed-art, .cam-stage', 'a picture or the camera: the frame is the media, not a box'],
+  ['.calc, .c4, .art, .nb, .chess, .tmt-box, .kt-box', 'a drawn instrument or board: its body is the drawing'],
+  ['.prof-heat, .prof-shot, .lib-face', 'a heat map, a photo, a library card drawn as the card: drawn things'],
+  ['.many-sum, .field, .bk-cell', 'a control standing in for an input: inputs keep their subtle fill'],
+  ['.rc, .rc-stub, .paper, .cpn, .qsheet, .mat, .insh-sheet, .stmt', 'paper objects: a sheet of paper is a surface of its own'],
+  ['.qp-ans, .qp-slots', 'where an answer is written or placed: an input keeps its fill'],
+  ['.boxer-frame, .boxer-rec, .vid-stage, .pxe-grid, .pst-page', 'portraits, a playing video, a pixel grid, a page being rewritten: drawn things'],
+  ['.cs-body, .scr, .ss-built', 'a game\'s board or hand: the board is the game'],
+  ['.msg-bub, .msg-chip', 'a message bubble, as iOS draws one: the bubble is what a message is'],
+];
+const NEST_SRC = fs.readFileSync(path.join(__dirname, 'surface-nesting.js'), 'utf8');
 
 /* ---------- KNOWN, WITH A WRITTEN REASON EACH, AND STILL PRINTED § */
 const ACCEPTED_TAP = [
@@ -1292,6 +1306,9 @@ function inspect(opts) {
         runningBeside[width] = (runningBeside[width] || 0) + (veil.beside || 0);
         if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
         if ((veil.off || []).length) rows.push({ width, id: label, as: who.as, offGlass: veil.off });
+        const nested = await page.evaluate(([src, sid, acc]) => { try { return (0, eval)(src)(sid, acc); } catch (e) { return ['measure threw: ' + e.message]; } },
+          [NEST_SRC, id, ACCEPTED_NEST.map(x => x[0])]);
+        if (nested.length) rows.push({ width, id: label, as: who.as, nested });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id,
             RUN_CLS: ACCEPTED_TAP.filter(a => a.run).map(a => a.cls.source), LADDER: ZOOM_LADDER,
@@ -1652,6 +1669,8 @@ function inspect(opts) {
     (r.sound || []).forEach(f => add('THE REELS\' SOUND TILE ON ITS PICTURE', f, at));
     (r.unstarted || []).forEach(f => add('A WIDGET ON THE GLASS NEVER STARTED',
       `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
+    (r.nested || []).forEach(f => add('A BOX INSIDE A BOX (690)', typeof f === 'string' ? f
+      : `${f.inner} draws its own fill or edge inside ${f.outer}; only the outer surface may (ACCEPTED_NEST lists the exceptions)`, at));
     (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
       `${f} is running beside the column in front, 3s after the screen settled`, at));
     (r.floating || []).forEach(f => add('A POP-UP: SOMETHING FLOATS OVER THE APP (420)', f, at));

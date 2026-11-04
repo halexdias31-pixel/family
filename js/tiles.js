@@ -12,6 +12,9 @@ const TILE_ICONS = {
   down:  '<path d="M9 2.5v12"/><path d="m4.5 10 4.5 4.5 4.5-4.5"/>',
   left:  '<path d="M15 8.5h-12"/><path d="m7.5 4 -4.5 4.5 4.5 4.5"/>',
   right: '<path d="M3 8.5h12"/><path d="m10.5 4 4.5 4.5-4.5 4.5"/>',
+  /* A WHOLE COLUMN MOVED (730): a column's bar beside the arrow, so it is told from a card's own ◀ ▶. */
+  'col-left':  '<path d="M15.5 2.5v12"/><path d="M12 8.5h-9.5"/><path d="m6.5 4.5 -4 4 4 4"/>',
+  'col-right': '<path d="M2.5 2.5v12"/><path d="M6 8.5h9.5"/><path d="m11.5 4.5 4 4-4 4"/>',
   /* SPLIT AND JOIN (464): one card into a card a field, and back. */
   split: '<path d="M2.5 4.5h5v9h-5z"/><path d="M10.5 4.5h5v9h-5z"/>',
   merge: '<path d="M2.5 4.5h13v9h-13z"/><path d="M9 6.5v5"/>',
@@ -198,7 +201,9 @@ function tile_(o) {
 function addCard_(o) {
   const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   return `<button type="button" class="card tap add-card" data-do="${esc(o.act)}"${data} aria-label="${esc(o.label)}">
-    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>`;
+    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>${
+    /* A "+" IS A THING ON THE COLUMN TOO (720, 486): its Suggest in the row right after it, as a person's card has. */
+    typeof suggestTile_ === 'function' && suggestTile_('card', 'add:' + o.act, o.label) ? `<div class="tile-row rep-row">${suggestTile_('card', 'add:' + o.act, o.label)}</div>` : ''}`;
 }
 
 /* ---------- FILLING THE SHAPE § */
@@ -358,37 +363,6 @@ function wearTiles_(x) {
 }
 
 
-/* ---------- A TOOL OR A GAME § */
-function widgetTiles_(x) {
-  const id = (x.row && x.row.id) || '';
-  return `
-    ${tile_({ icon: 'open', label: 'Open', act: 'widget-open', data: { id } })}
-  <div class="widget-slot" id="wgt-${esc(String(id))}"></div>`;
-}
-
-on('widget-open', el => {
-  const id = el.dataset.id;
-  /* THROUGH `allWidgets`, NOT THE CONST — message threads are built from the payload and are not in
-     `WIDGETS`. Looking at the const would list a conversation and then fail to open it. */
-  const wgt = allWidgets().find(w => w.id === id);
-  const slot = $('wgt-' + id);
-  /* AND ONLY ONE THIS PERSON MAY OPEN — `widgetFor_` in arcade.js, which the columns ask as well. § */
-  if (!wgt || !slot || !widgetFor_(wgt)) return;
-
-  /* A SECOND PRESS PUTS IT AWAY. A thing that can only be opened is a thing that fills the card and
-     stays there — and on a list, the way back has to be the same control that got you in. */
-  /* THROUGH `tileSet_`, NOT INTO `.tile-k`. § */
-  if (slot.innerHTML) {
-    slot.innerHTML = '';
-    tileSet_(el, { icon: 'open', label: 'Open', on: false });
-    return;
-  }
-  slot.innerHTML = wgt.html;
-  tileSet_(el, { icon: 'close', label: 'Close', on: true });
-  startWidget_(wgt);
-});
-
-
 /* ---------- A BOUT § */
 /* ---------- WHAT YOU CAN DO ABOUT YOURSELF — NOTHING, ON THIS CARD § */
 function fightTiles_(x) {
@@ -469,7 +443,6 @@ function cardActions_(x) {
   if (x.kind === 'venue') return venueTiles_(x);
   if (x.kind === 'subject') return subjectTiles_(x);
   if (x.kind === 'level') return levelTiles_(x);
-  if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'boxer') return boxerTiles_(x);
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
@@ -594,7 +567,8 @@ function postTiles_(p) {
   if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
   /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
   if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
-  if (!p.mine && typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
+  /* YOUR OWN TOO (720): every thing carries the tile (486), and the owner's posts are his own. */
+  if (typeof suggestTile_ === 'function') rows.push(suggestTile_('post', id, String(p.title || p.body || '').slice(0, 80)));
   if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }

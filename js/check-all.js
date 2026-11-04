@@ -9,6 +9,7 @@ const dir = __dirname;
 const VERBOSE = process.argv.includes('-v') || process.argv.includes('--verbose')
   || /^(1|true|yes)$/i.test(process.env.VERBOSE || '');
 const childEnv = Object.assign({}, process.env, { VERBOSE: '' });
+const envFor = c => (/check-flow\.js/.test(c.file) && FLOW_TIER ? Object.assign({}, childEnv, { FLOW_TIER }) : childEnv);
 
 /* `soft` — reports rather than fails. See above: these two name things to look at, and treating a
    list to look at as a broken build is how a team learns to ignore the build. */
@@ -50,6 +51,9 @@ const SUITE = [
   { file: 'check-errlog.js',    what: 'the error log: one counted row per distinct error, one note each, throttled, admin-only' },
   /* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN § */
   { file: 'check-widgets.js', what: 'the widget contract, and the roster' },
+  /* THE TWO TIERS (860): data/settings/tiers.json against the code, and a throwing secondary widget leaves Find whole. */
+  { file: 'check-tiers.js', what: 'every screen, widget, file and check has a tier; secondary is guarded and LATER' },
+  { file: 'check/isolation.js', what: 'a secondary widget that throws everywhere: Find still boots, narrows and opens a question (860)', slow: true },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   /* AND WHETHER ANYTHING ASKS FOR IT (433): a handler nothing calls is a door onto nothing from the other side. */
   { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
@@ -65,6 +69,8 @@ const SUITE = [
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
+  /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
+  { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
   /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN § */
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
@@ -189,6 +195,9 @@ const SUITE = [
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
   { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
+  { file: 'tools/build-stamp.js --check', what: 'index.html\'s BUILD_STAMP is the hash of the files it stamps, so a deploy changes every URL and nothing else does (750)' },
+  /* LOGIC HEALTH (770): data/logic-health.json is what tools/logic-health.js measures over the funnel now. */
+  { file: 'tools/logic-health.js --check', what: 'the Logic health card\'s figures are the funnel as it is now', slow: true },
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
@@ -208,15 +217,18 @@ const SUITE = [
   /* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED § */
   { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING § */
-  { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true, heavy: true },
   /* ONE PRESS, ONE ACTION (534): a double tap posts once, a yes under 400 ms is ignored, a request that never answers lets go after a minute. */
   { file: 'check-api-deadline.js', what: 'a POST the backend runs for minutes is not cut by api()\'s one-minute deadline' },
   { file: 'check-press-hold.js', what: 'a control waiting on its request holds itself, not its twin, and not for ever; steppers take two fast taps' },
-  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true },
+  { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
-  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true },
+  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
+  { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
+  { file: 'check/kp-centred.js', what: 'Find and Find 2 centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
+  { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
@@ -240,9 +252,9 @@ const SUITE = [
   /* THE NUMBER IS NOT IN THIS LINE, AND IT USED TO BE. § */
   /* ---------- IN TWO HALVES, BECAUSE THE NOTE BELOW SAID SO § */
   /* ---------- AND NOW IN THIRDS § */
-  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
-  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
-  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
+  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
+  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true, heavy: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS § */
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
   /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW § */
@@ -254,10 +266,34 @@ const SUITE = [
   { file: 'check/touch.js',   what: 'what a finger meets: no system flash, a tap is a click at once, one press look at once on every control, held as long as the finger (536)', slow: true },
 ];
 
+/* TIERS (860): core checks block; secondary ones run only with --all (or --tier=secondary) and report WARN, never FAIL. */
+const TIER_OF = (() => { try { return JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'tiers.json'), 'utf8')).checks || {}; } catch (e) { return {}; } })();
+const TIER_ARG = (/^--tier=(core|secondary|all)$/.exec(process.argv.find(a => a.startsWith('--tier=')) || '') || [])[1]
+  || (process.argv.includes('--all') ? 'all' : 'core');
+SUITE.forEach(c => { c.tier = TIER_OF[c.file] || 'core'; if (c.tier === 'secondary') c.report = true; });
+/* OFF (860): a deactivated widget's checks are skipped, and counted, never passed. */
+const OFF_SKIPPED = SUITE.filter(c => c.tier === 'off').map(c => c.file);
+for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].tier === 'off') SUITE.splice(i, 1);
+for (let i = SUITE.length - 1; i >= 0; i--) if (TIER_ARG !== 'all' && SUITE[i].tier !== TIER_ARG) SUITE.splice(i, 1);
+/* check-flow splits its own journeys by the same file: core blocks, secondary warns. */
+const FLOW_TIER = TIER_ARG === 'core' ? '' : TIER_ARG;
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */
 if (process.argv.includes('--fast')) for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].slow) SUITE.splice(i, 1);
-let failed = 0, noted = 0;
-const notes = [];
+/* `--slow=k/n` (CI, 780): only the slow checks, the k-th of n groups dealt round-robin; check-flow is left to FLOW_PART. */
+const SLOW_PART = /^--slow=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--slow=')) || '');
+/* `--heavy=k/n` (CI, 840): the `heavy` ones — each near the limit on a free runner — dealt the same way, kept out of `--slow`'s parts. */
+const HEAVY_PART = /^--heavy=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--heavy=')) || '');
+for (const [m, heavy, label] of [[SLOW_PART, false, 'slow'], [HEAVY_PART, true, 'heavy']]) {
+  if (!m) continue;
+  const k = Number(m[1]), n = Number(m[2]);
+  const mine = SUITE.filter(c => c.slow && c.file !== 'check-flow.js' && !!c.heavy === heavy).filter((c, i) => i % n === k - 1);
+  SUITE.splice(0, SUITE.length, ...mine);
+  console.log(label + ' part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
+}
+/* A BROWSER CHECK'S LIMIT, in seconds: 900 here; CI's runners are slower, and its workflow says how long (CHECK_LIMIT_S, 840). */
+const LIMIT_MS = 1000 * (Number(process.env.CHECK_LIMIT_S) || 900);
+let failed = 0, noted = 0, warned = 0;
+const notes = [], warns = [];
 
 /* ---------- THE ONES THAT DRIVE A BROWSER START AT THE TOP, A FEW AT A TIME § */
 /* AND NOT ALL AT ONCE. § */
@@ -274,7 +310,7 @@ for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) 
     const t0 = Date.now();
     const done = r => { live--; fin(r); pump(); };
     /* TEN MINUTES, NOT FIVE. § */
-    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000, env: childEnv,
+    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: LIMIT_MS, env: envFor(c),
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));
@@ -306,7 +342,7 @@ pump();
       try {
         /* FIVE MINUTES FOR A FILE CHECK, NOT THREE. § */
         out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
-                                                    timeout: 300000, env: childEnv,
+                                                    timeout: 300000, env: envFor(c),
                                                     stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
@@ -317,6 +353,13 @@ pump();
 
     if (ok) {
       if (VERBOSE) console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+    } else if (c.report) {
+      /* SECONDARY (860): it ran and found something, said with a count, and the suite stays green. */
+      warned++;
+      const lines = out.split('\n').filter(l => /^\s*(FAIL|FAILED|!)\b/.test(l.trim()) || /^\s*FAIL\s/.test(l));
+      console.log('  WARN  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's  (secondary, report-only: ' + Math.max(1, lines.length) + ' finding(s))');
+      warns.push(c.file);
+      (VERBOSE ? lines : lines.slice(0, 3)).forEach(l => console.log('          ' + l.trim().slice(0, 200)));
     } else if (c.soft) {
       noted++;
       if (VERBOSE) console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
@@ -361,13 +404,16 @@ pump();
   }
 
   // session-start.sh reads "OK — nothing is broken (N checks" for its count, so every green ending carries it.
-  if (failed || notes.length || VERBOSE) console.log('');
+  if (failed || notes.length || warned || VERBOSE) console.log('');
+  const tierSay = (TIER_ARG === 'core' ? ' core; --all adds the secondary' : TIER_ARG === 'all' ? ' core and secondary' : ' secondary only') + (OFF_SKIPPED.length ? ', ' + OFF_SKIPPED.length + ' off and skipped' : '');
+  if (OFF_SKIPPED.length && (VERBOSE || TIER_ARG !== 'core')) console.log('note — ' + OFF_SKIPPED.length + ' check(s) skipped, their widgets are off (860): ' + OFF_SKIPPED.join(', '));
+  if (warned) console.log('WARN — ' + warned + ' secondary check(s) found something (report-only, 860): ' + warns.join(', '));
   if (failed) {
-    console.log('FAILED — ' + failed + ' of ' + ran + ' checks found something wrong.');
+    console.log('FAILED — ' + failed + ' of ' + ran + ' checks found something wrong (' + tierSay.trim() + ').');
   } else if (noted) {
-    console.log('OK — nothing is broken (' + ran + ' checks; ' + noted + ' with a note above).');
+    console.log('OK — nothing is broken (' + ran + ' checks;' + tierSay + '; ' + noted + ' with a note above).');
   } else {
-    console.log('OK — nothing is broken (' + ran + ' checks).');
+    console.log('OK — nothing is broken (' + ran + ' checks;' + tierSay + ').');
   }
   process.exit(failed ? 1 : 0);
 
