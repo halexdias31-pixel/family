@@ -679,7 +679,7 @@ function widgetInFind_(w) {
   const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
   if (!rows) return FIND_WIDGET_KINDS.indexOf(w.kind) !== -1;
   const said = rows.find(r => r.widget === String(w.id)) || rows.find(r => r.widget === w.kind);
-  return !!(said && said.find);
+  return !!said && /^(true|yes|1)$/i.test(String(said.find).trim());   /* a sheet's "FALSE" is a string, so truthiness would keep it */
 }
 /* EVERY WIDGET THAT IS A FIND CARD FOR THIS VIEWER, in the code's order; one an admin deleted (layout.js) is gone here too. */
 function findWidgetList_() {

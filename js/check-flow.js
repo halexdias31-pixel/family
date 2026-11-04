@@ -3591,7 +3591,8 @@ check('the imposter game tells everybody the word but one, and hides it between 
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
-      t.findGroup('Games');
+      t.findGroup('Games', 'wordgames');
+      for (let n = 0; n < 50 && !(card() && said()); n++) await wait(100);   /* Find redraws the card it lands on (790) */
       if (said() !== 'Player 2 Show') {
         bad.push('leaving the column with a word up does not hide it: the game reads "' + said() + '"');
       }
@@ -3789,7 +3790,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
         /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
         mark('repaint');
         t.repaint(true);
-        for (let n = 0; n < 60 && !card(); n++) await wait(50);   /* Find fills its page after the paint (790) */
+        for (let n = 0; n < 60 && !(card() && text()); n++) await wait(50);   /* Find fills its page after the paint (790) */
         quiet('a repaint');
         if (text() !== 'Player 3 Show') bad.push('a repaint lost the round: "' + text() + '"');
       }
@@ -13190,7 +13191,8 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
              pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
   };
   /* THE WIDGET ON ITS OWN PAGE OF TOOLS, as a swipe arrives at it (466). */
-  const look = async () => { await toolBox_(w, 'countdowns', '.cd-box'); return seen(); };
+  /* FIND IS FOR MEMBERS (400): signed out, `findGroup` stands a member in to look, and stands them down after (790). */
+  const look = async () => { const was = t.whoami(); await toolBox_(w, 'countdowns', '.cd-box'); const s0 = seen(); if (!was && t.whoami()) t.USER(null); return s0; };
   const signIn = async (u, as) => {
     next = u;
     await go('account');
@@ -13514,11 +13516,11 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
   if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
   t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
   const bad = [];
-  const c = await toolBox_(w, 'countdowns', '.cd-box');
+  let c = await toolBox_(w, 'countdowns', '.cd-box');
   if (!c) return ['the Countdowns widget did not draw on Tools — NOT checked'];
   t.go('account', false, true); await wait(LEAVE_MS); await woken_(); w.paint('account');
   if (progCard_(d, 'Countdowns') || /Countdowns/.test((d.getElementById('s-account') || {}).textContent || '')) bad.push('Countdowns is still on Student settings — one home, Tools (466)');
-  await toolBox_(w, 'countdowns', '.cd-box');
+  c = (await toolBox_(w, 'countdowns', '.cd-box')) || c;   /* Find draws its card afresh on the way back (790) */
   const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
   const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
   if (rows.join(' | ') !== want.join(' | ')) bad.push('Countdowns reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
@@ -13527,11 +13529,13 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
   t.DATA().intervals = [];
   delete t.DATA().constants.vars.exam_gcse_start;
   w.paintCountdowns_();
+  c = d.querySelector('#s-stuff .cd-box') || c;
   const rows2 = [...c.querySelectorAll('.row')].map(progRow_);
   if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
   if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
   t.USER(null);
   w.paintCountdowns_();
+  c = d.querySelector('#s-stuff .cd-box') || c;
   /* SIGNED OUT (466): everyone has the widget — the holiday needs no account, the exam does. */
   const rows3 = [...c.querySelectorAll('.row')].map(progRow_);
   if (rows3.length !== 1 || !/(half-term|holidays) (\d+ days?|today)$/.test(rows3[0] || '')) bad.push('signed out, Countdowns reads ' + JSON.stringify(rows3) + ' — wanted the next holiday alone');
@@ -13709,8 +13713,9 @@ const bizSwipe_ = async (w, from) => {
 /* THE FILE WAS READ: since 392 TAB_ORDER and columns.json agree, so the order cannot tell them apart and the payload is asked. */
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
-const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved',
-                    'booking', 'shop', 'games'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(11));  /* the owner's eleven since 730, as columns.json lists them */
+/* TOOLS AND GAMES LEFT THE ROW FOR FIND IN 790. */
+const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'stuff', 'res', 'saved',
+                    'booking', 'shop'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(9));  /* the owner's eleven since 730, as columns.json lists them */
 
 check('business: an admin has a Business column last, straight after Apprentice settings (730), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
@@ -14203,7 +14208,7 @@ check('a qualification is written like an isotope: the level raised, the grade l
 const libOpen_ = async (w, who) => {
   const t = w.__t;
   if (who) t.USER(who);
-  try { t.findGroup('Tools'); t.repaint(true); } catch (e) { return null; }
+  try { t.findGroup('Tools', 'libcards'); } catch (e) { return null; }   /* its own card: Find fills the pages near the glass (790) */
   for (let k = 0; k < 30; k++) {
     const f = w.document.querySelector('#s-stuff #wgt-libcards #lib-box .me-form');
     if (f) return f;
@@ -14383,10 +14388,10 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   const ids = () => (typeof w.widgetsOf_ === 'function' ? w.widgetsOf_('tool') : []).map(x => x.id);
+  /* SIGNED OUT, Find is not offered (400, 790), so the list is asked: a visitor's tools hold no library cards. */
   t.USER(null);
-  try { t.findGroup('Tools'); t.repaint(true); } catch (e) {}
   await wait(200);
-  if (ids().indexOf('libcards') !== -1 || d.querySelector('#s-stuff #wgt-libcards')) bad.push('a visitor signed out is shown the library cards on Tools');
+  if (ids().indexOf('libcards') !== -1) bad.push('a visitor signed out is shown the library cards on Tools');
   for (const [role, roles] of [['client', ['client']], ['student', ['student']], ['tutor', ['tutor']], ['admin', ['admin']]]) {
     const form = await libOpen_(w, { name: 'Lee Reader', personId: 'P-L' + role, role, roles, token: 'tk',
                                      profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
@@ -14447,27 +14452,22 @@ check('review 339: somebody on a Tools page keeps that tool when they sign in an
   await wait(300);
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   if (tools[tools.length - 1] !== 'libcards') bad.push('the library cards are not the last tool: ' + tools.join(', '));
+  /* FIND IS FOR MEMBERS (790): the one standing on the tool is a member, and another signing in on the phone keeps it; signing out leaves Find. */
   for (const id of ['calendar', 'whiteboard']) {
-    t.USER(null);
-    t.findGroup('Tools'); t.repaint(true);
-    await wait(300);
-    const at = [...d.querySelectorAll('#s-stuff > .page')].findIndex(p => p.querySelector('#wgt-' + id));
-    if (at < 0) { bad.push('no ' + id + ' on a visitor\'s Tools column — NOT checked'); continue; }
-    w.__t.findPage(at, true);
-    await wait(200);
+    t.findGroup('Tools', id);
+    await wait(400);
     if (front() !== 'wgt-' + id) { bad.push('could not stand on the ' + id + ' (' + front() + ') — NOT checked'); continue; }
     try { w.signedIn_({ success: true, name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
                         profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } }, 'parent@example.org'); } catch (e) { bad.push('signedIn_ threw ' + e.message); }
     await wait(400);
-    t.findGroup('Tools');
+    t.findGroup('Tools', id);
     await wait(400);
-    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Tools to ' + front());
-    if (!d.querySelector('#s-stuff #wgt-libcards')) bad.push('signed in, Tools has no library cards');
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Find to ' + front());
+    t.findGroup('Tools', 'libcards');
+    await wait(400);
+    if (!d.querySelector('#s-stuff #wgt-libcards')) bad.push('signed in, Find › Tools has no library cards');
     try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { bad.push('Sign out threw ' + e.message); }
     await wait(400);
-    t.findGroup('Tools');
-    await wait(400);
-    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing out turned Tools to ' + front());
   }
   return bad;
 });
@@ -14482,7 +14482,7 @@ check('review 339: a server that sends no library group is said to be older, not
     const t = w.__t, d = w.document;
     t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
              profile: { first_name: 'Test', last_name: 'Admin', phone_cc: '+44' } });
-    try { t.findGroup('Tools'); t.repaint(true); } catch (e) {}
+    try { t.findGroup('Tools', 'libcards'); } catch (e) {}
     let said = '';
     for (let k = 0; k < 30; k++) {
       said = String((d.querySelector('#s-stuff #wgt-libcards #lib-box') || {}).textContent || '').replace(/\s+/g, ' ').trim();
