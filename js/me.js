@@ -1924,7 +1924,7 @@ const SOON_CARDS = [
   ['soon-conduct', 'Code of conduct', 'How we treat each other here. Coming soon.'],
 ];
 const soonCards_ = () => SOON_CARDS.map(([c, h, p]) => `<div class="card soon-card ${c}"><h3>${esc(h)}</h3><p class="note">${esc(p)}</p></div>`);
-const SETTINGS_OFF = true;
+const SETTINGS_OFF = false;
 screen('account', () => pages('account', SETTINGS_OFF || typeof cardsOf_ !== 'function' ? studentSetPages_() : cardsOf_('account')));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
