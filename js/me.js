@@ -1993,13 +1993,13 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
+  return out.length ? out : [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
 /* ---------- APPRENTICE: WORK EXPERIENCE, A PLACEHOLDER UNTIL IT IS BUILT (570) ---------- */
 function apprenticePages_() {
-  return [`<div class="card appr-set"><h3>${esc(tabLabel_('apprentice', 'Apprentice settings'))}</h3><p class="muted">${
+  return [`<div class="card appr-set"><p class="muted">${
     esc(brand('apprentice_blurb', 'Work experience with us. Coming soon.'))}</p></div>`];
 }
 screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? cardsOf_('apprentice') : apprenticePages_()));
@@ -2019,7 +2019,7 @@ screen('web', () => pages('web', typeof cardsOf_ === 'function' ? cardsOf_('web'
 function apprenticeProfilePages_() {
   const all = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title && /apprentice/i.test(String(p.role || '')));
   if (all.length) return all.map(p => `<div class="card appr-card"><h3>${esc(p.title)}</h3>${p.handle ? `<p class="sub prof-handle">@${esc(p.handle)}</p>` : ''}</div>`);
-  return [`<div class="card appr-card people-none"><h3>${esc(tabLabel_('apprentices', 'Apprentice profile'))}</h3><p class="muted">${
+  return [`<div class="card appr-card people-none"><p class="muted">${
     esc(brand('apprentices_none', 'No apprentices yet.'))}</p></div>`];
 }
 screen('apprentices', () => pages('apprentices', typeof cardsOf_ === 'function' ? cardsOf_('apprentices') : apprenticeProfilePages_()));

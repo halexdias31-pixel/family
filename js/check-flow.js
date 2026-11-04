@@ -10224,7 +10224,8 @@ check('770: the search card has no Find button; no card is titled with a column\
   if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is on a search card');
   if (d.querySelector('.ps-card .card-say')) bad.push('the search card carries a sentence above its bar (its placeholder is its label, 469)');
   const names = new Set((t.TABS || []).map(x => String(x.label || x.id).trim().toLowerCase()));
-  d.querySelectorAll('.screen .card > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
+  /* AN EMPTY LIST'S CARD (`emptyCard_`, 414) keeps its title by its own rule. */
+  d.querySelectorAll('.screen .card:not(.is-empty) > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
   if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
   const row = w.cardAdminRow_('biz:deleted', 'biz', false);
   if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');
