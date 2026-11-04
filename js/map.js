@@ -355,6 +355,8 @@ const WIDGETS = [
     <div id="lib-box"></div>
   </div>` },
 ];
+/* SECONDARY (860): every widget here not named core in data/settings/tiers.json throws into oops_, never into its caller. */
+tierGuardWidgets_(WIDGETS);
 
 
 

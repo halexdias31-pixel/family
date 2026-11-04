@@ -122,13 +122,15 @@ only when the real files are green again.
 
 ```bash
 node js/check.js                  # names used but never declared. Run after every change.
-npm run check                     # everything (js/check-all.js); -v for a line per check. Before pushing.
+npm run check                     # the core checks (js/check-all.js); --all adds secondary; -v per check. Before pushing.
 FLOW_PART=1/4 node js/check-flow.js   # the journeys through the real app, in four parts
 node check/ui.js --screen=tools   # one screen of the layout check; --shots writes PNGs
 node check/live.js --sheets s.json --out /tmp/p.json && node check/ui.js --payload=/tmp/p.json
 node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails, nothing sent
 ```
 
+**Two tiers** (860): only Find must never break. `data/settings/tiers.json` marks each screen, widget, kind, file and check
+core or secondary; core checks and journeys block, secondary ones (`--all`, `FLOW_TIER=all`) only print WARN.
 Each check's header says what it proves, its flags and its port variable. The full list: `docs/map-detail.md`.
 
 **CI** (780): `.github/workflows/checks.yml` runs the suite on every push and PR to main in 17 parallel jobs (~15 min), with

@@ -457,10 +457,16 @@ const checks = [];
 const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
 const FLOW_SLICE = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_SLICE || '');
 let flowSeen = 0;
+/* TIERS (860): a journey is core by data/settings/tiers.json's two patterns; FLOW_TIER=all or =secondary adds the rest, report-only. FLOW_ONLY and FLOW_RE ask regardless of tier. */
+const FLOW_TIERS_ = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).journeys; } catch (e) { return null; } })();
+const FLOW_TIER = /^(all|secondary)$/.test(process.env.FLOW_TIER || '') ? process.env.FLOW_TIER : 'core';
+const journeyTier_ = name => !FLOW_TIERS_ || (new RegExp(FLOW_TIERS_.core, 'i').test(name) && !new RegExp(FLOW_TIERS_.secondary, 'i').test(name)) ? 'core' : 'secondary';
 const check = (name, fn) => {
   const n = flowSeen++;
   if (FLOW_SLICE && n % Number(FLOW_SLICE[2]) !== Number(FLOW_SLICE[1])) return;
-  if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn });
+  const tier = journeyTier_(name), asked = !!(process.env.FLOW_ONLY || FLOW_RE_);
+  if (!asked && FLOW_TIER !== 'all' && tier !== FLOW_TIER) return;
+  if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn, tier });
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -32514,7 +32520,7 @@ if (FLOW_PART_) {
   console.log('part ' + k + '/' + n + ': journeys ' + (a + 1) + '–' + b + ' of ' + all);
 }
 (async () => {
-  let failed = 0;
+  let failed = 0, warned = 0;
   const skipped = [];
   console.log('');
   for (const c of checks) {
@@ -32525,7 +32531,11 @@ if (FLOW_PART_) {
       if (LIB_FULL.isAbsent(e)) { skipped.push(c.name); console.log('  skip  ' + c.name); continue; }
       bad = ['the check itself threw: ' + e.message + (process.env.FLOW_STACK ? ' ' + e.stack : '')];
     }
-    if (bad && bad.length) {
+    if (bad && bad.length && c.tier === 'secondary') {
+      warned++;
+      console.log('  WARN  ' + c.name + '  (secondary, report-only)');
+      bad.forEach(b => console.log('          ' + b));
+    } else if (bad && bad.length) {
       failed++;
       console.log('  FAIL  ' + c.name);
       bad.forEach(b => console.log('          ' + b));
@@ -32536,6 +32546,8 @@ if (FLOW_PART_) {
   console.log('');
   LIB_FULL.skipParts(skipped);
   const ran = checks.length - skipped.length;
+  if (warned) console.log('WARN — ' + warned + ' secondary journey(s) found something (report-only, 860)');
+  console.log('tier ' + FLOW_TIER + ': ' + checks.filter(c => c.tier === 'core').length + ' core, ' + checks.filter(c => c.tier === 'secondary').length + ' secondary journeys');
   console.log(failed ? 'FAILED — ' + failed + ' of ' + ran + ' journeys are broken'
                      : 'OK — all ' + ran + ' journeys work' + (skipped.length ? ' (' + skipped.length + ' skipped: no private words).' : '.'));
   process.exit(failed ? 1 : 0);

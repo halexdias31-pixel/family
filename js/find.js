@@ -10553,7 +10553,9 @@ function stuffCard(x, credits) {
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
-  const html = tagsAreTitle_(x, (kindOf_(x).card || thingCard_)(x, credits));
+  /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
+  const card = kindOf_(x).card || thingCard_;
+  const html = tagsAreTitle_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_));
   if (!x.key) return html;
   /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
   const out = `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;

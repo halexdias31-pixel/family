@@ -1,4 +1,5 @@
 # THE CHECK SUITE ON GITHUB'S FREE RUNNERS (docs/history/780). Every push and every PR to main: a ✅/❌ per commit.
+# The `check` jobs are CORE only and blocking (860, data/settings/tiers.json); the `secondary` jobs below never block.
 # The library's private words (data-private/) are not here and are never fetched: LIB_PRIVATE=absent makes every check
 # that needs them skip, counted, and each job's summary lists what was skipped. The full set still runs locally.
 name: Checks
@@ -110,6 +111,42 @@ jobs:
             check/**/*.png
           if-no-files-found: ignore
           retention-days: 14
+
+  # SECONDARY, REPORT-ONLY (docs/history/860): everything data/settings/tiers.json does not call core. It runs and says WARN
+  # with counts, and never fails the commit: continue-on-error, and the checks themselves exit 0 on a secondary finding.
+  secondary:
+    name: 'secondary (report-only): ${{ matrix.name }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: 'checks', cmd: 'node js/check-all.js --tier=secondary -v' }
+          - { name: 'journeys 1/2', cmd: 'FLOW_TIER=secondary FLOW_PART=1/2 node --max-old-space-size=3000 js/check-flow.js' }
+          - { name: 'journeys 2/2', cmd: 'FLOW_TIER=secondary FLOW_PART=2/2 node --max-old-space-size=3000 js/check-flow.js' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run (report-only)
+        run: |
+          set -o pipefail
+          bash -c "${{ matrix.cmd }}" 2>&1 | tee "$RUNNER_TEMP/run.log"
+      - name: Summary — secondary findings
+        if: always()
+        run: |
+          {
+            echo "### secondary (report-only): ${{ matrix.name }}"
+            grep -E '^(WARN|OK|FAILED) —' "$RUNNER_TEMP/run.log" | tail -4 || true
+            grep -cE '^\s+WARN\s' "$RUNNER_TEMP/run.log" | sed 's/^/WARN lines: /' || true
+          } >> "$GITHUB_STEP_SUMMARY"
 
   stability:
     name: stability guard
