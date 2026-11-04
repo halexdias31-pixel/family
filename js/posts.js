@@ -1832,6 +1832,7 @@ function reelTurn_(n) {
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. § */
   /* AND NOT WHILE THE COLUMN IS STILL WAITING. § */
   if (LOADED && n - REEL_LEAD >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
+  ytSweep_();
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen rather than gone, because the column peeks above and below. § */
   host.querySelectorAll('.reel').forEach(el => {
@@ -1932,6 +1933,12 @@ function ytClocksOff_(box) {
   clearTimeout(o.clock); clearTimeout(o.lap);
   o.clock = o.lap = 0;
   o.st = null;
+  YT_WOUND.delete(box);
+}
+/* A REPAINT THROWS A SLIDE AWAY WITHOUT DROPPING IT (750), and its clock ran on beside the new slide's: two clocks for one Short. Stopped before any clock is wound. */
+const YT_WOUND = new Set();
+function ytSweep_() {
+  YT_WOUND.forEach(box => { if (!box.isConnected) ytClocksOff_(box); });
 }
 function ytBox_(box) {
   let o = YT_BOX.get(box);
@@ -1988,7 +1995,9 @@ function reelYtBuild_(box) {
 function reelYtClock_(box) {
   const f = box.querySelector('iframe.feed-yt-frame');
   const o = ytBox_(box);
+  ytSweep_();
   if (!f || f.dataset.played || o.clock) return;
+  YT_WOUND.add(box);
   o.clock = setTimeout(() => {
     o.clock = 0;
     if (!f.isConnected || f.dataset.played) return;
@@ -2083,7 +2092,7 @@ function reelYtHeard_(f, d) {
   } else if (st === 3) {
     /* buffering: as it is */
   } else if ((st === 0 || st === -1) && box.dataset.want === 'play' && box.classList.contains('is-live')) {
-    if (!o.lap) o.lap = setTimeout(() => {
+    if (!o.lap) YT_WOUND.add(box), o.lap = setTimeout(() => {
       o.lap = 0;
       if (o.st !== 1 && o.st !== 3) box.classList.remove('is-live');
     }, YT_LAP);

@@ -189,6 +189,7 @@ const SUITE = [
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
   { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
+  { file: 'tools/build-stamp.js --check', what: 'index.html\'s BUILD_STAMP is the hash of the files it stamps, so a deploy changes every URL and nothing else does (750)' },
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },

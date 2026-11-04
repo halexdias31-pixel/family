@@ -21,6 +21,8 @@ const POP_LATE = 1.5, LIB_COLS = ['s-stuff', 's-res'];
 const PAINT_MAX = Number(process.env.ARRIVAL_PAINT_MAX || 5), FEED_LEAD = 1;
 const lib = require('./lib-full.js');
 const GZ = new Map();
+/* WHAT EACH VISIT COST OVER THE WIRE (750), counted where it leaves the server: bytes, and the code files asked for at all. */
+const SENT = { bytes: 0, code: [], by: {} };
 const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.html': 'text/html', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 
 /* COMPRESSED AND CACHEABLE AS PAGES SENDS IT, so the second visit is a real warm one. */
@@ -33,14 +35,18 @@ function serve() {
       if (full !== null) body = () => Buffer.from(full);
       else if (f.startsWith(ROOT) && fs.existsSync(f) && !fs.statSync(f).isDirectory()) body = () => fs.readFileSync(f);
       if (!body) { rs.writeHead(404); return rs.end(); }
+      if (/^\/(js\/|style\.css)/.test(url)) SENT.code.push(url);
       const type = TYPES[path.extname(f)] || 'text/plain', head = { 'content-type': type, 'cache-control': 'max-age=600' };
       if (/gzip/.test(rq.headers['accept-encoding'] || '') && /json|text|javascript/.test(type)) {
         if (!GZ.has(f)) GZ.set(f, zlib.gzipSync(body(), { level: 1 }));
         rs.writeHead(200, Object.assign(head, { 'content-encoding': 'gzip' }));
+        SENT.bytes += GZ.get(f).length; SENT.by[url] = (SENT.by[url] || 0) + GZ.get(f).length;
         return rs.end(GZ.get(f));
       }
       rs.writeHead(200, head);
-      rs.end(body());
+      const b = body();
+      SENT.bytes += b.length; SENT.by[url] = (SENT.by[url] || 0) + b.length;
+      rs.end(b);
     }).listen(PORT, () => done(srv));
   });
 }
@@ -160,7 +166,11 @@ async function visit(ctx, tag, size) {
     for (const size of SIZES.filter(z => !only || only.split(',').includes(z.name))) {
     const ctx = await browser.newContext({ viewport: { width: size.w, height: size.h }, isMobile: !size.admin, hasTouch: !size.admin, deviceScaleFactor: 1 });
     for (const tag0 of ['cold', 'warm']) {
+      SENT.bytes = 0; SENT.code = []; SENT.by = {};
       const r = await visit(ctx, tag0, size), tag = size.name + ' ' + tag0;
+      if (VERBOSE) console.log(tag, 'sent', Math.round(SENT.bytes / 1024) + ' KB', SENT.code.length + ' code files', Object.entries(SENT.by).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([u, n]) => u + ' ' + Math.round(n / 1024) + 'KB').join(', '));
+      /* WARM IS WARM (750): the stamp is the files' hash, so a second visit with nothing deployed between asks for no code file again. */
+      if (tag0 === 'warm' && SENT.code.length) bad.push(`${tag}: downloaded ${SENT.code.length} code files again with nothing deployed (${SENT.code.slice(0, 3).join(', ')}…)`);
       if (VERBOSE) {
         for (const f of r.frames) console.log(tag, f.s + 's', JSON.stringify(f.look));
         console.log(tag, 'shifts', JSON.stringify(r.shifts), 'after', JSON.stringify(r.after), 'first drawn at', r.drawnAt + 's', 'landed at', r.landedAt + 's',
