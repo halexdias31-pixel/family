@@ -24,13 +24,22 @@ const MISSING_ID = 'item:stuff:missing-papers';
 const missingFor_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') && !(typeof itemGone_ === 'function' && itemGone_(MISSING_ID));
 /* THE PAGE ABOVE FIND'S QUESTION (`FINDERS.stuff.lead`, find.js): an admin's only. */
 /* AND SUGGEST A CHANGE (486), as on Daive's card: one row with the item's tiles (`suggestRowIn_`, submit.js). */
-function missingLead_() {
+/* IN FIND, NOT ABOVE IT (owner, 4 Nov): the two cards are Find cards under Site health (find.js `health`); the lead page is empty. */
+const HEALTH_IN_FIND = true;
+function missingLead_() { return HEALTH_IN_FIND ? [] : missingLeadCards_(); }
+function missingLeadCards_() {
   const out = logicLead_();
   if (!missingFor_()) return out;
   const h = typeof itemMark_ === 'function' ? itemMark_(MISSING_ID, '', missingCard_()) : missingCard_();
   return out.concat([typeof suggestRowIn_ === 'function' ? suggestRowIn_(h, 'widget', 'missing-papers', 'What’s missing') : h]);
 }
-const missingLeadN_ = () => (logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
+const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (logicFor_() ? 1 : 0) + (missingFor_() ? 1 : 0);
+/* ONE CARD EACH, for Find: `logic` or `missing`, the same markup the lead page drew. */
+function healthCardOf_(which) {
+  const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
+  const l = logicFor_() ? 1 : 0;
+  return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card"><p class="sub">Nothing to show yet.</p></div>';
+}
 
 /* ---------- LOGIC HEALTH (770), ABOVE WHAT'S MISSING: data/logic-health.json, measured by tools/logic-health.js — mechanical, never AI ---------- */
 const LOGIC_ID = 'item:stuff:logic-health';

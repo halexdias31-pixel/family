@@ -3,6 +3,15 @@
 Kept so nothing is lost. "Coming soon" widgets on the site are the other half of this list: each one is
 something switched off on purpose (data/settings/tiers.json, history 860) and waiting to be done properly.
 
+## Nothing is lost — the safety net
+- **Every feature's code is still in the repo.** Switched off, never deleted: screens by `active` in
+  data/settings/columns.json, widgets by data/settings/tiers.json, settings by `SETTINGS_OFF` (js/me.js),
+  layout editing by `LAYOUT_EDIT` (js/layout.js), Find 2 by `res` in columns.json, Find's front cards by `HEALTH_IN_FIND`.
+- **The whole site as it was with every feature on** is commit `389d843` (4 Nov 2026, before the shutdown).
+  Any file can be brought back from it with `git checkout 389d843 -- <file>`; the earlier full site before
+  Tools/Games moved into Find is `a2397ac`.
+- Each "Coming soon" card in Find names one switched-off thing; turning it back on removes the card.
+
 ## The direction (owner, 3–4 Nov 2026)
 - Apple-like: minimal, stable, few features done well. **Find is the core; everything else is secondary.**
 - Organise first, then optimise round by round against the Stability and Logic health scores.

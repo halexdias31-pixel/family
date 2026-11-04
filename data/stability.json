@@ -93,7 +93,7 @@
    "cap": 10,
    "off": 2,
    "where": {
-    "js/find.js": 12212,
+    "js/find.js": 12216,
     "js/me.js": 4888,
     "js/shell.js": 3868,
     "backend/dopost.gs": 4609
@@ -121,7 +121,7 @@
     "js/core.js priceFrom": 251,
     "js/find.js typeset_": 230,
     "js/find.js drawMarker_": 644,
-    "js/find.js stuffItemsRaw_": 173,
+    "js/find.js stuffItemsRaw_": 175,
     "js/library.js libraryExtras_": 180,
     "js/shell.js placeGrid": 163,
     "js/shell.js loadOnce_": 252,
