@@ -1,0 +1,215 @@
+{
+ "v": 1,
+ "score": 74.4,
+ "weights": {
+  "code": 0.4,
+  "logic": 0.35,
+  "ui": 0.25
+ },
+ "parts": {
+  "code": 65.6,
+  "logic": 84.6,
+  "ui": 74.2
+ },
+ "logicStale": false,
+ "ui": [
+  {
+   "id": "zindex",
+   "label": "Distinct z-index values (over 5)",
+   "count": 17,
+   "weight": 0.5,
+   "cap": 10,
+   "off": 6
+  },
+  {
+   "id": "pxlit",
+   "label": "Hard-coded px literals outside the tokens",
+   "count": 1180,
+   "weight": 0.004,
+   "cap": 15,
+   "off": 4.7
+  },
+  {
+   "id": "selectors",
+   "label": "style.css selectors (over 1500)",
+   "count": 3510,
+   "weight": 0.002,
+   "cap": 15,
+   "off": 4
+  },
+  {
+   "id": "colourlit",
+   "label": "Hard-coded colours outside the tokens",
+   "count": 168,
+   "weight": 0.02,
+   "cap": 15,
+   "off": 3.4
+  },
+  {
+   "id": "order",
+   "label": "Properties a repeated selector overrides only by order",
+   "count": 57,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 2.9
+  },
+  {
+   "id": "important",
+   "label": "!important declarations in style.css",
+   "count": 48,
+   "weight": 0.05,
+   "cap": 15,
+   "off": 2.4
+  },
+  {
+   "id": "position",
+   "label": "transform and position:absolute uses",
+   "count": 239,
+   "weight": 0.01,
+   "cap": 10,
+   "off": 2.4
+  }
+ ],
+ "top": [
+  {
+   "part": "logic",
+   "id": "subtype",
+   "cost": 4.4,
+   "say": "Find: 27 of 214 questions break a rule — a finer question asked before its coarser one."
+  },
+  {
+   "part": "code",
+   "id": "catches",
+   "cost": 4.2,
+   "say": "526 empty catches are allowed by check-catches; each one hides an error."
+  },
+  {
+   "part": "code",
+   "id": "special",
+   "cost": 3,
+   "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
+  },
+  {
+   "part": "code",
+   "id": "exceptions",
+   "cost": 2.4,
+   "say": "59 written exceptions let checks pass despite a known problem."
+  },
+  {
+   "part": "code",
+   "id": "dead",
+   "cost": 1.9,
+   "say": "16 functions nothing calls."
+  }
+ ],
+ "all": [
+  {
+   "part": "logic",
+   "id": "subtype",
+   "cost": 4.4,
+   "say": "Find: 27 of 214 questions break a rule — a finer question asked before its coarser one."
+  },
+  {
+   "part": "code",
+   "id": "catches",
+   "cost": 4.2,
+   "say": "526 empty catches are allowed by check-catches; each one hides an error."
+  },
+  {
+   "part": "code",
+   "id": "special",
+   "cost": 3,
+   "say": "147 per-facet or per-kind special cases in the app code, mostly js/find.js."
+  },
+  {
+   "part": "code",
+   "id": "exceptions",
+   "cost": 2.4,
+   "say": "59 written exceptions let checks pass despite a known problem."
+  },
+  {
+   "part": "code",
+   "id": "dead",
+   "cost": 1.9,
+   "say": "16 functions nothing calls."
+  },
+  {
+   "part": "ui",
+   "id": "zindex",
+   "cost": 1.5,
+   "say": "17 different z-index values stack the screen."
+  },
+  {
+   "part": "ui",
+   "id": "pxlit",
+   "cost": 1.2,
+   "say": "1180 pixel sizes are written by hand instead of as tokens."
+  },
+  {
+   "part": "ui",
+   "id": "selectors",
+   "cost": 1,
+   "say": "style.css has 3510 selectors; every one is something to keep in mind."
+  },
+  {
+   "part": "code",
+   "id": "ceilings",
+   "cost": 0.9,
+   "say": "Ratchet ceilings in the checks have been raised by 1098 units in all."
+  },
+  {
+   "part": "ui",
+   "id": "colourlit",
+   "cost": 0.9,
+   "say": "168 colours are written by hand instead of as :root tokens."
+  },
+  {
+   "part": "logic",
+   "id": "echo",
+   "cost": 0.8,
+   "say": "Find: 5 of 214 questions break a rule — an answer that repeats the answer above it."
+  },
+  {
+   "part": "code",
+   "id": "longfiles",
+   "cost": 0.8,
+   "say": "4 files are over 3000 lines."
+  },
+  {
+   "part": "logic",
+   "id": "twins",
+   "cost": 0.8,
+   "say": "Find: 5 of 214 questions break a rule — two answers that keep exactly the same cards."
+  },
+  {
+   "part": "ui",
+   "id": "order",
+   "cost": 0.7,
+   "say": "57 properties are set twice for the same selector; the later one wins by order alone."
+  },
+  {
+   "part": "ui",
+   "id": "important",
+   "cost": 0.6,
+   "say": "style.css uses !important 48 times, so rules fight instead of cascading."
+  },
+  {
+   "part": "ui",
+   "id": "position",
+   "cost": 0.6,
+   "say": "239 transforms and absolute positions place boxes by hand."
+  },
+  {
+   "part": "code",
+   "id": "duplicates",
+   "cost": 0.4,
+   "say": "54 long lines are copied three or more times."
+  },
+  {
+   "part": "code",
+   "id": "longfns",
+   "cost": 0.2,
+   "say": "10 functions are over 150 lines."
+  }
+ ]
+}

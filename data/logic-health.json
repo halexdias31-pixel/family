@@ -1,7 +1,7 @@
 {
- "score": 80.6,
- "questions": 186,
- "healthy": 150,
+ "score": 84.6,
+ "questions": 214,
+ "healthy": 181,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -13,7 +13,7 @@
   {
    "id": "single",
    "label": "a question with one answer — nothing to decide",
-   "count": 2
+   "count": 0
   },
   {
    "id": "rawkey",
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 28
+   "count": 27
   },
   {
    "id": "siblings",
@@ -38,7 +38,7 @@
   {
    "id": "echo",
    "label": "an answer that repeats the answer above it",
-   "count": 4
+   "count": 5
   },
   {
    "id": "twins",
@@ -48,6 +48,15 @@
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
  "top": [
+  {
+   "where": "Find › Library › History",
+   "asks": "Work",
+   "cards": 3527,
+   "why": [
+    "a finer question asked before its coarser one: Work before Translation",
+    "an answer that repeats the answer above it: History › History of the Peloponnesian War"
+   ]
+  },
   {
    "where": "Find › Library › Religious Studies › Christianity › Church history",
    "asks": "Work",
@@ -84,41 +93,9 @@
    ]
   },
   {
-   "where": "Find › Library › Religious Studies › Judaism",
-   "asks": "Collection",
-   "cards": 46528,
-   "why": [
-    "a finer question asked before its coarser one: Collection before Topic"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Maths › Past paper",
-   "asks": "Which type",
-   "cards": 6024,
-   "why": [
-    "a question with one answer — nothing to decide: Which type"
-   ]
-  },
-  {
    "where": "Find › Library › Religious Studies › Judaism › Second Temple",
    "asks": "Work",
    "cards": 5455,
-   "why": [
-    "a finer question asked before its coarser one: Work before Translation"
-   ]
-  },
-  {
-   "where": "Find › Practice › Questions › Maths › Worksheet",
-   "asks": "Which type",
-   "cards": 4693,
-   "why": [
-    "a question with one answer — nothing to decide: Which type"
-   ]
-  },
-  {
-   "where": "Find › Library › History › Writings",
-   "asks": "Work",
-   "cards": 3327,
    "why": [
     "a finer question asked before its coarser one: Work before Translation"
    ]
@@ -247,6 +224,30 @@
    "where": "Find › Library › Physical Education › Boxers › 2020s",
    "asks": "Fighter",
    "cards": 15,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1940s",
+   "asks": "Fighter",
+   "cards": 13,
+   "why": [
+    "a finer question asked before its coarser one: Fighter before Division"
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights › May",
+   "asks": "Fighter",
+   "cards": 13,
+   "why": [
+    "an answer that repeats the answer above it: May › Floyd Mayweather Jr."
+   ]
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers › 1920s",
+   "asks": "Fighter",
+   "cards": 12,
    "why": [
     "a finer question asked before its coarser one: Fighter before Division"
    ]
