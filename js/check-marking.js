@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-marking.js DOES THE MARKER SAY YES TO A RIGHT ANSWER AND NO TO A WRONG ONE. § */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');
 

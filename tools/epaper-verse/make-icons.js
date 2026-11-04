@@ -100,30 +100,51 @@ function png1_(rows) {
     if (!row.image) throw new Error(row.id + ' has no real image — an icon without one is left out of data/icons.json (483)');
     const from = fs.existsSync(master) ? master : fs.existsSync(big) ? big : file;
     const src = 'data:image/' + (from === master ? 'jpeg' : 'png') + ';base64,' + fs.readFileSync(from).toString('base64');
-    const rows = await page.evaluate(async ([src, photo, stretch]) => {
+    /* THE PANEL'S OWN PIXELS (720): fitted to 150x200, each bitmap pixel the mean of the panel pixels it lands on at 5/4, then dithered (Atkinson) — see docs/history/720. */
+    const rows = await page.evaluate(async ([src, stretch]) => {
       const img = new Image(); img.src = src; await img.decode();
-      const c = document.getElementById('c'); c.width = 120; c.height = 160;
-      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 120, 160);
-      const f = photo ? Math.min(120 / img.width, 160 / img.height) : 1, w = photo ? Math.round(img.width * f) : 120, h = photo ? Math.round(img.height * f) : 160;
-      g.imageSmoothingQuality = 'high'; g.drawImage(img, (120 - w) >> 1, (160 - h) >> 1, w, h);
-      const d = g.getImageData(0, 0, 120, 160).data, v = new Float32Array(120 * 160), out = [];
-      for (let i = 0; i < v.length; i++) v[i] = d[i * 4];
-      /* A GREY MASTER IS STRETCHED to its own 2nd-98th percentile first (499), inside the picture only, or a dim scan dithers to grey mush. */
+      const PW = 150, PH = 200, c = document.getElementById('c'); c.width = PW; c.height = PH;
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, PW, PH);
+      const f = Math.min(PW / img.width, PH / img.height), w = Math.round(img.width * f), h = Math.round(img.height * f), x0 = (PW - w) >> 1, y0 = (PH - h) >> 1;
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(img, x0, y0, w, h);
+      const d = g.getImageData(0, 0, PW, PH).data, big = new Float32Array(PW * PH);
+      for (let i = 0; i < big.length; i++) big[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+      const inPic = (x, y) => x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;
+      /* STRETCHED to the picture's own 1st-99th percentile, so a dim scan uses the whole range. */
       if (stretch) {
-        const x0 = (120 - w) >> 1, y0 = (160 - h) >> 1, inside = [];
-        for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) inside.push(v[y * 120 + x]);
-        inside.sort((a, b) => a - b);
-        const lo = inside[Math.floor(inside.length * 0.02)] || 0, hi = inside[Math.floor(inside.length * 0.98)] || 255;
-        if (hi - lo > 16) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
-          const i = y * 120 + x; v[i] = Math.max(0, Math.min(255, (v[i] - lo) * 255 / (hi - lo)));
-        }
+        const inside = []; for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) inside.push(big[y * PW + x]);
+        inside.sort((p, q) => p - q);
+        const lo = inside[Math.floor(inside.length * 0.01)] || 0, hi = inside[Math.floor(inside.length * 0.99)] || 255;
+        if (hi - lo > 16) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) { const i = y * PW + x; big[i] = Math.max(0, Math.min(255, (big[i] - lo) * 255 / (hi - lo))); }
       }
+      /* A LIGHT SHARPEN (unsharp, 3x3 box, amount .6) and an S-curve: e-ink loses mid-greys first, so the edges and the tones either side of the middle are pushed apart. */
+      const sh = new Float32Array(big);
+      for (let y = y0 + 1; y < y0 + h - 1; y++) for (let x = x0 + 1; x < x0 + w - 1; x++) {
+        let m = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) m += big[(y + dy) * PW + x + dx];
+        const i = y * PW + x; sh[i] = big[i] + 0.6 * (big[i] - m / 9);
+      }
+      for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
+        const i = y * PW + x, t = Math.max(0, Math.min(1, sh[i] / 255));
+        sh[i] = 255 * (t < 0.5 ? 0.5 * Math.pow(2 * t, 1.35) : 1 - 0.5 * Math.pow(2 * (1 - t), 1.35));
+      }
+      /* EACH BITMAP PIXEL = the mean of the panel pixels the firmware draws it on (x * 4 / 5 maps panel to bitmap); outside the picture stays white. */
+      const v = new Float32Array(120 * 160), n = new Float32Array(120 * 160), pic = new Uint8Array(120 * 160);
+      for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+        const k = Math.trunc(y * 4 / 5) * 120 + Math.trunc(x * 4 / 5);
+        v[k] += inPic(x, y) ? sh[y * PW + x] : 255; n[k]++; if (inPic(x, y)) pic[k] = 1;
+      }
+      for (let k = 0; k < v.length; k++) v[k] /= n[k] || 1;
+      /* ATKINSON: 6/8 of the error, to six neighbours — fewer stray dots in the lights and darks than Floyd-Steinberg, which is what reads on a small panel. */
+      const out = [];
       for (let y = 0; y < 160; y++) { const r = []; for (let x = 0; x < 120; x++) {
-        const i = y * 120 + x, on = v[i] < 128 ? 1 : 0, e = photo ? v[i] - (on ? 0 : 255) : 0; r.push(on);
-        if (e) { if (x < 119) v[i + 1] += e * 7 / 16; if (y < 159) { if (x) v[i + 119] += e * 3 / 16; v[i + 120] += e * 5 / 16; if (x < 119) v[i + 121] += e / 16; } }
+        const i = y * 120 + x, on = v[i] < 128 ? 1 : 0; r.push(on);
+        if (!pic[i]) continue;
+        const e = (v[i] - (on ? 0 : 255)) / 8;
+        const add = (dx, dy) => { const xx = x + dx, yy = y + dy; if (xx >= 0 && xx < 120 && yy < 160) v[yy * 120 + xx] += e; };
+        add(1, 0); add(2, 0); add(-1, 1); add(0, 1); add(1, 1); add(0, 2);
       } out.push(r); }
       return out;
-    }, [src, true, from === master]);
+    }, [src, from === master]);
     fs.writeFileSync(file, png1_(rows));   // the widget draws this very bitmap, so widget == screen (483)
     const bytes = [];
     for (const r of rows) for (let x = 0; x < 120; x += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | (r[x + j] || 0); bytes.push('0x' + b.toString(16).padStart(2, '0')); }

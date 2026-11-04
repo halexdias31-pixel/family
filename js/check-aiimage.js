@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* node js/check-aiimage.js — THE PEN'S DRAWING AND THE PHOTOS REACH THE AI (round 3), stubbed both ends, no network. */
+require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 /* Phone: an AI part's Check sends `images` (drawing PNG, then photos) only to a backend listing `aiMarkImages`. */
 /* Backend: `aiMark` hands them to Gemini as inlineData, refuses bad ones whole, keeps the daily cap. */
 'use strict';

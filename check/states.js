@@ -62,7 +62,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         { field: 'typeOwn', value: 'Worksheet' },
                          /* `Level · SATs` AND THEN `Key stage · KS2`. § */
                          { field: 'level', value: 'SATs' },
                          { field: 'keystage', value: 'KS2' },
@@ -91,7 +90,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
-                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' }];
         paintStuff();
@@ -113,7 +111,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
-                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
@@ -137,7 +134,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
-                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', any: true },
@@ -162,7 +158,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
-                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' },
@@ -189,7 +184,6 @@ const STATES = {
         STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         { field: 'typeOwn', value: 'Worksheet' },
                          { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', value: 'Year 5' },
                          /* SATs, since 396 asks Level here (a Year 5 sheet filed GCSE makes two answers); then Paper, 13 sheets. */
@@ -210,7 +204,6 @@ const STATES = {
                          { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
-                         { field: 'typeOwn', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
