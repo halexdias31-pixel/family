@@ -363,37 +363,6 @@ function wearTiles_(x) {
 }
 
 
-/* ---------- A TOOL OR A GAME § */
-function widgetTiles_(x) {
-  const id = (x.row && x.row.id) || '';
-  return `
-    ${tile_({ icon: 'open', label: 'Open', act: 'widget-open', data: { id } })}
-  <div class="widget-slot" id="wgt-${esc(String(id))}"></div>`;
-}
-
-on('widget-open', el => {
-  const id = el.dataset.id;
-  /* THROUGH `allWidgets`, NOT THE CONST — message threads are built from the payload and are not in
-     `WIDGETS`. Looking at the const would list a conversation and then fail to open it. */
-  const wgt = allWidgets().find(w => w.id === id);
-  const slot = $('wgt-' + id);
-  /* AND ONLY ONE THIS PERSON MAY OPEN — `widgetFor_` in arcade.js, which the columns ask as well. § */
-  if (!wgt || !slot || !widgetFor_(wgt)) return;
-
-  /* A SECOND PRESS PUTS IT AWAY. A thing that can only be opened is a thing that fills the card and
-     stays there — and on a list, the way back has to be the same control that got you in. */
-  /* THROUGH `tileSet_`, NOT INTO `.tile-k`. § */
-  if (slot.innerHTML) {
-    slot.innerHTML = '';
-    tileSet_(el, { icon: 'open', label: 'Open', on: false });
-    return;
-  }
-  slot.innerHTML = wgt.html;
-  tileSet_(el, { icon: 'close', label: 'Close', on: true });
-  startWidget_(wgt);
-});
-
-
 /* ---------- A BOUT § */
 /* ---------- WHAT YOU CAN DO ABOUT YOURSELF — NOTHING, ON THIS CARD § */
 function fightTiles_(x) {
@@ -474,7 +443,6 @@ function cardActions_(x) {
   if (x.kind === 'venue') return venueTiles_(x);
   if (x.kind === 'subject') return subjectTiles_(x);
   if (x.kind === 'level') return levelTiles_(x);
-  if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'boxer') return boxerTiles_(x);
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —

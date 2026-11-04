@@ -97,9 +97,7 @@ function liveWidgets_() {
       return {
         id: 'live:' + id,
         kind: 'tool',
-        /* UNDER BOOKING, LIKE THE RECEIPTS. Its kind is `tool` because it is a widget; nobody looks
-           for a class among the timers. See `forLabel` and `kindLabel` in find.js. */
-        groups: 'Booking',
+        /* UNDER TOOLS ON FIND (790): it was filed under Booking, which the funnel does not offer, and shown on the Tools column, which went into Find. */
         label: 'Your sessions',
         name: name,
         what: 'Who is in it',

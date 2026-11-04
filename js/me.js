@@ -1503,7 +1503,7 @@ function uploadsHtml_(d) {
 function uploadsPaint_() {
   document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
   /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note over `paneWatch_`. § */
-  if (typeof placeCells === 'function' && (AT === 'tools' || AT === 'saved')) {
+  if (typeof placeCells === 'function' && (AT === 'stuff' || AT === 'res' || AT === 'saved')) {
     try { placeCells('y', true, 0, AT); } catch (e) {}
   }
 }
@@ -3618,7 +3618,7 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
 /* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a
    widget's slot, kept by the same two lines for the same reason: they were a Settings card until 11 Oct. */
-const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-tools .widget-slot .me-form, #s-saved .widget-slot .me-form';
+const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-res .widget-slot .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
@@ -3634,9 +3634,9 @@ function settingsKeep_(id) {
     /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
   }
-  /* AND TOOLS AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
+  /* AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
      widget slot holds. The rest of the column waits with it, as the rest of Settings waits with a card. */
-  if ((id === 'tools' || id === 'saved') && USER) {
+  if (id === 'saved' && USER) {
     const col = $('s-' + id);
     return !!(col && col.querySelector('.widget-slot .me-form[data-dirty], .widget-slot .me-form.is-sending'));
   }

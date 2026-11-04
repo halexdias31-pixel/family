@@ -2,7 +2,8 @@
 /* One JSON value, config's `layout` row (`layoutSave`), sent as `layout`: unknown ids ignored, missing ones appended, a broken value ignored. */
 
 /* ---------- WHICH COLUMN A WIDGET OF EACH KIND LIVES ON BY DEFAULT — the only columns that draw widgets ---------- */
-const LAYOUT_COL = { reel: 'reel', tool: 'tools', game: 'games', shop: 'shop' };
+/* A tool and a game have no column since 790: each is a Find card (`widgetInFind_`, arcade.js), arranged by the funnel, not here. */
+const LAYOUT_COL = { reel: 'reel', shop: 'shop' };
 /* THE DEVICE'S COPY of the last layout the payload sent, so the first paint before the payload is already arranged. */
 const LAYOUT_STORE = 'familyLayout';
 /* `#` joins a split card's piece to its card (`set:account:contact#email`, 466): a piece is a card of its own. */

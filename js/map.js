@@ -333,7 +333,6 @@ const WIDGETS = [
     <div id="pxe-box"></div>
   </div>` },
   { id: 'verse', kind: 'tool', name: 'E-ink screen', start: () => { einkLoad_?.(); paintEink_?.(); },
-    pure: true,
     draw: () => paintEink_?.(),
     into: 'eink-box', what: 'The e-ink screen',
     html: `<h3>E-ink screen</h3>

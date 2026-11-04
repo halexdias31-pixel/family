@@ -54,8 +54,7 @@ const TABS = [
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
   { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
-  { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
-  { id: 'games',   icon: '🎮', label: 'Games',   title: 'Games' },
+  /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
 
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
@@ -89,9 +88,8 @@ const TABS = [
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social (392); Spotlight left of the posts (461) */
-                   'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
+                   'stuff', 'res', 'saved',                           /* learning; Tools and Games are Find cards (790); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
-                   'games',
                    'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
                    'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
@@ -324,13 +322,10 @@ function startScreen_(id, arriving) {
   if (typeof padHold_ === 'function' && padHold_(id)) return;
   if (typeof boardHold_ === 'function' && boardHold_(id)) return;
   /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
-  if (!arriving && (id === 'tools' || id === 'saved') && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
+  if (!arriving && id === 'saved' && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
-  else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
-    toolsStart_(id === 'tools' ? 'tool' : 'game', arriving);
-  }
   /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
      Without this the basket arrived as a heading over an empty box. */
   else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
@@ -342,7 +337,7 @@ function startScreen_(id, arriving) {
     if (ws.length) { widgetsWake_(ws, id, arriving); if (id === AT) placeCells('y', true, 0, id); }
   }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
-  if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop' || id === 'reel') && id === AT) {
+  if ((id === 'saved' || id === 'shop' || id === 'reel') && id === AT) {
     placeCells('y', true, 0, id);
   }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. § */
@@ -502,7 +497,10 @@ function paint(id, fresh, o) {
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
-  if (held.length) widgetsBack_(id, held);
+  if (held.length) {
+    const left = widgetsBack_(id, held);
+    if (typeof finderOf_ === 'function' && finderOf_(id)) WIDGET_HELD[id] = left;
+  }
   shapeHold_(el, id);
   arrivePages_(el, waited);
   if (kept) placeBack_(el, kept);
@@ -1671,15 +1669,6 @@ function placeNow_(which, instant, dragPx, id) {
 }
 
 /* A CARD COLUMN COUNTS WHAT `cardsOf_` DRAWS — the layout's moves and deletes included — or a card moved in sat past the last page and could not be reached (476). */
-/* A WIDGET COLUMN'S PAGES BY NAME; with a card moved onto it (710, layout.js) the column as drawn, a card's page unnamed. */
-function widgetColNames_(k) {
-  const ws = (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_(k) : []).map(w => w.name || '');
-  try {
-    const col = LAYOUT_COL[k], L = layoutNow_();
-    if (!(L && L.cards && (L.cards[col] || []).length)) return ws;
-    return cardsOf_(col).map(pageName_);
-  } catch (e) { return ws; }
-}
 /* A PAGE'S NAME FOR THE PAGER (730), whatever column drew it: its widget's name, else its card's title — a moved card is named where it went. */
 function pageName_(h) {
   const m = /id="wgt-([^"]+)"/.exec(h);
@@ -1711,9 +1700,6 @@ const PAGER = {
   /* The ＋ card is a page and everybody signed in has one, so everybody's count includes it. § */
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
-  /* ---------- TOOLS AND GAMES PAGE NOW, SO THEY NEED NAMING § */
-  tools:  () => widgetColNames_('tool'),
-  games:  () => widgetColNames_('game'),
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
@@ -1826,7 +1812,7 @@ function applyBrandIcon_() {
    the long note on `PAGER`. Every screen that pages needs an entry here or its position is not
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
-const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
+const PAGE = { feed: 0, stuff: 0, account: 0, reel: 0, booking: 0, dm: 0, make: 0,
                saved: 0, family: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
