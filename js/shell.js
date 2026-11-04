@@ -322,7 +322,7 @@ function startScreen_(id, arriving) {
   if (typeof padHold_ === 'function' && padHold_(id)) return;
   if (typeof boardHold_ === 'function' && boardHold_(id)) return;
   /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
-  if (!arriving && id === 'saved' && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
+  if (!arriving && ['saved', 'stuff', 'res'].indexOf(id) !== -1 && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }

@@ -14410,6 +14410,7 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   if (!form) return bad.concat(['the admin has no library cards on Tools, so the hold was NOT checked']);
   const box = form.querySelector('[data-me="lib1_name"]');
   draftType_(w, box, 'Merton, typed');
+  await woken_();   /* Find starts its near cards one per task (790): those queued by the arrival are not a restart */
   /* AND THE REST OF THE COLUMN IS NOT RESTARTED OVER ITS OWN MARKUP (`startScreen_`'s hold, shell.js) — a repaint `paint` declined, so what runs on Tools is still § */
   const calc = w.initMiniCalc;
   let restarts = 0;
