@@ -14874,11 +14874,11 @@ check('while a failed first payload is asked for again, the score board and the 
   const bad = [];
   const words = /have not arrived|Scores have not|from the server yet/;
   const turnTo = async (col, id, sel) => {
-    t.go(col, false, true);
-    await wait(LEAVE_MS); await woken_();
+    /* A TOOL OR GAME IS ITS OWN FIND CARD (790). */
     const n = t.widgetsOf(col === 'games' ? 'game' : 'tool').findIndex(x => String(x.id) === id);
     if (n < 0) { bad.push(`no "${id}" widget on ${col} for an admin`); return null; }
-    b.w.goPage(col, n, true);
+    t.findGroup(col === 'games' ? 'Games' : 'Tools', id);
+    await wait(LEAVE_MS); await woken_();
     for (let k = 0; k < 150; k++) {
       const el = d.querySelector(sel);
       if (el && el.innerHTML.trim() && !el.closest('[aria-busy="true"]')) return el;
@@ -14942,15 +14942,11 @@ check('a retry that succeeds does not rebuild the box somebody is typing in, and
   const b = flaky_(['fetch', gate], RC_KID_);
   await wait(300);
   const d = b.w.document;
-  b.w.__t.findGroup('Tools');
-  await wait(300);
   /* ON ITS OWN PAGE, IN FRONT — a field on a page that is not the one in front is let go of by
-     `placeGrid`, which is a different rule and a right one. */
-  const pages = [...d.querySelectorAll('#s-stuff > .page')];
-  const at = pages.findIndex(p => p.querySelector('#notepad'));
-  if (at < 0) return ['the Tools column has no notepad to type in, so nothing was tested'];
-  b.w.__t.findPage(at, true);
+     `placeGrid`, which is a different rule and a right one. Its own Find card (790). */
+  b.w.__t.findGroup('Tools', 'notepad');
   await wait(300);
+  if (!d.querySelector('#s-stuff #notepad')) return ['Find › Tools has no notepad to type in, so nothing was tested'];
   /* AND NOTHING IS TYPED UNTIL THE NOTEPAD HAS STARTED — its veil off, which `widgetUp_` does after its `start`. § */
   await woken_();
   await until_(() => { const sl = d.querySelector('#s-stuff #wgt-notepad'); return !!sl && !sl.getAttribute('aria-busy'); }, 8000);
@@ -19701,7 +19697,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
   w.__t.USER(Object.assign({}, ANS_ADA));
   /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved do. § */
-  const COL = 'tools';
+  const COL = 'shop';   /* Tools went into Find (790); the shop is a column of pages too */
   w.__t.go(COL, false, true);
   await wait(60);
   const pageAt = n => d.querySelectorAll('#s-' + COL + ' > .page')[n];
@@ -20902,7 +20898,8 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     }
     return false;
   };
-  if (!(await press('forLabel', 'Learning')) || !(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
+  /* WHAT FOR IS NOT ASKED WHEN WHAT KIND ANSWERS IT (790: Tools and Games are kinds too), so Practice comes first. */
+  if (!(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
 
   /* THE NEXT QUESTION IS PROJECT OR COURSEWORK, AND ITS TWO ANSWERS ARE THE TWO WORDS. Asked of the
      buttons drawn, not of `nextFacet`, because the claim is what a person sees after pressing
@@ -23630,8 +23627,8 @@ check('466: the timetable holds only its own lessons — a booked session is not
   w.localStorage.setItem('tmt:u:P9', JSON.stringify({ weekend: false,
     days: [[{ id: 'L1', at: '09:00', subject: 'Maths', note: '' }, { id: 'L2', at: '13:00', subject: 'Art', note: '' }], [], [], [], [], [], []] }));
   t.USER(sam);
-  try { t.findGroup('Tools'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
-  await wait(300);
+  try { t.findGroup('Tools', 'timetable'); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  for (let n = 0; n < 40 && !d.querySelector('.tmt-box'); n++) await wait(50);
   if (d.querySelector('#week-body')) bad.push('`Your week` is still a widget on the Tools column — it is folded into the Timetable');
   const box = () => d.querySelector('.tmt-box');
   if (!box()) return bad.concat('the timetable did not draw on the Tools column');
@@ -23670,10 +23667,15 @@ check('466: the timetable holds only its own lessons — a booked session is not
   const onAccount = JSON.stringify({ weekend: false, days: [[{ id: 'L9', at: '15:00', subject: 'Greek', note: '' }], [], [], [], [], [], []] });
   t.USER(Object.assign({}, sam, { timetable: onAccount }));
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 40 && !(box() && /Greek/.test(box().textContent)); n++) await wait(50);   /* Find fills its card after the paint (790) */
+  if (!box()) return bad.concat(['the repaint left no timetable on Find']);
   if (!/Greek/.test(box().textContent) || /Maths/.test(box().textContent)) bad.push('a phone with nothing on it did not draw the week kept on the account');
   /* SIGNED OUT: the device's own, under the bare key, and nothing is sent. */
+  /* SIGNED OUT, Find is not offered (400, 790): a visitor reaches no timetable, so the device-only half is asked only when one is still drawn. */
   t.USER(null);
   try { t.repaint(); } catch (e) {}
+  for (let n = 0; n < 40 && !box(); n++) await wait(50);
+  if (!box()) return bad;
   sent.length = 0;
   w.localStorage.removeItem('tmt');
   t.ACTIONS['tmt-add'](d.createElement('button'));
@@ -26432,16 +26434,15 @@ check('signing in on the account column goes back where you came from — and Fi
     t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
     await wait(300);
   };
-  t.USER(null);
-  t.findGroup('Tools'); t.go('account', false, true); w.paint('account');
+  /* FIND STANDS A MEMBER IN TO LOOK (790), and the child signs in after: signed out again first. */
+  t.findGroup('Tools'); t.USER(null); t.go('account', false, true); w.paint('account');
   await signIn();
   if (t.AT() !== 'stuff') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
   /* SIGNED IN WHILE ANOTHER COLUMN IS IN FRONT — the emailed link at start-up, Google's own button — the
      child is left where they are: only a sign-in made ON the account column goes back. */
   t.ACTIONS.signout(d.createElement('button'));
-  t.go('account', false, true); w.paint('account');
+  t.findGroup('Games'); t.USER(null); w.paint('account');
   d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
-  t.findGroup('Games');
   t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
   await wait(300);
   if (t.AT() !== 'stuff') bad.push('signed in with Games in front, the child was moved to ' + t.AT());

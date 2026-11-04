@@ -3297,7 +3297,9 @@ function typingBox_() {
   if (!a || !a.matches || !a.matches(TYPING_)) return null;
   const s = a.closest ? a.closest('.screen') : null;
   const id = s ? String(s.id).replace(/^s-/, '') : '';
-  return (typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff') ? null : a;
+  /* A FINDER HOLDS ITS OWN TYPING (`findKeep_`) — but not a widget's box on a Find card (790), which is held here as a column's was. */
+  const finder = typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff';
+  return finder && !(a.closest && a.closest('.widget-slot')) ? null : a;
 }
 /* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own settings once per app open is the other one, and it rebuilt § */
 function landRepaint_(draw) {
