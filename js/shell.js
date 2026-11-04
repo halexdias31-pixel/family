@@ -2025,7 +2025,7 @@ function aheadStill_(job) {
 
 /* ---------- THE JOBS, AS THEY STAND NOW § */
 const AHEAD_KINDS = [];
-const AHEAD_RANK = ['paint', 'fill', 'widget', 'pics', 'reels', 'centre', 'bible', 'index'];
+const AHEAD_RANK = ['paint', 'fill', 'widget', 'pics', 'reels', 'centre', 'bible'];
 function aheadJobs_(all) {
   const out = [];
   AHEAD_KINDS.forEach(k => { try { (k() || []).forEach(j => { if (AHEAD.open || j.pre) out.push(j); }); } catch (e) {} });

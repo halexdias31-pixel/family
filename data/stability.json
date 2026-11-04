@@ -49,7 +49,7 @@
   {
    "id": "special",
    "label": "Per-facet and per-kind special cases",
-   "count": 224,
+   "count": 223,
    "weight": 0.05,
    "cap": 10,
    "off": 10,
@@ -59,7 +59,7 @@
     "js/cards.js": 4,
     "js/collections.js": 7,
     "js/data.js": 4,
-    "js/find.js": 94,
+    "js/find.js": 93,
     "js/games.js": 11,
     "js/keypad.js": 5,
     "js/layout.js": 1,
@@ -98,7 +98,7 @@
    "cap": 10,
    "off": 2.5,
    "where": {
-    "js/find.js": 12402,
+    "js/find.js": 12162,
     "js/games.js": 6449,
     "js/me.js": 4885,
     "js/shell.js": 3810,
