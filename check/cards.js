@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/cards.js EVERY QUESTION IN THE LIBRARY, LAID OUT AT PHONE WIDTH, MEASURED. § */
-require('./lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

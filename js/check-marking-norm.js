@@ -2,7 +2,6 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-marking-norm.js ONE VALUE, EVERY SPELLING (R2, R3): every accept in the whole library is marked right against itself
    and the spellings a child types for it, and its near misses stay wrong. -v for the counts. */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const path = require('path');
 const { markingSource } = require('./check-marks-load.js');
 

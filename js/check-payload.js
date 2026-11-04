@@ -18,8 +18,6 @@ const ACCEPTED = {
   columns: 'applyColumns_ decides which screens the app has and in what order, and `doGet` does not '
          + 'send the key — `data/settings/columns.json` does, through settingsInto_, like the other '
          + 'nine tabs that left the Settings spreadsheet.',
-  widgetsInFind: 'which widgets are Find cards (790): `doGet` does not send it — `data/settings/widgets-in-find.json` '
-               + 'does, through settingsInto_, as `columns` does; before it comes every tool and game is (`widgetInFind_`).',
 
   /* ---------- THE FLOOR UNDER A TAB THE BACKEND DOES SEND, WHICH IS WHY IT IS A SECOND KEY § */
   spotlightFile: 'the committed default under `spotlight`, written by settingsInto_ from '

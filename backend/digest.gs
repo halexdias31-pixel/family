@@ -1290,7 +1290,6 @@ function digestTagLevel_(it) {
 const DIGEST_LEVELS = [
   { level: 'SATs', rung: 1, says: ['KS1', 'KS2', 'KS1 SATs', 'KS2 SATs'] }, { level: '11+', rung: 0, says: [] },
   { level: 'KS3', rung: 2, says: [] }, { level: 'GCSE', rung: 3, says: ['KS4'] }, { level: 'Functional Skills L2', rung: 0, says: [] },
-  { level: 'Level 2 Certificate', rung: 0, says: ['L2 Certificate'] },
   { level: 'A-Level', rung: 4, says: ['Alevel', 'A level', 'KS5'] }, { level: 'AS', rung: 0, says: ['AS level', 'AS-level'] },
   { level: 'Theory test', rung: 0, says: [] },
 ];

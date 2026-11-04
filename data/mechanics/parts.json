@@ -1,1072 +1,1087 @@
 {
- "parts": [
-  {
-   "id": "MP-001",
-   "name": "Timing belt kit",
-   "system": "Engine",
-   "does": "The toothed belt, tensioner and idler that keep the camshafts in step with the crank; every Clio III engine here uses a belt.",
-   "part_no": "EX-ENG-001",
-   "value": "£60–£150",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-002",
-   "name": "Auxiliary (drive) belt",
-   "system": "Engine",
-   "does": "The ribbed belt that drives the alternator and air-con compressor.",
-   "part_no": "EX-ENG-002",
-   "value": "£10–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-003",
-   "name": "Auxiliary belt tensioner",
-   "system": "Engine",
-   "does": "The sprung pulley that keeps the auxiliary belt tight.",
-   "part_no": "EX-ENG-003",
-   "value": "£20–£60",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-004",
-   "name": "Air filter",
-   "system": "Engine",
-   "does": "The paper element that cleans the air going into the engine.",
-   "part_no": "EX-ENG-004",
-   "value": "£8–£25",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-005",
-   "name": "Engine mounts",
-   "system": "Engine",
-   "does": "The rubber mounts that hold the engine to the body and soak up its shake.",
-   "part_no": "EX-ENG-005",
-   "value": "£20–£70",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-006",
-   "name": "Rocker cover gasket",
-   "system": "Engine",
-   "does": "The seal between the cylinder head and its cover that keeps oil in.",
-   "part_no": "EX-ENG-006",
-   "value": "£8–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-007",
-   "name": "Turbocharger",
-   "system": "Engine",
-   "does": "The exhaust-driven pump that pushes more air into a turbo engine.",
-   "part_no": "EX-ENG-007",
-   "value": "£250–£600",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.2 TCe 100 (D4FT), 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-008",
-   "name": "EGR valve",
-   "system": "Engine",
-   "does": "The valve that feeds some exhaust back into the intake to cut emissions.",
-   "part_no": "EX-ENG-008",
-   "value": "£60–£200",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-009",
-   "name": "Fuel filter",
-   "system": "Fuel",
-   "does": "The diesel filter that stops dirt and water reaching the injectors.",
-   "part_no": "EX-FUE-001",
-   "value": "£10–£35",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-010",
-   "name": "Fuel pump",
-   "system": "Fuel",
-   "does": "The in-tank pump that lifts fuel to the engine.",
-   "part_no": "EX-FUE-002",
-   "value": "£50–£180",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-011",
-   "name": "Fuel injector",
-   "system": "Fuel",
-   "does": "The nozzle that sprays fuel into the engine; priced each.",
-   "part_no": "EX-FUE-003",
-   "value": "£40–£200",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-012",
-   "name": "Glow plugs",
-   "system": "Fuel",
-   "does": "The heaters that help a cold diesel start; priced as a set of four.",
-   "part_no": "EX-FUE-004",
-   "value": "£20–£50",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-013",
-   "name": "Spark plugs",
-   "system": "Ignition",
-   "does": "The plugs that light the petrol mix; priced as a set of four.",
-   "part_no": "EX-IGN-001",
-   "value": "£10–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: 1.2 16V (D4F), 1.2 TCe 100 (D4FT), 2.0 16V Renaultsport (F4R) only"
-  },
-  {
-   "id": "MP-014",
-   "name": "Ignition coil pack",
-   "system": "Ignition",
-   "does": "The coil that makes the high voltage for the spark plugs.",
-   "part_no": "EX-IGN-002",
-   "value": "£20–£60",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: 1.2 16V (D4F), 1.2 TCe 100 (D4FT), 2.0 16V Renaultsport (F4R) only"
-  },
-  {
-   "id": "MP-015",
-   "name": "Crankshaft position sensor",
-   "system": "Ignition",
-   "does": "The sensor that tells the engine computer where the crank is.",
-   "part_no": "EX-IGN-003",
-   "value": "£15–£50",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-016",
-   "name": "Water pump",
-   "system": "Cooling",
-   "does": "The pump that moves coolant round the engine; usually changed with the timing belt.",
-   "part_no": "EX-COO-001",
-   "value": "£25–£70",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-017",
-   "name": "Thermostat",
-   "system": "Cooling",
-   "does": "The valve that holds coolant in the engine until it is warm.",
-   "part_no": "EX-COO-002",
-   "value": "£10–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-018",
-   "name": "Radiator",
-   "system": "Cooling",
-   "does": "The core at the front that cools the coolant.",
-   "part_no": "EX-COO-003",
-   "value": "£50–£150",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-019",
-   "name": "Radiator cooling fan",
-   "system": "Cooling",
-   "does": "The electric fan that pulls air through the radiator in traffic.",
-   "part_no": "EX-COO-004",
-   "value": "£50–£150",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-020",
-   "name": "Coolant hoses",
-   "system": "Cooling",
-   "does": "The rubber hoses that carry coolant between engine and radiator.",
-   "part_no": "EX-COO-005",
-   "value": "£10–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-021",
-   "name": "Expansion tank and cap",
-   "system": "Cooling",
-   "does": "The plastic header tank and its pressure cap.",
-   "part_no": "EX-COO-006",
-   "value": "£15–£50",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-022",
-   "name": "Coolant (antifreeze)",
-   "system": "Cooling",
-   "does": "The water-and-glycol mix that cools the engine and will not freeze; priced for a few litres.",
-   "part_no": "EX-COO-007",
-   "value": "£8–£20",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-023",
-   "name": "Engine oil",
-   "system": "Lubrication",
-   "does": "The oil for a service, about five litres.",
-   "part_no": "EX-LUB-001",
-   "value": "£25–£50",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-024",
-   "name": "Oil filter",
-   "system": "Lubrication",
-   "does": "The filter that cleans the engine oil; changed at every service.",
-   "part_no": "EX-LUB-002",
-   "value": "£5–£15",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-025",
-   "name": "Sump plug and washer",
-   "system": "Lubrication",
-   "does": "The drain plug and its crush washer, renewed at an oil change.",
-   "part_no": "EX-LUB-003",
-   "value": "£2–£8",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-026",
-   "name": "Oil pressure switch",
-   "system": "Lubrication",
-   "does": "The switch that lights the oil warning lamp.",
-   "part_no": "EX-LUB-004",
-   "value": "£8–£25",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-027",
-   "name": "Lambda (oxygen) sensor",
-   "system": "Exhaust",
-   "does": "The sensor in the exhaust that helps the engine computer set the mixture.",
-   "part_no": "EX-EXH-001",
-   "value": "£25–£80",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-028",
-   "name": "Catalytic converter",
-   "system": "Exhaust",
-   "does": "The box in the exhaust that cleans the gases.",
-   "part_no": "EX-EXH-002",
-   "value": "£100–£350",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-029",
-   "name": "Diesel particulate filter (DPF)",
-   "system": "Exhaust",
-   "does": "The filter that traps diesel soot; on later 1.5 dCi cars.",
-   "part_no": "EX-EXH-003",
-   "value": "£250–£600",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-030",
-   "name": "Silencer and exhaust pipes",
-   "system": "Exhaust",
-   "does": "The back box and pipes that quieten the exhaust.",
-   "part_no": "EX-EXH-004",
-   "value": "£40–£150",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-031",
-   "name": "Exhaust mounting rubbers",
-   "system": "Exhaust",
-   "does": "The rubber hangers that hold the exhaust up.",
-   "part_no": "EX-EXH-005",
-   "value": "£3–£10",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-032",
-   "name": "Clutch kit",
-   "system": "Transmission/Clutch",
-   "does": "The clutch plate, cover and release bearing, sold together.",
-   "part_no": "EX-TRN-001",
-   "value": "£80–£250",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-033",
-   "name": "Clutch cable or slave cylinder",
-   "system": "Transmission/Clutch",
-   "does": "The link from the pedal that works the clutch.",
-   "part_no": "EX-TRN-002",
-   "value": "£15–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-034",
-   "name": "Gearbox oil",
-   "system": "Transmission/Clutch",
-   "does": "The oil in the manual gearbox, about two litres.",
-   "part_no": "EX-TRN-003",
-   "value": "£10–£25",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-035",
-   "name": "CV joints and boots",
-   "system": "Transmission/Clutch",
-   "does": "The joints at the ends of the driveshafts and their rubber covers.",
-   "part_no": "EX-TRN-004",
-   "value": "£15–£80",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-036",
-   "name": "Front brake pads",
-   "system": "Brakes",
-   "does": "The pads that grip the front discs; priced for an axle set.",
-   "part_no": "EX-BRK-001",
-   "value": "£15–£45",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-037",
-   "name": "Front brake discs",
-   "system": "Brakes",
-   "does": "The front discs the pads grip; priced as a pair.",
-   "part_no": "EX-BRK-002",
-   "value": "£30–£90",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-038",
-   "name": "Rear brake shoes and drums",
-   "system": "Brakes",
-   "does": "The rear drum brakes on the ordinary Clio.",
-   "part_no": "EX-BRK-003",
-   "value": "£25–£80",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)"
-   ],
-   "fits": "Renault Clio III: 1.2 16V (D4F), 1.2 TCe 100 (D4FT), 1.5 dCi (K9K) only"
-  },
-  {
-   "id": "MP-039",
-   "name": "Rear brake discs and pads",
-   "system": "Brakes",
-   "does": "The rear disc brakes on the Renaultsport.",
-   "part_no": "EX-BRK-004",
-   "value": "£40–£120",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: 2.0 16V Renaultsport (F4R) only"
-  },
-  {
-   "id": "MP-040",
-   "name": "Brake calipers",
-   "system": "Brakes",
-   "does": "The clamps that press the pads on the discs; priced each.",
-   "part_no": "EX-BRK-005",
-   "value": "£40–£120",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-041",
-   "name": "Brake fluid",
-   "system": "Brakes",
-   "does": "The fluid that carries the pedal push to the brakes; renewed every two years.",
-   "part_no": "EX-BRK-006",
-   "value": "£5–£15",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-042",
-   "name": "Brake hoses",
-   "system": "Brakes",
-   "does": "The flexible hoses from the body to each brake.",
-   "part_no": "EX-BRK-007",
-   "value": "£8–£25",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-043",
-   "name": "Handbrake cable",
-   "system": "Brakes",
-   "does": "The cable from the lever to the rear brakes.",
-   "part_no": "EX-BRK-008",
-   "value": "£15–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-044",
-   "name": "Front shock absorbers",
-   "system": "Suspension",
-   "does": "The front dampers that stop the car bouncing; priced as a pair.",
-   "part_no": "EX-SUS-001",
-   "value": "£50–£150",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-045",
-   "name": "Rear shock absorbers",
-   "system": "Suspension",
-   "does": "The rear dampers; priced as a pair.",
-   "part_no": "EX-SUS-002",
-   "value": "£40–£120",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-046",
-   "name": "Coil springs",
-   "system": "Suspension",
-   "does": "The springs that carry the car's weight; priced each.",
-   "part_no": "EX-SUS-003",
-   "value": "£25–£60",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-047",
-   "name": "Anti-roll bar links",
-   "system": "Suspension",
-   "does": "The short links that join the anti-roll bar to the struts.",
-   "part_no": "EX-SUS-004",
-   "value": "£10–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-048",
-   "name": "Wishbones (control arms)",
-   "system": "Suspension",
-   "does": "The front arms that locate the wheels, with their bushes.",
-   "part_no": "EX-SUS-005",
-   "value": "£30–£90",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-049",
-   "name": "Top mounts",
-   "system": "Suspension",
-   "does": "The bearings at the top of the front struts.",
-   "part_no": "EX-SUS-006",
-   "value": "£15–£45",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-050",
-   "name": "Wheel bearings",
-   "system": "Suspension",
-   "does": "The bearings each wheel turns on.",
-   "part_no": "EX-SUS-007",
-   "value": "£20–£60",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-051",
-   "name": "Track rod ends",
-   "system": "Steering",
-   "does": "The ball joints at the outer ends of the steering.",
-   "part_no": "EX-STE-001",
-   "value": "£10–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-052",
-   "name": "Steering rack",
-   "system": "Steering",
-   "does": "The rack that turns the steering wheel's motion into the wheels'.",
-   "part_no": "EX-STE-002",
-   "value": "£150–£400",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-053",
-   "name": "Electric power steering motor",
-   "system": "Steering",
-   "does": "The motor on the steering column that makes the steering light.",
-   "part_no": "EX-STE-003",
-   "value": "£150–£400",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-054",
-   "name": "Battery",
-   "system": "Electrical",
-   "does": "The 12-volt battery that starts the car.",
-   "part_no": "EX-ELE-001",
-   "value": "£70–£140",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-055",
-   "name": "Alternator",
-   "system": "Electrical",
-   "does": "The generator that charges the battery while the engine runs.",
-   "part_no": "EX-ELE-002",
-   "value": "£80–£250",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-056",
-   "name": "Starter motor",
-   "system": "Electrical",
-   "does": "The motor that turns the engine over to start it.",
-   "part_no": "EX-ELE-003",
-   "value": "£60–£200",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-057",
-   "name": "Fuses and relays",
-   "system": "Electrical",
-   "does": "The fuses and switches in the fuse boxes.",
-   "part_no": "EX-ELE-004",
-   "value": "£1–£20",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-058",
-   "name": "Headlamp bulbs",
-   "system": "Lighting",
-   "does": "The dipped and main beam bulbs; priced as a pair.",
-   "part_no": "EX-LIT-001",
-   "value": "£8–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-059",
-   "name": "Indicator and brake bulbs",
-   "system": "Lighting",
-   "does": "The small bulbs in the indicators and rear lamps.",
-   "part_no": "EX-LIT-002",
-   "value": "£3–£10",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-060",
-   "name": "Number plate and interior bulbs",
-   "system": "Lighting",
-   "does": "The little bulbs for the plate lamp and the cabin.",
-   "part_no": "EX-LIT-003",
-   "value": "£2–£8",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-061",
-   "name": "Front wiper blades",
-   "system": "Body",
-   "does": "The windscreen wiper blades; priced as a pair.",
-   "part_no": "EX-BOD-001",
-   "value": "£10–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-062",
-   "name": "Rear wiper blade",
-   "system": "Body",
-   "does": "The blade on the tailgate wiper.",
-   "part_no": "EX-BOD-002",
-   "value": "£5–£15",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-063",
-   "name": "Tyres",
-   "system": "Tyres & wheels",
-   "does": "The tyres; priced each, fitted.",
-   "part_no": "EX-TYR-001",
-   "value": "£50–£120",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-064",
-   "name": "Wheel bolts",
-   "system": "Tyres & wheels",
-   "does": "The bolts that hold the wheels on, with a locking set.",
-   "part_no": "EX-TYR-002",
-   "value": "£10–£30",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-065",
-   "name": "Tyre repair kit",
-   "system": "Tyres & wheels",
-   "does": "The sealant and pump carried in place of a spare on many Clios.",
-   "part_no": "EX-TYR-003",
-   "value": "£15–£40",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-066",
-   "name": "Cabin (pollen) filter",
-   "system": "HVAC",
-   "does": "The filter that cleans the air blown into the cabin.",
-   "part_no": "EX-HVA-001",
-   "value": "£8–£20",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-067",
-   "name": "Heater blower resistor",
-   "system": "HVAC",
-   "does": "The part that sets the heater fan's speeds.",
-   "part_no": "EX-HVA-002",
-   "value": "£15–£50",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  },
-  {
-   "id": "MP-068",
-   "name": "Air-con compressor",
-   "system": "HVAC",
-   "does": "The pump that drives the air conditioning, worked by the auxiliary belt.",
-   "part_no": "EX-HVA-003",
-   "value": "£150–£400",
-   "source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
-   "engines": [
-    "1.2 16V (D4F)",
-    "1.2 TCe 100 (D4FT)",
-    "1.5 dCi (K9K)",
-    "2.0 16V Renaultsport (F4R)"
-   ],
-   "fits": "Renault Clio III: all engines"
-  }
- ]
+"parts": [
+{
+"id": "MP-001",
+"name": "Timing belt",
+"system": "Engine",
+"does": "A toothed rubber belt that keeps the crankshaft and camshaft(s) turning in step, so the valves open at the right moment.",
+"part_no": "EX-ENG-001",
+"value": "£20–£60 (kit with pulleys £60–£150)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-002",
+"name": "Timing chain",
+"system": "Engine",
+"does": "A metal chain doing the timing belt's job, inside the engine and oiled by it.",
+"part_no": "EX-ENG-002",
+"value": "£60–£250 (kit)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+},
+{
+"id": "MP-003",
+"name": "Auxiliary (drive) belt",
+"system": "Engine",
+"does": "A ribbed belt that drives the alternator, the water pump on some engines, the power steering pump and the air-con compressor.",
+"part_no": "EX-ENG-003",
+"value": "£10–£30",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-004",
+"name": "Belt tensioner and idler pulleys",
+"system": "Engine",
+"does": "Hold the right tension on a belt and guide its route.",
+"part_no": "EX-ENG-004",
+"value": "£25–£90",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-005",
+"name": "Cylinder head gasket",
+"system": "Engine",
+"does": "Seals the joint between the cylinder head and the block, keeping combustion, oil and coolant apart.",
+"part_no": "EX-ENG-005",
+"value": "£20–£80 (set £60–£200)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-006",
+"name": "Engine mounts",
+"system": "Engine",
+"does": "Rubber-and-metal blocks that hold the engine to the body and soak up its vibration.",
+"part_no": "EX-ENG-006",
+"value": "£20–£80 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-007",
+"name": "Rocker cover gasket",
+"system": "Engine",
+"does": "Seals the top cover of the engine so oil stays in.",
+"part_no": "EX-ENG-007",
+"value": "£8–£30",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-008",
+"name": "Turbocharger",
+"system": "Engine",
+"does": "Uses exhaust gas to spin a compressor that pushes more air into the engine for more power.",
+"part_no": "EX-ENG-008",
+"value": "£250–£800",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
+},
+{
+"id": "MP-009",
+"name": "Air filter",
+"system": "Engine",
+"does": "Stops dust and grit getting into the engine with the air it breathes.",
+"part_no": "EX-ENG-009",
+"value": "£6–£20",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-010",
+"name": "EGR valve",
+"system": "Engine",
+"does": "Feeds a little exhaust gas back into the intake to cut nitrogen oxides.",
+"part_no": "EX-ENG-010",
+"value": "£60–£250",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
+},
+{
+"id": "MP-011",
+"name": "Fuel filter",
+"system": "Fuel",
+"does": "Catches dirt and water before fuel reaches the injectors; vital on a diesel.",
+"part_no": "EX-FUE-011",
+"value": "£8–£35",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-012",
+"name": "Fuel pump",
+"system": "Fuel",
+"does": "Pushes fuel from the tank to the engine at the pressure it needs.",
+"part_no": "EX-FUE-012",
+"value": "£50–£200",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-013",
+"name": "Fuel injectors",
+"system": "Fuel",
+"does": "Spray a measured mist of fuel into the engine at exactly the right moment.",
+"part_no": "EX-FUE-013",
+"value": "£40–£150 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F), 1.5 dCi (K9K) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-014",
+"name": "Throttle body",
+"system": "Fuel",
+"does": "The valve that lets air into a petrol engine as the accelerator is pressed.",
+"part_no": "EX-FUE-014",
+"value": "£60–£250",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-015",
+"name": "Glow plugs",
+"system": "Fuel",
+"does": "Heat the combustion chamber of a diesel so it starts from cold.",
+"part_no": "EX-FUE-015",
+"value": "£8–£25 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.5 dCi (K9K) only)"
+},
+{
+"id": "MP-016",
+"name": "Spark plugs",
+"system": "Ignition",
+"does": "Make the spark that lights the fuel and air in a petrol engine.",
+"part_no": "EX-IGN-016",
+"value": "£4–£15 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-017",
+"name": "Ignition coil (coil pack)",
+"system": "Ignition",
+"does": "Turns 12 volts into the many thousands of volts a spark plug needs.",
+"part_no": "EX-IGN-017",
+"value": "£25–£90",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only)"
+},
+{
+"id": "MP-018",
+"name": "HT leads",
+"system": "Ignition",
+"does": "Carry the high voltage from the coil or distributor to the plugs on older engines.",
+"part_no": "EX-IGN-018",
+"value": "£15–£50 (set)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-019",
+"name": "Distributor cap and rotor arm",
+"system": "Ignition",
+"does": "On older engines, sends the spark to each cylinder in turn.",
+"part_no": "EX-IGN-019",
+"value": "£15–£45",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-020",
+"name": "Crankshaft position sensor",
+"system": "Ignition",
+"does": "Tells the engine computer where the crank is and how fast it is turning.",
+"part_no": "EX-IGN-020",
+"value": "£15–£60",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (1.2 16V (D4F) only); BMW E30 (all engines)"
+},
+{
+"id": "MP-021",
+"name": "Radiator",
+"system": "Cooling",
+"does": "Sheds engine heat into the air passing through it.",
+"part_no": "EX-COO-021",
+"value": "£50–£180",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-022",
+"name": "Water pump",
+"system": "Cooling",
+"does": "Circulates coolant through the engine and radiator.",
+"part_no": "EX-COO-022",
+"value": "£25–£90",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-023",
+"name": "Thermostat",
+"system": "Cooling",
+"does": "A valve that keeps coolant in the engine until it is warm, then opens to the radiator.",
+"part_no": "EX-COO-023",
+"value": "£10–£45",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-024",
+"name": "Coolant hoses",
+"system": "Cooling",
+"does": "Rubber pipes carrying coolant between engine, radiator and heater.",
+"part_no": "EX-COO-024",
+"value": "£10–£40 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-025",
+"name": "Expansion tank and cap",
+"system": "Cooling",
+"does": "Holds spare coolant and keeps the system at the right pressure.",
+"part_no": "EX-COO-025",
+"value": "£20–£60",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-026",
+"name": "Radiator cooling fan",
+"system": "Cooling",
+"does": "Pulls air through the radiator when the car is slow or standing.",
+"part_no": "EX-COO-026",
+"value": "£50–£180",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-027",
+"name": "Coolant (antifreeze)",
+"system": "Cooling",
+"does": "Carries heat, stops freezing and protects the engine's metals from corrosion.",
+"part_no": "EX-COO-027",
+"value": "£10–£25 (5 litres)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-028",
+"name": "Engine oil",
+"system": "Lubrication",
+"does": "Coats moving parts, carries heat away and holds dirt until it is drained.",
+"part_no": "EX-LUB-028",
+"value": "£25–£50 (5 litres)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-029",
+"name": "Oil filter",
+"system": "Lubrication",
+"does": "Strains dirt out of the oil as it circulates.",
+"part_no": "EX-LUB-029",
+"value": "£5–£15",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-030",
+"name": "Sump and drain plug",
+"system": "Lubrication",
+"does": "The pan under the engine that holds the oil, and the plug it drains from.",
+"part_no": "EX-LUB-030",
+"value": "£3–£10 (plug), £50–£150 (sump)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-031",
+"name": "Oil pressure switch",
+"system": "Lubrication",
+"does": "Turns on the oil light when pressure drops too low.",
+"part_no": "EX-LUB-031",
+"value": "£8–£25",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-032",
+"name": "Catalytic converter",
+"system": "Exhaust",
+"does": "Turns the worst exhaust gases into less harmful ones.",
+"part_no": "EX-EXH-032",
+"value": "£150–£600",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-033",
+"name": "Diesel particulate filter (DPF)",
+"system": "Exhaust",
+"does": "Traps soot from a diesel and burns it off from time to time.",
+"part_no": "EX-EXH-033",
+"value": "£300–£900",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+},
+{
+"id": "MP-034",
+"name": "Lambda (oxygen) sensor",
+"system": "Exhaust",
+"does": "Measures oxygen in the exhaust so the engine computer can trim the fuel.",
+"part_no": "EX-EXH-034",
+"value": "£30–£100",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-035",
+"name": "Silencer and exhaust pipes",
+"system": "Exhaust",
+"does": "Carry gases away from the car and quieten them.",
+"part_no": "EX-EXH-035",
+"value": "£40–£150 a section",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-036",
+"name": "Exhaust mounting rubbers",
+"system": "Exhaust",
+"does": "Hang the exhaust under the car and stop it knocking.",
+"part_no": "EX-EXH-036",
+"value": "£3–£10 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-037",
+"name": "Clutch kit",
+"system": "Transmission/Clutch",
+"does": "The friction plate, pressure plate and release bearing that join and part the engine and the gearbox.",
+"part_no": "EX-TRN-037",
+"value": "£80–£250",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-038",
+"name": "Clutch cable or hydraulics",
+"system": "Transmission/Clutch",
+"does": "Carries the pedal's movement to the clutch, by cable or by fluid in a master and slave cylinder.",
+"part_no": "EX-TRN-038",
+"value": "£15–£40 (cable), £40–£120 (cylinders)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-039",
+"name": "Dual-mass flywheel",
+"system": "Transmission/Clutch",
+"does": "A two-part flywheel that smooths engine pulses, common on diesels.",
+"part_no": "EX-TRN-039",
+"value": "£250–£600",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration."
+},
+{
+"id": "MP-040",
+"name": "Gearbox oil",
+"system": "Transmission/Clutch",
+"does": "Lubricates the gears and synchromesh inside the gearbox.",
+"part_no": "EX-TRN-040",
+"value": "£15–£35",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-041",
+"name": "CV joints and boots",
+"system": "Transmission/Clutch",
+"does": "Let the driveshafts turn the wheels while they steer and move up and down.",
+"part_no": "EX-TRN-041",
+"value": "£15–£40 (boot kit), £40–£120 (joint)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-042",
+"name": "Propshaft and centre bearing",
+"system": "Transmission/Clutch",
+"does": "On rear-wheel-drive cars, carries drive from the gearbox to the rear axle.",
+"part_no": "EX-TRN-042",
+"value": "£40–£100 (bearing), £200–£500 (shaft)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-043",
+"name": "Brake pads",
+"system": "Brakes",
+"does": "Friction blocks that squeeze the brake disc to slow the car.",
+"part_no": "EX-BRK-043",
+"value": "£15–£50 (axle set)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-044",
+"name": "Brake discs",
+"system": "Brakes",
+"does": "The metal rotors the pads grip.",
+"part_no": "EX-BRK-044",
+"value": "£30–£90 (pair)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-045",
+"name": "Brake calipers",
+"system": "Brakes",
+"does": "Hold the pads and push them against the disc with hydraulic pressure.",
+"part_no": "EX-BRK-045",
+"value": "£40–£120 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-046",
+"name": "Brake fluid",
+"system": "Brakes",
+"does": "Transmits the pedal's force to every brake; it absorbs water over time.",
+"part_no": "EX-BRK-046",
+"value": "£5–£15 (1 litre)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-047",
+"name": "Brake shoes and drums",
+"system": "Brakes",
+"does": "Rear brakes on many small cars: shoes push out against the inside of a drum.",
+"part_no": "EX-BRK-047",
+"value": "£20–£45 (shoes), £40–£90 (drums, pair)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-048",
+"name": "Handbrake cable",
+"system": "Brakes",
+"does": "Pulls on the rear brakes to hold the car still.",
+"part_no": "EX-BRK-048",
+"value": "£15–£45",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-049",
+"name": "Brake hoses and pipes",
+"system": "Brakes",
+"does": "Carry brake fluid from the master cylinder to each wheel.",
+"part_no": "EX-BRK-049",
+"value": "£8–£25 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-050",
+"name": "Shock absorbers (dampers)",
+"system": "Suspension",
+"does": "Calm the springs so the car does not keep bouncing after a bump.",
+"part_no": "EX-SUS-050",
+"value": "£30–£90 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-051",
+"name": "Coil springs",
+"system": "Suspension",
+"does": "Hold the car's weight and absorb bumps.",
+"part_no": "EX-SUS-051",
+"value": "£20–£60 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-052",
+"name": "Anti-roll bar links",
+"system": "Suspension",
+"does": "Join the anti-roll bar to the suspension so the car leans less in corners.",
+"part_no": "EX-SUS-052",
+"value": "£10–£30 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-053",
+"name": "Wishbones (control arms) and bushes",
+"system": "Suspension",
+"does": "Locate the wheel and let it move up and down; the rubber bushes absorb shocks.",
+"part_no": "EX-SUS-053",
+"value": "£30–£90 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-054",
+"name": "Ball joints",
+"system": "Suspension",
+"does": "Pivot points between the suspension arms and the hub.",
+"part_no": "EX-SUS-054",
+"value": "£12–£35 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-055",
+"name": "Top mounts",
+"system": "Suspension",
+"does": "Bearings at the top of the strut that let it turn as the car steers.",
+"part_no": "EX-SUS-055",
+"value": "£15–£50 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-056",
+"name": "Wheel bearings",
+"system": "Suspension",
+"does": "Let the wheel spin freely on its hub.",
+"part_no": "EX-SUS-056",
+"value": "£20–£70 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-057",
+"name": "Track rod ends",
+"system": "Steering",
+"does": "The outer joints of the steering that turn the wheel hub.",
+"part_no": "EX-STE-057",
+"value": "£10–£30 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-058",
+"name": "Steering rack",
+"system": "Steering",
+"does": "Turns the steering wheel's rotation into the sideways push that steers.",
+"part_no": "EX-STE-058",
+"value": "£150–£400 (reconditioned)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-059",
+"name": "Power steering pump and fluid",
+"system": "Steering",
+"does": "On hydraulic systems, pumps fluid that does most of the work of steering.",
+"part_no": "EX-STE-059",
+"value": "£80–£250 (pump)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-060",
+"name": "Electric power steering motor",
+"system": "Steering",
+"does": "Assists the steering with an electric motor instead of a hydraulic pump.",
+"part_no": "EX-STE-060",
+"value": "£200–£600 (reconditioned)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-061",
+"name": "Battery",
+"system": "Electrical",
+"does": "Starts the car and steadies the electrical supply.",
+"part_no": "EX-ELE-061",
+"value": "£60–£150",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-062",
+"name": "Alternator",
+"system": "Electrical",
+"does": "Charges the battery and powers the car while the engine runs.",
+"part_no": "EX-ELE-062",
+"value": "£80–£250",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-063",
+"name": "Starter motor",
+"system": "Electrical",
+"does": "Turns the engine over to start it.",
+"part_no": "EX-ELE-063",
+"value": "£60–£200",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-064",
+"name": "Fuses and relays",
+"system": "Electrical",
+"does": "Protect circuits and switch heavy loads.",
+"part_no": "EX-ELE-064",
+"value": "£1–£15 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-065",
+"name": "Engine control unit (ECU)",
+"system": "Electrical",
+"does": "The computer that runs the engine's fuel and spark.",
+"part_no": "EX-ELE-065",
+"value": "£100–£500 (used or reconditioned, needs coding)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-066",
+"name": "Headlamp bulbs",
+"system": "Lighting",
+"does": "The dipped and main beam lights.",
+"part_no": "EX-LIT-066",
+"value": "£5–£25 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-067",
+"name": "Indicator and brake bulbs",
+"system": "Lighting",
+"does": "Signal turns and braking.",
+"part_no": "EX-LIT-067",
+"value": "£1–£5 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-068",
+"name": "Number plate and interior bulbs",
+"system": "Lighting",
+"does": "Light the plate at night and the cabin.",
+"part_no": "EX-LIT-068",
+"value": "£1–£4 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-069",
+"name": "Wiper blades",
+"system": "Body",
+"does": "Clear rain from the windscreen.",
+"part_no": "EX-BOD-069",
+"value": "£8–£30 (pair)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-070",
+"name": "Door locks and central locking",
+"system": "Body",
+"does": "Lock and unlock the doors, often by motor.",
+"part_no": "EX-BOD-070",
+"value": "£30–£120 a lock",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-071",
+"name": "Window regulator",
+"system": "Body",
+"does": "The mechanism that raises and lowers a window.",
+"part_no": "EX-BOD-071",
+"value": "£30–£100",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-072",
+"name": "Sills and wheel arches",
+"system": "Body",
+"does": "The structural edges under the doors and round the wheels.",
+"part_no": "EX-BOD-072",
+"value": "£20–£60 a repair panel",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"E30"
+],
+"fits": "BMW E30 (all engines)"
+},
+{
+"id": "MP-073",
+"name": "Tyres",
+"system": "Tyres & wheels",
+"does": "The only contact the car has with the road.",
+"part_no": "EX-TYR-073",
+"value": "£50–£150 each",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-074",
+"name": "Wheel alignment",
+"system": "Tyres & wheels",
+"does": "The angles of the wheels to each other and to the car.",
+"part_no": "EX-TYR-074",
+"value": "£30–£70 (a garage service, no part)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-075",
+"name": "Wheel nuts or bolts",
+"system": "Tyres & wheels",
+"does": "Hold the wheel to the hub.",
+"part_no": "EX-TYR-075",
+"value": "£1–£4 each, £20–£40 locking set",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-076",
+"name": "Spare wheel or repair kit",
+"system": "Tyres & wheels",
+"does": "Gets the car home after a puncture.",
+"part_no": "EX-TYR-076",
+"value": "£20–£40 (kit), £50–£120 (wheel)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio",
+"E30"
+],
+"fits": "Renault Clio (all engines); BMW E30 (all engines)"
+},
+{
+"id": "MP-077",
+"name": "Cabin (pollen) filter",
+"system": "HVAC",
+"does": "Cleans the air blown into the cabin.",
+"part_no": "EX-HVA-077",
+"value": "£6–£20",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-078",
+"name": "Heater blower motor and resistor",
+"system": "HVAC",
+"does": "The fan that blows air into the cabin, and the resistor that sets its speed.",
+"part_no": "EX-HVA-078",
+"value": "£15–£40 (resistor), £50–£120 (motor)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-079",
+"name": "Heater matrix",
+"system": "HVAC",
+"does": "A small radiator behind the dashboard that warms the cabin air.",
+"part_no": "EX-HVA-079",
+"value": "£40–£120",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+},
+{
+"id": "MP-080",
+"name": "Air-con compressor and gas",
+"system": "HVAC",
+"does": "The pump and refrigerant that cool the cabin air.",
+"part_no": "EX-HVA-080",
+"value": "£200–£500 (compressor), £50–£90 (re-gas)",
+"source": "Prices: a typical UK range for a parts-only purchase, rounded and approximate (2026). Part number: an example in the site's own format, not a maker's; look up the real number for your car by its registration.",
+"cars": [
+"Clio"
+],
+"fits": "Renault Clio (all engines)"
+}
+]
 }

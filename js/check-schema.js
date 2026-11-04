@@ -2,7 +2,6 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-schema.js THE WHOLE LIBRARY AGAINST ITS ONE SCHEMA (check/schema.js, R4), AND THE GATE EVERY ROW-WRITER
    PASSES (R5). `node js/check-schema.js [-v]`; no port. */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 'use strict';
 const L = require('../check/lib-full.js');
 const SC = require('../check/schema.js');

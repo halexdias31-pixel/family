@@ -521,8 +521,6 @@ function widgetPagesOf_(kind) {
   return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
 }
 function widgetColumn_(kind) {
-  /* ANY UNIT ON ANY COLUMN (710): once layout.js is here a widget column is drawn as every column is, its widgets and any card moved onto it (`cardsOf_`). */
-  if (typeof cardsOf_ === 'function' && typeof LAYOUT_COL !== 'undefined' && LAYOUT_COL[kind]) return cardsOf_(LAYOUT_COL[kind]);
   return widgetPagesOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
     /* ---------- AND THE NAME IS PRINTED ONCE § */
@@ -543,10 +541,10 @@ function widgetOnColumn_(w, own) {
   const keep = typeof favTile_ === 'function'
     ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
       typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}${
-      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.name || w.title || w.label || '') : ''}</span>` : '';
+      typeof suggestTile_ === 'function' ? suggestTile_('widget', String(w.id), w.title || w.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
-      <div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${
+      <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div>
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
     </div>`;
@@ -556,11 +554,11 @@ function widgetOnColumn_(w, own) {
 function widgetMergedOn_(m, own) {
   const top = m.parts[0];
   const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}${
-    typeof gameLockTile_ === 'function' ? gameLockTile_(top.id) : ''}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.name || top.title || top.label || '') : ''}</span>` : '';
+    typeof gameLockTile_ === 'function' ? gameLockTile_(top.id) : ''}${typeof suggestTile_ === 'function' ? suggestTile_('widget', String(top.id), top.title || top.label || '') : ''}</span>` : '';
   const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
   const parts = m.parts.map(w => {
     const waits = typeof w.start === 'function' && typeof loading_ === 'function';
-    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}" role="region" aria-label="${esc(String(w.name || w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
+    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${typeof wordsIn_ === 'function' ? wordsIn_('w:' + String(w.id), w.html) : w.html}${waits ? loading_() : ''}</div></div>`;
   }).join('');
   return `<div class="card is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
@@ -658,51 +656,26 @@ function widgetsHeld_(col, pre) {
   });
   return run.concat(pure);
 }
-/* WHAT FOUND NO FRESH SLOT IS RETURNED: a finder fills its pages after its paint (790), so it keeps them in `WIDGET_HELD` for the fill (`stuffFillOne_`). */
-const WIDGET_HELD = {};
 function widgetsBack_(col, held) {
-  return held.filter(e => {
+  held.forEach(e => {
     const fresh = slotOn_(col, String(e.w.id));
     if (fresh && fresh !== e.slot) fresh.replaceWith(e.slot);
-    return !fresh;
   });
 }
 
 function toolsStart_(kind, arriving) {
-  widgetsWake_(widgetsOf_(kind), kind, arriving);
-}
-
-/* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
-const FIND_WIDGET_KINDS = ['tool', 'game'];
-function widgetInFind_(w) {
-  if (!w) return false;
-  const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;
-  if (!rows) return FIND_WIDGET_KINDS.indexOf(w.kind) !== -1;
-  const said = rows.find(r => r.widget === String(w.id)) || rows.find(r => r.widget === w.kind);
-  return !!said && /^(true|yes|1)$/i.test(String(said.find).trim());   /* a sheet's "FALSE" is a string, so truthiness would keep it */
-}
-/* EVERY WIDGET THAT IS A FIND CARD FOR THIS VIEWER, in the code's order; one an admin deleted (layout.js) is gone here too. */
-function findWidgetList_() {
-  let gone = [];
-  try { const L = typeof layoutNow_ === 'function' ? layoutNow_() : null; gone = (L && L.deleted) || []; } catch (e) { gone = []; }
-  return allWidgets().filter(w => widgetInFind_(w) && gone.indexOf(String(w.id)) === -1).filter(widgetFor_);
-}
-/* THE WIDGETS ON A FINDER: the slots its filled pages hold — Find fills only the pages near the glass, so a card not drawn yet has nothing to start. */
-function finderWidgets_(col) {
-  return widgetsReveilAll_(col).map(e => e.w).filter((w, i, a) => a.indexOf(w) === i).filter(widgetFor_);
+  widgetsWake_(widgetsOf_(kind), kind === 'tool' ? 'tools' : kind === 'game' ? 'games' : kind, arriving);
 }
 
 /* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from, asked by `widgetsGlass_` of a column beside the one in front. § */
 /* `reel` (414): the widgets leading the Reels column, before the admin's "+" and the first reel (`reelLead_`, posts.js). */
-/* `stuff` and `res` (790): the tools and games are Find cards, started and stopped as a column's are. */
-const WIDGET_COLS = ['shop', 'stuff', 'res', 'saved', 'reel'];
+const WIDGET_COLS = ['shop', 'tools', 'games', 'saved', 'reel'];
 function widgetsOn_(col) {
   if (col === 'saved') return savedWidgets_();
   if (col === 'reel') return widgetsOf_('reel');
+  if (col === 'tools') return widgetsOf_('tool');
+  if (col === 'games') return widgetsOf_('game');
   if (col === 'shop') return widgetsOf_('shop');
-  if (col === 'stuff' || col === 'res') return finderWidgets_(col);
-  /* A WIDGET THE ADMIN MOVED ONTO A CARD COLUMN OR ONE OF THEIR OWN (710). */
-  if (typeof layoutWidgetsIn_ === 'function' && typeof allWidgets === 'function') { const L = layoutNow_(); return L ? layoutWidgetsIn_(col, allWidgets(), L).filter(widgetFor_) : []; }
   return [];
 }
 
@@ -989,8 +962,7 @@ function widgetsBeforeSlide_(col) {
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST § */
 screen('saved', () => pages('saved', savedCards_()));
 /* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that counts the same array the screen is built from, and a sentence § */
-/* MOVABLE SINCE 730: a card column like the profiles; the whole window is one unit (`spot:list`), moved by its first page's row. */
-screen('spotlight', () => pages('spotlight', typeof cardsOf_ === 'function' ? cardsOf_('spotlight') : spotlightCards_()));
+screen('spotlight', () => pages('spotlight', spotlightCards_()));
 /* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
 /* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
 /* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
@@ -1507,3 +1479,5 @@ on('prog-practise', el => {
 });
 on('prog-sessions', () => { go('booking'); });
 /* `screen('progress')` WAS HERE: its cards are on Student settings (461), `studentSetPages_` in me.js. */
+screen('tools', () => pages('tools', widgetColumn_('tool')));
+screen('games', () => pages('games', widgetColumn_('game')));

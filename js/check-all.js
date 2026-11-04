@@ -65,8 +65,6 @@ const SUITE = [
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
-  /* THE STABILITY SCORE (730): data/stability.json as tools/stability.js computes it now. */
-  { file: 'check-stability.js', what: 'the Stability card\'s figures are current' },
   { file: 'check-booking.js', what: 'the booking machine, run not read' },
   /* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN § */
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
@@ -191,9 +189,6 @@ const SUITE = [
   { file: 'check-finder.js', what: 'a finder\'s chips and words set only through finderSet_' },
   /* 546: the finder's first answers are counted at build time; a library change without a re-run of the tool is red here. */
   { file: 'tools/finder-tags.js --check', what: 'js/finder-tags.js is what the library asks first, not stale' },
-  { file: 'tools/build-stamp.js --check', what: 'index.html\'s BUILD_STAMP is the hash of the files it stamps, so a deploy changes every URL and nothing else does (750)' },
-  /* LOGIC HEALTH (770): data/logic-health.json is what tools/logic-health.js measures over the funnel now. */
-  { file: 'tools/logic-health.js --check', what: 'the Logic health card\'s figures are the funnel as it is now', slow: true },
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
@@ -222,9 +217,6 @@ const SUITE = [
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
-  { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
-  { file: 'check/kp-centred.js', what: 'Find and Find 2 centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
-  { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
@@ -264,14 +256,6 @@ const SUITE = [
 
 /* --fast: the session-start hook has 180s, and the browser checks take far longer. */
 if (process.argv.includes('--fast')) for (let i = SUITE.length - 1; i >= 0; i--) if (SUITE[i].slow) SUITE.splice(i, 1);
-/* `--slow=k/n` (CI, 780): only the slow checks, the k-th of n groups dealt round-robin; check-flow is left to FLOW_PART. */
-const SLOW_PART = /^--slow=(\d+)\/(\d+)$/.exec(process.argv.find(a => a.startsWith('--slow=')) || '');
-if (SLOW_PART) {
-  const k = Number(SLOW_PART[1]), n = Number(SLOW_PART[2]);
-  const mine = SUITE.filter(c => c.slow && c.file !== 'check-flow.js').filter((c, i) => i % n === k - 1);
-  SUITE.splice(0, SUITE.length, ...mine);
-  console.log('slow part ' + k + '/' + n + ': ' + mine.map(c => c.file).join(', '));
-}
 let failed = 0, noted = 0;
 const notes = [];
 

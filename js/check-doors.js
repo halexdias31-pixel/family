@@ -14,8 +14,7 @@ const ORDER = [...listed[1].matchAll(/'([\w-]+)'/g)].map(m => m[1])
   .filter(n => fs.existsSync(path.join(dir, n + '.js')));
 
 const files = ORDER.map(n => ({ n, src: fs.readFileSync(path.join(dir, n + '.js'), 'utf8') }));
-/* A COMMENT OPENS AFTER A SPACE OR PUNCTUATION: `'image/*'` (working.js) is not one, and swallowed its file's handlers. */
-const strip = t => t.replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g, '$1');
+const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
 
 
 const handlers = new Map();   // action -> file
@@ -74,15 +73,12 @@ const tabIds = new Set();
 /* AND WHICH OF THEM ARE AN ADMIN'S — `admin: true` on the entry, read off the same literal. Each entry is
    one line, so the flag is looked for between its `id:` and the brace that closes it. */
 const adminTabs = new Set();
-/* AND THE CARD COLUMNS (730), `cards: true`, which columns.json's `cards` must repeat. */
-const cardTabs = new Set();
 const dynamicDoors = new Set();
 files.forEach(({ src }) => {
   const code = strip(src);
   const m = code.match(/const TABS = \[([\s\S]*?)\n\];/);
   if (m) for (const t of m[1].matchAll(/id:\s*'([a-z0-9-]+)'/g)) tabIds.add(t[1]);
   if (m) for (const t of m[1].matchAll(/\{\s*id:\s*'([a-z0-9-]+)'[^}]*\badmin:\s*true\b/g)) adminTabs.add(t[1]);
-  if (m) for (const t of m[1].matchAll(/\{\s*id:\s*'([a-z0-9-]+)'[^}]*\bcards:\s*true\b/g)) cardTabs.add(t[1]);
   for (const d of code.matchAll(/data-do="\$\{([^}]+)\}"/g))
     for (const lit of d[1].matchAll(/'([a-z0-9-]+)'/g)) dynamicDoors.add(lit[1]);
 });
@@ -157,30 +153,6 @@ const codeOrder = tabOrder.filter(t => fileOrder.includes(t));
 const orderDiffers = Array.isArray(colRows) && codeOrder.join() !== fileOrder.filter(t => tabOrder.includes(t)).join()
   ? ['TAB_ORDER: ' + codeOrder.join(' '), 'file:      ' + fileOrder.join(' ')] : [];
 
-/* THE CARD COLUMNS, CODE AND FILE (730): `CARD_COLS` is read off TABS; the file and backend's generated copy must say the same. */
-const fileCards = new Set(Array.isArray(colRows) ? colRows.filter(r => r && String(r.cards).toUpperCase() === 'TRUE').map(r => String(r.screen)) : []);
-const cardsDiffer = [...new Set([...cardTabs, ...fileCards])].filter(t => cardTabs.has(t) !== fileCards.has(t)).sort();
-let gsStale = [];
-try { const g = require(path.join(dir, '..', 'tools', 'columns_gs.js')), src = fs.readFileSync(path.join(dir, '..', 'backend', 'constants.gs'), 'utf8');
-  if (g.columnsInto(src) !== src) gsStale = ['backend/constants.gs\'s COLUMNS block is stale: node tools/columns_gs.js']; } catch (e) { gsStale = ['(tools/columns_gs.js could not run: ' + e.message + ')']; }
-
-/* NOTHING UNMOVABLE WITHOUT A REASON (730): each column is a card column, a widget column (LAYOUT_COL) or in LAYOUT_FIXED with its sentence. */
-let unhosted = [];
-try {
-  const lay = strip(fs.readFileSync(path.join(dir, 'layout.js'), 'utf8'));
-  const wcols = [...(((/const LAYOUT_COL = \{([^}]*)\}/.exec(lay)) || [])[1] || '').matchAll(/:\s*'([a-z]+)'/g)].map(x => x[1]);
-  const fixed = [...(((/const LAYOUT_FIXED = \{([\s\S]*?)\n\};/.exec(lay)) || [])[1] || '').matchAll(/^\s*([a-z]+):\s*["'`](.{12,})["'`],?\s*$/gm)].map(x => x[1]);
-  unhosted = tabOrder.filter(t => !cardTabs.has(t) && wcols.indexOf(t) === -1 && fixed.indexOf(t) === -1)
-    .concat(fixed.filter(t => cardTabs.has(t) || wcols.indexOf(t) !== -1).map(t => t + ' (fixed AND a host)'));
-} catch (e) { unhosted = ['(js/layout.js could not be read: ' + e.message + ')']; }
-
-/* AND NO CARD UNMOVABLE BY ITS OWN HAND (770: the Deleted card was `no-move`): the one `no-move` is the owner's rule `items-no-move`. */
-let pinned = [];
-try {
-  fs.readdirSync(dir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => strip(fs.readFileSync(path.join(dir, f), 'utf8')).split('\n')
-    .forEach((l, i) => { if (/\bno-move\b/.test(l) && !/items-no-move|still \? ' no-move'/.test(l)) pinned.push(f + ':' + (i + 1)); }));
-} catch (e) { pinned = ['(js/ could not be read: ' + e.message + ')']; }
-
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -216,14 +188,6 @@ say('TABS AND data/settings/columns.json NAME DIFFERENT SCREENS — a tab with n
 say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDERS — the row rearranges itself when the file lands',
     orderDiffers, t => '');
 
-say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards: true` and the row\'s `cards` part', cardsDiffer,
-    t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
-say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
-
-say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
-
-say('A CARD MARKED no-move OUTSIDE THE items-no-move RULE — every card moves unless LAYOUT_FIXED says why', pinned, t => '');
-
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
 say('DOOR WITH NO HANDLER — it looks pressable and does nothing', noHandler,
@@ -241,7 +205,7 @@ if (doors.has('${…}')) {
 console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
             + '   screens: ' + screens.size + '   an admin\'s alone: ' + ([...adminTabs].join(', ') || 'none'));
-process.exit(pinned.length + unhosted.length + cardsDiffer.length + gsStale.length + noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
+process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
              + noSection.length + adminWritten.length + adminUnmade.length
              + noDraw.length + noPager.length + orderOff.length
              + noColumnRow.length + orderDiffers.length ? 1 : 0);

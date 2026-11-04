@@ -71,9 +71,6 @@ const ASKED_KINDS = new Set();
 fs.readdirSync(jsDir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
   const txt = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
   for (const m of txt.matchAll(/\b(?:widgetsOf_|toolsStart_|widgetColumn_)\(\s*'([a-z]+)'\s*\)/g)) ASKED_KINDS.add(m[1]);
-  /* AND THE KINDS FIND ASKS FOR (790, `FIND_WIDGET_KINDS`, arcade.js): a tool or game is a Find card, not a column's. */
-  const fk = /const FIND_WIDGET_KINDS = \[([^\]]*)\]/.exec(txt);
-  if (fk) for (const m of fk[1].matchAll(/'([a-z]+)'/g)) ASKED_KINDS.add(m[1]);
 });
 if (!ASKED_KINDS.has('tool') || !ASKED_KINDS.has('game')) {
   console.log('FAILED — could not read which widget kinds the columns ask for (found: '
@@ -677,8 +674,6 @@ const ACCEPTED_IMPURE = {
   reels: 'reads the facts tab through `factsNow_`, which the fixture leaves empty, so both payloads deal the built-in facts',
   videos: 'a typed search lists the owner\'s list and an admin\'s films (`DATA.films`); the bar drawn ahead with nothing typed reads neither',
   favlinks: 'reads the viewer\'s own links (`DATA.favLinks`, 509), which the fixture leaves out, so every scenario draws the empty list',
-  notepad: 'its text is the account\'s own notes (`USER.notepad`), which no fixture person has, so every scenario draws it empty; first drawn here once Find filled every card (790)',
-  console: 'first drawn here once Find filled every card (790); left unmarked until somebody reads what its games list depends on, since a wrong pure carries a stale drawing',
 };
 async function drawAheadRuntime_() {
   const out = { fails: [], pureWrong: [], drawn: 0, scenarios: 0, notes: [] };
@@ -741,12 +736,8 @@ async function drawAheadRuntime_() {
     out.scenarios++;
     const t = w.__wt;
     const seenHere = new Set();
-    /* THE TOOLS AND GAMES ARE FIND CARDS (790): each group's every card is filled, then drawn from its slot on Find. */
-    for (const [col, group] of [['stuff', 'Tools'], ['stuff', 'Games'], ['shop', '']]) {
-      try {
-        if (group) { t.findAll(group); await sleep(1500); }
-        else if (t.STALE()[col] || !w.document.querySelector('#s-' + col + ' .widget-slot')) t.paint(col, true);
-      } catch (e) {}
+    for (const col of ['tools', 'games', 'shop']) {
+      try { if (t.STALE()[col] || !w.document.querySelector('#s-' + col + ' .widget-slot')) t.paint(col, true); } catch (e) {}
       const list = (() => { try { return t.widgetsOn(col); } catch (e) { return []; } })();
       for (const wd of list) {
         const id = String(wd.id);
@@ -827,7 +818,7 @@ async function drawAheadRuntime_() {
     if (sc.user) w.localStorage.setItem('familyUser', JSON.stringify(sc.user));
     w.localStorage.setItem('familyCart', JSON.stringify(BASKET));
     w.__aheadHold = true;
-    w.eval(appSrc + '\n;window.__wt = { paint, findAll: g => { finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], q: "" }); go("stuff", false, true); inFinder_(FINDERS.stuff, () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }); }, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
+    w.eval(appSrc + '\n;window.__wt = { paint, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
       + ' HOME: WIDGET_HOME, loading: () => loading_(), STALE: () => STALE, loaded: () => LOADED, user: () => USER,'
       + ' send: typeof send_ === "function" ? send_ : null, ahead: v => { AHEAD.running = v; } };');
     if (typeof w.send_ === 'function') { const s0 = w.send_; w.send_ = function () { hit('send_'); return s0.apply(this, arguments); }; }

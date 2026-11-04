@@ -453,7 +453,7 @@ on('book-send', el => {
 
 /* THE WHOLE RECEIPT, on tap. § */
 /* ---------- A SESSION OPENS ON ITS OWN PAGE, NOT OVER THE TOP OF THE APP § */
-/* NO `job` HANDLER: nothing draws a Job door; a push opens one by `openJob_` (push.js), and the journeys call it the same way. */
+on('job', el => { openJob_(el.dataset.id); });
 /* `quiet`: the way back from Stripe opens the receipt it paid for and says nothing of its own when the list has not caught up (`paidFromLink_`, me.js). */
 function openJob_(id, quiet) {
   const jobs = DATA.liveJobs || DATA.jobs || [];

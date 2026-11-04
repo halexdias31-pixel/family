@@ -16265,22 +16265,3 @@ top level, before `MS_LOOK`
    the letters that survive, where they stand. Coordinates are the photograph's pixels; `·` is a lost letter's room. */
 ```
 
-### WHICH SECTION OF ITS PAPER A DOCUMENT IS (770):
-
-top level, before `paperSectionOf_`
-
-```
-/* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): an id ending in the paper's own number and a digit (`P-9MA0-2406-31`, `paper` 3) is
-   that paper's section, 1 = A, 2 = B — 9MA0 Paper 3 is Statistics (Section A) and Mechanics (Section B). Any board, one rule. */
-```
-
-### THE OTHER HALF OF A YES-OR-NO, AT 0 (770):
-
-top level, before `facetNoneHtml_`
-
-```
-/* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): the owner, "why isn't there an Accuracy verified option?" — every facet, one rule. A
-   question not asked because all of these answer it one way, while the whole list has exactly two answers, says the other greyed
-   with its 0 rather than vanishing. Never pressable, never in `.answers`. */
-```
-

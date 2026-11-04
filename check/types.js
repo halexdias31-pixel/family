@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check/types.js EVERY INTERACTION TYPE, ANSWERED AS A CHILD ANSWERS IT (385). § */
-require('./lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

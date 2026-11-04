@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-funnel.js THE FUNNEL, RUN AGAINST THE REAL LIBRARY, ASKED WHETHER ITS QUESTIONS ARE WORTH ASKING. § */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
 /* Flags: -v. FUNNEL_ONLY=walk walks the random funnels alone (section 7), =under the 531 rules; FUNNEL_SEED and FUNNEL_RUNS change that walk (522). */
 const fs = require('fs');
 const path = require('path');
@@ -1191,16 +1190,6 @@ function underTypes_(f, items) {
     if (own.join() !== t) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Which type ' + JSON.stringify(own) + ', not ' + JSON.stringify(t));
   });
   Object.keys(under).forEach(t => { if (!seenUnder[t]) bad.push('no ' + t + ' question was read, so "' + t + ' is under ' + under[t] + '" proves nothing'); });
-  /* 680: a parent's own items answer Which type with NOTHING, so Which type never offers the parent's name again. */
-  const parents = {}; Object.keys(under).forEach(k => { parents[under[k]] = 0; });
-  items.forEach(x => {
-    const t = x.kind === 'question' && String(x.documentType || '');
-    if (!t || !(t in parents) || !typeOwnF) return;
-    parents[t]++;
-    const own = f.asList_(typeOwnF.of(x)).map(String).filter(Boolean);
-    if (own.length) bad.push((x.row && x.row.paper_id) + ': a ' + t + ' answers Which type ' + JSON.stringify(own) + ' — the parent offered twice (680)');
-  });
-  Object.keys(parents).forEach(t => { if (!parents[t]) bad.push('no plain ' + t + ' was read, so "Which type never repeats ' + t + '" proves nothing'); });
   /* The fixture carries no data/timeline.json, so a bare timeline item stands in beside any real one. */
   const tls = items.filter(x => x.kind === 'timeline').concat([{ kind: 'timeline', hdb: true, name: 'a bare timeline' }]);
   const ownF = byField('kindOwn');
@@ -1218,8 +1207,6 @@ function underTypes_(f, items) {
     pages.forEach(t => { if (t.join() !== 'Practice') bad.push(x.name + ': a page of a ' + x.kind + ' wears What kind ' + JSON.stringify(t) + ', not "Practice"'); });
     const own = ownF ? f.asList_(ownF.of(x)).map(String) : [];
     if (!own.length || own.indexOf('Practice') !== -1) bad.push(x.name + ': a ' + x.kind + ' answers Which ' + JSON.stringify(own) + ', wanted its own kind');
-    const top = f.asList_(kindF.of(x)).map(String);
-    if (own.some(o => top.indexOf(o) !== -1)) bad.push(x.name + ': Which repeats What kind ' + JSON.stringify(top) + ' (680)');
   });
   Object.keys(practice).forEach(k => { if (!practice[k]) bad.push('no ' + k + ' was read, so "a ' + k + ' is Practice" proves nothing'); });
   console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
@@ -1254,9 +1241,6 @@ function walkFunnels_(f, items) {
           if (S.filters.some(c => c.field === fac.field)) fail('twice', '`' + fac.field + '` asked again after ' + at());
           /* c. THE COUNT ON EACH ANSWER IS WHAT PRESSING IT GIVES. */
           const vals = f.facetValues(list, fac);
-          /* f. NO PATH'S CHIPS REPEAT A LABEL (680): an answer already chosen is never offered again under another question. */
-          const chosen = new Set(S.filters.filter(c => !c.any).map(c => String(c.value).toLowerCase()));
-          vals.forEach(v => { if (chosen.has(String(v.show || v.value).toLowerCase())) fail('repeat', '`' + fac.field + '` offers "' + (v.show || v.value) + '", already a chip, after ' + at()); });
           vals.forEach(v => {
             const got = f.stuffNarrow_(list, [{ field: fac.field, value: v.value }], [], 0).length;
             if (got !== v.n) fail('count', '`' + fac.field + '` "' + (v.show || v.value) + '" says ' + v.n + ', gives ' + got + ' after ' + at());
@@ -1294,7 +1278,7 @@ function walkFunnels_(f, items) {
         }
       }
     } finally { S.q = was.q; S.filters = was.filters; }
-    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item', repeat: 'a chip\'s label is offered again' };
+    const SAY = { memo: 'the memo is not the list filtered afresh', order: 'the memo holds the list filtered afresh in another order', twice: 'a question is asked twice', count: 'an answer\'s count is not what pressing it gives', any: 'Doesn\'t matter changed the list', typing: 'typing widened the list or lost its own item' };
     Object.keys(fails).forEach(k => bad.push(fails[k].length + ' step(s) where ' + SAY[k] + ' — first: ' + fails[k].slice(0, 3).join('; ')));
     WALKED = runs + ' walks, ' + steps + ' steps (' + answered + ' answers, ' + anys + ' Doesn\'t matter, ' + typed + ' words), ' + Object.keys(fails).length + ' invariant(s) broken';
     console.log('\nRANDOM FUNNELS: ' + WALKED);
