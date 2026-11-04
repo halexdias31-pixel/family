@@ -3563,11 +3563,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .ps-hit { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
 .ps-hit > .tile-row { margin: 0; flex: none; }
 .ps-out:empty { display: none; }
-/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): its pages touch, the inner corners square, a hairline between, the column's gap only around the run. */
-.page.grp-mid, .page.grp-last { margin-top: -16px; }
-.page.grp-first > .pane { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.page.grp-mid > .pane { border-radius: 0; border-top: 1px solid var(--line-soft, var(--line)); }
-.page.grp-last > .pane { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px solid var(--line-soft, var(--line)); }
 /* ONE SEARCH BAR (469): the box and Find on one line, nothing under them. */
 .ps-bar { display: flex; gap: .4rem; align-items: stretch; }
 .ps-bar > .search-pill { flex: 1; min-width: 0; }

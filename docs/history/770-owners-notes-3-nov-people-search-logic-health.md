@@ -1,4 +1,4 @@
-# 770 — The owner's notes of 3 Nov: one search card per people column, people as one surface, Sign in one unit, Deleted moves, years, Tanakh, Paper 3, Logic health
+# 770 — The owner's notes of 3 Nov: no Find button, Sign in one unit, Deleted moves, years, Tanakh, Paper 3, Logic health
 
 Ten notes from the Ledger's `claude_notes` tab, 3 November 2026.
 
@@ -10,11 +10,9 @@ Ten notes from the Ledger's `claude_notes` tab, 3 November 2026.
 - The glitch: typing re-placed every column on each key, so the screen jumped. `psPaint_` now repaints only its own card's
   results and re-places once, 300 ms after the typing stops.
 - "remove find button": Return in the box asks (`psFind_`); only on Students and only Client and up (400), as before.
-- "add this search widget to the column to the right of it": every profile column (`accountPages_`) draws
-  `peopleSearchPage_(col)`, registered as `ppl:tutors:search`, `ppl:students:search`, `ppl:parents:search`, each with its own
-  state (`psState_`).
-- "have them be within a larger widget": a run of person pages is marked `<!--grp:first|mid|last-->` by `grpMark_`
-  (layout.js) and `pages()` (shell.js) draws them touching, inner corners square, one hairline between. Each person stays a page.
+- "add this search widget to the column to the right of it" and "have them be within a larger widget": built, then
+  dropped on the owner's change of direction (profiles and settings move into Find, a later job). Only Students keeps the
+  search card; its state is per column (`psState_`) so the move can reuse it.
 
 ## Sign in is `acct:signed-in` (N-1793741275191-97861)
 

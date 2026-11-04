@@ -10045,14 +10045,14 @@ function accountPages_(col) {
   /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_(col)].filter(Boolean) : [];
   const fam = famIn(col).map(famCard_);
-  /* EVERY PROFILE COLUMN HAS ITS SEARCH CARD (442, 770), one rule: under the "+", above the people. */
+  /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
   const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
   if (col === 'tutors') {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
     const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
     /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
-    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:search', search), cardMark_('ppl:tutors:dir', mine.concat(others)));
+    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
   } else if (col === 'students') {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
@@ -10065,7 +10065,7 @@ function accountPages_(col) {
     /* A PARENT'S CLAIM ("X says they are your parent") is answered here, by the child. */
     const claims = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
       ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
-    out = cardMark_('ppl:parents:add', add).concat(cardMark_('ppl:parents:search', search), cardMark_('ppl:parents:you', mine), cardMark_('ppl:parents:claims', claims),
+    out = cardMark_('ppl:parents:add', add).concat(cardMark_('ppl:parents:you', mine), cardMark_('ppl:parents:claims', claims),
       cardMark_('ppl:parents:family', fam), cardMark_('ppl:parents:all', everyone));
   }
   return out.concat(coming);

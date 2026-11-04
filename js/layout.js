@@ -504,7 +504,7 @@ const adminKeep_ = (c, id) => !adminCol_(c) || adminCol_(cardHome0_(id)) || !(ty
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
-  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who you are signed in as on this phone and Sign out: one card, one place (770).' },
+  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Sign in, or who is signed in on this phone and Sign out.' },
   { id: 'acct:brownie', col: 'account', label: 'Brownie points', re: /^<div class="card soon-card soon-brownie/, say: 'A placeholder: points for good work.' },
   { id: 'acct:roadmap', col: 'account', label: 'Roadmap', re: /^<div class="card soon-card soon-roadmap/, say: 'A placeholder: how much of the syllabus is left.' },
   { id: 'acct:conduct', col: 'account', label: 'Code of conduct', re: /^<div class="card soon-card soon-conduct/, say: 'A placeholder: the code of conduct.' },
@@ -520,7 +520,6 @@ const CARD_REG = [
   { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
   { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
   { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
-  { id: 'ppl:tutors:search', col: 'tutors', label: 'Find by handle', say: 'Find a tutor by their handle.' },
   { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
   { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
   { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
@@ -529,7 +528,6 @@ const CARD_REG = [
   { id: 'ppl:students:manage', col: 'students', label: 'Manage your child', say: 'Link your child\'s account to yours, or answer a link.' },
   { id: 'ppl:students:all', col: 'students', label: 'Every student', say: 'Every student account.' },
   { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent', say: 'Make an account for a new parent.' },
-  { id: 'ppl:parents:search', col: 'parents', label: 'Find by handle', say: 'Find a parent by their handle.' },
   { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)', say: 'Your own card as a parent.' },
   { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
   { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
@@ -736,7 +734,7 @@ function cardsOf_(col) {
       const page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* AND `Report` UNDER EVERY CARD THAT HAS AN ID (486), the last page of it — one row of its own. */
       const rep = g.id && i === g.pages.length - 1 && !personOf_(h) ? cardReportRow_(g.id, page) : '';
-      return grpMark_(g, i, rep ? cardRowIn_(page, rep) : page);
+      return rep ? cardRowIn_(page, rep) : page;
     })), []);
   const entries = colEntries_(col, raw);
   const start = cardStartOf_(col, L);
@@ -770,19 +768,13 @@ function cardsOf_(col) {
       const row1 = /data-do="rep-box"/.test(page) ? row.replace(/<button[^>]*data-do="rep-box"[\s\S]*?<\/button>/, '') : row;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row1.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row1);
       if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`);
-      out.push(grpMark_(g, i, page));
+      out.push(page);
     });
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
   /* NOTHING LEFT ON IT: one line, never the column's name as a card (770). */
   if (!out.length && !kind) return [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
   return out;
-}
-/* A LIST OF PEOPLE IS ONE SURFACE (690, 770): § */
-function grpMark_(g, i, page) {
-  const n = g.pages.length;
-  if (n < 2 || !g.pages.every(personOf_)) return page;
-  return '<!--grp:' + (i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid') + '-->' + page;
 }
 /* A HOUSE, NOT A FLAG (466): the owner, "I had no idea what it was" — the column's home is here. */
 function startTile_(col, id, start, note) {

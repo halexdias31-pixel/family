@@ -2925,7 +2925,8 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
       else if (say.length > 90) bad.push(col + ': ' + id + '\'s line is ' + say.length + ' characters');
     });
     const says = a.d.querySelectorAll('#s-' + col + ' .card-say').length;
-    const empty = a.d.querySelectorAll('#s-' + col + ' .card.is-empty').length;
+    /* A SEARCH CARD'S PLACEHOLDER IS ITS LINE (469, 770), so it owes none. */
+    const empty = a.d.querySelectorAll('#s-' + col + ' .card.is-empty, #s-' + col + ' .card.ps-card').length;
     /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414), so it owes no line. */
     if (says < seen.size - empty) bad.push(col + ': ' + says + ' lines drawn for ' + (seen.size - empty) + ' cards with something in them');
   }
@@ -10214,19 +10215,16 @@ check('442: a student sees the search but no Find and no tile, and posts no look
   return bad;
 });
 
-/* ---------- 770: ONE SEARCH CARD ON EVERY PROFILE COLUMN, NO COLUMN NAMED, A LIST OF PEOPLE ONE SURFACE, SIGN IN ONE UNIT, DELETED MOVES ---------- */
-check('770: every profile column has its search card and no Find button; no card is titled with a column\'s name; people lists join; Sign in is acct:signed-in; Deleted moves', async () => {
+/* ---------- 770: NO FIND BUTTON, NO COLUMN NAMED, SIGN IN ONE UNIT, DELETED MOVES ---------- */
+check('770: the search card has no Find button; no card is titled with a column\'s name; Sign in is acct:signed-in; Deleted moves', async () => {
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' }), bad = [];
   try { t.repaint(true); ['tutors', 'students', 'parents', 'account', 'family', 'staff', 'biz'].forEach(id => w.paint(id)); } catch (e) {}
   await wait(150);
-  ['tutors', 'students', 'parents'].forEach(c => { if (!d.querySelector('#s-' + c + ' .ps-card[data-ps-col="' + c + '"]')) bad.push(c + ' has no search card'); });
+  if (!d.querySelector('#s-students .ps-card[data-ps-col="students"]')) bad.push('Students has no search card');
   if (d.querySelector('[data-do="ps-find"]')) bad.push('a Find button is on a search card');
   if (d.querySelector('.ps-card .card-say')) bad.push('the search card carries a sentence above its bar (its placeholder is its label, 469)');
   const names = new Set(w.TABS.map(x => String(w.tabLabel_(x.id, x.id)).trim().toLowerCase()));
   d.querySelectorAll('.screen .card > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
-  const g = w.grpMark_({ pages: ['<!--person:P1--><div class="card">a</div>', '<!--person:P2--><div class="card">b</div>'] }, 1, '<div class="card">b</div>');
-  if (!/^<!--grp:last-->/.test(g)) bad.push('a list of two people is not marked as one surface: ' + g.slice(0, 40));
-  if (!/class="page grp grp-last"/.test(w.pages('x', [g]))) bad.push('pages() does not join a marked run');
   if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
   const row = w.cardAdminRow_('biz:deleted', 'biz', false);
   if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');

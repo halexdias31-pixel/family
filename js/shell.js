@@ -2198,10 +2198,8 @@ function adoptMarks_() {
 
 /* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
 const rowsOne_ = c => (typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(c) : c);
-/* `<!--grp:first|mid|last-->` (layout.js `grpMark_`): a page in a run drawn as one surface with the pages beside it. */
 const pages = (id, cards) =>
-  cards.map(c => { const g = /^<!--grp:(first|mid|last)-->/.exec(c);
-    return `<section class="page${g ? ' grp grp-' + g[1] : ''}"><div class="pane">${rowsOne_(g ? c.slice(g[0].length) : c)}</div></section>`; }).join('');
+  cards.map(c => `<section class="page"><div class="pane">${rowsOne_(c)}</div></section>`).join('');
 
 /* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
 /* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
