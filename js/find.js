@@ -206,6 +206,8 @@ const KINDS = {
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
+  /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
+  setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Site health', label: 'Site health', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
@@ -248,7 +250,7 @@ function soonItems_() {
   /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
   const set = (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF ? [['picture', 'Picture'], ['figure', 'Your figure'], ['name', 'Name'], ['handle', 'Handle'],
     ['settings', 'Your settings'], ['push', 'Phone notifications'], ['progress', 'Progress'], ['brownie', 'Brownie points'], ['roadmap', 'Roadmap'], ['conduct', 'Code of conduct']] : [])
-    .map(([id, n]) => ({ kind: 'soon', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
+    .map(([id, n]) => ({ kind: 'setting', name: n, sub: 'Settings', image: '', key: 'soon:set:' + id, soon: 'setting', soonId: id }));
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
