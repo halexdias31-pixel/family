@@ -148,7 +148,7 @@ function keepRetry_() {
   [...KEEP_UNKEPT].sort((a, b) => KEEP_RECORD.has(b) - KEEP_RECORD.has(a)).forEach(k => {
     const v = KEEP_MEM.get(k);
     if (v !== null && v !== undefined && typeof keepWaits_ === 'function' && keepWaits_(k)) return;
-    try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) {}
+    try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) { /* storage can be blocked; the app runs without it */ }
   });
 }
 /* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
@@ -261,7 +261,7 @@ function draftDrop_(surface, id, who) {
   DRAFT_SENDING.delete(k);
   draftMark_(k, null);
   let had = KEEP_MEM.has(k);
-  if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) {} }
+  if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) { /* storage can be blocked; the app runs without it */ } }
   return had ? keepPut_(k, null) : true;
 }
 /* ---------- SENT, ANSWERED, REFUSED — see "SENT IS NOT A DRAFT" above. `v` is the words that went, so a

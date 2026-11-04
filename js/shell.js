@@ -167,7 +167,7 @@ function columnsFor_() {
   let admin = false;
   try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
   /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
-  try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) {}
+  try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) { oops_(e, 'shell:columnsFor_') }
   const want = COLUMNS.filter(t => !t.admin || admin);
   const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
   if (changed) {
@@ -268,7 +268,7 @@ let AT = TAB_HOME;
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
 /* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
-try { columnsFor_(); } catch (e) {}
+try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = localStorage.getItem('familyTab');
   const was = TAB_GONE[kept] || kept;
@@ -738,7 +738,7 @@ function awaiting_() {
 const repaint = (instant) => {
   /* 00. WHICH COLUMNS THERE ARE, for whoever is signed in now — every sign-in and sign-out ends here, so
          an admin's column comes and goes with them, without a reload. See `columnsFor_`. */
-  try { columnsFor_(); } catch (e) {}
+  try { columnsFor_(); } catch (e) { oops_(e, 'shell:awaiting_') }
   /* 000. A CHANGE OF PERSON PUTS AWAY WHAT WAS DRAWN FOR THE LAST ONE, NOW — before this returns, with no idle moment in between: § */
   const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   if (REPAINT_WHO !== null && who !== REPAINT_WHO) {
@@ -838,7 +838,7 @@ function wideSet_() {
 function wideCard_() {
   const W = appWidth_();
   let rem = 16;
-  try { rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; } catch (e) {}
+  try { rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; } catch (e) { oops_(e, 'shell:wideCard_') }
   const lo = WIDE_CARD_MIN * rem, hi = WIDE_CARD_MAX * rem;
   let k = 1;
   while ((k + 2) * lo + (k + 1) * CELL_GAP + 2 * WIDE_EDGE <= W) k += 2;
@@ -933,7 +933,7 @@ function holdColumn_(id) {
     /* ---------- MID-SLIDE, THE SLIDE IS MOVED WITH THE LAYOUT, NOT RETARGETED UNDER IT § */
     if (run && !plan) {
       let left = 0;
-      try { const tm = run.effect.getComputedTiming(); left = Math.max(0, tm.endTime - tm.localTime); } catch (e) {}
+      try { const tm = run.effect.getComputedTiming(); left = Math.max(0, tm.endTime - tm.localTime); } catch (e) { oops_(e, 'shell:holdColumn_') }
       colShiftNow_(host, want - rest);
       colTransition_(host, null, { d: Math.max(80, Math.round(left)) + 'ms', tf: 'cubic-bezier(.25, .6, .25, 1)', delay: '0s' });
     } else if (!run) colTransition_(host, null, SLIDE_NONE);
@@ -2036,7 +2036,7 @@ const AHEAD_QUIET = 400, AHEAD_QUIET_SLOW = 1000, AHEAD_SLOW_MS = 150;
 const AHEAD_SLOW_KEY = 'familyAheadSlow';
 try { (JSON.parse(localStorage.getItem(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) {}
 function aheadSlowKeep_() {
-  try { localStorage.setItem(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k)))); } catch (e) {}
+  try { localStorage.setItem(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k)))); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 /* THE LAST TWO HUNDRED SLICES, for the harness and the journeys: what ran, for how long, and whether any
    gate was open that should not have been. */
@@ -2058,7 +2058,7 @@ function aheadOpen_() {
 
 /* AND BEFORE THE PAYLOAD, WHICH TAKES 15–45s FROM THE REAL BACKEND: § */
 function aheadPreOpen_() {
-  try { if (navigator.connection && navigator.connection.saveData) return; } catch (e) {}
+  try { if (navigator.connection && navigator.connection.saveData) return; } catch (e) { /* the browser may refuse this; nothing depends on it */ }
   const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16));
   raf(() => raf(() => { if (AHEAD.open) return; AHEAD.pre = true; AHEAD.input = Math.max(AHEAD.input, performance.now()); aheadKick_(); }));
 }
@@ -2123,7 +2123,7 @@ function aheadSlice_() {
   AHEAD.running = job.key || true;
   let left = false;
   try { left = job.run() === false; }
-  catch (e) { left = true; try { console.warn('[ahead]', job.key, e); } catch (x) {} }
+  catch (e) { left = true; try { console.warn('[ahead]', job.key, e); } catch (x) { oops_(x, 'shell:aheadSlice_') } }
   finally { AHEAD.running = false; }
   const ms = performance.now() - t0;
   const was = AHEAD_SLOW.has(job.key);
@@ -2211,7 +2211,7 @@ function aheadPaint_(id) {
 }
 /* THE HALF OF `startScreen_` THAT RUNS NOTHING — a conversation opened at its newest message. */
 function drawnScreen_(id) {
-  if (id === 'dm' && typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) {} }
+  if (id === 'dm' && typeof dmFoot_ === 'function') { try { dmFoot_(); } catch (e) { oops_(e, 'shell:drawnScreen_') } }
 }
 
 function paintPager(id, instant) {
@@ -2249,7 +2249,7 @@ function goPage(id, to, instant) {
   /* Page 0 is the question, which is drawn with the screen and never filled lazily — so it has no
      `filled` mark and must not be mistaken for an empty one. */
   /* ---------- THE WINDOW FIRST, BECAUSE EVERYTHING BELOW MEASURES ELEMENTS § */
-  if (F && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
+  if (F && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) { oops_(e, 'shell:goPage') } }
   const bare = !!F && n > 0 && (() => {
     const host = $('s-' + id);
     const el = host && host.querySelectorAll(':scope > .page')[domIndex_(id, n)];
@@ -2264,13 +2264,13 @@ function goPage(id, to, instant) {
   const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
   /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (453). */
-  else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) {} }
-  if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
+  else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) { oops_(e, 'shell:goPage') } }
+  if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) { oops_(e, 'shell:goPage') } }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_` in arcade.js. § */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   /* AND THE REELS KEPT SIX AHEAD, one slide appended now if fewer are left — markup only (`reelAhead_`). */
-  if (id === 'reel' && typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) {} }
+  if (id === 'reel' && typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } }
   if (id === AT) placeCells('y', instant);
   /* AFTER THE SLIDE, THE LANDING'S OWN WORK — the page in front and one either side if a jump left them empty, its textbook animation and its running widget. § */
   if (F && !bare) afterSlide_(() => inFinder_(F, fillStuffPages), 'fill:' + id);
@@ -2292,16 +2292,16 @@ function goPage(id, to, instant) {
 /* THE CELL AND THE GLASS ARE TWO THINGS. § */
 /* ---------- THE MARKS, ADOPTED FROM THE PAYLOAD JUST LANDED § */
 function adoptMarks_() {
-  try { adoptFavourites_(); } catch (e) {}
-  try { adoptSpotlight_(); } catch (e) {}
+  try { adoptFavourites_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
+  try { adoptSpotlight_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes — and whatever this device has waiting to send goes up. § */
-  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
+  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,
      because the column holding it may be held back from the repaint that would draw it again. */
-  try { if (typeof aiDecided_ === 'function') aiDecided_(); } catch (e) {}
+  try { if (typeof aiDecided_ === 'function') aiDecided_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
      waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
-  try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}
+  try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) { oops_(e, 'shell:adoptMarks_') }
 }
 
 /* ONE TILE ROW PER THING (489): rows that stood one under another are joined (`tileRowsJoin_`, tiles.js). */
@@ -2423,7 +2423,7 @@ try {
 
 function openSheet(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. § */
-  if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) {} }
+  if (sheetOnClose) { const f = sheetOnClose; sheetOnClose = null; try { f(); } catch (err) { oops_(err, 'shell:openSheet') } }
 
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
@@ -2444,7 +2444,7 @@ function openSheet(title, html, onClose, step) {
   else fill();
   sheetOnClose = onClose || null;
   try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) {}
-  try { placeCells(undefined, true); } catch (err) {}
+  try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:openSheet') }
 }
 
 /* ---------- CLOSING IT: THE CARD AS IT WAS ---------- */
@@ -2470,7 +2470,7 @@ function closeSheet() {
     document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
     if ($('sheet-home')) $('sheet-home').after(sh);
   };
-  const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) {} } };
+  const placed = () => { if (was) { try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:closeSheet') } } };
   if (!sh.classList.contains('hidden')) { placed(); return; }
   const host = sh.closest('.sheet-host');
   if (!was || !sh.closest('#screen') || !expandMoves_(sh) || !MOTION_.exit) { home(); placed(); return; }
@@ -2692,7 +2692,7 @@ function api(body, opts) {
                                          keep ? { keepalive: true } : {}, stop ? { signal: stop.signal } : {}))
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY § */
     .then(r => r.text().then(txt => {
-      try { return JSON.parse(txt); } catch (e) {}
+      try { return JSON.parse(txt); } catch (e) { /* a bad stored value reads as none */ }
       const m = txt.match(/<div[^>]*>([^<]{10,400})<\/div>/i)
              || txt.match(/>\s*(TypeError|ReferenceError|Exception|Error)([^<]{0,300})</i);
       const said = m ? (m[1] + (m[2] || '')).replace(/\s+/g, ' ').trim()
@@ -2713,7 +2713,7 @@ function api(body, opts) {
            that person wrote in is drawn empty under the signed-out key now, and says why (317). */
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
-        else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
+        else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ } try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
         /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
            browser keeping no site data never knew whose the next answer was (review of the merge). */
         try {
@@ -2721,7 +2721,7 @@ function api(body, opts) {
           if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
           else if (rec) localStorage.setItem('familyGone', rec);
         } catch (e) {}
-        try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
+        try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
         toast('Signed out — please sign in again');
       }
       return d || {};
@@ -2864,7 +2864,7 @@ function canSay_() {
   try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
 }
 function hush_() {
-  try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
+  try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) { oops_(e, 'shell:hush_') }
 }
 /* THE DEVICE'S OWN VOICES ONLY, CALMEST NATURAL BRITISH FIRST (453, 463 withdrawn): free, nothing to set up; eSpeak, compact and novelty voices never. */
 const VOICE_GOOD = [[/\b(natural|neural|online)\b/i, 60], [/siri/i, 50], [/\b(enhanced|premium)\b/i, 45],
@@ -2889,7 +2889,7 @@ function voicesRanked_(lang, list) {
 }
 /* NO CHOICE: the best the device has; the old kept choice (453) is forgotten. */
 function voicePick_(lang, list) { return voicesRanked_(lang, list)[0] || null; }
-try { localStorage.removeItem('voice:name'); } catch (e) {}
+try { localStorage.removeItem('voice:name'); } catch (e) { /* storage can be blocked; the app runs without it */ }
 /* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
 const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
 const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
@@ -3010,7 +3010,7 @@ function pressMark_(t) {
 
 function pressClear_() {
   clearTimeout(PRESSED_OFF);
-  if (PRESSED) { try { PRESSED.classList.remove('is-pressed'); } catch (e) {} }
+  if (PRESSED) { try { PRESSED.classList.remove('is-pressed'); } catch (e) { oops_(e, 'shell:pressClear_') } }
   PRESSED = null;
 }
 
@@ -3258,8 +3258,8 @@ async function filesOnly_() {
   DATA = d;
   /* THE COLUMNS AND THE ICON ARE IN `data/settings/`, so they are knowable here and are the two
      things that decide what the app looks like before anything is drawn. */
-  try { applyColumns_(); } catch (e) {}
-  try { applyBrandIcon_(); } catch (e) {}
+  try { applyColumns_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
+  try { applyBrandIcon_(); } catch (e) { oops_(e, 'shell:filesOnly_') }
 }
 
 /* The boot reply as JSON, or an error whose message says what arrived instead. See the note in
@@ -3460,7 +3460,7 @@ document.addEventListener('focusout', () => {
     if (host && a && a !== box && host.contains(a) && a.matches && a.matches(TYPING_)) { RECONNECT.kept = a; return; }
     RECONNECT.kept = null;
     /* REDRAWN SINCE — a press, or arriving — and there is nothing left to do. */
-    try { if (host && host.id === 's-' + AT && STALE[AT]) repaint(); } catch (e) {}
+    try { if (host && host.id === 's-' + AT && STALE[AT]) repaint(); } catch (e) { oops_(e, 'shell:reconnectKeep_') }
   }, 400);
 });
 
@@ -3542,7 +3542,7 @@ async function loadOnce_(again, n) {
       if (LOADED) return;
       filesOnly_().then(() => {
         if (LOADED) return;
-        try { repaint(); } catch (e) {}
+        try { repaint(); } catch (e) { oops_(e, 'shell:loadOnce_') }
       }).catch(() => {});
     }, EARLY_AFTER);
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE § */
@@ -3659,7 +3659,7 @@ async function loadOnce_(again, n) {
 
       /* ---------- THE MESSAGE WIDGETS COULD NOT EXIST UNTIL YOU OPENED THE MESSAGE SCREEN § */
       if (USER && typeof loadMessages === 'function') {
-        loadMessages().then(() => { try { landRepaint_(); } catch (e) {} });
+        loadMessages().then(() => { try { landRepaint_(); } catch (e) { oops_(e, 'shell:loadOnce_') } });
       }
       /* AND YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM — see `profileRefresh_` in me.js. § */
       if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
@@ -3740,7 +3740,7 @@ async function loadOnce_(again, n) {
   /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
-  try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) {}
+  try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
 
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
@@ -3765,8 +3765,8 @@ async function loadOnce_(again, n) {
     aheadOpen_();
   }
   openSharedPost();     // if the app was opened on a shared link, go to that post
-  try { openSharedTutor(); } catch (e) {}   // or on a tutor's own link (400)
-  try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) {}   // or on a tapped notification (492, push.js)
+  try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
+  try { if (typeof pushLanding_ === 'function') pushLanding_(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tapped notification (492, push.js)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && !LIBRARY_LATE && typeof findPlaceBack_ === 'function') findPlaceBack_();
@@ -3779,7 +3779,7 @@ const EARLY_AFTER = 15000;
 let earlyTimer = null;
 function bootLoaded_(on) {
   clearTimeout(earlyTimer);
-  try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) {}
+  try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) { oops_(e, 'shell:bootLoaded_') }
   /* THE SLOW BOX GOES WHEN THE WAIT ENDS (503): `banner('')` hid #banner, never this, so a 31-second backend left it up for good. */
   if (on) try { const b = $('boot-slow'); if (b) { b.className = 'hidden'; b.textContent = ''; } } catch (e) {}
 }
@@ -3929,4 +3929,4 @@ try {
 } catch (e) {}
 
 /* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
-document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) {} }, { passive: false });
+document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) { oops_(err, 'shell:quietFields_') } }, { passive: false });

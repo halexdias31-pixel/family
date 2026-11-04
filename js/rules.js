@@ -74,7 +74,7 @@ function rulesNow_() {
   const out = rulesSane_(src);
   RULES_MEMO = { src: src, out: out };
   RULES_KEPT = out;
-  try { if (out) localStorage.setItem(RULES_STORE, JSON.stringify(out)); else localStorage.removeItem(RULES_STORE); } catch (e) {}
+  try { if (out) localStorage.setItem(RULES_STORE, JSON.stringify(out)); else localStorage.removeItem(RULES_STORE); } catch (e) { /* storage can be blocked; the app runs without it */ }
   rulesMark_();
   return out;
 }
@@ -127,11 +127,11 @@ function rulesSend_(body, el) {
     { button: el, where: (card && card.querySelector('.rules-said')) || undefined, busy: 'Saving…' })
     .then(d => {
       if (!d || !d.success) return;
-      try { DATA.rules = d.rules; } catch (e) {}
+      try { DATA.rules = d.rules; } catch (e) { oops_(e, 'rules:rulesSend_') }
       rulesNow_();
       toast(body.undo ? 'The last rule change is undone' : 'Saved for everybody');
       /* EVERY COLUMN, because a rule reaches past this one; a finder's memo catches up on the next reload. */
-      try { markStale_(TABS.map(t => t.id)); repaint(true); } catch (e) {}
+      try { markStale_(TABS.map(t => t.id)); repaint(true); } catch (e) { oops_(e, 'rules:rulesSend_') }
     });
 }
 on('rule-set', el => {

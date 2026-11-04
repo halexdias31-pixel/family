@@ -455,7 +455,7 @@ function kpOpen_(inp) {
   /* A BOX ELSEWHERE KEEPS THE CARET WHERE THE FINGER PUT IT: it is a real field, and the browser placed it */
   if (!same && !site) {
     const at = back ? Math.max(0, Math.min(KP_WAS.caret, inp.value.length)) : inp.value.length;
-    try { inp.setSelectionRange(at, at); } catch (e) {}
+    try { inp.setSelectionRange(at, at); } catch (e) { /* focus and scrolling are niceties */ }
   }
   kpRender_(inp);
   if (!back && !same) kpAutoShift_(inp);
@@ -529,7 +529,7 @@ function kpRoomBack_() {
   if (!(L && L.lift) && typeof finderOf_ === 'function' && finderOf_(AT)) { try { placeCells('y', true, 0, AT); } catch (e) { /* left where it was */ } }
   if (L && L.lift) {
     L.lift = 0;
-    try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) {}
+    try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) { oops_(e, 'keypad:kpRoomBack_') }
   }
 }
 function kpFinderCentre_(inp) {
@@ -731,7 +731,7 @@ function kpUndo_(inp, redo) {
   (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd, mark: kpMark_(k) });
   h.kind = '';
   inp.value = to.v;
-  try { inp.setSelectionRange(Math.min(to.a, to.v.length), Math.min(to.b, to.v.length)); } catch (e) {}
+  try { inp.setSelectionRange(Math.min(to.a, to.v.length), Math.min(to.b, to.v.length)); } catch (e) { /* focus and scrolling are niceties */ }
   /* THE SAME EVENT AS ANY EDIT, so find.js's listener stores it — told that it is a value put back, and
      whose it was then. */
   const fire = () => inp.dispatchEvent(new Event('input', { bubbles: true }));
@@ -932,7 +932,7 @@ document.addEventListener('click', e => {
   }
   kpTake_(inp);
   if (KP_AT !== inp || at == null) return;
-  try { inp.setSelectionRange(at, at); } catch (err) {}
+  try { inp.setSelectionRange(at, at); } catch (err) { /* focus and scrolling are niceties */ }
   kpRender_(inp);
   kpAutoShift_(inp);
   kpShiftPaint_();
@@ -1199,7 +1199,7 @@ function kpKeys_(e) {
   const essay = words && t.hasAttribute('data-kp-essay');
   const k = e.key || '';
   let altGr = false;
-  try { altGr = !!(e.getModifierState && e.getModifierState('AltGraph')); } catch (err) {}
+  try { altGr = !!(e.getModifierState && e.getModifierState('AltGraph')); } catch (err) { oops_(err, 'keypad:kpKeys_') }
   if (!altGr && e.ctrlKey && e.altKey && !e.metaKey && k.length === 1) altGr = true;
   let cmd = null;
   if (k === 'Enter') {
@@ -1268,7 +1268,7 @@ function kpLine_(inp, dir, grow) {
   const lh = parseFloat(getComputedStyle(show).lineHeight) || r.height || 20;
   const at = kpHitWords_(show, r.left, r.top + r.height / 2 + dir * lh);
   if (grow) return kpSelect_(inp, anchor, at);
-  try { inp.setSelectionRange(at, at); } catch (err) {}
+  try { inp.setSelectionRange(at, at); } catch (err) { /* focus and scrolling are niceties */ }
   kpRender_(inp);
 }
 /* ⇧ WITH ← → HOME END: the selection's moving end goes one character, or to an end, and its anchor --
@@ -1287,7 +1287,7 @@ function kpExtend_(inp, k, whole) {
   kpSelect_(inp, anchor, to);
 }
 function kpSelect_(inp, anchor, to) {
-  try { inp.setSelectionRange(Math.min(anchor, to), Math.max(anchor, to), to < anchor ? 'backward' : 'forward'); } catch (e) {}
+  try { inp.setSelectionRange(Math.min(anchor, to), Math.max(anchor, to), to < anchor ? 'backward' : 'forward'); } catch (e) { /* focus and scrolling are niceties */ }
   kpRender_(inp);
 }
 /* CTRL/⌘+X: THE SELECTION TO THE CLIPBOARD, THEN TAKEN OUT THROUGH THE PAD'S EDIT. § */
@@ -1296,7 +1296,7 @@ function kpCut_(e, t) {
   e.preventDefault();
   if (!(t.selectionEnd > t.selectionStart)) return;
   KP_CUT = false;
-  try { document.execCommand('cut'); } catch (err) {}
+  try { document.execCommand('cut'); } catch (err) { oops_(err, 'keypad:kpCut_') }
   if (KP_CUT) return;
   let copied = false;
   try { copied = document.execCommand('copy'); } catch (err) { copied = false; }
@@ -1627,7 +1627,7 @@ const kpPlace_ = (inp, x, y) => {
 };
 function kpSelect_(inp, a, b) {
   const lo = Math.min(a, b), hi = Math.max(a, b);
-  try { inp.setSelectionRange(lo, hi, a > b ? 'backward' : 'forward'); } catch (e) {}
+  try { inp.setSelectionRange(lo, hi, a > b ? 'backward' : 'forward'); } catch (e) { /* focus and scrolling are niceties */ }
   kpRender_(inp);
 }
 /* THE WORD AROUND i: letters and digits together, or the one sign there */
