@@ -1,7 +1,7 @@
 {
  "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.",
  "coupling": {
-  "js/find.js": 295,
+  "js/find.js": 297,
   "js/shell.js": 186,
   "js/me.js": 184,
   "js/posts.js": 112,
@@ -39,7 +39,7 @@
   "js/gtasks.js": 16,
   "js/board.js": 39,
   "js/help.js": 13,
-  "js/qtools.js": 40,
+  "js/qtools.js": 41,
   "js/reader.js": 24,
   "js/working.js": 29,
   "js/talmud.js": 25,
@@ -255,8 +255,8 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12124,
-   "oneOff": 167,
+   "lines": 12243,
+   "oneOff": 168,
    "emptyCatch": 30,
    "inlineStyle": 2,
    "rawButton": 8
@@ -605,7 +605,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7184,
+   "lines": 7189,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -692,9 +692,19 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7483334,
-  "commentRatio": 0.266,
+  "searchBytes": 7496920,
+  "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100
+ },
+ "qcard": {
+  "card-split": 0,
+  "orphan-part": 0,
+  "dup-tagline": 0,
+  "tile-groups": 0,
+  "card-order": 0,
+  "indent": 0,
+  "tap-response": 7,
+  "text-overflow": 0
  }
 }

@@ -1903,11 +1903,10 @@ button.text-drop { color: var(--bad); }
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`, and the `<label>` round both hands a tap on it to the box. § */
 .search-pill { position: relative; display: block; }
 .vid-search { margin: 0 0 .5rem; }
-.search-pill .tile-i { width: 18px; height: 18px; position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
+.search-pill .tile-i { width: 18px; height: 18px; position: absolute; left: .75rem; top: 0; bottom: 0; margin: auto 0;
                       color: var(--dim); pointer-events: none; }
 .search-pill:focus-within .tile-i { color: var(--gold); }
-.search-pill > input { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
-                  border-radius: 999px; }
+.search-pill > input { width: 100%; margin: 0; padding-left: calc(.75rem + 18px + .55rem); }
 /* THE ✕ A BROWSER DRAWS IN A SEARCH BOX, IN THE CARD'S OWN GREY. § */
 .search-pill > input::-webkit-search-cancel-button {
   -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0; cursor: pointer;
@@ -4347,6 +4346,19 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-row .qcard-verdict.is-near { color: var(--warn); }
 .tile-row .qcard-verdict.is-right::before { content: "\2713"; margin-right: .3rem; font-weight: 700; }
 .tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: .3rem; font-weight: 700; }
+/* ---------- ONE CARD PER QUESTION (960): one box; each level's block indented one step under its label. */
+.qwhole { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
+          padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
+.qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
+.qwhole .qb-d0 > .qsheet-stem, .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
+.qb-d1, .qb-d2, .qb-d3 { margin-top: .9rem; padding-left: .85rem; }
+.qb-d1 { padding-left: 0; }
+.qb-head { display: flex; align-items: baseline; gap: .5rem; }
+.qb-label { font-weight: 700; color: var(--ink); }
+.qb-marks { margin-left: auto; font-size: .7rem; color: var(--dim); }
+.qb-shut { font-size: .7rem; color: var(--faint); }
+.qb.is-shut { opacity: .7; }
+.qwhole .qb-part .qsheet { margin-top: .4rem; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
 .qcard-tags { margin: 0; }
@@ -4592,13 +4604,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP § */
 .gd-box { margin: .35rem 0 0; }
 .gd-box .kp-field {
-  background: var(--sunk); border-bottom: 1px solid var(--line);
-  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 .75rem;
 }
-.gd-box .kp-field:focus-within { border-bottom-color: var(--gold); }
+.gd-box .kp-field:focus-within { border-color: var(--gold); }
 .gd-box .kp-field.kp-words > .kp-show {
   min-height: max(44px, 4.2rem); max-height: 12rem; padding: .5rem .6rem;
-  color: var(--ink); font: 400 .9rem/1.6 var(--font);
+  color: var(--ink); font: 16px/1.3 var(--font);
 }
 .gd-box .kp-show:empty::before { color: var(--faint); }
 .gd-box .kp-caret { background: var(--gold); }
@@ -5212,9 +5223,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 }
 
 /* ---------- A NUMBERED RUN IS A GRID, NOT A PARAGRAPH OF PILLS § */
-.answers.is-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: .4rem .35rem; }
+/* owner 5 Nov: a numbered run reads "Year 4" like every chip, so it wraps as ordinary chips, never a squeezed grid */
+.answers.is-grid { display: flex; flex-wrap: wrap; }
 /* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
-.answers.is-grid > .row.tap.counted { min-width: 0; padding: 0; }
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; padding: .2rem .7rem; border-radius: 16px; }
 
@@ -5304,20 +5315,11 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE SEARCH BOX, AND A RESULT A SEARCH ENGINE'S RESULT IS THREE LINES AND NO SURFACE: § */
 
 /* ---------- THE BOX § */
-.search {
-  width: 100%;
-  padding: .7rem 1rem;
-  border-radius: 999px;
-  background: var(--sunk);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  font: 400 .95rem/1.4 var(--mono);
-  margin-bottom: .8rem;
-}
+.search { margin-bottom: .8rem; }
 .search::placeholder { color: var(--faint); }
 /* THE EDGE LIGHTS, NOTHING MOVES. A field that grows or glows when you tap it shifts the words you
    were about to read. */
-.search:focus { outline: 0; border-color: var(--gold); background: #0a0a0a; }
+.search:focus { outline: 0; border-color: var(--gold); }
 @media (hover: hover) { .search:hover { border-color: var(--line-soft); } }
 /* ---------- THE BOX AND THE BIN, ONE ROW § */
 .find-search { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
@@ -5909,13 +5911,13 @@ button.scr-sq { cursor: pointer; }
 .qp-bar { display: flex; align-items: center; gap: 8px; }
 .qp-bar > .qp-ans {
   flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: center;
-  min-height: 52px; padding: 2px 14px; box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border-radius: 26px;
+  min-height: max(44px, 2.9rem); padding: 0 .75rem; box-sizing: border-box; cursor: text;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm);
 }
 .qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
 /* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-bar > .qp-ans:focus-within, .qp-multi > .qp-ans:focus-within { border-color: var(--gold); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
 .qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
 .qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
@@ -5923,9 +5925,12 @@ button.scr-sq { cursor: pointer; }
 .qp-multi { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); }
 .qp-multi > .qp-ans {
   flex: 1 1 4.5rem; max-width: 9rem; margin: 0; display: flex; align-items: center;
-  min-height: 52px; padding: 2px 12px; box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border-radius: 26px;
+  min-height: max(44px, 2.9rem); padding: 0 .75rem; box-sizing: border-box; cursor: text;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm);
 }
+/* THE ANSWER IN THE BAR IS ON THE SCREEN, NOT ON PAPER (980): the one field look, so its words take the screen's ink. */
+.qp-bar .kp-show, .qp-multi .kp-show { color: var(--ink); font: 16px/1.3 var(--font); min-height: 0; }
+.qp-bar .kp-show:empty::before, .qp-multi .kp-show:empty::before { color: var(--faint); }
 .qp-multi[data-kind="words"] > .qp-ans { flex-basis: 10rem; max-width: none; }
 .qp-multi > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-multi .kp-show:empty::before { content: "\2026"; }

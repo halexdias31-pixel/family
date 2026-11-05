@@ -2520,11 +2520,12 @@ function finderOpen_(x, part, F) {
     /* A PART THE ITEM NO LONGER HAS -- a figure page kept before figures moved into their cards (356) --
        OPENS ON THE ITEM'S CARD, not on the first page of the list. */
     if (i < 0) i = pages.findIndex(pg => pg.x === x && !pg.part);
+    if (i < 0) { i = pages.findIndex(pg => pageHas_(pg, x)); if (i >= 0 && pages[i].x !== x) Q_SCROLL_TO = x.key || ''; }
     goPage(F.id, i >= 0 ? stuffFirstResult_() + i : stuffQuestionPage_());
   });
 }
 /* WHICH OF A THING'S PAGES A KEPT LIST DRAWS: § */
-const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+|facts\d+)$/.test(p);
+const keptPart_ = p => !p || p === 'q' || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre\d+|facts\d+)$/.test(p);
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
@@ -2555,10 +2556,16 @@ function stuffNoneHtml_() {
 }
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */
+/* A QUESTION'S PART, one test for the page model (960). */
+const isQ_ = x => !!x && x.kind === 'question';
+/* ON, THE OLD ONE-PART-PER-PAGE PLAN for a harness that still asks it. */
+let QPAGE_PARTS = false;
 function pageParts_(x, prev) {
   /* ---------- A QUESTION IS ITS WORDS, ITS FIGURE AND ITS ANSWER, in the order they are used § */
   /* ---------- AND IN THE PAPER'S ORDER, WHICH PUTS THE SHARED OPENING AND ITS FIGURE FIRST § */
   /* ---------- AND NO FIGURE IS A PAGE OF ITS OWN (356) § */
+  /* ONE PAGE PER QUESTION NUMBER (960): its first part stands for the card, the rest are in it (`questionWhole_`). */
+  if (isQ_(x) && !QPAGE_PARTS) return qId_(x) && prev && qId_(prev) === qId_(x) ? [] : ['q'];
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
@@ -2648,6 +2655,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
+  if (isQ_(x) && part === 'q') return questionWhole_(x, (questionParts_()[qId_(x)] || [x]), null, true);
   if (x && x.kind === 'question' && part === 'ans') return qFoot_(x, questionAnsCard_(x));
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
@@ -7869,6 +7877,8 @@ function cardFigFit_(pane) {
   try {
     pane.querySelectorAll('[data-face-zoom]').forEach(e => { e.style.zoom = ''; e.removeAttribute('data-face-zoom'); });
     pane.querySelectorAll('[data-fig-fit]').forEach(e => { e.style.width = ''; e.removeAttribute('data-fig-fit'); });
+    /* A WHOLE QUESTION SCROLLS (960): nothing in it is shrunk to fit the pane. */
+    if (pane.querySelector('.qwhole')) return;
     const card = pane.querySelector('.qcard');
     const figs = cardFigs_(card);
     if (!figs.length) return;
@@ -8039,6 +8049,93 @@ function questionCard_(x) {
     ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls -- the first of every page's foot (`qFoot_`). */
           typeof helpRow_ === 'function' ? helpRow_(x, '') : ''}
   </div>`;
+}
+
+/* ---------- ONE CARD PER QUESTION NUMBER, AS THE PAPER PRINTS IT (960) § */
+/* The tags said once at the top are the question's; a part's own (its letter, its marks) stand small beside its label. */
+const Q_PART_FACETS = { qPart: 1, qSub: 1, qPage: 1, qPages: 1, marks: 1, myResult: 1, accuracy: 1, function: 1 };
+function qWholeTags_(x) {
+  return String(tagRow_(x) || '').replace(/<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, (m, f) => (Q_PART_FACETS[f] ? '' : m));
+}
+/* THE TREE: the question, its letters, their numerals; a stem stands at the deepest level every part under it shares. */
+function qTree_(parts) {
+  const root = { label: '', depth: 0, kids: [], items: [], stems: [] };
+  const kid = (n, label) => {
+    let k = n.kids.find(c => c.label === label);
+    if (!k) { k = { label: label, depth: n.depth + 1, kids: [], items: [], stems: [] }; n.kids.push(k); }
+    return k;
+  };
+  const home = new Map();
+  parts.forEach(x => {
+    const sp = qSplitOf_(x) || { part: '', sub: '' };
+    const raw = String(x.qPart || '').trim();
+    let n = root;
+    if (sp.part) n = kid(n, sp.part.replace(/^\./, ''));
+    if (sp.sub) n = kid(n, sp.sub);
+    if (n === root && raw) n = kid(root, raw);
+    n.items.push(x);
+    home.set(x, n);
+  });
+  const up = n => { const out = []; for (let c = n; c; c = c.parent) out.unshift(c); return out; };
+  const link = n => n.kids.forEach(k => { k.parent = n; link(k); });
+  link(root);
+  const seen = {};
+  parts.forEach(x => (x.stems || []).forEach(p => {
+    const id = stemId_(p);
+    if (!id || seen[id]) return;
+    const who = parts.filter(s => (s.stems || []).some(q => stemId_(q) === id)).map(s => up(home.get(s)));
+    let at = root;
+    for (let d = 1; who.every(w => w[d] && w[d] === who[0][d]); d++) at = who[0][d];
+    seen[id] = true;
+    at.stems.push(p);
+  }));
+  return root;
+}
+/* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
+function qStemWhole_(x, p) {
+  const html = [];
+  stemChunks_(p).forEach(ch => {
+    let run = [];
+    const flush = () => { if (run.length) html.push(typeset_(run.join(''))); run = []; };
+    ch.forEach(b => {
+      if (b.k === 'pb') { run.push(b.h); return; }
+      flush();
+      html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+    });
+    flush();
+  });
+  if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
+  return `<div class="qsheet-stem qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
+}
+/* ONE BLOCK, THE SAME AT EVERY LEVEL: label (part tags small beside it), its own words, its answer row, its children. */
+function qBlock_(n, ctx) {
+  const own = n.items[0] || null;
+  const shut = own && !ctx.open.has(own);
+  const marks = own && Number(own.marks) ? `<span class="qb-marks">[${esc(String(own.marks))} mark${Number(own.marks) === 1 ? '' : 's'}]</span>` : '';
+  const label = n.label ? `<div class="qb-head"><span class="qb-label">${esc(n.depth === 1 ? n.label : '(' + n.label + ')')}</span>${marks}${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : (marks ? `<div class="qb-head">${marks}</div>` : '');
+  const stems = n.stems.filter(p => !ctx.carried.has(p) && !ctx.drawn[stemId_(p)])
+    .map(p => { ctx.drawn[stemId_(p)] = true; return qStemWhole_(own || ctx.x, p); }).join('');
+  const body = own && !shut ? qPartCard_(own, ctx.ans) : '';
+  const kids = n.kids.map(k => qBlock_(k, ctx)).join('');
+  const id = own ? ` data-part="${esc(own.key || '')}"` : '';
+  return `<div class="qb qb-d${n.depth}${shut ? ' is-shut' : ''}"${id}>${shut ? label : label + stems + body}${kids}</div>`;
+}
+/* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
+function qPartCard_(x, ans) {
+  const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
+  const a = ans && (questionHasAns_(x) || schemeOwed_(x)) ? questionAnsCard_(x) : '';
+  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${a}</div>`;
+}
+/* THE CARD: tags once, the blocks, then ONE tile row (`cardTiles_` with the page tools and Help folded in). */
+function questionWhole_(x, parts, open, ans) {
+  const list = parts && parts.length ? parts : [x];
+  const ctx = { x: x, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
+  const tree = qTree_(list);
+  const tools = tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x), typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]);
+  const foot = cardTiles_(Object.assign(Object.create(x), { more: (x.more || '') + tools }));
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
+    ${qWholeTags_(x)}${qBlock_(tree, ctx)}
+  </div></div>${foot}`;
 }
 
 /* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS § */
@@ -8234,6 +8331,8 @@ function stemCarried_(x) {
 function stemOnCard_(x) {
   const pen = stemCarried_(x);
   if (pen) return pen;
+  /* A WHOLE QUESTION (960) draws its opening once, above its parts, so no part carries a copy. */
+  if (!QPAGE_PARTS) return null;
   const st = (x && x.kind === 'question' && x.stems) || [];
   const p = st[st.length - 1];
   if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
@@ -9017,6 +9116,7 @@ function findPlaceBack_(F) {
       /* A PLACE KEPT ON A PART THE ITEM NO LONGER HAS -- a figure page (`fig`, `sfigN`, `use`, `nofig`), all
          gone into their cards on 18 Oct (356) -- comes back on that item's card, not on page one. */
       if (i < 0) i = pages.findIndex(pg => mine(pg) && !pg.part);
+      if (i < 0) { i = pages.findIndex(pg => (pg.parts || []).some(s => String(s.key || '') === p.key)); if (i >= 0 && String(pages[i].x.key || '') !== p.key) Q_SCROLL_TO = p.key; }
       if (i >= 0) goPage(F.id, stuffFirstResult_() + i, true);
     } catch (e) {}
   });
@@ -9697,7 +9797,7 @@ function stuffPages_() {
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   const pages = [];
   /* A SHARED STEM DRAWN ONCE (`pageParts_`); A PART BRINGS ITS WHOLE QUESTION (`wholeQuestions_`). § */
-  const seq = wholeQuestions_(items);
+  const seq = wholeQuestions_(items), hit = new Set(items);
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
   const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
@@ -9710,6 +9810,16 @@ function stuffPages_() {
     /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
     if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
+    /* A QUESTION IS ONE PAGE (960); a part the chips do not keep folds to its label inside it. */
+    if (isQ_(x) && !QPAGE_PARTS) {
+      if (!pageParts_(x, seq[i - 1]).length) return;
+      const k = qId_(x), parts = [];
+      for (let j = i; j < seq.length && isQ_(seq[j]) && (j === i || (k && qId_(seq[j]) === k)); j++) parts.push(seq[j]);
+      const open = new Set(parts.filter(s => hit.has(s) && kept(s, null)));
+      if (!open.size && !parts.some(s => kept(s, 'ans'))) return;
+      pages.push({ x: x, part: 'q', parts: parts, open: open, ans: parts.some(s => kept(s, 'ans')) });
+      return;
+    }
     pageParts_(x, seq[i - 1]).forEach(part => {
       if (kept(x, part)) pages.push({ x: x, part: part });
     });
@@ -9808,9 +9918,15 @@ function wholeQuestions_(items) {
   return out;
 }
 
+/* A QUESTION'S PAGE HOLDS EVERY PART OF IT (960). */
+const pageHas_ = (pg, x) => !!(pg && x && (pg.x === x || (pg.parts && pg.parts.indexOf(x) >= 0)));
+/* WHICH PART TO SCROLL TO when its question's card is filled -- an old link or place named the part. */
+let Q_SCROLL_TO = '';
 /* THE PAGE AN ITEM STARTS ON, counted from the first result. § */
 function stuffPageOf_(x, part) {
-  const i = stuffPages_().findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
+  const pages = stuffPages_();
+  let i = pages.findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
+  if (i < 0) i = pages.findIndex(pg => pageHas_(pg, x));
   return i < 0 ? 0 : i;
 }
 
@@ -10384,7 +10500,8 @@ function stuffPageHtml(n) {
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
   /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
-  const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+  const html = pg.part === 'q' && pg.parts ? questionWhole_(pg.x, pg.parts, pg.open, pg.ans)
+    : pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
   return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
 /* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
@@ -11152,6 +11269,10 @@ function stuffFillOne_(i, ctx) {
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
+  if (Q_SCROLL_TO) {
+    const at = [].find.call(pane.querySelectorAll('[data-part]'), b => b.getAttribute('data-part') === Q_SCROLL_TO);
+    if (at) { Q_SCROLL_TO = ''; setTimeout(() => at.scrollIntoView({ block: 'start' }), 0); }
+  }
   return true;
 }
 

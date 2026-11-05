@@ -1,0 +1,196 @@
+{
+ "at": "2026-11-05",
+ "pages": 15146,
+ "sampled": 61,
+ "checks": {
+  "card-split": 0,
+  "orphan-part": 0,
+  "dup-tagline": 0,
+  "tile-groups": 0,
+  "card-order": 0,
+  "indent": 0,
+  "tap-response": 7,
+  "text-overflow": 0
+ },
+ "where": {
+  "card-split": [],
+  "orphan-part": [],
+  "dup-tagline": [],
+  "tile-groups": [],
+  "card-order": [],
+  "indent": [],
+  "tap-response": [
+   "question card-share: 487 / 999 ms",
+   "question pad-undo: 1 / 999 ms",
+   "question pad-clear: 17 / 999 ms",
+   "settings card-save: 8 / 999 ms",
+   "settings card-cancel: 128 / 79 ms",
+   "settings lay-split: 603 / 557 ms",
+   "settings voice-try: 999 / 999 ms"
+  ],
+  "text-overflow": []
+ },
+ "taps": [
+  {
+   "screen": "question",
+   "act": "rep-box",
+   "ms": [
+    6,
+    3
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qt-fold",
+   "ms": [
+    1,
+    0
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-check",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "card-share",
+   "ms": [
+    487,
+    999
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "fav",
+   "ms": [
+    33,
+    71
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "q-mag",
+   "ms": [
+    2,
+    2
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "q-lock",
+   "ms": [
+    2,
+    2
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "read-aloud",
+   "ms": [
+    11,
+    10
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "help-hand",
+   "ms": [
+    27,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-undo",
+   "ms": [
+    1,
+    999
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-clear",
+   "ms": [
+    17,
+    999
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-check",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-cells-check",
+   "ms": [
+    34,
+    29
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-choice-check",
+   "ms": [
+    1,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "card-save",
+   "ms": [
+    8,
+    999
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "card-cancel",
+   "ms": [
+    128,
+    79
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "me-save",
+   "ms": [
+    1,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "lay-split",
+   "ms": [
+    603,
+    557
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "voice-try",
+   "ms": [
+    999,
+    999
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "rep-box",
+   "ms": [
+    4,
+    4
+   ]
+  }
+ ],
+ "errors": []
+}
