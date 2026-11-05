@@ -31,16 +31,16 @@ function helpHere_(x, pg) {
 /* THE CLASS A QUESTION'S PAGE CARRIES WHILE ITS HAND IS UP -- that page alone. */
 const helpCls_ = (x, pg) => (helpHere_(x, pg) ? ' is-help' : '');
 
-function helpTile_(x, pg) {
+function helpOpts_(x, pg) {
   const on = helpHere_(x, pg);
   const data = { q: helpQ_(x), pg: String(pg || ''), label: x ? String(x.name || x.title || '') : '' };
   return on
-    ? tile_({ icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, data: data })
-    : tile_({ icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', data: data });
+    ? { icon: 'hand', label: 'I’m OK now', note: 'put my hand down', act: 'help-hand', cls: 'help-hand', on: true, data: data }
+    : { icon: 'hand', label: 'Help', note: 'ask the tutor over', act: 'help-hand', cls: 'help-hand', data: data };
 }
 /* THE ROW ON EVERY QUESTION'S PAGES, and the words a room can read while it is up. */
 function helpRow_(x, pg) {
-  return `<div class="tile-row qhelp-tiles">${helpTile_(x, pg)}${helpHere_(x, pg) ? '<span class="qhelp-say">Waiting for help</span>' : ''}</div>`;
+  return `<div class="tile-row qhelp-tiles">${tile_(helpOpts_(x, pg))}${helpHere_(x, pg) ? '<span class="qhelp-say">Waiting for help</span>' : ''}</div>`;
 }
 
 /* REDRAWN WHERE IT STANDS: the tile and its words only, so the star and Suggest joined into its row stay (`tileRowsJoin_`). */
@@ -52,7 +52,7 @@ function helpPaint_() {
     const say = t.parentElement && t.parentElement.querySelector('.qhelp-say');
     if (say && !here) say.remove();
     if (!say && here) t.insertAdjacentHTML('afterend', '<span class="qhelp-say">Waiting for help</span>');
-    t.outerHTML = helpTile_(x, pg);
+    t.outerHTML = tile_(helpOpts_(x, pg));
   });
 }
 

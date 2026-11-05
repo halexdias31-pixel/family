@@ -1316,7 +1316,7 @@ function guideBox_(x, slot, ask, hint) {
     ${kpField_(k, val, 'words', false, ask)}
   </label>`;
   /* ---------- AND A SEND UNDER EACH, SIGNED IN § */
-  const send = subSendTile_();
+  const send = typeof whoIs_ === 'function' && whoIs_() ? tile_({ send: true, act: 'qp-send', cls: 'qp-send' }) : '';
   if (!send) return field;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}
@@ -2400,17 +2400,17 @@ function bibleVerseCard_(x) {
 }
 
 /* ---------- THE TILES UNDER IT § */
-function bibleTiles_(x) {
-  if (!bibleFor_() || !x) return '';
+/* DATA FOR `tile_`, not tiles: the list it draws, empty for anybody but an admin. */
+function bibleOpts_(x) {
+  if (!bibleFor_() || !x) return [];
   if (!x.bb) {
-    if (BIBLE.index) return tile_({ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' });
-    return BIBLE.failed ? tile_({ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }) : '';
+    if (BIBLE.index) return [{ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' }];
+    return BIBLE.failed ? [{ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }] : [];
   }
   const bb = x.bb;
-  const again = BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
-    ? tile_({ icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } }) : '';
-  return again + (bibleHere_(x) ? ''
-    : tile_({ icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }));
+  return [BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
+    ? { icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
+  bibleHere_(x) ? null : { icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }];
 }
 /* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered, no Verse answer and no words
    narrowing the chapter — the strip is the chapter, so the tile would land where you are. */
@@ -2530,14 +2530,14 @@ const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
-function finderOpenTile_(x) {
-  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return '';
+function finderOpenOpts_(x) {
+  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return null;
   let parts;
-  try { parts = pageParts_(x); } catch (e) { return ''; }
-  if (parts.every(keptPart_)) return '';
+  try { parts = pageParts_(x); } catch (e) { return null; }
+  if (parts.every(keptPart_)) return null;
   const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
   /* A MAGNIFIER, NOT THE LEAVE-THE-SITE ARROW (489): it opens the card in Find, not "a new place". */
-  return tile_({ icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
+  return { icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } };
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
@@ -2636,7 +2636,7 @@ function keptPages_(items, credits) {
     by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
   });
   /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
-     `finderOpenTile_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
+     `finderOpenOpts_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
   const was = KEPT_DRAW;
   KEPT_DRAW = true;
   try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
@@ -5098,7 +5098,7 @@ function ansBox_(x) {
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
   /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
-  const ai = m.kind === 'ai' || m.kind === 'words' ? aiTile_(x) : '';
+  const ai = m.kind === 'ai' || m.kind === 'words' ? tile_(aiOpts_(x)) : '';
   const later = m.kind === 'words' && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
@@ -5136,11 +5136,6 @@ function ansBox_(x) {
     <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
-}
-/* THE PLAIN SEND, for a guide's slot only (`guideBox_`): a question part is always marked, by rule or by AI (`markerOf_`). */
-function subSendTile_() {
-  if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
-  return checkTile_({ act: 'qp-send', cls: 'qp-send' });
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -8031,7 +8026,7 @@ function questionCard_(x) {
   return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
-          see `questionTiles_`. */''}
+          see `qtRow_`. */''}
     ${tagRow_(x)}
     <div class="qsheet">
       ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so § */
@@ -8495,17 +8490,15 @@ function ansShow_(x) { ansSet_(x, true); }
 function ansHide_(x) { ansSet_(x, false); }
 
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
-/* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
-function questionTiles_(x) { return ''; }
 /* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words; Suggest a change is in its foot (`qFoot_`), as on every page. */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x)])}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
 const MAG = { on: '', live: false, el: null, page: null, at: 0, tid: 0, pid: null, x0: 0, y0: 0 };
 const MAG_Z = 2.5, MAG_R = 80, MAG_HOLD = 220;
 const magLook_ = on => ({ icon: 'zoom', label: on ? 'Magnifier on' : 'Magnifier', note: on ? 'tap to put it away' : 'hold it over the page', on: on, pressed: on });
-function magTile_() { return tile_(Object.assign(magLook_(!!MAG.on), { act: 'q-mag', cls: 'q-mag' })); }
+const magOpts_ = () => Object.assign(magLook_(!!MAG.on), { act: 'q-mag', cls: 'q-mag' });
 function magPaint_() {
   document.querySelectorAll('.q-mag').forEach(el => tileSet_(el, magLook_(!!MAG.on)));
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
@@ -8513,10 +8506,10 @@ function magPaint_() {
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
 /* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
-function magCardTile_(x) {
-  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return '';
-  if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return '';
-  return magTile_();
+function magCardOpts_(x) {
+  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return null;
+  if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return null;
+  return magOpts_();
 }
 /* PUT AWAY WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS TAKEN OUT ON, as the padlock is (`qLockStray_`) */
 function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
@@ -8606,7 +8599,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
                             on: on, pressed: on });
 const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
-function qLockTile_() { return tile_(Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' })); }
+const qLockOpts_ = () => Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' });
 function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
 on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
 /* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS PRESSED ON: a lock nobody can see is a broken swipe */
@@ -8670,10 +8663,10 @@ function readAloudFor_(x) {
 let READ_NOW = null;
 const readAloudLook_ = on => ({ icon: 'speak', label: on ? 'Stop reading' : 'Read aloud', note: on ? 'one tap' : 'reads the question out',
                                  on: !!on, pressed: !!on });
-function readAloudTile_(x) {
-  if (!readAloudFor_(x) || !canSay_() || !x.key) return '';
+function readAloudOpts_(x) {
+  if (!readAloudFor_(x) || !canSay_() || !x.key) return null;
   const on = !!READ_NOW && READ_NOW.key === x.key;
-  return tile_(Object.assign(readAloudLook_(on), { act: 'read-aloud', cls: 'read-aloud', data: { key: x.key } }));
+  return Object.assign(readAloudLook_(on), { act: 'read-aloud', cls: 'read-aloud', data: { key: x.key } });
 }
 function readAloudPaint_(k) {
   const on = !!READ_NOW && READ_NOW.key === k;
@@ -8710,9 +8703,9 @@ on('read-aloud', el => {
 const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE', Russian: 'ru-RU' };
 const hearItLang_ = x => (x && x.kind === 'content' && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
 const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
-function hearItTile_(x) {
-  if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return '';
-  return tile_({ icon: 'speak', label: 'Hear it', note: 'the ' + x.subject + ', read out', act: 'hear-it', cls: 'hear-it', data: { key: x.key } });
+function hearItOpts_(x) {
+  if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return null;
+  return { icon: 'speak', label: 'Hear it', note: 'the ' + x.subject + ', read out', act: 'hear-it', cls: 'hear-it', data: { key: x.key } };
 }
 /* QUEUED INSIDE THE TAP, as Read aloud's lines are; a second tap starts it again from the top. */
 on('hear-it', el => {
@@ -9111,9 +9104,6 @@ function stuffItemsRaw_() {
         row: Object.assign({ handle: h }, s2),
       };
     }) : []),
-    /* ---------- THE POSTS § */
-    /* THE POSTS WERE BUILT HERE and are not any more: § */
-    /* ---------- THE LINKS WERE BUILT HERE, AND THEY ARE GONE FROM THE APP § */
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,
@@ -9134,15 +9124,12 @@ function stuffItemsRaw_() {
       cost: priced_(j.price), subject: j.subject || '', row: j,
       bandValue: j.level || '',
     })),
-    /* YOU WERE AN ITEM HERE, under `People`, when you had no tutor row of your own. § */
     ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
       kind: 'level', name: x.name, key: 'lvl:' + x.name,
       /* The subjects, under the name, so the list is readable before anything is opened. */
       sub: (x.subjects || []).join(' · '), image: '',
       row: x,
     })),
-    /* `name` and `price`, which is what the payload actually calls them. I had written `title`
-       and `cost` — so every shop item drew with no name and a price of zero. */
     ...(DATA.shop || []).map(x => ({
       kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
       /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
@@ -9152,7 +9139,6 @@ function stuffItemsRaw_() {
       cost: priced_(x.price), slot: x.slot || '',
       /* PENCE ARE MONEY (463): the basket takes them as money (`cartPrice_`), so the card says £, not credits. */
       pence: String(x.unit || '').trim() === 'p',
-      /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. § */
       /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH. § */
       wearable: isWearable(x),
       level: Number(x.level) || 0,
@@ -10914,7 +10900,7 @@ const PANE_ZOOM_STEPS = [1, 0.875, 0.75];
 const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
 /* NEARLY FITTING IS FULL SIZE (533): above this the card is drawn at 1 in a pane with its spacing tightened (`.pane.is-snug`), not at .97. */
 const PANE_ZOOM_SNUG = 0.95;
-/* THE FLOORS (533, D3): no step that draws body words under 11px, a tile under 36px or a Check under 44px; past them the pane scrolls. */
+/* THE FLOORS (533, D3): no step that draws body words under 11px, a 44px tile (950) under 36px or a Check under 44px; past them the pane scrolls. */
 const PANE_FLOOR_TEXT = 11, PANE_FLOOR_TILE = 36, PANE_FLOOR_SUBMIT = 44;
 /* WHAT IS ART AND NOT BODY TEXT, so its small print does not stop a card being drawn smaller (the calculator's legends, the console). */
 const PANE_ART = '.calc, .nes-wrap, svg, sup, sub, figure';
@@ -11750,7 +11736,7 @@ function paintDocket() {
     + `<div class="row" style="border:0;padding:.4rem 0 0">
         <span class="k">${left ? left + ' left' : 'All done'}</span>
         ${list.length > left
-          ? '<span class="v"><button class="btn quiet tiny" data-do="dock-clear">Clear done</button></span>'
+          ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'
           : ''}
       </div>`;
 }

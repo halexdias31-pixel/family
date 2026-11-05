@@ -15577,7 +15577,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   const shutX = Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) });
   const shut = draw(shutX);
   const r0 = still(shut);
-  shut.parentNode.insertAdjacentHTML('beforeend', '<div class="tile-row">' + w.questionTiles_(shutX) + '</div>');
+  shut.parentNode.insertAdjacentHTML('beforeend', '<div class="tile-row">' + '' + '</div>');
   if (shut.parentNode.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('the question\'s row still carries a tile to its answer page -- the owner asked for none');
   shut.parentNode.insertAdjacentHTML('beforeend', w.questionAnsCard_(shutX));
   const rev = shut.parentNode.querySelector('[data-do="qa-show"]');
@@ -16453,7 +16453,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   const go = card.querySelector('.qp-ai-go[data-do="qp-ai"]');
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
-     verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
+     verdict line and its sentence under the bar (`ansBox_`, `aiOpts_`). */
   if (!go.matches('.qp-mark.qp-ai > .qt-row > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
@@ -16922,7 +16922,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   await wait(300);
   const d = w.document;
   const bad = [];
-  const gone = ['pageParts_', 'questionCard_', 'questionAnsCard_', 'questionTiles_', 'cardPages_']
+  const gone = ['pageParts_', 'questionCard_', 'questionAnsCard_', 'cardPages_']
     .filter(n => typeof w[n] !== 'function');
   /* `ansKey_` IS A `const`, and only a function declaration reaches the window -- so it comes
      through `__t`. `w.ansKey_` is undefined, and a `try` around it clears nothing and says nothing. */
@@ -16952,7 +16952,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   /* NO WAY TO IT ON THE QUESTION'S OWN PAGE -- the owner, 8 Oct: *"there doesnt need to be a scroll down
      tile on questions."* Not in the row, not on the card, with or without an answer. */
   [base, none, fig].forEach(x => {
-    const h = el(w.questionTiles_(x) + w.questionCard_(x));
+    const h = el('' + w.questionCard_(x));
     if (h.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next')) bad.push(x.row.row_id + '\'s question page still carries a tile to its answer');
   });
   /* HIDDEN, signed out. */
@@ -17036,7 +17036,7 @@ check('an answer is its own page after its question, hidden from everybody alike
     if (!w.__t.isTutorRole()) { bad.push('could not sign ' + role + ' in, so their answer page was NOT checked'); return; }
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
-    if (el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s question still carries a tile to the answer -- it went for everybody');
+    if (el('').querySelector('[data-do="qa-go"], .tile-i-next')) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s question still carries a tile to the answer -- it went for everybody');
   });
   w.__t.USER(null);
   return bad;
@@ -17047,7 +17047,7 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
   if (!A['qa-show'] || !A['qa-hide']) return ['qa-show or qa-hide has no handler, so the toggle was NOT checked'];
   const SECRET = 'Forty-two-and-a-quarter';
@@ -17100,7 +17100,7 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
     const s0 = slot(card());
     /* THE QUESTION'S OWN PAGE, drawn first: no tile to the answer on it, and drawing it reveals nothing. */
     const qt = d.createElement('div');
-    qt.innerHTML = w.questionCard_(x) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
+    qt.innerHTML = w.questionCard_(x) + '<div class="tile-row">' + '' + '</div>';
     d.body.appendChild(qt);
     if (qt.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push(what + ': the question page still carries a tile to the answer');
     qt.remove();
@@ -17148,7 +17148,7 @@ check('a question\'s pages follow the paper: its stem first and once with its fi
   const d = w.document;
   const bad = [];
   const need = ['pageParts_', 'questionCard_', 'questionStemCard_',
-                'stuffPages_', 'cardPages_', 'questionTiles_'].filter(n => typeof w[n] !== 'function');
+                'stuffPages_', 'cardPages_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? The paper order was NOT checked'];
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const svg = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
@@ -17194,7 +17194,7 @@ check('a question\'s pages follow the paper: its stem first and once with its fi
      pager turns through. No tile on the card to do it for you. */
   const words = strip.split(' ');
   if (words.indexOf('a:ans') !== words.indexOf('a:card') + 1) bad.push('a swipe from (a)\'s card does not land on its answer: ' + strip);
-  if (el(w.questionCard_(a) + w.questionTiles_(a)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('(a)\'s card still carries a tile to its answer');
+  if (el(w.questionCard_(a) + '').querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('(a)\'s card still carries a tile to its answer');
   /* `Questions` CHOSEN: the same strip with no answer page in it. */
   const S = w.__t.STUFF();
   const heldQ = S.filters;
@@ -17542,7 +17542,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   if (parts !== '["pre0",null,"ans"]') bad.push(ID + ' has pages ' + parts + ', wanted ["pre0",null,"ans"]');
   const host = d.createElement('div');
   d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x) + w.questionTiles_(x);
+  host.innerHTML = w.questionCard_(x) + '';
   const pad = host.querySelector('.qcard .qsheet .qpad');
   if (!pad) bad.push('the card does not hold the grid as a pen inside its sheet');
   if (host.querySelectorAll('.qp-ans-in').length !== 1) bad.push('the card draws ' + host.querySelectorAll('.qp-ans-in').length + ' answer boxes, wanted the one every part has');
@@ -18356,7 +18356,7 @@ const SUB_SUM = { kind: 'question', key: 'q:Q-SUB-1', name: 'Q3', marks: 1, subj
 /* THE CARD AND THE TILE ROW UNDER IT, as `stuffCard` puts them -- the verdict is in the row. */
 const subDraw_ = (w, x, host) => {
   const h = host || w.document.createElement('div');
-  h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
+  h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + '' + '</div>';
   if (!host) w.document.body.appendChild(h);
   return h.querySelector('.qcard');
 };
@@ -18452,7 +18452,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   const rows = [], drafts = {};
   const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_(drafts, subBackend_(rows)) });
   await wait(300);
-  const need = ['subRecord_', 'subAdopt_', 'questionCard_', 'questionTiles_', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
+  const need = ['subRecord_', 'subAdopt_', 'questionCard_', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was sent'];
   const bad = [];
   const subs = () => sent.filter(b => b.action === 'submitAnswer');
@@ -18613,7 +18613,7 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
   /* MARK WITH AI: the marks are the verdict, ai:2/3. */
   const ah = w.document.createElement('div');
   w.document.body.appendChild(ah);
-  ah.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  ah.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
   const ai = ah.querySelector('.qp-ai-go');
   if (!ai) bad.push('the worded card drew no Mark with AI — the AI press was NOT checked');
   else {
@@ -18736,7 +18736,7 @@ check('submission: a press carries the question’s own words — its stem above
   const { w, sent } = boot({ payload: p, reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, ansKey = w.__t.ansKey;
-  const need = ['questionItems', 'subRecord_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
+  const need = ['questionItems', 'subRecord_', 'questionCard_'].filter(n => typeof w[n] !== 'function')
     .concat(A['qp-check'] ? [] : ['qp-check']).concat(typeof ansKey === 'function' ? [] : ['ansKey_']);
   if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a press sends were NOT checked'];
   const bad = [];
@@ -18750,7 +18750,7 @@ check('submission: a press carries the question’s own words — its stem above
     const q5a = item('Q5a');
     if (!q5a) return ['Q5a did not reach the library — the words were NOT checked'];
     const h = d.createElement('div');
-    h.innerHTML = w.questionCard_(q5a, 0) + '<div class="tile-row">' + w.questionTiles_(q5a) + '</div>';
+    h.innerHTML = w.questionCard_(q5a, 0) + '<div class="tile-row">' + '' + '</div>';
     d.body.appendChild(h);
     const card = h.querySelector('.qcard');
     const box = card && card.querySelector('.qp-ans-in'), btn = card && card.querySelector('.qp-check');
@@ -19411,7 +19411,7 @@ check('submission: after AI marking switches off, the Check waits unpressable wi
   w.stuffItemsAll_ = () => [AIQ];
   const h = w.document.createElement('div');
   w.document.body.appendChild(h);
-  h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + '' + '</div>';
   const inp = () => h.querySelector('.qp-ans-in');
   const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
   const saved = () => savedWords_(h.querySelector('.qp-saved'));
@@ -19740,7 +19740,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   /* A PAGE'S CARDS, DRAWN AFRESH -- new markup, as the funnel's redraws make it. */
   const put = (n, xs) => {
     const pg = pageAt(n), pane = pg.querySelector(':scope > .pane') || pg;
-    pane.innerHTML = xs.map(x => '<div>' + w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div></div>').join('');
+    pane.innerHTML = xs.map(x => '<div>' + w.questionCard_(x, 0) + '<div class="tile-row">' + '' + '</div></div>').join('');
     return [...pane.querySelectorAll('.qcard')];
   };
   let [card] = put(0, [AIQ]);
@@ -24049,7 +24049,7 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionTiles_', 'questionCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the way to the answer was NOT checked'];
   if (w.__t.ACTIONS['qa-go']) bad.push('`qa-go` still has a handler, so a tile to the answer could still be drawn and work');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
@@ -24068,7 +24068,7 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
     const got = JSON.stringify(w.pageParts_(x));
     if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
     /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */
-    const all = el(w.questionCard_(x) + w.questionTiles_(x));
+    const all = el(w.questionCard_(x) + '');
     if (all.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next, .qfig-tiles')) bad.push(what + ' still carries a tile to its answer');
   });
   return bad;
@@ -24080,7 +24080,7 @@ check('multipart: no part carries a Figure tile, though a figure stands in front
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  const need = ['stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
   if (w.__t.ACTIONS['q-fig']) bad.push('q-fig still has a handler');
   const lib = mpLibrary_(w, mpBank_());
@@ -24089,7 +24089,7 @@ check('multipart: no part carries a Figure tile, though a figure stands in front
     if (!parts.length) bad.push('no P-MP-W parts in the library — nothing was checked');
     parts.forEach(x => {
       const h = d.createElement('div');
-      h.innerHTML = w.stuffCard(x, 0) + w.questionTiles_(x);
+      h.innerHTML = w.stuffCard(x, 0) + '';
       if (h.querySelector('[data-do="q-fig"], .q-figt')) bad.push(x.name + ' still carries a Figure tile');
     });
   } finally { lib.put(); }
@@ -24373,7 +24373,7 @@ check('multipart: a "use your graph" part has no "not drawn yet" page and no bla
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionItems', 'pageParts_', 'figsBefore_', 'questionTiles_'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionItems', 'pageParts_', 'figsBefore_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — "use your graph" was NOT checked'];
   const GRID = '<svg viewBox="0 0 10 10" class="mp-axes"><path d="M0 5h10M5 0v10"/></svg>';
   const rows = mpBank_().concat([
@@ -28622,7 +28622,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   for (const x of w.stuffItemsAll_()) {
     if (!x || x.kind !== 'question' || !papers.has(x.row && x.row.paper_id)) continue;
     n++;
-    host.innerHTML = w.questionCard_(x, 0) + (w.questionTiles_ ? w.questionTiles_(x) : '');
+    host.innerHTML = w.questionCard_(x, 0);
     if (host.querySelector(SEND)) continue;
     const open = !String(x.accept || x.markWords || x.cells || '').trim() && !(x.choices && x.choices.length) && host.querySelector('.qp-ans-in');
     if (open) { later++; continue; }
@@ -28754,7 +28754,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   /* (a): no stem page in front -- its words are on the card, over the dial */
   const pages = w.pageParts_(a, null);
   if (pages.some(p => /^stem/.test(p || ''))) bad.push('(a) still has the stem on a page of its own: ' + JSON.stringify(pages));
-  host.innerHTML = w.questionCard_(a, 0) + w.questionTiles_(a);
+  host.innerHTML = w.questionCard_(a, 0) + '';
   const card = host.querySelector('.qcard');
   const figsIn = el => el.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child').length;
   if (figsIn(host) !== 1) bad.push('(a) card holds ' + figsIn(host) + ' figures — wanted the one dial');
@@ -28788,7 +28788,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
   if (wrong !== 'Not yet — have another go') bad.push('an arrow at 300 g says ' + JSON.stringify(wrong));
   try { w.localStorage.removeItem(t.padKey(a)); } catch (e) {}
   /* (b): its box under its own words, Check beside it, and no pen, no dial, no Figure tile */
-  host.innerHTML = w.questionCard_(b, 0) + w.questionTiles_(b);
+  host.innerHTML = w.questionCard_(b, 0) + '';
   if (!host.querySelector('.qp-ans-in, .qp-ans')) bad.push('(b) has no box to type 900 g in');
   if (host.querySelector('.qpad') || figsIn(host)) bad.push('(b) has a pen or a figure on its card');
   if (host.querySelector('[data-do="q-fig"]')) bad.push('(b) offers the dial again behind a Figure tile');
@@ -28819,7 +28819,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     if (!p || !p.from || typeof p.from !== 'object') continue;
     n++;
     const id = x.row.row_id;
-    host.innerHTML = w.questionCard_(x, 0) + w.questionTiles_(x);
+    host.innerHTML = w.questionCard_(x, 0) + '';
     const svgs = [...host.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child')];
     if (svgs.length !== 1) bad.push(id + ': ' + svgs.length + ' figures on its card');
     else if (!svgs[0].closest('.qpad')) bad.push(id + ': its figure is not under its pen');
@@ -29048,7 +29048,7 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   for (let i = 0; i < 80 && !(typeof quiet.stuffItemsAll_ === 'function' && quiet.stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28')); i++) await wait(50);
   const qx = quiet.stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28');
   if (!qx) bad.push('the second boot did not load the row — the no-voice case was NOT checked');
-  else if (quiet.readAloudTile_(qx)) bad.push('with no speechSynthesis the Read aloud tile is still drawn');
+  else if (quiet.tile_(quiet.readAloudOpts_(qx))) bad.push('with no speechSynthesis the Read aloud tile is still drawn');
   host.remove();
   return bad;
 });

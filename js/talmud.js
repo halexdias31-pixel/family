@@ -166,7 +166,7 @@ function talPage_(t, i, d) {
   if (!d) {
     const k = t.slug + '/' + talChunkOf_(i);
     return head + (TALMUD.missed[k] && !TALMUD.loading[k]
-      ? `<p class="tal-miss" dir="ltr" lang="en">This page did not arrive. <button class="btn" data-do="tal-retry">Try again</button></p>`
+      ? `<p class="tal-miss" dir="ltr" lang="en">This page did not arrive. ${tile_({ form: true, label: 'Try again', act: 'tal-retry' })}</p>`
       : loading_());
   }
   const g = a && a.g && a.g.length ? talGemara_(a.g)

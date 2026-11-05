@@ -1454,8 +1454,8 @@ function postComposeHtml_() {
   <button class="btn quiet" data-do="poll-more" id="poll-more"${n >= POLL_MAX ? ' hidden' : ''}>Add option</button>
   ${postAsRow_('post-as')}
   <div class="btn-row">
-    <button class="btn quiet" data-do="post-cancel">Back</button>
-    <button class="btn" data-do="post-send">Post it</button>
+    ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
+    ${tile_({ form: true, label: 'Post it', act: 'post-send' })}
   </div>
   <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
 </div>`;
@@ -1568,9 +1568,9 @@ on('post-edit', el => {
       <span>Pin to the top<br><span class="faint">Above everything, whatever its date.</span></span>
     </label>`}
 
-    <button class="btn" data-do="post-save" data-id="${esc(p.id)}">Save</button>
+    ${tile_({ form: true, label: 'Save', act: 'post-save', data: { id: p.id } })}
     <div class="btn-row" style="margin-top:.5rem">
-      <button class="btn danger" data-do="post-delete" data-id="${esc(p.id)}" data-on="">Delete</button>
+      ${tile_({ form: true, label: 'Delete', act: 'post-delete', data: { id: p.id, on: '' }, kind: 'danger' })}
     </div>
     <p class="faint" id="pe-said" style="margin:.6rem 0 0">${words
       ? 'You can change it until it is approved. After that it stays as it is — you can still delete it.'
@@ -2301,7 +2301,7 @@ function dmPages_() {
     ${MSG_FAILED
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
-         <button class="btn quiet" data-do="dm-refresh">Try again</button>`
+         ${tile_({ form: true, label: 'Try again', act: 'dm-refresh', kind: 'quiet' })}`
       : emptyMessages_}</div>`, 'widget', 'messages', 'Messages') }]);
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and

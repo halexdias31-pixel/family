@@ -194,13 +194,13 @@ const WIDGETS = [
             button carrying an id alone is a button nothing is listening to — which is why this
             has never started anything. */''}
       <button class="btn quiet" data-do="timer-toggle" id="timer-toggle">▶</button>
-      <button class="btn quiet" data-do="timer-reset">Reset</button>
+      ${tile_({ form: true, label: 'Reset', act: 'timer-reset', kind: 'quiet' })}
     </div>
     ${/* The lengths people actually use. A number field for a duration is a keyboard and four taps
           for a question whose answer is almost always one of four. */''}
     <div class="btn-row" style="margin-top:.4rem">
       ${[5, 15, 25, 45].map(m =>
-        `<button class="btn quiet tiny" data-do="timer-set" data-min="${m}">${m}</button>`).join('')}
+        `${tile_({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })}`).join('')}
     </div>
   </div>` },
   { id: 'docket', kind: 'tool', name: 'Docket', solid: true, start: () => paintDocket?.(),
@@ -211,7 +211,7 @@ const WIDGETS = [
     <div id="docket-body"></div>
     <div class="dock-new">
       <input id="dock-add" placeholder="Add a line…" autocomplete="off">
-      <button class="btn quiet tiny" data-do="dock-add">＋</button>
+      ${tile_({ form: true, label: '＋', act: 'dock-add', kind: 'quiet', cls: 'tiny' })}
     </div>
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
     <div id="docket-gtasks"></div>

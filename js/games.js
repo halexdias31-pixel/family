@@ -1641,9 +1641,9 @@ function ssPaint() {
       + `</div>`)
     + `<div class="ss-acts">`
     + (right
-        ? `<button class="btn" data-do="ss-next">Next sentence</button>`
+        ? `${tile_({ form: true, label: 'Next sentence', act: 'ss-next' })}`
         : `<button class="btn" data-do="ss-check"${all ? '' : ' disabled'}>Check</button>`
-          + `<button class="btn quiet" data-do="ss-new">Skip</button>`)
+          + `${tile_({ form: true, label: 'Skip', act: 'ss-new', kind: 'quiet' })}`)
     + `</div>`;
   if (said) said.textContent = SS.said;
 }
@@ -2630,8 +2630,8 @@ function impPaint() {
     <p class="imp-sym" aria-hidden="true">${esc(s.sym)}</p>
     <p class="art-word">${esc(s.word)}</p>`;
   if (acts) {
-    acts.innerHTML = `<button class="btn" data-do="imp-again">Deal</button>
-      <button class="btn quiet" data-do="imp-players">Players</button>`;
+    acts.innerHTML = `${tile_({ form: true, label: 'Deal', act: 'imp-again' })}
+      ${tile_({ form: true, label: 'Players', act: 'imp-players', kind: 'quiet' })}`;
   }
 }
 
@@ -3046,7 +3046,7 @@ function jamPaint() {
     card.innerHTML = `<p class="art-over">Time</p>
       <p class="art-word">${esc(s.topic)}</p>
       <p class="party-sum">Hesitation ${t.h} &middot; Repetition ${t.r} &middot; Deviation ${t.d}</p>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="jam-start">Next topic</button>`;
+    if (acts) acts.innerHTML = `${tile_({ form: true, label: 'Next topic', act: 'jam-start' })}`;
     if (said) said.textContent = '';
     return;
   }
@@ -3099,7 +3099,7 @@ function tabPaint() {
     card.innerHTML = `<p class="art-over">Time</p>
       <p class="art-score">${s.score}</p>
       <p class="art-over">correct &middot; ${s.passed} passed</p>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="tab-start">Next round</button>`;
+    if (acts) acts.innerHTML = `${tile_({ form: true, label: 'Next round', act: 'tab-start' })}`;
     if (said) said.textContent = '';
     return;
   }
@@ -3118,8 +3118,8 @@ function tabPaint() {
     <p class="party-clock" id="tab-left">${partyClock_(s)}</p>`;
   if (acts) {
     acts.innerHTML = `<div class="btn-row">
-      <button class="btn" data-do="tab-next" data-got="1">Correct</button>
-      <button class="btn quiet" data-do="tab-next" data-got="0">Pass</button>
+      ${tile_({ form: true, label: 'Correct', act: 'tab-next', data: { got: '1' } })}
+      ${tile_({ form: true, label: 'Pass', act: 'tab-next', data: { got: '0' }, kind: 'quiet' })}
     </div>`;
   }
   if (said) said.textContent = s.score + ' correct so far.';
@@ -3155,7 +3155,7 @@ function hotPaint() {
     card.innerHTML = `<p class="art-over">Time</p>
       <p class="art-score">${s.score}</p>
       <p class="art-over">guessed</p>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="hot-start">Next player</button>`;
+    if (acts) acts.innerHTML = `${tile_({ form: true, label: 'Next player', act: 'hot-start' })}`;
     if (said) said.textContent = '';
     return;
   }
@@ -3171,8 +3171,8 @@ function hotPaint() {
     <p class="party-clock" id="hot-left">${partyClock_(s)}</p>`;
   if (acts) {
     acts.innerHTML = `<div class="btn-row">
-      <button class="btn" data-do="hot-next" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="hot-next" data-got="0">Pass</button>
+      ${tile_({ form: true, label: 'Got it', act: 'hot-next', data: { got: '1' } })}
+      ${tile_({ form: true, label: 'Pass', act: 'hot-next', data: { got: '0' }, kind: 'quiet' })}
     </div>`;
   }
   if (said) said.textContent = s.score + ' guessed so far.';
@@ -3224,7 +3224,7 @@ function twqPaint() {
     card.innerHTML = `<p class="art-over">${s.asked >= TWQ_MAX ? 'Out of questions' : 'It was'}</p>
       <p class="art-word">${esc(s.word)}</p>
       <p class="art-over">${s.asked} of ${TWQ_MAX} questions asked</p>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="twq-start">Play again</button>`;
+    if (acts) acts.innerHTML = `${tile_({ form: true, label: 'Play again', act: 'twq-start' })}`;
     if (said) said.textContent = '';
     return;
   }
@@ -3233,10 +3233,10 @@ function twqPaint() {
     <p class="art-over">questions asked</p>`;
   if (acts) {
     acts.innerHTML = `<div class="btn-row">
-      <button class="btn" data-do="twq-ask">Yes</button>
-      <button class="btn" data-do="twq-ask">No</button>
+      ${tile_({ form: true, label: 'Yes', act: 'twq-ask' })}
+      ${tile_({ form: true, label: 'No', act: 'twq-ask' })}
     </div>
-    <button class="btn quiet party-more" data-do="twq-reveal">Reveal</button>`;
+    ${tile_({ form: true, label: 'Reveal', act: 'twq-reveal', kind: 'quiet', cls: 'party-more' })}`;
   }
   if (said) said.textContent = 'Answer each question, then tap how you answered.';
 }
@@ -3554,7 +3554,7 @@ function scrRackHtml_(g) {
   const p = g.players[g.turn];
   if (g.handover) {
     return '<p class="scr-hand">Hand the phone to <b>' + esc(p.name) + '</b>.</p>'
-      + '<button class="btn" data-do="scr-hand">I have it</button>';
+      + '' + tile_({ form: true, label: 'I have it', act: 'scr-hand' }) + '';
   }
   /* ---------- TWENTY-SIX LETTERS, AND NOT AS TWENTY-SIX BUTTONS § */
   if (g.blank !== null) {
@@ -3851,8 +3851,8 @@ function tmtRow_(l, t) {
       <input class="tmt-in" data-id="${id}" data-f="note" value="${esc(l.note || '')}"
              placeholder="Note — room, teacher, homework" autocomplete="off">
       <div class="btn-row">
-        <button type="button" class="btn quiet" data-do="tmt-open" data-id="${id}">Done</button>
-        <button type="button" class="btn danger" data-do="tmt-drop" data-id="${id}">Remove</button>
+        ${tile_({ form: true, label: 'Done', act: 'tmt-open', data: { id: id }, kind: 'quiet' })}
+        ${tile_({ form: true, label: 'Remove', act: 'tmt-drop', data: { id: id }, kind: 'danger' })}
       </div>
     </div>`;
 }
@@ -3878,7 +3878,7 @@ function tmtHtml_() {
       : `<p class="faint tmt-none">Nothing on ${TMT_DAY_NAMES[TMT_DAY]}.</p>`}</div>
     ${/* ONE ROW FOR BOTH, because a full Monday at 320 is the card that runs out of height first and
           a line of its own for a tickbox is 44px of it. */''}
-    <div class="tmt-foot"><button type="button" class="btn quiet" data-do="tmt-add">Add a lesson</button>
+    <div class="tmt-foot">${tile_({ form: true, label: 'Add a lesson', act: 'tmt-add', kind: 'quiet' })}
       <label class="check tmt-wkend"><input type="checkbox" data-do="tmt-weekend"${t.weekend ? ' checked' : ''}>
         <span class="box"></span><span>Weekend</span></label></div>
   </div>`;
@@ -3982,24 +3982,24 @@ const WORD_GAMES = [
     body: `<p class="sub">Describe it without saying it. Ninety seconds.</p>
     <div id="art-card" class="art"></div>
     <div class="art-row">
-      <button class="btn" data-do="rg-next" data-g="art" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="rg-next" data-g="art" data-got="0">Pass</button>
+      ${tile_({ form: true, label: 'Got it', act: 'rg-next', data: { g: 'art', got: '1' } })}
+      ${tile_({ form: true, label: 'Pass', act: 'rg-next', data: { g: 'art', got: '0' }, kind: 'quiet' })}
     </div>
     <p class="faint art-meta"><span id="art-left">1:30</span> left &middot;
       <b id="art-got">0</b> so far</p>
     <p class="note" id="art-said"></p>
-    <button class="btn quiet" data-do="rg-again" data-g="art">New round</button>` },
+    ${tile_({ form: true, label: 'New round', act: 'rg-again', data: { g: 'art' }, kind: 'quiet' })}` },
   { k: 'cha', name: 'Charades', start: () => initRound('cha'), stop: () => roundStop_('cha'),
     body: `<p class="sub">Act it out. No words, no sounds. Three minutes.</p>
     <div id="cha-card" class="art"></div>
     <div class="art-row">
-      <button class="btn" data-do="rg-next" data-g="cha" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="rg-next" data-g="cha" data-got="0">Pass</button>
+      ${tile_({ form: true, label: 'Got it', act: 'rg-next', data: { g: 'cha', got: '1' } })}
+      ${tile_({ form: true, label: 'Pass', act: 'rg-next', data: { g: 'cha', got: '0' }, kind: 'quiet' })}
     </div>
     <p class="faint art-meta"><span id="cha-left">3:00</span> left &middot;
       <b id="cha-got">0</b> so far</p>
     <p class="note" id="cha-said"></p>
-    <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>` },
+    ${tile_({ form: true, label: 'New round', act: 'rg-again', data: { g: 'cha' }, kind: 'quiet' })}` },
   { k: 'tab', name: 'Taboo', party: true,
     body: `<p class="sub">Describe the word without the words under it. Sixty seconds.</p>` },
   { k: 'hot', name: 'Hot Seat', party: true,
@@ -4017,7 +4017,7 @@ const WORD_GAMES = [
     body: `<div id="herd-card" class="herd-card">
     <p class="sub">Everybody answers. You want to match the room, not be right.</p>
     <p class="herd-q" id="herd-q"></p>
-    <button class="btn" data-do="herd-next">Next question</button>
+    ${tile_({ form: true, label: 'Next question', act: 'herd-next' })}
     </div>` },
   /* WORD SEARCH AND SENTENCE SCRAMBLE, MOVED IN BY THE OWNER (441) — their own cards before; nothing runs between taps, so no stop. */
   { k: 'ws', name: 'Word Search', start: () => initWordSearch(), stop: () => {},
@@ -4027,7 +4027,7 @@ const WORD_GAMES = [
     <div id="ws-grid" class="ws"></div>
     <ul id="ws-words" class="ws-list"></ul>
     <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
-    <button class="btn quiet" data-do="ws-again">New puzzle</button>` },
+    ${tile_({ form: true, label: 'New puzzle', act: 'ws-again', kind: 'quiet' })}` },
   /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; its best is still `saveTtHighscore`'s. */
   { k: 'tt', name: 'Times Tables Sprint', start: () => initTables(),
     stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
@@ -4128,14 +4128,14 @@ const BOARD_GAMES = [
     body: `<p class="sub">Two players, one phone. Red starts. Tap a column; four in a line, any direction.</p>
     <div id="c4-board" class="c4"></div>
     <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="c4-again">New game</button>` },
+    ${tile_({ form: true, label: 'New game', act: 'c4-again', kind: 'quiet' })}` },
   { k: 'oth', name: 'Othello', start: () => initOthello(),
     body: `<p class="sub">Two players, one phone. Red starts. Trap a line of the other colour between two
        of yours.</p>
     <div id="oth-board" class="oth"></div>
     ${rowLive('Red \u2013 Blue', '2 \u2013 2', 'oth-score')}
     <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="oth-again">New game</button>` },
+    ${tile_({ form: true, label: 'New game', act: 'oth-again', kind: 'quiet' })}` },
   /* SCRABBLE KEEPS ITS GAME across a switch: its state is `scrabble`, and `initScrabble` only paints it. The action row is built by `scrabblePaint`, empty until there is a turn. */
   { k: 'scr', name: 'Scrabble', start: () => initScrabble(),
     body: `<p class="sub">Two to four players, one phone. Words stand unless somebody challenges them —
@@ -4146,9 +4146,9 @@ const BOARD_GAMES = [
     <div id="scr-acts" class="scr-acts"></div>
     <p class="note" id="scr-said" style="text-align:center;margin:.5rem 0 0"></p>
     <div id="scr-start" class="btn-row">
-      <button class="btn" data-do="scr-new" data-n="2">2 players</button>
-      <button class="btn" data-do="scr-new" data-n="3">3</button>
-      <button class="btn" data-do="scr-new" data-n="4">4</button>
+      ${tile_({ form: true, label: '2 players', act: 'scr-new', data: { n: '2' } })}
+      ${tile_({ form: true, label: '3', act: 'scr-new', data: { n: '3' } })}
+      ${tile_({ form: true, label: '4', act: 'scr-new', data: { n: '4' } })}
     </div>` },
   /* CHESS AND THE MAZE, MOVED IN BY THE OWNER (461): their own cards before. Each keeps its game in memory (`CHESS`, `maze`), so a switch loses nothing. */
   { k: 'chess', name: 'Chess', start: () => initChess(),
@@ -4169,7 +4169,7 @@ const BOARD_GAMES = [
     </div>
     <p class="note" id="maze-said" style="text-align:center;margin:.5rem 0 0"></p>
     <p class="faint" style="text-align:center;margin:.15rem 0 0">Moves: <b id="maze-moves">0</b></p>
-    <button class="btn quiet" data-do="maze-again">New maze</button>` },
+    ${tile_({ form: true, label: 'New maze', act: 'maze-again', kind: 'quiet' })}` },
 ];
 function bgGame_(k) { return BOARD_GAMES.find(g => g.k === k) || BOARD_GAMES[0]; }
 /* REMEMBERED ON THE DEVICE under `bg-game`, `wg-game`'s rule. */
@@ -6295,8 +6295,8 @@ function mediaFormHtml_(F) {
             `<option value="${k}"${(F.vkind || 'clip') === k ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`}
       ${mediaAgeBoxHtml_(F)}${F.kind === 'reel' ? '' : box('notes', 'Notes')}` : ''}
     <p class="faint media-said" aria-live="polite">${esc(F.err || '')}</p>
-    <div class="pf-go">${got ? '<button class="btn" data-do="media-save">Save</button>' : '<button class="btn" data-do="media-look">Look it up</button>'}
-      <button class="btn quiet" data-do="media-cancel">Cancel</button></div>
+    <div class="pf-go">${got ? '' + tile_({ form: true, label: 'Save', act: 'media-save' }) + '' : '' + tile_({ form: true, label: 'Look it up', act: 'media-look' }) + ''}
+      ${tile_({ form: true, label: 'Cancel', act: 'media-cancel', kind: 'quiet' })}</div>
   </div>`;
 }
 

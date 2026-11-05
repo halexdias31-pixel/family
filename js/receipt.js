@@ -208,7 +208,7 @@ function rcOffer_(blob, name) {
     <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture" decoding="async">
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
-      ${can ? '<button class="btn primary" data-do="rc-shot-share">Share</button>' : ''}
+      ${can ? '' + tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) + '' : ''}
       <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
     </div>`);
 }
@@ -567,7 +567,7 @@ function askHow_(el) {
       the payment.</p>
     <input id="paid-how" class="search" value="cash" autocomplete="off">
     <div class="btn-row">
-      <button class="btn primary" data-do="job-paid-go" data-id="${esc(el.dataset.id)}">Mark paid</button>
+      ${tile_({ form: true, label: 'Mark paid', act: 'job-paid-go', data: { id: el.dataset.id }, cls: 'primary' })}
     </div>
     <p class="faint" id="paid-said"></p>
   `);

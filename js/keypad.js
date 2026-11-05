@@ -1353,11 +1353,11 @@ function aiWanted_(x) {
 }
 
 /* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the bar, its verdict line and the sentence under it are § */
-function aiTile_(x) {
-  if (!aiWanted_(x)) return '';
+function aiOpts_(x) {
+  if (!aiWanted_(x)) return null;
   const wait = aiUndecided_();
-  if (!wait && !aiOffered_()) return '';
-  return checkTile_({ act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', off: wait });
+  if (!wait && !aiOffered_()) return null;
+  return { send: true, act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', off: wait };
 }
 /* ---------- AND DECIDED WHERE IT STANDS, THE MOMENT THE PAYLOAD SAYS (`adoptMarks_`, shell.js) § */
 function aiDecided_() {
