@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const shell = (() => { try { return fs.readFileSync(path.join(__dirname, 'shell.js'), 'utf8'); } catch (e) { return null; } })();
+const shell = (() => { try { return require('../tools/piece-src.js').pieceSrc('shell', path.join(__dirname, '..')); } catch (e) { return null; } })();
 const from = shell ? shell.indexOf('const PRESS_AGAIN_MS') : -1;
 const to = shell ? shell.indexOf('function pressFree_') : -1;
 const dl = shell ? /const API_DEADLINE_MS\s*=\s*([^;]+);/.exec(shell) : null;

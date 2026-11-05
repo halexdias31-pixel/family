@@ -31,6 +31,8 @@ const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--forma
 
 /* WHAT THE FUNNEL WALK READS: a change to any of these makes data/logic-health.json stale. */
 const FIND_FILES = require('./find-src.js').findFiles();
+const PS_ = require('./piece-src.js'), ME_FILES = PS_.pieceFiles('me'), SHELL_FILES = PS_.pieceFiles('shell'), KP_FILES = PS_.pieceFiles('keypad');
+const SPLIT_GROUPS = [{ old: 'js/find.js', files: FIND_FILES }, { old: 'js/me.js', files: ME_FILES }, { old: 'js/shell.js', files: SHELL_FILES }, { old: 'js/keypad.js', files: KP_FILES }];
 const LOGIC_INPUTS = [...FIND_FILES, 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
   'data/projects.json', 'data/topics.json', 'tools/logic-health.js'];
 function logic() {
@@ -93,7 +95,7 @@ function findWork(L) {
     if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
     body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
       work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
-  [...FIND_FILES, 'js/shell.js'].forEach(f => { const src = blank(read(f));
+  [...FIND_FILES, ...SHELL_FILES].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
   /* EVERY FACET VALUE (940): tools/facet-data.js reads all answers of every menu, not the walk's few; its findings are read here, never re-run. */
   ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
@@ -103,7 +105,7 @@ const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
 function uniformWork() {
-  const W = [], MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+  const W = [], MAKERS = new Set(['js/tiles.js', ...SHELL_FILES]);
   const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f) && !MAKERS.has(f));
   const css = read('style.css'), cssLines = css.split('\n');
   const jsAll = {};
@@ -117,7 +119,7 @@ function uniformWork() {
       if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
     }); });
   /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
-  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + read('js/shell.js');
+  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + SHELL_FILES.map(read).join('');
   for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
   const ruled = {};
   cssLines.forEach((l, i) => { if (/\{/.test(l) && !/^\s*(?:@|--)/.test(l)) for (const m of l.split('{')[0].matchAll(/\.([a-zA-Z][\w-]*)/g)) (ruled[m[1]] = ruled[m[1]] || []).push(i + 1); });
@@ -469,10 +471,10 @@ function varietyWork(Q, waits) {
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
   const sv = [];
-  ['js/settings.js', 'js/staff.js', 'js/me.js'].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  ['js/settings.js', 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
-  const wv = [{ where: fnAt('loading_', ['js/shell.js']) || 'js/shell.js', say: 'loading_' }];
+  const wv = [{ where: fnAt('loading_', SHELL_FILES) || 'js/shell-*.js', say: 'loading_' }];
   const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
@@ -566,7 +568,7 @@ function changed() {
   /* A STALE FACET REPORT (940): the library or the funnel changed and tools/facet-data.js was not re-run, so its findings are old. */
   const fAt = mtime('data/facet-health.json'), fNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > fAt);
   if (fNew.length && !files.has('data/facet-health.json')) console.log('note: data/facet-health.json is older than ' + fNew.join(', ') + ' — run node tools/facet-data.js');
-  if ([...FIND_FILES, 'js/shell.js', 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
+  if ([...FIND_FILES, ...SHELL_FILES, 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
     findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
@@ -585,10 +587,10 @@ function changed() {
   }
   const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
   [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {
-    const piece = FIND_FILES.includes(f), headOf = g => git(['show', 'HEAD:' + g]);
-    /* A FIND PIECE is weighed with all its siblings against what HEAD had for Find, one file or many (1040). */
-    const was = piece ? (headOf('js/find.js') || FIND_FILES.map(headOf).join('')) : git(['show', 'HEAD:' + f]);
-    const whole = piece ? FIND_FILES.map(read).join('') : '', now = read(f);
+    const G = SPLIT_GROUPS.find(g => g.files.includes(f)), piece = !!G, headOf = g => git(['show', 'HEAD:' + g]);
+    /* A PIECE of a cut file is weighed with all its siblings against what HEAD had for the old file, one file or many (1040). */
+    const was = piece ? (headOf(G.old) || G.files.map(headOf).join('')) : git(['show', 'HEAD:' + f]);
+    const whole = piece ? G.files.map(read).join('') : '', now = read(f);
     if (piece && (whole.match(EMPTY) || []).length <= (was.match(EMPTY) || []).length) return;
     const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });

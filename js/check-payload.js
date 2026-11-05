@@ -38,7 +38,7 @@ const decomment = src => src
   .replace(/^([ \t]*)\/\/.*$/gm, '$1');
 
 /* ---------- WHAT THE SITE ASKS FOR --------------------------------------------------------------- */
-const jsDir = fs.existsSync(path.join(__dirname, 'shell.js')) ? __dirname
+const jsDir = fs.existsSync(path.join(__dirname, 'core.js')) ? __dirname
             : path.join(__dirname, 'js');
 const siteFiles = fs.readdirSync(jsDir)
   .filter(f => f.endsWith('.js') && !f.startsWith('check') && f !== '_scope.js');

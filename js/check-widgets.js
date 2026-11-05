@@ -147,7 +147,7 @@ const ACCEPTED_ENGINE = {
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
-const engineFiles = ['games.js', 'map.js', 'book.js', 'me.js', 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
+const engineFiles = ['games.js', 'map.js', 'book.js', ...require('../tools/piece-src.js').pieceFiles('me').map(f => f.slice(3)), 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
 const orphanEngine = [];
 engineFiles.forEach(f => {
   const fp = path.join(jsDir, f);
@@ -765,8 +765,10 @@ async function drawAheadRuntime_() {
     try { w.close(); } catch (e) {}
   }
   /* PURE, IF AND ONLY IF THE SAME IN EVERY SCENARIO — and drawn under two people and two sets of facts. § */
-  const declared = new Set(widgets.filter(x => /^\s*true\s*$/.test(String(x.pure || ''))).map(x => str(x.id)));
-  Object.keys(marks).forEach(id => {
+  /* An off widget (860) draws "Coming soon", not itself: its `pure` is not judged here. */
+  const OFF_ = new Set(Object.entries(require('../data/settings/tiers.json').widgets || {}).filter(e => e[1] === 'off').map(e => e[0]));
+  const declared = new Set(widgets.filter(x => /^\s*true\s*$/.test(String(x.pure || ''))).map(x => str(x.id)).filter(id => !OFF_.has(id)));
+  Object.keys(marks).filter(id => !OFF_.has(id)).forEach(id => {
     const m = marks[id];
     const same = m.every(x => x.html === m[0].html);
     const varied = m.some(x => x.scen.data !== m[0].scen.data) && m.some(x => String((x.scen.user || {}).personId) !== String((m[0].scen.user || {}).personId));

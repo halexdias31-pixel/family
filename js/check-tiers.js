@@ -32,10 +32,10 @@ same('kinds', false, []);
 const secOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'secondary');
 const coreOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'core');
 ['stuff', 'res'].forEach(s => { if ((T.screens || {})[s] !== 'core') bad.push('Find\'s screen ' + s + ' is not core'); });
-['find-finder','find-facets','find-history','find-boxers','find-parts','find-marking','find-cells','find-pen','find-pad','find-loupe','find-figures','find-aloud','find-levels','find-bundles','find-pages','find-measure', 'shell', 'data', 'boot', 'library', 'keypad', 'answers'].forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
+['find', 'shell', 'keypad'].flatMap(b => require('../tools/piece-src.js').pieceFiles(b)).map(f => f.slice(3, -3)).concat(['data', 'boot', 'library', 'answers']).forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
 
 /* THE BROWSER'S COPY: shell.js's core lists are this file's. */
-const shell = read('js/shell.js');
+const shell = require('../tools/piece-src.js').pieceSrc('shell', ROOT);
 const eq = (a, b) => a.slice().sort().join() === b.slice().sort().join();
 const cw = list(/const TIER_CORE_WIDGETS = \[([^\]]*)\]/, shell), ck = list(/const TIER_CORE_KINDS = \[([^\]]*)\]/, shell);
 if (!cw || !eq(cw, coreOf('widgets'))) bad.push('shell.js TIER_CORE_WIDGETS is [' + cw + '], tiers.json says [' + coreOf('widgets') + ']');

@@ -6,7 +6,7 @@ const H = require('./health.js');
 const ROOT = path.resolve(__dirname, '..');
 const BUDGETS = 'data/settings/structure-budgets.json';
 const TARGET = { fileLines: 800, fnLines: 80, variety: 1, oneOff: 0, questions: '1 page + 5 checkers' };
-const MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+const MAKERS = new Set(['js/tiles.js', ...require('./piece-src.js').pieceFiles('shell')]);
 const WAIT = /(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/;
 
 /* THE FILES MEASURED: every loaded js file (checks excluded), every backend .gs, and style.css. */

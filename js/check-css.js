@@ -400,7 +400,7 @@ say('A BLOCK THAT IS NEVER CLOSED — everything after it is inside it',
 /* PHONE OR WIDE BEFORE THE FIRST PAINT (561): index.html's head says html.wide at WIDE_FROM, the same number shell.js uses. */
 {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  const sh = fs.readFileSync(path.join(__dirname, 'shell.js'), 'utf8');
+  const sh = require('../tools/piece-src.js').pieceSrc('shell', path.join(__dirname, '..'));
   const head = (html.match(/min-width:\s*(\d+)px\)'\)\.matches\) document\.documentElement\.classList\.add\('wide'\)/) || [])[1];
   const from = (sh.match(/const WIDE_FROM\s*=\s*(\d+)/) || [])[1];
   say('THE WIDE CLASS IS NOT SET BEFORE FIRST PAINT AT WIDE_FROM — the body jumps from phone to wide when shell.js runs',

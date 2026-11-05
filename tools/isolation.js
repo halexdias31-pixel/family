@@ -14,6 +14,8 @@ function decls(src) {
   for (const m of src.matchAll(/\bid="([\w-]+)"/g)) ids.add(m[1]);
   return { names, ids };
 }
+/* The pieces of me.js, shell.js and keypad.js (1040) are one caller each, as the file they were cut from was; a cut adds no coupling. */
+const ONE_ = f => f.replace(/^js\/(me|shell|keypad)-[\w-]+\.js$/, 'js/$1.js');
 function isolation() {
   const F = files(), S = {}, D = {}, owner = Object.create(null), idOwner = Object.create(null);
   F.forEach(f => { S[f] = H.read(f); D[f] = decls(S[f]); D[f].names.forEach(n => { if (!owner[n]) owner[n] = f; }); D[f].ids.forEach(id => { (idOwner[id] = idOwner[id] || []).push(f); }); });
@@ -23,7 +25,7 @@ function isolation() {
     B.forEach((l, i) => {
       for (const m of l.matchAll(/[A-Za-z_$][\w$]*/g)) { const o = owner[m[0]]; if (!o || o === f) continue;
         const k = m[0]; if (!R[f].outbound.has(k)) R[f].outbound.set(k, f + ':' + (i + 1));
-        const inn = R[o].inbound; if (!inn.has(f)) inn.set(f, f + ':' + (i + 1) + ' ' + k); }
+        const inn = R[o].inbound, g = ONE_(f); if (!inn.has(g)) inn.set(g, f + ':' + (i + 1) + ' ' + k); }
       for (const m of l.matchAll(/getElementById\('([\w-]+)'\)|querySelector(?:All)?\('#([\w-]+)/g)) { const id = m[1] || m[2], ow = idOwner[id];
         if (ow && !ow.includes(f)) R[f].foreignDom.push(f + ':' + (i + 1) + ' #' + id + ' (made in ' + ow[0] + ')'); }
       for (const m of l.matchAll(/class="([^"$]*)"/g)) m[1].split(/\s+/).filter(Boolean).forEach(c => { const p = c.split('-')[0]; R[f].classes.set(p, (R[f].classes.get(p) || 0) + 1); });

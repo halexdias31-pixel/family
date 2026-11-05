@@ -77,6 +77,8 @@ const note = [];
 const lineOf = (src, at) => src.slice(0, at).split('\n').length;
 let strings = 0, calls = 0, loadedCalls = 0;
 let loaderSrc = '';
+/* The exemption sits in the shell piece holding loading_ (1040). */
+const LOADER_FILE = (require('../tools/piece-src.js').pieceFiles('shell', root).find(f => /\nfunction loading_\(/.test(fs.readFileSync(path.join(root, f), 'utf8'))) || 'js/shell.js').slice(3);
 const callers = new Set();
 
 for (const f of appFiles_()) {
@@ -87,7 +89,7 @@ for (const f of appFiles_()) {
   /* THE TWO FUNCTIONS ALLOWED TO WRITE THE CLASS — found by parsing, not by line number, so moving
      them inside shell.js moves the exemption with them. */
   const own = [];
-  if (f === 'shell.js') {
+  if (f === LOADER_FILE) {
     let ast;
     try { ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'script' }); }
     catch (e) { bad.push(`shell.js does not parse: ${e.message}`); continue; }
@@ -128,7 +130,7 @@ for (const f of appFiles_()) {
     /* 1. THE OLD WORDS */
     PHRASES.forEach(([re, what]) => {
       if (!re.test(v)) return;
-      const ok = PHRASE_OK.find(o => o.file === f && o.re.test(v)
+      const ok = PHRASE_OK.find(o => (o.file === f || f.startsWith(o.file.slice(0, -3) + '-')) && o.re.test(v)
         && (!o.after || o.after.test(src.slice(Math.max(0, t.start - 400), t.start))));
       if (ok) { note.push(`${at}: ${JSON.stringify(v.trim().slice(0, 50))} — ${ok.why}`); return; }
       bad.push(`${at}: ${what} — ${JSON.stringify(v.trim().slice(0, 70))}. A wait is \`loading_()\`.`);

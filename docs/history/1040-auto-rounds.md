@@ -21,3 +21,14 @@ Each round fixes what does not change the look, plus what the owner asked for ou
 - Fighter-name facet mismatches (11): the data is right (a fight has two fighters); what the tag shows is a look, so it is a question.
 - The § stories of the pieces stay in `docs/notes/js/find.js.md`.
 - Budgets raised by hand, for the split alone: coupling `js/me.js` 184 → 187 and `js/talmud.js` 25 → 29 (they read Find's names, now from several files); `searchBytes` 7,472,098 → 7,472,640 (the checks' new lines that read the pieces). A `--changed` run before `git add` measures untracked pieces as absent and tightens wrongly; stage new files first.
+
+## Round of 2026-11-05 (3): me.js, shell.js and keypad.js cut in order
+
+- `js/me.js` (4,867 lines) is `me-account`, `me-messages`, `me-roles`, `me-shelves`, `me-settings`, `me-card`, `me-people`; `js/shell.js` (3,932) is `shell-boot`, `shell-layout`, `shell-pages`, `shell-click`, `shell-api`, `shell-hold`; `js/keypad.js` (1,785) is `keypad-keys`, `keypad-pad`, `keypad-edit`. All ≤ 780 lines, in place in `FILES`, `LATER` (keypad) and tiers.json (`files`, `later`).
+- Same method as round 2: acorn top-level boundaries, pure moves, concatenation byte-identical to the old file. A scan for load-time use of a later piece's name found none (two hits were object keys).
+- One edit: keypad.js declared `kpSelect_` twice; the first (overridden by hoisting, same behaviour) is deleted, since across files check.js counts it as declared twice.
+- `tools/piece-src.js` (`pieceFiles(base)`, `pieceSrc(base)`) reads any cut file back by its old name from `index.html`; none found throws. check-anims, api-deadline, css, people, press-hold, profile, surfaces, tiers, voice, drafts, loading, suggest, widgets, strings, keyboard, aimark, library, flow, check/motion, tools/tiers, cache, structure and health.js read the pieces.
+- `tools/isolation.js` counts the pieces of me/shell/keypad as one caller, as the old file was: the cut otherwise raised six find-* coupling budgets by counting each piece as a new file.
+- check-widgets failed before this round: every widget is off (tiers.json, 4 Nov), so none draws itself and each `pure: true` read as unproved. A stale check, not a site change: off widgets are now left out of the `pure` judgement.
+- `searchBytes` kept under budget by deleting nine unused declarations in `js/check-flow.js` (`CARD_ORDER_`, `seatSaid_`, `seatParts_`, `seatNote_`, `placeholderFaults_`, `pageHead`, `rowSay`, `earCut_`, `resPick_`) and `PLACEHOLDER_MARKUP_`.
+- Browser 390x844: sign in, Find menu pick, a question keyed on `.kp-key` and Checked, Settings field changed and Saved (`updateProfile` sent, "Saved"), sign out — no page errors. No owner questions this round.

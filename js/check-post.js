@@ -73,7 +73,7 @@ for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.gs'))) {
 
 /* ---------- WHAT THE SITE POSTS § */
 const sends = new Map();          // action -> Map of key -> 'file:line'
-const jsDir = fs.existsSync(path.join(__dirname, 'shell.js')) ? __dirname
+const jsDir = fs.existsSync(path.join(__dirname, 'core.js')) ? __dirname
                                                              : path.join(__dirname, '..', 'js');
 for (const f of fs.readdirSync(jsDir).filter(x => x.endsWith('.js') && !x.startsWith('check'))) {
   const src = decomment(fs.readFileSync(path.join(jsDir, f), 'utf8'));

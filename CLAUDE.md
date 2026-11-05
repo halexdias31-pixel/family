@@ -7,7 +7,7 @@ don't read it whole). Past bugs and decisions: `grep -ril <keyword> docs/history
 
 ## Reading cheaply
 
-- Grep first, then Read a line range. Never Read a big file whole (`style.css`, `js/check-flow.js`); Find is `js/find-*.js`, read as one by `tools/find-src.js`.
+- Grep first, then Read a line range. Never Read a big file whole (`style.css`, `js/check-flow.js`); Find is `js/find-*.js` (read as one by `tools/find-src.js`); `me-*`, `shell-*`, `keypad-*` are cut files too, read as one by `tools/piece-src.js`.
 - Never Read `data/*.json` whole: a `node -e` one-liner for the rows you need.
 - A pathless Grep skips `docs/`, `data/` and `attic/` (`.ignore`).
 - A comment ending `§` was shortened; its story is in `docs/notes/<path>.md`.

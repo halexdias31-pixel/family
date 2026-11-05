@@ -79,7 +79,23 @@
   "js/find-pad.js": 29,
   "js/find-pages.js": 124,
   "js/find-parts.js": 64,
-  "js/find-pen.js": 25
+  "js/find-pen.js": 25,
+  "js/me-account.js": 100,
+  "js/me-card.js": 78,
+  "js/me-messages.js": 57,
+  "js/me-people.js": 37,
+  "js/me-roles.js": 99,
+  "js/me-settings.js": 90,
+  "js/me-shelves.js": 44,
+  "js/shell-api.js": 101,
+  "js/shell-boot.js": 128,
+  "js/shell-click.js": 101,
+  "js/shell-hold.js": 13,
+  "js/shell-layout.js": 61,
+  "js/shell-pages.js": 112,
+  "js/keypad-edit.js": 36,
+  "js/keypad-keys.js": 52,
+  "js/keypad-pad.js": 51
  },
  "targets": {
   "fileLines": 800,
@@ -334,13 +350,6 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/keypad.js": {
-   "lines": 1785,
-   "oneOff": 18,
-   "emptyCatch": 21,
-   "inlineStyle": 1,
-   "rawButton": 0
-  },
   "js/layout.js": {
    "lines": 1184,
    "oneOff": 3,
@@ -375,13 +384,6 @@
    "emptyCatch": 2,
    "inlineStyle": 1,
    "rawButton": 0
-  },
-  "js/me.js": {
-   "lines": 4868,
-   "oneOff": 38,
-   "emptyCatch": 58,
-   "inlineStyle": 17,
-   "rawButton": 7
   },
   "js/mechanics.js": {
    "lines": 67,
@@ -534,13 +536,6 @@
    "lines": 145,
    "oneOff": 0,
    "emptyCatch": 0,
-   "inlineStyle": 0,
-   "rawButton": 0
-  },
-  "js/shell.js": {
-   "lines": 3933,
-   "oneOff": 35,
-   "emptyCatch": 44,
    "inlineStyle": 0,
    "rawButton": 0
   },
@@ -739,6 +734,118 @@
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
+  },
+  "js/me-account.js": {
+   "lines": 778,
+   "oneOff": 6,
+   "emptyCatch": 17,
+   "inlineStyle": 7,
+   "rawButton": 0
+  },
+  "js/me-card.js": {
+   "lines": 781,
+   "oneOff": 17,
+   "emptyCatch": 7,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-messages.js": {
+   "lines": 776,
+   "oneOff": 3,
+   "emptyCatch": 12,
+   "inlineStyle": 1,
+   "rawButton": 5
+  },
+  "js/me-people.js": {
+   "lines": 269,
+   "oneOff": 2,
+   "emptyCatch": 0,
+   "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/me-roles.js": {
+   "lines": 717,
+   "oneOff": 2,
+   "emptyCatch": 6,
+   "inlineStyle": 8,
+   "rawButton": 0
+  },
+  "js/me-settings.js": {
+   "lines": 781,
+   "oneOff": 8,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-shelves.js": {
+   "lines": 772,
+   "oneOff": 0,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/shell-api.js": {
+   "lines": 773,
+   "oneOff": 6,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-boot.js": {
+   "lines": 758,
+   "oneOff": 9,
+   "emptyCatch": 12,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-click.js": {
+   "lines": 766,
+   "oneOff": 2,
+   "emptyCatch": 15,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-hold.js": {
+   "lines": 93,
+   "oneOff": 2,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-layout.js": {
+   "lines": 772,
+   "oneOff": 10,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-pages.js": {
+   "lines": 776,
+   "oneOff": 6,
+   "emptyCatch": 6,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-edit.js": {
+   "lines": 284,
+   "oneOff": 10,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-keys.js": {
+   "lines": 778,
+   "oneOff": 5,
+   "emptyCatch": 11,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-pad.js": {
+   "lines": 721,
+   "oneOff": 3,
+   "emptyCatch": 8,
+   "inlineStyle": 1,
+   "rawButton": 0
   }
  },
  "functions": {
@@ -761,8 +868,6 @@
   "js/games.js vidPaint_": 82,
   "js/library.js libraryExtras_": 181,
   "js/mat.js matPaint": 159,
-  "js/me.js fieldHtml": 84,
-  "js/me.js profileRefresh_": 81,
   "js/posts.js camStart_": 97,
   "js/price-rows.js priceCells": 89,
   "js/racer.js raceWorld_": 122,
@@ -770,8 +875,6 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/shell.js placeGrid": 165,
-  "js/shell.js loadOnce_": 251,
   "js/submit.js subMigrate_": 83,
   "js/find-aloud.js stuffItemsRaw_": 171,
   "js/find-bundles.js bundleBuild_": 85,
@@ -780,7 +883,11 @@
   "js/find-marking.js markRule_": 83,
   "js/find-pages.js paneReach_": 119,
   "js/find-parts.js typeset_": 231,
-  "js/find-pen.js drawMarker_": 645
+  "js/find-pen.js drawMarker_": 645,
+  "js/me-settings.js profileRefresh_": 81,
+  "js/me-shelves.js fieldHtml": 84,
+  "js/shell-api.js loadOnce_": 251,
+  "js/shell-layout.js placeGrid": 165
  },
  "variety": {
   "qpage": {
@@ -825,7 +932,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7472640,
+  "searchBytes": 7471060,
   "commentRatio": 0.263,
   "tombstones": 0,
   "claudeLines": 100

@@ -300,7 +300,7 @@ function tallyHeld(what, writes) {
   if (!short.success || short.feedback !== 'Good.' || ((sb.generationConfig || {}).responseSchema || { properties: {} }).properties.parts) bad.push('a short answer (no essay flag) was not marked as before: ' + JSON.stringify(short).slice(0, 160));
   /* THE CEILINGS AGREE: the phone sends what the server keeps, and the account keeps what was marked. */
   const fs = require('fs'), path = require('path');
-  const kp = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
+  const kp = require('../tools/piece-src.js').pieceSrc('keypad');
   const front = {};
   ['AI_ANSWER_MAX', 'AI_QUESTION_MAX', 'AI_SCHEME_MAX'].forEach(n => { const m = kp.match(new RegExp('\\b' + n + ' = (\\d+)')); front[n] = m ? +m[1] : null; });
   ['AI_ANSWER_MAX', 'AI_QUESTION_MAX', 'AI_SCHEME_MAX'].forEach(n => {

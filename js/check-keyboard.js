@@ -17,6 +17,7 @@ if (!m) { console.log('check-keyboard: cannot read window.FILES out of index.htm
 const FILES = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1] + '.js');
 const SRC = {};
 FILES.forEach(f => { SRC[f] = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'); });
+SRC['keypad.js'] = require('../tools/piece-src.js').pieceSrc('keypad', ROOT);
 
 /* ---------- WHAT TAKES TEXT, written here and not read from keypad.js, so a rule narrowed there is caught here ---------- */
 const TEXT_TYPES = ['', 'text', 'search', 'email', 'url', 'tel', 'password', 'number'];
@@ -117,7 +118,7 @@ else bad.push('words.js no longer draws an editable piece as contenteditable="pl
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 FILES.forEach(f => {
   const s = strip(SRC[f]);
-  if (f !== 'keypad.js' && /data-kpb|dataset\.kpb/.test(s)) bad.push('js/' + f + ' writes or names `data-kpb` — only kpBind_ (keypad.js) binds a box to the pad');
+  if (!/^keypad-/.test(f) && /data-kpb|dataset\.kpb/.test(s)) bad.push('js/' + f + ' writes or names `data-kpb` — only kpBind_ (keypad.js) binds a box to the pad');
   if (/attachShadow\s*\(/.test(s)) bad.push('js/' + f + ' opens a shadow root — a box drawn in one is out of the binding\'s sight, and the phone\'s keyboard comes up on it');
 });
 const kp = strip(SRC['keypad.js'] || '');

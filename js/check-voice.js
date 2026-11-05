@@ -5,7 +5,7 @@
 require('../check/quiet');
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
-const src = fs.readFileSync(path.join(__dirname, 'shell.js'), 'utf8');
+const src = require('../tools/piece-src.js').pieceSrc('shell', path.join(__dirname, '..'));
 const a = src.indexOf('/* ---------- SPEAKING, ONE VOICE'), b = src.indexOf('/* ---------- ONE CLICK HANDLER');
 if (a < 0 || b < a) { console.error('check-voice: cannot find the SPEAKING section in js/shell.js'); process.exit(1); }
 

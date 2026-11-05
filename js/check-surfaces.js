@@ -139,7 +139,7 @@ css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => {
 
 /* 453: `openSheet` must place the sheet inside the card that was pressed, never over or instead of the grid. */
 {
-  const sh = stripComments(fs.readFileSync(path.join(DIR, 'shell.js'), 'utf8'));
+  const sh = stripComments(require('../tools/piece-src.js').pieceSrc('shell', path.join(DIR, '..')));
   const body = (sh.match(/function openSheet\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1];
   if (!body) { console.log('FAILED — openSheet could not be found in js/shell.js, so where it opens was not checked.'); process.exit(1); }
   if (!/sheetPlace_\(/.test(body)) popups.push({ short: 'js/shell.js', line: 0, name: 'openSheet does not move the sheet into the card pressed', use: 'sheetPlace_() (453)' });

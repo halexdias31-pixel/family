@@ -16,6 +16,7 @@ const FILES = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1] + '.js');
 const SRC = {};
 FILES.forEach(f => { SRC[f] = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'); });
 SRC['find.js'] = require('../tools/find-src.js').findSrc();
+['me', 'shell', 'keypad'].forEach(b => { SRC[b + '.js'] = require('../tools/piece-src.js').pieceSrc(b); });
 const ALL = FILES.map(f => SRC[f]).join('\n');
 
 /* ---------- THE LISTS § */
@@ -189,8 +190,8 @@ for (const f of FILES) {
 const bad = [];
 const said = [];
 const hits = new Map();
-/* Find's pieces answer to the list's one name, find.js (1040). */
-const oneFind_ = f => /^find-[\w-]+\.js$/.test(f) ? 'find.js' : f;
+/* A cut file's pieces answer to the list's one name: find.js, me.js, shell.js (1040). */
+const oneFind_ = f => { const m = /^(find|me|shell|keypad)-[\w-]+\.js$/.exec(f); return m ? m[1] + '.js' : f; };
 const matches = (e, s) => oneFind_(s.file) === e.file && (!e.fn || s.fn === e.fn) && (!e.has || s.text.indexOf(e.has) !== -1);
 /* A DRAFT: `draftAttr_(` in the tag, or `${name}` where the function the tag is in sets `name` from it.
    The surface, and the id as written (`'first'`, `p.id`, `item.id + ':' + k`), for `drawnBack` below. */

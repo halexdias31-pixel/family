@@ -151,7 +151,7 @@ const sg = more => Object.assign({ action: 'suggest', kind: 'question', itemId: 
     if (/data-do="(q-report|msg-report)"|'(q-report|msg-report)'/.test(src)) bad.push('js/' + f + ' still has the old q-report/msg-report tile');
   });
   const uses = files.filter(f => /suggest(Tile|TileFor|RowIn)_\(/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
-  ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js', 'posts.js'].forEach(f => { if (uses.indexOf(f) === -1) bad.push(f + ' no longer calls suggestTile_ — cards, widgets, column cards, the finder and messages each need it'); });
+  ['tiles.js', 'arcade.js', 'layout.js', 'me.js', 'find.js', 'posts.js'].forEach(f => { if (!uses.some(u => u === f || u.startsWith(f.slice(0, -3) + '-'))) bad.push(f + ' no longer calls suggestTile_ — cards, widgets, column cards, the finder and messages each need it'); });
   const icons = fs.readFileSync(path.join(dir, 'tiles.js'), 'utf8');
   if (!/^\s*suggest:\s*'/m.test(icons)) bad.push('TILE_ICONS has no `suggest` icon');
   if (!/icon: 'suggest'/.test(fs.readFileSync(path.join(dir, 'submit.js'), 'utf8'))) bad.push('suggestTile_ does not use the suggest icon');

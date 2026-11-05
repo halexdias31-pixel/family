@@ -938,7 +938,7 @@ if (MARKS.missing.length) {
     + ' name the unit in their cell, ' + rootUnitBare + ' do not');
 
   /* ---------- A ROOT OR π ANSWER GETS THE KEY FOR IT § */
-  const kpSrc = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
+  const kpSrc = require('../tools/piece-src.js').pieceSrc('keypad');
   /* the cutter by its full name: `cutFrom` is destructured further down this file, past where this runs */
   /* THE LAYER IS READ OFF qType_ (round 3), so qtypes.js and working.js's `workRow_` come with the keypad's own names */
   const qtSrc_ = fs.readFileSync(path.join(__dirname, 'qtypes.js'), 'utf8');
