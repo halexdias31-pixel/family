@@ -2,38 +2,38 @@
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 163492,
+  "ms": 77684,
   "phase": {
-   "loaded": 6781,
-   "signin": 15572,
-   "findUsable": 26176,
-   "clicks": 128519,
-   "questions": 160434
+   "loaded": 6674,
+   "signin": 13314,
+   "findUsable": 20550,
+   "clicks": 50992,
+   "questions": 74611
   }
  },
- "firstScreenMs": 536,
- "findUsableMs": 10604,
- "signinMs": 8101,
- "heapMB": 905,
+ "firstScreenMs": 544,
+ "findUsableMs": 7236,
+ "signinMs": 6043,
+ "heapMB": 670.4,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "ms": 72,
+   "ms": 40,
    "shift": 0.008,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "second menu: first answer",
-   "ms": 24,
+   "ms": 32,
    "shift": 0.018,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "third menu: first answer",
-   "ms": 32,
-   "shift": 0.009,
+   "ms": 24,
+   "shift": 0.011,
    "longs": 1,
    "by": "event-timing"
   },
@@ -46,35 +46,35 @@
   },
   {
    "what": "menu answer again",
-   "ms": 32,
+   "ms": 24,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "open a question",
-   "ms": 4031,
-   "shift": 0.021,
+   "ms": 2397,
+   "shift": 0.017,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "ms": 72,
+   "ms": 56,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Lock the page",
-   "ms": 64,
+   "ms": 48,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Unlock the page",
-   "ms": 24,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -88,7 +88,7 @@
   },
   {
    "what": "Back to the top of Find",
-   "ms": 64,
+   "ms": 56,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -103,14 +103,14 @@
   },
   {
    "what": "Feed tab",
-   "ms": 47,
+   "ms": 39,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "ms": 43,
+   "ms": 42,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -123,8 +123,8 @@
  "slow": [
   {
    "what": "open a question",
-   "ms": 4031,
-   "shift": 0.021,
+   "ms": 2397,
+   "shift": 0.017,
    "longs": 1,
    "by": "frames"
   }
@@ -170,11 +170,6 @@
    "screen": "stuff",
    "what": "tap target",
    "say": "filter-drop \"Past paper✕\" is 95x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Any which type✕\" is 120x32 px (under 44)"
   },
   {
    "screen": "stuff",
