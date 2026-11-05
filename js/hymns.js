@@ -75,9 +75,11 @@ function hymnsCard_(x) {
   return `<div class="card fc hy" data-key="${esc(x.key)}">
     ${tagRow_(x)}
     <div class="hy-body" data-hy="${esc(x.hy ? x.hy.file : '')}" data-k="${esc(x.key)}">${x.hy ? hymnsBody_(x) : ''}</div>
-    ${x.hy ? `<div class="tile-row">${tile_({ icon: 'play', label: 'Listen on Spotify', note: 'a search, in a new tab', href: hymnSpotify_(x.hy) })}</div>` : ''}
   </div>`;
 }
+/* LISTEN, on the card's one row (`CARD_EXTRAS_`). */
+function hymnExtras_(x) { return x.hy ? { icon: 'play', label: 'Listen on Spotify', note: 'a search, in a new tab', href: hymnSpotify_(x.hy) } : null; }
+CARD_EXTRAS_.hymn = hymnExtras_;
 /* ITS CHUNK CAME: every hymn card of that chunk on screen is filled where it stands. */
 function hymnsRedraw_(file) {
   if (typeof document === 'undefined') return;

@@ -257,8 +257,7 @@ function soonItems_() {
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
-  const sug = typeof suggestTile_ === 'function' ? suggestTile_(x.soon, String(x.soonId), x.name) : '';
-  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p></div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -1688,10 +1687,11 @@ function insertCard_(x) {
   return `<div class="card insh">
     ${tagRow_(x)}
     ${insertSheet_(r)}
-    <div class="tile-row">${tile_({ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: r.id } })}${
-      r.official.map(o => tile_({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } })).join('')}</div>
   </div>`;
 }
+/* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies; a timeline's animation (`tlExtras_`). */
+function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
+  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } }))); }
 on('ins-official', el => {
   const u = String(el.getAttribute('data-url') || '');
   if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
@@ -1965,15 +1965,16 @@ function histFactsPart_(x, part) {
   const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
   return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
 }
+/* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
+function histExtras_(x) {
+  const r = x.row || {}, read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
+  return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
+    .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
+      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
 function histCard_(x) {
   const r = x.row || {};
   const rows = histRows_(x).slice(0, histOnCard_(x));
-  const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
-  /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
-  const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
-    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })))
-    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
-      tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
   const look = x.kind === 'manuscript' ? msFragSvg_(r, x.msSideIx) : '';
   if (look) {
@@ -1981,7 +1982,6 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${look}
     <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
   }
   return `<div class="card fc hdb">
@@ -1989,7 +1989,6 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${rows.length ? histDl_(rows) : ''}
     ${writingRefs_(r.id)}
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
 
@@ -2023,16 +2022,15 @@ function histTimelineCard_(x) {
   const r = x.row || {};
   const lines = (r.events || []).map(e => `<div><dt>${esc(histDay_(e.date_iso) || String(e.date_from))}</dt><dd class="hdb-ev"><span>${esc(e.name)}</span>${
     tile_({ icon: 'flag', label: e.name, note: e.date_text, act: 'find-open', data: { key: 'hdb:' + e.id } })}</dd></div>`);
-  const ch = histTimelineChapter_(x.era);
-  const tiles = ch ? [tile_({ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } })] : [];
   return `<div class="card fc hdb hdb-tl">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
     <section class="fc-sec tl-step" data-tl="${esc(x.key)}">${tlStep_(x.key)}</section>
     <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
+function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }
+Object.assign(CARD_EXTRAS_, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, figure: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
 
 /* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
@@ -8985,9 +8983,19 @@ function findPlaceKeep_(F) {
 /* EACH FINDER UNDER ITS OWN NAME — Find's `find:place` as it always was, the second finder's `res:place` — and only the one in front, which is the only one a § */
 window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
+/* ONE SHARE FOR EVERY CARD (950): the phone's sheet with the card's `?card=` link, else the link copied and said so. */
+const cardByKey_ = k => (k ? stuffItemsAll_().find(i => i && i.key === k) : null), cardUrl_ = k => location.origin + location.pathname + '?card=' + encodeURIComponent(k);
+on('card-share', el => { const k = el.getAttribute('data-key') || '', url = cardUrl_(k), name = (cardByKey_(k) || {}).name || brand('name', '@family.');
+  if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
+  else try { navigator.clipboard.writeText(url).then(() => toast('Link copied'), () => toast(url)); } catch (e) { toast(url); } });
+/* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
+function openSharedCard() { let x = null;
+  try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }
+  if (x) finderOpen_(x, null, null);
+  return !!x; }
 let FIND_PLACE_TRIED = false;
 function findPlaceBack_(F) {
-  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
+  if (!F || !F.id) { if (openSharedCard()) return; Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
   if (typeof draftRead_ !== 'function') return;
   inFinder_(F, () => {
     if (FIND_PLACE_TRIED) return;
@@ -10376,17 +10384,14 @@ function stuffPageHtml(n) {
   const pg = stuffPages_()[n];
   if (!pg) return '';
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
-  /* ONE TILE ROW PER THING (489, 495): a Find page is a card, its star row and Back to top -- joined like every other screen's pages (`rowsOne_`). */
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
-  return rowsOne_((pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_());
+  /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
+  const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+  return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
-/* BACK TO TOP (463): the owner, "a button to scroll back to the top of the finder when they're at the bottom" -- under every result, so it is at the bottom of a long one. */
+/* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
 const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
-on('find-top', el => {
-  const F = finderAt_(el);
-  if (!F) return;
-  inFinder_(F, () => goPage(F.id, stuffQuestionPage_()));
-});
+on('find-top', el => { const F = finderAt_(el), p = el.closest('.pane'); if (F) inFinder_(F, () => goPage(F.id, stuffQuestionPage_())); else if (p) p.scrollTop = 0; });
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
    all four hundred around it. */
@@ -10511,17 +10516,12 @@ function tagsAreTitle_(x, html) {
 function stuffCard(x, credits) {
   /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
-  /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
-  /* A kind with no card of its own falls back to the shared one — a new row type appears on the
-     screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
+  /* A kind with no card of its own falls back to the shared one, so a new row type shows as SOMETHING. */
   /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
   const card = kindOf_(x).card || thingCard_;
   const html = tagsAreTitle_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_));
   if (!x.key) return html;
-  /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
-  const out = `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
-  /* A HISTORY CARD'S LINKS AND ITS STAR ON ONE LINE (498): "they don't even appear on the same line". */
-  return x.hdb && typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(out) : out;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
 /* WHAT A CHIP READS: the words its button said (`answerSay_`). */

@@ -678,10 +678,10 @@ function suggestRowIn_(html, kind, id, label) {
   const t = suggestTile_(kind, id, label);
   return t && typeof cardRowIn_ === 'function' ? cardRowIn_(html, `<div class="tile-row rep-row">${t}</div>`) : html;
 }
-/* A FIND CARD'S KIND AND ID: a question by its key (`q:…`), and so every card in both finders. */
+/* A FIND CARD'S KIND AND ID: a question by its key (`q:…`); a coming-soon card by what is coming. */
 function suggestTileFor_(x) {
   if (!x || !x.key) return '';
-  return suggestTile_(x.kind, x.key, [x.name, x.sub].filter(Boolean).join(' · '));
+  return suggestTile_(x.soon || x.kind, x.soon ? String(x.soonId) : x.key, [x.name, x.sub].filter(Boolean).join(' · '));
 }
 
 /* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */

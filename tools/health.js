@@ -367,6 +367,14 @@ function varietyWork(Q, waits) {
   const fsrc = read('js/find.js'), seen = new Map();
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
   add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
+  /* CARD TILE ROWS (950): cardTiles_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
+  const tsrc = read('js/tiles.js'), cv = [{ where: fnAt('cardTiles_', ['js/tiles.js']) || 'js/tiles.js', say: 'cardTiles_' }];
+  const core = (/const CARD_CORE_ = \[([^\]]*)\]/.exec(tsrc) || [])[1] || '';
+  if (core.replace(/\s/g, '') !== "'share','fav','suggest','top'" || !/function cardTiles_[^]*?const mine = cardCore_\(x\) \+ cardExtras_\(x\)/.test(tsrc))
+    cv.push({ where: 'js/tiles.js', say: 'the core row is not Share, Save, Suggest, Top first on every card' });
+  [...seen.keys()].forEach(fn => { const at = fnAt(fn); if (!at) return; const src = read(at.split(':')[0]), i = src.search(new RegExp('function ' + fn + '\\s*\\('));
+    if (/class="tile-row/.test(src.slice(i, src.indexOf('\n}', i)))) cv.push({ where: at, say: fn + ' draws its own tile row' }); });
+  add('cardrow', 'Card tile rows', 1, 'ui', cv);
   /* TILE AND BUTTON MAKERS: functions whose name says they make one. tile_ is the one. */
   const makers = [];
   app.forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*(?:[Tt]ile|Btn|Button)\w*)\s*\(/g)) if (!/Row|row_|Set|Paint|Look|Html_$|Join/.test(m[1])) makers.push({ name: m[1], where: f + ':' + lineOf(src, m.index) }); });
@@ -389,7 +397,7 @@ function varietyWork(Q, waits) {
   VARIETY_LAST = fam;
   return W;
 }
-const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5] };
+const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5], 'variety-cardrow': [0.2, 5] };
 /* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
 function firstDownload() {
   /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
