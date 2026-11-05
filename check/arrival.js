@@ -19,6 +19,8 @@ const CLS_MAX = 0.1;
 const POP_LATE = 1.5, LIB_COLS = ['s-stuff', 's-res'];
 /* 670: the cold first paint, and how far ahead of the library the feed must be. */
 const PAINT_MAX = Number(process.env.ARRIVAL_PAINT_MAX || 5), FEED_LEAD = 1;
+/* THE FEED IS OFF (owner, 4 Nov: everything off but Find, columns.json active FALSE): its two checks wait until it is back on. */
+const FEED_ON = (() => { try { return String((require('../data/settings/columns.json').find(c => c.screen === 'feed') || {}).active).toUpperCase() !== 'FALSE'; } catch (e) { return true; } })();
 const lib = require('./lib-full.js');
 const GZ = new Map();
 /* WHAT EACH VISIT COST OVER THE WIRE (750), counted where it leaves the server: bytes, and the code files asked for at all. */
@@ -145,7 +147,7 @@ async function visit(ctx, tag, size) {
   }
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 120000, polling: 250 });
   const landedAt = (Date.now() - t0) / 1000;
-  await page.waitForFunction(() => window.__feed && window.__lib, null, { timeout: 120000, polling: 250 }).catch(() => {});
+  await page.waitForFunction(on => (!on || window.__feed) && window.__lib, FEED_ON, { timeout: 120000, polling: 250 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1500));
   if (SHOTS) { try { await page.screenshot({ path: path.join(SHOTS, `${PREFIX}-${size.name}-${tag}-landed.png`) }); } catch (e) {} }
   const after = await page.evaluate(LOOK);
@@ -177,10 +179,10 @@ async function visit(ctx, tag, size) {
           'feed in at', r.feedAt + 's', 'library in at', r.libAt + 's');
       }
       if (r.errs.length) bad.push(`${tag}: the page threw: ${[...new Set(r.errs)].join(' | ')}`);
-      if (!r.feedAt) bad.push(`${tag}: the feed never drew from the payload`);
+      if (FEED_ON && !r.feedAt) bad.push(`${tag}: the feed never drew from the payload`);
       if (!r.libAt) bad.push(`${tag}: the library never merged in`);
       /* FEED FIRST (670): cold, the library (a megabyte) lands long after the payload; a feed that waits for it is drawn with it, or after. */
-      if (tag0 === 'cold' && r.feedAt && r.libAt && r.feedAt >= r.libAt - FEED_LEAD) bad.push(`cold: the feed waited for the library (feed ${r.feedAt}s, library ${r.libAt}s; it must lead by ${FEED_LEAD}s)`);
+      if (FEED_ON && tag0 === 'cold' && r.feedAt && r.libAt && r.feedAt >= r.libAt - FEED_LEAD) bad.push(`cold: the feed waited for the library (feed ${r.feedAt}s, library ${r.libAt}s; it must lead by ${FEED_LEAD}s)`);
       if (tag0 === 'cold' && r.drawnAt > PAINT_MAX) bad.push(`cold: first drawn at ${r.drawnAt}s, over ${PAINT_MAX}s`);
       if (r.cls > CLS_MAX) bad.push(`${tag}: layout shift ${r.cls.toFixed(3)} > ${CLS_MAX} (${r.shifts.map(e => e.t + 'ms ' + e.v.toFixed(3)).join(', ')})`);
       if (r.after.empty.length) bad.push(`${tag}: empty boxes in view after the payload: ${r.after.empty.join(' | ')}`);

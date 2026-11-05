@@ -2196,8 +2196,8 @@ html.flow .page { width: 100%; }
 /* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
 html.flow #screen .page + .page { border-top: 1px solid var(--line); }
-/* ITS WORDS IN THEIR MENU'S COLOUR (owner, 1030), still one small line with no outline. */
-html.flow .qcard-tags .qtag { color: var(--tag, var(--faint)); border-color: transparent; background: none; padding: 0; }
+/* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): the chip's outline, tint and radius in its menu's colour, smaller and with no ✕. */
+html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid var(--tag, var(--chip-line)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent); border-radius: var(--btn-r); padding: .05rem .45rem; }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 
@@ -4364,8 +4364,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. § */
 .qtag {
-  display: inline-block; max-width: 100%; padding: .05rem .45rem; border-radius: 9px;
-  border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim));
+  display: inline-block; max-width: 100%; padding: .05rem .45rem; border-radius: var(--btn-r);
+  border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);
   font-size: .64rem; line-height: 1.35;
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */

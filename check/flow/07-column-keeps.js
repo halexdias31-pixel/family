@@ -310,7 +310,6 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
 /* AND ARRIVING NO LONGER STARTS THEM ALL IN THAT ONE TASK (5 Oct, `widgetsWake_` in arcade.js): § */
-let LAST_W = null;
 const woken_ = async () => {
   for (let k = 0; k < 80; k++) {
     let quiet = true;

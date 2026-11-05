@@ -1133,6 +1133,11 @@
    "say": "Unit: Stanza 1 ~ Stanza 4"
   },
   {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "answer-words",
+   "say": "Unit: menu \"Stanza 12\", chip \"Stanza 1 (2)\", tag \"Stanza 12\""
+  },
+  {
    "where": "Find › Library › English Literature › First edition (1813)",
    "kind": "spelling",
    "say": "Book: Volume 1 ~ Volume 2"
@@ -1163,6 +1168,21 @@
    "say": "Chapter: Chapter 1 ~ Chapter 4"
   },
   {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1 · ארבעה ראשי שנים\", tag \"Chapter 1\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2 · כל הזבחים שקבלו דמן\", tag \"Chapter 2\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3 · הקורא את המגילה עומד\", tag \"Chapter 3\""
+  },
+  {
    "where": "Find › Library › English Literature › First edition (1898)",
    "kind": "spelling",
    "say": "Book: Book 1 ~ Book 2"
@@ -1185,17 +1205,17 @@
   {
    "where": "Find › Library › History › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"Book 1\", chip \"Book 1\", tag \"Book 1 (Clio)\""
+   "say": "Book: menu \"Book 1\", chip \"Book 1 (Clio)\", tag \"Book 1 (Clio)\""
   },
   {
    "where": "Find › Library › History › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"Book 2\", chip \"Book 2\", tag \"Book 2 (Euterpe)\""
+   "say": "Book: menu \"Book 2\", chip \"Book 2 (Euterpe)\", tag \"Book 2 (Euterpe)\""
   },
   {
    "where": "Find › Library › History › The Histories",
    "kind": "answer-words",
-   "say": "Book: menu \"Book 3\", chip \"Book 3\", tag \"Book 3 (Thalia)\""
+   "say": "Book: menu \"Book 3\", chip \"Book 3 (Thalia)\", tag \"Book 3 (Thalia)\""
   },
   {
    "where": "Find › Library › History › The Anglo-Saxon Chronicle",
@@ -1275,7 +1295,7 @@
   {
    "where": "Find › Library › Maths › A-Level",
    "kind": "answer-words",
-   "say": "Topic: menu \"Coordinate Geometry\", chip \"Coordinate Geometry\", tag \"Coordinate Geometry (A-Level)\""
+   "say": "Topic: menu \"Coordinate Geometry\", chip \"Coordinate Geometry (A-Level)\", tag \"Coordinate Geometry (A-Level)\""
   },
   {
    "where": "Find › Library › Mechanics › Car",
@@ -1325,17 +1345,17 @@
   {
    "where": "Find › Library › Religious Studies › Christianity › Church history",
    "kind": "answer-words",
-   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 1\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 1\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 1: Apo tolic Chri tianity, AD 1–100\""
+   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 1\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 1: Apo tolic Chri tianity, AD 1–100\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 1: Apo tolic Chri tianity, AD 1–100\""
   },
   {
    "where": "Find › Library › Religious Studies › Christianity › Church history",
    "kind": "answer-words",
-   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 2\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 2\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 2: Ante-Nicene Chri tianity, AD 100–325\""
+   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 2\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 2: Ante-Nicene Chri tianity, AD 100–325\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 2: Ante-Nicene Chri tianity, AD 100–325\""
   },
   {
    "where": "Find › Library › Religious Studies › Christianity › Church history",
    "kind": "answer-words",
-   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 3\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 3\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 3: Nicene and Po t-Nicene Chri tianity, AD 311–600\""
+   "say": "Work: menu \"Schaff, Hi tory of the Chri tian Church, vol. 3\", chip \"Schaff, Hi tory of the Chri tian Church, vol. 3: Nicene and Po t-Nicene Chri tianity, AD 311–600\", tag \"Schaff, Hi tory of the Chri tian Church, vol. 3: Nicene and Po t-Nicene Chri tianity, AD 311–600\""
   },
   {
    "where": "Find › Library › Religious Studies › Christianity › Scholastics",
@@ -1385,32 +1405,32 @@
   {
    "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
    "kind": "answer-words",
-   "say": "Book: menu \"4 · Ablution\", chip \"4 · Ablution\", tag \"4 · Ablution  (Wudu')\""
+   "say": "Book: menu \"4 · Ablution\", chip \"4 · Ablution  (Wudu')\", tag \"4 · Ablution  (Wudu')\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
    "kind": "answer-words",
-   "say": "Book: menu \"5 · Bathing\", chip \"5 · Bathing\", tag \"5 · Bathing (Ghu l)\""
+   "say": "Book: menu \"5 · Bathing\", chip \"5 · Bathing (Ghu l)\", tag \"5 · Bathing (Ghu l)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
    "kind": "answer-words",
-   "say": "Book: menu \"7 · Rubbing hand  and feet with du t\", chip \"7 · Rubbing hand  and feet with du t\", tag \"7 · Rubbing hand  and feet with du t (Tayammum)\""
+   "say": "Book: menu \"7 · Rubbing hand  and feet with du t\", chip \"7 · Rubbing hand  and feet with du t (Tayammum)\", tag \"7 · Rubbing hand  and feet with du t (Tayammum)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
    "kind": "answer-words",
-   "say": "Book: menu \"6 · The Book of the Time\", chip \"6 · The Book of the Time\", tag \"6 · The Book of the Time  (of Prayer)\""
+   "say": "Book: menu \"6 · The Book of the Time\", chip \"6 · The Book of the Time  (of Prayer)\", tag \"6 · The Book of the Time  (of Prayer)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
    "kind": "answer-words",
-   "say": "Book: menu \"7 · The Book of the Adhan\", chip \"7 · The Book of the Adhan\", tag \"7 · The Book of the Adhan (The Call to Prayer)\""
+   "say": "Book: menu \"7 · The Book of the Adhan\", chip \"7 · The Book of the Adhan (The Call to Prayer)\", tag \"7 · The Book of the Adhan (The Call to Prayer)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
    "kind": "answer-words",
-   "say": "Book: menu \"10 · The Book of Leading the Prayer\", chip \"10 · The Book of Leading the Prayer\", tag \"10 · The Book of Leading the Prayer (Al-Imamah)\""
+   "say": "Book: menu \"10 · The Book of Leading the Prayer\", chip \"10 · The Book of Leading the Prayer (Al-Imamah)\", tag \"10 · The Book of Leading the Prayer (Al-Imamah)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
@@ -1430,27 +1450,27 @@
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
    "kind": "answer-words",
-   "say": "Book: menu \"1 · Purification\", chip \"1 · Purification\", tag \"1 · Purification (Kitab Al-Taharah)\""
+   "say": "Book: menu \"1 · Purification\", chip \"1 · Purification (Kitab Al-Taharah)\", tag \"1 · Purification (Kitab Al-Taharah)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
    "kind": "answer-words",
-   "say": "Book: menu \"2 · Prayer\", chip \"2 · Prayer\", tag \"2 · Prayer (Kitab Al-Salat)\""
+   "say": "Book: menu \"2 · Prayer\", chip \"2 · Prayer (Kitab Al-Salat)\", tag \"2 · Prayer (Kitab Al-Salat)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
    "kind": "answer-words",
-   "say": "Book: menu \"3 · The Book Of The Prayer For Rain\", chip \"3 · The Book Of The Prayer For Rain\", tag \"3 · The Book Of The Prayer For Rain (Kitab al-I ti qa')\""
+   "say": "Book: menu \"3 · The Book Of The Prayer For Rain\", chip \"3 · The Book Of The Prayer For Rain (Kitab al-I ti qa')\", tag \"3 · The Book Of The Prayer For Rain (Kitab al-I ti qa')\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Jami' at-Tirmidhi",
    "kind": "answer-words",
-   "say": "Book: menu \"2 · The Book on Salat\", chip \"2 · The Book on Salat\", tag \"2 · The Book on Salat (Prayer)\""
+   "say": "Book: menu \"2 · The Book on Salat\", chip \"2 · The Book on Salat (Prayer)\", tag \"2 · The Book on Salat (Prayer)\""
   },
   {
    "where": "Find › Library › Religious Studies › Islam › Jami' at-Tirmidhi",
    "kind": "answer-words",
-   "say": "Book: menu \"10 · The Book on Jana''iz\", chip \"10 · The Book on Jana''iz\", tag \"10 · The Book on Jana''iz (Funeral )\""
+   "say": "Book: menu \"10 · The Book on Jana''iz\", chip \"10 · The Book on Jana''iz (Funeral )\", tag \"10 · The Book on Jana''iz (Funeral )\""
   },
   {
    "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
@@ -1565,22 +1585,22 @@
   {
    "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1816",
    "kind": "answer-words",
-   "say": "Chapter: menu \"Fragment\", chip \"Fragment\", tag \"Fragment: Home\""
+   "say": "Chapter: menu \"Fragment\", chip \"Fragment: Home\", tag \"Fragment: Home\""
   },
   {
    "where": "Find › Library › English Literature › Anthology › Love and Relationships (AQA)",
    "kind": "answer-words",
-   "say": "Chapter: menu \"Sonnet 29\", chip \"Sonnet 29\", tag \"Sonnet 29 – ‘I think of thee!’\""
+   "say": "Chapter: menu \"Sonnet 29\", chip \"Sonnet 29 – ‘I think of thee!’\", tag \"Sonnet 29 – ‘I think of thee!’\""
   },
   {
    "where": "Find › Library › English Literature › Anthology › Power and Conflict (AQA)",
    "kind": "answer-words",
-   "say": "Chapter: menu \"Extract from The Prelude\", chip \"Extract from The Prelude\", tag \"Extract from The Prelude: Stealing the Boat\""
+   "say": "Chapter: menu \"Extract from The Prelude\", chip \"Extract from The Prelude: Stealing the Boat\", tag \"Extract from The Prelude: Stealing the Boat\""
   },
   {
    "where": "Find › Library › English Literature › Anthology › Relationships (Edexcel)",
    "kind": "answer-words",
-   "say": "Chapter: menu \"1 t Date\", chip \"1 t Date\", tag \"1 t Date – She and 1 t Date – He\""
+   "say": "Chapter: menu \"1 t Date\", chip \"1 t Date – She and 1 t Date – He\", tag \"1 t Date – She and 1 t Date – He\""
   },
   {
    "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
@@ -1596,6 +1616,21 @@
    "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
    "kind": "spelling",
    "say": "Chapter: Chapter 1 ~ Chapter 4"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1 · ארבעה ראשי שנים\", tag \"Chapter 1\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2 · כל הזבחים שקבלו דמן\", tag \"Chapter 2\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3 · הקורא את המגילה עומד\", tag \"Chapter 3\""
   },
   {
    "where": "Find › Library › English Literature › First edition (1861) › Silas Marner",

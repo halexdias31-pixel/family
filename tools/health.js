@@ -71,6 +71,14 @@ function findWork(L) {
   if (!/tagAttr_\(f\.field\)/.test(chipFn)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function filterChips'))), say: 'a picked chip does not take its menu\'s colour (tagAttr_(f.field))' });
   const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
+  /* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): every .qtag rule keeps the chip's outline, radius token and padding; a rule that strips one fails. */
+  [...css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')).matchAll(/([^{}]*\.qtag\b(?![-\w\[])[^{}]*)\{([^}]*)\}/g)].filter(m => !/\.qtags?\s*\.\w|::?\w/.test(m[1].trim().split(/\s+/).pop())).forEach(m => {
+    const b = m[2], why = [];
+    if (/border(-color)?\s*:\s*[^;]*transparent|border\s*:\s*(0|none)/.test(b)) why.push('no outline');
+    if (/border-radius\s*:/.test(b) && !/border-radius\s*:\s*var\(--btn-r\)/.test(b)) why.push('a radius other than the chip\'s --btn-r');
+    if (/padding\s*:\s*0\s*[;}]?/.test(b + ';') && !/padding\s*:\s*0\s*[\d.]/.test(b)) why.push('no padding');
+    if (/background\s*:\s*none/.test(b)) why.push('no chip tint');
+    if (why.length) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index + m[0].length - m[2].length), say: `${m[1].trim()} draws a tag that is not a pill like its menu chip: ${why.join(', ')}` }); });
   if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the menu colours were NOT checked' });
   hues.forEach(m => { const a = lum(m[2]), b = lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     if (r < 3) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index), say: `--hue-${m[1]} #${m[2]} is ${r.toFixed(2)}:1 on --bg, under 3:1` }); });
@@ -168,6 +176,7 @@ function uxWork() {
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) drawer[m[1]] = { fn: m[2], at: 'js/find.js:' + lineOf(fsrc, m.index) };
   Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
     if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
+    if (c.notPill) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.notPill} of ${c.sampled} cards draw a tag that is not a pill like its menu chip (outline, chip radius, padding)` });
     Object.keys(c.missing || {}).forEach(f => W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.missing[f]} of ${c.sampled} cards have a ${f} value that is not a tag` }));
     if (c.outside) W.push({ kind: 'attr-outside-tags', where: at, say: `${k}: ${c.outside} of ${c.sampled} cards show an attribute outside the top tag line (a marks label, a data-f) — it belongs in the tag line` });
     const file = at.split(':')[0];

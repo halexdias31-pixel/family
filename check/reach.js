@@ -6,6 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
+/* THE COLUMNS THE OWNER SWITCHED OFF (4 Nov, columns.json active FALSE): never a tab once the payload lands, so not visited or asked of. */
+/* A column left of Find still on, for the arrival from the left; the owner's list puts every one of them off. */
+const LEFT_OF_FIND_ON = (() => { try { const c = require('../data/settings/columns.json'), i = c.findIndex(r => r.screen === 'stuff'); return c.slice(0, i).some(r => String(r.active).toUpperCase() !== 'FALSE'); } catch (e) { return true; } })();
+const OFF_COLS = (() => { try { return require('../data/settings/columns.json').filter(c => String(c.active).toUpperCase() === 'FALSE').map(c => c.screen); } catch (e) { return []; } })();
 
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.REACH_PORT || 0);
@@ -191,7 +195,7 @@ function READER() {
         const host = document.getElementById('s-' + t.id);
         const r = host && host.getBoundingClientRect();
         const on = r && Math.min(r.right, W) - Math.max(r.left, 0) > 8;
-        if (on || (!WIDE && Math.abs(i - ti) === 1)) out.push(t.id);
+        if (on || (!WIDE && !(typeof FLOW_LAYOUT !== 'undefined' && FLOW_LAYOUT) && Math.abs(i - ti) === 1)) out.push(t.id);   /* one scrolling page (900): no neighbour is a swipe away */
       });
     } catch (e) { out.push('could not read: ' + e.message); }
     return out;
@@ -375,7 +379,7 @@ let PORT = 0;
       const n = AXES.y.count('stuff') - stuffFirstResult_();
       return n >= 30 ? { n } : { err: `the 2F paper is ${n} page(s) on Find — the run needs 30` };
     });
-    if (want('res')) await go_(`${at} resources, boxing`, async () => {
+    if (want('res') && !OFF_COLS.includes('res')) await go_(`${at} resources, boxing`, async () => {
       await window.__rc.place('res', 0);
       return inFinder_(finderOf_('res'), () => {
         const x = stuffItemsAll_().find(it => it.kind === 'boxer');
@@ -392,13 +396,13 @@ let PORT = 0;
         return n >= 16 ? { n } : { err: `the boxing shelf is ${n} page(s) — the run needs 16` };
       });
     }, null, 20, { pics: true });
-    if (want('feed')) await go_(`${at} feed`, async () => {
+    if (want('feed') && !OFF_COLS.includes('feed')) await go_(`${at} feed`, async () => {
       await window.__rc.place('feed', 0);
       const n = AXES.y.count('feed');
       return n >= 30 ? { n } : { err: `the feed is ${n} page(s) — the run needs 30` };
     }, null, 20, { pics: true });
     /* THE FEED LANDED ON, AT REST — three landings that change nothing, as the inbox's does two seconds after every signed-in open. § */
-    if (want('feedland')) await go_(`${at} feed landed on`, async () => {
+    if (want('feedland') && !OFF_COLS.includes('feed')) await go_(`${at} feed landed on`, async () => {
       await window.__rc.place('feed', 3);
       const front = document.querySelector('#s-feed > .page.on');
       const imgs = front ? [...front.querySelectorAll('img')] : [];
@@ -450,7 +454,7 @@ let PORT = 0;
     });
     /* FIND SHOWING TOOLS (790: the tools are Find cards), ARRIVED AT AFTER A LANDING AND THE QUIET THAT FOLLOWS — the builder has drawn what the landing
        marked; the arrival must find it drawn. */
-    if (want('tools')) await go_(`${at} tools after a landing`, async () => {
+    if (want('tools') && LEFT_OF_FIND_ON) await go_(`${at} tools after a landing`, async () => {
       const i = TABS.findIndex(t => t.id === 'stuff');
       if (i < 1) return { err: 'no column left of Find to arrive from' };
       finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
@@ -509,8 +513,8 @@ let PORT = 0;
       await page.waitForFunction(() => typeof go === 'function' && window.__rc, null, { timeout: 60000, polling: 100 });
       /* BEFORE THE PAYLOAD: every widget that reads no facts is drawn on every column but the one in front. */
       await sleep(Math.max(0, PRE_MS - (Date.now() - t0)));
-      const pre = await page.evaluate(() => ({ loaded: !!LOADED, veiled: WIDGET_COLS.filter(c => c !== AT && TABS.some(t => t.id === c))
-        .flatMap(c => widgetsOn_(c).filter(w => w.pure).map(w => [c, slotOn_(c, String(w.id))]).filter(([, sl]) => !sl || sl.getAttribute('aria-busy')).map(([c, sl]) => c + ' #wgt-' + (sl ? sl.id.slice(4) : '?'))) }));
+      const pre = await page.evaluate(offCols => ({ loaded: !!LOADED, veiled: WIDGET_COLS.filter(c => c !== AT && TABS.some(t => t.id === c) && offCols.indexOf(c) === -1)
+        .flatMap(c => widgetsOn_(c).filter(w => w.pure).map(w => [c, slotOn_(c, String(w.id))]).filter(([, sl]) => !sl || sl.getAttribute('aria-busy')).map(([c, sl]) => c + ' #wgt-' + (sl ? sl.id.slice(4) : '?'))) }), OFF_COLS);
       if (pre.loaded) fail('REACH', where, `the payload landed before ${PRE_MS / 1000}s, so nothing was asked of the time before it`);
       else if (pre.veiled.length) fail('NOT DRAWN BEFORE THE PAYLOAD', where, `${pre.veiled.length} widget(s) that read no facts still under the loader at ${PRE_MS / 1000}s: ${pre.veiled.slice(0, 6).join(', ')}`);
       note(`${where}: at ${PRE_MS / 1000}s, the payload not in, widgets reading no facts under the loader: ${pre.veiled.length}`);
@@ -518,7 +522,7 @@ let PORT = 0;
       const home = await page.evaluate(() => LOADED ? AT : null);
       if (!home) throw new Error(`the payload had not landed at ${IDLE_MS / 1000}s`);
       const far = await page.evaluate(() => { const i = TABS.findIndex(t => t.id === AT); return (i > TABS.length - 1 - i ? TABS[0] : TABS[TABS.length - 1]).id; });
-      for (const col of [...new Set([far, 'stuff', 'res', 'saved', 'shop'])]) {
+      for (const col of [...new Set([far, 'stuff', 'res', 'saved', 'shop'])].filter(c => OFF_COLS.indexOf(c) === -1)) {
         const seg = `${where}, then ${col}`;
         await page.evaluate(seg => window.__rc.start(seg), seg);
         await page.evaluate(c => go(c, false, true), col);

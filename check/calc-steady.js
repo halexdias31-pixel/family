@@ -43,6 +43,8 @@ function snap() {
 }
 
 (async () => {
+  /* THE CALCULATOR IS OFF (owner, 4 Nov, tiers.json widgets): no card to press, so the check waits, as check-widgets skips an off widget. */
+  try { if (JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).widgets.calculator === 'off') { console.log('calc-steady: skipped — the calculator widget is off (tiers.json)'); process.exit(0); } } catch (e) { /* no tiers file: run as before */ }
   const server = await serve();
   const port = server.address().port;
   let browser;

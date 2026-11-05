@@ -61,6 +61,9 @@ const found = [];
 const fail = (sec, where, msg) => found.push(`${sec} ${where}: ${msg}`);
 const say = s => { if (VERBOSE) console.log('  ' + s); };
 let reached = 0;
+/* THE WHITEBOARD IS OFF (owner, 4 Nov, tiers.json): its board sections are skipped and counted, as the whiteboard journeys went secondary (1040). */
+const BOARD_OFF = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).widgets.whiteboard === 'off'; } catch (e) { return false; } })();
+const BSKIP = new Set();
 
 async function boot(browser, W, H, port, o) {
   const ctx = await browser.newContext(Object.assign({ viewport: { width: W, height: H }, deviceScaleFactor: (o && o.dsf) || 2, isMobile: true, hasTouch: true,
@@ -190,6 +193,7 @@ const MO = (env, type, x, y, kind, buttons) => env.cdp.send('Input.dispatchMouse
 
 /* ---------- THE BOARD ------------------------------------------------------------------------------- */
 async function board(env) {
+  if (BOARD_OFF) { BSKIP.add('the whiteboard (off)'); return null; }
   return env.page.evaluate(async () => {
     window.__openWidgetCard('whiteboard');   /* a Find card (790) */
     for (let i = 0; i < 100; i++) {
@@ -375,6 +379,7 @@ const unmoved = (sec, where, r, b) => {
     if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'grip', 'settle', 'phase', 'types', 'steady', 'inv', 'samples', 'round'].some(want)) break;
     const env = await boot(browser, W, H, port);
     let b = await board(env);
+    if (!b && BOARD_OFF) { await env.ctx.close(); break; }
     if (!b) { fail('REACH', at, 'no whiteboard on its Find card'); await env.ctx.close(); continue; }
     await reset(env, b.k);
     b = await arm(env, b, board);
@@ -993,6 +998,7 @@ const unmoved = (sec, where, r, b) => {
       if (b) b = await arm(env, b, cardBox);
       if (b) { await reset(env, k); b = (await cardBox(env)) || b; }
     }
+    if (!b && (surf === 'board' ? BOARD_OFF : LIB.ABSENT)) { if (surf === 'q7') QSKIP.add(Q7); await env.ctx.close(); continue; }
     if (!b) { fail('REACH', at + ' palmafter', 'the pad is not on the screen armed — a palm after an aiming finger was NOT checked'); await env.ctx.close(); continue; }
     reached++;
     await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
@@ -1056,7 +1062,8 @@ const unmoved = (sec, where, r, b) => {
     let c = k ? await cardBox(env) : null;
     if (c) c = await arm(env, c, cardBox);
     const tb = c ? await toolBox() : null;
-    if (!c || !tb || !tb.compass || !tb.ruler || !tb.pen) fail('REACH', at + ' pin', 'November 2019 1H Q4\'s pad, armed, with a Pen, a Compass and a Ruler tile, is not on the screen — the held pin and the palm were NOT checked');
+    if (!c && LIB.ABSENT) QSKIP.add(COMPASS_Q);
+    else if (!c || !tb || !tb.compass || !tb.ruler || !tb.pen) fail('REACH', at + ' pin', 'November 2019 1H Q4\'s pad, armed, with a Pen, a Compass and a Ruler tile, is not on the screen — the held pin and the palm were NOT checked');
     else {
       reached++;
       await reset(env, k);
@@ -1342,7 +1349,7 @@ const unmoved = (sec, where, r, b) => {
       /* THE BOARD NEVER SNAPS AND A TAP ON IT IS WHAT IT WAS: the landing and every move, a repeat dropped, thinned. */
       let b = await board(env);
       if (b) { await reset(env, b.k); b = await arm(env, b, board); }
-      if (!b) fail('REACH', at, 'the board could not be armed for plot');
+      if (!b) { if (!BOARD_OFF) fail('REACH', at, 'the board could not be armed for plot'); }
       else {
         const sent = await jtap(env, b.ink.l + b.ink.w * 0.4, b.ink.t + b.ink.h * 0.4, rng(5), 4);
         await sleep(300);
@@ -1784,7 +1791,7 @@ const unmoved = (sec, where, r, b) => {
       return n;
     }, [a, b]);
     const surfaces = [['card', async () => { const o = await open(env, Q7, at); return o ? { k: o.k, c: o.c, get: cardBox, sel: CARD } : null; }],
-                      ['board', async () => { let b = await board(env); if (b) { await reset(env, b.k); b = await arm(env, b, board); } if (!b) fail('REACH', at, 'the board could not be armed for short'); return b ? { k: b.k, c: b, get: board, sel: BOARD } : null; }]];
+                      ['board', async () => { let b = await board(env); if (b) { await reset(env, b.k); b = await arm(env, b, board); } if (!b && !BOARD_OFF) fail('REACH', at, 'the board could not be armed for short'); return b ? { k: b.k, c: b, get: board, sel: BOARD } : null; }]];
     for (const [surf, get] of surfaces) {
       const o = await get();
       if (!o) continue;
@@ -1901,7 +1908,8 @@ const unmoved = (sec, where, r, b) => {
       await reset(env, k);
     }
     /* THE TOOLS WHITEBOARD, the notebook (board.js), as a child finds it: no arming, a finger writes */
-    {
+    if (BOARD_OFF) BSKIP.add('the whiteboard notebook (off)');
+    else {
       const where = `${dev.name} notebook`;
       const nb = await env.page.evaluate(async () => {
         window.__openWidgetCard('whiteboard');   /* a Find card (790) */
@@ -1945,7 +1953,8 @@ const unmoved = (sec, where, r, b) => {
   server.close();
   const secs = ((Date.now() - started) / 1000).toFixed(0);
   if (QSKIP.size) LIB.skipParts([...QSKIP].map(r => r + '\'s card and pen'));
-  if (!reached) found.push('REACH: no board and no card was reached — nothing was checked');
+  if (BSKIP.size) LIB.skipParts([...BSKIP]);
+  if (!reached && !(LIB.ABSENT && BOARD_OFF)) found.push('REACH: no board and no card was reached — nothing was checked');
   if (found.length) {
     console.log(`\npen: ${found.length} finding(s) in ${secs}s${ONLY.length ? ' (only ' + ONLY.join(',') + ')' : ''}`);
     found.forEach(f => console.log('  FAIL  ' + f));

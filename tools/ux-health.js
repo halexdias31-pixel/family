@@ -177,6 +177,12 @@ function instruments() {
     const by = {}, out = {};
     stuffItemsAll_().forEach(x => { if (x && x.kind) (by[x.kind] = by[x.kind] || []).push(x); });
     const host = document.createElement('div');
+    /* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): drawn on the page, a tag's outline, radius and padding are read against a menu chip's. */
+    document.body.appendChild(host);
+    const probe = document.createElement('div'); probe.className = 'chips'; probe.innerHTML = '<span class="chip sm" data-tag style="--tag:#e0a040">x</span>'; document.body.appendChild(probe);
+    const cs = getComputedStyle(probe.firstChild), chipR = cs.borderTopLeftRadius;
+    const notPill = t => { const c = getComputedStyle(t); return !(parseFloat(c.borderTopWidth) >= 1 && c.borderTopStyle === 'solid' && c.borderTopLeftRadius === chipR
+      && parseFloat(c.paddingLeft) > 0 && c.borderTopColor === c.color && c.display !== 'inline' ); };
     Object.keys(by).forEach(k => {
       const l = by[k], pick = l.filter((x, i) => i % Math.max(1, Math.floor(l.length / 20)) === 0).slice(0, 20);
       const card = kindOf_(pick[0]).card || thingCard_;
@@ -188,6 +194,7 @@ function instruments() {
         host.innerHTML = html;
         const have = new Set([...host.querySelectorAll('.qtag')].flatMap(t => [t.getAttribute('data-f')].concat(String(t.getAttribute('data-also') || '').split(' ').filter(Boolean))));
         if (!have.size) r.noTags++;
+        if ([...host.querySelectorAll('.qtags .qtag')].some(notPill)) r.notPill = (r.notPill || 0) + 1;
         /* AN ATTRIBUTE OUTSIDE THE TAG LINE (1030): a data-f, a marks label or "[2 marks]" drawn anywhere but in .qtags. */
         const out_ = [...host.querySelectorAll('[data-f], [class*="marks"], span, small')].filter(e => !e.closest('.qtags') && !e.closest('.chips')
           && (e.hasAttribute('data-f') || /(^|\s)[\w-]*marks\b/.test(e.className || '') || /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim())));
@@ -205,6 +212,7 @@ function instruments() {
         const bad = !top || [...host.querySelectorAll('.qtags')].length !== 1 || (want > 1 && top.querySelectorAll('[data-f="marks"]').length < want)
           || [...host.querySelectorAll('span, small, div')].some(e => !e.closest('.qtags') && /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim()));
         if (bad) r.outside = (r.outside || 0) + 1; }); } catch (e) { /* no question parts in this build: nothing to measure */ }
+    host.remove(); probe.remove();
     return out;
   });
   /* TEXT BOXES (980): Find's search, a question's answer box and a Settings field, measured as drawn; one look means one signature. */

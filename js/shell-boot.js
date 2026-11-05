@@ -135,7 +135,7 @@ function tierGuardWidgets_(list) {
 
 /* ONE SCROLLING PAGE (900): sections in normal flow, scrolled by the browser. false brings back the sideways columns, the pager and the glass. */
 const FLOW_LAYOUT = true;
-if (FLOW_LAYOUT) document.documentElement.classList.add('flow');
+document.documentElement.classList.toggle('flow', FLOW_LAYOUT);
 
 /* ---------- THE TABS § */
 const TABS = [
