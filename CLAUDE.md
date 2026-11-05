@@ -1,177 +1,53 @@
-# @family. — the map
+# @family. — the one-page map
 
-A tutoring business's site. Static front end on GitHub Pages, Google Apps Script backend, three
-spreadsheets as the database. No build step, no framework — `index.html` lists the JavaScript files and
-the browser concatenates them into one global scope. This file is loaded into every session, so it holds
-the rules only; the reasons and figures behind them are in `docs/map-detail.md` and `docs/history/`.
+A tutoring business's site: static front end on GitHub Pages, Google Apps Script backend (`backend/`),
+spreadsheets as the database. No build, no framework, no modules. **Everything else — the screens,
+the data tabs, the library, the animations list, deploying, CI — is in `docs/map-detail.md`** (grep it,
+don't read it whole). Past bugs and decisions: `grep -ril <keyword> docs/history`, read around the hits.
 
-## Reading this repo cheaply
+## Reading cheaply
 
-- Grep first, then Read a line range. Never Read a whole big file (`js/find.js`, `style.css`, `js/check-flow.js`).
-- Never Read or `cat` `data/*.json` whole: a `node -e`/python one-liner for the rows you need.
-- A pathless Grep skips `docs/` and `data/` (`.ignore`). In `docs/history`, `grep -n` the keyword and read around the hits; some notes are 140 KB.
-- Checks print one line when green; `-v` (or `VERBOSE=1`) for the detail. A failure prints every failure and why.
-- A comment ending `§` was shortened: its whole story is in `docs/notes/<path>.md` (`grep -rn '<headline>' docs/notes`).
-- In a workflow: maps and mechanical stages at low effort, two agents at a time, one review lens unless the change is risky.
+- Grep first, then Read a line range. Never Read a big file whole (`js/find.js`, `style.css`, `js/check-flow.js`).
+- Never Read `data/*.json` whole: a `node -e` one-liner for the rows you need.
+- A pathless Grep skips `docs/`, `data/` and `attic/` (`.ignore`).
+- A comment ending `§` was shortened; its story is in `docs/notes/<path>.md`.
+- Switched-off code lives in `attic/` (see `attic/README.md` to bring a file back).
 
-## The shape of it
+## Rules that prevent breakage
 
-```
-index.html   lists the js/ files IN ORDER and starts the boot fetch while still parsing
-style.css    --css-version at the top says which build is running
-js/          ONE SHARED GLOBAL SCOPE. No imports. Order is load-bearing.
-backend/     the Apps Script project. GitHub holds a COPY — see Deploying.
-check/       the browser checks
-```
+1. **One global scope.** Every `js/` file shares one scope; `index.html`'s list IS the load order and must
+   not be reshuffled. `js/boot.js` is last. Nothing fails at load when a name is missing, so:
+2. **`node js/check.js` after every change** (names used but never declared).
+3. **`node tools/build-stamp.js` last**, after any change to a served file (`index.html`, `js/`, `style.css`);
+   `--check` verifies it.
+4. **Public repo:** no real names, emails, learner data or secrets in any file (`check-secrets`,
+   `check-surnames`); never commit a private library field to `data/`; no Claude model ids anywhere.
+5. **Comments say WHY, in a line or two** (≤ 240 chars, `check-comments`). No tombstones ("removed",
+   "was here", "is gone") — history goes in `docs/history/NNN`.
+6. **Fallbacks everywhere:** `brand('key', fallback)` always with a fallback, `|| []`, `try/catch` around
+   anything absent. An empty sheet must still render. A key the site reads and `doGet` never sends fails
+   silently — `node js/check-payload.js`.
+7. **A wait is `loading_()`** and nothing else; "payload still coming" is `awaiting_()`, never `!LOADED`.
+8. **A THING has tiles; a FORM has buttons** (`tile_({…})` in a `.tile-row`; `check-doors` pairs every `act`).
+   One line per thing in a form.
+9. **Switches are data:** `data/settings/tiers.json` marks each screen/widget/kind/file/check core or
+   secondary (only Find must never break); `data/settings/columns.json` lists the screens in `TAB_ORDER`
+   order and marks card columns. Change those files, not code, to turn things on/off.
+10. **Two palettes:** screen tokens (`--bg --gold --ink --line`), paper tokens (`--paper*`); never a colour
+    literal for paper. Tap targets in `px`, everything else `rem`.
+11. **Version stamps** `BACKEND_VERSION DOGET_VERSION DOPOST_VERSION BOOKING_VERSION` bump together.
+12. A new sheet tab is named in `TAB`, `SCHEMA` and `WHERE` in `backend/constants.gs`.
+13. Teaching animations are script-written rows (`tools/anim_row.py`): change the script, re-run, never hand-edit.
+14. **Two finders, one list:** outside `inFinder_(F, fn)`, `STUFF` is Find's; async jobs must re-bind.
 
-**The one rule in `js/`:** every file shares one scope, so a file must not be reordered against the
-others; `index.html`'s list is the order. Nothing fails at load if a name is missing — `node js/check.js`
-reports any name used but never declared. **Run it after every change.**
-
-| File | What it is |
-|---|---|
-| `js/shell.js` | The runtime: `screen(id, draw)`, `go(id)`, `placeCells()`, `toast()`, `TAB_ORDER`. |
-| `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, small helpers, `missingKeys()`. |
-| `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
-| `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
-| `js/book.js` | Sessions, seats, payment. |
-
-Screens, in `TAB_ORDER` (392, 461, 730, 790): `spotlight feed reel dm | stuff res saved | booking shop |
-web tutors students parents apprentices | staff site account family apprentice biz`; `data/settings/columns.json` must list the same order
-and mark the same card columns (`cards`, read into `CARD_COLS`; backend's copy in constants.gs is written by `tools/columns_gs.js`) (`check-doors`); an admin's layout (config `layout`, js/layout.js, 462-463, 710, 730) is laid over this default, its `order` over TAB_ORDER. `feed` is where the app opens (`TAB_HOME`). `stuff` is Find, whose cards include every tool and game (kinds `tool`, `game`; which ones is data/settings/widgets-in-find.json, 790); `res` is Find 2; the five profiles are Web, Tutor, Student, Parent and Apprentice profile; the six settings Tutor (`staff`), Web (`site`), Kids (`account`), Parent (`family`), Apprentice and Biz (`biz`) settings; every setting has one home. `biz` and `site` are admin-only — a tab marked
-`admin: true` is left out of `TABS` by `columnsFor_` (shell.js), which also makes and removes its `<section>`.
-
-**One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the same list and ask the same
-funnel; what makes them two is their state (words, chips, page, `find:place`/`res:place`).
-`inFinder_(F, fn)` binds one finder's `STUFF` and memos. **Outside a binding `STUFF` is Find's.** A
-timer, microtask, promise or `afterSlide_` job runs outside the binding and must capture its finder and
-bind again; forgetting "the found list" forgets every finder's (`finderForgetFound_`). Find's front pages
-and the Tools tail stay Find's alone. Don't bring back a membership rule per finder.
-
-**Layout:** screens sit side by side and slide (`placeCells()` uses transforms), so most of the app is
-parked off-canvas at any moment. That is the design. A check must ask "does this box scroll sideways
-when it was not told it could", never "is this past the right edge".
-
-## Where the data comes from
-
-`DATA` is one JSON payload from one `doGet`. The sheet is the database; the site almost never writes to it.
-
-- **`brand` tab** — key/value, read as `brand('key', fallback)`. Every call passes a fallback so an empty
-  tab still renders. **The pattern to copy for anything new.**
-- **`config` tab** — numbers and switches, reaching the site as `DATA.constants.vars`.
-- **`facets` / `kinds` tabs** — what the funnel asks and what answers are called; editorial, so not in code.
-- **One rule for every facet** (396): a facet is a field, a label and its readers (`FACET_KEYS`) — asked by `facetWhy_`,
-  sorted by `answerCmp_`, said by `facetSay_`, coloured by `TAG_OF`, and a tag on every card. Never a per-facet flag (check-funnel).
-- **Every other tab** is listed in `TAB`, `SCHEMA` and `WHERE` in `backend/constants.gs`. **All three must
-  name it** (`check-tabs.js`, which runs before `check-columns.js`).
-- **The library is two halves** (397): `data/questions|textbooks|practicals|projects.json` are the CARDS (ids, facet
-  columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
-  and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
-  row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
-  `check/lib-full.js`; a new card whose words await import carries `lib_pending` (411). See docs/library.md.
-- **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
-  person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
-  stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
-- **Teaching animations are rows of `data/textbooks.json`**, one source each (172; 436 lists them by subject).
-  Script-written, all through `tools/anim_row.py` — change the script and re-run it, never hand-edit the row:
-  - `area bayes bus cent coin fadd fdp fib fit gal index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn`
-    (`tools/<id>.py`; `gal` is `galton.py`, `orbit` is `solar.py`; the KS2 ones 409, on the KS2 book since 436)
-  - GCSE Maths `gbal gcf gcomp genl gexp gfac gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec` (`tools/g_<topic>.py`, 410)
-  - A-level Maths `abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley ariemann aroot2 aunit avec3` (`tools/a_<name>.py`, 411)
-  - Physics `phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave` (`tools/ph_<topic>.py`, 419)
-  - Chemistry and Biology `atom balance carbon cell covalent dna electro enzyme equil frac groups heart ionic mitosis moles natsel osmosis photo punnett rates reflex titrate` (`tools/cb_<id>.py` with `tools/cb_kit.py`, 420)
-  - Computer Science `bin bubble fde gates hex insert merge packet pixel rle search stack` (`tools/cs_<id>.py`, 424; a new one makes its row with `--init`)
-  - Geography `ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater` (`tools/gg_<topic>.py`, 423)
-  - History `hbal hcur hexp hinf hmed hnop hweb hweim hww2` (`tools/h_<topic>.py`, 417)
-  - English `eapos earc eforest emetre epeel escrooge esent ezoom` (`tools/e_<topic>.py`, 416)
-  - Psychology and Sociology `asch ivdv lens milg msm piag samp syn` (`tools/ps_<topic>.py`, names in `anim_row.py`; 426)
-  - Economics and Business `ecbreakeven eccashflow ecextern ecflow ecfx ecped ecppf ecrates ecsupply` (`tools/ec_<topic>.py`, 425)
-  - Spanish and French `labuild laconj laetre lagend latime` (`tools/la_<name>.py`, 427)
-  - Philosophy and RS `pcause pcave pdoubt pfall psyll ptrolley pwatch` (`tools/p_<name>.py`, 418)
-
-  For the rest the row is the source. Never in `index.html` or `style.css`; drawn only when a chapter opens — the splash is gone (466). `check-anims.js`, `check-loading.js`. A new one is a
-  script on `anim_row.Loop` that writes its whole row (`whole=True, place=…`), its class prefix unused by any other
-  drawing. One drawing per thing on a chapter. See 304, 322, 409, 436.
-- **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
-- **Ranks** (400): one per account, Student < Client < Staff < Admin, read from `people.role` by `rankOf`/`rank_()` — gate on `rankAtLeast_`, never a new role check; Staff only by an approved application; family links stay on `family`. See docs/accounts.md.
-- **Diagram PNG twins:** every `diagram` (the whole library, `check/lib-full.js`) has `data/diagrams/<12 hex of SHA-256>.png`
-  for the Sunday email, written by `tools/diagram_png.js` — re-run it after changing a drawing, never draw
-  one by hand; `check-diagram-png.js`. See 351.
-
-**A key the site reads and the backend does not send fails silently** (`|| []` looks like an empty
-database). `node js/check-payload.js` reads the files, so it sees every read: **read-and-never-sent fails
-the build; sent-and-never-read only reports** (weight to delete). Known exceptions live in its `ACCEPTED`
-list, one written reason each. (`missingKeys()` only knows the screens you happened to open.)
-
-## Deploying
-
-| What changed | How it goes live |
-|---|---|
-| `index.html`, `js/`, `style.css` | `git push` → GitHub Pages, about a minute. |
-| `backend/*.gs` | merge to `main`; in Apps Script press ↓ (GitHub Assistant), Deploy → New version, then open the site once as an admin — setup runs itself (361). |
-| Spreadsheet contents | Immediately, if the edit watch is installed. |
-
-Every sync route replaces the project's files wholesale: code typed only into the Apps Script editor is
-lost at the next sync. The routes, the two API switches and why `pullFromGitHub` is blocked: `docs/deploying.md`.
-
-## Checking your work
-
-`.claude/session-start.sh` runs the suite on arrival and prints `all N checks pass` or `CHECKS ARE RED
-ON ARRIVAL`. A check that cannot reach its subject must exit non-zero, and a mutation proves a check
-only when the real files are green again.
+## Health tools (cheap, use these)
 
 ```bash
-node js/check.js                  # names used but never declared. Run after every change.
-npm run check                     # the core checks (js/check-all.js); --all adds secondary; -v per check. Before pushing.
-FLOW_PART=1/4 node js/check-flow.js   # the journeys through the real app, in four parts
-node check/ui.js --screen=tools   # one screen of the layout check; --shots writes PNGs
-node check/live.js --sheets s.json --out /tmp/p.json && node check/ui.js --payload=/tmp/p.json
-node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails, nothing sent
+node tools/health.js --changed     # the ratchet: only what your change touches; budgets only go down
+node tools/health.js --where <x>   # where a name/element lives and what links to it
+node tools/health.js --list [n]    # the worklist, dearest first (--kind k to filter)
+node tools/health.js --plan        # writes docs/split-plan.md
+node tools/health.js               # full run: rewrites data/health.json and the report files
 ```
 
-**Two tiers** (860): only Find must never break. `data/settings/tiers.json` marks each screen, widget, kind, file and check
-core or secondary; core checks and journeys block, secondary ones (`--all`, `FLOW_TIER=all`) only print WARN.
-Each check's header says what it proves, its flags and its port variable. The full list: `docs/map-detail.md`.
-
-**CI** (780): `.github/workflows/checks.yml` runs the suite on every push and PR to main in 17 parallel jobs (~15 min), with
-`LIB_PRIVATE=absent` — no private words there, so the checks that need them skip, counted in each job's summary (skipped is
-not green). `npm run check:changed` runs only what a change touches. `live.yml` smoke-tests the live site nightly.
-
-## House style
-
-- **Comments say WHY, in a line or two** (≤ 240 characters; `check-comments` enforces). The story — what
-  broke, what was tried, the owner's words — goes in `docs/history/NNN`. A comment ending `§` was
-  shortened and its full text is in `docs/notes/<path>.md`; `node tools/comments.js` does the move.
-- **Fallbacks everywhere:** `brand(k, or)`, `|| []`, `try/catch` around anything that can be absent. An
-  empty or broken sheet must still produce a working site.
-- Plain scripts, no modules, no framework, no build.
-- **A THING has tiles; a FORM has buttons.** Tiles (`tile_({icon, label, note, act, data})` in a
-  `.tile-row`, tiles.js) are the action row under a thing — a paper, a tutor, a shop item, a session.
-  Buttons are the controls inside a form or dialog. On a question's pages everything is a tile (Check,
-  Show answer, the pen's tools, Mark with AI) except the keypad keys and multiple-choice options. Tiles
-  win any tie. A real warning is one paragraph under the row, not one per tile (`jobAdminTiles_`).
-  `check-doors` pairs every `act` with a handler.
-- **One line per thing:** a form is label/value rows, one thing each; never several controls boxed in a grid (421).
-- **Two palettes.** The screen is black and white (466; the accent token is still named `--gold`) (`--bg`, `--gold`, `--ink`, `--line`). Anything standing in
-  for paper (receipt, stubs, roster, print sheet, calendar, splash) is `--paper`, `--paper-ink`,
-  `--paper-dim`, `--paper-faint`, `--paper-strip`, `--paper-rule`. **Never write a paper colour as a literal.**
-  A colour used by more than one component is a `:root` token; one component's own colour is defined on
-  that component (`.chess { --chess-light: … }`).
-- **Tap targets in `px`, everything else in `rem`** — the root font size scales with the viewport, a fingertip does not.
-- **A wait is `loading_()`, and nothing else** — three gold dots from shell.js (`aria-busy="true"` over drawn
-  markup, removed by `loaded_`). No waiting sentence, skeleton or own spinner; an error or empty result
-  keeps its words. **Whether the payload is still coming is `awaiting_()`, never `!LOADED`.** `check-loading.js`. See 306.
-- **Version stamps** `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` are compared
-  whole: bump all four together or the You screen reports the others "Not deployed".
-- **Public repo:** no real names, emails or learner data in any file (`check-secrets`, `check-surnames`
-  enforce part of it), and no Claude model ids anywhere.
-
-## History
-
-The record of past bugs and decisions is `docs/history/`, one file per topic. Before changing an area,
-`grep -ril <keyword> docs/history` and read around the hits in the matching file — don't read the
-README index whole.
-
-Recurring lessons: fix the rule, not the instance; a fixture must send what `doGet` really sends; a
-screenshot is the last word on anything drawn; print a count rather than a silence; a mutation proves a
-check only when the real files go green again.
+Heavier checks (`npm run check`, `js/check-flow.js`, `check/ui.js`) and what each proves: `docs/map-detail.md`.
