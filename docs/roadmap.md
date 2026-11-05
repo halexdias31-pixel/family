@@ -35,6 +35,13 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
    time with the answer check proving each batch → remove old screens last. Health checker tracks it (qtypes moved,
    answer areas present, checker proofs).
 
+8. **Import any paper by uploading a folder** (owner, 5 Nov): admin-only Import in Settings; pick a folder of PDFs
+   (Edexcel, AQA, Corbettmaths, mixed); the browser reads each, recognises the publisher (one rule set each, new
+   publisher = new rule set), splits questions/parts/marks, crops figures, matches the mark scheme, tags it; a
+   preview shows each question with the checker's findings; OK saves to the private library (sheet, never the repo)
+   and it appears in Find. Mechanical, no AI; unclear items flagged, never guessed. Health checks every batch and
+   every imported question. Default: waits for OK in preview. Needs one Apps Script deploy.
+
 ## Paused, to come back to
 - **One scrolling page instead of sideways columns** (owner agreed it's the long-term move, 4 Nov): the browser's own
   scrolling, cards loaded as they scroll in, the @family keypad only in maths answer boxes. Its own careful job, with
