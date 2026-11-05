@@ -9648,20 +9648,19 @@ const sortKey_ = x => [
 
 const padNums_ = s => s.replace(/\d+/g, d => ('00000000' + d).slice(-8));
 
-/* How many cards to a page. § */
-/* `STUFF_PER_PAGE` was 8 — how many cards went on a page. There is one thing to a page now, so
-   there is no number to hold. See `stuffPerPage`. */
 
-/* THE FILTERED LIST, held between calls. § */
+/* THE FILTERED LIST, held. § */
 let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
 
 function stuffFiltered() {
-  /* KEYED ON THE PAYLOAD ITSELF, by object identity, not on `DATA.version`. § */
-  /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
+  /* KEYED ON THE PAYLOAD'S IDENTITY, no role (`itemMemoKey_`). § */
   const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO § */
   const all = stuffItems();
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
+  /* RECENT LISTS (940): opening a question re-walks fresh chips: same arrays, tallies. */
+  const back = FIND_MEMO.key !== null && (FIND_MEMO.recent || []).find(m => m.key === key && m.from === DATA && m.all === all);
+  if (back) return (FIND_MEMO = Object.assign({}, back, { recent: FIND_MEMO.recent })).items;
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
   const prev = FIND_MEMO;
@@ -9671,7 +9670,7 @@ function stuffFiltered() {
       && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
       && prev.words.every(w => words.some(n => n.includes(w)))
-      /* A QUESTION REFERENCE IS NOT A WORD, so "q8" is not a narrowing of "q" -- see `qRef_`. */
+      /* "q8" IS NOT A NARROWING OF "q" (`qRef_`). */
       && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
@@ -9687,6 +9686,7 @@ function stuffFiltered() {
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
                 words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
+  FIND_MEMO.recent = [Object.assign({}, FIND_MEMO)].concat(prev.key !== null && prev.from === DATA && prev.all === all ? (prev.recent || []).filter(m => m.key !== key) : []).slice(0, 6);
   return items;
 }
 
@@ -9696,9 +9696,7 @@ function stuffPages_() {
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   const pages = [];
-  /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
-     its parts, as the paper prints it -- see `pageParts_`. */
-  /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. § */
+  /* A SHARED STEM DRAWN ONCE (`pageParts_`); A PART BRINGS ITS WHOLE QUESTION (`wholeQuestions_`). § */
   const seq = wholeQuestions_(items);
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
