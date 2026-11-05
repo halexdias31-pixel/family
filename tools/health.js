@@ -13,7 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
-// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet.
+// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan writes docs/split-plan.md.
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -338,7 +338,7 @@ function extraWork(st) {
 /* VARIETY (920): a family where one is ideal (one question page, one card drawer, one tile maker, one row style, one wait) costs
    for every variant past the first; each variant is listed where it lives. */
 let VARIETY_LAST = null;
-function varietyWork(Q) {
+function varietyWork(Q, waits) {
   const W = [], fam = {}, app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f));
   const fnAt = (name, files) => { for (const f of files || app) { const src = read(f), i = src.search(new RegExp('function ' + name + '\\s*\\(')); if (i >= 0) return f + ':' + lineOf(src, i); } return ''; };
   const add = (id, label, ideal, part, variants) => { fam[id] = { label, count: variants.length, ideal };
@@ -369,7 +369,7 @@ function varietyWork(Q) {
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
   const wv = [{ where: fnAt('loading_', ['js/shell.js']) || 'js/shell.js', say: 'loading_' }];
-  const ow = new Map(); uniformWork().filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
+  const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
   VARIETY_LAST = fam;
@@ -447,7 +447,7 @@ function trendAppend(h) {
   const was = t[t.length - 1];
   if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
-module.exports = { health };
+module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST };
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
@@ -475,6 +475,11 @@ function changed() {
     const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
   });
+  /* THE STRUCTURE RATCHET (920): no file, long function, variety family or one-off over its budget; a gain tightens the budget. */
+  const R = require('./structure.js').ratchet([...files]);
+  bad.push(...R.bad);
+  if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));
+  if (R.B) console.log(require('./structure.js').progress(R.B).line);
   const s = ((Date.now() - t0) / 1000).toFixed(1) + 's';
   if (!bad.length) { console.log(`health --changed: no new findings in ${files.size} changed file(s) (${s})`); process.exit(0); }
   bad.forEach(b => console.log(b));
@@ -529,6 +534,8 @@ if (require.main === module && process.argv.includes('--budgets')) {
 } else if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
 else if (require.main === module && process.argv.includes('--fix')) fix();
 else if (require.main === module && process.argv.includes('--changed')) changed();
+else if (require.main === module && process.argv.includes('--plan')) require('./structure.js').plan();
+else if (require.main === module && process.argv.includes('--structure-init')) require('./structure.js').init();
 else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
