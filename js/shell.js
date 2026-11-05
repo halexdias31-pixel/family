@@ -3891,12 +3891,12 @@ function buildMayReload_(tag, booted) {
 }
 
 /* A NEWER BUILD IS NEVER ASKED ABOUT (610). It loads at a safe moment (970): nothing focused, no keypad, no fresh touch, nothing refused, every hand-changed box one js/resume.js brings back. */
-let BUILD_WAITING = null;
+let BUILD_WAITING = null, BUILD_TOUCH = 0;
 function buildQuietly_() {
   const tag = BUILD_WAITING, a = document.activeElement;
   if (!tag) return;
   try { if (sessionStorage.getItem('familyBuiltFor') === tag) { BUILD_WAITING = null; return; } } catch (e) { return; }
-  if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable) || document.documentElement.classList.contains('kp-up') || Date.now() - (window.BUILD_TOUCH || 0) < 1500) return;
+  if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable) || document.documentElement.classList.contains('kp-up') || Date.now() - BUILD_TOUCH < 1500) return;
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input[type="password"], input:not([type])')).filter(el => String(el.value || '').trim() && el.value !== el.defaultValue
     && (/^password$/i.test(el.type) || !(el.hasAttribute('data-draft') || /^notepad$/.test(el.id) || /^qp-(ans|multi)$/.test(el.getAttribute('data-do') || ''))));
   if (typed.length || typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return;

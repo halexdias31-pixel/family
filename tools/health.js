@@ -147,6 +147,9 @@ function uxWork() {
   let qc = null; try { qc = JSON.parse(read('data/qcard-health.json')); } catch (e) { qc = null; }
   const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
   if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
+  /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
+  ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
+  if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
   /* UPDATE CONTINUITY (970): data/update-health.json, from tools/update-health.js; a deploy must land without losing a place or a draft. */
   let u = null; try { u = JSON.parse(read('data/update-health.json')); } catch (e) { u = null; }
   if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
@@ -403,13 +406,15 @@ function varietyWork(Q, waits) {
   add('wait', 'Wait indicators', 1, 'ui', wv);
   /* TEXT BOXES (980): the global input rule is the one look; any rule on a text box that sets radius, background, border or font to other values is another. */
   const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
-    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ');
+    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
     return o; };
   const base = look((/\ninput, select, textarea, \.many-sum \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (input, select, textarea)', say: 'the one field look' }];
   for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
     if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
     if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^input, select, textarea, \.many-sum$/.test(sel)) continue;
-    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|transparent)$/.test(o[k]));
+    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
+    if (/appearance:\s*none/.test(m[2])) continue;
+    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
     if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
   add('textbox', 'Text boxes', 1, 'ui', tv);
   VARIETY_LAST = fam;

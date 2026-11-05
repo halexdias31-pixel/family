@@ -196,6 +196,24 @@ function instruments() {
     });
     return out;
   });
+  /* TEXT BOXES (980): Find's search, a question's answer box and a Settings field, measured as drawn; one look means one signature. */
+  const boxLooks = await page.evaluate(async () => {
+    const wait = ms => new Promise(ok => setTimeout(ok, ms)), out = [];
+    const sig = el => { const c = getComputedStyle(el); return { h: Math.round(el.getBoundingClientRect().height), radius: c.borderTopLeftRadius, font: c.fontSize + ' ' + c.fontFamily.split(',')[0],
+      padR: c.paddingRight, bg: c.backgroundColor, border: c.borderTopWidth + ' ' + c.borderTopStyle + ' ' + c.borderTopColor }; };
+    const vis = el => el && el.getBoundingClientRect().width > 0;
+    try { go('stuff'); await wait(400); const s = document.querySelector('#s-stuff input[type="search"], #s-stuff input.search, #stuff-q'); if (vis(s)) out.push({ where: 'Find search', sig: sig(s) }); } catch (e) { /* not reached: left out */ }
+    try { const qs = stuffItemsAll_().filter(x => x && x.kind === 'question');
+      for (let i = 0; i < Math.min(qs.length, 300); i += 11) { finderOpen_(qs[i], null, FINDERS.stuff); await wait(120);
+        const a = document.querySelector('#s-stuff .page.on .qp-bar > .qp-ans'); if (vis(a)) { out.push({ where: 'question answer box', sig: sig(a) }); break; } } } catch (e) { /* not reached: left out */ }
+    try { for (const t of TABS) { go(t.id); await wait(300);
+      const f = [...document.querySelectorAll('#s-' + t.id + ' input[data-draft^="set:"]')].find(e => vis(e) && !e.disabled && (e.type === 'text' || !e.getAttribute('type')));
+      if (f) { out.push({ where: 'Settings field (' + t.id + ')', sig: sig(f) }); break; } } } catch (e) { /* not reached: left out */ }
+    const first = out[0] ? out[0].sig : {}, off = [];
+    out.slice(1).forEach(o => Object.keys(first).forEach(k => { if (k === 'h' ? Math.abs(o.sig.h - first.h) > 2 : o.sig[k] !== first[k]) off.push(`${o.where} ${k} ${o.sig[k]} (${out[0].where} ${first[k]})`); }));
+    return { faces: out, off };
+  }).catch(e => ({ faces: [], off: [], error: String(e.message).slice(0, 120) }));
+  mark('boxLooks');
   /* REPEAT VISIT (920 cache): the same browser opens the site again; bytes over the network against bytes from a cache (HTTP or the service worker). */
   const bytes = pg => pg.evaluate(() => { const r = performance.getEntriesByType('resource').concat(performance.getEntriesByType('navigation'));
     const o = { n: r.length, netKB: 0, cacheN: 0, cacheKB: 0 };
@@ -212,6 +230,7 @@ function instruments() {
     visits: { first: firstVisit, repeat },
     walked: { viewport: '390x844 touch', cpu: CPU + 'x (1x for the question sample)', ms: Date.now() - t0, phase },
     firstScreenMs: Math.round(first), findUsableMs: Math.round(usable), signinMs: Math.round(signin), heapMB: Math.round(heap / 1048576 * 10) / 10,
+    boxLooks,
     heapLiveMB: Math.round(live / 1048576 * 10) / 10, garbageMB: Math.round(Math.max(0, heap - live) / 1048576 * 10) / 10,
     clicks, thresholds: { clickMs: CLICK_MS, shift: SHIFT },
     slow: clicks.filter(c => !c.missing && (c.ms > CLICK_MS || c.shift > SHIFT)),

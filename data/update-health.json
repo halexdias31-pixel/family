@@ -1,6 +1,6 @@
 {
  "walked": {
-  "ms": 56511,
+  "ms": 56407,
   "idleMs": 3000,
   "boundMs": 20000
  },
@@ -10,13 +10,13 @@
    "name": "keypad answer in Find",
    "pass": true,
    "why": [],
-   "ms": 1421
+   "ms": 2620
   },
   {
    "name": "settings box",
    "pass": true,
    "why": [],
-   "ms": 6528
+   "ms": 6769
   }
  ],
  "errors": []

@@ -5,9 +5,9 @@
 const RESUME_POLL = 4 * 60 * 1000;
 const RESUME_IDLE = (typeof window.BUILD_IDLE_MS === 'number' && window.BUILD_IDLE_MS) || 45000;
 const RESUME_KEY = 'familyResume';
-window.BUILD_TOUCH = Date.now();
+BUILD_TOUCH = Date.now();
 ['pointerdown', 'pointermove', 'keydown', 'input', 'touchstart', 'wheel'].forEach(ev =>
-  document.addEventListener(ev, () => { window.BUILD_TOUCH = Date.now(); }, { passive: true, capture: true }));
+  document.addEventListener(ev, () => { BUILD_TOUCH = Date.now(); }, { passive: true, capture: true }));
 
 /* A TAB LEFT OPEN ALL DAY STILL HEARS OF A DEPLOY: one HEAD on focus and every few minutes; a hidden page takes it at once. */
 function resumeAsk_(force) {
@@ -19,7 +19,7 @@ function resumeAsk_(force) {
 window.addEventListener('focus', () => resumeAsk_(false));
 setInterval(() => { if (!document.hidden) resumeAsk_(true); }, RESUME_POLL);
 setInterval(() => {
-  try { if (BUILD_WAITING && !document.hidden && Date.now() - window.BUILD_TOUCH > RESUME_IDLE) buildQuietly_(); } catch (e) { oops_(e, 'resume') }
+  try { if (BUILD_WAITING && !document.hidden && Date.now() - BUILD_TOUCH > RESUME_IDLE) buildQuietly_(); } catch (e) { oops_(e, 'resume') }
 }, Math.min(RESUME_IDLE, 15000));
 
 /* ---------- THE NOTE: written as the page goes, only when this page set a new build's mark — i.e. the reload is the update's own § */
