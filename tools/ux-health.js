@@ -104,7 +104,6 @@ function instruments() {
   await tap('Check', '#s-stuff [data-do="qp-check"]');
   await tap('Lock the page', '#s-stuff [data-do="q-lock"]');
   await tap('Unlock the page', '#s-stuff [data-do="q-lock"]');
-  await tap('Fold the question', '#s-stuff [data-do="qt-fold"]');
   await tap('Back to the top of Find', '#s-stuff [data-do="find-top"]');
   await tap('front menu again', PICK);
   await tap('Next answer down', PICK);

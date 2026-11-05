@@ -445,7 +445,7 @@
    "rawButton": 0
   },
   "js/qtools.js": {
-   "lines": 323,
+   "lines": 316,
    "oneOff": 12,
    "emptyCatch": 2,
    "inlineStyle": 0,
@@ -606,7 +606,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7180,
+   "lines": 7175,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -704,7 +704,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7469069,
+  "searchBytes": 7468076,
   "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100
@@ -717,6 +717,8 @@
   "card-order": 0,
   "indent": 0,
   "tap-response": 0,
-  "text-overflow": 0
+  "text-overflow": 0,
+  "stable-controls": 12,
+  "static-controls": 5
  }
 }
