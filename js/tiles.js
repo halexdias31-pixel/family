@@ -380,7 +380,7 @@ function boxerTiles_(x) {
 
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
-/* EACH KIND'S EXTRAS (data, not branches): tiles or tile_ data; find.js, hymns.js and mechanics.js add their own kinds. */
+/* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
   level: levelTiles_, fight: fightTiles_, boxer: boxerTiles_, receipt: jobTiles_, talmud: x => talmudTiles_(x) };
 function cardCore_(x) {
@@ -392,7 +392,7 @@ function cardCore_(x) {
   return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
 }
 function cardExtras_(x) {
-  const fn = CARD_EXTRAS_[x.kind];
+  const fn = CARD_EXTRAS_[x.kind] || (window.CARD_EXTRAS_MORE || {})[x.kind];
   if (typeof fn !== 'function') return '';
   const r = fn(x);
   return typeof r === 'string' ? r : tile_(r);

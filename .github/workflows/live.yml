@@ -46,6 +46,14 @@ jobs:
           set -o pipefail
           node check/live-smoke.js --shots=live-shots | tee live.log
           tail -40 live.log >> "$GITHUB_STEP_SUMMARY"
+      # THE REAL SITE'S FIRST SCREEN, TIMED (1000): doGet cold/warm, payload KB, Find on a throttled phone; scored by tools/health.js.
+      - name: Time the live load
+        if: always()
+        continue-on-error: true
+        run: |
+          node tools/live-load.js | tee -a live.log
+          cp data/live-health.json live-shots/ 2>/dev/null || true
+          tail -1 live.log >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

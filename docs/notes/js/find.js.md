@@ -10084,9 +10084,9 @@ top level, before `NEEDS_SAY`
    how it is SAID, and `showOf` is the funnel's own door for exactly that. */
 ```
 
-### NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so
+### NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`).
 
-in `questionCard_`
+in `questionCard_` (since 990; before 960 a stem was its own page, `questionStemCard_`, gone in 990)
 
 ```
 /* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part
@@ -16282,5 +16282,14 @@ top level, before `facetNoneHtml_`
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): the owner, "why isn't there an Accuracy verified option?" — every facet, one rule. A
    question not asked because all of these answer it one way, while the whole list has exactly two answers, says the other greyed
    with its 0 rather than vanishing. Never pressable, never in `.answers`. */
+```
+
+### ONE RULE FOR AN ANSWER'S WORDS (940):
+
+top level, before `ANSWER_SAY`
+
+```
+/* ONE RULE FOR AN ANSWER'S WORDS (940): the menu, the chip and the card's tag line all read them here — the answer as its menu
+   over this finder's whole list draws it (shortest unique form, plus what tells it apart), so it never reads two ways. */
 ```
 

@@ -1,0 +1,29 @@
+{
+ "at": "2026-11-05T13:33:26.925Z",
+ "site": "https://atfamily.co.uk/",
+ "net": "150ms 1.6Mbit/s, CPU x4",
+ "doGetColdMs": 11425,
+ "doGetWarmMs": 3556,
+ "payloadKB": 97,
+ "payloadGzipKB": 14,
+ "coldMenuMs": 8268,
+ "returnMenuMs": 4884,
+ "visits": [
+  {
+   "label": "first visit",
+   "menuMs": 8268,
+   "dotsMs": 3873,
+   "doGetAt": 2747,
+   "library": [],
+   "errors": []
+  },
+  {
+   "label": "return visit",
+   "menuMs": 4884,
+   "dotsMs": 500,
+   "doGetAt": 3168,
+   "library": [],
+   "errors": []
+  }
+ ]
+}

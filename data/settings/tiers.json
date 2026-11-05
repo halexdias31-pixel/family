@@ -141,6 +141,7 @@
     "push": "secondary",
     "inbox": "secondary",
     "missing": "secondary",
+    "resume": "core",
     "boot": "core"
   },
   "eagerSecondary": {

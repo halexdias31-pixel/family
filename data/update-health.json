@@ -1,0 +1,23 @@
+{
+ "walked": {
+  "ms": 56407,
+  "idleMs": 3000,
+  "boundMs": 20000
+ },
+ "pass": true,
+ "cases": [
+  {
+   "name": "keypad answer in Find",
+   "pass": true,
+   "why": [],
+   "ms": 2620
+  },
+  {
+   "name": "settings box",
+   "pass": true,
+   "why": [],
+   "ms": 6769
+  }
+ ],
+ "errors": []
+}

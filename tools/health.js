@@ -13,7 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
-// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan writes docs/split-plan.md.
+// FIND WORKLIST (920): §
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -46,11 +46,16 @@ function findWork(L) {
   const fsrc = read('js/find.js'), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
-  /* tag-colour: TAG_OF colours a FIELD, so every answer of one menu wears the same colour. */
+  /* tag-colour: a per-FIELD colour table (TAG_OF) gives one menu's answers one colour; each hue must also read on --bg (1010). */
   const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
-  for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
-  Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
+  if (tagAt >= 0) for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
+  if (tagAt >= 0 || !/tagOf_\(field, value(, at)?\)/.test(fsrc)) Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
     say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
+  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the answer colours were NOT checked' });
+  hues.forEach(m => { const a = lum(m[2]), b = lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    if (r < 3) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index), say: `--hue-${m[1]} #${m[2]} is ${r.toFixed(2)}:1 on --bg, under 3:1` }); });
   /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
   const nf = /function nextFacet\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
   if (nf && /for \(const facet of facetList\(\)\)[\s\S]*return facet/.test(nf[0]))
@@ -130,6 +135,14 @@ function uxWork() {
   (j.clicks || []).filter(c => c.churnMB > 20).forEach(c => W.push({ kind: 'ux', where: 'click: ' + c.what, say: `${c.churnMB} MB of heap churned by one click (budget 20)` }));
   (j.a11y || []).forEach(a => W.push({ kind: 'a11y', where: a.screen + ' ' + a.what, say: a.say }));
   (j.consoleErrors || []).concat(j.errors || []).forEach(e => W.push({ kind: 'console', where: 'the UX walk', say: e }));
+  /* THE REAL SITE (1000): data/live-health.json, tools/live-load.js against the live URL and API; the walk above uses a fixture. */
+  let L = null; try { L = JSON.parse(read('data/live-health.json')); } catch (e) { L = null; }
+  if (L) {
+    const over = (v, b) => v == null || v > b;
+    if (over(L.returnMenuMs, 3000)) W.push({ kind: 'ux', where: 'live: Find, return visit', say: `${L.returnMenuMs == null ? 'never' : L.returnMenuMs + ' ms'} to Find's first screen on the live site (budget 3000)` });
+    if (over(L.coldMenuMs, 6000)) W.push({ kind: 'ux', where: 'live: Find, first visit', say: `${L.coldMenuMs == null ? 'never' : L.coldMenuMs + ' ms'} to Find's first screen on the live site (budget 6000)` });
+    if (L.payloadGzipKB > 100) W.push({ kind: 'ux', where: 'live: doGet', say: `${L.payloadGzipKB} KB gzip payload (budget 100)` });
+  }
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
   const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
   const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };
@@ -143,9 +156,19 @@ function uxWork() {
       if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
   if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
   ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
+  /* ONE CARD PER QUESTION, TAPS, SPILLED WORDS (960): check/qcard.js's walk, each count over its budget a finding; ideal 0. */
+  let qc = null; try { qc = JSON.parse(read('data/qcard-health.json')); } catch (e) { qc = null; }
+  const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
+  if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
+  /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
+  ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
+  if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
+  /* UPDATE CONTINUITY (970): data/update-health.json, from tools/update-health.js; a deploy must land without losing a place or a draft. */
+  let u = null; try { u = JSON.parse(read('data/update-health.json')); } catch (e) { u = null; }
+  if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
   return { j, work: W };
 }
-const UX_PENALTY = { ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
+const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -394,10 +417,23 @@ function varietyWork(Q, waits) {
   const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
+  /* TEXT BOXES (980): the global input rule is the one look; any rule on a text box that sets radius, background, border or font to other values is another. */
+  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
+    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
+    return o; };
+  const base = look((/\ninput, select, textarea, \.many-sum \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (input, select, textarea)', say: 'the one field look' }];
+  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
+    if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
+    if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^input, select, textarea, \.many-sum$/.test(sel)) continue;
+    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
+    if (/appearance:\s*none/.test(m[2])) continue;
+    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
+    if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
+  add('textbox', 'Text boxes', 1, 'ui', tv);
   VARIETY_LAST = fam;
   return W;
 }
-const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5], 'variety-cardrow': [0.2, 5] };
+const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5], 'variety-cardrow': [0.2, 5], 'variety-textbox': [0.2, 5] };
 /* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
 function firstDownload() {
   /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
@@ -539,9 +575,7 @@ function where(word) {
   if (uses.length > 200) console.log(`  … ${uses.length - 200} more`);
   console.log(`(${files.length} files, ${Date.now() - t0} ms)`);
 }
-/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. A colour literal in a rule that equals a token
-   defined ONCE (never re-themed) becomes var(--token); check-catches' ceiling drops to the count. Empty catches are listed, not
-   rewritten: oops_ reports to the backend, which would change what the site does. */
+/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. § */
 function fix() {
   const t0 = Date.now(), done = [];
   let css = read('style.css');

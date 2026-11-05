@@ -1019,7 +1019,7 @@ function customTitle_(id, L) {
   try { return first ? layoutDeletedName_(first) : 'Column'; } catch (e) { return 'Column'; }
 }
 /* INTO `COLUMNS` as the layout in force places them — `columnsFor_` (shell.js) asks first, every time. */
-function customTabsSync_() {
+function customTabsSync_() { try { void LAYOUT_EDIT; void LAYOUT_COL; void CUSTOM_TABS; } catch (e) { return; } // not run yet (1000)
   const L = layoutNow_(), want = (L || {}).custom || [];
   for (let i = COLUMNS.length - 1; i >= 0; i--) if (COLUMNS[i].custom) COLUMNS.splice(i, 1);
   /* `first` (710) before the first column a unit stands on, `left` (600) before Parent settings, an admin-only one (508) last, the rest before Business. */

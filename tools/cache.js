@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* @family. — tools/cache.js IS CACHING USED TO THE MAX (920): static, from index.html, sw.js and js/, plus the UX walk's repeat visit
-   (data/ux-health.json `visits`). GitHub Pages sends max-age=600 for every file; it cannot be raised, so the long life is the worker's. */
+/* @family. — tools/cache.js IS CACHING USED TO THE MAX (920): § */
 'use strict';
 const H = require('./health.js');
 

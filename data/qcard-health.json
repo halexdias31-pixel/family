@@ -1,0 +1,219 @@
+{
+ "at": "2026-11-05",
+ "pages": 15146,
+ "sampled": 61,
+ "checks": {
+  "card-split": 0,
+  "orphan-part": 0,
+  "dup-tagline": 0,
+  "tile-groups": 0,
+  "card-order": 0,
+  "indent": 0,
+  "tap-response": 0,
+  "text-overflow": 0,
+  "stable-controls": 12,
+  "static-controls": 5
+ },
+ "where": {
+  "card-split": [],
+  "orphan-part": [],
+  "dup-tagline": [],
+  "tile-groups": [],
+  "card-order": [],
+  "indent": [],
+  "tap-response": [],
+  "text-overflow": [],
+  "stable-controls": [
+   "settings card-cancel#1: height 3853->3686",
+   "settings card-cancel#1: gone rep-send#1",
+   "settings card-cancel#1: gone rep-pic#1",
+   "settings me-save#1: height 3686->3728",
+   "settings me-save#1: moved lay-split#1",
+   "settings me-save#1: moved pin-save#1",
+   "settings lay-split#1: height 3728->3686",
+   "settings lay-split#1: moved pin-save#1",
+   "settings lay-split#1: moved voice-try#1",
+   "settings pin-save#1: height 3686->3702",
+   "settings pin-save#1: moved voice-try#1",
+   "settings pin-save#1: moved rep-box#1"
+  ],
+  "static-controls": [
+   "find.js:9737 card-share",
+   "find.js:9738 card-share",
+   "receipt.js:530 job-request-answer",
+   "talmud.js:273 tal-size",
+   "words.js:191 seen-open"
+  ]
+ },
+ "taps": [
+  {
+   "screen": "question",
+   "act": "rep-box",
+   "ms": [
+    5,
+    5
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qt-pen",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qt-inst",
+   "ms": [
+    15,
+    2
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-work",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "q-mag",
+   "ms": [
+    4,
+    4
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "read-aloud",
+   "ms": [
+    12,
+    9
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "q-lock",
+   "ms": [
+    4,
+    4
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-undo",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-clear",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-check",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "card-share",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "fav",
+   "ms": [
+    52,
+    57
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "help-hand",
+   "ms": [
+    32,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "pad-check",
+   "ms": [
+    1,
+    1
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-cells-check",
+   "ms": [
+    57,
+    38
+   ]
+  },
+  {
+   "screen": "question",
+   "act": "qp-choice-check",
+   "ms": [
+    1,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "card-save",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "card-cancel",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "me-save",
+   "ms": [
+    1,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "lay-split",
+   "ms": [
+    0,
+    0
+   ]
+  },
+  {
+   "screen": "settings",
+   "act": "rep-box",
+   "ms": [
+    4,
+    4
+   ]
+  }
+ ],
+ "errors": []
+}

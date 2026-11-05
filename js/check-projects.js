@@ -72,18 +72,8 @@ if (!/projectType:\s*libS\(r\.project_type\)/.test(libSrc)) {
 if (!/\n\s*projectType:\s*projType_\(p\)/.test(findSrc)) {
   fail.push('the project mapper in js/find.js does not put `projectType` on the item, so the funnel has nothing to read');
 }
-/* IN `TAG_OF` ITSELF, not anywhere in the file. Tested against the whole of find.js this passed with
-   the entry deleted and the words quoted in a comment elsewhere; `check-bible.js` cuts the same
-   block out first, and so does this. */
-const tagSrc = (() => {
-  const i = findSrc.indexOf('const TAG_OF = {');
-  const j = i < 0 ? -1 : findSrc.indexOf('\n};', i);
-  return i < 0 || j < 0 ? '' : findSrc.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, '');
-})();
-if (!tagSrc) fail.push('js/find.js has no `const TAG_OF = {` block — the type colour was NOT checked');
-else if (!/\bprojectType:\s*'type'/.test(tagSrc)) {
-  fail.push('TAG_OF in js/find.js has no `projectType: \'type\'` — the answer and its chip would be the plain outline, not the type colour experiment-or-build wears');
-}
+/* ITS ANSWERS ARE COLOURED BY THE ONE RULE EVERY MENU USES (1010): a hue per place in the menu. */
+if (!/function tagOf_\(field, value(, at)?\)/.test(findSrc)) fail.push('tagOf_ in js/find.js does not colour by answer — experiment and build would wear one colour');
 let facetRows = [];
 try { facetRows = JSON.parse(fs.readFileSync(path.join(root, 'data', 'settings', 'facets.json'), 'utf8')); }
 catch (e) { fail.push('data/settings/facets.json does not parse — the Project or coursework question was NOT checked'); }

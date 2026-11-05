@@ -45,9 +45,11 @@ function helpRow_(x, pg) {
 
 /* REDRAWN WHERE IT STANDS: the tile and its words only, so the star and Suggest joined into its row stay (`tileRowsJoin_`). */
 function helpPaint_() {
-  document.querySelectorAll('.qcard .help-hand').forEach(t => {
+  /* EVERY HAND, wherever its row stands: the card's row is outside `.qcard` since 950 joined Help into it, and a tap there redrew nothing (960). */
+  document.querySelectorAll('.help-hand').forEach(t => {
     const x = { key: t.getAttribute('data-q') || '', name: t.getAttribute('data-label') || '' }, pg = t.getAttribute('data-pg') || '';
-    const here = helpHere_(x, pg), card = t.closest('.qcard');
+    const row = t.closest('.tile-row'), prev = row && row.previousElementSibling;
+    const here = helpHere_(x, pg), card = t.closest('.qcard') || (prev && prev.querySelector('.qwhole, .qcard'));
     if (card) card.classList.toggle('is-help', here);
     const say = t.parentElement && t.parentElement.querySelector('.qhelp-say');
     if (say && !here) say.remove();

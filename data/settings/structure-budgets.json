@@ -6,7 +6,7 @@
   "js/me.js": 184,
   "js/posts.js": 112,
   "js/games.js": 106,
-  "js/tiles.js": 65,
+  "js/tiles.js": 63,
   "js/arcade.js": 93,
   "js/layout.js": 76,
   "js/data.js": 70,
@@ -30,7 +30,7 @@
   "js/hadith.js": 21,
   "js/push.js": 23,
   "js/words.js": 23,
-  "js/hymns.js": 19,
+  "js/hymns.js": 18,
   "js/links.js": 17,
   "js/missing.js": 21,
   "js/pdtexts.js": 14,
@@ -54,7 +54,7 @@
   "js/racer.js": 19,
   "js/rewrite.js": 19,
   "js/settings.js": 10,
-  "js/mechanics.js": 14,
+  "js/mechanics.js": 13,
   "js/spotify.js": 12,
   "js/boot.js": 17,
   "js/chemistry.js": 10,
@@ -62,7 +62,8 @@
   "js/pixel.js": 9,
   "js/ink.js": 2,
   "js/finder-tags.js": 1,
-  "js/select.js": 3
+  "js/select.js": 3,
+  "js/resume.js": 13
  },
  "targets": {
   "fileLines": 800,
@@ -255,8 +256,8 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12124,
-   "oneOff": 167,
+   "lines": 12073,
+   "oneOff": 128,
    "emptyCatch": 30,
    "inlineStyle": 2,
    "rawButton": 8
@@ -325,7 +326,7 @@
    "rawButton": 0
   },
   "js/keypad.js": {
-   "lines": 1786,
+   "lines": 1785,
    "oneOff": 18,
    "emptyCatch": 21,
    "inlineStyle": 1,
@@ -444,7 +445,7 @@
    "rawButton": 0
   },
   "js/qtools.js": {
-   "lines": 323,
+   "lines": 316,
    "oneOff": 12,
    "emptyCatch": 2,
    "inlineStyle": 0,
@@ -528,7 +529,7 @@
    "rawButton": 0
   },
   "js/shell.js": {
-   "lines": 3952,
+   "lines": 3933,
    "oneOff": 35,
    "emptyCatch": 44,
    "inlineStyle": 0,
@@ -605,7 +606,14 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7184,
+   "lines": 7175,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/resume.js": {
+   "lines": 89,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -635,7 +643,7 @@
   "js/find.js stuffItemsRaw_": 171,
   "js/find.js accountPages_": 109,
   "js/find.js bundleBuild_": 85,
-  "js/find.js paintStuff": 88,
+  "js/find.js paintStuff": 87,
   "js/find.js paneReach_": 119,
   "js/games.js vidPaint_": 82,
   "js/library.js libraryExtras_": 181,
@@ -649,9 +657,8 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/shell.js go": 83,
   "js/shell.js placeGrid": 165,
-  "js/shell.js loadOnce_": 252,
+  "js/shell.js loadOnce_": 251,
   "js/submit.js subMigrate_": 83
  },
  "variety": {
@@ -689,12 +696,27 @@
    "count": 1,
    "ideal": 1,
    "label": "Card tile rows"
+  },
+  "textbox": {
+   "count": 2,
+   "ideal": 1,
+   "label": "Text boxes"
   }
  },
  "aiCost": {
-  "searchBytes": 7483334,
-  "commentRatio": 0.266,
+  "searchBytes": 7470149,
+  "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100
+ },
+ "qcard": {
+  "card-split": 0,
+  "orphan-part": 0,
+  "dup-tagline": 0,
+  "tile-groups": 0,
+  "card-order": 0,
+  "indent": 0,
+  "tap-response": 0,
+  "text-overflow": 0
  }
 }

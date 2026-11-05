@@ -363,9 +363,8 @@ declared.forEach(d => {
   const flags = (d.line.match(/\b(only|folder|grid|always|tagOnly|asIs|orderOf|cmp|not|min)\s*:/g) || []);
   if (flags.length) fail.push('`' + d.field + '` carries ' + flags.join(' ') + ' — a Bible question is an ordinary facet, asked by the one rule');
 });
-/* AND A COLOUR EACH, so a chip and the card's tag say the same thing the same way. */
-const tagSrc = (() => { const i = findSrc.indexOf('const TAG_OF = {'); const j = findSrc.indexOf('\n};', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
-SIX.forEach(f => { if (!new RegExp('\\b' + f + ":\\s*'\\w+'").test(tagSrc)) fail.push('TAG_OF does not name `' + f + '` — its chip would be the plain outline beside the card\'s coloured tag'); });
+/* AND A COLOUR EACH, by the one rule: an answer's hue is its place in its menu (1010). */
+if (!/function tagOf_\(field, value(, at)?\)/.test(findSrc)) fail.push('tagOf_ does not colour by answer — a chip and the card\'s tag could disagree');
 /* AND THE SHEET: a live row for each, in order, between the shelf they are asked after and the
    textbook's question they come before — the tab's sort_order is the only thing that orders them. */
 let sheet = [];

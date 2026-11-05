@@ -61,7 +61,7 @@ function mechCard_(x) {
 }
 /* A CAR'S PARTS ARE A FIND (650): Part with this engine chosen, on the card's one row (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.engine ? { icon: 'search', label: 'Parts', note: 'every part for the ' + r.name, act: 'mech-parts', data: { engine: r.engine } } : null; }
-CARD_EXTRAS_.mech = mechExtras_;
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });
 
 on('mech-parts', el => finderSet_(finderAt_(el), { filters: [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: MECH_SUBJECT },
   { field: 'mKind', value: 'Part' }, { field: 'mEngine', value: el.dataset.engine }] }));

@@ -137,7 +137,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     byId = new Map(w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row).map(x => [x.row.row_id, x]));
   };
   await fresh();
-  const need = ['stuffItemsAll_', 'stuffCard', 'questionStemCard_', 'questionPreCard_', 'markAnswer_', 'markWords_', 'markCells_',
+  const need = ['stuffItemsAll_', 'stuffCard', 'questionWhole_', 'qId_', 'markAnswer_', 'markWords_', 'markCells_',
     'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_', 'padSource_', 'padHasArt_'];
   const missing = need.filter(n => typeof w[n] !== 'function');
   if (!missing.length && A && !(Array.isArray(A.QT_ORDER) && A.QT_ORDER.join(' ') === TOOL_ORDER.join(' '))) missing.push('QT_ORDER in the owner\'s order (' + TOOL_ORDER.join(' ') + ')');
@@ -317,23 +317,12 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     } catch (e) { bad('self', x, 'the marker threw: ' + e.message); }
     /* ---------- EVERY PAGE OF IT, AND WHAT IT READS ---------- */
     try {
-      (x.stems || []).forEach((p, i) => {
-        const chunks = w.stemChunks_(p);
-        for (let j = 0; j < chunks.length; j++) {
-          host.innerHTML = w.questionStemCard_(x, i, j);
-          count.pages++;
-          if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'stem page ' + i + '.' + j + ' has no Magnifier');
-          if (twiceOn(host).length) bad('twice', x, 'stem page ' + i + '.' + j + ' has a tile more than once: ' + twiceOn(host).join(', '));
-          if (!figs()) bad('figures', x, 'stem ' + i + ' has a drawing with no size');
-        }
-      });
-      const pre = w.partChunks_(x).length - 1;
-      for (let j = 0; j < pre; j++) {
-        host.innerHTML = w.questionPreCard_(x, j);
-        count.pages++;
-        if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'page ' + (j + 1) + ' of its words has no Magnifier');
-        if (twiceOn(host).length) bad('twice', x, 'page ' + (j + 1) + ' of its words has a tile more than once: ' + twiceOn(host).join(', '));
-      }
+      /* ONE CARD PER QUESTION NUMBER (960): its openings and every part on it. */
+      host.innerHTML = w.questionWhole_(x, w.questionParts_()[w.qId_(x)] || [x], null, true);
+      count.pages++;
+      if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'its card has no Magnifier');
+      if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
+      if ((x.stems || []).length && !figs()) bad('figures', x, 'its card has a drawing with no size');
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (uses) {

@@ -53,7 +53,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, STUFF, stuffHay_, norm,' +
-      ' stuffNarrow_, stuffWords_, tagOf_, TAG_OF, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
+      ' stuffNarrow_, stuffWords_, tagOf_, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
       ' answerCmp_, placeChipDead_, NEED_WORDS,' +
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
@@ -143,7 +143,7 @@ boot(f => {
     });
     facets.forEach(x => {
       ['min', 'always', 'folder', 'grid', 'only', 'tagOnly'].forEach(k => { if (k in x) bad.push('the live `' + x.field + '` carries `' + k + '` — the sheet or the code gave one facet a rule of its own'); });
-      if (!f.tagOf_(x.field)) bad.push('`' + x.field + '` has no tag colour — TAG_OF and its default must colour every facet');
+      if (!f.tagOf_(x.field)) bad.push('`' + x.field + '` has no tag colour — tagOf_ must colour every facet');
     });
     if (f.tagOf_('aFacetTheSheetInvented') !== f.tagOf_('another')) bad.push('two unlisted facets get different colours — a facet nobody listed takes the one default');
     if (!f.tagOf_('aFacetTheSheetInvented')) bad.push('a facet the sheet invents gets no colour');

@@ -700,27 +700,26 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A FIGURE\'S INK A MADE-UP SURFACE ON THE CARD DOES NOT GET (356)', inkBad);
 }
 
-/* ---------- EVERY TAG KIND `TAG_OF` NAMES HAS ONE COLOUR, AND NO COLOUR IS FOR A KIND IT DOES NOT NAME (355, 396) § */
+/* ---------- EVERY HUE `tagOf_` CAN GIVE HAS A RULE AND A TOKEN, AND NO OTHER TAG COLOUR EXISTS (1010) */
 {
   const tagBad = [];
   const findSrc = fs.readFileSync(path.join(dir, 'js', 'find.js'), 'utf8');
-  const tbl = /const TAG_OF = \{([\s\S]*?)\n\};/.exec(findSrc);
-  const dflt = /const tagOf_ = field => TAG_OF\[field\] \|\| '([a-z]+)'/.exec(findSrc);
-  if (!tbl || !dflt) tagBad.push('TAG_OF or its default in tagOf_ is not readable in js/find.js — the tag colours were NOT checked');
-  else {
-    const kinds = new Set([...tbl[1].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/:\s*'([a-z]+)'/g)].map(m => m[1]).concat([dflt[1]]));
-    const drawn = new Set();
-    rules.forEach(r => {
-      const m = /\[data-tag=["']?([a-z]+)["']?\]/.exec(r.sel);
-      if (m && /^\[data-tag=/.test(r.sel.trim())) {
-        drawn.add(m[1]);
-        if (!kinds.has(m[1])) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a colour for a tag kind TAG_OF never gives');
-      }
-      if (/\.fc-flags?\b|\.qcard-top\b/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a card-head pill beside the tag row');
-    });
-    kinds.forEach(k => { if (!drawn.has(k)) tagBad.push('TAG_OF gives `' + k + '` and no `[data-tag="' + k + '"]` rule colours it'); });
+  const n = +((/const TAG_HUES = (\d+);/.exec(findSrc) || [])[1] || 0);
+  if (!n) tagBad.push('TAG_HUES is not readable in js/find.js — the answer colours were NOT checked');
+  const drawn = new Set();
+  rules.forEach(r => {
+    const m = /\[data-tag=["']?([a-z0-9]+)["']?\]/.exec(r.sel);
+    if (m && /^\[data-tag=/.test(r.sel.trim())) {
+      drawn.add(m[1]);
+      if (!/^h\d+$/.test(m[1]) || +m[1].slice(1) >= n) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a colour tagOf_ never gives');
+    }
+    if (/\.fc-flags?\b|\.qcard-top\b/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a card-head pill beside the tag row');
+  });
+  for (let i = 0; i < n; i++) {
+    if (!drawn.has('h' + i)) tagBad.push('no `[data-tag="h' + i + '"]` rule colours hue ' + i);
+    if (!new RegExp('--hue-' + i + ':').test(css)) tagBad.push('no `--hue-' + i + '` token on :root');
   }
-  say('A TAG KIND WITHOUT ONE COLOUR, OR A COLOUR WITHOUT A KIND -- every facet\'s tag is coloured (396)', tagBad);
+  say('AN ANSWER HUE WITHOUT A RULE, OR A TAG COLOUR OUTSIDE THE PALETTE (1010)', tagBad);
 }
 
 console.log('');

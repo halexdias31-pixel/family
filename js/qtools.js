@@ -108,8 +108,7 @@ function qtCheck_(x, m) {
   return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
-/* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on); on a phone the tools fold behind one Tools tile, Check stays out. */
-const QT_OPEN = new Set();       // parts whose folded row is open, by key, for the visit
+/* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on), then Undo, Clear and Check: all drawn from the start (1020). */
 const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
 function qtToolTile_(t, x) {
   const key = (x && x.key) || '';
@@ -133,26 +132,20 @@ function qtToolTile_(t, x) {
 }
 function qtRow_(x) {
   if (!x || !x.key) return '';
-  const key = x.key, open = QT_OPEN.has(key);
+  const key = x.key;
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
   /* THE DRAWING TOOLS ONLY WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank grid -- "the working paper", which the owner had removed (29 Oct) */
-  const art = typeof padHasArt_ !== 'function' || padHasArt_(x);
-  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id])).map(t => qtToolTile_(t, x)).join('');
+  /* AND ONLY WHERE THE PAD IS ALREADY ON THE CARD (1020), so a tap never redraws it; a passage's grid is the one still made on the first tap */
+  const art = typeof padReady_ !== 'function' || padReady_(x);
+  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id])).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
-  const fold = tile_({ icon: 'tools', label: 'Tools', note: open ? 'fold them away' : 'pen, ruler, photo …', act: 'qt-fold', cls: 'qt-fold', on: open, pressed: open, data: { key } });
-  return `<div class="tile-row qt-row${open ? ' is-open' : ''}" role="toolbar" aria-label="Tools" data-key="${esc(key)}">${fold}<span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>
+  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>
     <p class="qt-how">${esc(m.how)}</p>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
 const qtKeyOf_ = el => (el && el.getAttribute('data-key')) || '';
 
-on('qt-fold', el => {
-  const key = qtKeyOf_(el), row = el.closest('.qt-row');
-  if (QT_OPEN.has(key)) QT_OPEN.delete(key); else QT_OPEN.add(key);
-  if (row) row.classList.toggle('is-open', QT_OPEN.has(key));
-  tileSet_(el, { on: QT_OPEN.has(key), pressed: QT_OPEN.has(key) });
-});
 
 /* ---------- THE CARD DRAWN AGAIN, where it stands: what a pen opened needs, its plan forgotten first. */
 /* A PART'S PEN OPENED OR PUT AWAY, and the plans that read it forgotten: what the card is drawn from next. */
@@ -166,7 +159,7 @@ function qtRedraw_(card, x) {
   if (!card || !x) return null;
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
-  t.innerHTML = questionCard_(x);
+  t.innerHTML = questionCard_(x, card);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);
