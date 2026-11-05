@@ -82,3 +82,24 @@ tokens and wrote var(--x, var(--x)); that was caught in the diff before commit a
   - `card-tags`: per kind, up to 20 cards drawn by `stuffCard`, each checked for a tag line and for every facet value
     it has as a `data-f` tag, at the drawing function's file:line. A drawer that called `tagRow_` at 389d843 and no
     longer does is flagged.
+
+## The one question page and the variety rule
+
+- `tools/qengine-health.js` (about 2 s) writes data/qengine-health.json, the progress of roadmap item 7:
+  - for each of the 24 qtypes, its checker from data/settings/qengine.json (number, expression, points, choice,
+    words, or none), whether it has moved to the one page (0/24 today), and how many of its questions have a field
+    that checker reads (an `answer_areas` column is counted separately; none exist yet);
+  - for each checker, a proof run on find.js's own markers in a node box. The cases include typed words ("fifteen",
+    "two x plus one"), which fail today, and points has no shared checker yet.
+  - A failing proof or a qtype with no checker is a `qengine` finding.
+  - `--changed` re-runs it when the markers, the questions or the map change. It fails if a qtype that had moved
+    goes back, loses answer fields, or its checker passes fewer proofs.
+- **Variety**: a family where one is ideal costs for every variant past the first, and each variant is listed with
+  file:line. The families are:
+  - question pages and markers (one per unmoved qtype, against 1 page plus 5 checkers; priced in Find logic so it
+    leads the list until types move);
+  - card drawers in find.js's kinds;
+  - tile and button makers, against tile_;
+  - list-row classes in style.css, against .row;
+  - settings row builders;
+  - wait indicators, against loading_.

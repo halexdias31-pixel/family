@@ -307,6 +307,14 @@ function extraWork(st) {
   const B = jread('data/backend-health.json');
   if (!B) skipped.push('backend (tools/backend-health.js not run)');
   else (B.problems || []).forEach(p => W.push({ kind: p.kind, part: 'code', where: p.where, say: p.say }));
+  /* THE ONE QUESTION PAGE (roadmap 7): a checker proof that fails and a qtype with no checker are findings; moved/of is progress. */
+  const Q = jread('data/qengine-health.json');
+  if (!Q) skipped.push('qengine (tools/qengine-health.js not run)');
+  else {
+    Object.keys(Q.proofs || {}).forEach(k => (Q.proofs[k].fails || []).forEach(f => W.push({ kind: 'qengine', part: 'logic', where: 'checker ' + k, say: f })));
+    (Q.unmapped || []).forEach(t => W.push({ kind: 'qengine', part: 'logic', where: 'qtype ' + t, say: 'no shared checker: ' + ((Q.types[t] || {}).questions || 0) + ' questions marked only by AI or a person' }));
+  }
+  W.push(...varietyWork(Q));
   const L = jread('data/logic-health.json');
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
@@ -327,6 +335,47 @@ function extraWork(st) {
   }
   return { work: W, skipped, sizes };
 }
+/* VARIETY (920): a family where one is ideal (one question page, one card drawer, one tile maker, one row style, one wait) costs
+   for every variant past the first; each variant is listed where it lives. */
+let VARIETY_LAST = null;
+function varietyWork(Q) {
+  const W = [], fam = {}, app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f));
+  const fnAt = (name, files) => { for (const f of files || app) { const src = read(f), i = src.search(new RegExp('function ' + name + '\\s*\\(')); if (i >= 0) return f + ':' + lineOf(src, i); } return ''; };
+  const add = (id, label, ideal, part, variants) => { fam[id] = { label, count: variants.length, ideal };
+    variants.slice(ideal).forEach((v, i) => W.push({ kind: 'variety-' + id, part, where: v.where, say: `${label}: variant ${i + ideal + 1} of ${variants.length} (ideal ${ideal}) — ${v.say}` })); };
+  /* QUESTION PAGES: every qtype not yet on the one page is a page and a marker of its own; the one page counts once it holds any. */
+  const qs = read('js/qtypes.js'), qv = [];
+  if (Q && Q.types) { if (Q.moved) qv.push({ where: 'the one question page', say: Q.moved + ' qtypes on it' });
+    Object.keys(Q.types).filter(t => !Q.types[t].moved).forEach(t => { const i = qs.search(new RegExp('\\n\\s*' + t + ':\\s*\\{ label')); qv.push({ where: 'js/qtypes.js:' + (i >= 0 ? lineOf(qs, i + 1) : '?'), say: `${t} has its own page and marker (${Q.types[t].questions} questions, checker ${Q.types[t].checker})` }); }); }
+  if (!Q || !Q.moved) qv.unshift({ where: 'roadmap 7', say: 'the one page, not built yet' });
+  add('qpage', 'Question pages and markers', 1, 'logic', qv);
+  /* CARD DRAWERS: the distinct functions the kinds tab of find.js draws cards with. */
+  const fsrc = read('js/find.js'), seen = new Map();
+  for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
+  add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
+  /* TILE AND BUTTON MAKERS: functions whose name says they make one. tile_ is the one. */
+  const makers = [];
+  app.forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*(?:[Tt]ile|Btn|Button)\w*)\s*\(/g)) if (!/Row|row_|Set|Paint|Look|Html_$|Join/.test(m[1])) makers.push({ name: m[1], where: f + ':' + lineOf(src, m.index) }); });
+  makers.sort((a, b) => (a.name === 'tile_' ? -1 : b.name === 'tile_' ? 1 : 0));
+  add('maker', 'Tile and button makers', 1, 'ui', makers.map(m => ({ where: m.where, say: m.name })));
+  /* LIST-ROW STYLES: the base classes style.css gives a row of a list. */
+  const css = read('style.css'), rows = new Map();
+  for (const m of css.matchAll(/(?:^|[\s,}])\.((?:[a-z]+-)?row)(?=[\s,{.:[])/g)) if (!/tile-row|row-?$/.test(m[1] + '-x') || true) if (!rows.has(m[1]) && m[1] !== 'tile-row') rows.set(m[1], 'style.css:' + lineOf(css, m.index + 1));
+  const rv = [...rows.keys()].sort((a, b) => (a === 'row' ? -1 : b === 'row' ? 1 : 0));
+  add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
+  /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
+  const sv = [];
+  ['js/settings.js', 'js/staff.js', 'js/me.js'].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  add('setrow', 'Settings row shapes', 1, 'ui', sv);
+  /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
+  const wv = [{ where: fnAt('loading_', ['js/shell.js']) || 'js/shell.js', say: 'loading_' }];
+  const ow = new Map(); uniformWork().filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
+  ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
+  add('wait', 'Wait indicators', 1, 'ui', wv);
+  VARIETY_LAST = fam;
+  return W;
+}
+const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5] };
 /* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
 function firstDownload() {
   /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
@@ -338,7 +387,7 @@ function firstDownload() {
   return { files, total };
 }
 const EXTRA_PENALTY = { field: [2, 10], answer: [0.5, 10], 'menu-sense': [0.1, 10], backend: [2, 10], resilience: [5, 10], dead: [0, 0], size: [1, 10],
-  a11y: [0.05, 5], console: [0.5, 5] };
+  a11y: [0.05, 5], console: [0.5, 5], qengine: [0.5, 5], variety: [0, 0] };
 
 function health() {
   const st = require('./stability.js').stability();
@@ -354,7 +403,7 @@ function health() {
   const X = extraWork(st), xk = {};
   X.work.forEach(w => { const k = w.part + '|' + w.kind; xk[k] = (xk[k] || 0) + 1; });
   /* dead is already priced by stability's `dead`; it is listed here, never charged twice. */
-  const xpen = Object.keys(xk).map(k => { const [part, id] = k.split('|'), P = EXTRA_PENALTY[id] || [0.1, 5];
+  const xpen = Object.keys(xk).map(k => { const [part, id] = k.split('|'), P = EXTRA_PENALTY[id] || VARIETY_PENALTY[id] || [0.1, 5];
     return { part, id, count: xk[k], off: r1(Math.min(P[1], xk[k] * P[0])) }; });
   const less = part => xpen.filter(p => p.part === part).reduce((a, p) => a + p.off, 0);
   const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0) - less('logic')));
@@ -369,7 +418,8 @@ function health() {
   ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
     cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
   fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
-  xpen.forEach(p => p.off > 0 && off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
+  xpen.forEach(p => { if (!(p.off > 0)) return; const v = /^variety-(\w+)$/.exec(p.id), F = v && VARIETY_LAST && VARIETY_LAST[v[1]];
+    off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: F ? `${F.label}: ${F.count - F.ideal} past the ideal ${F.ideal} (node tools/health.js --list --kind ${p.id})` : `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }); });
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
   /* DO THIS NEXT (920): the one change worth most points, in a sentence a person can act on. */
   const best = off[0];
@@ -377,7 +427,7 @@ function health() {
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
-    parts: { code: codeX, logic: lscore, ui: uiX }, next, skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
+    parts: { code: codeX, logic: lscore, ui: uiX }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
     worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
@@ -408,6 +458,16 @@ function changed() {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
     findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
+  }
+  /* A MOVED QTYPE MAY NOT SLIP (920): re-proved when its markers or data changed, against the committed data/qengine-health.json. */
+  if (['js/find.js', 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
+    let was = null; try { was = JSON.parse(git(['show', 'HEAD:data/qengine-health.json'])); } catch (e) { was = null; }
+    try { execFileSync(process.execPath, ['tools/qengine-health.js'], { cwd: ROOT, stdio: 'ignore' }); } catch (e) { bad.push('qengine\ttools/qengine-health.js\tthe checker proofs would not run'); }
+    const now = (() => { try { return JSON.parse(read('data/qengine-health.json')); } catch (e) { return null; } })();
+    if (was && now) Object.keys(was.types || {}).filter(t => was.types[t].moved).forEach(t => { const a = was.types[t], b = now.types[t] || {}, k = a.checker;
+      if (!b.moved) bad.push(`qengine\tdata/settings/qengine.json\t${t} was on the one page and is not any more`);
+      if (b.withAnswer < a.withAnswer) bad.push(`qengine\tdata/questions.json\t${t}: ${a.withAnswer - b.withAnswer} questions lost their answer field`);
+      if (((now.proofs[k] || {}).pass || 0) < ((was.proofs[k] || {}).pass || 0)) bad.push(`qengine\tjs/find.js\t${t}: the ${k} checker passes fewer proofs (${(now.proofs[k] || {}).pass}/${(now.proofs[k] || {}).cases})`); });
   }
   const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
   [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {

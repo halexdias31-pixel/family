@@ -1,0 +1,30 @@
+{
+ "why": "The universal question page (roadmap 7, 920): each qtype's shared checker, and whether it has moved onto the one page. Move a type by setting moved: true once its answer check proves the batch.",
+ "checkers": ["number", "expression", "points", "choice", "words"],
+ "types": {
+  "value": { "checker": "number", "moved": false },
+  "unit": { "checker": "number", "moved": false },
+  "fraction": { "checker": "number", "moved": false },
+  "multi": { "checker": "number", "moved": false },
+  "measure": { "checker": "number", "moved": false },
+  "expr": { "checker": "expression", "moved": false },
+  "coords": { "checker": "points", "moved": false },
+  "points": { "checker": "points", "moved": false },
+  "graph": { "checker": "points", "moved": false },
+  "line": { "checker": "points", "moved": false },
+  "numline": { "checker": "points", "moved": false },
+  "shape": { "checker": "points", "moved": false },
+  "shade": { "checker": "points", "moved": false },
+  "construct": { "checker": "points", "moved": false },
+  "choose1": { "checker": "choice", "moved": false },
+  "chooseN": { "checker": "choice", "moved": false },
+  "match": { "checker": "choice", "moved": false },
+  "order": { "checker": "choice", "moved": false },
+  "label": { "checker": "choice", "moved": false },
+  "table": { "checker": "number", "moved": false },
+  "reason": { "checker": "words", "moved": false },
+  "words": { "checker": "words", "moved": false },
+  "essay": { "checker": "none", "moved": false },
+  "hand": { "checker": "none", "moved": false }
+ }
+}
