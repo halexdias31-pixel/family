@@ -1,6 +1,5 @@
 /* @family. — posts.js ONE FILE, SPLIT. § */
 
-
 /* ---------- POSTS § */
 
 /* A Google Drive share link is a page, not a picture — pasting one into an <img> gives a broken
@@ -145,6 +144,9 @@ document.addEventListener('error', e => {
   if (v && v.matches && v.matches('video.post-vid')) postVidFail_(v);
 }, true);
 
+/* A PERSON'S FACE AND NAME FROM THEIR PROFILE ROW in the payload, by id (1040 r10); a post's own copy only when no list has them. */
+const profileOf_ = id => { const r = id && ['people', 'tutors', 'family', 'students', 'clients', 'everyone'].map(k => ((DATA || {})[k] || []).find(x => x && String(x.personId || x.person_id || '') === String(id))).find(Boolean);
+  return r ? { pic: r.image != null ? r.image : r.photo, avatar: r.avatar, handle: r.handle } : null; };
 /* THE AUTHOR'S FACE, READ AT DRAW TIME (474): your own post wears the picture on your account now, not the one the post was sent with; the brand's mark only for the business. */
 function postFaceWho_(p, who) {
   const id = String((p && p.authorId) || '');
@@ -153,8 +155,9 @@ function postFaceWho_(p, who) {
     const now = String(USER.photo || (USER.profile || {}).photo || '');
     return { pic: now, avatar: USER.avatar || '', handle: USER.handle || p.handle, name: who, personId: id };
   }
-  if (id) return { pic: p.avatar || '', avatar: p.figure, handle: p.handle, name: who, personId: id };
-  return { pic: picKind_(p.avatar) ? p.avatar : (brand('logo_square') || brand('logo_circle')), avatar: p.figure, handle: p.handle, name: who };
+  const at = profileOf_(id) || { pic: p.avatar, avatar: p.figure, handle: p.handle };
+  if (id) return { pic: at.pic || '', avatar: at.avatar, handle: at.handle || p.handle, name: at.handle || who, personId: id };
+  return { pic: brandLogo_(), avatar: p.figure, handle: p.handle, name: who };
 }
 function postFace_(p, who) {
   const f = postFaceWho_(p, who);
@@ -175,7 +178,7 @@ function postCard_(p, i) {
     const media = postMedia_(p);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
-    const who = p.handle || p.author || brand('name', '@family.');
+    const who = (profileOf_(p.authorId) || {}).handle || p.handle || p.author || brand('name', '@family.');
     /* ---------- THROUGH `personFace_`, THE ONE FUNCTION EVERY FACE GOES THROUGH § */
     const faceHtml = postFace_(p, who);
 
@@ -1655,7 +1658,6 @@ on('post-delete', el => {
     });
 });
 
-
 /* THE COLUMNS These are not screens coming back unchanged. § */
 
 /* ---------- MAKING ONE § */
@@ -1728,7 +1730,6 @@ function camRest_() {
   const off = $('cam-off');
   if (off && off.querySelector(':scope > .loading')) off.innerHTML = '';
 }
-
 
 /* REELS AND MESSAGES — the last two columns on the layout sheet § */
 
@@ -2433,7 +2434,6 @@ on('daive-send', el => {
     .then(done, () => done(null));
 });
 
-
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST § */
 function dmFoot_() {
   const col = $('s-dm');
@@ -2456,7 +2456,6 @@ function dmFoot_() {
 /* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
    a message that arrived after the tab was first opened would not appear until a reload. */
 on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });
-
 
 /* ---------- A POST AS A PNG (413): "share a post as a PNG of the full post widget" ----------
    On a canvas in the stylesheet's own black and gold: face, name, picture, words, reactions, brand, link. */
@@ -2494,7 +2493,7 @@ const ppngSvg_ = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(S
   .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"').replace(/\sclip-path="url\(#av-clip\)"/g, ''));
 /* THE AUTHOR'S FACE BY THE CARD'S OWN ORDER (`postCard_`): their photo or picture or figure, else the brand's mark, else the initial. */
 function ppngFace_(p) {
-  const v = picKind_(p.avatar) ? String(p.avatar) : (brand('logo_square') || brand('logo_circle') || '');
+  const own = p.authorId ? String((profileOf_(p.authorId) || {}).pic || p.avatar || '') : '', v = picKind_(own) ? own : brandLogo_();
   const kind = picKind_(v);
   try {
     if (kind === 'photo') return ppngImg_(pic(v));
@@ -2534,7 +2533,7 @@ function postPng_(p, url) {
   const fonts = document.fonts && document.fonts.load
     ? Promise.race([Promise.all(['700 40px', '400 30px'].map(f => document.fonts.load(f + ' "Family Code"'))).catch(() => {}), new Promise(r => setTimeout(r, 2000))])
     : Promise.resolve();
-  const logoSrc = brand('logo_square', '') || brand('logo_circle', '');
+  const logoSrc = brandLogo_();
   return Promise.all([ppngFace_(p), media[0] ? ppngImg_(pic(media[0])) : null, logoSrc ? ppngImg_(pic(logoSrc)) : null, fonts])
     .then(([face, photo, logo]) => {
       const C = ppngTokens_(), F = C.font, W = PPNG_W, M = PPNG_M, inner = W - 2 * M;

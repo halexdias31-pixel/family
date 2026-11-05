@@ -4,7 +4,7 @@
   "js/find.js": 0,
   "js/shell.js": 186,
   "js/me.js": 187,
-  "js/posts.js": 112,
+  "js/posts.js": 117,
   "js/games.js": 106,
   "js/tiles.js": 77,
   "js/arcade.js": 93,
@@ -84,7 +84,7 @@
   "js/me-card.js": 80,
   "js/me-messages.js": 57,
   "js/me-people.js": 38,
-  "js/me-roles.js": 100,
+  "js/me-roles.js": 101,
   "js/me-settings.js": 93,
   "js/me-shelves.js": 44,
   "js/shell-api.js": 102,
@@ -436,7 +436,7 @@
    "rawButton": 0
   },
   "js/posts.js": {
-   "lines": 2608,
+   "lines": 2607,
    "oneOff": 6,
    "emptyCatch": 43,
    "inlineStyle": 4,
@@ -938,7 +938,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5152098,
+  "searchBytes": 5153725,
   "commentRatio": 0.266,
   "tombstones": 0,
   "claudeLines": 100,
@@ -969,6 +969,7 @@
   "element-box": 0,
   "card-tags": 0,
   "attr-outside-tags": 0,
-  "text-boxes": 0
+  "text-boxes": 0,
+  "in-sync": 4
  }
 }

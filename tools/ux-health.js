@@ -195,6 +195,9 @@ function instruments() {
         const have = new Set([...host.querySelectorAll('.qtag')].flatMap(t => [t.getAttribute('data-f')].concat(String(t.getAttribute('data-also') || '').split(' ').filter(Boolean))));
         if (!have.size) r.noTags++;
         if ([...host.querySelectorAll('.qtags .qtag')].some(notPill)) r.notPill = (r.notPill || 0) + 1;
+        /* TAGS FIRST (1040 r10): no heading, title or text comes before the card's tag line. */
+        { const tg = host.querySelector('.qtags'), hd = host.querySelector('h3, h4, .qsheet, .tx-text, p');
+          if (tg && hd && (tg.compareDocumentPosition(hd) & Node.DOCUMENT_POSITION_PRECEDING)) r.tagsBelow = (r.tagsBelow || 0) + 1; }
         /* AN ATTRIBUTE OUTSIDE THE TAG LINE (1030): a data-f, a marks label or "[2 marks]" drawn anywhere but in .qtags. */
         const out_ = [...host.querySelectorAll('[data-f], [class*="marks"], span, small')].filter(e => !e.closest('.qtags') && !e.closest('.chips')
           && (e.hasAttribute('data-f') || /(^|\s)[\w-]*marks\b/.test(e.className || '') || /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim())));
@@ -214,6 +217,26 @@ function instruments() {
         if (bad) r.outside = (r.outside || 0) + 1; }); } catch (e) { /* no question parts in this build: nothing to measure */ }
     host.remove(); probe.remove();
     return out;
+  });
+  /* IN SYNC (1040 r10): a post drawn from a stale copy shows its author's profile face and name, a business post and the icons brandLogo_. */
+  const inSync = await page.evaluate(() => {
+    const off = [], host = document.createElement('div'), abs = u => { const a = document.createElement('a'); a.href = u; return a.href; };
+    try { const t = ((DATA.tutors || []).concat(DATA.people || [])).find(r => r && r.personId && r.handle);
+      if (t) { host.innerHTML = postCard_({ id: 'x1', authorId: t.personId, handle: 'stale-copy', author: 'stale-copy', avatar: 'stale.png', figure: '' }, 0);
+        const im = host.querySelector('.post-face'), name = (host.querySelector('.post-who') || {}).textContent || '';
+        if (/stale/.test(name)) off.push('post name is the stale copy, not ' + t.handle);
+        if (im && im.tagName === 'IMG' && /stale/.test(im.src)) off.push('post face is the stale copy'); }
+      host.innerHTML = postCard_({ id: 'x2', authorId: '', handle: '@family.', avatar: 'stale.png' }, 0);
+      const bi = host.querySelector('img.post-face');
+      if (!bi || abs(bi.getAttribute('src')) !== abs(brandLogo_())) off.push('business post face ' + (bi ? bi.getAttribute('src') : 'none') + ' is not brandLogo_ ' + brandLogo_());
+      const want = abs(brandLogo_());
+      [['favicon', 'tab icon'], ['favicon-ios', 'home-screen icon']].forEach(([id, say]) => { const l = document.getElementById(id), h = l ? l.href : '';
+        if (h !== want && !(brandLogo_() === 'icon.png' && /favicon\.png$/.test(h))) off.push(say + ' ' + h + ' is not brandLogo_ ' + want); });
+      host.innerHTML = webProfilePages_()[0]; const wl = host.querySelector('img.web-logo');
+      if (!wl || abs(wl.getAttribute('src')) !== want) off.push('Web profile picture is not brandLogo_');
+      const tb = document.querySelector('.topbar-brand'); if (tb && tb.textContent.trim() !== brand('name', '@family.')) off.push('top bar says ' + tb.textContent + ', brand name ' + brand('name', '@family.'));
+    } catch (e) { off.push('the walk could not draw: ' + String(e.message).slice(0, 80)); }
+    return { off };
   });
   /* TEXT BOXES (980): Find's search, a question's answer box and a Settings field, measured as drawn; one look means one signature. */
   const boxLooks = await page.evaluate(async () => {
@@ -257,7 +280,7 @@ function instruments() {
     slow: clicks.filter(c => !c.missing && (c.ms > CLICK_MS || c.shift > SHIFT)),
     missing: clicks.filter(c => c.missing).map(c => c.what),
     questions: { sampled: questions.length, types: [...new Set(questions.map(q => q.type))].length, broken },
-    errors: [...new Set(errors)].slice(0, 20), consoleErrors: [...new Set(consoleErrors)].slice(0, 20), a11y, cardTags,
+    errors: [...new Set(errors)].slice(0, 20), consoleErrors: [...new Set(consoleErrors)].slice(0, 20), a11y, cardTags, inSync,
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(`ux-health: wrote data/ux-health.json — first screen ${out.firstScreenMs} ms, Find usable ${out.findUsableMs} ms, sign-in ${out.signinMs} ms, `

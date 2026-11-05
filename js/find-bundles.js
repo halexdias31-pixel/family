@@ -448,10 +448,15 @@ function stuffCard(x, credits) {
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
-/* WHAT A CHIP READS: the words its button said (`answerSay_`). */
-function chipShow_(f) {
-  const facet = facetBy(f.field);
-  return facet ? answerSay_(facet, f.value) : f.value;
+/* WHAT A CHIP READS: the words its button said, in the menu it was picked from (the chips before it), else `answerSay_`. */
+/* The whole library's words can name a shared value by another work's chapter (Hebrew titles on Great Expectations, 1040 r10). */
+function chipShow_(f, i) {
+  const facet = facetBy(f.field), was = STUFF.filters;
+  if (!facet) return f.value;
+  if (i != null && Array.isArray(was)) try { STUFF.filters = was.slice(0, i);
+    const w = (facetTally_(stuffFiltered(), facet).values || []).find(v => spellKey_(v.value) === spellKey_(f.value));
+    if (w) return w.show || w.text || w.value; } catch (e) { oops_(e, 'find:chipShow_') } finally { STUFF.filters = was; }
+  return answerSay_(facet, f.value);
 }
 
 /* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */

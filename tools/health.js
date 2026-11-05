@@ -177,6 +177,7 @@ function uxWork() {
   Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
     if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
     if (c.notPill) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.notPill} of ${c.sampled} cards draw a tag that is not a pill like its menu chip (outline, chip radius, padding)` });
+    if (c.tagsBelow) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.tagsBelow} of ${c.sampled} cards draw their title or text above the tag line` });
     Object.keys(c.missing || {}).forEach(f => W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.missing[f]} of ${c.sampled} cards have a ${f} value that is not a tag` }));
     if (c.outside) W.push({ kind: 'attr-outside-tags', where: at, say: `${k}: ${c.outside} of ${c.sampled} cards show an attribute outside the top tag line (a marks label, a data-f) — it belongs in the tag line` });
     const file = at.split(':')[0];
@@ -184,6 +185,7 @@ function uxWork() {
       if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
   if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
   ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
+  ((j.inSync || {}).off || []).forEach(o => W.push({ kind: 'in-sync', where: 'walk (tools/ux-health.js)', say: o }));
   /* ONE CARD PER QUESTION, TAPS, SPILLED WORDS (960): check/qcard.js's walk, each count over its budget a finding; ideal 0. */
   let qc = null; try { qc = JSON.parse(read('data/qcard-health.json')); } catch (e) { qc = null; }
   const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
@@ -197,9 +199,41 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1 };
+/* IN SYNC (1040 r10): anything shown in two places reads one source — a person's face and name their profile, the business's picture brandLogo_. */
+function inSyncWork() {
+  const W = [], app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f)), add = (where, say) => W.push({ kind: 'in-sync', where, say });
+  /* A STORED COPY: a tab other than people holding a person's handle, figure or name (the logs and receipts are counted, for the owner). */
+  const con = read('backend/constants.gs'), sch = con.slice(con.indexOf('SCHEMA'));
+  let tab = '';
+  sch.split('\n').forEach((l, i) => { const t = /^  (\w+): \[/.exec(l); if (t) tab = t[1]; if (!tab || tab === 'people') return;
+    for (const m of l.replace(/\/\*.*?\*\//g, '').matchAll(/"((?:\w+_)?(?:handle|avatar|figure|person_name|author_pic|author_photo))"/g))
+      add('backend/constants.gs:' + (lineOf(con, con.indexOf('SCHEMA')) + i), `${tab}.${m[1]} stores a copy of a person's name or face — read it from their people row by id`); });
+  /* THE BUSINESS'S PICTURE: one reader, brandLogo_; the icons, the Web profile and a business post all through it. */
+  app.forEach(f => { const src = read(f);
+    for (const m of src.matchAll(/brand\(\s*'logo_(?:square|circle)'|\.logo_(?:square|circle)\b/g))
+      if (!/^function brandLogo_\(/.test(src.slice(src.lastIndexOf('\nfunction ', m.index) + 1))) add(f + ':' + lineOf(src, m.index), `${m[0]} read outside brandLogo_ — a second source for the business's picture`); });
+  const fsrc = app.map(read).join('\n'), fnOf = n => (new RegExp('function ' + n + '\\([\\s\\S]*?\\n\\}').exec(fsrc) || [''])[0];
+  if (!/brandLogo_\(/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', 'the tab and home-screen icons do not follow brandLogo_ (applyBrandIcon_)');
+  if (!/brandLogo_\(/.test(fnOf('webProfilePages_'))) add('js/me-roles.js', 'the Web profile picture does not read brandLogo_');
+  const fw = fnOf('postFaceWho_');
+  if (!/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
+  if (!/profileOf_\(/.test(fw)) add('js/posts.js', "a post's face is the copy sent with the post, not the author's profile (profileOf_)");
+  if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
+  const html = read('index.html');
+  ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
+  /* THE MANIFEST CANNOT FOLLOW AT RUNTIME: its icons must be the repo's logo_square (brand.json) while that is a file here. */
+  try { const logo = (read('data/settings/brand.json').split('\n').map(l => { try { return JSON.parse(l.replace(/,\s*$/, '')); } catch (e) { return null; } }).find(r => r && r.key === 'logo_square') || {}).value || 'icon.png';
+    const man = JSON.parse(read('manifest.webmanifest'));
+    (man.icons || []).filter(i => i.src !== logo).forEach(i => add('manifest.webmanifest', `icon ${i.src} is not brand logo_square (${logo})`));
+    if (/^https?:/.test(logo)) add('manifest.webmanifest', `logo_square is a URL (${logo.slice(0, 40)}); the manifest's icons stay ${(man.icons || [])[0] && man.icons[0].src}`);
+    if (man.name !== '@family.' && !html.includes('<title>' + man.name + '</title>')) add('manifest.webmanifest', `the manifest's name "${man.name}" is not the page's title`); } catch (e) { add('manifest.webmanifest', 'cannot read the manifest or brand.json: ' + e.message); }
+  /* THE BRAND'S NAME: the top bar paints it from brand('name'), not only the HTML's literal. */
+  if (!/brand\(\s*'name'/.test(fnOf('topbarPaint_'))) add('js/shell-pages.js', "the top bar's brand name is index.html's literal, not brand('name')");
+  return W;
+}
 function textboxRules(css) {
   /* TEXT BOXES (980, 1030): the question's cream answer pill (`.qp-bar > .qp-ans`) is the one look; any text-box rule with another radius, background, border or font differs. */
   const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
@@ -230,12 +264,18 @@ function ownerWork() {
   /* card-tags: every card goes through stuffCard, which puts a tag line at its top (tagsOnTop_). */
   const sc = (/function stuffCard\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
   if (!/tagsOnTop_\(/.test(sc)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function stuffCard'))), say: 'stuffCard no longer puts a tag line on a card that draws none (tagsOnTop_)' });
+  /* card-tags, order (1040 r10): tagsOnTop_ run on a card that draws its tags under its title must put them above it. */
+  try { const ft = (/function tagsOnTop_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0], row = '<div class="qtags qcard-tags"><span class="qtag">a</span></div>';
+    const out = new Function('tagRow_', ft + '; return tagsOnTop_;')(() => row)({ k: 1 }, '<div class="card"><h3>T</h3>' + row + '<p>x</p></div>');
+    if (!(out.indexOf('qtags') >= 0 && out.indexOf('qtags') < out.indexOf('<h3'))) W.push({ kind: 'card-tags', where: 'js/find-figures.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function tagsOnTop_'))), say: 'a card that draws its tag line under its title keeps it there (tagsOnTop_ must move it to the top)' }); }
+  catch (e) { W.push({ kind: 'card-tags', where: 'js/find-figures.js', say: 'tagsOnTop_ could not be run on a fixture: ' + e.message }); }
   const wt = (/function qWholeTags_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
   if (!/'marks'/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qWholeTags_'))), say: 'a whole question\'s top tag line no longer carries each part\'s marks' });
   /* attr-outside-tags: no template draws an attribute beside the tag line — a marks label, "[2 marks]". */
   for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
     for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))
       W.push({ kind: 'attr-outside-tags', where: f + ':' + lineOf(src, m.index), say: `${m[0].slice(0, 50)} draws an attribute outside the tag line` }); }
+  W.push(...inSyncWork());
   /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
   textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
   return W;
