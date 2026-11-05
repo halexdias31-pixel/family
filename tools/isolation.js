@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* @family. — tools/isolation.js HOW CHEAPLY EACH ELEMENT COULD MOVE (920). An element is a loaded js file (its screen, widget, kind, tool
-   or game lives there); its movability 0-100 falls with every outside link. Static and cheap: one tokenising pass over js/. */
+/* @family. — tools/isolation.js HOW CHEAPLY EACH ELEMENT COULD MOVE (920). § */
 'use strict';
 const fs = require('fs'), path = require('path');
 const H = require('./health.js');

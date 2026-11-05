@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* @family. — tools/structure.js THE STRUCTURE RATCHET (920): every file, long function, variety family and one-off has a budget in
-   data/settings/structure-budgets.json; a change may not go over one, and a change that goes under tightens it for good. */
+/* @family. — tools/structure.js THE STRUCTURE RATCHET (920): § */
 'use strict';
 const fs = require('fs'), path = require('path');
 const H = require('./health.js');

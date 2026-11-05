@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* @family. — tools/ai-cost.js WHAT A CHANGE COSTS AN AI TO READ (940): per element (a loaded js file), its bytes plus the bytes of the files
-   that use its names; the comment share; tombstones; CLAUDE.md's length; and every searchable byte in js/. Static, a second or two. */
+/* @family. — tools/ai-cost.js WHAT A CHANGE COSTS AN AI TO READ (940): § */
 'use strict';
 const fs = require('fs'), path = require('path');
 const H = require('./health.js');

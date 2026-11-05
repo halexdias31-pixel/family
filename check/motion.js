@@ -25,7 +25,7 @@ const EASE_WORD = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-en
    `js` is a file and a pattern on the line. Everything else is a token: --dur-*, --ease-*, MOTION_. */
 const ACCEPTED = [
   { css: /^\.screen$/, why: 'the slide between columns (527) owns its own spring and timing' },
-  { css: /^\.btn\.is-busy::before$|^\.tile\.is-busy::before$/, why: 'the busy ring is a loop, one turn in .7 s, not a movement from here to there' },
+  { css: /^\.btn\.is-busy::before$|^\.tile(\.is-busy|:is\(\.is-busy, \[aria-busy="true"\]\))::before$/, why: 'the busy ring is a loop, one turn in .7 s, not a movement from here to there' },
   { css: /^\.loading > span/, why: 'the three dots are a loop; their rhythm is the loader (306), not a movement' },
   { css: /^\.mc-caret$/, why: 'a caret blinks in steps(1); the keypad\'s and the calculator\'s are the system caret\'s rhythm' },
   { css: /^\.kp-caret$/, why: 'the keypad (528) owns its caret' },

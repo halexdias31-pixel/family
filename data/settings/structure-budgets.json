@@ -6,7 +6,7 @@
   "js/me.js": 184,
   "js/posts.js": 112,
   "js/games.js": 106,
-  "js/tiles.js": 65,
+  "js/tiles.js": 63,
   "js/arcade.js": 93,
   "js/layout.js": 76,
   "js/data.js": 70,
@@ -30,7 +30,7 @@
   "js/hadith.js": 21,
   "js/push.js": 23,
   "js/words.js": 23,
-  "js/hymns.js": 19,
+  "js/hymns.js": 18,
   "js/links.js": 17,
   "js/missing.js": 21,
   "js/pdtexts.js": 14,
@@ -54,7 +54,7 @@
   "js/racer.js": 19,
   "js/rewrite.js": 19,
   "js/settings.js": 10,
-  "js/mechanics.js": 14,
+  "js/mechanics.js": 13,
   "js/spotify.js": 12,
   "js/boot.js": 17,
   "js/chemistry.js": 10,
@@ -256,7 +256,7 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12069,
+   "lines": 12061,
    "oneOff": 128,
    "emptyCatch": 30,
    "inlineStyle": 2,
@@ -704,7 +704,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7469069,
+  "searchBytes": 7469004,
   "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100

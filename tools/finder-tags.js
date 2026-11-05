@@ -51,7 +51,7 @@ const render = T => HEAD + 'const FINDER_TAGS = {\n"ages": ' + JSON.stringify(T.
       USER = Object.assign({ name: 'T', personId: 'P-T' }, ${JSON.stringify(v)});
       stuffForget_();
       const ages = ${JSON.stringify(ages)}, cap = viewerAgeCap_();
-      const key = (bibleFor_() ? 'bible' : '') + '@' + ages.filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
+      const key = (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '') + '@' + ages.filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
       const at = filters => inFinder_(FINDERS.stuff, () => {
         STUFF.filters = filters; STUFF.q = ''; STUFF.admit = null;
         const items = stuffFiltered();

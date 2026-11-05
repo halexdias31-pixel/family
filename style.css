@@ -4357,7 +4357,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qb-label { font-weight: 700; color: var(--ink); }
 .qb-marks { margin-left: auto; font-size: .7rem; color: var(--dim); }
 .qb-shut { font-size: .7rem; color: var(--faint); }
-.qb.is-shut { opacity: .7; }
+.qb.is-shut, .qb.is-shut .qb-label { color: var(--dim); }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }

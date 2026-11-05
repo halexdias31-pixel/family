@@ -137,6 +137,10 @@ if (!/document\.addEventListener\('focusin', e => \{\s*const t = e\.target;\s*kp
     console.log('check-keyboard: the keypad\'s binding is not in the app (kpBind_, kpOpen_, kpClose_) — NOTHING was checked');
     process.exit(1);
   }
+  /* THE ONE SCROLLING PAGE (900): kpBind_ leaves every ordinary box to the phone's keyboard, so there is no binding to walk (1000). */
+  let flow = false;
+  try { flow = !!w.__ev('FLOW_LAYOUT'); } catch (e) { flow = false; }
+  if (flow) { console.log('OK — FLOW_LAYOUT is on: ordinary boxes keep the phone\'s keyboard by design (900); kpBind_ binds none.'); a.close(); process.exit(0); }
   const pad = () => d.getElementById('kp');
   const said = [];
   const types = {};

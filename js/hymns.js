@@ -79,7 +79,7 @@ function hymnsCard_(x) {
 }
 /* LISTEN, on the card's one row (`CARD_EXTRAS_`). */
 function hymnExtras_(x) { return x.hy ? { icon: 'play', label: 'Listen on Spotify', note: 'a search, in a new tab', href: hymnSpotify_(x.hy) } : null; }
-CARD_EXTRAS_.hymn = hymnExtras_;
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { hymn: hymnExtras_ });
 /* ITS CHUNK CAME: every hymn card of that chunk on screen is filled where it stands. */
 function hymnsRedraw_(file) {
   if (typeof document === 'undefined') return;

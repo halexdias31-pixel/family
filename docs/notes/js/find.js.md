@@ -16284,3 +16284,12 @@ top level, before `facetNoneHtml_`
    with its 0 rather than vanishing. Never pressable, never in `.answers`. */
 ```
 
+### ONE RULE FOR AN ANSWER'S WORDS (940):
+
+top level, before `ANSWER_SAY`
+
+```
+/* ONE RULE FOR AN ANSWER'S WORDS (940): the menu, the chip and the card's tag line all read them here — the answer as its menu
+   over this finder's whole list draws it (shortest unique form, plus what tells it apart), so it never reads two ways. */
+```
+

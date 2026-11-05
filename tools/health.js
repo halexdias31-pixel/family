@@ -135,6 +135,14 @@ function uxWork() {
   (j.clicks || []).filter(c => c.churnMB > 20).forEach(c => W.push({ kind: 'ux', where: 'click: ' + c.what, say: `${c.churnMB} MB of heap churned by one click (budget 20)` }));
   (j.a11y || []).forEach(a => W.push({ kind: 'a11y', where: a.screen + ' ' + a.what, say: a.say }));
   (j.consoleErrors || []).concat(j.errors || []).forEach(e => W.push({ kind: 'console', where: 'the UX walk', say: e }));
+  /* THE REAL SITE (1000): data/live-health.json, tools/live-load.js against the live URL and API; the walk above uses a fixture. */
+  let L = null; try { L = JSON.parse(read('data/live-health.json')); } catch (e) { L = null; }
+  if (L) {
+    const over = (v, b) => v == null || v > b;
+    if (over(L.returnMenuMs, 3000)) W.push({ kind: 'ux', where: 'live: Find, return visit', say: `${L.returnMenuMs == null ? 'never' : L.returnMenuMs + ' ms'} to Find's first screen on the live site (budget 3000)` });
+    if (over(L.coldMenuMs, 6000)) W.push({ kind: 'ux', where: 'live: Find, first visit', say: `${L.coldMenuMs == null ? 'never' : L.coldMenuMs + ' ms'} to Find's first screen on the live site (budget 6000)` });
+    if (L.payloadGzipKB > 100) W.push({ kind: 'ux', where: 'live: doGet', say: `${L.payloadGzipKB} KB gzip payload (budget 100)` });
+  }
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
   const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
   const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };

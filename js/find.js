@@ -804,8 +804,7 @@ function facetSay_(facet, v) {
   if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
   return sayCase_(s);
 }
-/* ONE RULE FOR AN ANSWER'S WORDS (940): the menu, the chip and the card's tag line all read them here — the answer as its menu
-   over this finder's whole list draws it (shortest unique form, plus what tells it apart), so it never reads two ways. */
+/* ONE RULE FOR AN ANSWER'S WORDS (940): § */
 const ANSWER_SAY = new WeakMap();
 function answerSay_(facet, v) {
   const say = facetSay_(facet, v);
@@ -2007,7 +2006,7 @@ function histTimelineCard_(x) {
   </div>`;
 }
 function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }
-Object.assign(CARD_EXTRAS_, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, figure: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, figure: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
 
 /* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
@@ -11363,7 +11362,10 @@ function finderTagsView_() {
   let cap = 0;
   try { cap = typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0; } catch (e) { cap = 0; }
   const band = (T.ages || []).filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
-  return T.views[(typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '') + '@' + band] || null;
+  /* AN ADMIN SEES People and Settings: a view of its own. */
+  let adm = false;
+  try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
+  return T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '') + '@' + band] || null;
 }
 /* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter; words have no key. */
 const finderStateKey_ = () => (String(STUFF.q || '').trim() ? null
@@ -11482,11 +11484,13 @@ function finderMembersOnly_(F) {
 on('members-signin', () => go('account'));
 on('members-join', () => { if (typeof registerSheet_ === 'function') registerSheet_(); });
 
+/* FIND'S MENU BEFORE THE PAYLOAD (1000): the build's own (FINDER_TAGS). */
+setTimeout(() => { try { if (awaiting_() && SCREENS[FINDER.id]) paint(FINDER.id); } catch (e) { oops_(e, 'find:early'); } }, 0);
 function finderScreen_() {
   const F = FINDER;
   if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
   /* THE LIBRARY STILL COMING (670): one wait, and no menu until every card is in, so the first answers shown are the last (546). */
-  if (LIBRARY_LATE) { PAGE_KEEP[F.id] = 1; return pages(F.id, [loading_()]); }
+  if (LIBRARY_LATE && !finderTagsAt_()) { PAGE_KEEP[F.id] = 1; return pages(F.id, [loading_()]); }
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
