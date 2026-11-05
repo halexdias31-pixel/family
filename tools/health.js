@@ -46,14 +46,28 @@ function findWork(L) {
   const fsrc = read('js/find.js'), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
-  /* tag-colour: a per-FIELD colour table (TAG_OF) gives one menu's answers one colour; each hue must also read on --bg (1010). */
-  const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
-  if (tagAt >= 0) for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
-  if (tagAt >= 0 || !/tagOf_\(field, value(, at)?\)/.test(fsrc)) Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
-    say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  /* tag-colour (1030): ONE colour per menu — (a) every answer of a menu, (b) its chip and card words take the facet's colour alone, */
+  /* (c) two facets asked on one path (data/facet-graph.json, tools/facet-hues.js) never share one, (d) each hue reads 3:1 on --bg. */
+  const tagLine = /^const TAG_OF = (\{.*\});$/m.exec(fsrc);
+  let tab = null; try { tab = tagLine ? Function('return ' + tagLine[1])() : null; } catch (e) { tab = null; }
+  const tagLn = tagLine ? lineOf(fsrc, tagLine.index) : 1;
+  if (!tab) work.push({ kind: 'tag-colour', where: 'js/find.js:1', say: 'no readable `const TAG_OF = {…};` line — the menu colours were NOT checked' });
+  else {
+    /* A READER BUILT FOR ONE TITLE (`const SITTING_READER_ = { field: …`) is not a menu. */
+    Object.keys(at).forEach(k => { if (!(k in tab) && !new RegExp('const \\w+ = \\{ field: \'' + k + '\'').test(fsrc)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + at[k].line, say: `menu "${at[k].label}" (${k}) has no colour in TAG_OF — run node tools/facet-hues.js` }); });
+    let G = null; try { G = JSON.parse(read('data/facet-graph.json')); } catch (e) { G = null; }
+    if (!G) work.push({ kind: 'tag-colour', where: 'data/facet-graph.json', say: 'no facet graph — run node tools/facet-hues.js; neighbouring menus were NOT checked' });
+    else (G.edges || []).forEach(([x, y]) => { if (x in tab && y in tab && tab[x] === tab[y])
+      work.push({ kind: 'tag-colour', where: 'js/find.js:' + tagLn, say: `menus ${x} and ${y} are asked on one path and both wear --hue-${tab[x]} — run node tools/facet-hues.js` }); });
+  }
+  if (!/^const tagAttr_ = field => /m.test(fsrc)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + tagLn, say: 'tagAttr_ takes more than the facet — one menu\'s answers could wear different colours' });
+  for (const m of fsrc.matchAll(/tagAttr_\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)) if (/,/.test(m[1]))
+    work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, m.index), say: `tagAttr_(${m[1].slice(0, 40)}) colours by more than the facet — an answer, chip or card word would leave its menu's colour` });
+  const chipFn = (/function filterChips\(\)[\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/tagAttr_\(f\.field\)/.test(chipFn)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function filterChips'))), say: 'a picked chip does not take its menu\'s colour (tagAttr_(f.field))' });
   const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
-  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the answer colours were NOT checked' });
+  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the menu colours were NOT checked' });
   hues.forEach(m => { const a = lum(m[2]), b = lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     if (r < 3) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index), say: `--hue-${m[1]} #${m[2]} is ${r.toFixed(2)}:1 on --bg, under 3:1` }); });
   /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
@@ -151,6 +165,7 @@ function uxWork() {
   Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
     if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
     Object.keys(c.missing || {}).forEach(f => W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.missing[f]} of ${c.sampled} cards have a ${f} value that is not a tag` }));
+    if (c.outside) W.push({ kind: 'attr-outside-tags', where: at, say: `${k}: ${c.outside} of ${c.sampled} cards show an attribute outside the top tag line (a marks label, a data-f) — it belongs in the tag line` });
     const file = at.split(':')[0];
     if (c.fn && /^js\//.test(file)) { const was = bodyHas(git(['show', '389d843:' + file]), c.fn), now = bodyHas(read(file), c.fn);
       if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
@@ -159,7 +174,7 @@ function uxWork() {
   /* ONE CARD PER QUESTION, TAPS, SPILLED WORDS (960): check/qcard.js's walk, each count over its budget a finding; ideal 0. */
   let qc = null; try { qc = JSON.parse(read('data/qcard-health.json')); } catch (e) { qc = null; }
   const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
-  if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
+  if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: OWNER_KINDS[k] ? k : 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
   /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
   ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
   if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
@@ -168,7 +183,50 @@ function uxWork() {
   if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
   return { j, work: W };
 }
-const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
+const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10] };
+/* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1 };
+function textboxRules(css) {
+  /* TEXT BOXES (980, 1030): the question's cream answer pill (`.qp-bar > .qp-ans`) is the one look; any text-box rule with another radius, background, border or font differs. */
+  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
+    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
+    return o; };
+  const base = look((/\n\.qp-bar > \.qp-ans \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (.qp-bar > .qp-ans)', say: 'the cream answer pill' }];
+  if (!base.background) tv.push({ where: 'style.css', say: 'no `.qp-bar > .qp-ans` rule: the cream pill the text boxes are held to is missing' });
+  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
+    if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
+    if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^\.qp-bar > \.qp-ans$/.test(sel)) continue;
+    /* THE ESSAY SHEET (980) is ruled paper, not a box: its writing keeps the ruling's line height. */
+    if (/\.kp-essay\b/.test(sel)) continue;
+    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
+    if (/appearance:\s*none/.test(m[2]) && !/textarea/.test(sel)) continue;
+    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
+    if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
+  return tv;
+}
+function ownerWork() {
+  const W = [], css = read('style.css'), flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), fsrc = read('js/find.js');
+  const rule = sel => { const m = new RegExp('(?:^|\\})\\s*' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(flat); return m ? { body: m[1], line: lineOf(flat, m.index + 1) } : null; };
+  /* element-box: an element's own container draws no box — no background, border (but the hairline under a card) or radius. */
+  ['.card', '.qwhole'].forEach(sel => { const r = rule(sel); if (!r) { W.push({ kind: 'element-box', where: 'style.css', say: `no ${sel} rule — the element box was NOT checked` }); return; }
+    const off = [];
+    for (const d of r.body.matchAll(/(?:^|;)\s*(background(?:-color)?|border(?:-top|-left|-right)?|border-radius|box-shadow|outline)\s*:\s*([^;]+)/g))
+      if (!/^(none|0|transparent|0 none)$/.test(d[2].trim())) off.push(d[1] + ': ' + d[2].trim());
+    if (off.length) W.push({ kind: 'element-box', where: 'style.css:' + r.line, say: `${sel} draws a box other elements do not have (${off.join(', ')})` }); });
+  /* card-tags: every card goes through stuffCard, which puts a tag line at its top (tagsOnTop_). */
+  const sc = (/function stuffCard\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/tagsOnTop_\(/.test(sc)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function stuffCard'))), say: 'stuffCard no longer puts a tag line on a card that draws none (tagsOnTop_)' });
+  const wt = (/function qWholeTags_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/'marks'/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qWholeTags_'))), say: 'a whole question\'s top tag line no longer carries each part\'s marks' });
+  /* attr-outside-tags: no template draws an attribute beside the tag line — a marks label, "[2 marks]". */
+  for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
+    for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))
+      W.push({ kind: 'attr-outside-tags', where: f + ':' + lineOf(src, m.index), say: `${m[0].slice(0, 50)} draws an attribute outside the tag line` }); }
+  /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
+  textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
+  return W;
+}
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -200,7 +258,7 @@ function ui() {
     ['zindex', 'Distinct z-index values (over 5)', zindex, 0.5, 10, 5],
     ['position', 'transform and position:absolute uses', position, 0.01, 10, 0],
   ].map(([id, label, n, w, cap, free]) => ({ id, label, count: n, weight: w, cap, off: r1(Math.min(cap, Math.max(0, n - free) * w)) }));
-  const work = uniformWork().concat(uxWork().work), k = {};
+  const work = uniformWork().concat(uxWork().work, ownerWork()), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const PEN = Object.assign({}, UNIFORM_PENALTY, UX_PENALTY);
   Object.keys(PEN).forEach(id => S.push({ id, label: id + ' findings', count: k[id] || 0, weight: PEN[id][0], cap: PEN[id][1], off: r1(Math.min(PEN[id][1], (k[id] || 0) * PEN[id][0])) }));
@@ -417,18 +475,7 @@ function varietyWork(Q, waits) {
   const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
-  /* TEXT BOXES (980): the global input rule is the one look; any rule on a text box that sets radius, background, border or font to other values is another. */
-  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
-    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
-    return o; };
-  const base = look((/\ninput, select, textarea, \.many-sum \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (input, select, textarea)', say: 'the one field look' }];
-  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
-    if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
-    if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^input, select, textarea, \.many-sum$/.test(sel)) continue;
-    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
-    if (/appearance:\s*none/.test(m[2])) continue;
-    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
-    if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
+  const tv = textboxRules(css);
   add('textbox', 'Text boxes', 1, 'ui', tv);
   VARIETY_LAST = fam;
   return W;
@@ -507,7 +554,7 @@ function trendAppend(h) {
   const was = t[t.length - 1];
   if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
-module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST };
+module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST, ownerWork };
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
@@ -551,6 +598,11 @@ function changed() {
     if (!A.searchBytes || AC.searchBytes < A.searchBytes || AC.commentRatio < (A.commentRatio || 1)) {
       BJ.aiCost = { searchBytes: Math.min(A.searchBytes || Infinity, AC.searchBytes), commentRatio: Math.min(A.commentRatio || 1, AC.commentRatio), tombstones: 0, claudeLines: 100 };
       if (!bad.length) fs.writeFileSync(BP, JSON.stringify(BJ, null, 1) + '\n'); } } catch (e) { bad.push('ai-cost\t' + BP + '\tcannot read the budgets: ' + e.message); }
+  /* THE OWNER'S FOUR (1030): their static halves, every change, against budget `owner` (ideal 0). */
+  { let OB = {}; try { OB = JSON.parse(fs.readFileSync(BP, 'utf8')).owner || {}; } catch (e) { OB = {}; }
+    const ow = ownerWork().concat(findWork(logic()).filter(w => w.kind === 'tag-colour')), n = {};
+    ow.forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
+    Object.keys(OWNER_KINDS).forEach(k => { if ((n[k] || 0) > (OB[k] || 0)) ow.filter(w => w.kind === k).forEach(w => bad.push(k + '\t' + w.where + '\t' + w.say)); }); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));

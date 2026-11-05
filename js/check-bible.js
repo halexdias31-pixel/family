@@ -363,8 +363,9 @@ declared.forEach(d => {
   const flags = (d.line.match(/\b(only|folder|grid|always|tagOnly|asIs|orderOf|cmp|not|min)\s*:/g) || []);
   if (flags.length) fail.push('`' + d.field + '` carries ' + flags.join(' ') + ' — a Bible question is an ordinary facet, asked by the one rule');
 });
-/* AND A COLOUR EACH, by the one rule: an answer's hue is its place in its menu (1010). */
-if (!/function tagOf_\(field, value(, at)?\)/.test(findSrc)) fail.push('tagOf_ does not colour by answer — a chip and the card\'s tag could disagree');
+/* AND A COLOUR EACH, its menu's (1030): every one of the six is in TAG_OF, written by tools/facet-hues.js. */
+const tagSrc = (/^const TAG_OF = (\{.*\});$/m.exec(findSrc) || [])[1] || '';
+SIX.forEach(f => { if (!new RegExp('\\b' + f + ':\\s*\\d+').test(tagSrc)) fail.push('TAG_OF does not name `' + f + '` — run node tools/facet-hues.js'); });
 /* AND THE SHEET: a live row for each, in order, between the shelf they are asked after and the
    textbook's question they come before — the tab's sort_order is the only thing that orders them. */
 let sheet = [];

@@ -66,6 +66,8 @@
   --paper-faint: #6a635a;   /* a third — captions, disabled, the small print */
   --paper-strip: #e7e2d5;   /* the punched binding strip at the top of the calendar */
   --paper-rule:  #cfc7b5;   /* a hairline drawn on paper */
+  /* THE CREAM ANSWER PILL (1030): every typing box on the site is drawn as the question's answer box. */
+  --pill-r: 26px; --pill-h: 52px;
   --pad:    1rem;
   --gap:    0.62rem;
   /* WAS 3.25rem OF HEADER. § */
@@ -469,20 +471,21 @@ html.wide body { max-width: none; box-shadow: none; }
    a field, so it is drawn by the field's own rule rather than by a copy of it that could drift. */
 input, select, textarea, .many-sum {
   width: 100%;
-  min-height: max(44px, 2.9rem); padding: .7rem .75rem;
-  background-color: var(--sunk);
-  border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--ink);
+  min-height: var(--pill-h); padding: .7rem 14px;
+  background-color: var(--paper);
+  border: 1px solid var(--paper); border-radius: var(--pill-r);
+  color: var(--paper-ink);
   /* 16px EXACTLY, not a rem — below 16px iOS zooms the page when a field is focused and never
      zooms back, and a fluid root would drop under it on a small phone. This is the one place a
      fixed pixel value is the correct answer. */
   font: 16px/1.3 var(--font);
   -webkit-appearance: none; appearance: none;
-  transition: border-color var(--dur-quick) var(--ease-out);
+  transition: box-shadow var(--dur-quick) var(--ease-out);
 }
+input::placeholder, textarea::placeholder { color: var(--paper-dim); opacity: 1; }
 /* ---------- A DROPDOWN LOOKS LIKE A DROPDOWN, AND THE OPEN LIST IS THE PLATFORM'S § */
 select, .many-sum {
-  --sel-arrow: var(--dim);
+  --sel-arrow: var(--paper-dim);
   --sel-tri: 5px;      /* half the arrow's width, and all of its height */
   --sel-at: calc(.55rem + var(--sel-tri));   /* the arrow's middle, from the box's right edge */
   padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem);
@@ -511,7 +514,7 @@ select option[value=""] { color: var(--dim); }
 input:disabled, select:disabled, textarea:disabled {
   opacity: .62;
   cursor: not-allowed;
-  background-color: var(--sunk);
+  background-color: var(--paper);
 }
 /* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
    the pair reads as a rendering fault rather than as a state. */
@@ -520,10 +523,10 @@ textarea { min-height: 5.8rem; resize: vertical; }
 /* ONE VISIBLE RING FOR EVERY CONTROL REACHED BY KEYBOARD (561, U15): zero specificity, so a control's own ring still wins. */
 :where(:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
 input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
-  outline: 0; border-color: var(--gold); }
+  outline: 0; box-shadow: 0 0 0 3px var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
 /* ---------- A WRONG PIN SAYS WHICH BOX § */
-input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var(--bad); }
+input[aria-invalid="true"], input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px var(--bad); }
 /* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD § */
 .pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
@@ -724,8 +727,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .lib-shelf .lib-pin label.field > span { text-align: right; }
 .lib-shelf .lib-face label.field { margin: 0; min-width: 0; }
 .lib-shelf .lib-face input {
-  min-width: 0; padding: 0 .1rem;
-  background-color: transparent; border: 1px solid transparent; border-radius: 2px;
+  min-width: 0;
   color: var(--paper-ink); text-overflow: ellipsis;
 }
 .lib-shelf .lib-face input::placeholder { color: var(--paper-dim); opacity: 1; font-weight: 400; letter-spacing: normal; }
@@ -1641,7 +1643,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
   color: var(--ink); font: inherit; font-size: .84rem; line-height: 1.4; resize: none;
 }
 .cmt-text:focus { outline: 0; border-color: var(--gold); }
-.cmt-text::placeholder { color: var(--faint); opacity: 1; }
+.cmt-text::placeholder { color: var(--paper-dim); opacity: 1; }
 /* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
    empty one under every post in the feed is a margin nobody asked for. */
 .cmt-said { flex: 1 0 100%; margin: .3rem 0 0; }
@@ -2192,10 +2194,11 @@ html.flow #screen { height: auto; overflow: visible; touch-action: auto; backgro
 html.flow .screen { gap: 0; position: static; transform: none; visibility: visible; transition: none; will-change: auto; }
 html.flow #s-account { order: -1; }
 html.flow .page { width: 100%; }
-/* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small grey line. */
+/* A LIST, NOT CARDS (owner, 4 Nov): no frame per result, a hairline between rows, the tags one small line. */
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
 html.flow #screen .page + .page { border-top: 1px solid var(--line); }
-html.flow .qcard-tags .qtag { color: var(--faint); border-color: transparent; background: none; padding: 0; }
+/* ITS WORDS IN THEIR MENU'S COLOUR (owner, 1030), still one small line with no outline. */
+html.flow .qcard-tags .qtag { color: var(--tag, var(--faint)); border-color: transparent; background: none; padding: 0; }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 
@@ -2358,7 +2361,7 @@ html.flow .page.is-res:not([data-filled]) { display: none; }
 }
 .msg-text:focus { outline: 0; border-color: var(--gold); }
 /* THE HINT IS ONE LINE. § */
-.msg-text::placeholder { color: var(--faint); opacity: 1; white-space: nowrap; }
+.msg-text::placeholder { color: var(--paper-dim); opacity: 1; white-space: nowrap; }
 /* ---------- THREE SHAPES BECAME ONE § */
 .msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px;
                         padding: 0 .85rem; border-radius: 22px; }
@@ -2623,7 +2626,7 @@ label.bk-k { cursor: pointer; }
   color: inherit; background: none; border: 0; border-radius: 0;
 }
 .bk-in:focus { outline: 0; }
-.bk-in::placeholder { color: var(--faint); opacity: 1; }
+.bk-in::placeholder { color: var(--paper-dim); opacity: 1; }
 
 /* A SETTLED ANSWER — text where a control would be, because nothing can be picked. § */
 .bk-set { display: block; color: var(--dim); }
@@ -4346,16 +4349,14 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-row .qcard-verdict.is-near { color: var(--warn); }
 .tile-row .qcard-verdict.is-right::before { content: "\2713"; margin-right: .3rem; font-weight: 700; }
 .tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: .3rem; font-weight: 700; }
-/* ---------- ONE CARD PER QUESTION (960): one box; each level's block indented one step under its label. */
-.qwhole { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
-          padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
+/* ---------- ONE ELEMENT PER QUESTION (960), NO BOX ROUND IT (1030): drawn as a `.card` is; each level's block indented one step. */
+.qwhole { background: none; border: 0; border-radius: 0; padding: .85rem 0; margin: 0; }
 .qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-d0 > .qsheet-stem, .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
 .qb-d1, .qb-d2, .qb-d3 { margin-top: .9rem; padding-left: .85rem; }
 .qb-d1 { padding-left: 0; }
 .qb-head { display: flex; align-items: baseline; gap: .5rem; }
 .qb-label { font-weight: 700; color: var(--ink); }
-.qb-marks { margin-left: auto; font-size: .7rem; color: var(--dim); }
 .qb-shut { font-size: .7rem; color: var(--faint); }
 .qb.is-shut, .qb.is-shut .qb-label { color: var(--dim); }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
@@ -4596,16 +4597,14 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP § */
 .gd-box { margin: .35rem 0 0; }
 .gd-box .kp-field {
-  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 .75rem;
+  background: var(--paper); border: 1px solid var(--paper); border-radius: var(--pill-r); padding: 0 14px;
 }
-.gd-box .kp-field:focus-within { border-color: var(--gold); }
+.gd-box .kp-field:focus-within { box-shadow: 0 0 0 3px var(--gold); }
 .gd-box .kp-field.kp-words > .kp-show {
   min-height: max(44px, 4.2rem); max-height: 12rem; padding: .5rem .6rem;
-  color: var(--ink); font: 16px/1.3 var(--font);
+  color: var(--paper-ink); font: 16px/1.3 var(--font);
 }
-.gd-box .kp-show:empty::before { color: var(--faint); }
-.gd-box .kp-caret { background: var(--gold); }
-.gd-box .kp-sel { background: var(--line); }
+.gd-box .kp-show:empty::before { color: var(--paper-dim); }
 /* ---------- AND A SEND BESIDE EACH BOX, SIGNED IN § */
 /* `gap` WHOLE, not `column-gap`: § */
 .qp-mark.gd-mark {
@@ -5308,11 +5307,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE BOX § */
 .search { margin-bottom: .8rem; }
-.search::placeholder { color: var(--faint); }
+.search::placeholder { color: var(--paper-dim); }
 /* THE EDGE LIGHTS, NOTHING MOVES. A field that grows or glows when you tap it shifts the words you
    were about to read. */
-.search:focus { outline: 0; border-color: var(--gold); }
-@media (hover: hover) { .search:hover { border-color: var(--line-soft); } }
+.search:focus { outline: 0; box-shadow: 0 0 0 3px var(--gold); }
 /* ---------- THE BOX AND THE BIN, ONE ROW § */
 .find-search { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
 .find-search .search { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
@@ -5903,13 +5901,13 @@ button.scr-sq { cursor: pointer; }
 .qp-bar { display: flex; align-items: center; gap: 8px; }
 .qp-bar > .qp-ans {
   flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: center;
-  min-height: max(44px, 2.9rem); padding: 0 .75rem; box-sizing: border-box; cursor: text;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); font: 16px/1.3 var(--font);
+  min-height: var(--pill-h); padding: 2px 14px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--pill-r); font: 16px/1.3 var(--font);
 }
 .qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
 /* A WORDED ANSWER IN THE BAR: § */
-.qp-bar > .qp-ans:focus-within, .qp-multi > .qp-ans:focus-within { border-color: var(--gold); }
+.qp-bar > .qp-ans:focus-within, .qp-multi > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
 .qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
 .qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
@@ -5917,12 +5915,12 @@ button.scr-sq { cursor: pointer; }
 .qp-multi { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); }
 .qp-multi > .qp-ans {
   flex: 1 1 4.5rem; max-width: 9rem; margin: 0; display: flex; align-items: center;
-  min-height: max(44px, 2.9rem); padding: 0 .75rem; box-sizing: border-box; cursor: text;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); font: 16px/1.3 var(--font);
+  min-height: var(--pill-h); padding: 2px 14px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--pill-r); font: 16px/1.3 var(--font);
 }
-/* THE ANSWER IN THE BAR IS ON THE SCREEN, NOT ON PAPER (980): the one field look, so its words take the screen's ink. */
-.qp-bar .kp-show, .qp-multi .kp-show { color: var(--ink); font: 16px/1.3 var(--font); min-height: 0; }
-.qp-bar .kp-show:empty::before, .qp-multi .kp-show:empty::before { color: var(--faint); }
+/* THE ANSWER IN THE BAR IS ON THE CREAM PILL (1030), so its words take the paper's ink. */
+.qp-bar .kp-show, .qp-multi .kp-show { color: var(--paper-ink); font: 16px/1.3 var(--font); min-height: 0; }
+.qp-bar .kp-show:empty::before, .qp-multi .kp-show:empty::before { color: var(--paper-dim); }
 .qp-multi[data-kind="words"] > .qp-ans { flex-basis: 10rem; max-width: none; }
 .qp-multi > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-multi .kp-show:empty::before { content: "\2026"; }

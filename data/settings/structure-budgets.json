@@ -256,7 +256,7 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12073,
+   "lines": 12082,
    "oneOff": 128,
    "emptyCatch": 30,
    "inlineStyle": 2,
@@ -606,7 +606,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7175,
+   "lines": 7173,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -698,13 +698,13 @@
    "label": "Card tile rows"
   },
   "textbox": {
-   "count": 2,
+   "count": 1,
    "ideal": 1,
    "label": "Text boxes"
   }
  },
  "aiCost": {
-  "searchBytes": 7470149,
+  "searchBytes": 7472098,
   "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100
@@ -717,6 +717,19 @@
   "card-order": 0,
   "indent": 0,
   "tap-response": 0,
-  "text-overflow": 0
+  "text-overflow": 0,
+  "tag-colour": 0,
+  "element-box": 0,
+  "card-tags": 0,
+  "attr-outside-tags": 0,
+  "text-boxes": 0
+ },
+ "owner": {
+  "why": "the owner's four (1030): static halves, ideal 0",
+  "tag-colour": 0,
+  "element-box": 0,
+  "card-tags": 0,
+  "attr-outside-tags": 0,
+  "text-boxes": 0
  }
 }

@@ -700,12 +700,13 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A FIGURE\'S INK A MADE-UP SURFACE ON THE CARD DOES NOT GET (356)', inkBad);
 }
 
-/* ---------- EVERY HUE `tagOf_` CAN GIVE HAS A RULE AND A TOKEN, AND NO OTHER TAG COLOUR EXISTS (1010) */
+/* ---------- EVERY HUE `tagOf_` CAN GIVE HAS A RULE AND A TOKEN, AND NO OTHER TAG COLOUR EXISTS (1010, 1030: one per menu) */
 {
   const tagBad = [];
   const findSrc = fs.readFileSync(path.join(dir, 'js', 'find.js'), 'utf8');
-  const n = +((/const TAG_HUES = (\d+);/.exec(findSrc) || [])[1] || 0);
-  if (!n) tagBad.push('TAG_HUES is not readable in js/find.js — the answer colours were NOT checked');
+  const n = [...css.matchAll(/--hue-(\d+):/g)].length;
+  if (!/^const TAG_OF = \{.*\};$/m.test(findSrc)) tagBad.push('no `const TAG_OF = {…};` line in js/find.js — the menu colours were NOT checked');
+  if (!n) tagBad.push('no --hue-N tokens on :root — the menu colours were NOT checked');
   const drawn = new Set();
   rules.forEach(r => {
     const m = /\[data-tag=["']?([a-z0-9]+)["']?\]/.exec(r.sel);
@@ -719,7 +720,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
     if (!drawn.has('h' + i)) tagBad.push('no `[data-tag="h' + i + '"]` rule colours hue ' + i);
     if (!new RegExp('--hue-' + i + ':').test(css)) tagBad.push('no `--hue-' + i + '` token on :root');
   }
-  say('AN ANSWER HUE WITHOUT A RULE, OR A TAG COLOUR OUTSIDE THE PALETTE (1010)', tagBad);
+  say('A MENU HUE WITHOUT A RULE, OR A TAG COLOUR OUTSIDE THE PALETTE (1030)', tagBad);
 }
 
 console.log('');

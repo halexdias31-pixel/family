@@ -7932,9 +7932,10 @@ function tagMadeOf_(text, said) {
   return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
 }
 function tagRow_(x, page) {
-  const out = [], words = new Set(), ids = new Set(), said = [];
+  const out = [], words = new Map(), ids = new Map(), said = [];
   if (!x) return '';
-  /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice. */
+  /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice, */
+  /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {
     let vals;
     try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
@@ -7944,12 +7945,23 @@ function tagRow_(x, page) {
       let text = raw;
       try { text = String(answerSay_(facet, raw) || raw).trim(); } catch (e) { text = raw; }
       const w = norm(text);
-      if ((TAG_NAME.test(text) && (words.has(w) || tagMadeOf_(text, said))) || (TAG_NAME.test(raw) && ids.has(raw))) return;
-      words.add(w); ids.add(raw); said.push(text);
-      out.push(`<span class="qtag"${tagAttr_(facet.field, raw)} data-f="${esc(facet.field)}">${esc(text)}</span>`);
+      const twin = TAG_NAME.test(text) && words.has(w) ? words.get(w) : TAG_NAME.test(raw) && ids.has(raw) ? ids.get(raw) : null;
+      if (twin) { if (twin.field !== facet.field && twin.also.indexOf(facet.field) < 0) twin.also.push(facet.field); return; }
+      if (TAG_NAME.test(text) && tagMadeOf_(text, said)) return;
+      const t = { field: facet.field, raw, text, also: [] };
+      words.set(w, t); ids.set(raw, t); said.push(text); out.push(t);
     });
   });
-  return `<div class="qtags qcard-tags">${out.join('')}</div>`;
+  return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
+    t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
+}
+/* A CARD WITH NO TAG LINE GETS ONE AT ITS TOP (1030), under its title: every element says its attributes as tags. */
+function tagsOnTop_(x, html) {
+  if (!x || typeof html !== 'string' || !html || /class="qtags\b/.test(html)) return html;
+  const row = tagRow_(x);
+  if (!/class="qtag"/.test(row)) return html;
+  if (/<\/h3>/.test(html)) return html.replace(/<\/h3>/, '</h3>' + row);
+  return html.replace(/^(\s*<div\b[^>]*>)/, '$1' + row);
 }
 
 /* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
@@ -7988,10 +8000,23 @@ function questionCard_(x, was) {
 }
 
 /* ---------- ONE CARD PER QUESTION NUMBER, AS THE PAPER PRINTS IT (960) § */
-/* The tags said once at the top are the question's; a part's own (its letter, its marks) stand small beside its label. */
+/* EVERY ATTRIBUTE IS A TAG IN THE TOP LINE (1030): a lone part keeps its whole row; several parts say each part's marks as "a 2 marks". */
 const Q_PART_FACETS = { qPart: 1, qSub: 1, qPage: 1, qPages: 1, marks: 1, myResult: 1, accuracy: 1, function: 1 };
-function qWholeTags_(x) {
-  return String(tagRow_(x) || '').replace(/<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, (m, f) => (Q_PART_FACETS[f] ? '' : m));
+const Q_TAG_RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>([\s\S]*?)<\/span>/g;
+function qWholeTags_(x, list) {
+  const row = String(tagRow_(x) || '');
+  if (!list || list.length < 2) return row;
+  const seen = {}, more = [];
+  list.forEach(p => {
+    const sp = qSplitOf_(p) || {}, lab = String(sp.part || p.qPart || '').replace(/^\./, '') + (sp.sub ? '(' + sp.sub + ')' : '');
+    String(tagRow_(p) || '').replace(Q_TAG_RE, (m, f, t) => {
+      if (!Q_PART_FACETS[f] || /^q(Part|Sub|Page|Pages)$/.test(f)) return m;
+      const html = f === 'marks' && lab ? m.replace('>' + t + '<', '>' + esc(lab) + ' ' + t + '<') : m;
+      if (!seen[html]) { seen[html] = 1; more.push(html); }
+      return m;
+    });
+  });
+  return row.replace(Q_TAG_RE, (m, f) => (Q_PART_FACETS[f] ? '' : m)).replace(/<\/div>$/, more.join('') + '</div>');
 }
 /* THE TREE: the question, its letters, their numerals; a stem stands at the deepest level every part under it shares. */
 function qTree_(parts) {
@@ -8043,12 +8068,11 @@ function qStemWhole_(x, p) {
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
-/* ONE BLOCK, THE SAME AT EVERY LEVEL: label (part tags small beside it), its own words, its answer row, its children. */
+/* ONE BLOCK, THE SAME AT EVERY LEVEL: its label, its own words, its answer row, its children. */
 function qBlock_(n, ctx) {
   const own = n.items[0] || null;
   const shut = own && !ctx.open.has(own);
-  const marks = own && Number(own.marks) ? `<span class="qb-marks">[${esc(String(own.marks))} mark${Number(own.marks) === 1 ? '' : 's'}]</span>` : '';
-  const label = n.label ? `<div class="qb-head"><span class="qb-label">${esc(n.depth === 1 ? n.label : '(' + n.label + ')')}</span>${marks}${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : (marks ? `<div class="qb-head">${marks}</div>` : '');
+  const label = n.label ? `<div class="qb-head"><span class="qb-label">${esc(n.depth === 1 ? n.label : '(' + n.label + ')')}</span>${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
   const stems = n.stems.filter(p => !ctx.carried.has(p) && !ctx.drawn[stemId_(p)])
     .map(p => { ctx.drawn[stemId_(p)] = true; return qStemWhole_(own || ctx.x, p); }).join('');
   const body = own && !shut ? qPartCard_(own, ctx.ans) : '';
@@ -8070,7 +8094,7 @@ function questionWhole_(x, parts, open, ans) {
   const tools = tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x), typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]);
   const foot = cardTiles_(Object.assign(Object.create(x), { more: (x.more || '') + tools }));
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
-    ${qWholeTags_(x)}${qBlock_(tree, ctx)}
+    ${qWholeTags_(x, list)}${qBlock_(tree, ctx)}
   </div></div>${foot}`;
 }
 
@@ -9717,7 +9741,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult', v)} data-f="myResult">${esc(v)}</span>`).join('');
+    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
       const pg = b.closest('.page');
@@ -10480,7 +10504,7 @@ function stuffCard(x, credits) {
   /* A kind with no card of its own falls back to the shared one, so a new row type shows as SOMETHING. */
   /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
   const card = kindOf_(x).card || thingCard_;
-  const html = tagsAreTitle_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_));
+  const html = tagsAreTitle_(x, tagsOnTop_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_)));
   if (!x.key) return html;
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
@@ -10491,27 +10515,12 @@ function chipShow_(f) {
   return facet ? answerSay_(facet, f.value) : f.value;
 }
 
-/* ---------- AN ANSWER'S COLOUR IS ITS PLACE IN ITS MENU (1010): `at` as drawn; a chip keeps the hue it was picked in, a card word its chip's. */
-const TAG_HUES = 12;
-const TAG_RANK = new WeakMap();
-function tagOf_(field, value, at) {
-  if (typeof at === 'number') return 'h' + (at % TAG_HUES);
-  try {
-    const chip = ((STUFF && STUFF.filters) || []).find(f => f.field === field && typeof f.hue === 'number' && spellKey_(f.value) === spellKey_(value));
-    if (chip) return 'h' + (chip.hue % TAG_HUES);
-    const items = stuffItems(), facet = facetBy(field);
-    if (!facet || value == null) return 'h0';
-    let per = TAG_RANK.get(items);
-    if (!per) { per = {}; TAG_RANK.set(items, per); }
-    let rank = per[field];
-    if (!rank) {
-      rank = per[field] = {};
-      (facetTally_(items, facet).values || []).forEach((v, i) => { rank[spellKey_(v.value)] = i; });
-    }
-    return 'h' + ((rank[spellKey_(value)] || 0) % TAG_HUES);
-  } catch (e) { return 'h0'; }
-}
-const tagAttr_ = (field, value, at) => ` data-tag="${tagOf_(field, value, at)}"`;
+/* ---------- ONE COLOUR PER MENU (1030): every answer of a facet, its chip and its card words wear the facet's --hue-N. § */
+/* WRITTEN BY tools/facet-hues.js from the funnel's facet graph: two facets asked on one path never share a number. */
+const TAG_OF = {forLabel: 2, kindLabel: 0, kindOwn: 2, projectType: 3, subject: 1, shelf: 9, wReligion: 5, wCollection: 4, wWork: 8, wSection: 7, wSource: 2, wLanguage: 6, wText: 11, wTradition: 7, wBook: 9, wChapter: 10, wUnit: 2, wAuthor: 2, wForm: 6, mKind: 3, mSystem: 10, mEngine: 9, cCategory: 10, cGroup: 6, cPeriod: 7, cState: 8, boxKind: 6, fighter: 8, boutMonth: 3, boutYear: 9, decade: 10, division: 11, boutRound: 1, boutMethod: 0, boutWinner: 0, boutEvent: 1, histKind: 6, histEra: 3, histMaterial: 7, histFormat: 4, histGenre: 5, histRole: 9, histTheme: 0, histRepository: 8, histSide: 10, histTheatre: 11, practicalType: 4, shopKind: 1, shopHow: 0, shopPrice: 2, shopBrand: 10, shopFor: 11, shopTheme: 3, required: 7, documentType: 4, typeOwn: 5, fiveLevel: 0, fiveMonth: 1, fiveDay: 11, level: 3, keystage: 6, yearGroup: 8, bandValue: 5, topic: 5, examBoard: 7, tier: 9, examYear: 11, examMonth: 1, accuracy: 0, function: 8, paperId: 4, paperSection: 4, qNumber: 5, qPart: 7, qSub: 8, qPage: 5, qPages: 6, marks: 1, needs: 3, myResult: 2, source: 4};
+/* A FACET THE WALK NEVER MET (one the facets tab invented) still has a colour: the first. */
+const tagOf_ = field => 'h' + (TAG_OF[field] || 0);
+const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
 function chipText_(f, i) {
@@ -10533,7 +10542,7 @@ function filterChips() {
       if (said[key]) return '';
       said[key] = 1;
       return `
-      <button class="chip sm" data-do="filter-drop" data-i="${i}"${f.any ? '' : tagAttr_(f.field, f.value, f.hue)}>
+      <button class="chip sm" data-do="filter-drop" data-i="${i}"${f.any ? '' : tagAttr_(f.field)}>
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
              ''}
         ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
@@ -10560,7 +10569,7 @@ function filterClear_() {
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value, hue: +String(el.dataset.tag || 'h0').slice(1) || 0 });
+  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
   paintStuff();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -11460,7 +11469,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map((v, i) => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field, v.value, i)}
+  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
         <span class="k">${mark(answerSay_(facet, v.value))}</span>

@@ -172,7 +172,7 @@ function instruments() {
     if (r.length) broken.push({ id: q.id, type: q.type, why: r });
   }
   mark('questions');
-  /* CARD TAGS (920): every kind's cards drawn by stuffCard, as Find draws them; each facet value a card has must be a tag (data-f), and a question carries Accuracy and Function. */
+  /* CARD TAGS (920): every kind's cards drawn by stuffCard, as Find draws them; each facet value a card has must be a tag (data-f or data-also), none shown outside the tag line (1030). */
   const cardTags = await page.evaluate(() => {
     const by = {}, out = {};
     stuffItemsAll_().forEach(x => { if (x && x.kind) (by[x.kind] = by[x.kind] || []).push(x); });
@@ -186,13 +186,25 @@ function instruments() {
         if (/lib-wait|aria-busy/.test(html) && !/qtag/.test(html)) return;
         r.sampled++;
         host.innerHTML = html;
-        const have = new Set([...host.querySelectorAll('.qtag')].map(t => t.getAttribute('data-f')));
+        const have = new Set([...host.querySelectorAll('.qtag')].flatMap(t => [t.getAttribute('data-f')].concat(String(t.getAttribute('data-also') || '').split(' ').filter(Boolean))));
         if (!have.size) r.noTags++;
+        /* AN ATTRIBUTE OUTSIDE THE TAG LINE (1030): a data-f, a marks label or "[2 marks]" drawn anywhere but in .qtags. */
+        const out_ = [...host.querySelectorAll('[data-f], [class*="marks"], span, small')].filter(e => !e.closest('.qtags') && !e.closest('.chips')
+          && (e.hasAttribute('data-f') || /(^|\s)[\w-]*marks\b/.test(e.className || '') || /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim())));
+        if (out_.length) r.outside = (r.outside || 0) + 1;
         facetList().forEach(F => { let v = [];
           try { v = asList_(F.tagOf ? F.tagOf(x, '') : facetOwn_(F, x)).filter(z => String(z == null ? '' : z).trim()); } catch (e) { v = []; }
           if (v.length && !have.has(F.field)) r.missing[F.field] = (r.missing[F.field] || 0) + 1; });
       });
     });
+    /* A WHOLE QUESTION (960) as its page draws it: each part's marks must be a tag on the top line, never beside a part label. */
+    try { const qp = questionParts_(), r = out.question = out.question || { cards: 0, sampled: 0, noTags: 0, missing: {} };
+      Object.keys(qp).filter(k => (qp[k] || []).length > 1).slice(0, 20).forEach(k => { const ps = qp[k];
+        host.innerHTML = questionWhole_(ps[0], ps, new Set(ps), true);
+        const top = host.querySelector('.qwhole > .qtags'), want = ps.filter(p => Number(p.marks) > 0).length;
+        const bad = !top || [...host.querySelectorAll('.qtags')].length !== 1 || (want > 1 && top.querySelectorAll('[data-f="marks"]').length < want)
+          || [...host.querySelectorAll('span, small, div')].some(e => !e.closest('.qtags') && /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim()));
+        if (bad) r.outside = (r.outside || 0) + 1; }); } catch (e) { /* no question parts in this build: nothing to measure */ }
     return out;
   });
   /* TEXT BOXES (980): Find's search, a question's answer box and a Settings field, measured as drawn; one look means one signature. */
@@ -208,8 +220,10 @@ function instruments() {
     try { for (const t of TABS) { go(t.id); await wait(300);
       const f = [...document.querySelectorAll('#s-' + t.id + ' input[data-draft^="set:"]')].find(e => vis(e) && !e.disabled && (e.type === 'text' || !e.getAttribute('type')));
       if (f) { out.push({ where: 'Settings field (' + t.id + ')', sig: sig(f) }); break; } } } catch (e) { /* not reached: left out */ }
-    const first = out[0] ? out[0].sig : {}, off = [];
-    out.slice(1).forEach(o => Object.keys(first).forEach(k => { if (k === 'h' ? Math.abs(o.sig.h - first.h) > 2 : o.sig[k] !== first[k]) off.push(`${o.where} ${k} ${o.sig[k]} (${out[0].where} ${first[k]})`); }));
+    /* THE CREAM PILL IS THE YARDSTICK (1030): the question's answer box; every other box is measured against it. */
+    const pill = out.find(o => o.where === 'question answer box'), first = pill ? pill.sig : {}, off = [];
+    if (!pill) off.push('no question answer box was drawn: the cream pill was NOT measured');
+    out.filter(o => o !== pill).forEach(o => Object.keys(first).forEach(k => { if (k === 'h' ? Math.abs(o.sig.h - first.h) > 2 : o.sig[k] !== first[k]) off.push(`${o.where} ${k} ${o.sig[k]} (cream pill ${first[k]})`); }));
     return { faces: out, off };
   }).catch(e => ({ faces: [], off: [], error: String(e.message).slice(0, 120) }));
   mark('boxLooks');
