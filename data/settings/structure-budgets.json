@@ -938,10 +938,15 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7486570,
+  "searchBytes": 5152098,
   "commentRatio": 0.266,
   "tombstones": 0,
-  "claudeLines": 100
+  "claudeLines": 100,
+  "testBiggest": 414941,
+  "bigNotes": 9,
+  "spread": 12,
+  "effortLines": 209,
+  "effortFiles": 9
  },
  "qcard": {
   "card-split": 0,

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /* @family. — tools/health.js THE SITE'S ONE HEALTH SCORE (890), measured, never judged by AI. --check: write nothing, exit 1 when stale. */
-/* Blends three parts into data/health.json:                                                                                          */
-//   code stability (core)  40%  tools/stability.js, re-run here (cheap, reads the repo)
-//   Find logic             35%  data/logic-health.json, written by tools/logic-health.js (slow: walks the funnel). Never re-walked here;
+/* Blends four parts into data/health.json (1040: AI cost raised from 10% to 20%, the other three scaled by 0.8/0.9):                 */
+//   code stability (core)  32%  tools/stability.js, re-run here (cheap, reads the repo)
+//   AI cost                20%  tools/ai-cost.js: read bytes, comments, tombstones, CLAUDE.md, search bytes, effort, test/note size, spread
+//   Find logic             28%  data/logic-health.json, written by tools/logic-health.js (slow: walks the funnel). Never re-walked here;
 //                               it is "stale" when any of its inputs is newer than it.
-//   UI simplicity          25%  style.css, read here — 100 less a penalty per signal, each capped:
+//   UI simplicity          20%  style.css, read here — 100 less a penalty per signal, each capped:
 // important    0.05 per !important, cap 15
 // pxlit        0.004 per px literal outside :root, cap 15
 // colourlit    0.02 per hex/rgb()/hsl() colour literal outside :root and custom-property definitions, cap 15
@@ -20,7 +21,7 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'health.json');
 const CHECK = process.argv.includes('--check');
-const WEIGHTS = { code: 0.36, logic: 0.315, ui: 0.225, cost: 0.10 };   /* cost (940): tools/ai-cost.js, what a change costs an AI to read */
+const WEIGHTS = { code: 0.32, logic: 0.28, ui: 0.20, cost: 0.20 };   /* cost (940): tools/ai-cost.js, what a change costs an AI to read */
 const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
@@ -538,7 +539,7 @@ function health() {
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
-    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score }, aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
+    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score }, aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
     worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
@@ -554,7 +555,7 @@ function trendSummary() {
 }
 function trendAppend(h) {
   let t = []; try { t = JSON.parse(fs.readFileSync(TREND, 'utf8')); } catch (e) { t = []; }
-  const commit = git(['rev-parse', '--short', 'HEAD']), e = { date: new Date().toISOString().slice(0, 10), commit, score: h.score, parts: h.parts, topKind: (h.top[0] || {}).id || '' };
+  const commit = git(['rev-parse', '--short', 'HEAD']), e = { date: new Date().toISOString().slice(0, 10), commit, score: h.score, parts: h.parts, topKind: (h.top[0] || {}).id || '', effort: h.aiCost && h.aiCost.effort };
   const was = t[t.length - 1];
   if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
@@ -604,8 +605,15 @@ function changed() {
   try { const BJ = JSON.parse(fs.readFileSync(BP, 'utf8')), A = BJ.aiCost || {};
     if (A.searchBytes && AC.searchBytes > A.searchBytes) bad.push(`search-bytes\tjs/\t${AC.searchBytes} searchable bytes, over the budget of ${A.searchBytes}`);
     if (A.commentRatio && AC.commentRatio > A.commentRatio + 0.002) bad.push(`comment-ratio\tjs/\tcomments are ${AC.commentRatio} of app code, over the budget of ${A.commentRatio}`);
-    if (!A.searchBytes || AC.searchBytes < A.searchBytes || AC.commentRatio < (A.commentRatio || 1)) {
-      BJ.aiCost = { searchBytes: Math.min(A.searchBytes || Infinity, AC.searchBytes), commentRatio: Math.min(A.commentRatio || 1, AC.commentRatio), tombstones: 0, claudeLines: 100 };
+    /* THE FOUR (1040): the biggest test file (4 KB slack), notes over 40 KB and a change's spread (one file slack) only go down; effort is report-only. */
+    const E = AC.effort, low = (k, v) => Math.min(A[k] == null ? Infinity : A[k], v);
+    if (A.testBiggest && E.testBiggest > A.testBiggest + 4096) bad.push(`test-biggest\t${E.testBiggestFile}\t${E.testBiggest} bytes, over the budget of ${A.testBiggest}: put new journeys in a file of their own`);
+    if (A.bigNotes != null && E.bigNotes.length > A.bigNotes) bad.push(`big-notes\tdocs/history/\t${E.bigNotes.length} notes over 40 KB, over the budget of ${A.bigNotes}: split by topic, never delete`);
+    if (A.spread && E.spread > A.spread + 1) bad.push(`spread\tjs/\ta change to js/ touches ${E.spread} files (median), over the budget of ${A.spread}`);
+    const next = { searchBytes: low('searchBytes', AC.searchBytes), commentRatio: Math.min(A.commentRatio || 1, AC.commentRatio), tombstones: 0, claudeLines: 100,
+      testBiggest: low('testBiggest', E.testBiggest), bigNotes: low('bigNotes', E.bigNotes.length), spread: low('spread', E.spread), effortLines: low('effortLines', E.medianLines), effortFiles: low('effortFiles', E.medianFiles) };
+    if (JSON.stringify(next) !== JSON.stringify(A)) {
+      BJ.aiCost = next;
       if (!bad.length) fs.writeFileSync(BP, JSON.stringify(BJ, null, 1) + '\n'); } } catch (e) { bad.push('ai-cost\t' + BP + '\tcannot read the budgets: ' + e.message); }
   /* THE OWNER'S FOUR (1030): their static halves, every change, against budget `owner` (ideal 0). */
   { let OB = {}; try { OB = JSON.parse(fs.readFileSync(BP, 'utf8')).owner || {}; } catch (e) { OB = {}; }

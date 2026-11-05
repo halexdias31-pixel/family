@@ -254,5 +254,30 @@
    "cost": 81.6
   },
   "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "5a443a7",
+  "score": 42.8,
+  "parts": {
+   "code": 35.5,
+   "logic": 34.4,
+   "ui": 33.1,
+   "cost": 75.8
+  },
+  "topKind": "variety-qpage",
+  "effort": {
+   "commits": 30,
+   "medianLines": 209,
+   "worstLines": 24645,
+   "medianFiles": 9,
+   "worstFiles": 61,
+   "testBytes": 3563727,
+   "testBiggest": 414941,
+   "historyBytes": 4469362,
+   "historyBiggest": 166839,
+   "bigNotes": 9,
+   "spread": 12
+  }
  }
 ]
