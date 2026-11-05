@@ -685,5 +685,11 @@
    "ideal": 1,
    "label": "Wait indicators"
   }
+ },
+ "aiCost": {
+  "searchBytes": 7487358,
+  "commentRatio": 0.266,
+  "tombstones": 0,
+  "claudeLines": 100
  }
 }
