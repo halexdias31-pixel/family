@@ -17,9 +17,8 @@ function drawFig_(svg) {
   });
   return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels, shift: shift };
 }
-
-/* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
-function drawMarker_() {
+/* THE MARKER IN STAGES, each handed the names of those before it: geometry, frame, ink, shapes, the kinds (drawKinds1_ to 5_), the example; `drawMarker_` joins them. */
+function drawGeom_() {
   const H = Math.hypot, R = Math.PI / 180;
   const near = (a, b) => H(a[0] - b[0], a[1] - b[1]);
   function dSeg(p, a, b) {
@@ -53,7 +52,29 @@ function drawMarker_() {
   const bearing = (c, p) => ((Math.atan2(p[0] - c[0], c[1] - p[1]) / R) + 360) % 360;
   const dirOf = (a, b) => ((Math.atan2(b[1] - a[1], b[0] - a[0]) / R) + 180) % 180;
   const dDir = (a, b) => { const d = Math.abs(a - b) % 180; return Math.min(d, 180 - d); };
-
+  /* a dotted grid as two steps from one dot, so the row does not list every dot */
+  function latSnap(q, L) {
+    const d = L[2] * L[5] - L[3] * L[4], x = q[0] - L[0], y = q[1] - L[1];
+    const i = Math.round((x * L[5] - y * L[4]) / d), j = Math.round((L[2] * y - L[3] * x) / d);
+    return [L[0] + i * L[2] + j * L[4], L[1] + i * L[3] + j * L[5]];
+  }
+  const onDots = (q, on, F, tol) => on.lat ? near(latSnap(q, on.lat), q) <= tol : on.some(o => near(F.v(o), q) <= tol);
+  function convex(P) {
+    const p = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]).filter((q, i, a) => !i || near(q, a[i - 1]) > 1e-6);
+    if (p.length < 3) return p;
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], hi = [];
+    p.forEach(q => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 1e-6) lo.pop(); lo.push(q); });
+    p.slice().reverse().forEach(q => { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], q) <= 1e-6) hi.pop(); hi.push(q); });
+    return lo.slice(0, -1).concat(hi.slice(0, -1));
+  }
+  function cross(s, t) {
+    const o = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+    return o(s[0], s[1], t[0]) !== o(s[0], s[1], t[1]) && o(t[0], t[1], s[0]) !== o(t[0], t[1], s[1]);
+  }
+  return { H, R, near, dSeg, dLine, dPoly, len, rdp, inside, area, bearing, dirOf, dDir, latSnap, onDots, convex, cross };
+}
+function drawFrame_() {
   /* THE FRAME: figure units to the picture's. Labels give an axis its scale; a grid alone counts squares from its bottom-left corner, y up. */
   function fitAxis(fig, axis, not) {
     const L = (fig.labels || []).filter(l => !(not && not.indexOf(l) !== -1)), by = {};
@@ -107,7 +128,9 @@ function drawMarker_() {
       v: p => [o[0] + p[0] * u[0], o[1] + p[1] * u[1]],
       f: p => [(p[0] - o[0]) / u[0], (p[1] - o[1]) / u[1]] };
   }
-
+  return { fitAxis, frameOf };
+}
+function drawInk_(g) { const { H, R, near, dSeg, dPoly, len, rdp, bearing } = g;
   /* THE INK: each stroke as a polyline in the picture's units, its corners snapped to grid points (357's snap, read back). */
   function inkOf(strokes, F) {
     const vb = F.vb, G = F.grid, snap = F.sq * 0.22;
@@ -162,6 +185,9 @@ function drawMarker_() {
     });
     return out;
   };
+  return { inkOf, samples, dInk, covered, straights, rays };
+}
+function drawShapes_(g) { const { H, R, near, dirOf, dDir, straights } = g;
   /* closed shapes in the ink: corners joined across strokes, straight-on corners dropped */
   function polygons(ink, F, join) {
     const S = straights(ink, F.sq * 0.3), nodes = [], edges = [];
@@ -212,9 +238,10 @@ function drawMarker_() {
     /* both pairs of opposite sides parallel: a rectangle, rhombus or square is one too (439) */
     parallelogram: (p) => p.length === 4 && dDir(dirOf(p[0], p[1]), dirOf(p[3], p[2])) <= 4 && dDir(dirOf(p[1], p[2]), dirOf(p[0], p[3])) <= 4,
   };
-
-  /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
-  const KIND = {
+  return { polygons, sides, corners, same, SHAPE };
+}
+function drawKinds1_(g) { const { near, dSeg, dLine, dInk, covered } = g;
+  return {
     pts(it, ink, F, tol) {
       const P = it.at.map(F.v), small = F.sq * (it.dot || 1);
       const marks = [];
@@ -271,6 +298,10 @@ function drawMarker_() {
       return { ok: covered(a, b, ink, tol, it.from == null ? 0.15 : it.from, it.to == null ? 0.85 : it.to, it.cover),
         ex: q => dLine(q, a, b) <= tol * 1.5 };
     },
+  };
+}
+function drawKinds2_(g) { const { near, dSeg, dLine, inside, area, dirOf, dDir, cross, straights, sides, corners } = g;
+  return {
     cells(it, ink, F) {
       const C = (it.cells || []).map(c => c.map(F.v)).concat((it.rects || []).map(r => [[r[0], r[1]], [r[0] + r[2], r[1]], [r[0] + r[2], r[1] + r[3]], [r[0], r[1] + r[3]]].map(F.v)));
       const given = it.given || [];
@@ -333,6 +364,10 @@ function drawMarker_() {
       }));
       return { ok: ok, ex: q => S.some(s => dSeg(q, s[0], s[1]) <= F.sq * 0.4) };
     },
+  };
+}
+function drawKinds3_(g) { const { near, dSeg, dPoly, area, bearing, onDots, straights, rays, polygons, sides, corners, SHAPE } = g;
+  return {
     polygon(it, ink, F, tol) {
       const join = F.sq * (it.join || 0.5);
       const all = polygons(ink, F, join).map(p => ({ v: p, f: p.map(F.f) }));
@@ -403,6 +438,10 @@ function drawMarker_() {
       const ok = it.need ? hit >= it.need : (hit === it.sect.length && gaps.length === it.sect.length);
       return { ok: ok, ex: q => near(q, c) <= r * 1.1 };
     },
+  };
+}
+function drawKinds4_(g) { const { near, dPoly, inside, dirOf, dDir, latSnap, convex, covered, straights, sides } = g;
+  return {
     /* a cuboid on dotted paper: its outline is a hexagon whose sides, in dots, go a b c a b c, and a times b times c is its volume */
     cuboid(it, ink, F, tol) {
       const pts = [];
@@ -477,6 +516,10 @@ function drawMarker_() {
       const circles = it.loose ? !!ea && !!eb : ea === (it.ca ? 'filled' : 'open') && eb === (it.cb ? 'filled' : 'open');
       return { ok: at && circles, ex: q => q[0] >= A - r * 1.5 && q[0] <= B + r * 1.5 && Math.abs(q[1] - ya) <= r * 2 };
     },
+  };
+}
+function drawKinds5_(g) { const { near, dSeg, dPoly, inside, area, polygons } = g;
+  return {
     /* AREA: the closed shapes drawn inside a box, their areas added (a pictogram's symbols) */
     area(it, ink, F) {
       const box = it.in.map(F.v), inBox = p => p[0] >= Math.min(box[0][0], box[1][0]) && p[0] <= Math.max(box[0][0], box[1][0]) && p[1] >= Math.min(box[0][1], box[1][1]) && p[1] <= Math.max(box[0][1], box[1][1]);
@@ -530,62 +573,8 @@ function drawMarker_() {
       return { ok: ok, ex: q => inB(q, A) || inB(q, B) || dSeg(q, ca, cb) <= band };
     },
   };
-  /* a dotted grid as two steps from one dot, so the row does not list every dot */
-  function latSnap(q, L) {
-    const d = L[2] * L[5] - L[3] * L[4], x = q[0] - L[0], y = q[1] - L[1];
-    const i = Math.round((x * L[5] - y * L[4]) / d), j = Math.round((L[2] * y - L[3] * x) / d);
-    return [L[0] + i * L[2] + j * L[4], L[1] + i * L[3] + j * L[5]];
-  }
-  const onDots = (q, on, F, tol) => on.lat ? near(latSnap(q, on.lat), q) <= tol : on.some(o => near(F.v(o), q) <= tol);
-  function convex(P) {
-    const p = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]).filter((q, i, a) => !i || near(q, a[i - 1]) > 1e-6);
-    if (p.length < 3) return p;
-    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-    const lo = [], hi = [];
-    p.forEach(q => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 1e-6) lo.pop(); lo.push(q); });
-    p.slice().reverse().forEach(q => { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], q) <= 1e-6) hi.pop(); hi.push(q); });
-    return lo.slice(0, -1).concat(hi.slice(0, -1));
-  }
-  function cross(s, t) {
-    const o = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
-    return o(s[0], s[1], t[0]) !== o(s[0], s[1], t[1]) && o(t[0], t[1], s[0]) !== o(t[0], t[1], s[1]);
-  }
-  function one(it, ink, F, spec) {
-    const tol = F.sq * (it.tol || spec.tol || 0.3);
-    if (it.k === 'any') {
-      const rs = it.of.map(o => one(o, ink, F, spec)), hit = rs.find(r => r.ok);
-      return hit || { ok: false, ex: q => rs.some(r => r.ex(q)) };
-    }
-    const f = KIND[it.k];
-    return f ? f(it, ink, F, tol) : { ok: false, ex: () => false };
-  }
-
-  /* `draw_answer`: `{ frame?, tol?, loose?, items: [{ k, m, ..., or }] }`. An item's `or` is what the scheme gives fewer marks for. Ink that no item accounts for costs a mark. */
-  function mark(strokes, spec, fig, marks) {
-    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
-    if (!spec || !Array.isArray(spec.items)) return null;
-    const F = frameOf(spec, fig), ink = inkOf(strokes, F);
-    const total = spec.items.reduce((s, it) => s + (it.m == null ? 1 : it.m), 0);
-    const of = Math.max(1, Number(marks) || spec.marks || total);
-    if (!ink.length) return { got: 0, of: of, each: [], stray: 0, empty: true };
-    let got = 0;
-    const exs = [], each = [];
-    spec.items.forEach(it => {
-      let cur = it, r = one(cur, ink, F, spec);
-      exs.push(r.ex);
-      while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, spec); exs.push(r.ex); }
-      each.push(r.ok ? (cur.m == null ? 1 : cur.m) : 0);
-      if (r.ok) got += cur.m == null ? 1 : cur.m;
-    });
-    let all = 0, lost = 0;
-    ink.forEach(s => {
-      const pts = s.pl.length === 1 ? s.pl : [].concat.apply([], s.pl.slice(1).map((q, i) => samples(s.pl[i], q, F.sq * 0.25).slice(1)));
-      pts.forEach(p => { all++; if (!exs.some(e => e(p))) lost++; });
-    });
-    const stray = all ? lost / all : 0;
-    if (!spec.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
-    return { got: Math.min(of, Math.floor(got * of / Math.max(1, total) + 1e-9)), of: of, each: each, stray: Math.round(stray * 100) / 100 };
-  }
+}
+function drawExample_(g) { const { H, R, near, inside, frameOf } = g;
   /* A RIGHT DRAWING OF THE ANSWER, as strokes the pen would store: the row's own `eg` (figure units) or one made from its items. The checks mark it full and a near miss less. */
   function example(spec, fig) {
     if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return []; } }
@@ -662,10 +651,53 @@ function drawMarker_() {
     spec.items.forEach(one);
     return out;
   }
+  return example;
+}
+/* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
+function drawMarker_() {
+  const g = drawGeom_(); [drawFrame_, drawInk_, drawShapes_].forEach(f => Object.assign(g, f(g)));
+  const { frameOf, inkOf, samples, polygons } = g;
+  /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
+  const KIND = Object.assign({}, drawKinds1_(g), drawKinds2_(g), drawKinds3_(g), drawKinds4_(g), drawKinds5_(g));
+  function one(it, ink, F, spec) {
+    const tol = F.sq * (it.tol || spec.tol || 0.3);
+    if (it.k === 'any') {
+      const rs = it.of.map(o => one(o, ink, F, spec)), hit = rs.find(r => r.ok);
+      return hit || { ok: false, ex: q => rs.some(r => r.ex(q)) };
+    }
+    const f = KIND[it.k];
+    return f ? f(it, ink, F, tol) : { ok: false, ex: () => false };
+  }
+  /* `draw_answer`: `{ frame?, tol?, loose?, items: [{ k, m, ..., or }] }`. An item's `or` is what the scheme gives fewer marks for. Ink that no item accounts for costs a mark. */
+  function mark(strokes, spec, fig, marks) {
+    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
+    if (!spec || !Array.isArray(spec.items)) return null;
+    const F = frameOf(spec, fig), ink = inkOf(strokes, F);
+    const total = spec.items.reduce((s, it) => s + (it.m == null ? 1 : it.m), 0);
+    const of = Math.max(1, Number(marks) || spec.marks || total);
+    if (!ink.length) return { got: 0, of: of, each: [], stray: 0, empty: true };
+    let got = 0;
+    const exs = [], each = [];
+    spec.items.forEach(it => {
+      let cur = it, r = one(cur, ink, F, spec);
+      exs.push(r.ex);
+      while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, spec); exs.push(r.ex); }
+      each.push(r.ok ? (cur.m == null ? 1 : cur.m) : 0);
+      if (r.ok) got += cur.m == null ? 1 : cur.m;
+    });
+    let all = 0, lost = 0;
+    ink.forEach(s => {
+      const pts = s.pl.length === 1 ? s.pl : [].concat.apply([], s.pl.slice(1).map((q, i) => samples(s.pl[i], q, F.sq * 0.25).slice(1)));
+      pts.forEach(p => { all++; if (!exs.some(e => e(p))) lost++; });
+    });
+    const stray = all ? lost / all : 0;
+    if (!spec.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
+    return { got: Math.min(of, Math.floor(got * of / Math.max(1, total) + 1e-9)), of: of, each: each, stray: Math.round(stray * 100) / 100 };
+  }
+  const example = drawExample_(g);
   return { mark: mark, frameOf: frameOf, inkOf: inkOf, polygons: polygons, example: example };
 }
 const DRAW_MARK = drawMarker_();
-
 /* CHECK: the strokes read in the figure's own units and held against `draw_answer` (366) -- a verdict and marks, as a typed answer gets */
 function padCheck_(row, pad) {
   const out = row && row.querySelector('.qp-verdict');
@@ -684,7 +716,6 @@ function padCheck_(row, pad) {
   return r;
 }
 on('pad-check', el => { const row = el.closest('.qpad-send'); padCheck_(row, padOfRow_(row)); });
-
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
   if (!pad) return;

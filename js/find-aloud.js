@@ -204,7 +204,7 @@ function readAloudLines_(x) {
   if (!x) return [];
   const out = [];
   const add = h => speakLines_(h).forEach(l => out.push(l));
-  if (x.kind !== 'question' && x.kind !== 'content') return typeof speedText_ === 'function' ? speakLines_(speedText_(x).replace(/\n\s*\n/g, '. ')) : [];
+  if (!isQ_(x) && x.kind !== 'content') return typeof speedText_ === 'function' ? speakLines_(speedText_(x).replace(/\n\s*\n/g, '. ')) : [];
   if (x.kind === 'content') {
     const c = x.row || {};
     add(x.name || c.title);

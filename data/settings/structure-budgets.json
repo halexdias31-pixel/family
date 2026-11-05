@@ -9,7 +9,7 @@
   "js/tiles.js": 63,
   "js/arcade.js": 93,
   "js/layout.js": 76,
-  "js/data.js": 70,
+  "js/data.js": 86,
   "js/submit.js": 80,
   "js/price-rows.js": 46,
   "js/book.js": 63,
@@ -22,7 +22,7 @@
   "js/overworld.js": 56,
   "js/records.js": 54,
   "js/rules.js": 23,
-  "js/answers.js": 46,
+  "js/answers.js": 52,
   "js/writings.js": 33,
   "js/library.js": 26,
   "js/staff.js": 35,
@@ -883,7 +883,6 @@
   "js/find-marking.js markRule_": 83,
   "js/find-pages.js paneReach_": 119,
   "js/find-parts.js typeset_": 231,
-  "js/find-pen.js drawMarker_": 645,
   "js/me-settings.js profileRefresh_": 81,
   "js/me-shelves.js fieldHtml": 84,
   "js/shell-api.js loadOnce_": 251,
@@ -932,7 +931,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7471060,
+  "searchBytes": 7473886,
   "commentRatio": 0.263,
   "tombstones": 0,
   "claudeLines": 100

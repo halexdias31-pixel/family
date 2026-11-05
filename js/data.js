@@ -97,7 +97,7 @@ let LIBRARY_FAILED = '';
 
 /* WHETHER THE 30-SECOND WATCHDOG IN index.html HAS SPOKEN. § */
 let LOAD_SLOW = false;
-try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch {}
+try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch { /* a bad stored user reads as signed out */ }
 /* ---------- A NAME PRINTED ABOVE ITS OWN HANDLE DOES NOT SAY THE HANDLE TOO § */
 function nameBesideHandle_(name, handle) {
   const n = String(name || ''), h = String(handle || '').replace(/^@/, '');
@@ -114,7 +114,7 @@ try {
     && !rs.some(x => x === 'admin' || x === 'parent' || (x === 'tutor' && !USER.tutorPending));
   if (USER && kid && first && String(USER.name || '').indexOf(first + ' ') === 0
       && String(USER.name).indexOf('(@') === -1) USER.name = first;
-} catch (e) {}
+} catch (e) { /* a short name is a nicety; the full one stays */ }
 
 /* WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED IS SAID, NEVER KEPT QUIETLY IN MEMORY. § */
 const KEEP_MEM = new Map();
@@ -131,13 +131,13 @@ function keepPut_(k, v, quiet) {
      (`keepWaits_`, answers.js): held for the visit and said, as a refused write is. */
   const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
   if (!waits) {
-    try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) {}
-    try { if (v !== null && typeof splashForget_ === 'function' && splashForget_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
+    try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) { /* storage refused: tried again below, then held for the visit */ }
+    try { if (v !== null && typeof splashForget_ === 'function' && splashForget_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) { /* still refused: held for the visit and said */ }
   }
   KEEP_UNKEPT.add(k);
   if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {
     KEEP_SAID = true;
-    try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) {}
+    try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) { /* no toast yet: the warning is a nicety */ }
   }
   return false;
 }
@@ -159,7 +159,7 @@ function keepAtRisk_() {
     if (KEEP_RECORD.has(k)) return false;
     const v = KEEP_MEM.get(k);
     if (v === null || v === undefined || !String(v).trim() || v === '[]') return false;
-    try { if (typeof ansOnAccount_ === 'function' && ansOnAccount_(k)) return false; } catch (e) {}
+    try { if (typeof ansOnAccount_ === 'function' && ansOnAccount_(k)) return false; } catch (e) { /* not known yet: treated as not on the account */ }
     return true;
   });
 }
@@ -195,7 +195,7 @@ const DRAFT_MAX = 200;
 const DRAFT_NEVER = /(^|[^a-z])(pin(code|no|num|number)?|password|passcode|passwd|cvc|cvv|csc|card_?(no|num|number)|sort_?code|security_?code|account_?(no|num|number)|iban)(\d|[^a-z]|$)/i;
 function draftNever_(name) { return DRAFT_NEVER.test(String(name).replace(/([a-z\d])([A-Z])/g, '$1_$2')); }
 function draftWho_() {
-  try { if (USER && (USER.personId || USER.name)) return 'u:' + (USER.personId || USER.name); } catch (e) {}
+  try { if (USER && (USER.personId || USER.name)) return 'u:' + (USER.personId || USER.name); } catch (e) { /* no user yet: drafts are the guest's */ }
   return 'device';
 }
 /* `who` only to name somebody else's draft — the device's, carried into the person who signed in
@@ -294,7 +294,7 @@ function draftSentBack_(surface, id, v) {
 function draftAttr_(surface, id, was) {
   const w = was === null || was === undefined ? '' : String(was);
   let held = false;
-  try { const d = draftRead_(surface, id, w); held = d !== null && !draftSame_(d, w); } catch (e) {}
+  try { const d = draftRead_(surface, id, w); held = d !== null && !draftSame_(d, w); } catch (e) { /* an unreadable draft is none */ }
   return ' data-draft="' + esc(surface + ':' + (id == null ? '' : id)) + '"' + (w ? ' data-draft-was="' + esc(w) + '"' : '')
     + (held ? ' data-draft-held' : '');
 }
@@ -318,7 +318,7 @@ function draftFrom_(el) {
   if (draftSame_(v, was)) draftDrop_(surface, id); else draftKeep_(surface, id, v, false, was);
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
-  try { draftFrom_(e.target && e.target.closest && e.target.closest('[data-draft]')); } catch (err) {}
+  try { draftFrom_(e.target && e.target.closest && e.target.closest('[data-draft]')); } catch (err) { /* a draft is a nicety; typing goes on */ }
 }));
 function draftSweep_() {
   try {
@@ -329,7 +329,7 @@ function draftSweep_() {
       if (!d || draftOld_(k, d, now)) localStorage.removeItem(k); else live.push([k, Number(d.at) || 0]);
     });
     live.sort((a, b) => b[1] - a[1]).slice(DRAFT_MAX).forEach(x => localStorage.removeItem(x[0]));
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; old drafts wait for next time */ }
 }
 draftSweep_();
 /* ---------- AND A DRAFT WRITTEN IN ANOTHER TAB IS THE DRAFT IN THIS ONE § */
@@ -355,7 +355,7 @@ window.addEventListener('storage', e => {
       if (box) el.checked = want === '1'; else el.value = want;
     });
     if (spec === 'book:form' && typeof bookElsewhere_ === 'function') bookElsewhere_(v, old ? old.v : null);
-  } catch (err) {}
+  } catch (err) { /* a form mid-change keeps what it shows */ }
 });
 
 /* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
