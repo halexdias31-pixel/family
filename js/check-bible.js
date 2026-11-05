@@ -325,7 +325,7 @@ const opens = (name, why) => {
 };
 opens('bibleVerses_', 'the 31,102 verses would be built for anybody');
 opens('bibleKept_', 'a starred verse would be drawn on anybody\'s Saved');
-if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleTiles_') || '')) fail.push('`bibleTiles_` does not ask `bibleFor_()` — the Bible\'s tiles would be drawn for anybody');
+if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleOpts_') || '')) fail.push('`bibleOpts_` does not ask `bibleFor_()` — the Bible\'s tiles would be drawn for anybody');
 /* A HANDLER IS `on('name', el => { … })`, which `cutFrom` cannot name, so its block is read from there. */
 const handler = act => {
   const i = findSrc.indexOf("on('" + act + "'");

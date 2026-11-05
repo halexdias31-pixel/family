@@ -1,14 +1,12 @@
 /* @family. — links.js ONE FILE, SPLIT. § */
 
 
-/* ---------- THE LINKS ARE GONE, AND THEIR LOGOS WITH THEM § */
 
 /* `LINK_SHAPE` picked a shape and a colour per category — a cart for a shop, a card for a bank, a plain square otherwise. § */
 
 /* `NAMED_COLOURS` lived here — a word in a link's `colour` column became a hex for the coloured square it filled. § */
 
 
-/* The Library SCREEN is gone with its tab — every link became a card on Find, searchable and filterable, which the tile wall never was. § */
 /* AVATARS. Carried over whole from the burned file, geometry untouched. § */
 const AV_SKIN  = ['#f3c9a0', '#e0a878', '#c58a5b', '#8d5a3b', '#5f3a25', '#ffd9b3'];
 const AV_HAIR  = ['#2b2118', '#5a3a1d', '#a8621f', '#d9b45a', '#8a8a8a', '#3a2a4a', '#7a2a2a'];

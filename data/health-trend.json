@@ -86,5 +86,77 @@
    "ui": 33.6
   },
   "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "8555aaf",
+  "score": 30.7,
+  "parts": {
+   "code": 32.5,
+   "logic": 18.2,
+   "ui": 33.8,
+   "cost": 56.6
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "c2bf1df",
+  "score": 32.8,
+  "parts": {
+   "code": 32.5,
+   "logic": 24.7,
+   "ui": 33.8,
+   "cost": 56.7
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "e71551e",
+  "score": 32.8,
+  "parts": {
+   "code": 32.5,
+   "logic": 24.7,
+   "ui": 33.8,
+   "cost": 56.7
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "e71551e",
+  "score": 33.1,
+  "parts": {
+   "code": 32.5,
+   "logic": 24.7,
+   "ui": 35.2,
+   "cost": 56.7
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "da5b262",
+  "score": 31.8,
+  "parts": {
+   "code": 28.9,
+   "logic": 24.7,
+   "ui": 35.2,
+   "cost": 56.7
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "da5b262",
+  "score": 33.3,
+  "parts": {
+   "code": 33.1,
+   "logic": 24.7,
+   "ui": 35.2,
+   "cost": 56.7
+  },
+  "topKind": "variety-qpage"
  }
 ]

@@ -413,7 +413,6 @@ const LAW_CLASS = {
 function lawList(name) {
   const d = DATA || {};
   switch (norm(name)) {
-    /* ---------- `subjects` WAS HERE, AND IT IS RETIRED § */
     case 'subjects': return [];
     case 'tutors':   return (d.tutors || []).map(t => t.title);
     case 'venues':   return (d.venues || []).map(v => v.title);

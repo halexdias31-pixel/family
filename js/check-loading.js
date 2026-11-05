@@ -64,7 +64,6 @@ const LOADER_CLASS = 'loading';
 
 /* ---------- 3. THE STYLESHEET § */
 const WAIT_KEYFRAME = /(^|-)(sk|skeleton|shimmer|spin\w*|load\w*|wait\w*|pulse\w*|busy\w*)($|-)/;
-/* `mb-spin` WAS THE SECOND — the coin turning over in the blocks splash — and went with it on 10 Oct (docs/history/322). § */
 const ACCEPTED_KEYFRAMES = {
   'btn-spin': 'the busy ring on a pressed button or tile (`.btn.is-busy`, `.tile.is-busy`) — an action in flight, '
             + 'not content on its way: docs/history/094. The loader is dots so the two can never be mistaken.',

@@ -148,7 +148,6 @@ const TABS = [
   { id: 'account', icon: '⚙', label: 'Kids settings', title: 'Kids settings', cards: true },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
-  /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
   { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
   /* `tools` AND `games` WERE COLUMNS HERE; their widgets are Find cards since 790 (data/settings/widgets-in-find.json). */
@@ -173,7 +172,6 @@ const TABS = [
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
-  /* PROGRESS WAS HERE — dissolved into Student settings (461). */
   /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND § */
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
@@ -353,7 +351,6 @@ function go(id, remember, instant) {
   oopsTry_('go:place', () => placeCells('x', instant));
 
 
-  /* THE HEADER IS GONE, and so is everything that wrote to it — a title, and a slot for one action per screen. § */
 
   /* ---------- WHY A SIDEWAYS SWIPE WAS THE ROUGH ONE § */
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
@@ -364,10 +361,8 @@ function go(id, remember, instant) {
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. § */
   /* WHEN, and it is not simply "after the slide". § */
-  /* THE REELS USED TO BE BOOKED HERE, ON THEIR OWN, AND THAT IS THE BUG THEY HAD. § */
 
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves. § */
-  /* `toolsStop_()` WAS HERE, for any column that was not one of the four — and it stopped every widget in the app, including the ones on the column beside you that § */
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -400,13 +395,10 @@ function go(id, remember, instant) {
     else afterSlide_(() => inFinder_(finder, fillStuffPages), 'fill:' + finder.id);
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
-  /* `true` used to be written here, and it cancelled the slide `placeCells('x', instant)` had started twenty lines above — two correct calls in one turn § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
   if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
 
-  /* `scrollTo` was here, putting the window back to the top on every tab change. § */
 
-  /* `arrive()` was here too: § */
 }
 
 /* DRAW THE SCREEN EITHER SIDE, so a sideways drag reveals one rather than an empty rectangle. § */
@@ -802,7 +794,6 @@ const repaint = (instant) => {
 /* WHO THE LAST REPAINT DREW FOR — see step 000 above. Null until the first, which has nobody before it. */
 let REPAINT_WHO = null;
 
-/* THE TAB BAR IS GONE. § */
 
 /* ONE GRID. TWO AXES. THE SAME BEHAVIOUR ON BOTH. § */
 const AXES = {
@@ -881,7 +872,6 @@ function wideCard_() {
   return { card: Math.max(lo, card), k: k };
 }
 
-/* ---------- `wideShift_` WAS HERE: AT EITHER END OF THE ROW, THE ROW SLID TO THE EDGE § */
 
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing either. § */
 /* Kept under its old name because the vertical spacing still uses it and 16px is right there —
@@ -1579,7 +1569,6 @@ function placePages_(h, c, pg) {
       /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD § */
       vis: inBand ? 'visible' : 'hidden',
     });
-    /* A pane used to be measured here, to decide whether it had overflowed and should therefore get the vertical gesture back for scrolling. § */
   });
 }
 /* THE READING HALF, done in `placeGrid`'s reading pass so no offset is asked after a write: § */
@@ -1849,7 +1838,6 @@ const PAGER = {
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
   account: () => cardCount_('account', () => studentSetPages_().length),
-  /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. § */
   /* One name per page, and the ＋ card is a page — so it is counted here too, or the pager stops one short and the last post can never be reached. § */
@@ -1893,7 +1881,6 @@ const PAGER = {
     });
   },
 
-  /* `.concat(USER ? [''] : [])` WAS HERE, COUNTING THE ＋ CARD. § */
   /* ---------- AND `spotPages()` WENT FROM HERE, BECAUSE THE FEED STOPPED DRAWING IT § */
   /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as well — one page directly above the newest post. § */
   feed:   () => (typeof feedColumn_ === 'function' ? [].concat(feedColumn_()) : ['']).map(() => ''),
@@ -1941,9 +1928,7 @@ const PAGE_HOME = {
   account: () => 0,
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
   reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
-  /* `dm` WAS HERE, AT 1, TO SKIP THE HEAD CARD — and the head card is gone, so page 0 is the newest conversation by construction § */
 };
-/* `book` WAS HERE — a column that no longer exists. */
 /* ---------- THE ICON, FROM THE SHEET § */
 function applyBrandIcon_() {
   /* ---------- A DRIVE SHARE LINK IS A PAGE, NOT A PICTURE § */
@@ -3777,7 +3762,6 @@ async function loadOnce_(again, n) {
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
 
-  /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */

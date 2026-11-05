@@ -1,0 +1,16 @@
+{
+ "v": 1,
+ "items": 278934,
+ "menus": 81,
+ "counts": {
+  "near-dup": 1
+ },
+ "findings": [
+  {
+   "kind": "near-dup",
+   "menu": "Paper (paperId)",
+   "value": "W-CBM-times-tables",
+   "say": "one letter from \"W-CBM-timetables\""
+  }
+ ]
+}

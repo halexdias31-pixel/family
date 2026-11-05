@@ -140,11 +140,6 @@
     "gtasks": "secondary",
     "push": "secondary",
     "inbox": "secondary",
-    "spotify": "off",
-    "favlinks": "off",
-    "rewrite": "off",
-    "poster": "off",
-    "pixel": "off",
     "missing": "secondary",
     "boot": "core"
   },
@@ -237,16 +232,11 @@
     "check-suggest.js": "secondary",
     "check-library-ledger.js": "core",
     "check-films.js": "secondary",
-    "check-console-saves.js": "off",
     "check-hands.js": "secondary",
-    "check-race.js": "off",
-    "check/race-geometry.js": "off",
     "check-media.js": "secondary",
     "check-media-age.js": "core",
     "check-film-shares.js": "core",
-    "check-favlinks.js": "off",
     "check-missing.js": "secondary",
-    "check-rewrite.js": "off",
     "check-assistant.js": "secondary",
     "check-push.js": "secondary",
     "check-saved-answers.js": "core",
@@ -257,7 +247,6 @@
     "check-uploads.js": "secondary",
     "check-inbox.js": "secondary",
     "check-rooms.js": "secondary",
-    "check-eink.js": "off",
     "check-secrets.js": "core",
     "check-markers.js": "core",
     "check-settings.js": "core",
@@ -295,9 +284,7 @@
     "check/ruler.js": "core",
     "check/boxes.js": "core",
     "check/types.js": "core",
-    "check/whiteboard.js": "off",
     "check/reach.js": "core",
-    "check/videos.js": "off",
     "check/sounds.js": "secondary",
     "check/ui.js --part=1/3": "secondary",
     "check/ui.js --part=2/3": "secondary",
@@ -331,11 +318,7 @@
     "receipt",
     "flyer",
     "records",
-    "rewrite",
     "staff",
-    "poster",
-    "pixel",
-    "spotify",
     "inbox",
     "gtasks",
     "push",
@@ -354,7 +337,6 @@
     "layout",
     "words",
     "help",
-    "favlinks",
     "map",
     "book",
     "collections",
@@ -369,21 +351,6 @@
     ],
     "flyer": [
       "flyers"
-    ],
-    "poster": [
-      "poster"
-    ],
-    "pixel": [
-      "pixel"
-    ],
-    "spotify": [
-      "spotify"
-    ],
-    "rewrite": [
-      "rewrite"
-    ],
-    "favlinks": [
-      "favlinks"
     ]
   }
 }

@@ -55,7 +55,7 @@
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
   /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
-  --tile: 36px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px;
+  --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -256,7 +256,6 @@ html.wide body { max-width: none; box-shadow: none; }
 /* And inside a full-width bar, the row stays the width of the app. So the tabs sit under the
    content they belong to rather than stretching across a screen. */
 
-/* THE HEADER USED TO BE HERE — sixteen rules for a bar holding a title that repeated what the tab bar already said, a ＋ that now sits on the feed beside the § */
 
 #banner {
   top: calc(var(--top) + var(--safe-top)); z-index: 29;
@@ -343,7 +342,6 @@ html.wide body { max-width: none; box-shadow: none; }
 /* Out of the compositor once it is well off the screen. § */
 .far { visibility: hidden; }
 
-/* `.no-anim { transition: none !important }` WAS HERE, on whatever a finger was dragging. § */
 
 /* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS § */
 .page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
@@ -453,7 +451,7 @@ html.wide body { max-width: none; box-shadow: none; }
 .tile.is-busy, .tile.is-busy[disabled] { opacity: 1; background: rgb(255 255 255 / .03);
   border-color: var(--line-soft); cursor: progress; }
 .tile.is-busy svg { display: none; }
-.tile.is-busy::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: 50%;
+.tile.is-busy::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: var(--tile-r);
   border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
@@ -864,7 +862,6 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
 #sheet-body { flex: 1 1 auto; padding: .6rem 0 .4rem; }
 
-/* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
 /* ---------- THE TOAST § */
 /* A STACK, NEWEST AT THE FOOT (537): each message keeps its own time; an older one is lifted by `translate` (shell.js `toastStack_`), so nothing is laid out again. */
@@ -1040,7 +1037,6 @@ a { color: inherit; text-decoration: none; }
 .feed { position: relative; aspect-ratio: 9/16; border-radius: var(--r-sm); overflow: hidden;
         background: var(--sunk); cursor: pointer; }
 
-/* THE BOOK TAB WAS HERE — the one raised, then flattened, then removed with the rest of the bar. § */
 
 
 /* ---------- THE FINDING CONTROLS § */
@@ -1049,7 +1045,6 @@ a { color: inherit; text-decoration: none; }
 /* `.search` IS SET IN FULL FURTHER DOWN — see "THE SEARCH BOX, AND A RESULT". The margin lived
    here on its own and was overridden there, which `check-css` reported as a rule that never
    applies. One rule, one place. */
-/* `.pick-row` was here — the row of dropdowns above the search on the Find screen. § */
 
 /* ---------- CALCULATOR § */
 .mc-display { position: relative; min-height: 6.4rem;
@@ -1480,7 +1475,6 @@ h2 .subject, h3 .subject { color: var(--green); }
 .card.is-subject > h3 { color: var(--green); }
 
 /* ---------- PURPLE IS A VENUE, RED IS A TUTOR § */
-/* `.card.is-venue` was here — purple headings on the old venue card, which is now a booking slip and has no `.card` and no `h3`. § */
 h2 .venue, h3 .venue { color: var(--purple); }
 .card.is-tutor > h3 { color: var(--coral); }
 h2 .tutor, h3 .tutor { color: var(--coral); }
@@ -1832,7 +1826,6 @@ button.text-drop { color: var(--bad); }
 
 /* THE THINGS THAT WERE BUILT AFTER THE SCREENS. § */
 
-/* ---------- THE THREE PASSES WERE HERE — `.ticks`, `.tick`, `.tick-box`, `.tick-said` § */
 
 /* ---------- THE DOCKET § */
 .dock-row { display: flex; align-items: center; gap: .7rem; cursor: pointer;
@@ -2112,15 +2105,13 @@ button.text-drop { color: var(--bad); }
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE § */
   /* ---------- THE SAME FAMILY AS THE ANSWERS UNDER IT § */
   min-height: 44px; padding: 0 .7rem;
-  background: rgb(255 255 255 / .08); border: 1px solid var(--chip-line); border-radius: 22px;
+  background: rgb(255 255 255 / .08); border: 1px solid var(--chip-line); border-radius: var(--btn-r);
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-/* THE FUNNEL'S OWN CHIPS ARE 32px, like the answers under them -- *"Make the tags smaller"*, the owner, 6 Oct. § */
-.chip.sm { min-height: 32px; border-radius: 16px; padding: 0 .6rem; position: relative; }
-.chip.sm::before { content: ""; position: absolute; inset: -6px 0; }
-/* `.chip-k` WAS HERE — the field's name, small, dim and upper-case, in front of every chosen value: § */
+/* THE FUNNEL'S OWN CHIPS: smaller type, but a 44px tap like every control (950); the radius is the one chip token. */
+.chip.sm { min-height: 44px; border-radius: var(--btn-r); padding: 0 .6rem; position: relative; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
   border-color: var(--tag); color: var(--tag);
@@ -2131,7 +2122,6 @@ button.text-drop { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
    invitation, not a state. */
 .chip.add { border-color: var(--gold); color: var(--gold); background: none; }
-/* `.chip.is-clear` WAS HERE. § */
 
 /* ---------- THE CALCULATOR'S CARET § */
 .mc-zero { color: var(--faint); }
@@ -2190,7 +2180,6 @@ button.text-drop { color: var(--bad); }
 .tt input { text-align: center; font-size: 1.4rem; letter-spacing: .1em; }
 
 /* ---------- WIDGETS AS PAGES § */
-/* THE WRAPPERS ARE GONE. § */
 .screen.paged { padding: 0; }
 
 /* ---------- THE ONE SCROLLING PAGE (900, `FLOW_LAYOUT` in shell.js): the grid above undone — one centred column in flow, scrolled by the browser. */
@@ -2225,7 +2214,6 @@ html.flow .page.is-res:not([data-filled]) { display: none; }
 #docket-body::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 /* ---------- THE CELL, AND THE GLASS IN IT § */
-/* A SECOND `.page` RULE WAS HERE and it is gone entirely, not left empty. § */
 
 .pane {
   /* AS TALL AS ITS CONTENTS, up to the whole cell — a two-line post is two lines, a long list is clipped and scrolls. § */
@@ -2291,7 +2279,6 @@ html.flow .page.is-res:not([data-filled]) { display: none; }
    app itself, so it needs the breathing room the pane's padding used to give it. */
 .pane:has(.rc-stub) > h2 { margin-top: .25rem; }
 
-/* `.page .card { border-bottom: 0 }` WAS HERE, word for word, comment and all, and it is nine hundred lines above as well — under a note that says § */
 /* NOTHING TO SHOW, centred. An empty state pinned to the top of a full-screen page leaves a
    screenful of nothing under one sentence, which reads as content that failed to load rather than
    as a list with nothing on it. */
@@ -2674,7 +2661,6 @@ label.bk-k { cursor: pointer; }
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
 /* THE TICKS UNDER A SEVERAL-ANSWER ROW WENT: it is the same select as the rest (`stepPick_`, 29 Oct). */
-/* `#drop`, THE PANEL THAT HUNG OFF A FIELD, WAS HERE — its place, its z-order over a sheet, its two-column `.pick-list` of `.pick-opt` buttons, and § */
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */
@@ -2712,7 +2698,6 @@ label.bk-k { cursor: pointer; }
 
 /* A value you picked is a button. No pencil, no edit mode — the dashed underline already says
    somebody chose this, so it is the obvious thing to press when you want to choose differently. */
-/* `.bk-pick` WAS HERE — a gold underline and a pointer on the one value in the form that opened a panel. § */
 
 /* A day's hours, inside its row: ticked ones filled, the rest outlined. Small, because this is the
    card REPORTING what was ticked rather than asking for it. */
@@ -2725,7 +2710,6 @@ label.bk-k { cursor: pointer; }
 .bk-hr.on { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 700; }
 
 /* The two photographs — the room and the person. § */
-/* `.bk-photos`, `.bk-photos img` AND `.bk-none` WERE HERE — the two square photographs at the head of the booking card. § */
 
 /* ---------- WHEN, AS A WEEK YOU TICK § */
 /* ---------- SEVEN THUMB-SIZED ROWS IS THREE HUNDRED PIXELS § */
@@ -2759,7 +2743,6 @@ label.bk-k { cursor: pointer; }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
-/* `.slot-row.is-shut .hr` WAS HERE, the thin row `weekGrid_` drew for a day with nothing open. § */
 .slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
             text-transform: uppercase; letter-spacing: .04em; }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
@@ -2908,7 +2891,6 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- THE FIGURE, AND THE THINGS IT WEARS § */
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
-/* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
 /* THE PAGE'S ONE DEFINITION OF THE FIGURE'S CIRCLE (`#av-clip`, index.html; `avatarFor`, links.js) takes
    no room and is never seen. Not `display: none`, under which a browser may refuse to use what is inside. */
@@ -3280,7 +3262,6 @@ label.bk-k { cursor: pointer; }
 /* ---------- A TEXTAREA IS NOT A DIV, AND `touch-action` IS THE ONLY THING THAT SETTLES IT § */
 textarea { touch-action: none; }
 
-/* `.pane.scrolls` was here — the class that gave a pane back its vertical gesture once it had overflowed. § */
 
 /* ---------- NO SCROLLBAR ANYWHERE, ON ANYTHING § */
 * { scrollbar-width: none; -ms-overflow-style: none; }
@@ -3355,7 +3336,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 
-/* `.paper`, `.paper-top`, `-board`, `-tier`, `-mid`, `-subject`, `-name`, `-of`, `-box`, `-foot` AND `.paper.is-off` WERE HERE — about fifty lines that drew a § */
 
 
 /* ---------- A PERSON, AS A WIDGET § */
@@ -3382,13 +3362,11 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* ---------- THE ONE RED THIS CARD USES, DECLARED ONCE AND RAISED TO READABLE § */
 .is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
-/* `.prof-where` — the city under the rate — was here and went on request; the card no longer says where somebody lives. */
 /* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME § */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
 /* A LEARNER'S DONE QUESTIONS, on an admin's people column — `12 questions · last 4 Oct`. The seat
    price's ink and size: a fact under the name, quieter than the handle above it. */
 .prof-act { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
-/* `.prof-dbs` — a green DBS CHECKED or a red NO DBS ON FILE under the name — WAS HERE. § */
 /* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already puts the quotation marks on, so this is set
    as a quotation and not as a field: italic, indented off a rule, no label. */
 .prof-say {
@@ -3614,7 +3592,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
 .prof-hid { color: var(--prof-warn); font-style: normal; }
 
-/* `.slip` AND ITS NINE PARTS WERE HERE — the cream tear-off booking slip a venue was drawn as, with a perforation, a stub and its own palette. § */
 
 
 /* ---------- AND THE ASK, which is not under the receipt any more ---------------------------------- */
@@ -3629,13 +3606,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    `.card.is-widget`s, and that rule already carries the gap — see `margin-bottom` on it. */
 .pane:has(.paper) .paper + .paper { margin-top: .7rem; }
 
-/* The styling for a card opened in place was here, and has gone with the mechanism — see the note in shell.js. § */
 /* FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED. § */
 
 /* `#install-bar` AND `.ib-*` WERE HERE — the "Keep @family. on your phone" bar. Removed at the owner's
    word (6 Oct); see me.js. */
 
-/* `.wk` AND ITS PARTS WERE HERE — the grid `Your week` drew. § */
 
 /* THE SIGNATURE UNDER A BOOK'S DRAWING ON THE SPLASH. § */
 .sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
@@ -3667,19 +3642,15 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .in-or span { font-size: .72rem; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
 #g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
 
-/* A RIPPLE, A TIDE AND A SUNRISE WERE HERE — three loading splashes that taught nothing, gone on 10 Oct with their keyframes and their still (docs/history/322). § */
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS § */
 /* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. § */
-/* AND THE TEMPLATE IS GONE, because a row inside `.bk` subgrids onto the card's tracks and a second template here would override it — the `.price.faint` shape § */
 /* ---------- AND THE LABEL COLUMN GIVES WAY WHEREVER NOTHING BESIDE IT WANTS THE ROOM § */
-/* ---------- `.bk-row.rc-total`'s THREE COLUMNS WERE HERE, AND THE ROW HAS NONE NOW § */
 /* ---------- AND THE FIGURE COLUMN WAS NEVER WIDE ENOUGH FOR THE FIGURE § */
 /* A BASKET CARD IS TWO COLUMNS, SO IT SAYS SO ON THE CARD. § */
 .bk:has(> .is-wide) { grid-template-columns: minmax(0, 1fr) max-content; }
 /* ---------- AND A BLANK ROW'S LABEL COLUMN GIVES WAY INSTEAD OF THE LABEL § */
 /* ---------- AND THE DASH ENDS WHERE EVERY OTHER VALUE ENDS § */
-/* AND THIS TEMPLATE IS GONE TOO, for the reason over `is-bare` — and it is the rule that made the fault visible. § */
 
 /* ---------- A ROW WITH NO FIGURES DRAWS NO FIGURES, AND KEEPS THE TRACKS ANYWAY § */
 /* ---------- AND A DAY ROW IS THE ONE THAT CARRIES A MULTIPLIER WITHOUT A TOTAL § */
@@ -3770,7 +3741,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* ---------- THE FAVOURITE STAR § */
 .favwrap { position: relative; }
-/* ---------- `.star` WAS HERE § */
 
 /* THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed. § */
 /* ---------- THE CONTROLS, PACKED § */
@@ -3785,7 +3755,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .fm-pairs { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; }
 .fm-pairs > label:nth-child(-n+2) { grid-column: 1 / -1; }
 .fm-k { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than every other select in the app, under the 16px an iPhone § */
 .fm-bar select { font-size: min(16px, 4.6vw); }
 /* A NATIVE COLOUR INPUT is a real picker on every platform; three of them, one line. */
 .fm-inks span { margin-right: auto; }
@@ -4013,7 +3982,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE PAPER --------------------------------------------------------------------------- */
 /* ---------- THE PRINT SHEET IS A SHEET OF PAPER, AND PAPER DOES NOT REFLOW § */
 /* HIDDEN, FOR THE REASON SET OUT ON `.fm-out`. § */
-/* `.mat-out` IS GONE — there is no preview on the card (see `matProbe` in mat.js). § */
 .mat-paper { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 /* ---------- THE PAPER'S NINE GREYS, NAMED § */
 :root {
@@ -4390,7 +4358,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */
 
-/* `.qcard-sat` AND `.qcard-needs` WERE HERE -- the day the paper was sat, a faint line under the tags, and what to bring, a gold one under that. § */
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
@@ -4407,7 +4374,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet-stem.is-standin h4 { margin: 0 0 .4rem; font-size: .82rem; letter-spacing: .04em;
   text-transform: uppercase; color: var(--dim); }
 /* ---------- A BLANK THE PAPER FILLS IN § */
-/* `.cam-row .btn.is-rec` WAS HERE — the red outline on a rectangular `Video` button that changed its own label to `Stop`. § */
 
 .qsheet .gap {
   color: var(--faint);
@@ -4479,7 +4445,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet .tag, .qp-area .tag, .pad-loupe .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
 .qsheet .cap, .gd .cap, .qp-area .cap, .pad-loupe .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
 
-/* `.fig-by` WAS HERE: the line under every drawing saying who redrew it. § */
 /* BOXING — THE FIGHTER AND THE FIGHT `boxer-nick` AND `boxer-rec` WERE NEVER STYLED. § */
 /* ---------- A FRACTION WRITTEN THE WAY THE PAPER PRINTS ONE § */
 /* ---------- AND IT IS EVERY FRACTION NOW, NOT ONLY THE LONG ONES § */
@@ -4530,13 +4495,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .prac-kit li, .prac-steps li, .fc-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .prac-kit li, .fc-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
-/* `.prac-safety` AND `.prac-maths` WERE HERE, and the guide was the only thing that drew either. § */
 .fc-note { margin: var(--fc-line) 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
-/* `.fc-note p` WAS HERE, a margin between the paragraphs of a note that held several. § */
 
 /* THE HOME EXPERIMENTS. § */
 
-/* ---------- WHAT IS GOING ON WAS HERE § */
 
 /* ---------- THE TWO HALVES OF THE CANDIDATE TABLE § */
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
@@ -4626,7 +4588,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-hint { display: block; margin: .15rem 0 .35rem; font-size: .72rem; line-height: 1.45;
            color: var(--faint); }
 
-/* ---------- `.gd-none` WAS HERE: AN INSTRUCTION, WHICH IS NOT A FACT § */
 
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP § */
 .gd-box { margin: .35rem 0 0; }
@@ -4944,9 +4905,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 
 /* THE TWO NAMES WERE THE TITLE (`.fight-line`, `.fight-who`) until 490: the fighters and the winner are tags now. */
-/* `.fight-how` AND `.fight-note` WERE HERE: § */
 
-/* THE PAPER PAGE WAS HERE — `.qpaper`, `.qp-head`, `.qp-sec`, `.qp-q`, `.qp-part`, `.qp-body`, `.qp-marks`, `.qp-end` and a print rule — about sixty lines that § */
 
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
@@ -4995,7 +4954,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--tile); height: var(--tile); padding: 0; flex: none; box-sizing: border-box;
   /* ROUND (508): the owner, "turn all tiles into circles"; a square plate, so a circle; its focus ring follows the radius. */
-  color: var(--dim); border-radius: 50%;
+  color: var(--dim); border-radius: var(--tile-r);
   background: rgb(255 255 255 / .03);
   border: 1px solid var(--line);
   font: 600 .72rem/1 var(--mono);
@@ -5014,7 +4973,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
 /* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
 .tile.is-submit { width: var(--tile-send); height: var(--tile-send); }
-.tile.is-sure { border-radius: 999px; width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
+.tile.is-sure { border-radius: var(--tile-r); width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 
@@ -5045,7 +5004,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 @media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
 
-/* `.card .ticks` AND ITS TWO CHILDREN WERE HERE — the row that put the count in words at the left and the three boxes at the right, the same shape as a tile § */
 
 /* ---------- WHAT THE CARDS NEEDED ONCE THEY STOPPED OPENING PANELS § */
 
@@ -5270,7 +5228,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   position: relative;
 }
 
-/* ---------- A SLIDE IS THE "ONE MORE THING" CARD, AND THESE RULES WENT WITH IT § */
 .reel > .feed-art { border-radius: var(--r-sm); overflow: hidden; }
 
 /* ---------- A CLIP § */
@@ -5594,7 +5551,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 .cam-card #cam-said:empty { display: none; }
 
-/* `.cam-compose` WAS HERE — the composer's strip under the viewfinder. § */
 
 /* `hidden` HAS TO ACTUALLY HIDE. § */
 [hidden] { display: none !important; }
@@ -5945,7 +5901,6 @@ button.scr-sq { cursor: pointer; }
    Figure tile's line by. */
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
             letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
-/* `.qp-ans-in`'s OWN LOOK WAS HERE -- a `--sunk` box with a ruled line, gold on focus -- and its textarea's in the bar below. § */
 /* THE RULE UNDER THE BOX TOOK THE VERDICT'S COLOUR here, through `.qcard:has(> .qp-mark.is-right)`, because the verdict came after the box. § */
 
 /* ---------- THE ANSWER BAR: A PAPER FIELD, AND SEND BESIDE IT § */
@@ -6040,7 +5995,6 @@ button.scr-sq { cursor: pointer; }
 .qp-mark { display: flex; align-items: center; gap: .7rem; flex-wrap: nowrap; margin: .6rem 0 .2rem;
            min-height: 44px; }
 .qp-choices + .qp-mark { min-height: 1.4rem; margin-top: .45rem; }
-/* `.qp-check` IS A TILE NOW and draws as one (`.tile`); the gold 88px button that was here is gone. */
 /* GREEN AND AMBER, NOT GREEN AND RED. § */
 /* THE TOKENS RATHER THAN A HEX: § */
 .qp-verdict { flex: 1 1 auto; min-width: 0; font: 600 .78rem/1.3 var(--font); color: var(--dim); }
@@ -6237,9 +6191,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .work-seen-row + .work-seen-row { margin-top: .6rem; }
 .work-seen-say { margin: 0 0 .3rem; }
 
-/* ---------- `.resume` WAS HERE § */
 
-/* ---------- `.qp-who` WAS HERE § */
 
 /* THE ANSWER, WAITING -- FOR EVERYBODY. § */
 .qans-tiles { margin-top: .9rem; }

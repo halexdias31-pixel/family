@@ -148,7 +148,6 @@ function hubOpen_(part) {
 on('hub-open', () => hubOpen_(termsAgreed_() ? '' : 'terms'));
 on('hub-part', el => hubOpen_(el.dataset.part));
 
-/* `hoursHtml_` WAS HERE -- the hub's Hours part (432). The week is the Available card on Tutor settings now (487): "I can't find the availability tile here". */
 
 /* ---------- PRICING: YOUR RATE AND EXTRA SEAT, AND WHERE A BOOKING'S MONEY GOES ----------
    Every figure is `priceFrom` → `bookMoney_` (core.js) over the row being typed — the booking's own sum, never a second one. */

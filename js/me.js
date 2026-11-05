@@ -51,7 +51,6 @@ function signInCard_() {
   /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
 }
 
-/* ---------- `signOutCard_` WAS HERE § */
 
 function meRest_() {
   /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
@@ -209,7 +208,7 @@ function applyFormHtml_() {
     ${area('statement', 'a short statement — why you want to teach')}
     ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
     <label class="check"><input type="checkbox" data-app="consent"><span class="box"></span><span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span></label>
-    <div class="btn-row"><button class="btn" data-do="apply-send">Send my application</button><button class="btn quiet" data-do="apply-cancel">Cancel</button></div>
+    <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}${tile_({ form: true, label: 'Cancel', act: 'apply-cancel', kind: 'quiet' })}</div>
     <p class="faint me-said apply-said" aria-live="polite"></p>
   </div>`;
 }
@@ -241,7 +240,6 @@ on('apply-send', el => {
 
 /* THE YOU SCREEN IS ONE PAGE. § */
 /* MESSAGES, ON A PANE OF ITS OWN. § */
-/* `meMessagesCard` WAS HERE — one pane on `You` holding every message from everybody, filled by `fillMessages` into a single `#msg-body`. § */
 
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
@@ -263,12 +261,10 @@ const mePages = () => {
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
-/* ---------- `screen('me')` WAS HERE § */
 function mountGoogleWhenDrawn() {
   if (!USER && typeof googleMount === 'function') requestAnimationFrame(googleMount);
 }
 
-/* `on('health')` WAS HERE — it fetched `?health=1` and drew the backend's problem list in a sheet. § */
 
 /* ---------- MOUNTING GOOGLE'S BUTTON § */
 let gLoaded = false;
@@ -540,7 +536,6 @@ function pinDotsOk_() {
 }
 
 /* ---------- THE WARDROBE § */
-/* `on('build-said')` WAS HERE, opening `versionSaid_` in a sheet from a `Build` tile on your own card. § */
 
 /* ---------- THE WARDROBE IS ONE CARD § */
 const AV_FIG = 56;
@@ -594,7 +589,6 @@ function wardrobeBody_() {
     ${AV_SLOTS.map(slotLine).join('')}`;
 }
 
-/* `on('wardrobe')` WAS HERE — the `Your figure` tile's door, which found the colour page on this column and turned to it. § */
 
 /* A LOOK AS THE CELL HOLDS IT, `skin:2|shirt:4|…` — what `saveAvatar` answers with and `USER.avatar` keeps. */
 const packLook_ = cfg => Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
@@ -715,7 +709,7 @@ function registerSheet_() {
         <span>It's a grown-up's email</span></label>
       <label class="field"><span>PIN — 4 to 8 digits</span>
         <input id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-      <button class="btn" data-do="reg-send">Make my account</button>
+      ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="faint" id="reg-note" style="margin:.6rem 0 0"></p>
@@ -823,7 +817,7 @@ function verifyFromLink_(again) {
             They say yes, and they are on your account.</p>
           <p class="faint">Did you never make an account here? Then somebody else did, with your email. Use
             "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
-          <button class="btn quiet" data-do="sheet-done">Done</button>`);
+          ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
         try { if (USER) load(); } catch (e) { oops_(e, 'me:verifyFromLink_') }
       } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
@@ -867,7 +861,7 @@ function afterSignIn_(d) {
     openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
               : d.handleMoved ? 'Your handle has changed' : 'Signed in',
       `<p class="sub">${esc(d.message)}</p>
-       <button class="btn quiet" data-do="sheet-done">Done</button>`);
+       ${tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' })}`);
   }
   let waiting = '';
   try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) { /* storage can be blocked; the app runs without it */ }
@@ -955,12 +949,11 @@ function friendsSheet() {
   openSheet('Add a friend', `
     <label class="field"><span>their handle</span>
       <input id="fr-add" placeholder="as it is on their card" autocomplete="off"></label>
-    <button class="btn" data-do="friend-add">Add</button>
+    ${tile_({ form: true, label: 'Add', act: 'friend-add' })}
     <p class="faint" id="fr-said" style="margin:.6rem 0 0">
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
       harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
 }
-/* `on('friends')` WAS HERE and nothing on any screen carried `data-do="friends"`. § */
 
 on('friend-add', () => {
   const box = $('fr-add'), said = $('fr-said');
@@ -1317,7 +1310,6 @@ function messageThreads_() {
   return out.sort((a, b) => msgTime_(b.last) - msgTime_(a.last));
 }
 
-/* ---------- THREADS AS WIDGETS WERE HERE, AND THEY PUT CHAT IN TOOLS § */
 
 /* `fillMessages` WAS HERE — it filled the single `#msg-body` on `You` with every message at once.
    `fillThread_` above replaces it, one conversation at a time, into the widget that asked. */
@@ -1525,7 +1517,6 @@ on('uploads-check', el => {
     .catch(err => { UPLOADS_SAID = { error: why_(err) }; uploadsPaint_(); });
 });
 
-/* `on('messages')` was here — a second way to see the same thread, opened in a sheet. § */
 
 
 /* ---------- YOUR OWN DETAILS § */
@@ -1537,8 +1528,8 @@ function claimCard_(c) {
     <p class="sub">Say yes and they will be able to book sessions for you and see how you are
       getting on. Say no and nothing happens.</p>
     <div class="btn-row">
-      <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes</button>
-      <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
+      ${tile_({ form: true, label: 'Yes', act: 'claim-yes', data: { row: c.rowIndex } })}
+      ${tile_({ form: true, label: 'No', act: 'claim-no', data: { row: c.rowIndex }, kind: 'quiet' })}
     </div>
   </div>`;
 }
@@ -1571,16 +1562,13 @@ function pinSlip_(first, handle, pin) {
   </div>`;
 }
 
-/* THE MAKE FORM WAS HERE — the owner (461): "making a child's account shouldn't be a thing". */
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
 
 /* A TILE, because the link is a thing about your account, not a field on a form (CLAUDE.md). The same
    tile in both places, so a fix to its words is one fix. `send` is the mark that means the act. */
-function resendTile_() {
-  return tile_({ icon: 'send', label: 'Send the link again', note: 'to confirm your email', act: 'resend-link' });
-}
+const RESEND_LINK = { icon: 'send', label: 'Send the link again', note: 'to confirm your email', act: 'resend-link' };
 
 /* ONE PARAGRAPH UNDER THE ROW — the house rule for a warning a tile has no room for. The address is in
    it: when it is a typo, the address is the whole of what is wrong, and the only place it shows. */
@@ -1609,7 +1597,7 @@ function kidHeldSec_() {
     <h4 class="kid-h">Add your child</h4>
     <p class="sub">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
       first, then you can add your child.</p>
-    <div class="tile-row">${resendTile_()}</div>
+    <div class="tile-row">${tile_(RESEND_LINK)}</div>
   </div>`;
 }
 
@@ -1683,7 +1671,7 @@ on('kid-pin', el => {
   openSheet('A new PIN for ' + who, `
     <p class="sub">Their old PIN stops working, and they are signed out everywhere. You will see the
       new one once, to give them.</p>
-    <button class="btn" data-do="kid-pin-go" data-id="${esc(id)}" data-name="${esc(who)}">Make a new PIN</button>`);
+    ${tile_({ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } })}`);
 });
 
 on('kid-pin-go', el => {
@@ -1696,7 +1684,7 @@ on('kid-pin-go', el => {
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
         + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
         + 'under Kids settings once they are in.</p>'
-        + '<button class="btn quiet" data-do="sheet-done">Done</button>';
+        + '' + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) + '';
     })
     .catch(() => {});
 });
@@ -1806,7 +1794,7 @@ function settingsCards_(shown, moved, col) {
       ${/* THE QUALIFICATIONS CARD HAS NO SAVE OF ITS OWN: § */
         (list || []).length && (list || []).every(isQualField_) ? ''
         : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}${
-            (list || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
+            (list || []).indexOf('email') !== -1 && p.email_moving ? tile_(RESEND_LINK) : ''}</div>`}
       ${(list || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
     ${id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : ''}
@@ -1881,7 +1869,7 @@ function youSettingsPages_() {
       <label class="field"><input id="pin-new" aria-label="new PIN, 4 to 8 numbers, not 1234" placeholder="new PIN, 4–8 numbers" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
       <label class="field"><input id="pin-again" aria-label="new PIN again" placeholder="again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
     </div>
-    <button class="btn quiet" data-do="pin-save">Change my PIN</button>
+    ${tile_({ form: true, label: 'Change my PIN', act: 'pin-save', kind: 'quiet' })}
     <p class="faint" id="pin-said" style="margin:.6rem 0 0"></p>
   </div>`);
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
@@ -1903,7 +1891,7 @@ function studentSetPages_() {
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
   const top = `<div class="card signed-in"><h3>Signed in</h3><p class="sub">As ${esc(who)}${USER.handle ? ` <span class="prof-handle">@${esc(USER.handle)}</span>` : ''}</p>
     ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : ''), '', true)}
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof RESEND_LINK !== 'undefined' ? tile_(RESEND_LINK) : ''), '', true)}
     ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
@@ -2243,12 +2231,9 @@ on('notify-pick', el => {
     });
 });
 
-/* ---------- YOUR JOURNEY WAS HERE, AND IS THE PROGRESS COLUMN'S CARD NOW § */
-
-/* THE TUTOR AGREEMENT (DRAFT) WAS HERE — ten points and a tick for good. It is the Tutor Terms & Conditions in the Staff hub now, versioned (405, staff.js). */
 
 
-/* `on('edit-me')` WAS HERE — `go('settings')`, the door from a `Your settings` tile on your own account card. § */
+
 
 /* THE HOURS SOMEBODY IS FREE, as a week you tick. § */
 /* ---------- AND IT IS `weekGrid_`, BECAUSE THE COMMENT ABOVE STOPPED BEING TRUE § */
@@ -2656,7 +2641,7 @@ function shelfSlots_(nums, filled, draw) {
   const show = Math.min(nums.length, Math.max(1, last));
   return nums.map((n, i) => draw(n, i >= show)).join('')
     + (show < nums.length
-      ? `<button class="btn quiet shelf-more" data-do="shelf-more">Add another</button>` : '');
+      ? `${tile_({ form: true, label: 'Add another', act: 'shelf-more', kind: 'quiet', cls: 'shelf-more' })}` : '');
 }
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
@@ -3487,7 +3472,6 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* `initAvail` WAS HERE — the `avail` tool's week; the hours are Tutor settings' Available card now (487). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
@@ -3777,7 +3761,6 @@ on('pin-save', el => {
 
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */
 
-/* `skeleton()` WAS HERE — a grey post (a face, a 4:5 picture, two lines) pulsing on the feed, the reel and Messages while the payload was on its way. § */
 
 /* YOUR CARD IS WHERE YOU EDIT IT (docs/history/330) § */
 
@@ -4628,7 +4611,7 @@ function peopleAddPage_(col) {
     return `<div class="card person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
       <p class="faint">Write it down or read it to them — the PIN is not shown again.</p>
-      <button class="btn quiet" data-do="person-cancel">Done</button></div>`;
+      ${tile_({ form: true, label: 'Done', act: 'person-cancel', kind: 'quiet' })}</div>`;
   }
   if (F && !F.id) return personFormHtml_(F);
   return plus;
@@ -4743,7 +4726,7 @@ function personFormHtml_(F) {
   if (!F.data) {
     if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
     return `<div class="card person-form" data-pid="${esc(F.id)}">${head}${F.err
-      ? `<p class="faint">${esc(F.err)}</p><button class="btn quiet" data-do="person-cancel">Close</button>` : loading_()}</div>`;
+      ? `<p class="faint">${esc(F.err)}</p>${tile_({ form: true, label: 'Close', act: 'person-cancel', kind: 'quiet' })}` : loading_()}</div>`;
   }
   const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
   const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
@@ -4769,8 +4752,8 @@ function personFormHtml_(F) {
           `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}</select></label>
     </div>
     <p class="faint pf-said" aria-live="polite"></p>
-    <div class="pf-go"><button class="btn" data-do="person-save">${F.id ? 'Save' : 'Add them'}</button>
-      <button class="btn quiet" data-do="person-cancel">Cancel</button></div>
+    <div class="pf-go">${tile_({ form: true, label: F.id ? 'Save' : 'Add them', act: 'person-save' })}
+      ${tile_({ form: true, label: 'Cancel', act: 'person-cancel', kind: 'quiet' })}</div>
   </div>`;
 }
 

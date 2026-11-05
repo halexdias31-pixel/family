@@ -41,7 +41,6 @@ function kitParse_(cell) {
   });
 }
 
-/* `libPrintPrice_` AND `libCanPrint_` WERE HERE — what a printed copy costs, computed while the checklists were built so a document arrived with its price on it. § */
 
 /* A LIBRARY FILE GETS 20 SECONDS TO ANSWER AND 90 TO ARRIVE (503): one that hung kept `load()` from ever finishing. */
 const LIB_ANSWER = 20000, LIB_BODY = 90000;
@@ -456,7 +455,6 @@ function libQuestion_(r) {
 function libraryInto_(d, rows) {
   if (!d || !Array.isArray(rows)) return d;
   const cfg = (d.constants && d.constants.vars) || {};
-  /* `const admin = isAdmin()` WAS HERE, declared and never read. § */
 
   /* --- the questions ------------------------------------------------------------------------- */
   const qs = [];
@@ -475,7 +473,6 @@ function libraryInto_(d, rows) {
   return d;
 }
 
-/* `paperHealth_` WAS HERE: the paper health score went in 388; a question carries Accuracy and Function tags (find.js `verifyTags_`). */
 
 /* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
    `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */

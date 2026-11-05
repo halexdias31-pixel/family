@@ -2,107 +2,120 @@
  "visits": {
   "first": {
    "n": 106,
-   "netKB": 3594,
+   "netKB": 3575,
    "cacheN": 38,
    "cacheKB": 55508
   },
   "repeat": {
-   "loadedMs": 10083,
+   "loadedMs": 15472,
    "n": 82,
    "netKB": 18,
    "cacheN": 80,
-   "cacheKB": 57470
+   "cacheKB": 57451
   }
  },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 96026,
+  "ms": 104205,
   "phase": {
-   "loaded": 6627,
-   "signin": 13440,
-   "findUsable": 19348,
-   "clicks": 58562,
-   "questions": 82896
+   "loaded": 6818,
+   "signin": 12997,
+   "findUsable": 18544,
+   "clicks": 62570,
+   "questions": 86559
   }
  },
- "firstScreenMs": 476,
- "findUsableMs": 5908,
- "signinMs": 6175,
- "heapMB": 756.3,
+ "firstScreenMs": 472,
+ "findUsableMs": 5547,
+ "signinMs": 5569,
+ "heapMB": 803,
+ "heapLiveMB": 280.1,
+ "garbageMB": 522.9,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "ms": 7312,
-   "shift": 0.008,
-   "longs": 2,
-   "by": "event-timing"
-  },
-  {
-   "what": "second menu: first answer",
-   "ms": 16,
-   "shift": 0.018,
-   "longs": 1,
-   "by": "event-timing"
-  },
-  {
-   "what": "third menu: first answer",
-   "ms": 32,
+   "churnMB": 40,
+   "ms": 24,
    "shift": 0.011,
    "longs": 1,
    "by": "event-timing"
   },
   {
+   "what": "second menu: first answer",
+   "churnMB": 9.2,
+   "ms": 16,
+   "shift": 0.022,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
+   "what": "third menu: first answer",
+   "churnMB": -7.4,
+   "ms": 32,
+   "shift": 0.013,
+   "longs": 1,
+   "by": "event-timing"
+  },
+  {
    "what": "back: drop the last chip",
-   "ms": 40,
+   "churnMB": 2.9,
+   "ms": 24,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "menu answer again",
-   "ms": 32,
+   "churnMB": 6.6,
+   "ms": 16,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "open a question",
-   "ms": 2680,
-   "shift": 0.017,
+   "churnMB": 9.8,
+   "ms": 1165,
+   "shift": 0.026,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "ms": 64,
+   "churnMB": 0,
+   "ms": 48,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Lock the page",
-   "ms": 80,
+   "churnMB": 0,
+   "ms": 48,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Unlock the page",
-   "ms": 24,
+   "churnMB": 0,
+   "ms": 16,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Fold the question",
-   "ms": 48,
-   "shift": 0.002,
+   "churnMB": 0.1,
+   "ms": 56,
+   "shift": 0.003,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Back to the top of Find",
+   "churnMB": 0.1,
    "ms": 80,
    "shift": 0,
    "longs": 0,
@@ -118,14 +131,16 @@
   },
   {
    "what": "Feed tab",
-   "ms": 40,
+   "churnMB": 0,
+   "ms": 57,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "ms": 45,
+   "churnMB": 0,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -137,16 +152,10 @@
  },
  "slow": [
   {
-   "what": "front menu: first answer",
-   "ms": 7312,
-   "shift": 0.008,
-   "longs": 2,
-   "by": "event-timing"
-  },
-  {
    "what": "open a question",
-   "ms": 2680,
-   "shift": 0.017,
+   "churnMB": 9.8,
+   "ms": 1165,
+   "shift": 0.026,
    "longs": 1,
    "by": "frames"
   }
@@ -171,102 +180,12 @@
   {
    "screen": "stuff",
    "what": "tap target",
-   "say": "filter-clear is 36x36 px (under 44)"
+   "say": "filter-drop \"a✕\" is 38x44 px (under 44)"
   },
   {
    "screen": "stuff",
    "what": "tap target",
-   "say": "filter-drop \"Practice✕\" is 82x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Questions✕\" is 88x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Maths✕\" is 63x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Past paper✕\" is 95x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"A-Level✕\" is 76x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Edexcel✕\" is 76x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"2022✕\" is 57x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Accuracy unverified✕\" is 151x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Function verified✕\" is 138x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"Q1✕\" is 45x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"a✕\" is 38x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "filter-drop \"i✕\" is 38x32 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "rep-box is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "q-mag is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "q-lock is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "read-aloud is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "help-hand is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "fav is 36x36 px (under 44)"
-  },
-  {
-   "screen": "stuff",
-   "what": "tap target",
-   "say": "find-top is 36x36 px (under 44)"
+   "say": "filter-drop \"i✕\" is 38x44 px (under 44)"
   }
  ],
  "cardTags": {
@@ -493,8 +412,7 @@
    "sampled": 20,
    "noTags": 0,
    "missing": {
-    "tier": 1,
-    "paperId": 1
+    "tier": 1
    },
    "fn": "card"
   },

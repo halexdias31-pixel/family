@@ -13,9 +13,9 @@ function speedFor_(x) {
   if (x.kind === 'question') return (typeof ruleOn_ === 'function' && !ruleOn_('speed-long')) && !!speedText_(x);
   return x.kind === 'bible' && !!x.bb;
 }
-function speedTile_(x) {
-  if (!speedFor_(x)) return '';
-  return tile_({ icon: 'speed', label: 'Speed read', note: 'one word at a time', act: 'speed-open', data: { key: x.key } });
+function speedOpts_(x) {
+  if (!speedFor_(x)) return null;
+  return { icon: 'speed', label: 'Speed read', note: 'one word at a time', act: 'speed-open', data: { key: x.key } };
 }
 
 /* THE WORDS OF A THING, in the order its card shows them; '' while they are still in the Ledger or on their way. */

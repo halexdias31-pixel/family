@@ -5,7 +5,6 @@
 /* FILTERS YOU ADD, not a mode you pick. § */
 /* `sort` was here and is gone with the control that set it — see `stuffFiltered`. What is left is
    the two things this screen actually holds: what you typed, and what you have narrowed to. */
-/* `groupBy` WAS HERE — the field the list was currently collected by. § */
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: § */
 /* A `let` SINCE THE SECOND FINDER (below): § */
 let STUFF = { q: '', filters: [], whose: '' };
@@ -36,11 +35,11 @@ const FINDERS = {
 };
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
-  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES; F.chips = CHIP_SHOW;
+  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES;
   F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
 }
 function finderUnpark_(F) {
-  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages; CHIP_SHOW = F.chips;
+  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages;
   STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
 }
 function inFinder_(F, fn) {
@@ -101,7 +100,6 @@ const finderLeadHtml_ = lead => lead.map(c => `<section class="page is-lead"><di
 const KINDS = {
   /* A person, a place and a subject already have a card each — written for the Find screen and carrying the class that colours the name. § */
   /* ---------- A TUTOR IS TWO THINGS AND THE GROUP HAD ROOM FOR ONE § */
-  /* ---------- `People` IS GONE AND A TUTOR IS JUST A BOOKING THING AGAIN § */
   tutor:   { group: 'Booking', label: 'Tutors',
              /* ---------- YOUR OWN PASS IS YOUR OWN CARD § */
              card: x => (USER && typeof meCard === 'function'
@@ -125,10 +123,8 @@ const KINDS = {
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
   /* ---------- YOU ARE FINDABLE, AND YOU ARE THE ONLY PERSON WHO IS § */
   /* ---------- BACK UNDER `People`, AND THERE IS NO `You` ANSWER § */
-  /* `me` WAS HERE — you, under `People`, found the way every other person is found. § */
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
-  /* `post` WAS HERE — the real post card, reactions and all, answering under `Posts`. § */
 
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
@@ -159,7 +155,6 @@ const KINDS = {
   /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
-  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
@@ -262,8 +257,7 @@ function soonItems_() {
   return cols.concat(ws, set).map(x => Object.assign(x, { text: [x.name, x.sub].join(' ') }));
 }
 function soonCard_(x) {
-  const sug = typeof suggestTile_ === 'function' ? suggestTile_(x.soon, String(x.soonId), x.name) : '';
-  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p>${sug ? `<div class="tile-row">${sug}</div>` : ''}</div>`;
+  return `<div class="card soon-card"><h3>${esc(x.name)}</h3>${x.sub && x.sub !== x.name ? `<p>${esc(x.sub)}</p>` : ''}<p class="sub">${esc(brand('comingSoon', 'Coming soon'))}</p></div>`;
 }
 
 /* The card a resource and a shop row share. Named rather than written twice, because the two
@@ -821,62 +815,23 @@ function facetSay_(facet, v) {
   if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
   return sayCase_(s);
 }
-/* THE SAME WORDS THE BUTTON WOULD SAY FOR THIS VALUE OVER `items` — the shortest unique form among its neighbours. Only a
-   name that has a shorter form is looked up, so a card's ordinary tags cost nothing. */
-function facetShort_(facet, v, items) {
+/* ONE RULE FOR AN ANSWER'S WORDS (940): the menu, the chip and the card's tag line all read them here — the answer as its menu
+   over this finder's whole list draws it (shortest unique form, plus what tells it apart), so it never reads two ways. */
+const ANSWER_SAY = new WeakMap();
+function answerSay_(facet, v) {
   const say = facetSay_(facet, v);
-  if (nameForms_(say).length < 2) return say;
-  try {
-    const hit = facetTally_(items || stuffFiltered(), facet).values.find(w => spellKey_(w.value) === spellKey_(v));
-    if (hit) return hit.show || hit.text || say;
-  } catch (e) { /* the full name, below */ }
-  return say;
-}
-
-/* A CARD'S TAG IS SAID AS ITS BUTTON WOULD BE ONCE EVERY QUESTION BEFORE IT WAS ANSWERED THE CARD'S WAY (396) — the
-   paper among the papers sharing its level, board, tier and sitting is `Paper 1`, wherever the card is drawn. */
-let CARD_LISTS = { from: null, at: new Map(), of: new Map() };
-/* ONE LABELLER FOR A THING (830): an answer that differs among the cards wearing this value (one question's Accuracy)
-   never changes what it is called, so a paper is named by its paper's answers, as the email names it. */
-function cardThingOwn_(facet, x, g) {
-  const own = asList_(facet.of(x)).map(spellKey_).join('|');
-  const key = facet.field + '\u0001' + own + '\u0001' + g.field;
-  let hit = CARD_LISTS.of.get(key);
-  if (hit === undefined) {
-    let by = CARD_LISTS.of.get(facet.field);
-    if (!by) {
-      by = new Map();
-      stuffItems().forEach(y => { let k = ''; try { k = asList_(facet.of(y)).map(spellKey_).join('|'); } catch (e) { k = ''; } if (k) { if (!by.has(k)) by.set(k, []); by.get(k).push(y); } });
-      CARD_LISTS.of.set(facet.field, by);
-    }
-    const said = y => { try { return asList_(g.of(y)).map(spellKey_).sort().join('|'); } catch (e) { return ''; } };
-    const mates = by.get(own) || [x], first = said(mates[0]);
-    hit = mates.every(y => said(y) === first);
-    CARD_LISTS.of.set(key, hit);
+  if (!facet) return say;
+  let items = [];
+  try { items = stuffItems() || []; } catch (e) { return say; }
+  let per = ANSWER_SAY.get(items);
+  if (!per) { per = {}; ANSWER_SAY.set(items, per); }
+  let m = per[facet.field];
+  if (!m || m.facet !== facet) {
+    m = { facet: facet, by: new Map() };
+    try { facetTally_(items, facet).values.forEach(w => m.by.set(spellKey_(w.value), w.show || w.text || w.value)); } catch (e) { /* said in full, below */ }
+    per[facet.field] = m;
   }
-  return hit;
-}
-function cardList_(facet, x) {
-  if (CARD_LISTS.from !== DATA) CARD_LISTS = { from: DATA, at: new Map(), of: new Map() };
-  const chips = [];
-  for (const g of facetList()) {
-    if (g.field === facet.field) break;
-    if (!cardThingOwn_(facet, x, g)) continue;
-    let vals = [];
-    try { vals = asList_(g.of(x)); } catch (e) { vals = []; }
-    vals.forEach(v => chips.push({ field: g.field, value: v }));
-  }
-  /* EACH PREFIX OF THE ANSWERS IS NARROWED ONCE, from the one before it — the cards of one paper share all of them. */
-  let list = stuffItems(), key = '';
-  const byField = [];
-  chips.forEach(c => { const last = byField[byField.length - 1]; if (last && last[0].field === c.field) last.push(c); else byField.push([c]); });
-  for (const same of byField) {
-    key += '\u0001' + same.map(c => c.field + '=' + spellKey_(c.value)).join('|');
-    let hit = CARD_LISTS.at.get(key);
-    if (!hit) { hit = stuffNarrow_(list, same, [], 0); CARD_LISTS.at.set(key, hit); }
-    list = hit;
-  }
-  return list;
+  return m.by.get(spellKey_(v)) || say;
 }
 
 /* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): years and dates newest first, numbers by size, months
@@ -1360,7 +1315,7 @@ function guideBox_(x, slot, ask, hint) {
     ${kpField_(k, val, 'words', false, ask)}
   </label>`;
   /* ---------- AND A SEND UNDER EACH, SIGNED IN § */
-  const send = subSendTile_();
+  const send = typeof whoIs_ === 'function' && whoIs_() ? tile_({ send: true, act: 'qp-send', cls: 'qp-send' }) : '';
   if (!send) return field;
   const said = subBoxSay_(k, val);
   return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}
@@ -1732,10 +1687,11 @@ function insertCard_(x) {
   return `<div class="card insh">
     ${tagRow_(x)}
     ${insertSheet_(r)}
-    <div class="tile-row">${tile_({ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: r.id } })}${
-      r.official.map(o => tile_({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } })).join('')}</div>
   </div>`;
 }
+/* EXTRAS ON A CARD'S ONE ROW (`CARD_EXTRAS_`): an insert's Print and official copies; a timeline's animation (`tlExtras_`). */
+function insertExtras_(x) { return [{ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: x.row.id } }]
+  .concat((x.row.official || []).map(o => ({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } }))); }
 on('ins-official', el => {
   const u = String(el.getAttribute('data-url') || '');
   if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
@@ -2009,15 +1965,16 @@ function histFactsPart_(x, part) {
   const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
   return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
 }
+/* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
+function histExtras_(x) {
+  const r = x.row || {}, read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
+  return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
+    .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
+      histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
 function histCard_(x) {
   const r = x.row || {};
   const rows = histRows_(x).slice(0, histOnCard_(x));
-  const read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
-  /* THE ESSENTIALS (498): the owner, "what are all these tiles, don't need so many" -- three links and one source, on the card's one row (`stuffCard`). */
-  const tiles = (read ? [tile_({ icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } })] : []).concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
-    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })))
-    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u =>
-      tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
   const look = x.kind === 'manuscript' ? msFragSvg_(r, x.msSideIx) : '';
   if (look) {
@@ -2025,7 +1982,6 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${look}
     <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
   }
   return `<div class="card fc hdb">
@@ -2033,7 +1989,6 @@ function histCard_(x) {
     ${tagRow_(x)}
     ${rows.length ? histDl_(rows) : ''}
     ${writingRefs_(r.id)}
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
 
@@ -2067,16 +2022,15 @@ function histTimelineCard_(x) {
   const r = x.row || {};
   const lines = (r.events || []).map(e => `<div><dt>${esc(histDay_(e.date_iso) || String(e.date_from))}</dt><dd class="hdb-ev"><span>${esc(e.name)}</span>${
     tile_({ icon: 'flag', label: e.name, note: e.date_text, act: 'find-open', data: { key: 'hdb:' + e.id } })}</dd></div>`);
-  const ch = histTimelineChapter_(x.era);
-  const tiles = ch ? [tile_({ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } })] : [];
   return `<div class="card fc hdb hdb-tl">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
     <section class="fc-sec tl-step" data-tl="${esc(x.key)}">${tlStep_(x.key)}</section>
     <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
-    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
+function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }
+Object.assign(CARD_EXTRAS_, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, figure: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
 
 /* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
 const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
@@ -2444,17 +2398,17 @@ function bibleVerseCard_(x) {
 }
 
 /* ---------- THE TILES UNDER IT § */
-function bibleTiles_(x) {
-  if (!bibleFor_() || !x) return '';
+/* DATA FOR `tile_`, not tiles: the list it draws, empty for anybody but an admin. */
+function bibleOpts_(x) {
+  if (!bibleFor_() || !x) return [];
   if (!x.bb) {
-    if (BIBLE.index) return tile_({ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' });
-    return BIBLE.failed ? tile_({ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }) : '';
+    if (BIBLE.index) return [{ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' }];
+    return BIBLE.failed ? [{ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }] : [];
   }
   const bb = x.bb;
-  const again = BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
-    ? tile_({ icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } }) : '';
-  return again + (bibleHere_(x) ? ''
-    : tile_({ icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }));
+  return [BIBLE.missed[bb.slot] && !BIBLE.loading[bb.slot]
+    ? { icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.slot } } : null,
+  bibleHere_(x) ? null : { icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }];
 }
 /* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered, no Verse answer and no words
    narrowing the chapter — the strip is the chapter, so the tile would land where you are. */
@@ -2574,14 +2528,14 @@ const keptPart_ = p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|pre
 /* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way `SPOT_TILES` is: § */
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
-function finderOpenTile_(x) {
-  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return '';
+function finderOpenOpts_(x) {
+  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return null;
   let parts;
-  try { parts = pageParts_(x); } catch (e) { return ''; }
-  if (parts.every(keptPart_)) return '';
+  try { parts = pageParts_(x); } catch (e) { return null; }
+  if (parts.every(keptPart_)) return null;
   const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
   /* A MAGNIFIER, NOT THE LEAVE-THE-SITE ARROW (489): it opens the card in Find, not "a new place". */
-  return tile_({ icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
+  return { icon: 'search', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } };
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
@@ -2589,7 +2543,6 @@ on('find-open', el => {
   if (x) finderOpen_(x, null, finderAt_(el));
 });
 
-/* `finderElsewhere_`, `finderWordsCount_` AND THE `finder-words` TILE WERE HERE: § */
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
    same three sentences. */
 function stuffNoneHtml_() {
@@ -2681,7 +2634,7 @@ function keptPages_(items, credits) {
     by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
   });
   /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
-     `finderOpenTile_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
+     `finderOpenOpts_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
   const was = KEPT_DRAW;
   KEPT_DRAW = true;
   try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
@@ -2706,10 +2659,8 @@ function stuffPart_(x, part) {
   return practicalPart_(x, part);
 }
 
-/* `on('prac-guide')` WAS HERE and is gone with the tile that opened it. § */
 
 
-/* `filmCard_` WAS HERE — a film's card in Find, a title, its flags and a link out to Drive. § */
 
 /* THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT. § */
 
@@ -3509,7 +3460,6 @@ function answerBlock_(x) {
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
-/* ---------- `on('question')` WAS HERE § */
 
 /* ---------- WHAT A PART IS CALLED § */
 /* WHOLE NUMERAL FIRST, so "iv" is four and not letter i followed by v. Trying letter-then-numeral
@@ -3537,7 +3487,6 @@ function qPartName_(part) {
   return b ? b.letter + '(' + b.roman + ')' : s;
 }
 
-/* `qPartShow_` WAS HERE — the marker down the left of an open question, "1) · b) · a(i)". § */
 
 /* ---------- ONE READER FOR THE PAPER'S ID § */
 function paperIdOf_(r) {
@@ -3681,7 +3630,6 @@ function projectText_(p) {
   return joined.length ? said + ' ' + joined.join(' ') : said;
 }
 
-/* `paperText_` AND ITS MEMO WERE HERE. § */
 
 
 
@@ -3805,7 +3753,6 @@ function questionItems() {
       examBoard: r.examBoard || '', company: r.company || '',
       documentType: r.documentType || '', examWave: r.examWave || '',
       year: r.year || '',
-      /* `paper: true` WAS HERE and it was write-only — see the deleted `Printed?` facet above, which was its one reader. § */
       /* ---------- WHERE THIS QUESTION SITS IN ITS PAPER § */
       qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
       /* THE PART AS ITS TWO TAGS -- see `partSplit_`. `qPart` stays the raw cell beside it, because the
@@ -4018,7 +3965,6 @@ function whoIs_() {
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
-/* `signedName_` WAS HERE -- the first name over the answer box ("Ada's answer"). § */
 
 function ansRead_(k) {
   /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or the empty box a browser keeping nothing answers with: § */
@@ -4044,7 +3990,6 @@ function ansRead_(k) {
   } catch (e) { return ''; }
 }
 
-/* ---------- `Done 4 Oct` WAS HERE, AND THE `attempts` TAB UNDER IT § */
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT § */
 function doneTier_(it) {
   if (!it || it.kind !== 'question') return '';
@@ -5151,7 +5096,7 @@ function ansBox_(x) {
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
   /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
-  const ai = m.kind === 'ai' || m.kind === 'words' ? aiTile_(x) : '';
+  const ai = m.kind === 'ai' || m.kind === 'words' ? tile_(aiOpts_(x)) : '';
   const later = m.kind === 'words' && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
@@ -5189,11 +5134,6 @@ function ansBox_(x) {
     <span class="qp-verdict" role="status" aria-live="polite">${esc(geo ? padSaid_(said.text) : said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${isAi ? '<p class="qp-ai-why"></p>' : ''}`;
-}
-/* THE PLAIN SEND, for a guide's slot only (`guideBox_`): a question part is always marked, by rule or by AI (`markerOf_`). */
-function subSendTile_() {
-  if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
-  return checkTile_({ act: 'qp-send', cls: 'qp-send' });
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -5264,7 +5204,6 @@ on('qp-send', (el) => {
 });
 
 /* ---------- WHO IS WORKING § */
-/* ---------- `on('qp-who')` WAS HERE § */
 
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are thousands of these and only one of them is ever being typed into. § */
@@ -8029,7 +7968,6 @@ on('qw-tap', (el) => {
   });
 });
 
-/* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for § */
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
 const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
@@ -8047,7 +7985,7 @@ function tagMadeOf_(text, said) {
 function tagRow_(x, page) {
   const out = [], words = new Set(), ids = new Set(), said = [];
   if (!x) return '';
-  /* EVERY FACET IS A TAG (396), said as its button would say it (`cardList_`); a word already on the row is not said twice. */
+  /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice. */
   facetList().forEach(facet => {
     let vals;
     try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
@@ -8055,10 +7993,7 @@ function tagRow_(x, page) {
       const raw = String(v == null ? '' : v).trim();
       if (!raw) return;
       let text = raw;
-      try {
-        const say = facetSay_(facet, raw);
-        text = String((nameForms_(say).length > 1 ? facetShort_(facet, raw, cardList_(facet, x)) : say) || raw).trim();
-      } catch (e) { text = raw; }
+      try { text = String(answerSay_(facet, raw) || raw).trim(); } catch (e) { text = raw; }
       const w = norm(text);
       if ((TAG_NAME.test(text) && (words.has(w) || tagMadeOf_(text, said))) || (TAG_NAME.test(raw) && ids.has(raw))) return;
       words.add(w); ids.add(raw); said.push(text);
@@ -8089,7 +8024,7 @@ function questionCard_(x) {
   return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
-          see `questionTiles_`. */''}
+          see `qtRow_`. */''}
     ${tagRow_(x)}
     <div class="qsheet">
       ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so § */
@@ -8440,7 +8375,6 @@ function circOf_(x) {
   }
   return { k: k, on: circRead_(k) };
 }
-/* `figWhat_` WAS HERE: § */
 
 /* `questionStemFigCard_` WAS HERE, the stem's figure as a page of its own after its words (204, 268). The
    figure is among the stem's words now, or under the pen of the part that draws on it (356). */
@@ -8453,7 +8387,6 @@ function figLabel_(html, not) {
   return hit || 'Figure';
 }
 
-/* ---------- `qHead_` AND `figHead_` WERE HERE: ONE GOLD HEADER LINE FOR EVERY PAGE OF A QUESTION § */
 
 
 /* THE FIGURE IS IN ITS QUESTION'S CARD, WHERE THE PAPER PRINTS IT. § */
@@ -8462,7 +8395,6 @@ function questionHasFig_(x) {
   if (!x || x.kind !== 'question') return false;
   return !!(x.diagram || figImgs_(x.images).length);
 }
-/* `questionFigCard_` WAS HERE, the part's figure as a page of its own where the paper prints it (204, 268, 270, 337). § */
 
 /* ---------- A FIGURE THE PAPER PRINTS AND THIS SITE HAS NOT DRAWN YET § */
 const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
@@ -8555,19 +8487,16 @@ function ansSet_(x, open) {
 function ansShow_(x) { ansSet_(x, true); }
 function ansHide_(x) { ansSet_(x, false); }
 
-/* ---------- `To the answer` AND `ansWhere_` WERE HERE § */
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
-/* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
-function questionTiles_(x) { return ''; }
 /* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words; Suggest a change is in its foot (`qFoot_`), as on every page. */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${magTile_()}${qLockTile_()}${readAloudTile_(x)}</div>`;
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x)])}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
 const MAG = { on: '', live: false, el: null, page: null, at: 0, tid: 0, pid: null, x0: 0, y0: 0 };
 const MAG_Z = 2.5, MAG_R = 80, MAG_HOLD = 220;
 const magLook_ = on => ({ icon: 'zoom', label: on ? 'Magnifier on' : 'Magnifier', note: on ? 'tap to put it away' : 'hold it over the page', on: on, pressed: on });
-function magTile_() { return tile_(Object.assign(magLook_(!!MAG.on), { act: 'q-mag', cls: 'q-mag' })); }
+const magOpts_ = () => Object.assign(magLook_(!!MAG.on), { act: 'q-mag', cls: 'q-mag' });
 function magPaint_() {
   document.querySelectorAll('.q-mag').forEach(el => tileSet_(el, magLook_(!!MAG.on)));
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
@@ -8575,10 +8504,10 @@ function magPaint_() {
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
 /* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
-function magCardTile_(x) {
-  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return '';
-  if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return '';
-  return magTile_();
+function magCardOpts_(x) {
+  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return null;
+  if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return null;
+  return magOpts_();
 }
 /* PUT AWAY WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS TAKEN OUT ON, as the padlock is (`qLockStray_`) */
 function magStray_() { if (MAG.on && MAG.on !== qLockHere_()) { MAG.on = ''; magHide_(); magPaint_(); } }
@@ -8668,7 +8597,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
                             on: on, pressed: on });
 const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
-function qLockTile_() { return tile_(Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' })); }
+const qLockOpts_ = () => Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' });
 function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
 on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
 /* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS PRESSED ON: a lock nobody can see is a broken swipe */
@@ -8732,10 +8661,10 @@ function readAloudFor_(x) {
 let READ_NOW = null;
 const readAloudLook_ = on => ({ icon: 'speak', label: on ? 'Stop reading' : 'Read aloud', note: on ? 'one tap' : 'reads the question out',
                                  on: !!on, pressed: !!on });
-function readAloudTile_(x) {
-  if (!readAloudFor_(x) || !canSay_() || !x.key) return '';
+function readAloudOpts_(x) {
+  if (!readAloudFor_(x) || !canSay_() || !x.key) return null;
   const on = !!READ_NOW && READ_NOW.key === x.key;
-  return tile_(Object.assign(readAloudLook_(on), { act: 'read-aloud', cls: 'read-aloud', data: { key: x.key } }));
+  return Object.assign(readAloudLook_(on), { act: 'read-aloud', cls: 'read-aloud', data: { key: x.key } });
 }
 function readAloudPaint_(k) {
   const on = !!READ_NOW && READ_NOW.key === k;
@@ -8772,9 +8701,9 @@ on('read-aloud', el => {
 const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE', Russian: 'ru-RU' };
 const hearItLang_ = x => (x && x.kind === 'content' && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
 const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
-function hearItTile_(x) {
-  if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return '';
-  return tile_({ icon: 'speak', label: 'Hear it', note: 'the ' + x.subject + ', read out', act: 'hear-it', cls: 'hear-it', data: { key: x.key } });
+function hearItOpts_(x) {
+  if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return null;
+  return { icon: 'speak', label: 'Hear it', note: 'the ' + x.subject + ', read out', act: 'hear-it', cls: 'hear-it', data: { key: x.key } };
 }
 /* QUEUED INSIDE THE TAP, as Read aloud's lines are; a second tap starts it again from the top. */
 on('hear-it', el => {
@@ -8971,7 +8900,6 @@ const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printa
 
 
 
-/* ---------- THE THREE PASSES WERE HERE, AND THEY ARE NOT COMING BACK IN THIS SHAPE § */
 
 /* The rate as a number of pence, for the line that spells the sum out. */
 const printRatePence = () => {
@@ -9055,9 +8983,19 @@ function findPlaceKeep_(F) {
 /* EACH FINDER UNDER ITS OWN NAME — Find's `find:place` as it always was, the second finder's `res:place` — and only the one in front, which is the only one a § */
 window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
+/* ONE SHARE FOR EVERY CARD (950): the phone's sheet with the card's `?card=` link, else the link copied and said so. */
+const cardByKey_ = k => (k ? stuffItemsAll_().find(i => i && i.key === k) : null), cardUrl_ = k => location.origin + location.pathname + '?card=' + encodeURIComponent(k);
+on('card-share', el => { const k = el.getAttribute('data-key') || '', url = cardUrl_(k), name = (cardByKey_(k) || {}).name || brand('name', '@family.');
+  if (navigator.share) navigator.share({ title: name, text: name, url }).catch(() => {});
+  else try { navigator.clipboard.writeText(url).then(() => toast('Link copied'), () => toast(url)); } catch (e) { toast(url); } });
+/* ARRIVING ON ONE, before any kept place; the link then leaves the address, so a reload keeps its own place. */
+function openSharedCard() { let x = null;
+  try { x = cardByKey_(new URLSearchParams(location.search).get('card')); if (x) history.replaceState(null, '', location.pathname + location.hash); } catch (e) { oops_(e, 'find:openSharedCard'); }
+  if (x) finderOpen_(x, null, null);
+  return !!x; }
 let FIND_PLACE_TRIED = false;
 function findPlaceBack_(F) {
-  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
+  if (!F || !F.id) { if (openSharedCard()) return; Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
   if (typeof draftRead_ !== 'function') return;
   inFinder_(F, () => {
     if (FIND_PLACE_TRIED) return;
@@ -9174,9 +9112,6 @@ function stuffItemsRaw_() {
         row: Object.assign({ handle: h }, s2),
       };
     }) : []),
-    /* ---------- THE POSTS § */
-    /* THE POSTS WERE BUILT HERE and are not any more: § */
-    /* ---------- THE LINKS WERE BUILT HERE, AND THEY ARE GONE FROM THE APP § */
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,
@@ -9197,15 +9132,12 @@ function stuffItemsRaw_() {
       cost: priced_(j.price), subject: j.subject || '', row: j,
       bandValue: j.level || '',
     })),
-    /* YOU WERE AN ITEM HERE, under `People`, when you had no tutor row of your own. § */
     ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
       kind: 'level', name: x.name, key: 'lvl:' + x.name,
       /* The subjects, under the name, so the list is readable before anything is opened. */
       sub: (x.subjects || []).join(' · '), image: '',
       row: x,
     })),
-    /* `name` and `price`, which is what the payload actually calls them. I had written `title`
-       and `cost` — so every shop item drew with no name and a price of zero. */
     ...(DATA.shop || []).map(x => ({
       kind: 'shop', name: x.name, key: x.name, sub: x.description || '', image: x.image,
       /* A SHOP ROW IS THE ONE PLACE `0` GENUINELY MEANS FREE — it is priced, and the price is
@@ -9215,7 +9147,6 @@ function stuffItemsRaw_() {
       cost: priced_(x.price), slot: x.slot || '',
       /* PENCE ARE MONEY (463): the basket takes them as money (`cartPrice_`), so the card says £, not credits. */
       pence: String(x.unit || '').trim() === 'p',
-      /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. § */
       /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH. § */
       wearable: isWearable(x),
       level: Number(x.level) || 0,
@@ -9235,7 +9166,6 @@ function stuffItemsRaw_() {
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Boxers', shelf: 'Boxing',
       subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
-      /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" § */
     })),
 
     /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: PE as the subject (499), the weight as the
@@ -9718,20 +9648,19 @@ const sortKey_ = x => [
 
 const padNums_ = s => s.replace(/\d+/g, d => ('00000000' + d).slice(-8));
 
-/* How many cards to a page. § */
-/* `STUFF_PER_PAGE` was 8 — how many cards went on a page. There is one thing to a page now, so
-   there is no number to hold. See `stuffPerPage`. */
 
-/* THE FILTERED LIST, held between calls. § */
+/* THE FILTERED LIST, held. § */
 let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
 
 function stuffFiltered() {
-  /* KEYED ON THE PAYLOAD ITSELF, by object identity, not on `DATA.version`. § */
-  /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
+  /* KEYED ON THE PAYLOAD'S IDENTITY, no role (`itemMemoKey_`). § */
   const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO § */
   const all = stuffItems();
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
+  /* RECENT LISTS (940): opening a question re-walks fresh chips: same arrays, tallies. */
+  const back = FIND_MEMO.key !== null && (FIND_MEMO.recent || []).find(m => m.key === key && m.from === DATA && m.all === all);
+  if (back) return (FIND_MEMO = Object.assign({}, back, { recent: FIND_MEMO.recent })).items;
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE § */
   const prev = FIND_MEMO;
@@ -9741,7 +9670,7 @@ function stuffFiltered() {
       && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
       && prev.words.every(w => words.some(n => n.includes(w)))
-      /* A QUESTION REFERENCE IS NOT A WORD, so "q8" is not a narrowing of "q" -- see `qRef_`. */
+      /* "q8" IS NOT A NARROWING OF "q" (`qRef_`). */
       && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
@@ -9757,6 +9686,7 @@ function stuffFiltered() {
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
                 words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
+  FIND_MEMO.recent = [Object.assign({}, FIND_MEMO)].concat(prev.key !== null && prev.from === DATA && prev.all === all ? (prev.recent || []).filter(m => m.key !== key) : []).slice(0, 6);
   return items;
 }
 
@@ -9766,9 +9696,7 @@ function stuffPages_() {
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   const pages = [];
-  /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
-     its parts, as the paper prints it -- see `pageParts_`. */
-  /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. § */
+  /* A SHARED STEM DRAWN ONCE (`pageParts_`); A PART BRINGS ITS WHOLE QUESTION (`wholeQuestions_`). § */
   const seq = wholeQuestions_(items);
   /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
      the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
@@ -9947,7 +9875,6 @@ function jobPage_(j) {
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
 
-/* ---------- `goFor_` WAS HERE, AND IT WAS NAVIGATING TO ANSWERS THAT NO LONGER EXIST § */
 
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
@@ -9959,7 +9886,6 @@ function bookingPages_(o) {
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON § */
   return form;
 }
 
@@ -9969,7 +9895,6 @@ function feedPages_() {
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
 
-/* ---------- `youPages_` WAS HERE AND LASTED ONE VERSION § */
 
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -10199,7 +10124,6 @@ function bundleTitle_(items) {
   const parts = [];
   const said = {};
   BUNDLE_TITLE_FIELDS.forEach(field => {
-    /* `if (field === 'keystage' && said.level) return;` WAS HERE. § */
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. § */
     if ((field === 'examMonth' || field === 'examYear') && said.sitting) return;
     const n = parts.length;
@@ -10458,17 +10382,14 @@ function stuffPageHtml(n) {
   const pg = stuffPages_()[n];
   if (!pg) return '';
   /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
-  /* ONE TILE ROW PER THING (489, 495): a Find page is a card, its star row and Back to top -- joined like every other screen's pages (`rowsOne_`). */
   if (pg.slim) return rowsOne_(libWaitHtml_(pg.x) + findTopRow_());
-  return rowsOne_((pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits)) + findTopRow_());
+  /* ONE TILE ROW PER THING (489, 495): a card's own row holds `Top` (950); a part page without one gets this one. */
+  const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+  return rowsOne_(html + (/data-do="find-top"/.test(html) ? '' : findTopRow_()));
 }
-/* BACK TO TOP (463): the owner, "a button to scroll back to the top of the finder when they're at the bottom" -- under every result, so it is at the bottom of a long one. */
+/* BACK TO TOP (463): "a button to scroll back to the top of the finder"; on a kept card outside one, its column scrolls up. */
 const findTopRow_ = () => `<div class="tile-row find-top">${tile_({ icon: 'up', label: 'Back to top', note: 'the first page of this finder', act: 'find-top' })}</div>`;
-on('find-top', el => {
-  const F = finderAt_(el);
-  if (!F) return;
-  inFinder_(F, () => goPage(F.id, stuffQuestionPage_()));
-});
+on('find-top', el => { const F = finderAt_(el), p = el.closest('.pane'); if (F) inFinder_(F, () => goPage(F.id, stuffQuestionPage_())); else if (p) p.scrollTop = 0; });
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
    all four hundred around it. */
@@ -10593,37 +10514,18 @@ function tagsAreTitle_(x, html) {
 function stuffCard(x, credits) {
   /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
-  /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
-  /* A kind with no card of its own falls back to the shared one — a new row type appears on the
-     screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
+  /* A kind with no card of its own falls back to the shared one, so a new row type shows as SOMETHING. */
   /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
   const card = kindOf_(x).card || thingCard_;
   const html = tagsAreTitle_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_));
   if (!x.key) return html;
-  /* THE STAR IS NOT HERE ANY MORE — it is the first tile in the action row, drawn by `favTile_` inside `cardTiles_`, which every card builder already calls. § */
-  const out = `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
-  /* A HISTORY CARD'S LINKS AND ITS STAR ON ONE LINE (498): "they don't even appear on the same line". */
-  return x.hdb && typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(out) : out;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
-/* WHAT A CHIP READS: the words its button said (`facetShort_`), memoised per finder. */
-let CHIP_SHOW = { key: null, from: null, out: {} };   /* a `let`: one per finder, see `inFinder_` */
-function chipShow_(f, i) {
+/* WHAT A CHIP READS: the words its button said (`answerSay_`). */
+function chipShow_(f) {
   const facet = facetBy(f.field);
-  if (!facet) return f.value;
-  const say = facetSay_(facet, f.value);
-  /* THE WORDS ITS BUTTON SAID (396): shortened against the answers it was chosen from, and only a name with a shorter form is looked up. */
-  if (typeof i !== 'number' || nameForms_(say).length < 2) return say;
-  const key = JSON.stringify([STUFF.q || '', STUFF.filters.slice(0, i + 1)]);
-  if (CHIP_SHOW.from !== DATA) { CHIP_SHOW.from = DATA; CHIP_SHOW.out = {}; }
-  if (key in CHIP_SHOW.out) return CHIP_SHOW.out[key];
-  let show = '';
-  try {
-    const before = STUFF.filters.slice(0, i).filter(g => g.field !== f.field);
-    const credits = USER ? (USER.credits || 0) : 0;
-    show = facetShort_(facet, f.value, stuffNarrow_(stuffItems(), before, stuffWords_(STUFF.q), credits));
-  } catch (e) { show = ''; }
-  return (CHIP_SHOW.out[key] = show || say);
+  return facet ? answerSay_(facet, f.value) : f.value;
 }
 
 /* ---------- WHAT KIND OF TAG THIS IS, WHICH IS ITS COLOUR § */
@@ -10660,7 +10562,6 @@ const TAG_OF = {
 const tagOf_ = field => TAG_OF[field] || 'other';
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 
-/* `chipKeyIn_` WAS HERE, and the small grey field name in front of every chosen answer with it (`.chip-k`). § */
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
 function chipText_(f, i) {
   const key = String((facetBy(f.field) || {}).label || f.field);
@@ -10699,15 +10600,12 @@ function filterClear_() {
     : '';
 }
 
-/* THE PICKER SHEET IS GONE. § */
 
 /* `on('noop')` was here: a handler that did nothing, for markup that wanted to swallow a tap.
    Nothing carries `data-do="noop"`, so it swallowed nothing. */
 /* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
    there is one worth asking — takes its place. */
-/* `on('book-jump')` WAS HERE, with the line that used it. */
 
-/* `on('group-by')` AND `on('group-open')` WERE HERE — press to see the papers, press one to open it. § */
 /* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
@@ -10987,7 +10885,6 @@ function layout(which) {
   return { screen: id, overlaps, unfilled, rows };
 }
 
-/* `STUFF_NEAR` WAS HERE — five pages either side filled, and everything past them emptied again. § */
 
 /* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER § */
 let STUFF_LATE = 0;
@@ -11001,7 +10898,7 @@ const PANE_ZOOM_STEPS = [1, 0.875, 0.75];
 const PANE_ZOOM_MIN = PANE_ZOOM_STEPS[PANE_ZOOM_STEPS.length - 1];
 /* NEARLY FITTING IS FULL SIZE (533): above this the card is drawn at 1 in a pane with its spacing tightened (`.pane.is-snug`), not at .97. */
 const PANE_ZOOM_SNUG = 0.95;
-/* THE FLOORS (533, D3): no step that draws body words under 11px, a tile under 36px or a Check under 44px; past them the pane scrolls. */
+/* THE FLOORS (533, D3): no step that draws body words under 11px, a 44px tile (950) under 36px or a Check under 44px; past them the pane scrolls. */
 const PANE_FLOOR_TEXT = 11, PANE_FLOOR_TILE = 36, PANE_FLOOR_SUBMIT = 44;
 /* WHAT IS ART AND NOT BODY TEXT, so its small print does not stop a card being drawn smaller (the calculator's legends, the console). */
 const PANE_ART = '.calc, .nes-wrap, svg, sup, sub, figure';
@@ -11509,7 +11406,6 @@ function finderWake_(id) {
 
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
-/* ---------- CARRY ON WAS HERE, AND IT WAS AN ANSWER TO A QUESTION NOBODY ASKED § */
 
 
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
@@ -11570,7 +11466,6 @@ function stuffQuestion() {
       <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
   }
 
-  /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
 
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
   /* ---------- NOTHING IS TRIMMED HERE ANY MORE, BECAUSE NOTHING ARRIVES OVERSIZED § */
@@ -11592,14 +11487,13 @@ function facetNoneHtml_(items, shown) {
       const every = facetValues(all, facet);
       if (every.length !== 2) return;
       const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
-      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(other.show || other.value)} <b>0</b></span>`);
+      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(answerSay_(facet, other.value))} <b>0</b></span>`);
     });
     return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
   } catch (e) { return ''; }
 }
 /* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
 function facetAnswersHtml_(facet, values, more) {
-  /* THE HEADING IS GONE — it read `> WHAT FOR 5` above five rows that were about to say the same thing. § */
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
@@ -11607,9 +11501,8 @@ function facetAnswersHtml_(facet, values, more) {
         data-field="${esc(facet.field)}">
         <span class="k">Doesn't matter</span>
       </div>`;
-  /* ---------- THE COUNT BESIDE EACH ANSWER IS GONE § */
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
-  /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
+  /* `data-value` IS THE FULL NAME AND THE TEXT IS `answerSay_`'s. The chip this
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
@@ -11617,7 +11510,7 @@ function facetAnswersHtml_(facet, values, more) {
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.show || v.value)}</span>
+        <span class="k">${mark(answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 
@@ -11666,7 +11559,6 @@ function finderScreen_() {
   /* THE CREDITS STAY ON THE QUESTION and the way in and out does not — see `accountPages_`. A number
      is a fact about you and belongs beside the thing it is spent on; a button is a control and has
      earned a page of its own. */
-  /* ---------- YOUR CREDITS WERE HERE, AND A BALANCE IS NOT A SEARCH CONTROL § */
   /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
      rewrites; the input is never rewritten, which is what keeps its focus across a press. */
   const controls = `<div id="${F.id}-controls">`
@@ -11744,7 +11636,6 @@ document.addEventListener('input', e => {
   });
 });
 
-/* `on('stuff-set')` WAS HERE, and the dropdown that sent it went when the funnel replaced the filter row. § */
 
 /* ---------- THE DOCKET § */
 /* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */
@@ -11843,7 +11734,7 @@ function paintDocket() {
     + `<div class="row" style="border:0;padding:.4rem 0 0">
         <span class="k">${left ? left + ' left' : 'All done'}</span>
         ${list.length > left
-          ? '<span class="v"><button class="btn quiet tiny" data-do="dock-clear">Clear done</button></span>'
+          ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'
           : ''}
       </div>`;
 }

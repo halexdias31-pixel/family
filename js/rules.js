@@ -3,7 +3,7 @@
 
 /* ONE ROW A RULE: `say` the exception, `where` it applies, `uni` what Universal does instead, `lock` why it cannot be universal (never flips). */
 const RULES = [
-  { id: 'tap-44', say: 'Keypad keys, multiple-choice options and every Check/Send stay 44px while every other tile is 36px', where: 'A question\'s pages (487, 508)',
+  { id: 'tap-44', say: 'Keypad keys, multiple-choice options and every Check/Send stay 44px, as every tile now is (950)', where: 'A question\'s pages (487, 508)',
     uni: 'They shrink to the 36px tile size.' },
   { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find and Find 2 (487)',
     uni: 'The magnifier is 16px like every tile\'s mark.' },

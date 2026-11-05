@@ -253,7 +253,6 @@ function levelRows() {
 }
 
 
-/* ---------- `tickCount` WAS HERE § */
 
 
 /* `setOptions` was here — filling a <select> from a list, for a form built before the field

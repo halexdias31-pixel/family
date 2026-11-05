@@ -16,3 +16,10 @@ card per list. Now the answer is kept on the card (`_pd`), keyed on `LIB.gen` so
 which tallied every facet on every question asked; and `facetWhy_` never asks a facet with one answer.
 
 Same funnel answers and counts; no lazy list or typed arrays were needed for this round. Figures: the commit message.
+
+**Round 2 (940) — opening a question.** Profiled (CDP, same walk): the ~2 s was not `stuffPages_` (it is memoised on the
+list and costs ~0) but `finderWalk_`, which re-asks the funnel chip by chip: each step a fresh `stuffFiltered` (one-entry
+memo, so the list and all its `FACET_TALLY` were thrown away) and a `nextFacet` over it. `stuffFiltered` now keeps the last
+`FIND_RECENT` (6) lists it made, same key/payload/library, forgotten with `FIND_MEMO.key = null`; a walk through chips just
+pressed gets back the same arrays and their tallies. ~6 extra arrays of item refs (~1 MB); live heap unchanged (280 MB).
+Open a question 1959 → 1165 ms; what is left is `nextFacet` on lists never painted (~700 ms) and the paint (~170 ms).

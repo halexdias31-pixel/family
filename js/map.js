@@ -73,7 +73,6 @@ const WIDGETS = [
   /* THE BOARD, NOT THE DRAWING. § */
   /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
      and leaves nothing running when the widget closes. */
-  /* `The Overworld` WAS A WIDGET HERE and is gone on request: § */
 
   /* `chess`, `tables` and `maze` WERE CARDS HERE (461): Chess and Maze are Board games now, the sprint a Word & number game. */
   /* ---------- BOARD GAMES (414, 461): Connect 4, Othello, Scrabble, Chess and Maze in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
@@ -111,12 +110,10 @@ const WIDGETS = [
   </div>`;
     } },
 
-  /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request ("delete alibi game.") — the note where its engine was in games.js § */
 
 
 
 
-  /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
   /* `reel` (414): with Videos it leads the Reels column — things to watch sit with the reels, not the games. */
@@ -177,7 +174,6 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
-  /* THE `avail` TOOL (My teaching hours) WAS HERE — the hours are the Staff hub's Hours now (432). */
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
@@ -198,13 +194,13 @@ const WIDGETS = [
             button carrying an id alone is a button nothing is listening to — which is why this
             has never started anything. */''}
       <button class="btn quiet" data-do="timer-toggle" id="timer-toggle">▶</button>
-      <button class="btn quiet" data-do="timer-reset">Reset</button>
+      ${tile_({ form: true, label: 'Reset', act: 'timer-reset', kind: 'quiet' })}
     </div>
     ${/* The lengths people actually use. A number field for a duration is a keyboard and four taps
           for a question whose answer is almost always one of four. */''}
     <div class="btn-row" style="margin-top:.4rem">
       ${[5, 15, 25, 45].map(m =>
-        `<button class="btn quiet tiny" data-do="timer-set" data-min="${m}">${m}</button>`).join('')}
+        `${tile_({ form: true, label: m, act: 'timer-set', data: { min: m }, kind: 'quiet', cls: 'tiny' })}`).join('')}
     </div>
   </div>` },
   { id: 'docket', kind: 'tool', name: 'Docket', solid: true, start: () => paintDocket?.(),
@@ -215,7 +211,7 @@ const WIDGETS = [
     <div id="docket-body"></div>
     <div class="dock-new">
       <input id="dock-add" placeholder="Add a line…" autocomplete="off">
-      <button class="btn quiet tiny" data-do="dock-add">＋</button>
+      ${tile_({ form: true, label: '＋', act: 'dock-add', kind: 'quiet', cls: 'tiny' })}
     </div>
     <p class="faint" id="dock-said" style="margin:.35rem 0 0"></p>
     <div id="docket-gtasks"></div>
@@ -228,12 +224,12 @@ const WIDGETS = [
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
-  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => initSpotify?.(),
+  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
     into: 'sp-box', what: 'Spotify',
     get html() {
       return `<div class="card">
     <h3>Spotify</h3>
-    <div id="sp-box">${typeof spCard_ === 'function' ? spCard_() : ''}</div>
+    <div id="sp-box">${typeof window.spCard_ === 'function' ? window.spCard_() : ''}</div>
   </div>`;
     } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
@@ -245,8 +241,6 @@ const WIDGETS = [
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
     ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
   </div>`; } },
-  /* ---------- `Your week` WAS HERE, AND IS IN THE TIMETABLE NOW § */
-  /* ---------- THE `live` WIDGET WAS HERE § */
 
   /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
   /* NOT `pure`, though it was until the review of 12 Oct: § */
@@ -301,7 +295,7 @@ const WIDGETS = [
   /* ---------- THE E-INK SCREEN (470): the widget is the screen; syncing a real one is a bonus. The owner: "Keep it in the widget." */
   /* ---------- FAVOURITE LINKS (509): ten a person keeps on their account; for everybody, so signing in moves no page (339) — favlinks.js ---------- */
   { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
-    start: () => initFavLinks_?.(),
+    start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
     html: `<div class="card">
     <h3>Favourite links</h3>
@@ -309,7 +303,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
   { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
-    start: () => initRewrite_?.(),
+    start: () => window.initRewrite_?.(),
     into: 'rw-box', what: 'The rewrite coach',
     html: `<div class="card">
     <h3>Rewrite coach</h3>
@@ -317,7 +311,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
   { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
-    start: () => initPoster_?.(),
+    start: () => window.initPoster_?.(),
     into: 'pst-box', what: 'The poster planner',
     html: `<div class="card">
     <h3>Poster planner</h3>
@@ -325,7 +319,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
-    start: () => initPixel_?.(),
+    start: () => window.initPixel_?.(),
     into: 'pxe-box', what: 'The pixel editor',
     html: `<div class="card">
     <h3>Pixel editor</h3>
@@ -337,7 +331,6 @@ const WIDGETS = [
     html: `<h3>E-ink screen</h3>
     <div id="eink-box" class="eink-box"></div>` },
 
-  /* CHECK UPLOADS IS GONE (owner, 26 Oct: "delete this"): authoriseDrive's log in the editor says READY. */
 
 
   /* ---------- THE WHITEBOARD § */

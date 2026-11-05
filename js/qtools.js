@@ -96,16 +96,16 @@ function markerOf_(x) {
 /* THE CHECK TILE FOR THAT MARKER, last in the row. An AI part whose marker is off says why under the row, not by vanishing. */
 function qtCheck_(x, m) {
   const k = (m || markerOf_(x)).kind;
-  if (k === 'choice') return checkTile_({ act: 'qp-choice-check', cls: 'qp-check' });
-  if (k === 'order') return checkTile_({ act: 'qp-order-send', cls: 'qp-order-send qp-check' });
-  if (k === 'cells') return checkTile_({ act: 'qp-cells-check', cls: 'qp-check' });
-  if (k === 'draw') return checkTile_({ act: 'pad-check', cls: 'qp-check' });
-  if (k === 'accept') return checkTile_({ act: 'qp-check', cls: 'qp-check' });
-  if (k === 'words') return checkTile_({ act: 'qp-rule', cls: 'qp-check' });
+  if (k === 'choice') return tile_({ send: true, act: 'qp-choice-check', cls: 'qp-check' });
+  if (k === 'order') return tile_({ send: true, act: 'qp-order-send', cls: 'qp-order-send qp-check' });
+  if (k === 'cells') return tile_({ send: true, act: 'qp-cells-check', cls: 'qp-check' });
+  if (k === 'draw') return tile_({ send: true, act: 'pad-check', cls: 'qp-check' });
+  if (k === 'accept') return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
+  if (k === 'words') return tile_({ send: true, act: 'qp-rule', cls: 'qp-check' });
   /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
-  if (!(m || markerOf_(x)).ready) return checkTile_({ act: 'qp-noscheme', cls: 'qp-check' });
-  const ai = typeof aiTile_ === 'function' ? aiTile_(x) : '';
-  return ai || checkTile_({ act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
+  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check' });
+  const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
+  return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
 /* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on); on a phone the tools fold behind one Tools tile, Check stays out. */
@@ -113,11 +113,11 @@ const QT_OPEN = new Set();       // parts whose folded row is open, by key, for 
 const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
 function qtToolTile_(t, x) {
   const key = (x && x.key) || '';
-  if (t.id === 'mag') return typeof magTile_ === 'function' ? magTile_() : '';
+  if (t.id === 'mag') return typeof magOpts_ === 'function' ? tile_(magOpts_()) : '';
   /* THE CARD'S ONE PADLOCK: it was in the card's own row as well as on its pages; here it is the row's, once (round 4) */
-  if (t.id === 'lock') return typeof qLockTile_ === 'function' ? qLockTile_() : '';
+  if (t.id === 'lock') return typeof qLockOpts_ === 'function' ? tile_(qLockOpts_()) : '';
   if (t.id === 'read') {
-    const live = typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '';
+    const live = typeof readAloudOpts_ === 'function' ? tile_(readAloudOpts_(x)) : '';
     return live || tile_({ icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } });
   }
   if (t.id === 'photo') {

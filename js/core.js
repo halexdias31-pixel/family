@@ -288,7 +288,6 @@ const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to bo
 
 /* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else. § */
 const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];
-/* `jobStatus` was here — a booking's status worked out on the phone. § */
 
 
 /* DOES THIS PROMOTION APPLY to this booking? § */

@@ -1014,7 +1014,6 @@ boot(f => {
     bad.push('`facetValues` or `filterHit` is not declared, so the funnel\'s states cannot be read - not a pass');
   }
 
-  /* RULE 8 WAS HERE — A BRANCH A ROW CANNOT HONESTLY BE IN § */
 
   /* ---------- LEVEL BEFORE KEY STAGE, AND A QUALIFICATION RATHER THAN A GREY AREA § */
   {

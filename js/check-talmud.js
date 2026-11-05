@@ -51,7 +51,7 @@ if (ix) {
 if (!fs.existsSync(path.join(DIR, 'LICENSE'))) bad.push('data/talmud/LICENSE is missing — the CC BY-SA text needs its attribution');
 const src = n => fs.readFileSync(path.join(ROOT, n), 'utf8');
 if (!/\.\.\.\(typeof talmudItems_ === 'function' \? talmudItems_\(\) : \[\]\)/.test(src('js/find.js'))) bad.push('stuffItemsRaw_ does not list talmudItems_() — the Talmud never reaches Find');
-if (!/x\.kind === 'talmud'/.test(src('js/tiles.js'))) bad.push('cardActions_ has no talmud tiles — a daf could not be opened');
+if (!/talmud: x => talmudTiles_/.test(src('js/tiles.js'))) bad.push('CARD_EXTRAS_ has no talmud tiles — a daf could not be opened');
 if (!/'talmud'/.test(src('index.html'))) bad.push('index.html does not load js/talmud.js');
 if (/data\/talmud/.test(src('backend/doget.gs'))) bad.push('the backend sends the Talmud — it is a static file, never boot payload');
 if (bad.length) { console.log('check-talmud: ' + bad.length + ' FAILED'); bad.slice(0, 40).forEach(b => console.log('  ' + b)); process.exit(1); }

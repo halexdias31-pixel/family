@@ -1506,4 +1506,3 @@ on('prog-practise', el => {
   });
 });
 on('prog-sessions', () => { go('booking'); });
-/* `screen('progress')` WAS HERE: its cards are on Student settings (461), `studentSetPages_` in me.js. */

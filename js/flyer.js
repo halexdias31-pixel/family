@@ -358,7 +358,6 @@ on('fm-preset', el => {
   flyDraw();
 });
 
-/* THE PRINT HANDLER AND THE RESIZE HOOK ARE GONE TOO. § */
 
 /* THE FLYER MAKER IS ITS OWN TOOL AGAIN. § */
 function initFlyer() {

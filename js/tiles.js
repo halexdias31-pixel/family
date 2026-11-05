@@ -165,14 +165,15 @@ function tileIcon_(name) {
 
 
 /* ---------- ONE CONTROL § */
-/* ONE CHECK ON EVERY QUESTION (368): the same mark, word and place whatever marks it; an ordinary tile like its neighbours, last in the row (374, the owner: uniformity) */
-function checkTile_(o) {
-  /* AN ANSWER'S SEND IS 44px (508): `is-submit` is the one name every Check/Send carries, so the size is stated once. */
-  o = Object.assign({ icon: 'send', label: 'Check' }, o);
-  o.cls = ((o.cls || '') + ' is-submit').trim();
-  return tile_(o);
-}
 function tile_(o) {
+  /* ONE MAKER, ANY AMOUNT (950): a place passes one tile's data, a list of them, or nothing when it has none to show. */
+  if (Array.isArray(o)) return o.map(tile_).join('');
+  if (!o) return '';
+  /* A FORM'S STEP (950) IS A WORD, NOT A MARK: `form: true` draws the one `.btn` (44px up); `kind` quiet, danger or ghost. */
+  if (o.form) return `<button type="button" class="btn${o.kind ? ' ' + o.kind : ''}${o.cls ? ' ' + o.cls : ''}" data-do="${esc(o.act)}"${
+    Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('')}${o.off ? ' disabled' : ''}>${esc(o.label)}</button>`;
+  /* ONE CHECK ON EVERY QUESTION (368, 374): `send: true` is the same mark, word and `is-submit` name whatever marks it. */
+  if (o.send) o = Object.assign({ icon: 'send', label: 'Check' }, o, { cls: ((o.cls || '') + ' is-submit').trim() });
   /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's
      appearance is this renderer's alone, which is the point of having one. */
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '') + (o.cls ? ' ' + o.cls : '');
@@ -254,7 +255,6 @@ function favTile_(x) {
 }
 
 
-/* ---------- `topicTiles_` WAS HERE, AND THERE ARE NO DOCUMENTS TO ACT ON § */
 
 
 
@@ -298,9 +298,6 @@ function tutorTiles_(x) {
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
           ''}
-    ${/* SHARE, ON A LISTED TUTOR WITH A HANDLE (400) — their own `?tutor=` address (`tutorLink_`, posts.js). */
-          (t.handle && t.listed !== false) ? tile_({ icon: 'share', label: 'Share', note: 'their link',
-              act: 'tutor-share', data: { handle: t.handle } }) : ''}
     ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
@@ -379,35 +376,40 @@ function boxerTiles_(x) {
                  href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
 }
 
-/* `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card. § */
 
 
-/* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
-   rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
-   have actions today. */
+/* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
+const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
+/* EACH KIND'S EXTRAS (data, not branches): tiles or tile_ data; find.js, hymns.js and mechanics.js add their own kinds. */
+const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
+  level: levelTiles_, fight: fightTiles_, boxer: boxerTiles_, receipt: jobTiles_, talmud: x => talmudTiles_(x) };
+function cardCore_(x) {
+  const one = {
+    share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),
+    fav: () => favTile_(x),
+    suggest: () => (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : ''),
+    top: () => tile_({ icon: 'up', label: 'Top', act: 'find-top' }) };
+  return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
+}
+function cardExtras_(x) {
+  const fn = CARD_EXTRAS_[x.kind];
+  if (typeof fn !== 'function') return '';
+  const r = fn(x);
+  return typeof r === 'string' ? r : tile_(r);
+}
 function cardTiles_(x) {
-  /* ---------- ONE ROW OF MARKS, UNDER THE CARD § */
-  /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a § */
-  /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
-  /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
-  /* A TUTOR'S ROW LEADS WITH WHAT A VISITOR CAME FOR (414): Message, Share, then the star. */
-  const lead = x.kind === 'tutor' ? cardActions_(x) + favTile_(x) : favTile_(x) + cardActions_(x);
-  /* a question part's Read aloud is in its one tool row (qtools.js), not here as well */
-  const mine = lead + (typeof readAloudTile_ === 'function' && x.kind !== 'question' ? readAloudTile_(x) : '')
-    + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
-    + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
-    + (typeof magCardTile_ === 'function' ? magCardTile_(x) : '')
-    + finderOpenTile_(x) + (x.more || '')
-    /* AND THE PADLOCK (498): "add the padlock to every widget" -- a question's is its tool row's (`qtRow_`), so it has one, not two (round 4) */
-    + (x.key && x.kind !== 'me' && x.kind !== 'question' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '')
-    /* AND `Suggest a change` ON EVERY CARD, Student rank and up (486, 494) — `suggestTileFor_` in submit.js. */
-    + (typeof suggestTileFor_ === 'function' ? suggestTileFor_(x) : '');
+  /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
+  const mine = cardCore_(x) + cardExtras_(x)
+    + tile_([typeof readAloudOpts_ === 'function' && x.kind !== 'question' ? readAloudOpts_(x) : null,
+      typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null])
+    + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
+    /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
+    + (x.key && x.kind !== 'me' && x.kind !== 'question' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
   return tileRow_(mine + admin, '', x.kind === 'me');
 }
-
 /* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
@@ -434,29 +436,6 @@ function tileRow_(html, cls, own) {
   const brk = '<span class="tile-break" aria-hidden="true"></span>';
   /* ONE FLOW LIKE WORDS (487): every tile in one left-aligned wrapping run, the admin's last; no line breaks or rebalancing. */
   return wrap(viewer.join('') + rest + group(sorted));
-}
-
-function cardActions_(x) {
-  /* `topic` WAS HERE, routing to `topicTiles_`. No documents, no row. */
-  if (x.kind === 'shop') return x.wearable ? wearTiles_(x) : shopTiles_(x);
-  if (x.kind === 'tutor') return tutorTiles_(x);
-  if (x.kind === 'venue') return venueTiles_(x);
-  if (x.kind === 'subject') return subjectTiles_(x);
-  if (x.kind === 'level') return levelTiles_(x);
-  if (x.kind === 'fight') return fightTiles_(x);
-  if (x.kind === 'boxer') return boxerTiles_(x);
-  /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
-     `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
-  if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
-  /* A DAF'S TWO SIDES, each opening the Vilna page (473). */
-  if (x.kind === 'talmud') return typeof talmudTiles_ === 'function' ? talmudTiles_(x) : '';
-  /* `me` WAS HERE (Edit, Sign out, Send the link again): your own card's row is built by `accountPages_` (find.js), Sign out is on Student settings (453). */
-  if (x.kind === 'receipt') return jobTiles_(x);
-  /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
-  /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */
-  if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
-  /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. § */
-  return '';
 }
 
 /* ---------- WHAT YOU CAN DO WITH A SESSION § */
@@ -576,6 +555,7 @@ function postTiles_(p) {
 on('noop', () => {});
 
 /* ---------- ONE TILE ROW PER THING (489): rows one under another become one; a joined row is a `tile-group` keeping its classes and data ---------- */
+const coreIn_ = row => !!row.querySelector('[data-do="card-share"]');
 function tileRowsJoin_(html) {
   const h = String(html == null ? '' : html);
   if (h.indexOf('tile-row') === h.lastIndexOf('tile-row') || typeof document === 'undefined') return h;
@@ -601,12 +581,13 @@ function tileRowsJoin_(html) {
     const last = e => { let k = e.lastElementChild; while (k && k.tagName === 'P' && !k.textContent.trim()) k = k.previousElementSibling; return k; };
     let d = prev;
     while (last(d) && !d.classList.contains('tile-row') && !d.matches('.merged-part, .widget-slot, .rep-box, ' + (formOwn ? '.me-form, form, ' : '') + '[class*="qual"], ul, ol, table')) d = last(d);
-    if (d !== prev && d.classList.contains('tile-row') && !d.classList.contains('person-tiles')) group(row, d, false);
+    /* A CARD'S ROW LEADS WHAT IT JOINS (950) */
+    if (d !== prev && d.classList.contains('tile-row') && !d.classList.contains('person-tiles')) group(row, d, coreIn_(row));
   });
   t.content.querySelectorAll('.tile-row').forEach(row => {
     const prev = row.previousElementSibling;
     if (!prev || !prev.classList.contains('tile-row') || !row.parentNode || (formOwn && prev.closest('.me-form')) || prev.classList.contains('person-tiles')) return;
-    group(prev, row, true);
+    group(prev, row, !coreIn_(row));
   });
   return joined ? t.innerHTML : h;
 }

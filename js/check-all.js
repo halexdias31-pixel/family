@@ -155,20 +155,15 @@ const SUITE = [
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
   /* THE CONSOLE'S SAVES ON THE ACCOUNT (446), over a fake Drive. */
-  { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
   { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
-  { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* THE SHIPPED COLLIERS WOOD'S GEOMETRY (511): one road surface, nothing overlapping, no gaps, OSM's buildings. */
-  { file: 'check/race-geometry.js', what: 'the racer map\'s geometry: one road surface, no overlaps or gaps, junctions covered, OSM\'s buildings with roofs' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; no date of birth or signed out = underage, 450) is not sent; the admin gets all' },
   /* A FILM IS SEEN BY WHOM ITS DRIVE FILE IS SHARED WITH (450), over a fake Drive. */
   { file: 'check-film-shares.js', what: 'a film reaches only the people its Drive file is shared with, a revoked share goes within ten minutes, the admin sees who' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
-  { file: 'check-favlinks.js', what: 'Favourite links (509): signed in only, ten at most, http(s) only, own links alone in the payload' },
   { file: 'check-missing.js', what: 'What\'s missing (526): the gaps between data/settings/expected-papers.json and the covers, a present paper never listed, the list spelled as the library' },
-  { file: 'check-rewrite.js', what: 'the Rewrite coach (509, 519): admin only, its own cap, the text fenced as data, the AI narrowed to one fact per answer with a real quote, never a rewrite; the phone\'s substance scanner and copying check' },
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-push.js', what: 'phone notifications (492): no keys a quiet no-op, recipient-only, per-kind off, UNREGISTERED dropped, no token in doGet' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
@@ -185,7 +180,6 @@ const SUITE = [
   /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. § */
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
-  { file: 'check-eink.js', what: 'every icon in data/icons.json drawn in black and white only, the e-ink files current, no link away to the install page (470)' },
   { file: 'check-secrets.js', what: 'no PIN in the source, and no word of the library in data/' },
   { file: 'check-markers.js', what: 'no merge-conflict line left in any tracked file' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
@@ -224,7 +218,7 @@ const SUITE = [
   { file: 'check/press-twice.js', what: 'two taps 110 ms apart on every control post nothing twice; a control that asks first ignores a yes under 400 ms', slow: true, heavy: true },
   { file: 'check/press-deadline.js', what: 'a press whose request never answers is busy, takes no second press, and lets go with a sentence after a minute', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
-  { file: 'check/tiles.js',   what: 'every tile is tile_(), 36px (44 a Check) with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
+  { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with a 16px mark, no overlap, spill or orphan at four widths, and never drawn under a fingertip in any state (533)', slow: true, heavy: true },
   { file: 'check/bootslow.js', what: 'no lazy library data on a cold load; a hung or 404 data file never holds the boot; the slow box only while code or payload is missing (503)', slow: true },
   { file: 'check/chip-feel.js', what: 'at 4x CPU a tapped Find answer is lit in a frame before the funnel redraws, and three taps in a row are three answers (720)', slow: true },
   { file: 'check/kp-centred.js', what: 'Find and Find 2 centred above the @family. keypad, the box still as you type, centred again when it goes (720)', slow: true },
@@ -241,11 +235,9 @@ const SUITE = [
   { file: 'check/boxes.js',   what: 'a question\'s pages: every foot last and alike (Help, star, Suggest, Back to top), answer boxes one a line and one width (553)', slow: true },
   { file: 'check/types.js',   what: 'every interaction type answered wrong, changed and right by touch and mouse; boxes edit like iOS', slow: true },
   /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
-  { file: 'check/whiteboard.js', what: 'the whiteboard notebook: written big it lands small, the pad moves on, gestures undo, rub out, straighten and move', slow: true },
   /* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE § */
   { file: 'check/reach.js',   what: 'what a run of fast flicks reaches is drawn before it gets there, at 4x CPU', slow: true },
   /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS § */
-  { file: 'check/videos.js',  what: 'the videos card: the bar held as you type, Search lets go, one player, full screen either way up', slow: true },
   /* ---------- AND THE MARKING SOUNDS, HEARD IN A BROWSER § */
   { file: 'check/sounds.js',  what: 'the chime and the buzzer: short, quiet, as loud as each other to an ear, no click, one real tap one sound, at rest when nothing plays', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST § */

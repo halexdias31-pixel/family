@@ -20,13 +20,13 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'health.json');
 const CHECK = process.argv.includes('--check');
-const WEIGHTS = { code: 0.40, logic: 0.35, ui: 0.25 };
+const WEIGHTS = { code: 0.36, logic: 0.315, ui: 0.225, cost: 0.10 };   /* cost (940): tools/ai-cost.js, what a change costs an AI to read */
 const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
 const { execFileSync } = require('child_process');
 const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd(); } catch (e) { return ''; } };
-const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean).map(l => l.slice(3)));
+const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean).map(l => l.slice(3).split(' -> ').pop()));   /* a rename's new path (940) */
 const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--format=%ct', '--', f])) * 1000 || 0;
 
 /* WHAT THE FUNNEL WALK READS: a change to any of these makes data/logic-health.json stale. */
@@ -75,9 +75,11 @@ function findWork(L) {
       work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
   ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
+  /* EVERY FACET VALUE (940): tools/facet-data.js reads all answers of every menu, not the walk's few; its findings are read here, never re-run. */
+  ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
   return work;
 }
-const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-value': [0.5, 10], 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
+const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-value': [0.5, 10], 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10], 'merged-all': [0.5, 10], 'near-dup': [0.5, 10], 'words-all': [0.02, 5] };
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
 function uniformWork() {
@@ -121,7 +123,11 @@ function uxWork() {
   /* THE BIG WAITS, on a 4x-slow phone: three seconds to Find or to sign in, and 300 MB of heap, are where a phone gives up. */
   if (j.findUsableMs > 3000 || j.findUsableMs < 0) W.push({ kind: 'ux', where: 'Find usable', say: `${j.findUsableMs} ms from signed in to Find's first menu (budget 3000)` });
   if (j.signinMs > 3000) W.push({ kind: 'ux', where: 'sign-in', say: `${j.signinMs} ms from the press to signed in (budget 3000)` });
-  if (j.heapMB > 300) W.push({ kind: 'ux', where: 'JS heap after Practice', say: `${j.heapMB} MB (budget 300)` });
+  if (j.heapMB > 300) W.push({ kind: 'ux', where: 'JS heap after Practice (raw)', say: `${j.heapMB} MB before a collection (budget 300)` });
+  /* LIVE AND GARBAGE (940): scored apart, so a leak (live) and churn (garbage) each have their own line and fix. */
+  if (j.heapLiveMB > 200) W.push({ kind: 'ux', where: 'JS heap after Practice (live)', say: `${j.heapLiveMB} MB after a forced GC (budget 200)` });
+  if (j.garbageMB > 150) W.push({ kind: 'ux', where: 'JS heap garbage', say: `${j.garbageMB} MB uncollected garbage after the walk (budget 150)` });
+  (j.clicks || []).filter(c => c.churnMB > 20).forEach(c => W.push({ kind: 'ux', where: 'click: ' + c.what, say: `${c.churnMB} MB of heap churned by one click (budget 20)` }));
   (j.a11y || []).forEach(a => W.push({ kind: 'a11y', where: a.screen + ' ' + a.what, say: a.say }));
   (j.consoleErrors || []).concat(j.errors || []).forEach(e => W.push({ kind: 'console', where: 'the UX walk', say: e }));
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
@@ -361,6 +367,14 @@ function varietyWork(Q, waits) {
   const fsrc = read('js/find.js'), seen = new Map();
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
   add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
+  /* CARD TILE ROWS (950): cardTiles_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
+  const tsrc = read('js/tiles.js'), cv = [{ where: fnAt('cardTiles_', ['js/tiles.js']) || 'js/tiles.js', say: 'cardTiles_' }];
+  const core = (/const CARD_CORE_ = \[([^\]]*)\]/.exec(tsrc) || [])[1] || '';
+  if (core.replace(/\s/g, '') !== "'share','fav','suggest','top'" || !/function cardTiles_[^]*?const mine = cardCore_\(x\) \+ cardExtras_\(x\)/.test(tsrc))
+    cv.push({ where: 'js/tiles.js', say: 'the core row is not Share, Save, Suggest, Top first on every card' });
+  [...seen.keys()].forEach(fn => { const at = fnAt(fn); if (!at) return; const src = read(at.split(':')[0]), i = src.search(new RegExp('function ' + fn + '\\s*\\('));
+    if (/class="tile-row/.test(src.slice(i, src.indexOf('\n}', i)))) cv.push({ where: at, say: fn + ' draws its own tile row' }); });
+  add('cardrow', 'Card tile rows', 1, 'ui', cv);
   /* TILE AND BUTTON MAKERS: functions whose name says they make one. tile_ is the one. */
   const makers = [];
   app.forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*(?:[Tt]ile|Btn|Button)\w*)\s*\(/g)) if (!/Row|row_|Set|Paint|Look|Html_$|Join/.test(m[1])) makers.push({ name: m[1], where: f + ':' + lineOf(src, m.index) }); });
@@ -383,7 +397,7 @@ function varietyWork(Q, waits) {
   VARIETY_LAST = fam;
   return W;
 }
-const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5] };
+const VARIETY_PENALTY = { 'variety-qpage': [1.1, 30], 'variety-drawer': [0.2, 5], 'variety-maker': [0.2, 5], 'variety-listrow': [0.1, 5], 'variety-setrow': [0.05, 5], 'variety-wait': [0.5, 5], 'variety-cardrow': [0.2, 5] };
 /* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
 function firstDownload() {
   /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
@@ -417,7 +431,8 @@ function health() {
   const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0) - less('logic')));
   const codeX = r1(Math.max(0, code - less('code')));
   const uiX = r1(Math.max(0, U.score - less('ui')));
-  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX);
+  const C = require('./ai-cost.js').aiCost();
+  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX + WEIGHTS.cost * C.score);
   const off = [];
   sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
     say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
@@ -428,6 +443,7 @@ function health() {
   fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
   xpen.forEach(p => { if (!(p.off > 0)) return; const v = /^variety-(\w+)$/.exec(p.id), F = v && VARIETY_LAST && VARIETY_LAST[v[1]];
     off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: F ? `${F.label}: ${F.count - F.ideal} past the ideal ${F.ideal} (node tools/health.js --list --kind ${p.id})` : `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }); });
+  C.signals.forEach(s => s.off > 0 && off.push({ part: 'cost', id: s.id, cost: r1(s.off * WEIGHTS.cost), say: 'AI cost: ' + s.say + '.' }));
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
   /* DO THIS NEXT (920): the one change worth most points, in a sentence a person can act on. */
   const best = off[0];
@@ -435,7 +451,7 @@ function health() {
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
-    parts: { code: codeX, logic: lscore, ui: uiX }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
+    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score }, aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
     worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
@@ -459,10 +475,13 @@ module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles,
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
-  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(Boolean));
+  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(f => f && !f.startsWith('attic/')));
   const bad = [];
   const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
-  if (['js/find.js', 'js/shell.js', 'data/logic-health.json'].some(f => files.has(f))) {
+  /* A STALE FACET REPORT (940): the library or the funnel changed and tools/facet-data.js was not re-run, so its findings are old. */
+  const fAt = mtime('data/facet-health.json'), fNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > fAt);
+  if (fNew.length && !files.has('data/facet-health.json')) console.log('note: data/facet-health.json is older than ' + fNew.join(', ') + ' — run node tools/facet-data.js');
+  if (['js/find.js', 'js/shell.js', 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
     findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
@@ -470,8 +489,10 @@ function changed() {
   /* A MOVED QTYPE MAY NOT SLIP (920): re-proved when its markers or data changed, against the committed data/qengine-health.json. */
   if (['js/find.js', 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
     let was = null; try { was = JSON.parse(git(['show', 'HEAD:data/qengine-health.json'])); } catch (e) { was = null; }
-    try { execFileSync(process.execPath, ['tools/qengine-health.js'], { cwd: ROOT, stdio: 'ignore' }); } catch (e) { bad.push('qengine\ttools/qengine-health.js\tthe checker proofs would not run'); }
-    const now = (() => { try { return JSON.parse(read('data/qengine-health.json')); } catch (e) { return null; } })();
+    /* A TEMP COPY (940): --changed never leaves a rewritten report in the tree; only a full run writes data/*-health.json. */
+    const tmp = path.join(require('os').tmpdir(), 'qengine-health-' + process.pid + '.json');
+    try { execFileSync(process.execPath, ['tools/qengine-health.js'], { cwd: ROOT, stdio: 'ignore', env: Object.assign({}, process.env, { QENGINE_OUT: tmp }) }); } catch (e) { bad.push('qengine\ttools/qengine-health.js\tthe checker proofs would not run'); }
+    const now = (() => { try { return JSON.parse(fs.readFileSync(tmp, 'utf8')); } catch (e) { return null; } finally { try { fs.unlinkSync(tmp); } catch (e) {} } })();
     if (was && now) Object.keys(was.types || {}).filter(t => was.types[t].moved).forEach(t => { const a = was.types[t], b = now.types[t] || {}, k = a.checker;
       if (!b.moved) bad.push(`qengine\tdata/settings/qengine.json\t${t} was on the one page and is not any more`);
       if (b.withAnswer < a.withAnswer) bad.push(`qengine\tdata/questions.json\t${t}: ${a.withAnswer - b.withAnswer} questions lost their answer field`);
@@ -484,6 +505,16 @@ function changed() {
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
   });
   /* THE STRUCTURE RATCHET (920): no file, long function, variety family or one-off over its budget; a gain tightens the budget. */
+  /* THE AI-COST RATCHET (940): no tombstone, CLAUDE.md within 100 lines, js/'s searchable bytes and the comment share only go down. */
+  const AC = require('./ai-cost.js').aiCost(), BP = path.join(ROOT, 'data/settings/structure-budgets.json');
+  AC.tombstones.forEach(t => bad.push('tombstone\t' + t.where + '\t' + t.say + ' — delete it; the story goes in docs/history'));
+  if (AC.claudeLines > 100) bad.push(`claude-lines\tCLAUDE.md\t${AC.claudeLines} lines, over the budget of 100: move detail to docs/map-detail.md`);
+  try { const BJ = JSON.parse(fs.readFileSync(BP, 'utf8')), A = BJ.aiCost || {};
+    if (A.searchBytes && AC.searchBytes > A.searchBytes) bad.push(`search-bytes\tjs/\t${AC.searchBytes} searchable bytes, over the budget of ${A.searchBytes}`);
+    if (A.commentRatio && AC.commentRatio > A.commentRatio + 0.002) bad.push(`comment-ratio\tjs/\tcomments are ${AC.commentRatio} of app code, over the budget of ${A.commentRatio}`);
+    if (!A.searchBytes || AC.searchBytes < A.searchBytes || AC.commentRatio < (A.commentRatio || 1)) {
+      BJ.aiCost = { searchBytes: Math.min(A.searchBytes || Infinity, AC.searchBytes), commentRatio: Math.min(A.commentRatio || 1, AC.commentRatio), tombstones: 0, claudeLines: 100 };
+      if (!bad.length) fs.writeFileSync(BP, JSON.stringify(BJ, null, 1) + '\n'); } } catch (e) { bad.push('ai-cost\t' + BP + '\tcannot read the budgets: ' + e.message); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));

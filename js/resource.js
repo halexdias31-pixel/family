@@ -4,7 +4,6 @@
 
 /* ---------- ONE RESOURCE, AND NO SHEET FOR IT § */
 
-/* ---------- EDITING A RESOURCE WAS HERE, AND A PAPER IS NOT EDITED FROM A PHONE NOW § */
 
 /* A column name as a person would say it. Everything not named here is the column with its
    underscores taken out, which is right far more often than it is wrong — `exam_board` reads
@@ -22,7 +21,6 @@ const FIELD_LABEL = {
 };
 const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 
-/* ---------- `on('shop-item')` WAS HERE § */
 
 /* PUTTING SOMETHING ON. § */
 on('wear', el => {
@@ -161,7 +159,6 @@ on('cart-drop', el => {
   if (typeof cartPaint_ === 'function') cartPaint_();
 });
 
-/* ---------- `on_openCart` AND `on('open-cart')` WERE HERE § */
 
 /* ---------- SENDING THE ORDER, AS A MESSAGE TO THE OWNER § */
 /* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their `personId` — and a PERSON rather than the brand account where § */
@@ -275,7 +272,6 @@ on('cart-send', el => {
 });
 /* THE WHOLE PAPER, READ FROM THE ROWS THAT ALREADY DRAW ITS QUESTIONS. § */
 
-/* ---------- `paperRows` AND `paperBody_` WERE HERE, AND SO WAS THE ANSWER BOX § */
 
 /* `openPaper_` AND `on('paper-read')` MOVED TO find.js, beside the note explaining why they came back. § */
 

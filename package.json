@@ -22,7 +22,6 @@
     "pen:verbose": "node check/pen.js --verbose",
     "reach": "node check/reach.js",
     "reach:verbose": "node check/reach.js --verbose",
-    "videos": "node check/videos.js",
     "sounds": "node check/sounds.js",
     "cascade": "node check/cascade.js",
     "cascade:all": "node check/cascade.js --all",

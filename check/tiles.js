@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 36px plate with a 16px mark (Check/Send 44px, 508), flowing left like words, one row per thing, no spill. Flags: --width=390. Port: TILES_PORT. */
-/* AND AS DRAWN (533): every tile in every state of check/states.js, student and admin, at 320 and 390, is 36px on the glass (44 a Check) after any zoom. --no-states skips it. */
+/* @family. — check/tiles.js ONE TILE SPEC (467, 487, 489): each tile is `tile_`, a 44px plate with a 16px mark, a Check the same (950), flowing left like words, one row per thing, no spill. Flags: --width=390. Port: TILES_PORT. */
+/* AND AS DRAWN (533): every tile in every state of check/states.js, student and admin, at 320 and 390, is 44px on the glass after any zoom. --no-states skips it. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -16,8 +16,8 @@ const STUDENT = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 's
 const FIXTURE_ANON = (() => { try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); } catch (e) { return FIXTURE; } })();
 const { statesOf } = require('./states.js');
 const NO_STATES = process.argv.includes('--no-states');
-/* THE FINGERTIP FLOOR ON THE GLASS (533, U10): half a pixel under 36 and 44, because a rectangle is a sum and not a size. */
-const FLOOR = 35.5, FLOOR_SUBMIT = 43.5;
+/* THE FINGERTIP FLOOR ON THE GLASS (533, U10): half a pixel under 44 (950: every tile a 44px tap), because a rectangle is a sum and not a size. */
+const FLOOR = 43.5, FLOOR_SUBMIT = 43.5;
 const WIDTH = Number((process.argv.find(a => a.startsWith('--width=')) || '').split('=')[1] || 0);
 const SIZES = [320, 390, 768, 1280].filter(w => !WIDTH || w === WIDTH);
 const bad = [];
@@ -65,7 +65,7 @@ function measure(id) {
     ts.forEach(t => {
       tiles++;
       const b = t.getBoundingClientRect(), name = t.getAttribute('aria-label') || '?';
-      const want = t.classList.contains('is-submit') ? 44 : 36;
+      const want = 44;
       /* ROUND (508): every plate a circle, a pill for the wide "are you sure" one. */
       const rs = getComputedStyle(t).borderTopLeftRadius, rad = /%$/.test(rs) ? parseFloat(rs) * t.offsetWidth / 100 : parseFloat(rs) || 0;
       if (rad < Math.min(t.offsetWidth, t.offsetHeight) / 2 - 0.5) out.push(`${where}: "${name}" is not round (radius ${rad}px)`);
