@@ -252,5 +252,823 @@
     "a finer question asked before its coarser one: Fighter before Division"
    ]
   }
+ ],
+ "menuRule": [
+  {
+   "where": "Find",
+   "asks": "kindLabel",
+   "bits": 0.47,
+   "best": "wCollection",
+   "bestBits": 2.78,
+   "cards": 278932
+  },
+  {
+   "where": "Find › Library",
+   "asks": "subject",
+   "bits": 0.33,
+   "best": "wText",
+   "bestBits": 2.89,
+   "cards": 250350
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Old Testament",
+   "asks": "wSection",
+   "bits": 2.47,
+   "best": "wChapter",
+   "bestBits": 5.91,
+   "cards": 116363
+  },
+  {
+   "where": "Find › Library › Religious Studies",
+   "asks": "wReligion",
+   "bits": 1.27,
+   "best": "wCollection",
+   "bestBits": 2.73,
+   "cards": 239972
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity",
+   "asks": "wCollection",
+   "bits": 1.8,
+   "best": "wSection",
+   "bestBits": 3.07,
+   "cards": 169963
+  },
+  {
+   "where": "Find › Practice",
+   "asks": "kindOwn",
+   "bits": 1.01,
+   "best": "qNumber",
+   "bestBits": 4.35,
+   "cards": 28536
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Tanakh",
+   "asks": "wSection",
+   "bits": 2.15,
+   "best": "wChapter",
+   "bestBits": 5.91,
+   "cards": 23213
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › New Testament",
+   "asks": "wSection",
+   "bits": 1.93,
+   "best": "wUnit",
+   "bestBits": 5.55,
+   "cards": 23872
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Deuterocanon / Apocrypha / Anagignoskomena",
+   "asks": "wLanguage",
+   "bits": 0.93,
+   "best": "wUnit",
+   "bestBits": 5.66,
+   "cards": 16502
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism",
+   "asks": "wCollection",
+   "bits": 1.77,
+   "best": "wSection",
+   "bestBits": 2.86,
+   "cards": 46528
+  },
+  {
+   "where": "Find › Practice › Questions",
+   "asks": "subject",
+   "bits": 3.09,
+   "best": "qNumber",
+   "bestBits": 4.36,
+   "cards": 28445
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Psalter",
+   "asks": "wLanguage",
+   "bits": 0,
+   "best": "wChapter",
+   "bestBits": 6.82,
+   "cards": 5054
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Rabbinic",
+   "asks": "wWork",
+   "bits": 1,
+   "best": "wChapter",
+   "bestBits": 3.73,
+   "cards": 10106
+  },
+  {
+   "where": "Find › Practice › Questions › Maths",
+   "asks": "documentType",
+   "bits": 0.99,
+   "best": "examYear",
+   "bestBits": 3.16,
+   "cards": 10717
+  },
+  {
+   "where": "Find › Library › Religious Studies › Judaism › Second Temple",
+   "asks": "wWork",
+   "bits": 1.75,
+   "best": "wUnit",
+   "bestBits": 5.24,
+   "cards": 5455
+  },
+  {
+   "where": "Find › Practice › Answers › Maths",
+   "asks": "documentType",
+   "bits": 1,
+   "best": "marks",
+   "bestBits": 2.25,
+   "cards": 9633
+  },
+  {
+   "where": "Find › Practice › Questions › Biology",
+   "asks": "level",
+   "bits": 0.96,
+   "best": "qNumber",
+   "bestBits": 4.29,
+   "cards": 3115
+  },
+  {
+   "where": "Find › Practice › Answers › Biology",
+   "asks": "level",
+   "bits": 0.96,
+   "best": "qNumber",
+   "bestBits": 4.29,
+   "cards": 3115
+  },
+  {
+   "where": "Find › Practice › Questions › Physics",
+   "asks": "level",
+   "bits": 0.98,
+   "best": "qNumber",
+   "bestBits": 4.31,
+   "cards": 2933
+  },
+  {
+   "where": "Find › Practice › Answers › Physics",
+   "asks": "level",
+   "bits": 0.98,
+   "best": "qNumber",
+   "bestBits": 4.31,
+   "cards": 2933
+  },
+  {
+   "where": "Find › Practice › Questions › Chemistry",
+   "asks": "level",
+   "bits": 0.99,
+   "best": "qNumber",
+   "bestBits": 4.17,
+   "cards": 2968
+  },
+  {
+   "where": "Find › Practice › Answers › Chemistry",
+   "asks": "level",
+   "bits": 0.99,
+   "best": "qNumber",
+   "bestBits": 4.17,
+   "cards": 2968
+  },
+  {
+   "where": "Find › Practice › Answers",
+   "asks": "subject",
+   "bits": 3.13,
+   "best": "qPart",
+   "bestBits": 3.34,
+   "cards": 27282
+  },
+  {
+   "where": "Find › Library › History",
+   "asks": "wWork",
+   "bits": 2.61,
+   "best": "wBook",
+   "bestBits": 4.21,
+   "cards": 3527
+  },
+  {
+   "where": "Find › Library › English Literature",
+   "asks": "wText",
+   "bits": 2.53,
+   "best": "wAuthor",
+   "bestBits": 3.49,
+   "cards": 5213
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Apostolic Fathers",
+   "asks": "wLanguage",
+   "bits": 1,
+   "best": "wUnit",
+   "bestBits": 3.07,
+   "cards": 2237
+  },
+  {
+   "where": "Find › Practice › Questions › Combined Science",
+   "asks": "tier",
+   "bits": 1,
+   "best": "examYear",
+   "bestBits": 2.95,
+   "cards": 2345
+  },
+  {
+   "where": "Find › Practice › Answers › Combined Science",
+   "asks": "tier",
+   "bits": 1,
+   "best": "examYear",
+   "bestBits": 2.95,
+   "cards": 2345
+  },
+  {
+   "where": "Find › Practice › Questions › Psychology",
+   "asks": "level",
+   "bits": 1,
+   "best": "marks",
+   "bestBits": 3.02,
+   "cards": 1187
+  },
+  {
+   "where": "Find › Practice › Answers › Psychology",
+   "asks": "level",
+   "bits": 1,
+   "best": "marks",
+   "bestBits": 3.02,
+   "cards": 1187
+  },
+  {
+   "where": "Find › Practice › Questions › Religious Studies",
+   "asks": "level",
+   "bits": 1.12,
+   "best": "marks",
+   "bestBits": 3.23,
+   "cards": 1004
+  },
+  {
+   "where": "Find › Practice › Answers › Religious Studies",
+   "asks": "level",
+   "bits": 1.12,
+   "best": "marks",
+   "bestBits": 3.23,
+   "cards": 1004
+  },
+  {
+   "where": "Find › Practice › Questions › English Literature",
+   "asks": "level",
+   "bits": 0.9,
+   "best": "paperId",
+   "bestBits": 4.91,
+   "cards": 522
+  },
+  {
+   "where": "Find › Practice › Answers › English Literature",
+   "asks": "level",
+   "bits": 0.9,
+   "best": "paperId",
+   "bestBits": 4.91,
+   "cards": 522
+  },
+  {
+   "where": "Find › Practice › Questions › Geography",
+   "asks": "level",
+   "bits": 0.99,
+   "best": "paperId",
+   "bestBits": 4.95,
+   "cards": 522
+  },
+  {
+   "where": "Find › Practice › Answers › Geography",
+   "asks": "level",
+   "bits": 0.99,
+   "best": "paperId",
+   "bestBits": 4.95,
+   "cards": 522
+  },
+  {
+   "where": "Find › Practice › Questions › History",
+   "asks": "level",
+   "bits": 0.85,
+   "best": "examYear",
+   "bestBits": 2.58,
+   "cards": 944
+  },
+  {
+   "where": "Find › Practice › Answers › History",
+   "asks": "level",
+   "bits": 0.85,
+   "best": "examYear",
+   "bestBits": 2.58,
+   "cards": 944
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars",
+   "asks": "wChapter",
+   "bits": 3.32,
+   "best": "wUnit",
+   "bestBits": 6.21,
+   "cards": 485
+  },
+  {
+   "where": "Find › Library › Physical Education",
+   "asks": "boxKind",
+   "bits": 0.97,
+   "best": "boutYear",
+   "bestBits": 6.09,
+   "cards": 269
+  },
+  {
+   "where": "Find › Library › History › The Gallic War",
+   "asks": "wBook",
+   "bits": 2.91,
+   "best": "wUnit",
+   "bestBits": 6.1,
+   "cards": 384
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904)",
+   "asks": "wBook",
+   "bits": 2.56,
+   "best": "wUnit",
+   "bestBits": 4.04,
+   "cards": 728
+  },
+  {
+   "where": "Find › Library › Physical Education › Fights",
+   "asks": "boutMonth",
+   "bits": 3.26,
+   "best": "boutYear",
+   "bestBits": 6.09,
+   "cards": 157
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola",
+   "asks": "wBook",
+   "bits": 1,
+   "best": "wUnit",
+   "bestBits": 5.52,
+   "cards": 92
+  },
+  {
+   "where": "Find › Library › English Literature › Blake’s",
+   "asks": "wBook",
+   "bits": 0.97,
+   "best": "wUnit",
+   "bestBits": 2.95,
+   "cards": 201
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861)",
+   "asks": "wWork",
+   "bits": 0.83,
+   "best": "wChapter",
+   "bestBits": 5.8,
+   "cards": 80
+  },
+  {
+   "where": "Find › Library › Mechanics",
+   "asks": "mKind",
+   "bits": 0.31,
+   "best": "mSystem",
+   "bestBits": 3.78,
+   "cards": 72
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates",
+   "asks": "wBook",
+   "bits": 1.99,
+   "best": "wUnit",
+   "bestBits": 4.55,
+   "cards": 86
+  },
+  {
+   "where": "Find › Library › Science",
+   "asks": "level",
+   "bits": 1.56,
+   "best": "topic",
+   "bestBits": 4.41,
+   "cards": 62
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "asks": "wBook",
+   "bits": 1.58,
+   "best": "wChapter",
+   "bestBits": 4.45,
+   "cards": 61
+  },
+  {
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion",
+   "asks": "wWork",
+   "bits": 0.94,
+   "best": "wUnit",
+   "bestBits": 4.86,
+   "cards": 37
+  },
+  {
+   "where": "Find › Library › Chemistry › Element",
+   "asks": "cCategory",
+   "bits": 2.98,
+   "best": "cGroup",
+   "bestBits": 4.13,
+   "cards": 118
+  },
+  {
+   "where": "Find › Practice › Practicals › Physics",
+   "asks": "practicalType",
+   "bits": 0.74,
+   "best": "topic",
+   "bestBits": 3.98,
+   "cards": 29
+  },
+  {
+   "where": "Find › Practice › Practicals › Chemistry",
+   "asks": "required",
+   "bits": 1.38,
+   "best": "topic",
+   "bestBits": 4.2,
+   "cards": 31
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "asks": "wBook",
+   "bits": 0.95,
+   "best": "wChapter",
+   "bestBits": 4.01,
+   "cards": 27
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Silas Marner",
+   "asks": "wBook",
+   "bits": 0.86,
+   "best": "wChapter",
+   "bestBits": 4.39,
+   "cards": 21
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Antony and Cleopatra",
+   "asks": "wChapter",
+   "bits": 2.06,
+   "best": "wUnit",
+   "bestBits": 3.76,
+   "cards": 42
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1818",
+   "asks": "wChapter",
+   "bits": 3.42,
+   "best": "wUnit",
+   "bestBits": 4.29,
+   "cards": 81
+  },
+  {
+   "where": "Find › Library › Chemistry",
+   "asks": "mKind",
+   "bits": 1.47,
+   "best": "cState",
+   "bestBits": 1.62,
+   "cards": 451
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1822",
+   "asks": "wChapter",
+   "bits": 3.11,
+   "best": "wUnit",
+   "bestBits": 3.89,
+   "cards": 66
+  },
+  {
+   "where": "Find › Practice › Practicals › Biology",
+   "asks": "required",
+   "bits": 0.65,
+   "best": "topic",
+   "bestBits": 4.22,
+   "cards": 12
+  },
+  {
+   "where": "Find › Practice › Projects",
+   "asks": "projectType",
+   "bits": 0.5,
+   "best": "topic",
+   "bestBits": 4.25,
+   "cards": 9
+  },
+  {
+   "where": "Find › Library › Maths › SATs",
+   "asks": "keystage",
+   "bits": 0.98,
+   "best": "yearGroup",
+   "bestBits": 1.96,
+   "cards": 33
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Henry V",
+   "asks": "wChapter",
+   "bits": 2.16,
+   "best": "wUnit",
+   "bestBits": 3.14,
+   "cards": 28
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Coriolanus",
+   "asks": "wChapter",
+   "bits": 2.17,
+   "best": "wUnit",
+   "bestBits": 3.1,
+   "cards": 29
+  },
+  {
+   "where": "Find › Library › Maths",
+   "asks": "level",
+   "bits": 2.02,
+   "best": "keystage",
+   "bestBits": 2.26,
+   "cards": 109
+  },
+  {
+   "where": "Find › Practice › Projects › Project",
+   "asks": "subject",
+   "bits": 0.95,
+   "best": "topic",
+   "bestBits": 4.1,
+   "cards": 8
+  },
+  {
+   "where": "Find › Practice › Practicals › Maths",
+   "asks": "level",
+   "bits": 1.84,
+   "best": "topic",
+   "bestBits": 4.35,
+   "cards": 10
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1817",
+   "asks": "wChapter",
+   "bits": 3.71,
+   "best": "wUnit",
+   "bestBits": 3.94,
+   "cards": 83
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion",
+   "asks": "wBook",
+   "bits": 1,
+   "best": "wChapter",
+   "bestBits": 2.58,
+   "cards": 12
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Henry VI, Part 3",
+   "asks": "wChapter",
+   "bits": 2.24,
+   "best": "wUnit",
+   "bestBits": 2.87,
+   "cards": 28
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Macbeth",
+   "asks": "wChapter",
+   "bits": 2.24,
+   "best": "wUnit",
+   "bestBits": 2.87,
+   "cards": 28
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Cymbeline",
+   "asks": "wChapter",
+   "bits": 2.28,
+   "best": "wUnit",
+   "bestBits": 2.84,
+   "cards": 29
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Pericles",
+   "asks": "wChapter",
+   "bits": 2.32,
+   "best": "wUnit",
+   "bestBits": 2.81,
+   "cards": 26
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › King Lear",
+   "asks": "wChapter",
+   "bits": 2.25,
+   "best": "wUnit",
+   "bestBits": 2.72,
+   "cards": 26
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1816",
+   "asks": "wChapter",
+   "bits": 2.15,
+   "best": "wUnit",
+   "bestBits": 2.73,
+   "cards": 19
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Henry VI, Part 1",
+   "asks": "wChapter",
+   "bits": 2.3,
+   "best": "wUnit",
+   "bestBits": 2.66,
+   "cards": 27
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Post-transition metal",
+   "asks": "cGroup",
+   "bits": 1.89,
+   "best": "cPeriod",
+   "bestBits": 2.08,
+   "cards": 12
+  }
+ ],
+ "tagAsked": [
+  {
+   "field": "forLabel",
+   "label": "What for",
+   "cards": 278932
+  },
+  {
+   "field": "shelf",
+   "label": "Shelf",
+   "cards": 248883
+  },
+  {
+   "field": "wSource",
+   "label": "Source text",
+   "cards": 179952
+  },
+  {
+   "field": "accuracy",
+   "label": "Accuracy",
+   "cards": 28445
+  },
+  {
+   "field": "function",
+   "label": "Function",
+   "cards": 28445
+  },
+  {
+   "field": "paperId",
+   "label": "Paper",
+   "cards": 28445
+  },
+  {
+   "field": "qNumber",
+   "label": "Question",
+   "cards": 28445
+  },
+  {
+   "field": "myResult",
+   "label": "Your result",
+   "cards": 28445
+  },
+  {
+   "field": "marks",
+   "label": "Marks",
+   "cards": 25642
+  },
+  {
+   "field": "examBoard",
+   "label": "Exam board",
+   "cards": 23943
+  },
+  {
+   "field": "examYear",
+   "label": "Year",
+   "cards": 23137
+  },
+  {
+   "field": "examMonth",
+   "label": "Month",
+   "cards": 23137
+  },
+  {
+   "field": "wAuthor",
+   "label": "Author",
+   "cards": 19431
+  },
+  {
+   "field": "wForm",
+   "label": "Kind of writing",
+   "cards": 19431
+  },
+  {
+   "field": "qPart",
+   "label": "Part",
+   "cards": 18432
+  },
+  {
+   "field": "wTradition",
+   "label": "Tradition",
+   "cards": 10437
+  },
+  {
+   "field": "needs",
+   "label": "What you need",
+   "cards": 6884
+  },
+  {
+   "field": "source",
+   "label": "Source",
+   "cards": 4653
+  },
+  {
+   "field": "qSub",
+   "label": "Sub-part",
+   "cards": 2467
+  },
+  {
+   "field": "bandValue",
+   "label": "Grade",
+   "cards": 1959
+  },
+  {
+   "field": "typeOwn",
+   "label": "Which type",
+   "cards": 1843
+  },
+  {
+   "field": "fiveLevel",
+   "label": "Level",
+   "cards": 1355
+  },
+  {
+   "field": "fiveMonth",
+   "label": "Month",
+   "cards": 1355
+  },
+  {
+   "field": "fiveDay",
+   "label": "Day",
+   "cards": 1355
+  },
+  {
+   "field": "yearGroup",
+   "label": "School year",
+   "cards": 1348
+  },
+  {
+   "field": "histEra",
+   "label": "Era",
+   "cards": 621
+  },
+  {
+   "field": "histKind",
+   "label": "Manuscripts, figures, works or events",
+   "cards": 168
+  },
+  {
+   "field": "boutMethod",
+   "label": "Result",
+   "cards": 157
+  },
+  {
+   "field": "boutWinner",
+   "label": "Winner",
+   "cards": 150
+  },
+  {
+   "field": "histTheatre",
+   "label": "Theatre",
+   "cards": 111
+  },
+  {
+   "field": "boutRound",
+   "label": "Round",
+   "cards": 80
+  },
+  {
+   "field": "paperSection",
+   "label": "Paper section",
+   "cards": 74
+  },
+  {
+   "field": "boutEvent",
+   "label": "Event",
+   "cards": 46
+  },
+  {
+   "field": "histRole",
+   "label": "Role",
+   "cards": 45
+  },
+  {
+   "field": "histMaterial",
+   "label": "Material",
+   "cards": 12
+  },
+  {
+   "field": "histFormat",
+   "label": "Format",
+   "cards": 12
+  },
+  {
+   "field": "histRepository",
+   "label": "Held at",
+   "cards": 12
+  },
+  {
+   "field": "histSide",
+   "label": "Side",
+   "cards": 3
+  }
  ]
 }

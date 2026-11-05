@@ -13,6 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
+// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet.
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -24,7 +25,7 @@ const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
 const { execFileSync } = require('child_process');
-const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8' }).trimEnd(); } catch (e) { return ''; } };
+const git = a => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd(); } catch (e) { return ''; } };
 const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean).map(l => l.slice(3)));
 const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--format=%ct', '--', f])) * 1000 || 0;
 
@@ -37,6 +38,87 @@ function logic() {
   const newer = dirty.has('data/logic-health.json') ? [] : LOGIC_INPUTS.filter(f => mtime(f) > at);
   return { j, stale: !j || newer.length > 0, newer };
 }
+
+/* FIND-LOGIC WORKLIST (920): four kinds, each located; their penalty comes off the walk's score, each capped. */
+const lineOf = (src, i) => src.slice(0, i).split('\n').length;
+const blank = src => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '));
+function findWork(L) {
+  const fsrc = read('js/find.js'), work = [];
+  const at = {};
+  for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
+  /* tag-colour: TAG_OF colours a FIELD, so every answer of one menu wears the same colour. */
+  const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
+  for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
+  Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
+    say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
+  const nf = /function nextFacet\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
+  if (nf && /for \(const facet of facetList\(\)\)[\s\S]*return facet/.test(nf[0]))
+    work.push({ kind: 'menu-rule', where: 'js/find.js:' + lineOf(fsrc, nf.index), say: 'nextFacet asks the FIRST question in the facets tab\'s sort_order that facetWhy_ lets through, not the best-splitting one' });
+  const fl = /\.sort\(\(a, b\) => a\.at - b\.at\)/.exec(fsrc);
+  if (fl) work.push({ kind: 'menu-rule', where: 'js/find.js:' + lineOf(fsrc, fl.index), say: 'facetList orders the menus by the tab\'s sort_order — a hardcoded order over the split rule' });
+  ((L.j && L.j.menuRule) || []).forEach(m => work.push({ kind: 'menu-rule', where: m.where,
+    say: `asks ${m.asks} (${m.bits} bits) but ${m.best} splits the ${m.cards} cards better (${m.bestBits} bits)` }));
+  /* tag-asked: a facet some card carries as a tag that no walked node ever asks. */
+  ((L.j && L.j.tagAsked) || []).forEach(t => work.push({ kind: 'tag-asked', where: 'js/find.js:' + ((at[t.field] || {}).line || '?'),
+    say: `tag "${t.label}" (${t.field}) is on ${t.cards} cards but no menu in the walk asks it` }));
+  /* one-off: a literal kind/facet/finder test in the funnel code, bypassing a shared rule. */
+  /* A CARD's kind (x, it, item, card or a bare kind), any facet's field, a facet key, or one finder by name; keys and mark parts are not cards. */
+  const ONE = /(?<![\w.])(?:(?:x|it|item|card|y)\.)?kind\s*[!=]==?\s*'[^']+'|\b(?:\w+\.)?field\s*[!=]==?\s*'[^']+'|(?<![\w.])(?:facet|key)\s*[!=]==?\s*'[^']+'|\b(?:F|finder)\s*[!=]==?\s*(?:RES|FINDERS\.\w+)\b/g;
+  ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
+    for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
+  return work;
+}
+const FIND_PENALTY = { 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
+
+/* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
+function uniformWork() {
+  const W = [], MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+  const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f) && !MAKERS.has(f));
+  const css = read('style.css'), cssLines = css.split('\n');
+  const jsAll = {};
+  app.forEach(f => { const src = blank(read(f)); jsAll[f] = src;
+    src.split('\n').forEach((l, i) => {
+      const at = f + ':' + (i + 1);
+      /* A FORM's or a keypad's button is a button; anything else wearing <button> is a hand-rolled tile. */
+      if (/<button\b/.test(l) && !/\b(?:key|opt|choice|chip|pad|form|dlg|dialog|sheet|close|field)\b|type="submit"/.test(l)) W.push({ kind: 'raw-button', where: at, say: l.trim().slice(0, 120) });
+      if (/class="tile(?:\s|")/.test(l)) W.push({ kind: 'hand-tile', where: at, say: 'a tile written by hand, not tile_(): ' + l.trim().slice(0, 100) });
+      if (/style="[^"$]*[a-z-]+\s*:[^"$]*"/.test(l)) W.push({ kind: 'inline-style', where: at, say: (/style="[^"]*"/.exec(l) || [''])[0].slice(0, 100) });
+      if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
+    }); });
+  /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
+  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + read('js/shell.js');
+  for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
+  const ruled = {};
+  cssLines.forEach((l, i) => { if (/\{/.test(l) && !/^\s*(?:@|--)/.test(l)) for (const m of l.split('{')[0].matchAll(/\.([a-zA-Z][\w-]*)/g)) (ruled[m[1]] = ruled[m[1]] || []).push(i + 1); });
+  Object.keys(ruled).forEach(c => { if (ruled[c].length === 1 && used[c] === 1 && !new RegExp('[\'"`\\s.]' + c + '[\'"`\\s]').test(blob.replace(/class="[^"]*"/g, '')))
+    W.push({ kind: 'once-class', where: 'style.css:' + ruled[c][0], say: `.${c} styles one place only` }); });
+  /* THE SAME CONTROL, DIFFERENT LOOKS: border-radius and font-size of .tile, .chip and button rules. */
+  ['tile', 'chip', 'button'].forEach(ctl => { const seen = {};
+    const re = ctl === 'button' ? /(?:^|[\s,>])button(?=[\s,:{.[]|$)/ : new RegExp('\\.' + ctl + '(?![\\w-])');
+    for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().split('\n').pop(); if (!re.test(sel.split(',').map(x => x.trim().split(/\s+/).pop()).join(','))) continue;
+      for (const d of m[2].matchAll(/(border-radius|font-size|font-family)\s*:\s*([^;]+)/g)) { const k = d[1], v = d[2].trim();
+        (seen[k] = seen[k] || {}); if (!seen[k][v]) seen[k][v] = lineOf(css, m.index + m[0].indexOf(d[0])); } }
+    Object.keys(seen).forEach(k => { const vs = Object.keys(seen[k]); if (vs.length > 1) vs.slice(1).forEach(v => W.push({ kind: 'control-look', where: 'style.css:' + seen[k][v],
+      say: `${ctl} ${k} ${v} (the first ${ctl} rule says ${vs[0]}; ${vs.length} different)` })); }); });
+  return W;
+}
+const UNIFORM_PENALTY = { 'raw-button': [0.02, 5], 'hand-tile': [0.2, 5], 'inline-style': [0.02, 5], 'once-class': [0.005, 5], 'control-look': [0.1, 5], 'own-wait': [0.2, 5] };
+/* UX AND QUESTIONS (920): read from data/ux-health.json, written by tools/ux-health.js (a browser walk); never walked here. */
+function uxWork() {
+  let j = null; try { j = JSON.parse(read('data/ux-health.json')); } catch (e) { return { j: null, work: [] }; }
+  const W = [];
+  (j.slow || []).forEach(c => W.push({ kind: 'ux', where: 'click: ' + c.what, say: `${c.ms} ms, shift ${c.shift}, ${c.longs} long task(s)` + (c.ms > j.thresholds.clickMs ? ' — slower than ' + j.thresholds.clickMs + ' ms' : '') + (c.shift > j.thresholds.shift ? ' — shifts over ' + j.thresholds.shift : '') }));
+  (j.missing || []).forEach(m => W.push({ kind: 'ux', where: 'click: ' + m, say: 'its control was not on the screen to press' }));
+  /* THE BIG WAITS, on a 4x-slow phone: three seconds to Find or to sign in, and 300 MB of heap, are where a phone gives up. */
+  if (j.findUsableMs > 3000 || j.findUsableMs < 0) W.push({ kind: 'ux', where: 'Find usable', say: `${j.findUsableMs} ms from signed in to Find's first menu (budget 3000)` });
+  if (j.signinMs > 3000) W.push({ kind: 'ux', where: 'sign-in', say: `${j.signinMs} ms from the press to signed in (budget 3000)` });
+  if (j.heapMB > 300) W.push({ kind: 'ux', where: 'JS heap after Practice', say: `${j.heapMB} MB (budget 300)` });
+  if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
+  ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
+  return { j, work: W };
+}
+const UX_PENALTY = { ux: [1, 10], question: [0.5, 10] };
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -68,7 +150,11 @@ function ui() {
     ['zindex', 'Distinct z-index values (over 5)', zindex, 0.5, 10, 5],
     ['position', 'transform and position:absolute uses', position, 0.01, 10, 0],
   ].map(([id, label, n, w, cap, free]) => ({ id, label, count: n, weight: w, cap, off: r1(Math.min(cap, Math.max(0, n - free) * w)) }));
-  return { score: r1(Math.max(0, 100 - S.reduce((a, s) => a + s.off, 0))), signals: S.sort((a, b) => b.off - a.off) };
+  const work = uniformWork().concat(uxWork().work), k = {};
+  work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
+  const PEN = Object.assign({}, UNIFORM_PENALTY, UX_PENALTY);
+  Object.keys(PEN).forEach(id => S.push({ id, label: id + ' findings', count: k[id] || 0, weight: PEN[id][0], cap: PEN[id][1], off: r1(Math.min(PEN[id][1], (k[id] || 0) * PEN[id][0])) }));
+  return { score: r1(Math.max(0, 100 - S.reduce((a, s) => a + s.off, 0))), signals: S.sort((a, b) => b.off - a.off), work };
 }
 
 /* CODE STRUCTURE (920): where the one-off cases live, line by line, on CORE app files (tiers.json). Capped per signal.
@@ -198,31 +284,103 @@ function health() {
   const kept = (st.signals || []).filter(s => !REPLACED.has(s.id));
   const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
   const code = r1(Math.max(0, 100 - sig.reduce((a, s) => a + s.off, 0)));
-  const lscore = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
+  const work = findWork(L), kinds = {};
+  work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });
+  const fpen = Object.keys(FIND_PENALTY).map(k => ({ id: k, count: kinds[k] || 0, off: r1(Math.min(FIND_PENALTY[k][1], (kinds[k] || 0) * FIND_PENALTY[k][0])) }));
+  const walk = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
+  const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0)));
   const overall = r1(WEIGHTS.code * code + WEIGHTS.logic * lscore + WEIGHTS.ui * U.score);
   const off = [];
   sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
     say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
-  U.signals.forEach(s => s.off > 0 && off.push({ part: 'ui', id: s.id, cost: r1(s.off * WEIGHTS.ui), say: SAY[s.id](s.count) }));
+  U.signals.forEach(s => s.off > 0 && off.push({ part: 'ui', id: s.id, cost: r1(s.off * WEIGHTS.ui), say: SAY[s.id] ? SAY[s.id](s.count) : `UI: ${s.count} ${s.id} findings (node tools/health.js --list --kind ${s.id}).` }));
   const q = (L.j && L.j.questions) || 0;
   ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
     cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
+  fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
     parts: { code, logic: lscore, ui: U.score },
-    logicStale: L.stale, ui: U.signals, structure: S.totals, counts,
+    logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
-    worklist: S.findings,
+    worklist: S.findings, work: work.concat(U.work),
   };
 }
 module.exports = { health };
-if (require.main === module) {
+/* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
+function changed() {
+  const t0 = Date.now();
+  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(Boolean));
+  const bad = [];
+  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
+  if (['js/find.js', 'js/shell.js', 'data/logic-health.json'].some(f => files.has(f))) {
+    let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
+    const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
+    findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
+  }
+  const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
+  [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {
+    const now = read(f), was = git(['show', 'HEAD:' + f]);
+    const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
+    if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
+  });
+  const s = ((Date.now() - t0) / 1000).toFixed(1) + 's';
+  if (!bad.length) { console.log(`health --changed: no new findings in ${files.size} changed file(s) (${s})`); process.exit(0); }
+  bad.forEach(b => console.log(b));
+  console.log(`health --changed: ${bad.length} new finding(s) (${s})`); process.exit(1);
+}
+/* --where WORD (920): every definition, then every use, of a name across the app, backend, settings and style — a start line, not a search. */
+function where(word) {
+  const t0 = Date.now(), esc = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const DEF = new RegExp(`(?:function\\s+${esc}\\b|(?:const|let|var)\\s+${esc}\\b|\\b(?:field|id|kind|screen|key|act|name)\\s*:\\s*['"]${esc}['"]|screen\\(\\s*['"]${esc}['"]|^\\s*['"]?${esc}['"]?\\s*:|--${esc}\\s*:|\\.${esc}\\s*\\{)`);
+  const USE = new RegExp(`(?<![\\w-])${esc}(?![\\w-])`);
+  const files = git(['ls-files', 'js/*.js', 'backend/*.gs', 'data/settings/*.json', 'style.css', 'index.html', 'check/*.js'])
+    .split('\n').filter(f => f && !/^js\/check|^check\//.test(f));
+  const defs = [], uses = [];
+  files.forEach(f => read(f).split('\n').forEach((l, i) => { if (!USE.test(l)) return;
+    (DEF.test(l) ? defs : uses).push(`${f}:${i + 1}  ${l.trim().slice(0, 140)}`); }));
+  console.log(`defined (${defs.length}):`); defs.forEach(d => console.log('  ' + d));
+  console.log(`used (${uses.length}):`); uses.slice(0, 200).forEach(u => console.log('  ' + u));
+  if (uses.length > 200) console.log(`  … ${uses.length - 200} more`);
+  console.log(`(${files.length} files, ${Date.now() - t0} ms)`);
+}
+/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. A colour literal in a rule that equals a token
+   defined ONCE (never re-themed) becomes var(--token); check-catches' ceiling drops to the count. Empty catches are listed, not
+   rewritten: oops_ reports to the backend, which would change what the site does. */
+function fix() {
+  const t0 = Date.now(), done = [];
+  let css = read('style.css');
+  const defs = {};
+  /* Only a token every scope can see (on :root) and that nothing anywhere redefines. */
+  for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)) (defs[m[1]] = defs[m[1]] || []).push(m[2].trim().toLowerCase());
+  const root = new Set(); for (const r of css.matchAll(/(^|\})\s*:root\s*\{([^{}]*)\}/g)) for (const d of r[2].matchAll(/(--[\w-]+)\s*:/g)) root.add(d[1]);
+  Object.keys(defs).forEach(k => { if (!root.has(k) || !/^#[0-9a-f]{3,8}$/.test(defs[k][0])) delete defs[k]; });
+  const tok = {};
+  Object.keys(defs).forEach(k => { if (defs[k].length === 1) { const v = defs[k][0]; tok[v] = tok[v] ? null : k; } });
+  let n = 0;
+  css = css.replace(/([^{}]+)\{([^{}]*)\}/g, (all, sel, body) => /^\s*:root\b|^\s*@/.test(sel.split('\n').pop()) || /:root/.test(sel) ? all
+    : sel + '{' + body.replace(/(^|;)(\s*)(?!--)([\w-]+\s*:[^;]*)/g, (d, a, w, decl) => a + w + /var\(/.test(decl) ? decl : decl.replace(/#[0-9a-fA-F]{3,8}\b/g, h => tok[h.toLowerCase()] ? (n++, `var(${tok[h.toLowerCase()]})`) : h)) + '}');
+  if (n) { fs.writeFileSync(path.join(ROOT, 'style.css'), css); done.push(`style.css: ${n} colour literal(s) → their single-definition token`); }
+  const cc = read('js/check-catches.js'), m = /const CEILING = (\d+);/.exec(cc);
+  if (m) { const now = Number((/(\d+) empty catch blocks/.exec(execFileSync(process.execPath, ['js/check-catches.js'], { cwd: ROOT, encoding: 'utf8' })) || [])[1]);
+    if (now && now < Number(m[1])) { fs.writeFileSync(path.join(ROOT, 'js/check-catches.js'), cc.replace(m[0], `const CEILING = ${now};`)); done.push(`check-catches ceiling ${m[1]} → ${now}`); } }
+  const empty = structure().findings.filter(f => f.kind === 'catch').length;
+  done.forEach(d => console.log('fixed: ' + d));
+  console.log(`not fixed (would change behaviour): ${empty} empty catches — node tools/health.js --list 400 --kind catch`);
+  try { execFileSync(process.execPath, ['js/check.js'], { cwd: ROOT, stdio: 'inherit' }); } catch (e) { console.log('js/check.js FAILED after --fix'); process.exit(1); }
+  console.log(`health --fix: ${done.length} change(s) (${Date.now() - t0} ms)`);
+}
+if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
+else if (require.main === module && process.argv.includes('--fix')) fix();
+else if (require.main === module && process.argv.includes('--changed')) changed();
+else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
     const n = Number(process.argv[at + 1]) || 20, ki = process.argv.indexOf('--kind'), kind = ki >= 0 ? process.argv[ki + 1] : '';
-    const W = structure().findings.filter(f => !kind || f.kind === kind);
+    const W = structure().findings.concat(findWork(logic()).concat(ui().work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
+      .filter(f => !kind || f.kind === kind);
     W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  ${f.text}`));
     console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings, dearest first)`);
     process.exit(0);
