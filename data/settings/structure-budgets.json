@@ -1,8 +1,8 @@
 {
  "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.",
  "coupling": {
-  "js/find.js": 297,
-  "js/shell.js": 187,
+  "js/find.js": 295,
+  "js/shell.js": 186,
   "js/me.js": 184,
   "js/posts.js": 112,
   "js/games.js": 106,
@@ -39,7 +39,7 @@
   "js/gtasks.js": 16,
   "js/board.js": 39,
   "js/help.js": 13,
-  "js/qtools.js": 41,
+  "js/qtools.js": 40,
   "js/reader.js": 24,
   "js/working.js": 29,
   "js/talmud.js": 25,
@@ -62,7 +62,8 @@
   "js/pixel.js": 9,
   "js/ink.js": 2,
   "js/finder-tags.js": 1,
-  "js/select.js": 3
+  "js/select.js": 3,
+  "js/resume.js": 13
  },
  "targets": {
   "fileLines": 800,
@@ -255,8 +256,8 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12243,
-   "oneOff": 168,
+   "lines": 12069,
+   "oneOff": 128,
    "emptyCatch": 30,
    "inlineStyle": 2,
    "rawButton": 8
@@ -325,7 +326,7 @@
    "rawButton": 0
   },
   "js/keypad.js": {
-   "lines": 1786,
+   "lines": 1785,
    "oneOff": 18,
    "emptyCatch": 21,
    "inlineStyle": 1,
@@ -528,7 +529,7 @@
    "rawButton": 0
   },
   "js/shell.js": {
-   "lines": 3952,
+   "lines": 3933,
    "oneOff": 35,
    "emptyCatch": 44,
    "inlineStyle": 0,
@@ -605,7 +606,14 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7189,
+   "lines": 7180,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/resume.js": {
+   "lines": 89,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -635,7 +643,7 @@
   "js/find.js stuffItemsRaw_": 171,
   "js/find.js accountPages_": 109,
   "js/find.js bundleBuild_": 85,
-  "js/find.js paintStuff": 88,
+  "js/find.js paintStuff": 87,
   "js/find.js paneReach_": 119,
   "js/games.js vidPaint_": 82,
   "js/library.js libraryExtras_": 181,
@@ -649,9 +657,8 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/shell.js go": 83,
   "js/shell.js placeGrid": 165,
-  "js/shell.js loadOnce_": 252,
+  "js/shell.js loadOnce_": 251,
   "js/submit.js subMigrate_": 83
  },
  "variety": {
@@ -697,7 +704,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7496920,
+  "searchBytes": 7469069,
   "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100
@@ -709,7 +716,7 @@
   "tile-groups": 0,
   "card-order": 0,
   "indent": 0,
-  "tap-response": 7,
+  "tap-response": 0,
   "text-overflow": 0
  }
 }

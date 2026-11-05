@@ -53,7 +53,7 @@ function resumeBack_() {
   const fill = (el, v) => {
     if (String(el.value || '')) return;
     el.value = v;
-    if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
+    /* THE INPUT EVENT ALSO REDRAWS A KEYPAD BOX'S DRAWING (keypad.js `kpRender_`). */
     el.dispatchEvent(new Event('input', { bubbles: true }));
   };
   const find = (sel, ok) => [].slice.call(document.querySelectorAll(sel)).find(ok);

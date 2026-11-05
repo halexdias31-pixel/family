@@ -1,6 +1,5 @@
 /* @family. — shell.js ONE FILE, SPLIT. § */
 
-
 /* ---------- ONE SINK FOR EVERY ERROR (R6, O5) ---------- */
 /* Logged, a friendly line drawn in `host` if given, and one report per distinct message+where per visit — message, where, version, screen; never a name or an answer. */
 const OOPS = { sent: new Set(), n: 0, max: 10, told: 0 };
@@ -350,8 +349,6 @@ function go(id, remember, instant) {
   oopsTry_('go:neighbours', paintNeighbours);
   oopsTry_('go:place', () => placeCells('x', instant));
 
-
-
   /* ---------- WHY A SIDEWAYS SWIPE WAS THE ROUGH ONE § */
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
   const painted = !screenHasMarkup_(AT) || !!STALE[AT];
@@ -397,7 +394,6 @@ function go(id, remember, instant) {
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   oopsTry_('go:pager', () => paintPager(AT, instant));
   if (FLOW_LAYOUT) oopsTry_('go:flow', () => { topbarPaint_(); if (was && was !== AT) $('s-' + AT).scrollIntoView({ block: 'start' }); });
-
 
 }
 
@@ -794,7 +790,6 @@ const repaint = (instant) => {
 /* WHO THE LAST REPAINT DREW FOR — see step 000 above. Null until the first, which has nobody before it. */
 let REPAINT_WHO = null;
 
-
 /* ONE GRID. TWO AXES. THE SAME BEHAVIOUR ON BOTH. § */
 const AXES = {
   /* X — the tabs. */
@@ -871,7 +866,6 @@ function wideCard_() {
   const card = Math.min(hi, (W - 2 * WIDE_EDGE - (k - 1) * CELL_GAP) / k);
   return { card: Math.max(lo, card), k: k };
 }
-
 
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing either. § */
 /* Kept under its old name because the vertical spacing still uses it and 16px is right there —
@@ -2247,7 +2241,6 @@ function paintPager(id, instant) {
      that did not exist at all for screens — which is precisely why the two axes drifted apart. */
   placeCells('y', instant, 0, id);
 
-
   /* The page's name used to be written into the header here. There is no header, so it is not.
      `pagerNames` is still what decides how many pages a screen has, which was always the
      load-bearing half of it. */
@@ -2257,7 +2250,9 @@ function goPage(id, to, instant) {
   if (!PAGER[id]) return;
   /* A FINDER IS TURNED IN ITS OWN BINDING — Find, or the second finder (find.js, `inFinder_`) — so its window, its fills and its kept place below are its own and § */
   const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
-  if (F && F !== FINDER) return inFinder_(F, () => goPage(id, to, instant));
+  return inFinder_(F, () => goPageHere_(id, to, instant, F));
+}
+function goPageHere_(id, to, instant, F) {
   const n = Math.max(0, Math.min(pageCount(id) - 1, to));
   const was = PAGE[id] || 0;
   if (n === was && !instant) return;
@@ -2353,23 +2348,12 @@ function paneOf_(el) {
   return pane;
 }
 
-
 /* `watchPages` and its observer lived here — they reported which pane the scroller had centred.
    Gone with the scroller. Which page is in front is decided by this file again, which is the only
    way it can be decided once. */
 
 /* `chunk` was here — splitting a list into pages. The Find screen pages by index rather than by
    slicing, and nothing else has ever paged a list. */
-
-
-/* How many of each thing a phone holds without cutting the last one in half. Different per screen
-   because a tile is not a card and a card is not a post — one number for all of them would be
-   wrong four times out of five. */
-/* `me` is not here any more — the You screen is one scrolling page. See `mePages`. */
-/* Book fits more now that a session is a stub rather than a whole receipt — five full receipts was
-   a page you scrolled, and the point of a stub is that a page of them is a page you scan. */
-/* `book` is not here any more — a session is a pane of its own. See `bookPages`. */
-const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. § */
 
@@ -2978,13 +2962,14 @@ const ACTIONS = {};
 /** Register what a `data-do` means. */
 /* EVERY ACTION MOVES `ACT_EPOCH` (see the note over `STALE`): a press is what can edit a column in place,
    and a column edited in place must not be kept by a landing on the grounds that its markup is the same. */
+/* A SLOW ACT SHOWS ITS TAP AT ONCE (the tile's ring) and works after the next frame (990); `aria-busy`, so a `send_` inside keeps its own. */
+const SLOW_ACTS_ = new Set(['card-share', 'card-cancel', 'lay-split']);
 function on(name, fn) {
-  ACTIONS[name] = function () { ACT_EPOCH++; return fn.apply(this, arguments); };
+  ACTIONS[name] = function (el) { ACT_EPOCH++; if (!SLOW_ACTS_.has(name) || !el || !el.setAttribute) return fn.apply(this, arguments);
+    const a = arguments; el.setAttribute('aria-busy', 'true');
+    requestAnimationFrame(() => setTimeout(() => { try { fn.apply(this, a); } finally { el.removeAttribute('aria-busy'); } })); };
 }
 on('topbar-signin', () => go('account'));
-
-/* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
-   reload is the thing most likely to lose whatever was half-typed on another screen. */
 
 /* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
    reload is the thing most likely to lose whatever was half-typed on another screen. */
@@ -2996,7 +2981,6 @@ on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
   banner(''); bootLoaded_(false); repaint(); load(); });
 
 /* CARDS OPEN A SHEET, and an attempt to open them in place has been taken out again. § */
-
 
 /* ---------- WHAT HAPPENED WHEN YOU PRESSED THAT § */
 let CLICK_LOG = false;
@@ -3252,8 +3236,6 @@ addEventListener('keydown', e => {
 });
 
 /* THE EDGES OF THE SCREEN were tappable from here — a second `click` listener that turned to the next card when you pressed the sliver either side. § */
-
-
 
 /* ---------- LOADING ------------------------------------------------------------------------------ */
 /* WHAT THE APP IS MADE OF WHEN THE BACKEND SAYS NOTHING. § */
@@ -3761,7 +3743,6 @@ async function loadOnce_(again, n) {
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
-
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */

@@ -448,10 +448,10 @@ html.wide body { max-width: none; box-shadow: none; }
    which is the thing this exists to show. */
 @media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
 /* A TILE WAITING IS THE SAME RING IN PLACE OF ITS MARK. § */
-.tile.is-busy, .tile.is-busy[disabled] { opacity: 1; background: rgb(255 255 255 / .03);
+.tile:is(.is-busy, [aria-busy="true"]) { opacity: 1; background: rgb(255 255 255 / .03);
   border-color: var(--line-soft); cursor: progress; }
-.tile.is-busy svg { display: none; }
-.tile.is-busy::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: var(--tile-r);
+.tile:is(.is-busy, [aria-busy="true"]) svg { display: none; }
+.tile:is(.is-busy, [aria-busy="true"])::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: var(--tile-r);
   border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
@@ -4374,9 +4374,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
 .qcard .qsheet { margin-top: .75rem; }
-/* ---------- WORDS THAT GO ON OVER THE PAGE SAY SO § */
-.qsheet-more { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
-               letter-spacing: .04em; }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
 .qsheet { font-family: var(--font); line-height: 1.5; }
@@ -4386,7 +4383,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qsheet-stem.is-standin h4 { margin: 0 0 .4rem; font-size: .82rem; letter-spacing: .04em;
   text-transform: uppercase; color: var(--dim); }
 /* ---------- A BLANK THE PAPER FILLS IN § */
-
 .qsheet .gap {
   color: var(--faint);
   border-bottom: 1px dashed var(--line);
@@ -4398,10 +4394,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 .qsheet-stem { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); border-bottom: 1px dashed var(--line);
                padding-bottom: .7rem; margin-bottom: .9rem; }
-/* ---------- A STEM ON ITS OWN PAGE IS THE PAGE, NOT A PREFACE TO IT § */
-.qstem .qsheet-stem { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
-/* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge all the way round"), so on its own page it keeps the § */
-.qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
 .qsheet-stem.is-over { color: var(--ink); border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
@@ -6203,7 +6195,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* `.qfig-tiles` WAS HERE -- the drawing page's row, which held only `To the answer`. Both went on
    8 Oct: *"there doesnt need to be a scroll down tile on questions."* */
 /* THE MAGNIFIER (463): a circle over a question page, its copy of the page 2.5 times bigger (`magShow_`); the page holds it while it is up. */
-.qtool-tiles { margin-top: .9rem; }
 /* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order; on a phone the tools fold behind one Tools tile, Check stays out. */
 .qt-row { margin-top: .6rem; }
 .qt-tools { display: contents; }
@@ -6798,7 +6789,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
 .qhelp-tiles { margin-top: .5rem; align-items: center; }
 /* EVERY QUESTION PAGE'S FOOT ON A LINE OF ITS OWN (owner, 1 Nov: "buttons to all appear in the same place"): Help, the star, Suggest, Back to top, under the page's own tiles. */
-.tile-row > .tile-group.qtool-tiles::after, .tile-row > .tile-group.qans-tiles::after { content: ""; flex-basis: 100%; height: 0; margin-top: calc(-1 * var(--tile-gap)); }
+.tile-row > .tile-group.qans-tiles::after { content: ""; flex-basis: 100%; height: 0; margin-top: calc(-1 * var(--tile-gap)); }
 .qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: 1rem;
              padding: .35rem .7rem; border-radius: var(--r); }
 .qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }

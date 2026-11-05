@@ -10084,9 +10084,9 @@ top level, before `NEEDS_SAY`
    how it is SAID, and `showOf` is the funnel's own door for exactly that. */
 ```
 
-### NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so
+### NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`).
 
-in `questionCard_`
+in `questionCard_` (since 990; before 960 a stem was its own page, `questionStemCard_`, gone in 990)
 
 ```
 /* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part

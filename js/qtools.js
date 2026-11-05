@@ -166,7 +166,7 @@ function qtRedraw_(card, x) {
   if (!card || !x) return null;
   qtPenSet_(x, PEN_OPEN.has(x.key));
   const t = document.createElement('div');
-  t.innerHTML = card.classList.contains('qb-part') ? qPartCard_(x, !!card.querySelector('.qans-card')) : questionCard_(x);
+  t.innerHTML = questionCard_(x, card);
   const next = t.firstElementChild;
   if (!next) return null;
   card.replaceWith(next);

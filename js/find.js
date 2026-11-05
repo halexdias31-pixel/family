@@ -1,6 +1,5 @@
 /* @family. — find.js ONE FILE, SPLIT. § */
 
-
 /* ---------- SHOP & RESOURCES § */
 /* FILTERS YOU ADD, not a mode you pick. § */
 /* `sort` was here and is gone with the control that set it — see `stuffFiltered`. What is left is
@@ -281,7 +280,7 @@ function thingCard_(x, credits) {
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
-    if (x.kind === 'question') return questionCard_(x);
+    if (isQ_(x)) return questionCard_(x);
 
     /* THE CARD IS NO LONGER A BUTTON. § */
     /* NOTHING ON THIS LIST IS A TAP TARGET ANY MORE. § */
@@ -324,7 +323,6 @@ function thingCard_(x, credits) {
       </div>`;
   }
 }
-
 
 /* A THING'S ENTRY. Wearables are the one kind decided by a FIELD rather than by `kind` — the shop holds both, and which it is depends on whether the row names a § */
 /* THE FUNNEL'S ANSWERS, AS THE SHEET WANTS THEM. § */
@@ -408,13 +406,6 @@ function priced_(v) {
   return isFinite(n) ? n : undefined;
 }
 
-/* The raw reader of a facet, off `FACETS` rather than off `facetList()`, built on first use. */
-let FACET_RAW = null;
-const facetRaw_ = field => {
-  if (!FACET_RAW) { FACET_RAW = new Map(); FACETS.forEach(f => { if (!FACET_RAW.has(f.field)) FACET_RAW.set(f.field, f); }); }
-  return FACET_RAW.get(field);
-};
-
 /* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
    behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
@@ -447,7 +438,7 @@ const FACETS = [
     tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
   { field: 'kindOwn', label: 'Which',
-    of: x => !kindTop_(x) ? '' : notTop_(x, x.kind === 'question' && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
+    of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
     tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
@@ -546,7 +537,7 @@ const FACETS = [
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
-    of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
+    of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
   { field: 'qPart',     label: 'Part',        of: x => qSplitOf_(x).part },
   { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
   { field: 'qPage',     label: 'Page',
@@ -690,13 +681,11 @@ function facetList() {
   return FACET_LIVE;
 }
 
-
 /* ---------- WHAT A SPREADSHEET CELL IS ALLOWED TO DO TO THE FUNNEL § */
 const facetNum_ = (v, fallback) => {
   const n = Number(v);
   return v === null || v === undefined || v === '' || !isFinite(n) ? fallback : n;
 };
-
 
 /* A MAP OVER THE LIVE LIST, rebuilt only when `facetList` hands back a different array. § */
 let FACET_BY_FROM = null, FACET_BY = null;
@@ -1153,15 +1142,6 @@ function overFacet_(items) {
   return best ? best.facet : null;
 }
 
-/* THE RESOURCES, flattened out of where the payload actually puts them. § */
-/* WALKED ONCE PER PAYLOAD, not once per caller. § */
-let TOPICS_MEMO = { from: null, list: null };
-
-/* ---------- QUESTIONS AS SEARCHABLE PARTS § */
-/* ---------- THE CLASSES THAT LIVE IN THE SHEET § */
-const QUESTION_CLASSES = ['roman', 'lbl', 'num', 'ax', 'axis', 'grid', 'pt',
-                          'stat', 'marks', 'parts'];
-
 /* THE CARD. Small — a reference, the marks, and the first line of the question, because a list of
    ninety parts is scanned rather than read. The whole thing opens on a tap. */
 /* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
@@ -1301,7 +1281,6 @@ function practicalCard_(x) {
   </div>`;
 }
 
-
 /* THE GUIDE — WHAT A PRACTICAL NEEDS AROUND IT BEFORE ANYBODY RUNS ONE. § */
 
 /* ---------- ONE BOX, ONE SLOT § */
@@ -1329,7 +1308,6 @@ function kitList_(list) {
   return `<ul class="fc-list">${list.map(e => `<li>${esc(e.name)}${
     e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
 }
-
 
 function practicalPart_(x, part) {
   const p = x.row;
@@ -1607,7 +1585,7 @@ function insertItem_(r) {
 }
 /* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
 function insertsFor_(x) {
-  if (!x || x.kind !== 'question' || !/paper/i.test(String(x.documentType || ''))) return [];
+  if (!isQ_(x) || !/paper/i.test(String(x.documentType || ''))) return [];
   const has = (list, v) => !list.length || asList_(v).some(a => list.indexOf(String(a)) !== -1);
   /* A READING INSERT IS ONE PAPER'S (458): its paper ids, and nothing else, say which */
   const paper = String((x.row && x.row.paper_id) || '');
@@ -1719,7 +1697,6 @@ on('ins-print', el => {
 /* A list cell is split on " | "; an id is MS-, FIG- or WR- and digits, and any cell may name one. */
 const HIST_ID = /^(MS|FIG|WR|EV)-\d+$/;
 const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
-const histSpec_ = kind => (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(t => t.kind === kind) || null;
 /* THE ROW AN ID NAMES, in whichever table its prefix says. */
 function histRow_(id) {
   const t = (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(s => String(id).indexOf(s.prefix) === 0);
@@ -2101,7 +2078,6 @@ const BIBLE_TR_WORDS = { KJV: 'KJV King James Authorized Version', WEB: 'WEB Wor
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {}, also: {},
                 item: null, verses: null, rank: null, hays: null };
 
-
 /* ---------- WHO IS SHOWN IT § */
 /* A RULE (496, 504): `kjv-admin` — Universal by default now, anyone of age like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
 const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
@@ -2111,7 +2087,6 @@ const SCRIPTURE_MIN_AGE = 18;
 const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('scripture-age')) ? SCRIPTURE_MIN_AGE : 0;
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
-
 
 /* THE DOTS UNDER A SCRIPTURE QUESTION (504) wait for its indexes, never the payload, which adds no answer there; a failed index is said.
    null: not scripture's question. */
@@ -2201,7 +2176,6 @@ function bibleText_(x) {
   const c = d && d.chapters[Number(x.ch) - 1];
   return c && c[Number(x.v) - 1] != null ? c[Number(x.v) - 1] : '';
 }
-const bibleBook_ = n => (BIBLE.index && BIBLE.index.books[n - 1]) || null;
 const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 /* `Psalm 23`, NOT `Psalms 23` — the book is the Psalms and a chapter of it is a psalm. The one book
    whose chapters are cited by a different word from its title. */
@@ -2558,31 +2532,9 @@ function stuffNoneHtml_() {
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */
 /* A QUESTION'S PART, one test for the page model (960). */
 const isQ_ = x => !!x && x.kind === 'question';
-/* ON, THE OLD ONE-PART-PER-PAGE PLAN for a harness that still asks it. */
-let QPAGE_PARTS = false;
 function pageParts_(x, prev) {
-  /* ---------- A QUESTION IS ITS WORDS, ITS FIGURE AND ITS ANSWER, in the order they are used § */
-  /* ---------- AND IN THE PAPER'S ORDER, WHICH PUTS THE SHARED OPENING AND ITS FIGURE FIRST § */
-  /* ---------- AND NO FIGURE IS A PAGE OF ITS OWN (356) § */
   /* ONE PAGE PER QUESTION NUMBER (960): its first part stands for the card, the rest are in it (`questionWhole_`). */
-  if (isQ_(x) && !QPAGE_PARTS) return qId_(x) && prev && qId_(prev) === qId_(x) ? [] : ['q'];
-  if (x && x.kind === 'question') {
-    const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
-    const out = [];
-    const carried = stemOnCard_(x);
-    (x.stems || []).forEach((p, i) => {
-      if (!p || had.indexOf(stemId_(p)) >= 0 || p === carried) return;
-      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemPlan_`. A stem with nothing
-         left to show (only a figure, which a part draws on) is no page. */
-      stemPlan_(p).chunks.forEach((c, j) => out.push('stem' + i + (j ? '-' + j : '')));
-    });
-    /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
-       with the answer -- and its figure among them wherever `partPlan_` stands it. */
-    const plan = partPlan_(x);
-    plan.chunks.forEach((c, j) => out.push(j === plan.chunks.length - 1 ? null : 'pre' + j));
-    if (questionHasAns_(x) || schemeOwed_(x)) out.push('ans');
-    return out;
-  }
+  if (isQ_(x)) return qId_(x) && prev && qId_(prev) === qId_(x) ? [] : ['q'];
   /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
      every project ends in something to send. */
   if (x && x.kind === 'project' && x.row) {
@@ -2647,28 +2599,16 @@ function keptPages_(items, credits) {
   try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
   finally { KEPT_DRAW = was; }
 }
-/* EVERY PAGE OF A QUESTION ENDS IN ONE FOOT, in one order: Help (its own last row), then the card's row -- the star, Suggest a change, an admin's -- as the part's card has (`stuffCard`). */
-const qFoot_ = (x, page) => (page ? page + cardTiles_(x) : page);
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
-  if (isQ_(x) && part === 'q') return questionWhole_(x, (questionParts_()[qId_(x)] || [x]), null, true);
-  if (x && x.kind === 'question' && part === 'ans') return qFoot_(x, questionAnsCard_(x));
-  if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
-    const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
-    return qFoot_(x, questionStemCard_(x, +m[1], +(m[2] || 0)));
-  }
-  if (x && x.kind === 'question' && /^pre\d+$/.test(part)) return qFoot_(x, questionPreCard_(x, +part.slice(3)));
-  /* A PART THE QUESTION NO LONGER HAS (a figure page kept in a place from before 356) IS ITS CARD. */
-  if (x && x.kind === 'question') return stuffCard(x);
+  /* A PART THE QUESTION NO LONGER HAS (a stem, a page or an answer kept in a place from before 960) IS ITS CARD. */
+  if (isQ_(x)) return part === 'q' ? questionWhole_(x, (questionParts_()[qId_(x)] || [x]), null, true) : stuffCard(x);
   return practicalPart_(x, part);
 }
-
-
-
 
 /* THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT. § */
 
@@ -3147,7 +3087,6 @@ function boxerPart_(x, part) {
   </div>`;
 }
 
-
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
@@ -3386,7 +3325,6 @@ function typeset_(html) {
   return s;
 }
 
-
 /* ---------- THE ANSWER: SHOWN, THEN SPLIT BY WHO WAS READING, AND NOW ONE PAGE FOR EVERYBODY § */
 /* ---------- THE RESULT, AND THE REASON FOR IT, AS TWO THINGS § */
 function answerParts_(raw) {
@@ -3495,7 +3433,6 @@ function qPartName_(part) {
   return b ? b.letter + '(' + b.roman + ')' : s;
 }
 
-
 /* ---------- ONE READER FOR THE PAPER'S ID § */
 function paperIdOf_(r) {
   return (r && (r.paperId || r.paper_id || r.paper)) || '';
@@ -3549,7 +3486,7 @@ function partKeys_(rows) {
 
 /* ---------- A PART, TAKEN APART FOR ITS TAGS: `ai` IS [a] [ii] § */
 /* AN ITEM'S SPLIT: the one `questionItems` worked out with its question's numeral decision, or -- for an item built anywhere else, a harness's or a kept copy's § */
-const qSplitOf_ = x => (x && x.kind === 'question'
+const qSplitOf_ = x => (isQ_(x)
   && (x.qSplit || partSplit_(x.qPart, true))) || { part: '', sub: '' };
 function partSplit_(part, numerals) {
   const s = partBare_(part);
@@ -3637,10 +3574,6 @@ function projectText_(p) {
   const joined = (said.match(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g) || []).map(w => w.replace(/-/g, ''));
   return joined.length ? said + ' ' + joined.join(' ') : said;
 }
-
-
-
-
 
 /* ---------- EVERY PAPER, DERIVED FROM ITS OWN QUESTIONS § */
 /* `allTopics()`, `topicBy`, `paperText_`, `paperPages_` AND `paperMismatches()` WERE ALL HERE. § */
@@ -3818,7 +3751,7 @@ function questionContent_(r) {
    Its title and tags, waiting, until `libItems` brings its words; a question comes with its stems and its other parts. */
 function libSlim_(x) {
   if (!x) return false;
-  if (x.kind === 'question') return libWaits_(x.row) || (x.stems || []).some(p => libWaits_(p));
+  if (isQ_(x)) return libWaits_(x.row) || (x.stems || []).some(p => libWaits_(p));
   if (x.kind === 'practical' || x.kind === 'project' || x.kind === 'content') return libWaits_(x.row);
   return false;
 }
@@ -3827,7 +3760,7 @@ function libIdsFor_(x) {
   if (x.kind === 'practical') return ['pr:' + x.row.id];
   if (x.kind === 'project') return ['pj:' + x.row.id];
   if (x.kind === 'content') return ['ct:' + x.row.bookId + '#' + x.row.n];
-  if (x.kind !== 'question') return [];
+  if (!isQ_(x)) return [];
   const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
   const k = qId_(x);
   try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) { oops_(e, 'find:libIdsFor_') }
@@ -3859,7 +3792,7 @@ function libSay_(x) {
   return loading_();
 }
 function libWaitHtml_(x) {
-  const q = x && x.kind === 'question';
+  const q = isQ_(x);
   return `<div class="${q ? 'qcard' : 'card fc'} lib-wait" data-lib="${esc((x && x.key) || '')}">
     ${q ? '' : `<div class="fc-head"><h3>${esc((x && x.name) || '')}</h3></div>`}
     ${tagRow_(x)}
@@ -3973,7 +3906,6 @@ function whoIs_() {
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
-
 function ansRead_(k) {
   /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or the empty box a browser keeping nothing answers with: § */
   const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
@@ -4000,7 +3932,7 @@ function ansRead_(k) {
 
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT § */
 function doneTier_(it) {
-  if (!it || it.kind !== 'question') return '';
+  if (!isQ_(it)) return '';
   const t = String(it.tier || '').trim();
   if (/^(foundation|higher)$/i.test(t)) return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
   const said = [t, it.bandValue, it.level, it.row && it.row.level].map(x => String(x || '').toLowerCase().replace(/[^a-z]/g, ''));
@@ -4076,7 +4008,7 @@ function doneWords_(k, index) {
   try {
     if (/#[^#]*$/.test(k)) return '';
     const it = doneItem_(k, index);
-    if (!it || it.kind !== 'question') return '';
+    if (!isQ_(it)) return '';
     const own = st => st && st.q !== undefined && st.q !== null && st.q !== '';
     const stems = (it.stems || []).filter(own);
     const cap = (t, n) => (t.length > n ? t.slice(0, n - 1).trim() + '…' : t);
@@ -5123,7 +5055,7 @@ function ansBox_(x) {
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
     return `<div class="${cls} qp-essay${vcls ? ' ' + vcls : ''}"${dataAt}>
     <label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, val, 'essay', 3)}</label>
-    <p class="qp-words">${esc(kpWordsSay_(kpWordCount_(val)))}</p>
+    <p class="qp-words">${esc(kpWordsSay_(val))}</p>
     ${row}${later}${ws}${note ? `<p class="qp-ai-note">${esc(note)}</p>` : ''}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
@@ -5213,7 +5145,6 @@ on('qp-send', (el) => {
 
 /* ---------- WHO IS WORKING § */
 
-
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are thousands of these and only one of them is ever being typed into. § */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
@@ -5229,7 +5160,6 @@ document.addEventListener('input', e => {
   const mark = el.closest('.qp-mark');
   if (mark && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, el);
 });
-
 
 /* SOME ANSWERS ARE A MARK ON THE PICTURE, AND A TEXTAREA CANNOT HOLD ONE. § */
 /* ---------- AND THEY ARE WHOEVER IS SIGNED IN'S, AS THE TYPED ANSWER IS § */
@@ -5394,8 +5324,8 @@ const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
 const padToolsOf_ = () => PAD_TOOLS.slice();
 
 const padBar_ = (pen, tools, tool, k) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
-      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
+      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !padRead_(k).length && !PAD_CLEARED.has(k) })}${
+      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !padRead_(k).length })}</span>
     </div>`;
 
 /* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
@@ -7635,7 +7565,7 @@ on('pad-undo', (el) => {
     toast('Put back');
     return;
   }
-  if (!all.length) { toast('Nothing to undo'); return; }
+  if (!all.length) return;
   all.pop();
   ansStore_(k, JSON.stringify(all));
   padRepaint_(pad, all);
@@ -7661,6 +7591,8 @@ on('pad-clear', (el) => {
 
 /* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is always exactly what would come back on a reload. § */
 function padRepaint_(pad, all) {
+  /* NOTHING TO UNDO OR CLEAR IS SAID BY A DIMMED TILE, not a tap that does nothing (990). */
+  pad.querySelectorAll('.qpad-undo, .qpad-clear').forEach(b => { b.disabled = !(all || []).length && !(b.classList.contains('qpad-undo') && PAD_CLEARED.has(pad.getAttribute('data-k') || '')); });
   const g = pad.querySelector('.qpad-g');
   if (!g) return;
   const k = padAspectOf_(pad);
@@ -7738,12 +7670,12 @@ const usesAt_ = (x, part) => paperIdOf_(x.row || x) + '|' + String(x.qNumber == 
 /* BUILT ONCE PER LIST OF ITEMS, which is once per payload and person (`stuffItemsAll_`'s own memo). */
 let USES_MEMO = { from: null, at: null };
 function usesOf_(x) {
-  if (!x || x.kind !== 'question' || !usesPart_(x.uses)) return null;
+  if (!isQ_(x) || !usesPart_(x.uses)) return null;
   let all = [];
   try { all = stuffItemsAll_() || []; } catch (e) { return null; }
   if (USES_MEMO.from !== all) {
     const at = new Map();
-    all.forEach(y => { if (y && y.kind === 'question') at.set(usesAt_(y, y.qPart), y); });
+    all.forEach(y => { if (isQ_(y)) at.set(usesAt_(y, y.qPart), y); });
     USES_MEMO = { from: all, at: at };
   }
   const y = USES_MEMO.at.get(usesAt_(x, x.uses));
@@ -7857,9 +7789,6 @@ function surfaceSvg_(kind) {
   }
   return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
 }
-
-/* A QUESTION ANSWERED BY DRAWING IS DRAWN, ON ITS CARD, AND THERE IS NOTHING TO SWITCH. § */
-const surfaceOf_ = x => { const p = padSource_(x); return p && p.from === 'surface' ? p : null; };
 
 /* ---------- THE ANSWER AREA AT THE CARD'S FOOT § */
 function ansArea_(x) {
@@ -7983,7 +7912,6 @@ const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
-
 /* EVERY TAG ON A CARD IS AN ANSWER YOU CAN PICK IN THE FINDER: § */
 const TAG_NAME = /[A-Za-z]/;
 /* A TAG THAT IS ONLY TAGS ALREADY ON THE ROW, SIDE BY SIDE — `5-a-day Foundation` after `5-a-day` and `Foundation` — says nothing new. */
@@ -8013,16 +7941,14 @@ function tagRow_(x, page) {
   return `<div class="qtags qcard-tags">${out.join('')}</div>`;
 }
 
-
 /* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
-const qPagesOf_ = x => (x && x.kind === 'question' ? partChunks_(x).length : 0);
+const qPagesOf_ = x => (isQ_(x) ? partChunks_(x).length : 0);
 function qPageAt_(x, page) {
-  if (!x || x.kind !== 'question') return 0;
+  if (!isQ_(x)) return 0;
   if (page == null || page === '') return qPagesOf_(x);
   const m = /^pre(\d+)$/.exec(String(page));
   return m ? Number(m[1]) + 1 : 0;
 }
-
 
 /* A QUESTION'S BODY IS NEVER BLANK (432): no words, figure or picture in it says why — the library's reason, or that it is missing. */
 function qWordsOr_(x, html) {
@@ -8030,23 +7956,22 @@ function qWordsOr_(x, html) {
   if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
   return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
 }
-function questionCard_(x) {
+/* `was`, A CARD DRAWN AGAIN (qtools.js): a part of a whole question (960) is drawn as that part again. */
+function questionCard_(x, was) {
+  if (was && was.classList.contains('qb-part')) return qPartCard_(x, !!was.querySelector('.qans-card'));
   return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
           see `qtRow_`. */''}
     ${tagRow_(x)}
     <div class="qsheet">
-      ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so § */
-            ''}
-      ${/* THE LAST OF THE WORDS, which is all of them unless the part is too long for one page -- then the pages in front (`questionPreCard_`) hold the rest and this § */
-            ''}
+      ${/* NO STEM HERE: a whole question draws its openings once, above its parts (`questionWhole_`). § */''}
       ${qWordsOr_(x, cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)))}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
     ${ansArea_(x)}
-    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls -- the first of every page's foot (`qFoot_`). */
+    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls -- the first of the card's foot. */
           typeof helpRow_ === 'function' ? helpRow_(x, '') : ''}
   </div>`;
 }
@@ -8141,8 +8066,6 @@ function questionWhole_(x, parts, open, ans) {
 /* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS § */
 const stemId_ = p => (p && (p.id || (p.row && p.row.row_id) || p.html || p.diagram)) || '';
 const stemHasFig_ = p => !!(p && (p.diagram || figImgs_(p.images).length));
-const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
-  : String(x.name || '').replace(/^Q(\d+).*$/, '$1'));
 function stemFigOwed_(x, p) {
   if (!p || stemHasFig_(p)) return false;
   const own = q => !!(q && (q.diagram || figImgs_(q.images).length));
@@ -8150,50 +8073,6 @@ function stemFigOwed_(x, p) {
   const figured = (x.stems || []).some(stemHasFig_) || (!!k && ((questionParts_()[k]) || []).some(own));
   return figWanted_(String(p.html || ''), figured);
 }
-function questionStemCard_(x, i, j) {
-  const p = (x.stems || [])[i];
-  if (!p) return '';
-  const chunks = stemChunks_(p);
-  j = Math.min(+j || 0, chunks.length - 1);
-  const last = j === chunks.length - 1;
-  /* THE STEM'S WORDS, A RUN AT A TIME, with its figure among them where `stemPlan_` stands it -- and no
-     caption under it, and no line pointing at a page it is not on (356). */
-  const html = [];
-  let run = [];
-  const flush = () => { if (run.length) html.push(typeset_(run.join(''))); run = []; };
-  chunks[j].forEach(b => {
-    if (b.k === 'pb') { run.push(b.h); return; }
-    flush();
-    html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
-  });
-  flush();
-  /* A STEM THAT NAMES A FIGURE NOBODY HAS DRAWN SAYS SO, as a part does (`figGap_`) -- "Where is the sketch?" (owner, 1 Nov) was a stem saying "Figure 1 shows a sketch" over nothing. */
-  if (last && stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
-  return `<div class="qcard qstem${typeof helpCls_ === 'function' ? helpCls_(x, 'stem' + i + (j ? '-' + j : '')) : ''}" data-of="${esc(stemId_(p))}">
-    ${tagRow_(x, 'stem' + i)}
-    <div class="qsheet">
-      <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
-        p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>${
-      !last ? '<p class="qsheet-more">Continued on the next page &rarr;</p>' : ''}
-    </div>
-    ${qPageTools_(x)}${typeof helpRow_ === 'function' ? helpRow_(x, 'stem' + i + (j ? '-' + j : '')) : ''}
-  </div>`;
-}
-
-/* ---------- A LONG PART'S FIRST PAGES § */
-function questionPreCard_(x, j) {
-  const chunks = partChunks_(x);
-  if (j >= chunks.length - 1) return '';
-  return `<div class="qcard qpre${typeof helpCls_ === 'function' ? helpCls_(x, 'pre' + j) : ''}" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
-    ${tagRow_(x, 'pre' + j)}
-    <div class="qsheet">
-      ${chunkHtml_(chunks[j], circOf_(x), x)}
-      <p class="qsheet-more">Continued on the next page &rarr;</p>
-    </div>
-    ${qPageTools_(x)}${typeof helpRow_ === 'function' ? helpRow_(x, 'pre' + j) : ''}
-  </div>`;
-}
-
 /* A PAGE IS SMALLER THAN A PHONE, SO LONG WORDS ARE CUT BETWEEN PARAGRAPHS. § */
 const CHUNK_PAGE = 640;
 const PART_LAST = 300;
@@ -8222,7 +8101,7 @@ const chunkWeight_ = h => String(h).replace(/<[^>]*>/g, '').replace(/&[a-z0-9#]+
    the end of the text. Returns lists of blocks, in reading order, never an empty list. */
 function packBlocks_(blocks, page, last) {
   /* ---------- A FIGURE IS NEVER A PAGE BY ITSELF, AND A PEN'S FIGURE IS ALWAYS ON THE CARD (356) § */
-  const isFig = b => b.k === 'fig' || b.k === 'sfig' || b.k === 'use' || b.k === 'nofig';
+  const isFig = b => b.k === 'fig' || b.k === 'use' || b.k === 'nofig';
   const units = [];
   let open = null;
   blocks.forEach(b => {
@@ -8305,7 +8184,7 @@ function stemPenned_(p) {
   if (STEM_PEN.from !== all) {
     const svgs = new Set();
     all.forEach(y => {
-      if (!y || y.kind !== 'question' || !(y.stems || []).length) return;
+      if (!isQ_(y) || !(y.stems || []).length) return;
       const src = padSource_(y);
       if (src && src.from && typeof src.from === 'object') svgs.add(src.svg);
     });
@@ -8315,7 +8194,7 @@ function stemPenned_(p) {
 }
 /* ---------- THE STEM WHOSE FIGURE THIS PART DRAWS ON, CARRIED ONTO ITS CARD (381): the first part to share it, its innermost stem, words and one figure only */
 function stemCarried_(x) {
-  const src = x && x.kind === 'question' ? padSource_(x) : null;
+  const src = isQ_(x) ? padSource_(x) : null;
   const p = src && src.from && typeof src.from === 'object' ? src.from : null;
   if (!p || p.placeholder || p.lines || figImgs_(p.images).length) return null;
   const st = x.stems || [];
@@ -8325,20 +8204,6 @@ function stemCarried_(x) {
   const id = stemId_(p);
   const first = sib.find(y => (y.stems || []).some(q => stemId_(q) === id));
   return first === x || (first && first.key === x.key) ? p : null;
-}
-/* THE QUESTION'S OWN OPENING ON EVERY PART'S CARD (500): a short stem with a figure is read with
-   each part, its figure too, so 16(a) and 16(b) both have the graph they ask about. Outer stems stay pages. */
-function stemOnCard_(x) {
-  const pen = stemCarried_(x);
-  if (pen) return pen;
-  /* A WHOLE QUESTION (960) draws its opening once, above its parts, so no part carries a copy. */
-  if (!QPAGE_PARTS) return null;
-  const st = (x && x.kind === 'question' && x.stems) || [];
-  const p = st[st.length - 1];
-  if (!p || !p.diagram || p.placeholder || p.lines || figImgs_(p.images).length || stemPenned_(p)) return null;
-  if (!(p.q !== undefined && p.q !== null && p.q !== '') && !(p.row && p.row.question)) return null;
-  const w = figBlocks_(p.html).blocks.reduce((n, h) => n + chunkWeight_(h), 0) + (p.diagram ? figWeight_(p.diagram) : 0);
-  return w <= CHUNK_PAGE ? p : null;
 }
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
@@ -8362,13 +8227,7 @@ function partPlan_(x) {
   else if (lead.length) seq = lead.concat([f], pb);
   else seq = [f].concat(pb);
   /* THE STEM IN FRONT, ITS FIGURE UNDER THIS PART'S PEN AT THE STEM'S OWN PLACE FOR IT (its marker, else after its words) -- the paper's order on one card */
-  const sc = f ? stemCarried_(x) : null, so = sc ? null : stemOnCard_(x);
-  if (so) {
-    const sb = figBlocks_(so.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
-    const at = sb.at >= 0 ? sb.at : sw.length;
-    const sf = so.diagram ? [{ k: 'sfig', h: '', w: figWeight_(so.diagram), from: so }] : [];
-    seq = sw.slice(0, at).concat(sf, sw.slice(at), seq);
-  }
+  const sc = f ? stemCarried_(x) : null;
   if (sc) {
     const sb = figBlocks_(sc.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
     const at = sb.at >= 0 ? sb.at : sw.length;
@@ -8448,7 +8307,6 @@ function chunkHtml_(chunk, circ, x) {
 function figHtml_(x, b) {
   if (!x || !b) return '';
   if (b.k === 'nofig') return '<p class="qfig-missing">Figure not drawn yet.</p>';
-  if (b.k === 'sfig') return b.from && b.from.diagram ? `<figure class="qstem-fig">${b.from.diagram}</figure>` : '';
   if (b.k === 'use') {
     const y = usesOf_(x);
     const p = y && padSource_(y);
@@ -8486,12 +8344,10 @@ function figLabel_(html, not) {
   return hit || 'Figure';
 }
 
-
-
 /* THE FIGURE IS IN ITS QUESTION'S CARD, WHERE THE PAPER PRINTS IT. § */
 const figImgs_ = v => (Array.isArray(v) ? v : topicAtoms_(v));
 function questionHasFig_(x) {
-  if (!x || x.kind !== 'question') return false;
+  if (!isQ_(x)) return false;
   return !!(x.diagram || figImgs_(x.images).length);
 }
 
@@ -8504,7 +8360,7 @@ function figWanted_(words, figured) {
   return FIG_NAMED.test(h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' '));
 }
 function figMissing_(x) {
-  if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  if (!isQ_(x) || padSurface_(x)) return false;
   /* NOT A PART THAT USES AN EARLIER PART'S DRAWING: § */
   if (usesOf_(x)) return false;
   const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
@@ -8521,7 +8377,7 @@ function figMissing_(x) {
 /* THE ANSWER IS ITS OWN CARD, THE PAGE AFTER ITS QUESTION (AND AFTER ITS FIGURE). § */
 function questionHasAns_(x) {
   /* OR AN ANSWER THE LEDGER HOLDS FOR IT (397), so `Answers` is still asked, and counted, before any words arrive. */
-  return !!(x && x.kind === 'question' && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
+  return !!(isQ_(x) && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
 }
 
 /* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE § */
@@ -8538,7 +8394,7 @@ function ansOpen_(x) {
 /* A PAST-PAPER PART IMPORTED WITHOUT ITS MARK SCHEME (584): no answer of any kind anywhere, so its answer page says so plainly. */
 function schemeOwed_(x) {
   const r = x && x.row;
-  if (!r || x.kind !== 'question' || questionHasAns_(x) || libTrue(r.verified) || libS(r.document_type) !== 'Past paper') return false;
+  if (!r || !isQ_(x) || questionHasAns_(x) || libTrue(r.verified) || String(r.document_type || '') !== 'Past paper') return false;
   return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
 }
 function questionAnsCard_(x) {
@@ -8563,7 +8419,7 @@ function questionAnsCard_(x) {
 /* THE QUESTION A KEY BELONGS TO, by the same lookup `qp-choose` makes. */
 function ansItem_(k) {
   if (!k) return null;
-  try { return stuffItemsAll_().find(it => it && it.kind === 'question' && ansKey_(it) === k) || null; }
+  try { return stuffItemsAll_().find(it => isQ_(it) && ansKey_(it) === k) || null; }
   catch (e) { return null; }
 }
 
@@ -8587,8 +8443,6 @@ function ansShow_(x) { ansSet_(x, true); }
 function ansHide_(x) { ansSet_(x, false); }
 
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
-/* A STEM'S OR A LONG PART'S OWN PAGE has the Magnifier, the padlock and Read aloud under its words; Suggest a change is in its foot (`qFoot_`), as on every page. */
-const qPageTools_ = x => `<div class="tile-row qtool-tiles">${tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x)])}</div>`;
 
 /* ---------- THE MAGNIFIER (463): the owner, "a magnifying tool instead -- you hold it to see better" ---------- */
 /* On, a circle 2.5 times bigger follows the mouse over the page, or shows above a held finger; a copy of the page drawn big, so words, figures, pictures and the pen's ink alike. */
@@ -8604,7 +8458,7 @@ on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_()
 /* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardOpts_(x) {
-  if (!x || !x.key || x.kind === 'question' || x.kind === 'me') return null;
+  if (!x || !x.key || isQ_(x) || x.kind === 'me') return null;
   if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return null;
   return magOpts_();
 }
@@ -8704,7 +8558,7 @@ function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) { PADLOCK.
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */
 function figsBefore_(x) {
-  if (!x || x.kind !== 'question') return [];
+  if (!isQ_(x)) return [];
   const out = [];
   const k = qId_(x);
   const sib = k ? ((questionParts_()[k]) || []) : [];
@@ -8751,7 +8605,7 @@ function figsBefore_(x) {
 function readAloudFor_(x) {
   if (!x) return false;
   /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
-  if (x.kind === 'question') return true;
+  if (isQ_(x)) return true;
   /* EVERY CONTENT CARD AT EVERY LEVEL, and every other thing with words to read (502); the SATs-and-years-1-to-6 limit is gone */
   if (x.kind === 'content') return true;
   return typeof speedText_ === 'function' && (x.kind === 'practical' || x.kind === 'project' || x.kind === 'bible') && !!speedText_(x);
@@ -8961,8 +8815,6 @@ function printPrice(pages) {
   return Math.max(min, Math.round(n * num(v.print_rate_per_page) * 100) / 100);
 }
 
-
-
 /* ---------- AND WHAT LAMINATING ONE COSTS § */
 function laminatePrice(pages) {
   const n = Number(pages) || 0;
@@ -8996,15 +8848,6 @@ function laminateOffered_() {
 /* ---------- `canPrint` CAME BACK WITH THE BUNDLE, AND ITS RULE CAME BACK UNCHANGED § */
 const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printable)
   .trim().toLowerCase() !== 'false';
-
-
-
-
-/* The rate as a number of pence, for the line that spells the sum out. */
-const printRatePence = () => {
-  const r = num(((DATA.constants || {}).vars || {}).print_rate_per_page);
-  return isNaN(r) ? 0 : Math.round(r * 100);
-};
 
 /* One list, so the four controls act on everything rather than on one half — a filter that silently ignores the shop is a filter nobody trusts twice. § */
 /* ---------- THE SAME LIST, NOT THE SAME LIST REBUILT § */
@@ -9369,7 +9212,7 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
    facets. A practical or a project is ABOUT its topic by construction, so it answers. */
 /* AND NO QUESTION AT ALL NOW, the 1st Class Maths sheets included. § */
 function topicShown_(x) {
-  return !x || x.kind !== 'question';
+  return !isQ_(x);
 }
 function topicOf_(x) {
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
@@ -9632,7 +9475,6 @@ const cmpText = (a, b) =>
 /* `sortsWorthOffering` was here — which orders were worth putting in the dropdown, given what was
    actually on screen. The dropdown is gone, so the question is gone with it. */
 
-
 /* NO HEADINGS AT ALL, and no grouping behind them. § */
 
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two words having to sit next to each other. § */
@@ -9716,7 +9558,7 @@ function qRefBits_(s) {
   return m ? { letter: m[1] || '', roman: m[2] || '' } : null;
 }
 function qRefHit_(x, ref) {
-  if (!x || x.kind !== 'question') return false;
+  if (!isQ_(x)) return false;
   if (String(x.qNumber == null ? '' : x.qNumber).replace(/^0+(?=\d)/, '') !== ref.q) return false;
   const b = qRefBits_(partBare_(x.qPart)) || { letter: '', roman: '' };
   if (ref.letter && b.letter !== ref.letter) return false;
@@ -9740,14 +9582,13 @@ function stuffSorted_(items) {
 const sortKey_ = x => [
   x.kind === 'content' ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
-  x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
+  isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
   x.qPartKey != null ? x.qPartKey : String(x.qPart || '').toLowerCase(),
   padNums_(String(x.name || '').toLowerCase()),
 ].join('\u0000');
 
 const padNums_ = s => s.replace(/\d+/g, d => ('00000000' + d).slice(-8));
-
 
 /* THE FILTERED LIST, held. § */
 let FIND_MEMO = { key: null, from: null, items: null, total: 0 };
@@ -9811,7 +9652,7 @@ function stuffPages_() {
        words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
     if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
     /* A QUESTION IS ONE PAGE (960); a part the chips do not keep folds to its label inside it. */
-    if (isQ_(x) && !QPAGE_PARTS) {
+    if (isQ_(x)) {
       if (!pageParts_(x, seq[i - 1]).length) return;
       const k = qId_(x), parts = [];
       for (let j = i; j < seq.length && isQ_(seq[j]) && (j === i || (k && qId_(seq[j]) === k)); j++) parts.push(seq[j]);
@@ -9849,7 +9690,7 @@ function myResults_() {
 }
 /* ATTEMPTED IS EVERY PRESS; a marked one also says how it went, as Progress scores it (`progressScore_`). */
 function myResultOf_(x) {
-  if (!x || x.kind !== 'question') return '';
+  if (!isQ_(x)) return '';
   const map = myResults_();
   if (!map) return '';
   const k = String(x.key || x.name || '');
@@ -9863,7 +9704,7 @@ function myResultNew_(k) {
   MY_RESULT.gen++;
   try { finderForgetFound_(); } catch (e) { oops_(e, 'find:myResultNew_') }
   try {
-    const x = stuffItemsAll_().find(i => i && i.kind === 'question' && ansKey_(i) === k);
+    const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
     const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
     document.querySelectorAll('[data-k]').forEach(b => {
@@ -9878,7 +9719,7 @@ function myResultNew_(k) {
 }
 /* A QUESTION'S TWO VERIFIED TAGS (388). Accuracy is a stored claim; Function is read off the row by qtypes.js. */
 function verifyTags_(x) {
-  if (!x || x.kind !== 'question' || !x.row) return { accuracy: '', fn: '' };
+  if (!isQ_(x) || !x.row) return { accuracy: '', fn: '' };
   let fn = false;
   /* WORDS STILL IN THE LEDGER (397): the file's `function_verified`, worked out from the whole row when it was split off. */
   if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
@@ -9887,9 +9728,8 @@ function verifyTags_(x) {
            fn: fn ? 'Function verified' : 'Function unverified' };
 }
 
-
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
-const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+const qId_ = x => (isQ_(x) && x.qNumber != null && String(x.qNumber) !== ''
   ? paperIdOf_(x.row) + '|' + x.qNumber : '');
 const WHOLE_MEMO = new WeakMap();
 function questionParts_() {
@@ -9953,8 +9793,6 @@ function stuffBackTo_(id, keep) {
 
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST § */
 
-
-
 /* ONE THING TO A PAGE, ALWAYS. § */
 const stuffPerPage = () => 1;
 
@@ -9991,7 +9829,6 @@ function jobPage_(j) {
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
 
-
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
   if (!(o && o.column) && !forIs_('booking')) return [];
@@ -10010,7 +9847,6 @@ function feedPages_() {
   if (!forIs_('posts')) return [];
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
-
 
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -10199,7 +10035,7 @@ function paperQuestionCounts_() {
   if (m) return m;
   m = {};
   all.forEach(x => {
-    if (!x || x.kind !== 'question') return;
+    if (!isQ_(x)) return;
     const id = String(paperIdOf_(x.row || x) || '');
     if (id) m[id] = (m[id] || 0) + 1;
   });
@@ -10297,7 +10133,7 @@ function bundleBuild_(items) {
   const order = [];
   let other = 0;
   for (const x of items) {
-    const id = x && x.kind === 'question' ? String(paperIdOf_(x.row || x) || '') : '';
+    const id = isQ_(x) ? String(paperIdOf_(x.row || x) || '') : '';
     if (!id) { other++; continue; }
     if (!count[id]) { count[id] = 0; order.push(id); first[id] = x; }
     count[id]++;
@@ -10367,7 +10203,7 @@ function bundleBuild_(items) {
 
   /* THE TITLE IS WRITTEN FROM THE BUNDLE'S OWN QUESTIONS, not the whole list — a stray from a June
      2019 paper would otherwise stop the sitting and the year from being one thing each. */
-  const inBundle = items.filter(x => x && x.kind === 'question'
+  const inBundle = items.filter(x => isQ_(x)
     && count[String(paperIdOf_(x.row || x) || '')] === whole[String(paperIdOf_(x.row || x) || '')]);
   return { papers: papers, printable: printable, ids: printable.map(p => p.id), grouped: grouped,
            title: bundleTitle_(inBundle), noun: bundleNoun_(printable, printable.length),
@@ -10448,7 +10284,6 @@ function bundleCard_(b) {
       tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}${
       typeof suggestTile_ === 'function' ? suggestTile_('bundle', 'b:' + String(b.ids[0] || 'x').replace(/[^A-Za-z0-9_.:-]/g, '') + ':' + b.ids.length, b.title || 'Bundle') : ''}</div>`;
 }
-
 
 /* THE ONE BUNDLE A LIST OF WHOLE PAPERS OFFERS, in front of its questions. `Bundles` is not a kind to ask for (396). */
 function bundlePages_() {
@@ -10717,7 +10552,6 @@ function filterClear_() {
     : '';
 }
 
-
 /* `on('noop')` was here: a handler that did nothing, for markup that wanted to swallow a tap.
    Nothing carries `data-do="noop"`, so it swallowed nothing. */
 /* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
@@ -10904,7 +10738,6 @@ function paintStuff(keepPage) {
   [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
   PAGE_LO[FINDER.id] = 0;
 
-
   /* AND BACK TO THE TOP OF THE RESULTS. § */
   /* ON THE QUESTION, NOT ONE BEFORE THE RESULTS. § */
   /* ONLY WHAT IS PAST THE LEADING PAGES MOVES. § */
@@ -11001,7 +10834,6 @@ function layout(which) {
   console.log(unfilled ? unfilled + ' page(s) have nothing in them' : 'every page is filled');
   return { screen: id, overlaps, unfilled, rows };
 }
-
 
 /* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER § */
 let STUFF_LATE = 0;
@@ -11528,7 +11360,6 @@ function finderWake_(id) {
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
 
-
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
 const finderSettled_ = () => {
   try {
@@ -11587,7 +11418,6 @@ function stuffQuestion() {
       <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
   }
 
-
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
   /* ---------- NOTHING IS TRIMMED HERE ANY MORE, BECAUSE NOTHING ARRIVES OVERSIZED § */
   const values = facetValues(items, facet);
@@ -11641,13 +11471,10 @@ function facetAnswersHtml_(facet, values, more) {
    number in its name. It chose between the exam cover and an ordinary card, and both callers went
    with the cover. */
 
-
-
 /* ---------- `paperCard`, `openPaper_` AND `on('paper-read')` WERE ALL HERE § */
 
 /* `stuffCount` was here. Removed with the line it fed — a function whose only caller has gone is
    the thing `check-dead.js` would name next time anyway. */
-
 
 /* ---------- ONE DRAW FOR BOTH FINDERS § */
 /* ---------- THE FINDER IS FOR MEMBERS (400): signed out, Find and Find 2 are one card, Sign in or Join ----------
@@ -11756,7 +11583,6 @@ document.addEventListener('input', e => {
     stuffTimer = setTimeout(() => inFinder_(F, paintStuff), 180);
   });
 });
-
 
 /* ---------- THE DOCKET § */
 /* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */

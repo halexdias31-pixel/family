@@ -9,7 +9,7 @@
   "tile-groups": 0,
   "card-order": 0,
   "indent": 0,
-  "tap-response": 7,
+  "tap-response": 0,
   "text-overflow": 0
  },
  "where": {
@@ -19,15 +19,7 @@
   "tile-groups": [],
   "card-order": [],
   "indent": [],
-  "tap-response": [
-   "question card-share: 487 / 999 ms",
-   "question pad-undo: 1 / 999 ms",
-   "question pad-clear: 17 / 999 ms",
-   "settings card-save: 8 / 999 ms",
-   "settings card-cancel: 128 / 79 ms",
-   "settings lay-split: 603 / 557 ms",
-   "settings voice-try: 999 / 999 ms"
-  ],
+  "tap-response": [],
   "text-overflow": []
  },
  "taps": [
@@ -35,7 +27,7 @@
    "screen": "question",
    "act": "rep-box",
    "ms": [
-    6,
+    4,
     3
    ]
   },
@@ -59,16 +51,16 @@
    "screen": "question",
    "act": "card-share",
    "ms": [
-    487,
-    999
+    0,
+    0
    ]
   },
   {
    "screen": "question",
    "act": "fav",
    "ms": [
-    33,
-    71
+    42,
+    32
    ]
   },
   {
@@ -76,30 +68,30 @@
    "act": "q-mag",
    "ms": [
     2,
-    2
+    1
    ]
   },
   {
    "screen": "question",
    "act": "q-lock",
    "ms": [
-    2,
-    2
+    3,
+    1
    ]
   },
   {
    "screen": "question",
    "act": "read-aloud",
    "ms": [
-    11,
-    10
+    14,
+    12
    ]
   },
   {
    "screen": "question",
    "act": "help-hand",
    "ms": [
-    27,
+    28,
     1
    ]
   },
@@ -107,16 +99,16 @@
    "screen": "question",
    "act": "pad-undo",
    "ms": [
-    1,
-    999
+    0,
+    0
    ]
   },
   {
    "screen": "question",
    "act": "pad-clear",
    "ms": [
-    17,
-    999
+    0,
+    0
    ]
   },
   {
@@ -124,22 +116,22 @@
    "act": "pad-check",
    "ms": [
     1,
-    1
+    0
    ]
   },
   {
    "screen": "question",
    "act": "qp-cells-check",
    "ms": [
-    34,
-    29
+    39,
+    27
    ]
   },
   {
    "screen": "question",
    "act": "qp-choice-check",
    "ms": [
-    1,
+    0,
     0
    ]
   },
@@ -147,16 +139,16 @@
    "screen": "settings",
    "act": "card-save",
    "ms": [
-    8,
-    999
+    0,
+    0
    ]
   },
   {
    "screen": "settings",
    "act": "card-cancel",
    "ms": [
-    128,
-    79
+    0,
+    0
    ]
   },
   {
@@ -171,24 +163,16 @@
    "screen": "settings",
    "act": "lay-split",
    "ms": [
-    603,
-    557
-   ]
-  },
-  {
-   "screen": "settings",
-   "act": "voice-try",
-   "ms": [
-    999,
-    999
+    0,
+    0
    ]
   },
   {
    "screen": "settings",
    "act": "rep-box",
    "ms": [
-    4,
-    4
+    3,
+    3
    ]
   }
  ],

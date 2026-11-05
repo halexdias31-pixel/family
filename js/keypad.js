@@ -29,8 +29,8 @@ function ansEssay_(x) {
 /* AND HOW LONG IT IS, in words -- the one thing a pupil checks about an essay while writing it, so the sheet says it under itself rather than leaving it to be § */
 const KP_NOT_WORD = /^[.,;:!?'"()\[\]\-‐-―‘-‟…·*\/]+$/;
 function kpWordCount_(v) { return (String(v || '').match(/\S+/g) || []).filter(w => !KP_NOT_WORD.test(w)).length; }
-function kpWordsSay_(n) { return n + (n === 1 ? ' word' : ' words'); }
-
+/* THE COUNT SAID, off the text itself, which is all either caller has. */
+function kpWordsSay_(v) { const n = kpWordCount_(v); return n + (n === 1 ? ' word' : ' words'); }
 
 /* ---------- THE KEYS § */
 /* THE POWER KEY (owner: "there's no to the power of button on keypad"): drawn as x and a raised box, named so; it writes ^() with the caret inside, as x^2 and x^(n+1) are stored */
@@ -272,7 +272,7 @@ function kpCount_(inp) {
   const box = inp.closest && inp.closest('.qp-essay');
   const out = box && box.querySelector('.qp-words');
   if (!out) return;
-  const say = kpWordsSay_(kpWordCount_(inp.value));
+  const say = kpWordsSay_(inp.value);
   if (out.textContent !== say) out.textContent = say;
 }
 /* A WORDED DRAWING STOPS GROWING AT ABOUT FIVE LINES AND SCROLLS INSIDE (`.kp-words > .kp-show`) -- an essay's sheet at the room above the pad § */
@@ -378,7 +378,7 @@ function kpLayout_(inp) {
 /* THE WORDS OF A SHEET: a paragraph's end is a space ("…set, E Find the…", not "EFind"), and a figure's labels are not words */
 function kpWordsOf_(sheet) {
   const c = sheet.cloneNode(true);
-  c.querySelectorAll('svg, figure, img, .qsheet-more').forEach(el => el.remove());
+  c.querySelectorAll('svg, figure, img').forEach(el => el.remove());
   c.querySelectorAll('p, div, li, br, h3, h4, tr, td, th').forEach(el => el.appendChild(document.createTextNode(' ')));
   return String(c.textContent || '').replace(/\s+/g, ' ').trim();
 }
@@ -1327,7 +1327,6 @@ document.addEventListener('paste', e => {
   if (KP_AT !== t) kpOpen_(t);
   kpType_(t, t.getAttribute('data-kp') === 'words' ? s.replace(/\r\n?/g, '\n') : s.replace(/\s*[\r\n]+\s*/g, ' '), true);
 }, true);
-
 
 /* MARK WITH AI — A WORDED ANSWER, MARKED BY GEMINI AGAINST THE SCHEME THE CARD ALREADY HOLDS. § */
 let AI_OFF = false;

@@ -10,7 +10,8 @@ const OUT = path.join(ROOT, 'data', 'qcard-health.json');
 const glass = require('./glass.js');
 const SAMPLE = Number(process.env.QCARD_SAMPLE) || 60;
 /* NOT TAPPED: what leaves the screen, signs out or changes the account for good. */
-const SKIP = /filter-clear|facet-|chip-|sign-?out|delete|remove|danger|^go-|^tab-|find-top|find-open|card-edit|spot|set-listed|^nav|close|logout/;
+/* voice-try speaks and draws nothing; headless Chromium has no voices, so it is not testable here. */
+const SKIP = /voice-try|filter-clear|facet-|chip-|sign-?out|delete|remove|danger|^go-|^tab-|find-top|find-open|card-edit|spot|set-listed|^nav|close|logout/;
 
 /* IN THE PAGE: every question's page and the structure of a drawn card. */
 function staticPass(sample) {
@@ -56,6 +57,8 @@ function tapTwice(sel) {
   const once = () => new Promise(ok => {
     const el = pick();
     if (!el) return ok(-1);
+    /* A DIMMED TILE (nothing to undo, nothing to save) is a deliberate no-op, said on the glass before the tap: 0 ms. */
+    if (el.disabled || el.getAttribute('aria-disabled') === 'true') return ok(0);
     let hit = 0;
     const t0 = performance.now();
     const mo = new MutationObserver(() => { if (!hit) hit = performance.now() - t0; });
