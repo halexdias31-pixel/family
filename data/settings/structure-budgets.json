@@ -256,7 +256,7 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12061,
+   "lines": 12073,
    "oneOff": 128,
    "emptyCatch": 30,
    "inlineStyle": 2,
@@ -445,7 +445,7 @@
    "rawButton": 0
   },
   "js/qtools.js": {
-   "lines": 323,
+   "lines": 316,
    "oneOff": 12,
    "emptyCatch": 2,
    "inlineStyle": 0,
@@ -606,7 +606,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7180,
+   "lines": 7175,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -704,7 +704,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7469004,
+  "searchBytes": 7470149,
   "commentRatio": 0.265,
   "tombstones": 0,
   "claudeLines": 100

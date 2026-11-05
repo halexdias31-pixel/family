@@ -6195,14 +6195,9 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* `.qfig-tiles` WAS HERE -- the drawing page's row, which held only `To the answer`. Both went on
    8 Oct: *"there doesnt need to be a scroll down tile on questions."* */
 /* THE MAGNIFIER (463): a circle over a question page, its copy of the page 2.5 times bigger (`magShow_`); the page holds it while it is up. */
-/* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order; on a phone the tools fold behind one Tools tile, Check stays out. */
+/* THE ONE TOOL ROW (round 3, qtools.js): every tool on every part, in one order, all drawn from the start on a phone too (1020). */
 .qt-row { margin-top: .6rem; }
 .qt-tools { display: contents; }
-.qt-row > .qt-fold { display: none; }
-@media (max-width: 40rem) {
-  .qt-row > .qt-fold { display: inline-flex; }
-  .qt-row:not(.is-open) > .qt-tools { display: none; }
-}
 /* HOW THIS PART WILL BE MARKED, one short line under its Check: never a person (markerOf_, qtools.js) */
 .qt-how { flex: 1 1 100%; margin: .3rem 0 0; padding: 0 .25rem; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
 .qp-order-tiles { margin-top: .4rem; }
@@ -6231,7 +6226,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, 20rem, 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR. § */
 .qcard .qpad-bar { margin-bottom: .35rem; }
-.qcard .qpad > .qpad-note { display: inline; margin: 0; }
+.qcard .qpad > .qpad-note { display: block; margin: .2rem 0 0; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;

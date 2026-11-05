@@ -416,7 +416,6 @@ const STATES = {
         if (!mc) throw new Error('no question in the list carries choices');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
-        QT_OPEN.add(mc.key);
         paintStuff();
         window.__toolsKey = mc.key;
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(mc));
@@ -435,7 +434,7 @@ const STATES = {
                && !card.querySelector('[data-do="qt-grid"], [data-do="qt-panel"]');
       },
       wants: 'an options part\'s tool row as wide as its box, its eight tools inside it (their size is check/tiles.js\'s), the verdict below it, one padlock and no Grid, Table, Calculator or Formula sheet',
-      leave: () => { QT_OPEN.delete(window.__toolsKey); STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', stuffQuestionPage_()); } },
     /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER § */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {
@@ -540,7 +539,7 @@ const STATES = {
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
         if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
-        if (padToolsOf_(it).join(' ') !== 'pen ruler compass protractor') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        if (PAD_TOOLS.join(' ') !== 'pen ruler compass protractor') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + PAD_TOOLS.join(' '));
         window.__toolKey = padKey_(it);
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');

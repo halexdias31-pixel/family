@@ -2,7 +2,7 @@
 /* @family. — check/qcard.js ONE CARD PER QUESTION NUMBER (960), and every tile answering a tap at once: a browser walk, data/qcard-health.json. */
 /* Static over every question the fixture's library holds (stuffPages_ under Questions): card-split, orphan-part. On drawn cards (a sample */
 /* spread over the papers): dup-tagline, tile-groups, card-order, indent. Then tap-response: each tile act on a question card and in Settings, */
-/* tapped twice 300 ms apart, must change something on the page within 100 ms each time. Then text-overflow at 390 and 1024 wide. tools/health.js reads the file; ideal 0 each. */
+/* tapped twice 300 ms apart, must change something on the page within 100 ms each time. Then text-overflow at 390 and 1024 wide. Then stable-controls (1020): a tap moves no other control. tools/health.js reads the file; ideal 0 each. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -70,6 +70,45 @@ function tapTwice(sel) {
   return once().then(a => new Promise(ok => setTimeout(() => once().then(b => ok([a, b])), 300)));
 }
 
+/* IN THE PAGE: every control in a scope, as act -> box, and the scope's height (1020) -- what a tap must leave where it was. */
+function ctlSnap(sel) {
+  const root = document.querySelector(sel);
+  if (!root) return null;
+  const seen = {}, ctl = {};
+  root.querySelectorAll('.tile[data-do], button[data-do], .chip[data-do]').forEach(e => {
+    const b = e.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    const a = e.getAttribute('data-do') + (e.getAttribute('data-tool') ? ':' + e.getAttribute('data-tool') : '');
+    seen[a] = (seen[a] || 0) + 1;
+    ctl[a + '#' + seen[a]] = [Math.round(b.left + scrollX), Math.round(b.top + scrollY), Math.round(b.width), Math.round(b.height)];
+  });
+  return { h: Math.round(root.getBoundingClientRect().height), ctl };
+}
+/* WHAT CHANGED BETWEEN TWO SNAPSHOTS, past 2px, the tapped tile's own look aside. */
+function ctlDiff(a, b, own) {
+  if (!a || !b) return [];
+  const out = [];
+  if (Math.abs(a.h - b.h) > 2) out.push('height ' + a.h + '->' + b.h);
+  Object.keys(a.ctl).forEach(k => { if (k === own) return; const p = a.ctl[k], q = b.ctl[k];
+    if (!q) out.push('gone ' + k); else if (p.some((v, i) => Math.abs(v - q[i]) > 2)) out.push('moved ' + k); });
+  Object.keys(b.ctl).forEach(k => { if (!a.ctl[k]) out.push('new ' + k); });
+  return out;
+}
+/* STATIC: a handler that adds, removes or redraws markup that holds tiles -- the shape of the change 1020 ended. */
+function staticControls() {
+  const out = [], dir = path.join(ROOT, 'js');
+  fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+    const lines = fs.readFileSync(path.join(dir, f), 'utf8').split('\n');
+    let act = '';
+    lines.forEach((l, i) => {
+      const m = /^on\('([^']+)'/.exec(l);
+      if (m) act = m[1]; else if (/^\}\);?\s*$/.test(l)) act = '';
+      if (act && /insertAdjacentHTML|outerHTML\s*=|\.remove\(\)/.test(l) && /tile|row|bar/i.test(l)) out.push(`${f}:${i + 1} ${act}`);
+    });
+  });
+  return out;
+}
+
 /* IN THE PAGE: every chip, tile and button on the glass whose words spill out of their box or break inside a word. */
 function overflowScan(screen) {
   const out = [];
@@ -134,6 +173,33 @@ function overflowScan(screen) {
       await page.waitForTimeout(200);
     }
   }
+  /* STABLE CONTROLS (1020): on a question card, Settings and Find, each tile tapped (and tapped again) leaves every other control where it was. */
+  const stable = [];
+  const scopes = { question: ['#s-stuff .qwhole', () => { go('stuff'); inFinder_(FINDERS.stuff, () => goPage('stuff', stuffFirstResult_(), true)); }],
+    settings: ['#s-account', () => go('account')], find: ['#s-stuff', () => { finderSet_(FINDERS.stuff, { filters: [], q: '' }); go('stuff'); }] };
+  for (const name of Object.keys(scopes)) {
+    const [sel, open] = scopes[name];
+    await page.evaluate('(' + open.toString() + ')()');
+    await page.waitForTimeout(1200);
+    const base = await page.evaluate(ctlSnap, sel);
+    for (const own of Object.keys((base && base.ctl) || {})) {
+      const act = own.split('#')[0].split(':')[0];
+      if (SKIP.test(act) || /^(kp-|help-|card-share|rep-box|fav|qp-work|q-mag|read-aloud)/.test(act)) continue;
+      const before = await page.evaluate(ctlSnap, sel);
+      const tap = () => page.evaluate(([sel, own]) => { const [a, n] = own.split('#'), [act, tool] = a.split(':');
+        const e = [...document.querySelectorAll(sel + ` [data-do="${act}"]`)].filter(x => x.matches('.tile, button, .chip')).filter(x => (!tool || x.getAttribute('data-tool') === tool) && x.getBoundingClientRect().width)[n - 1];
+        if (e && !e.disabled) e.click(); return !!e; }, [sel, own]);
+      if (!(await tap())) continue;
+      await page.waitForTimeout(300);
+      ctlDiff(before, await page.evaluate(ctlSnap, sel), own).slice(0, 3).forEach(d => stable.push(`${name} ${own}: ${d}`));
+      await tap();
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.evaluate('(' + open.toString() + ')()');
+      await page.waitForTimeout(500);
+    }
+  }
+  const stat = staticControls();
   /* TEXT-OVERFLOW at a phone and a tablet: Find's opening menu, the SATs worksheet menu, a question card, Settings. */
   const spill = [];
   for (const [w, h] of [[390, 844], [1024, 1366]]) {
@@ -158,13 +224,17 @@ function overflowScan(screen) {
   const lag = taps.filter(t => t.ms.some(m => m > 100) || (t.ms[0] >= 0 && t.ms[1] < 0));
   const out = { at: new Date().toISOString().slice(0, 10), pages: st.pages, sampled: st.sampled,
     checks: { 'card-split': st.split.length, 'orphan-part': st.orphan.length, 'dup-tagline': st.dupTag.length, 'tile-groups': st.rows.length,
-              'card-order': st.order.length, indent: st.indent.length, 'tap-response': lag.length, 'text-overflow': spill.length },
+              'card-order': st.order.length, indent: st.indent.length, 'tap-response': lag.length, 'text-overflow': spill.length,
+              'stable-controls': stable.length, 'static-controls': stat.length },
     where: { 'card-split': st.split.slice(0, 20), 'orphan-part': st.orphan.slice(0, 20), 'dup-tagline': st.dupTag.slice(0, 20), 'tile-groups': st.rows.slice(0, 20),
-             'card-order': st.order.slice(0, 20), indent: st.indent.slice(0, 20), 'tap-response': lag.map(t => `${t.screen} ${t.act}: ${t.ms.join(' / ')} ms`), 'text-overflow': spill.slice(0, 40) },
+             'card-order': st.order.slice(0, 20), indent: st.indent.slice(0, 20), 'tap-response': lag.map(t => `${t.screen} ${t.act}: ${t.ms.join(' / ')} ms`), 'text-overflow': spill.slice(0, 40),
+             'stable-controls': stable.slice(0, 40), 'static-controls': stat.slice(0, 40) },
     taps, errors };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(Object.entries(out.checks).map(([k, v]) => `${k} ${v}`).join(', ') + ` (${st.pages} pages, ${st.sampled} cards drawn, ${taps.length} acts tapped)`);
   spill.slice(0, 15).forEach(f => console.log('  spill: ' + f));
+  stable.slice(0, 15).forEach(f => console.log('  unstable: ' + f));
+  stat.forEach(f => console.log('  static: ' + f));
   lag.forEach(t => console.log('  lag: ' + t.screen + ' ' + t.act + ' ' + t.ms.join(' / ') + ' ms'));
   await browser.close(); server.close();
   process.exit(Object.values(out.checks).some(n => n > 0) ? 1 : 0);

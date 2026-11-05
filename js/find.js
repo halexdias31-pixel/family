@@ -5207,7 +5207,9 @@ function padSource_(x) {
   const said = padSurface_(x), surf = said === 'text' || padPicked_(x) ? '' : said;
   const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
   if (said === 'text' && !opened) return null;
-  if (!padDrawn_(x) && !surf && !opened) return null;
+  /* A FIGURE IS ITS PAD FROM THE START (1020): opening the pen on a tap redrew the card, moving the stem and adding tiles */
+  const fig = !!x.diagram || padStemFirst_(x);
+  if (!padDrawn_(x) && !surf && !opened && !fig) return null;
   if (said === 'text') return { svg: surfaceSvg_('grid'), from: 'surface', surface: 'grid' };
   if (x.diagram) return { svg: x.diagram, from: 'part' };
   const stems = (x.stems || []).filter(p => p && p.diagram);
@@ -5215,6 +5217,9 @@ function padSource_(x) {
   const kind = surf || 'grid';
   return { svg: surfaceSvg_(kind), from: 'surface', surface: kind };
 }
+/* THE FIRST PART UNDER A STEM'S ONE FIGURE draws on it from the start; the rest read it there, so it is drawn once, not once a part */
+const padStemFirst_ = x => { const st = (x.stems || []).filter(p => p && p.diagram); if (st.length !== 1) return false;
+  try { const f = ((questionParts_()[qId_(x)]) || []).find(y => (y.stems || []).indexOf(st[0]) !== -1); return !f || f.key === x.key; } catch (e) { return false; } };
 /* MARKS ALREADY SAVED keep the pen open across a reload; asked of the raw store, never parsed, as it runs for every part. */
 function padHasInk_(x) {
   if (!x || x.prefix || !x.key || !(typeof whoIs_ === 'function')) return false;
@@ -5317,15 +5322,15 @@ function padAspect_(x, svg) {
 /* AND WHAT A PAD ELEMENT SAYS IT IS. */
 const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
-/* ---------- THE PEN'S BAR IS UNDO AND CLEAR; the instruments are in the part's tool row (qtools.js). */
-/* EVERY PAD HOLDS EVERY INSTRUMENT (round 3): they are chosen from the part's one tool row (qtools.js), never from its words. */
+/* ---------- EVERY PAD HOLDS EVERY INSTRUMENT (round 3), chosen from the part's one tool row (qtools.js), never from its words. */
 const PAD_TOOLS = ['pen', 'ruler', 'compass', 'protractor'];
-const padToolsOf_ = () => PAD_TOOLS.slice();
 
-const padBar_ = (pen, tools, tool, k) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !padRead_(k).length && !PAD_CLEARED.has(k) })}${
-      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !padRead_(k).length })}</span>
-    </div>`;
+/* UNDO AND CLEAR, dimmed while there is nothing to take back; in a question's tool row by key (1020). The row offers a pen only where the pad is already drawn */
+const padUndoTiles_ = (x, k0) => { const k = k0 || padKey_(x), n = padRead_(k).length, data = k0 ? {} : { k };
+  return tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo', off: !n && !PAD_CLEARED.has(k), data })
+    + tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear', off: !n, data }); };
+const padBar_ = k => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing"><span class="qpad-group">${padUndoTiles_(null, k)}</span></div>`;
+const padReady_ = x => padHasArt_(x) && (!!padSource_(x) || padSurface_(x) === 'text');
 
 /* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
 const PAD_MIN_ASPECT = 0.3;
@@ -5354,9 +5359,6 @@ function padWrap_(x, svg, foot) {
   /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
      so the stroke under the finger and the same stroke drawn again agree byte for byte (`padPath_`). */
   const ka = padAspect_(x, svg);
-  const tools = padToolsOf_(x, svg);
-  const held = PAD_TOOL.get(k);
-  const tool = held && held !== 'protractor' && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
@@ -5368,9 +5370,9 @@ function padWrap_(x, svg, foot) {
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
       </svg>
-      ${tools.indexOf('protractor') !== -1 && padProtOn_(k) ? padProtHtml_(k) : ''}
+      ${padProtOn_(k) ? padProtHtml_(k) : ''}
     </div>
-    ${padBar_(pen, tools, tool, k)}
+    ${foot === 'row' ? '' : padBar_(k)}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
@@ -7384,6 +7386,7 @@ function padSave_(pad, k, all) {
   }
   ansStore_(k, v);
   padCopies_(k, pad, all);
+  padDim_(pad, all);
   /* A VERDICT IS ABOUT THE DRAWING IT WAS FOR: a mark added or taken away says so again under Send. */
   document.querySelectorAll('.qpad-send[data-pad]').forEach(row => {
     const out = row.querySelector('.qp-verdict');
@@ -7451,6 +7454,8 @@ function padToolPick_(pad, t) {
     padProtSync_(k);
     return;
   }
+  /* THE SAME TOOL TAPPED AGAIN PUTS IT DOWN (1020): one obvious way back to no tool, and the card stays as it was */
+  if (PAD_ON === k && (PAD_TOOL.get(k) || 'pen') === (t || 'pen')) { padArm_(pad, false); PAD_ON = ''; padDrop_(); return; }
   PAD_TOOL.set(k, t || 'pen');
   if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
 }
@@ -7544,8 +7549,11 @@ document.addEventListener('pointermove', e => {
   PROT_GO = null;
 }, true));
 
+/* UNDO AND CLEAR IN THE PART'S TOOL ROW (1020) name their pad by key; the board's own bar sits inside it */
+const padOfTile_ = el => el.closest('.qpad') || (() => { const c = el.closest('.qcard'), k = el.getAttribute('data-k');
+  return c && k ? [...c.querySelectorAll('.qpad')].find(p => p.getAttribute('data-k') === k) || null : null; })();
 on('pad-undo', (el) => {
-  const pad = el.closest('.qpad'); if (!pad) return;
+  const pad = padOfTile_(el); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   /* NOT UNDER A RESTING HAND -- `padRested_`. */
   if (padRested_(k)) return;
@@ -7573,7 +7581,7 @@ on('pad-undo', (el) => {
 
 /* ---------- CLEAR CAN BE UNDONE § */
 on('pad-clear', (el) => {
-  const pad = el.closest('.qpad'); if (!pad) return;
+  const pad = padOfTile_(el); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   if (padRested_(k)) return;
   const had = padRead_(k);
@@ -7588,10 +7596,14 @@ on('pad-clear', (el) => {
   toast('Cleared. Undo puts it back.');
 });
 
+/* UNDO AND CLEAR LIT OR DIMMED BY THEIR OWN LOOK ONLY, in the pad's bar or the part's tool row (1020) */
+const padDim_ = (pad, all) => { const pk = pad.getAttribute('data-k') || '', card = pad.closest('.qcard') || pad;
+  [...pad.querySelectorAll('.qpad-undo, .qpad-clear'), ...[...card.querySelectorAll('.qt-row .qpad-undo, .qt-row .qpad-clear')].filter(b => b.getAttribute('data-k') === pk)]
+    .forEach(b => { b.disabled = !(all || []).length && !(b.classList.contains('qpad-undo') && PAD_CLEARED.has(pk)); }); };
 /* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is always exactly what would come back on a reload. § */
 function padRepaint_(pad, all) {
   /* NOTHING TO UNDO OR CLEAR IS SAID BY A DIMMED TILE, not a tap that does nothing (990). */
-  pad.querySelectorAll('.qpad-undo, .qpad-clear').forEach(b => { b.disabled = !(all || []).length && !(b.classList.contains('qpad-undo') && PAD_CLEARED.has(pad.getAttribute('data-k') || '')); });
+  padDim_(pad, all);
   const g = pad.querySelector('.qpad-g');
   if (!g) return;
   const k = padAspectOf_(pad);
@@ -7793,7 +7805,7 @@ function surfaceSvg_(kind) {
 function ansArea_(x) {
   /* ONE PAGE FOR EVERY PART (round 3): a made-up surface above the one answer box; a figure among the words is the pen in place */
   const p = x && x.key ? padSource_(x) : null;
-  const pad = p && p.from === 'surface' ? `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, true)}</div>` : '';
+  const pad = p && p.from === 'surface' ? `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, 'row')}</div>` : '';
   return pad + ansBox_(x);
 }
 
@@ -8313,7 +8325,7 @@ function figHtml_(x, b) {
   }
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
-  if (p && p.from !== 'surface') return padWrap_(x, p.svg) + pics;
+  if (p && p.from !== 'surface') return padWrap_(x, p.svg, 'row') + pics;
   return (x.diagram ? usesFig_(x) || `<figure>${x.diagram}</figure>` : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
