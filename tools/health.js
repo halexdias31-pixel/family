@@ -30,7 +30,10 @@ const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean)
 const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--format=%ct', '--', f])) * 1000 || 0;
 
 /* WHAT THE FUNNEL WALK READS: a change to any of these makes data/logic-health.json stale. */
-const LOGIC_INPUTS = ['js/find.js', 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
+const FIND_FILES = require('./find-src.js').findFiles();
+const PS_ = require('./piece-src.js'), ME_FILES = PS_.pieceFiles('me'), SHELL_FILES = PS_.pieceFiles('shell'), KP_FILES = PS_.pieceFiles('keypad');
+const SPLIT_GROUPS = [{ old: 'js/find.js', files: FIND_FILES }, { old: 'js/me.js', files: ME_FILES }, { old: 'js/shell.js', files: SHELL_FILES }, { old: 'js/keypad.js', files: KP_FILES }];
+const LOGIC_INPUTS = [...FIND_FILES, 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
   'data/projects.json', 'data/topics.json', 'tools/logic-health.js'];
 function logic() {
   const j = (() => { try { return JSON.parse(read('data/logic-health.json')); } catch (e) { return null; } })();
@@ -43,17 +46,31 @@ function logic() {
 const lineOf = (src, i) => src.slice(0, i).split('\n').length;
 const blank = src => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '));
 function findWork(L) {
-  const fsrc = read('js/find.js'), work = [];
+  const fsrc = require('./find-src.js').findSrc(), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
-  /* tag-colour: a per-FIELD colour table (TAG_OF) gives one menu's answers one colour; each hue must also read on --bg (1010). */
-  const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
-  if (tagAt >= 0) for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
-  if (tagAt >= 0 || !/tagOf_\(field, value(, at)?\)/.test(fsrc)) Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
-    say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  /* tag-colour (1030): ONE colour per menu — (a) every answer of a menu, (b) its chip and card words take the facet's colour alone, */
+  /* (c) two facets asked on one path (data/facet-graph.json, tools/facet-hues.js) never share one, (d) each hue reads 3:1 on --bg. */
+  const tagLine = /^const TAG_OF = (\{.*\});$/m.exec(fsrc);
+  let tab = null; try { tab = tagLine ? Function('return ' + tagLine[1])() : null; } catch (e) { tab = null; }
+  const tagLn = tagLine ? lineOf(fsrc, tagLine.index) : 1;
+  if (!tab) work.push({ kind: 'tag-colour', where: 'js/find.js:1', say: 'no readable `const TAG_OF = {…};` line — the menu colours were NOT checked' });
+  else {
+    /* A READER BUILT FOR ONE TITLE (`const SITTING_READER_ = { field: …`) is not a menu. */
+    Object.keys(at).forEach(k => { if (!(k in tab) && !new RegExp('const \\w+ = \\{ field: \'' + k + '\'').test(fsrc)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + at[k].line, say: `menu "${at[k].label}" (${k}) has no colour in TAG_OF — run node tools/facet-hues.js` }); });
+    let G = null; try { G = JSON.parse(read('data/facet-graph.json')); } catch (e) { G = null; }
+    if (!G) work.push({ kind: 'tag-colour', where: 'data/facet-graph.json', say: 'no facet graph — run node tools/facet-hues.js; neighbouring menus were NOT checked' });
+    else (G.edges || []).forEach(([x, y]) => { if (x in tab && y in tab && tab[x] === tab[y])
+      work.push({ kind: 'tag-colour', where: 'js/find.js:' + tagLn, say: `menus ${x} and ${y} are asked on one path and both wear --hue-${tab[x]} — run node tools/facet-hues.js` }); });
+  }
+  if (!/^const tagAttr_ = field => /m.test(fsrc)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + tagLn, say: 'tagAttr_ takes more than the facet — one menu\'s answers could wear different colours' });
+  for (const m of fsrc.matchAll(/tagAttr_\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)) if (/,/.test(m[1]))
+    work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, m.index), say: `tagAttr_(${m[1].slice(0, 40)}) colours by more than the facet — an answer, chip or card word would leave its menu's colour` });
+  const chipFn = (/function filterChips\(\)[\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/tagAttr_\(f\.field\)/.test(chipFn)) work.push({ kind: 'tag-colour', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function filterChips'))), say: 'a picked chip does not take its menu\'s colour (tagAttr_(f.field))' });
   const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
   const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
-  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the answer colours were NOT checked' });
+  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the menu colours were NOT checked' });
   hues.forEach(m => { const a = lum(m[2]), b = lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     if (r < 3) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index), say: `--hue-${m[1]} #${m[2]} is ${r.toFixed(2)}:1 on --bg, under 3:1` }); });
   /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
@@ -78,7 +95,7 @@ function findWork(L) {
     if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
     body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
       work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
-  ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
+  [...FIND_FILES, ...SHELL_FILES].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
   /* EVERY FACET VALUE (940): tools/facet-data.js reads all answers of every menu, not the walk's few; its findings are read here, never re-run. */
   ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
@@ -88,7 +105,7 @@ const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
 function uniformWork() {
-  const W = [], MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+  const W = [], MAKERS = new Set(['js/tiles.js', ...SHELL_FILES]);
   const app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f) && !MAKERS.has(f));
   const css = read('style.css'), cssLines = css.split('\n');
   const jsAll = {};
@@ -102,7 +119,7 @@ function uniformWork() {
       if (/(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/.test(l)) W.push({ kind: 'own-wait', where: at, say: 'a wait not via loading_(): ' + l.trim().slice(0, 100) });
     }); });
   /* A CLASS style.css styles that one app line uses and no other rule shares: one component's whole class, kept in mind for one place. */
-  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + read('js/shell.js');
+  const used = {}; const blob = Object.values(jsAll).join('\n') + read('index.html') + read('js/tiles.js') + SHELL_FILES.map(read).join('');
   for (const m of blob.matchAll(/class="([^"$]+)"/g)) m[1].split(/\s+/).forEach(c => { used[c] = (used[c] || 0) + 1; });
   const ruled = {};
   cssLines.forEach((l, i) => { if (/\{/.test(l) && !/^\s*(?:@|--)/.test(l)) for (const m of l.split('{')[0].matchAll(/\.([a-zA-Z][\w-]*)/g)) (ruled[m[1]] = ruled[m[1]] || []).push(i + 1); });
@@ -146,11 +163,12 @@ function uxWork() {
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
   const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
   const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };
-  const fsrc = read('js/find.js'), drawer = {};
+  const fsrc = require('./find-src.js').findSrc(), drawer = {};
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) drawer[m[1]] = { fn: m[2], at: 'js/find.js:' + lineOf(fsrc, m.index) };
   Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
     if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
     Object.keys(c.missing || {}).forEach(f => W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.missing[f]} of ${c.sampled} cards have a ${f} value that is not a tag` }));
+    if (c.outside) W.push({ kind: 'attr-outside-tags', where: at, say: `${k}: ${c.outside} of ${c.sampled} cards show an attribute outside the top tag line (a marks label, a data-f) — it belongs in the tag line` });
     const file = at.split(':')[0];
     if (c.fn && /^js\//.test(file)) { const was = bodyHas(git(['show', '389d843:' + file]), c.fn), now = bodyHas(read(file), c.fn);
       if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
@@ -159,7 +177,7 @@ function uxWork() {
   /* ONE CARD PER QUESTION, TAPS, SPILLED WORDS (960): check/qcard.js's walk, each count over its budget a finding; ideal 0. */
   let qc = null; try { qc = JSON.parse(read('data/qcard-health.json')); } catch (e) { qc = null; }
   const qb = ((jread('data/settings/structure-budgets.json') || {}).qcard) || {};
-  if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
+  if (qc) Object.keys(qc.checks || {}).forEach(k => { if (qc.checks[k] > (qb[k] || 0)) W.push({ kind: OWNER_KINDS[k] ? k : 'ux', where: 'qcard ' + k, say: `${qc.checks[k]} (budget ${qb[k] || 0}): ` + ((qc.where || {})[k] || []).slice(0, 3).join('; ') }); });
   /* TEXT BOXES (980): every visible box on Find, a question and Settings drawn alike; each differing measure a finding. */
   ((j.boxLooks || {}).off || []).forEach(o => W.push({ kind: 'ux', where: 'text boxes', say: o }));
   if (j.boxLooks && (j.boxLooks.faces || []).length < 3) W.push({ kind: 'ux', where: 'text boxes', say: 'the walk measured ' + (j.boxLooks.faces || []).length + ' of 3 boxes (Find, a question, Settings)' });
@@ -168,7 +186,50 @@ function uxWork() {
   if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
   return { j, work: W };
 }
-const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
+const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10] };
+/* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1 };
+function textboxRules(css) {
+  /* TEXT BOXES (980, 1030): the question's cream answer pill (`.qp-bar > .qp-ans`) is the one look; any text-box rule with another radius, background, border or font differs. */
+  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
+    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
+    return o; };
+  const base = look((/\n\.qp-bar > \.qp-ans \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (.qp-bar > .qp-ans)', say: 'the cream answer pill' }];
+  if (!base.background) tv.push({ where: 'style.css', say: 'no `.qp-bar > .qp-ans` rule: the cream pill the text boxes are held to is missing' });
+  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
+    if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
+    if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^\.qp-bar > \.qp-ans$/.test(sel)) continue;
+    /* THE ESSAY SHEET (980) is ruled paper, not a box: its writing keeps the ruling's line height. */
+    if (/\.kp-essay\b/.test(sel)) continue;
+    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
+    if (/appearance:\s*none/.test(m[2]) && !/textarea/.test(sel)) continue;
+    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
+    if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
+  return tv;
+}
+function ownerWork() {
+  const W = [], css = read('style.css'), flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), fsrc = require('./find-src.js').findSrc();
+  const rule = sel => { const m = new RegExp('(?:^|\\})\\s*' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(flat); return m ? { body: m[1], line: lineOf(flat, m.index + 1) } : null; };
+  /* element-box: an element's own container draws no box — no background, border (but the hairline under a card) or radius. */
+  ['.card', '.qwhole'].forEach(sel => { const r = rule(sel); if (!r) { W.push({ kind: 'element-box', where: 'style.css', say: `no ${sel} rule — the element box was NOT checked` }); return; }
+    const off = [];
+    for (const d of r.body.matchAll(/(?:^|;)\s*(background(?:-color)?|border(?:-top|-left|-right)?|border-radius|box-shadow|outline)\s*:\s*([^;]+)/g))
+      if (!/^(none|0|transparent|0 none)$/.test(d[2].trim())) off.push(d[1] + ': ' + d[2].trim());
+    if (off.length) W.push({ kind: 'element-box', where: 'style.css:' + r.line, say: `${sel} draws a box other elements do not have (${off.join(', ')})` }); });
+  /* card-tags: every card goes through stuffCard, which puts a tag line at its top (tagsOnTop_). */
+  const sc = (/function stuffCard\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/tagsOnTop_\(/.test(sc)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function stuffCard'))), say: 'stuffCard no longer puts a tag line on a card that draws none (tagsOnTop_)' });
+  const wt = (/function qWholeTags_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/'marks'/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qWholeTags_'))), say: 'a whole question\'s top tag line no longer carries each part\'s marks' });
+  /* attr-outside-tags: no template draws an attribute beside the tag line — a marks label, "[2 marks]". */
+  for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
+    for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))
+      W.push({ kind: 'attr-outside-tags', where: f + ':' + lineOf(src, m.index), say: `${m[0].slice(0, 50)} draws an attribute outside the tag line` }); }
+  /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
+  textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
+  return W;
+}
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -200,7 +261,7 @@ function ui() {
     ['zindex', 'Distinct z-index values (over 5)', zindex, 0.5, 10, 5],
     ['position', 'transform and position:absolute uses', position, 0.01, 10, 0],
   ].map(([id, label, n, w, cap, free]) => ({ id, label, count: n, weight: w, cap, off: r1(Math.min(cap, Math.max(0, n - free) * w)) }));
-  const work = uniformWork().concat(uxWork().work), k = {};
+  const work = uniformWork().concat(uxWork().work, ownerWork()), k = {};
   work.forEach(w => { k[w.kind] = (k[w.kind] || 0) + 1; });
   const PEN = Object.assign({}, UNIFORM_PENALTY, UX_PENALTY);
   Object.keys(PEN).forEach(id => S.push({ id, label: id + ' findings', count: k[id] || 0, weight: PEN[id][0], cap: PEN[id][1], off: r1(Math.min(PEN[id][1], (k[id] || 0) * PEN[id][0])) }));
@@ -215,7 +276,8 @@ function ui() {
 // dup       0.02 per line of a 6+-line chunk already seen (normalised: trimmed, comments out), cap 10
 // nest      0.05 per run of lines nested over 4 blocks deep inside a function, cap 10
 // catch     an empty catch, listed for the fixer; priced by stability's `catches` (0.02 each), never again here
-const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0] };
+// deliberate a catch holding only a why-comment: a chosen fallback, as check-catches counts it; listed, never priced
+const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0], deliberate: [0, 0] };
 const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
@@ -270,7 +332,7 @@ function structure() {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
       if (ONE_OFF.test(code)) push(file, i + 1, 'one-off', raw, 1);
-      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, 'catch', raw, 1);
+      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) fn = { name: m[1] || m[2], at: i };
       if (depth === 0 && fn) {
@@ -387,7 +449,7 @@ function varietyWork(Q, waits) {
   if (!Q || !Q.moved) qv.unshift({ where: 'roadmap 7', say: 'the one page, not built yet' });
   add('qpage', 'Question pages and markers', 1, 'logic', qv);
   /* CARD DRAWERS: the distinct functions the kinds tab of find.js draws cards with. */
-  const fsrc = read('js/find.js'), seen = new Map();
+  const fsrc = require('./find-src.js').findSrc(), seen = new Map();
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
   add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
   /* CARD TILE ROWS (950): cardTiles_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
@@ -410,25 +472,14 @@ function varietyWork(Q, waits) {
   add('listrow', 'List-row styles', 1, 'ui', rv.map(c => ({ where: rows.get(c), say: '.' + c })));
   /* SETTINGS ROW SHAPES: the row builders the settings screens use. */
   const sv = [];
-  ['js/settings.js', 'js/staff.js', 'js/me.js'].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
+  ['js/settings.js', 'js/staff.js', ...ME_FILES].forEach(f => { const src = read(f); for (const m of src.matchAll(/function (\w*[Rr]ow\w*)\s*\(/g)) sv.push({ where: f + ':' + lineOf(src, m.index), say: m[1] }); });
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
-  const wv = [{ where: fnAt('loading_', ['js/shell.js']) || 'js/shell.js', say: 'loading_' }];
+  const wv = [{ where: fnAt('loading_', SHELL_FILES) || 'js/shell-*.js', say: 'loading_' }];
   const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
-  /* TEXT BOXES (980): the global input rule is the one look; any rule on a text box that sets radius, background, border or font to other values is another. */
-  const flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), look = b => { const o = {};
-    for (const d of b.matchAll(/(?:^|;)\s*(border-radius|background-color|background|border|font)\s*:\s*([^;]+)/g)) o[d[1] === 'background-color' ? 'background' : d[1]] = d[2].trim().replace(/\s+/g, ' ').replace(/^400 /, '').replace(/^2px$/, 'var(--r-sm)');
-    return o; };
-  const base = look((/\ninput, select, textarea, \.many-sum \{([^}]*)\}/.exec(flat) || [])[1] || ''), tv = [{ where: 'style.css (input, select, textarea)', say: 'the one field look' }];
-  for (const m of flat.matchAll(/(?<=^|\})\s*([^{}@]+)\{([^{}]*)\}/g)) { const sel = m[1].trim().replace(/\s+/g, ' ');
-    if (!/(^|[\s,>+~(])(input|textarea)\b(?!\[type="?(range|color|checkbox|radio|file|hidden))|\.(search|qp-ans|kp-field|kp-show)\b(?![-\w])/.test(sel)) continue;
-    if (/::|:(disabled|focus|hover|empty|checked)|\[aria-invalid|\.kp-in\b|^input, select, textarea, \.many-sum$/.test(sel)) continue;
-    /* A TICKBOX DRAWN ON A BARE INPUT (`appearance: none`) is a tickbox, not a text box. */
-    if (/appearance:\s*none/.test(m[2])) continue;
-    const o = look(m[2]), off = Object.keys(o).filter(k => o[k] !== base[k] && !/^(inherit|none|0)$|transparent/.test(o[k]));
-    if (off.length) tv.push({ where: 'style.css:' + lineOf(flat, m.index + m[0].indexOf(m[1])), say: sel.slice(0, 70) + ' sets its own ' + off.join(', ') }); }
+  const tv = textboxRules(css);
   add('textbox', 'Text boxes', 1, 'ui', tv);
   VARIETY_LAST = fam;
   return W;
@@ -452,7 +503,7 @@ function health() {
   const L = logic(), U = ui(), S = structure();
   /* THE CODE PART: stability's signals less the four the structure signals replace, plus the structure signals. */
   const kept = (st.signals || []).filter(s => !REPLACED.has(s.id));
-  const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
+  const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch' && k !== 'deliberate').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
   const code = r1(Math.max(0, 100 - sig.reduce((a, s) => a + s.off, 0)));
   const work = findWork(L), kinds = {};
   work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });
@@ -507,23 +558,24 @@ function trendAppend(h) {
   const was = t[t.length - 1];
   if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
-module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST };
+module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST, ownerWork };
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
   const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(f => f && !f.startsWith('attic/')));
   const bad = [];
-  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
+  /* Find's pieces count as the one file they were cut from (1040), so a move between them is not a new finding. */
+  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '').replace(/^js\/find-[\w-]+\.js$/, 'js/find.js') + '|' + w.say;
   /* A STALE FACET REPORT (940): the library or the funnel changed and tools/facet-data.js was not re-run, so its findings are old. */
   const fAt = mtime('data/facet-health.json'), fNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > fAt);
   if (fNew.length && !files.has('data/facet-health.json')) console.log('note: data/facet-health.json is older than ' + fNew.join(', ') + ' — run node tools/facet-data.js');
-  if (['js/find.js', 'js/shell.js', 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
+  if ([...FIND_FILES, ...SHELL_FILES, 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
     findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
   }
   /* A MOVED QTYPE MAY NOT SLIP (920): re-proved when its markers or data changed, against the committed data/qengine-health.json. */
-  if (['js/find.js', 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
+  if ([...FIND_FILES, 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
     let was = null; try { was = JSON.parse(git(['show', 'HEAD:data/qengine-health.json'])); } catch (e) { was = null; }
     /* A TEMP COPY (940): --changed never leaves a rewritten report in the tree; only a full run writes data/*-health.json. */
     const tmp = path.join(require('os').tmpdir(), 'qengine-health-' + process.pid + '.json');
@@ -536,7 +588,11 @@ function changed() {
   }
   const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
   [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {
-    const now = read(f), was = git(['show', 'HEAD:' + f]);
+    const G = SPLIT_GROUPS.find(g => g.files.includes(f)), piece = !!G, headOf = g => git(['show', 'HEAD:' + g]);
+    /* A PIECE of a cut file is weighed with all its siblings against what HEAD had for the old file, one file or many (1040). */
+    const was = piece ? (headOf(G.old) || G.files.map(headOf).join('')) : git(['show', 'HEAD:' + f]);
+    const whole = piece ? G.files.map(read).join('') : '', now = read(f);
+    if (piece && (whole.match(EMPTY) || []).length <= (was.match(EMPTY) || []).length) return;
     const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
   });
@@ -551,6 +607,11 @@ function changed() {
     if (!A.searchBytes || AC.searchBytes < A.searchBytes || AC.commentRatio < (A.commentRatio || 1)) {
       BJ.aiCost = { searchBytes: Math.min(A.searchBytes || Infinity, AC.searchBytes), commentRatio: Math.min(A.commentRatio || 1, AC.commentRatio), tombstones: 0, claudeLines: 100 };
       if (!bad.length) fs.writeFileSync(BP, JSON.stringify(BJ, null, 1) + '\n'); } } catch (e) { bad.push('ai-cost\t' + BP + '\tcannot read the budgets: ' + e.message); }
+  /* THE OWNER'S FOUR (1030): their static halves, every change, against budget `owner` (ideal 0). */
+  { let OB = {}; try { OB = JSON.parse(fs.readFileSync(BP, 'utf8')).owner || {}; } catch (e) { OB = {}; }
+    const ow = ownerWork().concat(findWork(logic()).filter(w => w.kind === 'tag-colour')), n = {};
+    ow.forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
+    Object.keys(OWNER_KINDS).forEach(k => { if ((n[k] || 0) > (OB[k] || 0)) ow.filter(w => w.kind === k).forEach(w => bad.push(k + '\t' + w.where + '\t' + w.say)); }); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));

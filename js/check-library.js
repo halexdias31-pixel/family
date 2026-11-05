@@ -515,7 +515,7 @@ EXTRA_FILES.forEach(name => {
 
 /* ---------- A BOXER'S LOOK AND A FIGHT'S TRUNKS USE THE FIGURE'S WORDS, AND SAY WHERE THEY CAME FROM § */
 {
-  const findSrc = (() => { try { return fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8'); } catch (e) { return ''; } })();
+  const findSrc = (() => { try { return require('../tools/find-src.js').findSrc(); } catch (e) { return ''; } })();
   const cut = require('./check-marks-load.js').cutFrom(findSrc, 'BOXER_LOOK');
   let V = null;
   try { V = cut ? eval('(' + cut.replace(/^const BOXER_LOOK =/, '').replace(/;\s*$/, '') + ')') : null; } catch (e) { V = null; }
@@ -938,7 +938,7 @@ if (MARKS.missing.length) {
     + ' name the unit in their cell, ' + rootUnitBare + ' do not');
 
   /* ---------- A ROOT OR π ANSWER GETS THE KEY FOR IT § */
-  const kpSrc = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
+  const kpSrc = require('../tools/piece-src.js').pieceSrc('keypad');
   /* the cutter by its full name: `cutFrom` is destructured further down this file, past where this runs */
   /* THE LAYER IS READ OFF qType_ (round 3), so qtypes.js and working.js's `workRow_` come with the keypad's own names */
   const qtSrc_ = fs.readFileSync(path.join(__dirname, 'qtypes.js'), 'utf8');
@@ -1158,7 +1158,7 @@ const withPad = drawQs.filter(r => r.diagram
   || preDiag_[String(r.paper_id) + '\u0000' + String(r.question || '')] === 1);
 /* THE APP'S OWN RULE FOR WHICH SURFACE, cut out of find.js by name with the two names it reads. A check
    that cannot find its subject exits non-zero: "I did not count" is not "there were none". */
-const findSrc_ = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const findSrc_ = require('../tools/find-src.js').findSrc();
 const { cutFrom } = require('./check-marks-load.js');
 const surfParts_ = ['padPicked_', 'padDrawn_', 'padSurface_'].map(n => cutFrom(findSrc_, n))
   .concat([cutFrom(fs.readFileSync(path.join(__dirname, 'working.js'), 'utf8'), 'workRow_')]);

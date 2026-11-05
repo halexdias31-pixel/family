@@ -10,7 +10,8 @@ const offFiles = Object.keys(T.widgetFiles || {}).filter(f => [].concat(T.widget
 const q = a => a.map(x => `'${x}'`).join(', ');
 const later = (T.later || []).filter(f => offFiles.indexOf(f) === -1);
 const want = {
-  'js/shell.js': [
+  /* shell.js was cut into shell-*.js (1040); the three lists sit in the piece that holds the first. */
+  [require('./piece-src.js').pieceFiles('shell').find(f => /const TIER_CORE_WIDGETS = /.test(fs.readFileSync(path.join(ROOT, f), 'utf8')))]: [
     [/const TIER_CORE_WIDGETS = \[[^\]]*\];/, `const TIER_CORE_WIDGETS = [${q(of('widgets', 'core'))}];`],
     [/const TIER_OFF_WIDGETS = \[[^\]]*\];/, `const TIER_OFF_WIDGETS = [${q(of('widgets', 'off'))}];`],
     [/const TIER_CORE_KINDS = \[[^\]]*\];/, `const TIER_CORE_KINDS = [${q(of('kinds', 'core'))}];`],

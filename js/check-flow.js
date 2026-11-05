@@ -2120,8 +2120,6 @@ const cardOpen_ = async (W, who, more) => {
   };
   return c;
 };
-/* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only (docs/history/339) — the owner, 11 Oct: § */
-const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
 /* SPLIT SINCE 444: You edits the first four; the Tutor column the rest, less the rate, which the Staff hub edits; the week is Available's (487). */
 const CARD_YOU_ = ['picture', 'figure', 'name', 'handle'];
 const CARD_STAFF_ = ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
@@ -3180,7 +3178,6 @@ check('no profile card offers Edit to anybody, an admin included (467): your own
 
 /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT, ON THE TUTOR'S CARD, IN POUNDS (docs/history/345) § */
 const CUT_VARS_ = { c: 0.3, B: 0.1 };
-const seatSaid_ = c => String((c.form() && (c.form().querySelector('.ce-seat') || {}).textContent) || '').trim();
 /* ---------- THREE CARDS, EACH ONE HOME (620): rate and seat k, @family.'s share g (words to a tutor), class size; a forced cut is still refused § */
 check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.\'s share as words, class size — each say their effect in pounds by x + k·x·(n−1) + g·x·(n−1); Save writes the class size; a forced cut is refused alone and left out beside another field', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
@@ -3223,9 +3220,6 @@ check('rate card (620): a tutor\'s three cards — rate and extra seat, @family.
   return bad;
 });
 
-/* ---------- THE PARTS OF A SEAT ADD UP TO THE SEAT, AND A NOUGHT IN THE TUTOR'S PART IS THE USUAL (the review of 345) -- § */
-const seatParts_ = (c, f) => { const b = c.form() && c.form().querySelector('[data-pound="' + f + '"]'); return b ? String(b.value).trim() : null; };
-const seatNote_ = c => String(((c.form() && c.form().querySelector('.ce-seat-note')) || {}).textContent || '').replace(/\s+/g, ' ').trim();
 check('the read-only cut a tutor cannot change says who sets it (345)', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
   const c = await cardOpen_(W, 'tutor@example.org');
@@ -4147,17 +4141,6 @@ check('the word search hides every word where it says, and two taps find it', as
 /* ---------- WHAT A PLACEHOLDER MAY HOLD, ASKED ONE WAY OF EVERY PLACEHOLDER § */
 const PLACEHOLDER_KEYS_ = 'button, [data-do], input, select, textarea, a[href], summary, details, label, '
   + '[tabindex], [onclick], [role], [contenteditable]';
-const PLACEHOLDER_MARKUP_ = 'div.card, h3, p.sub, p.empty, br, span.faint';
-const placeholderFaults_ = box => {
-  const bad = [];
-  const live = [...box.querySelectorAll(PLACEHOLDER_KEYS_)];
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  const more = [...box.querySelectorAll('*')].filter(e => !e.matches(PLACEHOLDER_MARKUP_) && live.indexOf(e) < 0);
-  if (more.length) bad.push('a placeholder draws more than a heading, one line and "Not built yet.": ' + more.map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  const nums = String(box.textContent || '').match(/\d[\d.,:%]*/g);
-  if (nums) bad.push('a placeholder shows a number with nothing behind it: ' + nums.join(', '));
-  return bad;
-};
 
 /* ---------- THE WHITEBOARD SINCE 377: a maths notebook (board.js), driven here through its own listeners ---------- */
 const nbFire_ = (w, el, type, x, y, id) => {
@@ -12984,7 +12967,7 @@ check('the friend search still works for a student', async () => {
 check('the app still loads when opened from a file', async () => {
   /* A PAGE OPENED FROM A FILE HAS NO ORIGIN, and the browser refuses `fetch` to anywhere else before a single byte leaves — instantly, with "Failed to fetch". § */
   const fs2 = require('fs');
-  const shell = fs2.readFileSync(path.join(dir, 'shell.js'), 'utf8');
+  const shell = require('../tools/piece-src.js').pieceSrc('shell', path.join(dir, '..'));
   const data = fs2.readFileSync(path.join(dir, 'data.js'), 'utf8');
   const bad = [];
   if (!/function jsonp\(/.test(data)) {
@@ -14560,7 +14543,7 @@ check('review 339: "Manage your child" waits with the loader while the payload c
 check('a backend that never answers does not hang the app for ever', async () => {
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
   const hasDeadline = /AbortController|Promise\.race|setTimeout\([^)]*abort/i.test(
-    fs.readFileSync(path.join(dir, 'shell.js'), 'utf8'));
+    require('../tools/piece-src.js').pieceSrc('shell', path.join(dir, '..')));
   const hasWatchdog = /Still loading after/i.test(html);
   const bad = [];
   if (!hasDeadline) {
@@ -15513,12 +15496,6 @@ const pageNum = root => {
     + (i ? ' · ' + num(i) + ' of ' + num(tagF(root, 'qPages')) : '') : '';
 };
 const tagText = (root, kind) => kind === 'number' ? pageNum(root) : kind === 'kind' ? [tagF(root, 'kindLabel'), tagF(root, 'kindOwn')].filter(Boolean).join(' ') : tagF(root, kind);
-const pageHead = root => [tagF(root, 'kindLabel'), tagF(root, 'kindOwn'), pageNum(root)].filter(Boolean).join(' ');
-/* AN ITEM'S ROW WITHOUT ITS PAGE: every tag but the two that say which page this is, and What kind --
-   the facts that must read the same on every page of one item (`tagRow_`'s rule, 355). */
-const rowSay = root => [...(root ? root.querySelectorAll('.qcard-tags .qtag') : [])]
-  .filter(t => ['qPage', 'qPages', 'kindLabel'].indexOf(t.getAttribute('data-f')) < 0)
-  .map(t => t.getAttribute('data-f') + ':' + t.textContent.trim()).join(' ');
 
 /* ---------- MARKING AND REVEALING LEAVE THE QUESTION WHERE IT IS § */
 check('marking, revealing and tapping leave the question where it is, and typing clears a stale verdict', async () => {
@@ -15938,16 +15915,16 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   let bind = '';
   fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
     let src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-    if (f === 'keypad.js') {
+    if (/^keypad[-.]/.test(f)) {
       const cut = src.match(/function kpBind_\([\s\S]*?\n\}\n/);
-      bind = cut ? cut[0] : '';
+      if (cut) bind = cut[0];
       if (cut) src = src.replace(cut[0], cut[0].replace("el.setAttribute('inputmode', 'none');", ''));
     }
     const m = src.match(SRC);
     if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
-    if (f === 'keypad.js') {
+    if (/^keypad[-.]/.test(f)) {
       const cut = src.match(/function kpField_\([\s\S]*?\n\}\n/);
-      field = cut ? cut[0] : '';
+      if (cut) field = cut[0];
       if (cut) src = src.replace(cut[0], '');
     }
     const b = src.match(BOX);
@@ -18133,7 +18110,7 @@ check('no line under any drawing says who drew it: not on one page of the librar
     try { w.figsBefore_(x).forEach(f => { if (CRED.test(strip(f.html)) || CRED.test(f.label || '')) hits.push(x.row.row_id + "'s Figure sheet says it"); }); } catch (e) { /* no sheet */ }
   });
   if (hits.length) bad.push(hits.length + ' page(s) carry a credit or a whose-marks line: ' + hits.slice(0, 5).join('; '));
-  const src = fs.readFileSync(path.join(dir, 'find.js'), 'utf8') + fs.readFileSync(path.join(dir, 'library.js'), 'utf8');
+  const src = require('../tools/find-src.js').findSrc() + fs.readFileSync(path.join(dir, 'library.js'), 'utf8');
   ['FIG_BY', 'figCredit_', 'padCredit_', 'usesSaid_', 'FIG_CARD', 'usesHead_'].forEach(n => {
     if (new RegExp('\\b(const|let|var|function)\\s+' + n + '\\b').test(src)) bad.push(n + ' is still declared — the credit is hidden, not deleted');
   });
@@ -19317,11 +19294,6 @@ const earHide_ = (w, hidden, tell) => {
   if (hidden) Object.defineProperty(w.document, 'visibilityState', { value: 'hidden', configurable: true });
   else delete w.document.visibilityState;
   if (tell) w.document.dispatchEvent(new w.Event('visibilitychange'));
-};
-/* A SOUND CUT SHORT (`markHush_`): its output's gain cancelled and ramped to 0. */
-const earCut_ = out => {
-  const i = out ? out.gain.ev.findIndex(e => e[0] === 'cancel') : -1;
-  return i >= 0 && out.gain.ev.slice(i).some(e => e[0] === 'lin' && e[1] === 0);
 };
 /* THE SOUND SWITCH, said the way the reels' Sound and Read aloud are said. */
 const EAR_BASE_ = { kind: 'question', marks: 1, subject: 'Maths', sub: 'Sounds', row: { paper_id: 'P-EAR', subject: 'Maths', name: 'Sounds' } };
@@ -21040,8 +21012,6 @@ const pg_ = t => (typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {};
 /* THE ANSWERS A COLUMN'S QUESTION PAGE DRAWS, as `field:value`, in the order drawn. */
 const resAnswers_ = (w, id) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
   .map(el => el.dataset.field + ':' + el.dataset.value);
-const resPick_ = (w, id, v) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
-  .find(b => b.dataset.value === v);
 const resType_ = (w, id, v) => {
   const el = w.document.getElementById(id + '-q');
   if (!el) return false;

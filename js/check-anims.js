@@ -37,7 +37,7 @@ async function main() {
   /* ================================ READ, FROM THE FILES ======================================== */
   const rows = readAnimRows();
   const css0 = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
-  const shellSrc = fs.readFileSync(path.join(ROOT, 'js', 'shell.js'), 'utf8');
+  const shellSrc = require('../tools/piece-src.js').pieceSrc('shell', ROOT);
   const jsApp = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !f.startsWith('check') && f !== '_scope.js')
     .map(f => ({ f, src: fs.readFileSync(path.join(ROOT, 'js', f), 'utf8') }));
   const EL = { line: 'nline' };                                  // the one whose element id was not its name

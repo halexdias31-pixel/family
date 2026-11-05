@@ -2,7 +2,7 @@
 /* @family. — check/qcard.js ONE CARD PER QUESTION NUMBER (960), and every tile answering a tap at once: a browser walk, data/qcard-health.json. */
 /* Static over every question the fixture's library holds (stuffPages_ under Questions): card-split, orphan-part. On drawn cards (a sample */
 /* spread over the papers): dup-tagline, tile-groups, card-order, indent. Then tap-response: each tile act on a question card and in Settings, */
-/* tapped twice 300 ms apart, must change something on the page within 100 ms each time. Then text-overflow at 390 and 1024 wide. Then stable-controls (1020): a tap moves no other control. tools/health.js reads the file; ideal 0 each. */
+/* tapped twice 300 ms apart, must change something on the page within 100 ms each time. Then text-overflow at 390 and 1024 wide. Then stable-controls (1020) and the owner's four (1030). tools/health.js reads the file; ideal 0 each. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -102,7 +102,7 @@ function staticControls() {
     let act = '';
     lines.forEach((l, i) => {
       const m = /^on\('([^']+)'/.exec(l);
-      if (m) act = m[1]; else if (/^\}\);?\s*$/.test(l)) act = '';
+      if (m) act = /\}\);?\s*$/.test(l) ? '' : m[1]; else if (/^\}\);?\s*$|^(function |const |let |\/\*)/.test(l)) act = '';
       if (act && /insertAdjacentHTML|outerHTML\s*=|\.remove\(\)/.test(l) && /tile|row|bar/i.test(l)) out.push(`${f}:${i + 1} ${act}`);
     });
   });
@@ -131,6 +131,63 @@ function overflowScan(screen) {
     if (why) out.push(screen + ': ' + sel(e) + ' — ' + why);
   });
   return out;
+}
+
+/* IN THE PAGE: THE OWNER'S FOUR (1030), as drawn on the current screen. `pill` is the drawn cream answer box's look. */
+function ownerScan(arg) {
+  const [screen, pill] = arg, out = { 'tag-colour': [], 'element-box': [], 'text-boxes': [] };
+  const vis = e => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
+  const on = document.querySelector('.screen.on, section.on') || document;
+  /* tag-colour: every answer of a drawn menu wears one colour, its menu's; a chip wears its menu's. */
+  document.querySelectorAll('.answers').forEach(a => { if (!vis(a)) return;
+    const rows = [...a.querySelectorAll('[data-do="facet-pick"]')], tags = new Set(rows.map(r => r.getAttribute('data-tag')));
+    if (tags.size > 1) out['tag-colour'].push(screen + ': one menu (' + (rows[0] && rows[0].dataset.field) + ') in ' + tags.size + ' colours');
+    rows.forEach(r => { if (r.getAttribute('data-tag') !== tagOf_(r.dataset.field)) out['tag-colour'].push(screen + ': ' + r.dataset.field + ' answer not in its menu\'s colour'); }); });
+  document.querySelectorAll('.chip[data-do="filter-drop"]').forEach(c => { if (!vis(c)) return; const f = (STUFF.filters || [])[Number(c.dataset.i)];
+    if (f && !f.any && c.getAttribute('data-tag') !== tagOf_(f.field)) out['tag-colour'].push(screen + ': chip ' + f.field + ' not in its menu\'s colour'); });
+  document.querySelectorAll('.page.on .qtags .qtag[data-f]').forEach(t => { if (vis(t) && t.getAttribute('data-tag') !== tagOf_(t.getAttribute('data-f')))
+    out['tag-colour'].push(screen + ': card word "' + t.textContent.trim().slice(0, 20) + '" not in its menu\'s colour'); });
+  /* element-box: each element on a page drawn without a box, like every other. */
+  document.querySelectorAll('.page.on .qwhole, .page.on .favwrap > .card, .page.on .favwrap > .qcard').forEach(e => { if (!vis(e)) return; const c = getComputedStyle(e);
+    const box = (c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.backgroundColor !== 'transparent') || parseFloat(c.borderTopWidth) > 0 || parseFloat(c.borderLeftWidth) > 0 || parseFloat(c.borderTopLeftRadius) > 0 || c.boxShadow !== 'none';
+    if (box) out['element-box'].push(screen + ': .' + String(e.className).split(' ')[0] + ' drawn in a box (' + c.backgroundColor + ', ' + c.borderTopWidth + ' ' + c.borderTopLeftRadius + ')'); });
+  /* text-boxes: every visible typing box drawn as the cream pill. */
+  if (pill) document.querySelectorAll('input, textarea').forEach(e => {
+    if (!vis(e) || /^(range|color|checkbox|radio|file|hidden|submit|button)$/.test(e.type) || e.closest('.kp-field')) return;
+    const c = getComputedStyle(e), sig = { bg: c.backgroundColor, colour: c.color, radius: c.borderTopLeftRadius, font: c.fontSize + ' ' + c.fontFamily.split(',')[0], border: c.borderTopWidth + ' ' + c.borderTopStyle + ' ' + c.borderTopColor, padR: c.paddingRight };
+    const off = Object.keys(pill).filter(k => k !== 'h' && sig[k] !== pill[k]);
+    if (Math.abs(Math.round(e.getBoundingClientRect().height) - pill.h) > 2 && e.tagName === 'INPUT') off.push('height ' + Math.round(e.getBoundingClientRect().height));
+    if (off.length) out['text-boxes'].push(screen + ': ' + (e.id ? '#' + e.id : e.tagName.toLowerCase() + (e.className ? '.' + String(e.className).split(' ')[0] : '')) + ' differs in ' + off.map(k => k === 'h' || /^height/.test(k) ? k : k + ' ' + sig[k]).join(', '));
+  });
+  return out;
+}
+/* IN THE PAGE: every kind's card, and multi-part questions whole: a tag line at the top with every attribute, none outside it. */
+function tagScan() {
+  return inFinder_(FINDERS.stuff, () => {
+    const out = { 'card-tags': [], 'attr-outside-tags': [] }, by = {}, host = document.createElement('div');
+    stuffItemsAll_().forEach(x => { if (x && x.kind) (by[x.kind] = by[x.kind] || []).push(x); });
+    const MARKS = /^\[?\(?\d+ marks?\)?\]?$/i;
+    const look = (k, html, x) => { host.innerHTML = html;
+      const row = host.querySelector('.qtags');
+      if (!row) { out['card-tags'].push(k + ': no tag line'); return; }
+      const card = row.parentElement, before = [...card.children].slice(0, [...card.children].indexOf(row)).filter(e => !e.matches('h3, .fc-head'));
+      if (before.length) out['card-tags'].push(k + ': the tag line is not at the top (' + before[0].className + ' above it)');
+      const have = new Set([...host.querySelectorAll('.qtags .qtag')].flatMap(t => [t.getAttribute('data-f')].concat(String(t.getAttribute('data-also') || '').split(' '))));
+      if (x) facetList().forEach(F => { let v = []; try { v = asList_(F.tagOf ? F.tagOf(x, '') : facetOwn_(F, x)).filter(z => String(z == null ? '' : z).trim()); } catch (e) { v = []; }
+        if (v.length && !have.has(F.field)) out['card-tags'].push(k + ': ' + F.field + ' is not a tag'); });
+      [...host.querySelectorAll('*')].filter(e => !e.closest('.qtags') && !e.closest('.chips')).forEach(e => {
+        if (e.hasAttribute('data-f') || /(^|\s)[\w-]*marks\b/.test(e.className || '') || (!e.children.length && MARKS.test((e.textContent || '').trim())))
+          out['attr-outside-tags'].push(k + ': "' + (e.textContent || '').trim().slice(0, 30) + '" (' + (e.className || e.tagName) + ') outside the tag line'); }); };
+    Object.keys(by).forEach(k => { const l = by[k].filter(x => !libSlim_(x)), step = Math.max(1, Math.floor(l.length / 10));
+      for (let i = 0; i < l.length; i += step) { let h = ''; try { h = stuffCard(l[i], 0); } catch (e) { h = ''; } if (h) look(k, h, isQ_(l[i]) ? null : l[i]); } });
+    const qp = questionParts_();
+    Object.keys(qp).filter(k => qp[k].length > 1).slice(0, 30).forEach(k => { const ps = qp[k];
+      look('whole question ' + k, questionWhole_(ps[0], ps, new Set(ps), true), null);
+      const top = host.querySelector('.qwhole > .qtags'), want = ps.filter(p => Number(p.marks) > 0).length;
+      if (top && want > 1 && top.querySelectorAll('[data-f="marks"]').length < want) out['card-tags'].push('whole question ' + k + ': ' + want + ' parts with marks, ' + top.querySelectorAll('[data-f="marks"]').length + ' marks tags'); });
+    Object.keys(out).forEach(k => { out[k] = [...new Set(out[k])]; });
+    return out;
+  });
 }
 
 (async () => {
@@ -221,20 +278,49 @@ function overflowScan(screen) {
       (await page.evaluate(overflowScan, name + ' ' + w + 'x' + h)).forEach(f => spill.push(f));
     }
   }
+  /* THE OWNER'S FOUR (1030), drawn at 390x844: Find's front, the Maths menu with its chips, a whole question, a lone part, a library card, Settings. */
+  await page.setViewportSize({ width: 390, height: 844 });
+  const own = { 'tag-colour': [], 'element-box': [], 'card-tags': [], 'attr-outside-tags': [], 'text-boxes': [] };
+  const pillAt = () => page.evaluate(() => { const e = [...document.querySelectorAll('#s-stuff .qp-bar > .qp-ans')].find(a => a.getBoundingClientRect().width > 0); if (!e) return null; const c = getComputedStyle(e);
+    return { h: Math.round(e.getBoundingClientRect().height), bg: c.backgroundColor, colour: c.color, radius: c.borderTopLeftRadius, font: c.fontSize + ' ' + c.fontFamily.split(',')[0], border: c.borderTopWidth + ' ' + c.borderTopStyle + ' ' + c.borderTopColor, padR: c.paddingRight }; });
+  const openQ = n => page.evaluate(n => inFinder_(FINDERS.stuff, () => { const qp = questionParts_();
+    const k = Object.keys(qp).find(k => (n > 1 ? qp[k].length > 1 : qp[k].length === 1) && qp[k].every(p => Number(p.marks) > 0));
+    if (k) finderOpen_(qp[k][0], null, FINDERS.stuff); return k || null; }), n);
+  await page.evaluate(() => go('stuff')); await openQ(1); await page.waitForTimeout(2000);
+  const pill = await pillAt();
+  if (!pill) own['text-boxes'].push('no cream answer pill drawn on a question: the text boxes were NOT measured');
+  const scenes = { 'find front': () => { go('stuff'); inFinder_(FINDERS.stuff, () => { finderSet_(FINDERS.stuff, { filters: [], q: '' }); paintStuff(); }); },
+    'maths menu': () => { go('stuff'); inFinder_(FINDERS.stuff, () => { finderSet_(FINDERS.stuff, { filters: [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }, { field: 'subject', value: 'Maths' }], q: '' }); paintStuff(); }); },
+    'whole question': 2, 'lone part': 1,
+    'library card': () => { go('stuff'); inFinder_(FINDERS.stuff, () => { const x = stuffItemsAll_().find(i => i.kind === 'insert') || stuffItemsAll_().find(i => i.kind === 'content' && !libSlim_(i)); if (x) finderOpen_(x, null, FINDERS.stuff); }); },
+    settings: () => go('account') };
+  for (const name of Object.keys(scenes)) {
+    if (typeof scenes[name] === 'number') { await page.evaluate(() => go('stuff')); await openQ(scenes[name]); } else await page.evaluate('(' + scenes[name].toString() + ')()');
+    await page.waitForTimeout(1200);
+    const r = await page.evaluate(ownerScan, [name, pill]);
+    Object.keys(r).forEach(k => own[k].push(...r[k]));
+  }
+  const ts = await page.evaluate(tagScan);
+  Object.keys(ts).forEach(k => own[k].push(...ts[k]));
   const lag = taps.filter(t => t.ms.some(m => m > 100) || (t.ms[0] >= 0 && t.ms[1] < 0));
   const out = { at: new Date().toISOString().slice(0, 10), pages: st.pages, sampled: st.sampled,
     checks: { 'card-split': st.split.length, 'orphan-part': st.orphan.length, 'dup-tagline': st.dupTag.length, 'tile-groups': st.rows.length,
               'card-order': st.order.length, indent: st.indent.length, 'tap-response': lag.length, 'text-overflow': spill.length,
-              'stable-controls': stable.length, 'static-controls': stat.length },
+              'stable-controls': stable.length, 'static-controls': stat.length,
+              'tag-colour': own['tag-colour'].length, 'element-box': own['element-box'].length, 'card-tags': own['card-tags'].length,
+              'attr-outside-tags': own['attr-outside-tags'].length, 'text-boxes': own['text-boxes'].length },
     where: { 'card-split': st.split.slice(0, 20), 'orphan-part': st.orphan.slice(0, 20), 'dup-tagline': st.dupTag.slice(0, 20), 'tile-groups': st.rows.slice(0, 20),
              'card-order': st.order.slice(0, 20), indent: st.indent.slice(0, 20), 'tap-response': lag.map(t => `${t.screen} ${t.act}: ${t.ms.join(' / ')} ms`), 'text-overflow': spill.slice(0, 40),
-             'stable-controls': stable.slice(0, 40), 'static-controls': stat.slice(0, 40) },
+             'stable-controls': stable.slice(0, 40), 'static-controls': stat.slice(0, 40),
+             'tag-colour': own['tag-colour'].slice(0, 40), 'element-box': own['element-box'].slice(0, 40), 'card-tags': own['card-tags'].slice(0, 40),
+             'attr-outside-tags': own['attr-outside-tags'].slice(0, 40), 'text-boxes': own['text-boxes'].slice(0, 40) },
     taps, errors };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(Object.entries(out.checks).map(([k, v]) => `${k} ${v}`).join(', ') + ` (${st.pages} pages, ${st.sampled} cards drawn, ${taps.length} acts tapped)`);
   spill.slice(0, 15).forEach(f => console.log('  spill: ' + f));
   stable.slice(0, 15).forEach(f => console.log('  unstable: ' + f));
   stat.forEach(f => console.log('  static: ' + f));
+  Object.keys(own).forEach(k => own[k].slice(0, 12).forEach(f => console.log('  ' + k + ': ' + f)));
   lag.forEach(t => console.log('  lag: ' + t.screen + ' ' + t.act + ' ' + t.ms.join(' / ') + ' ms'));
   await browser.close(); server.close();
   process.exit(Object.values(out.checks).some(n => n > 0) ? 1 : 0);

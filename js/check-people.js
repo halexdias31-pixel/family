@@ -13,7 +13,7 @@ const ROOT = path.join(__dirname, '..');
 const core   = fs.readFileSync(path.join(ROOT, 'backend', 'core.gs'), 'utf8');
 const consts = fs.readFileSync(path.join(ROOT, 'backend', 'constants.gs'), 'utf8');
 /* THE PHONE'S HALF OF THE ONE ARRANGEMENT THIS FILE CANNOT OTHERWISE SEE — see the last case. */
-const me     = fs.readFileSync(path.join(ROOT, 'js', 'me.js'), 'utf8');
+const me     = require('../tools/piece-src.js').pieceSrc('me', ROOT);
 
 /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST EXIT NON-ZERO — `check-booking.js` printed "nothing to
    check" and exited 0 for months, which read as a pass. Same `grab` as `check-handles.js`. */

@@ -400,11 +400,11 @@ function cardExtras_(x) {
 function cardTiles_(x) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
   const mine = cardCore_(x) + cardExtras_(x)
-    + tile_([typeof readAloudOpts_ === 'function' && x.kind !== 'question' ? readAloudOpts_(x) : null,
+    + tile_([typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null,
       typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null])
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
-    + (x.key && x.kind !== 'me' && x.kind !== 'question' && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
+    + (x.key && x.kind !== 'me' && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */

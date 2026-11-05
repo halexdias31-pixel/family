@@ -32,10 +32,10 @@ same('kinds', false, []);
 const secOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'secondary');
 const coreOf = what => Object.keys(T[what] || {}).filter(k => T[what][k] === 'core');
 ['stuff', 'res'].forEach(s => { if ((T.screens || {})[s] !== 'core') bad.push('Find\'s screen ' + s + ' is not core'); });
-['find', 'shell', 'data', 'boot', 'library', 'keypad', 'answers'].forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
+['find', 'shell', 'keypad'].flatMap(b => require('../tools/piece-src.js').pieceFiles(b)).map(f => f.slice(3, -3)).concat(['data', 'boot', 'library', 'answers']).forEach(f => { if ((T.files || {})[f] !== 'core') bad.push('js/' + f + '.js is not core, and Find cannot run without it'); });
 
 /* THE BROWSER'S COPY: shell.js's core lists are this file's. */
-const shell = read('js/shell.js');
+const shell = require('../tools/piece-src.js').pieceSrc('shell', ROOT);
 const eq = (a, b) => a.slice().sort().join() === b.slice().sort().join();
 const cw = list(/const TIER_CORE_WIDGETS = \[([^\]]*)\]/, shell), ck = list(/const TIER_CORE_KINDS = \[([^\]]*)\]/, shell);
 if (!cw || !eq(cw, coreOf('widgets'))) bad.push('shell.js TIER_CORE_WIDGETS is [' + cw + '], tiers.json says [' + coreOf('widgets') + ']');
@@ -45,7 +45,7 @@ if (T.kindDefault !== 'secondary') bad.push('kindDefault must be secondary: a ki
 /* THE GUARDS ARE WHERE EVERY CALLER PASSES. */
 const end = map.indexOf('\n];', map.indexOf('const WIDGETS = ['));
 if (end === -1 || !/^\s*(\/\*[^\n]*\*\/\s*)?tierGuardWidgets_\(WIDGETS\);/.test(map.slice(end + 3))) bad.push('map.js does not call tierGuardWidgets_(WIDGETS) straight after the WIDGETS array');
-if (!/tierCore_\('kind', x\.kind\) \? card\(x, credits\) : tierRun_\(/.test(read('js/find.js'))) bad.push('find.js stuffCard does not run a secondary kind\'s card through tierRun_');
+if (!/tierCore_\('kind', x\.kind\) \? card\(x, credits\) : tierRun_\(/.test(require('../tools/find-src.js').findSrc())) bad.push('find.js stuffCard does not run a secondary kind\'s card through tierRun_');
 
 /* SECONDARY CODE IS LATER (670), never before the first paint, unless eagerSecondary gives the reason. */
 const eager = T.eagerSecondary || {};

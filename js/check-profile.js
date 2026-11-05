@@ -964,7 +964,7 @@ let cardRules = 0;
   const fs = require('fs'), path = require('path'), vm = require('vm');
   let acorn = null;
   try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
-  const meSrc = fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8');
+  const meSrc = require('../tools/piece-src.js').pieceSrc('me', path.join(__dirname, '..'));
   const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
                 'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_',
                 /* docs/history/339: the library cards' fields, which Settings takes off and Tools draws. */

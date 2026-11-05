@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, '..');
 const src = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const json = f => JSON.parse(src(f));
 const bad = [], said = [];
-const find = src('js/find.js');
+const find = require('../tools/find-src.js').findSrc();
 
 /* ---------- THE CARDS, BUILT BY THE LOADERS */
 const LOADERS = [['talmud', 'TALMUD', 'talmudItems_', 'data/talmud/index.json'], ['quran', 'QURAN', 'quranItems_', 'data/quran/index.json'],
@@ -153,7 +153,7 @@ if (items.length) {
 fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
   src('js/' + f).split('\n').forEach((l, i) => {
     if (/\bSCRIPTURE_MIN_AGE\b/.test(l) && !/const SCRIPTURE_MIN_AGE = |const scriptureMinAge_ = /.test(l)) bad.push('js/' + f + ':' + (i + 1) + ' reads SCRIPTURE_MIN_AGE outside scriptureMinAge_');
-    if (/\bviewerOfAge_\(scriptureMinAge_\(\)\)/.test(l) && f !== 'find.js') bad.push('js/' + f + ':' + (i + 1) + ' asks the age its own way — writingFor_');
+    if (/\bviewerOfAge_\(scriptureMinAge_\(\)\)/.test(l) && !/^find(-[\w-]+)?\.js$/.test(f)) bad.push('js/' + f + ':' + (i + 1) + ' asks the age its own way — writingFor_');
   });
 });
 

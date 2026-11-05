@@ -43,7 +43,7 @@ tree.forEach(t => {
 });
 
 /* THE GROUPING TABLES WENT IN 396 — every facet's answers are drawn as they are — so a subject or level needs no row anywhere. */
-const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
+const findSrc = require('../tools/find-src.js').findSrc();
 
 /* THE KIND ITSELF, AND THE WORD THE OWNER ASKED FOR. The label is what `What kind` prints, so it is
    read off the `KINDS` entry and then looked for in the table that groups it. */
@@ -72,8 +72,8 @@ if (!/projectType:\s*libS\(r\.project_type\)/.test(libSrc)) {
 if (!/\n\s*projectType:\s*projType_\(p\)/.test(findSrc)) {
   fail.push('the project mapper in js/find.js does not put `projectType` on the item, so the funnel has nothing to read');
 }
-/* ITS ANSWERS ARE COLOURED BY THE ONE RULE EVERY MENU USES (1010): a hue per place in the menu. */
-if (!/function tagOf_\(field, value(, at)?\)/.test(findSrc)) fail.push('tagOf_ in js/find.js does not colour by answer — experiment and build would wear one colour');
+/* ITS ANSWERS WEAR THEIR MENU'S ONE COLOUR (1030): `projectType` is in TAG_OF, written by tools/facet-hues.js. */
+if (!/^const TAG_OF = \{.*\bprojectType: \d+.*\};$/m.test(findSrc)) fail.push('TAG_OF in js/find.js has no `projectType` — run node tools/facet-hues.js');
 let facetRows = [];
 try { facetRows = JSON.parse(fs.readFileSync(path.join(root, 'data', 'settings', 'facets.json'), 'utf8')); }
 catch (e) { fail.push('data/settings/facets.json does not parse — the Project or coursework question was NOT checked'); }

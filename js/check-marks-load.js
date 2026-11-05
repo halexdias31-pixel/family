@@ -23,7 +23,7 @@ function cutFrom(src, name) {
 
 /* Returns `{ source, missing }`. § */
 function markingSource(root) {
-  const src = fs.readFileSync(path.join(root || path.join(__dirname, '..'), 'js', 'find.js'), 'utf8');
+  const src = require('../tools/find-src.js').findSrc(root || path.join(__dirname, '..'));
   const missing = NAMES.filter(n => !cutFrom(src, n));
   return { source: missing.length ? '' : NAMES.map(n => cutFrom(src, n)).join('\n'), missing: missing };
 }

@@ -569,7 +569,7 @@ function libDisk_() {
     if (typeof indexedDB === 'undefined' || !indexedDB) return null;
     const open = () => new Promise((ok, no) => {
       const rq = indexedDB.open(LIB_DISK_DB, 1);
-      rq.onupgradeneeded = () => { try { rq.result.createObjectStore('items', { keyPath: 'id' }); } catch (e) {} };
+      rq.onupgradeneeded = () => { try { rq.result.createObjectStore('items', { keyPath: 'id' }); } catch (e) { /* the store is already there */ } };
       rq.onsuccess = () => ok(rq.result);
       rq.onerror = () => no(rq.error);
     });
@@ -595,7 +595,7 @@ function libDiskLoad_() {
     const m = new Map(), stale = [], who = (USER && USER.personId) || '', gen = libLedgerGen_();
     (recs || []).forEach(r => { if (r && r.id && r.who === who && (!gen || r.gen === gen)) m.set(r.id, r); else if (r && r.id) stale.push(r.id); });
     LIB.disk = m;
-    if (stale.length) try { disk.drop(stale).catch(() => {}); } catch (e) {}
+    if (stale.length) try { disk.drop(stale).catch(() => {}); } catch (e) { /* no disk cache: nothing to drop */ }
   }).catch(() => { LIB.disk = new Map(); });
 }
 /* WHAT THE DEVICE ALREADY HOLDS, off the pending list and onto the rows — only for the generation known now. */
@@ -635,7 +635,7 @@ function libDiskPut_(items, gen) {
 /* SIGNED OUT: the device forgets every word too. */
 function libDiskClear_() {
   LIB.disk = null; LIB.diskP = null; LIB.ledger = '';
-  try { const disk = libDisk_(); if (disk) disk.clear().catch(() => {}); } catch (e) {}
+  try { const disk = libDisk_(); if (disk) disk.clear().catch(() => {}); } catch (e) { /* no disk cache: nothing to drop */ }
 }
 
 /* WHY THE WORDS DID NOT COME, said plainly (432): a live backend older than `libItems` is a deploy for an admin, a wait for anyone else. */
@@ -744,4 +744,4 @@ function libRetry_() {
   if (typeof libLanded_ === 'function') libLanded_();
   if (LIB.pending.size && !LIB.timer) LIB.timer = setTimeout(libPump_, 0);
 }
-try { window.addEventListener('online', () => { if (LIB.failed) libRetry_(); }); } catch (e) {}
+try { window.addEventListener('online', () => { if (LIB.failed) libRetry_(); }); } catch (e) { /* no online event: a retry waits for the next visit */ }

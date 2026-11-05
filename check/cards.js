@@ -16,7 +16,7 @@ const ALL = process.argv.includes('--all');
 /* ---------- THE CARD'S OWN TYPESETTER, NOT A COPY OF IT § */
 const typeset_ = (() => {
   const { cutFrom } = require(path.join(ROOT, 'js', 'check-marks-load.js'));
-  const body = cutFrom(fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8'), 'typeset_');
+  const body = cutFrom(require('../tools/find-src.js').findSrc(), 'typeset_');
   if (!body) { console.log('check/cards.js: cannot find typeset_ in find.js — renamed?'); process.exit(1); }
   return eval('(' + body + ')');
 })();

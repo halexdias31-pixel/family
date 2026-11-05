@@ -1,16 +1,16 @@
 {
  "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.",
  "coupling": {
-  "js/find.js": 295,
+  "js/find.js": 0,
   "js/shell.js": 186,
-  "js/me.js": 184,
+  "js/me.js": 187,
   "js/posts.js": 112,
   "js/games.js": 106,
-  "js/tiles.js": 63,
+  "js/tiles.js": 74,
   "js/arcade.js": 93,
   "js/layout.js": 76,
-  "js/data.js": 70,
-  "js/submit.js": 80,
+  "js/data.js": 86,
+  "js/submit.js": 84,
   "js/price-rows.js": 46,
   "js/book.js": 63,
   "js/core.js": 55,
@@ -22,9 +22,9 @@
   "js/overworld.js": 56,
   "js/records.js": 54,
   "js/rules.js": 23,
-  "js/answers.js": 46,
+  "js/answers.js": 52,
   "js/writings.js": 33,
-  "js/library.js": 26,
+  "js/library.js": 34,
   "js/staff.js": 35,
   "js/mat.js": 28,
   "js/hadith.js": 21,
@@ -41,8 +41,8 @@
   "js/help.js": 13,
   "js/qtools.js": 40,
   "js/reader.js": 24,
-  "js/working.js": 29,
-  "js/talmud.js": 25,
+  "js/working.js": 31,
+  "js/talmud.js": 29,
   "js/quran.js": 21,
   "js/works.js": 17,
   "js/orthodox.js": 18,
@@ -63,7 +63,39 @@
   "js/ink.js": 2,
   "js/finder-tags.js": 1,
   "js/select.js": 3,
-  "js/resume.js": 13
+  "js/resume.js": 13,
+  "js/find-aloud.js": 140,
+  "js/find-boxers.js": 91,
+  "js/find-bundles.js": 127,
+  "js/find-cells.js": 78,
+  "js/find-facets.js": 57,
+  "js/find-figures.js": 84,
+  "js/find-finder.js": 129,
+  "js/find-history.js": 77,
+  "js/find-levels.js": 98,
+  "js/find-loupe.js": 87,
+  "js/find-marking.js": 53,
+  "js/find-measure.js": 24,
+  "js/find-pad.js": 29,
+  "js/find-pages.js": 124,
+  "js/find-parts.js": 63,
+  "js/find-pen.js": 25,
+  "js/me-account.js": 100,
+  "js/me-card.js": 78,
+  "js/me-messages.js": 57,
+  "js/me-people.js": 37,
+  "js/me-roles.js": 99,
+  "js/me-settings.js": 90,
+  "js/me-shelves.js": 44,
+  "js/shell-api.js": 101,
+  "js/shell-boot.js": 128,
+  "js/shell-click.js": 101,
+  "js/shell-hold.js": 13,
+  "js/shell-layout.js": 61,
+  "js/shell-pages.js": 112,
+  "js/keypad-edit.js": 36,
+  "js/keypad-keys.js": 52,
+  "js/keypad-pad.js": 51
  },
  "targets": {
   "fileLines": 800,
@@ -255,13 +287,6 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/find.js": {
-   "lines": 12073,
-   "oneOff": 128,
-   "emptyCatch": 30,
-   "inlineStyle": 2,
-   "rawButton": 8
-  },
   "js/finder-tags.js": {
    "lines": 23,
    "oneOff": 0,
@@ -325,13 +350,6 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/keypad.js": {
-   "lines": 1785,
-   "oneOff": 18,
-   "emptyCatch": 21,
-   "inlineStyle": 1,
-   "rawButton": 0
-  },
   "js/layout.js": {
    "lines": 1184,
    "oneOff": 3,
@@ -366,13 +384,6 @@
    "emptyCatch": 2,
    "inlineStyle": 1,
    "rawButton": 0
-  },
-  "js/me.js": {
-   "lines": 4873,
-   "oneOff": 38,
-   "emptyCatch": 58,
-   "inlineStyle": 18,
-   "rawButton": 7
   },
   "js/mechanics.js": {
    "lines": 67,
@@ -495,7 +506,7 @@
   },
   "js/resource.js": {
    "lines": 278,
-   "oneOff": 5,
+   "oneOff": 2,
    "emptyCatch": 4,
    "inlineStyle": 0,
    "rawButton": 0
@@ -528,13 +539,6 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/shell.js": {
-   "lines": 3933,
-   "oneOff": 35,
-   "emptyCatch": 44,
-   "inlineStyle": 0,
-   "rawButton": 0
-  },
   "js/spotify.js": {
    "lines": 186,
    "oneOff": 2,
@@ -551,7 +555,7 @@
   },
   "js/submit.js": {
    "lines": 1037,
-   "oneOff": 6,
+   "oneOff": 5,
    "emptyCatch": 19,
    "inlineStyle": 0,
    "rawButton": 0
@@ -572,7 +576,7 @@
   },
   "js/tiles.js": {
    "lines": 594,
-   "oneOff": 4,
+   "oneOff": 3,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
@@ -586,7 +590,7 @@
   },
   "js/working.js": {
    "lines": 172,
-   "oneOff": 1,
+   "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 1
@@ -606,7 +610,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7175,
+   "lines": 7172,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -615,6 +619,237 @@
   "js/resume.js": {
    "lines": 89,
    "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-aloud.js": {
+   "lines": 765,
+   "oneOff": 4,
+   "emptyCatch": 3,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-boxers.js": {
+   "lines": 753,
+   "oneOff": 4,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-bundles.js": {
+   "lines": 791,
+   "oneOff": 4,
+   "emptyCatch": 5,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-cells.js": {
+   "lines": 774,
+   "oneOff": 2,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/find-facets.js": {
+   "lines": 789,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-figures.js": {
+   "lines": 775,
+   "oneOff": 4,
+   "emptyCatch": 3,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-finder.js": {
+   "lines": 785,
+   "oneOff": 2,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/find-history.js": {
+   "lines": 768,
+   "oneOff": 11,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/find-levels.js": {
+   "lines": 791,
+   "oneOff": 4,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-loupe.js": {
+   "lines": 789,
+   "oneOff": 3,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-marking.js": {
+   "lines": 779,
+   "oneOff": 21,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-measure.js": {
+   "lines": 453,
+   "oneOff": 4,
+   "emptyCatch": 4,
+   "inlineStyle": 2,
+   "rawButton": 1
+  },
+  "js/find-pad.js": {
+   "lines": 774,
+   "oneOff": 7,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find-pages.js": {
+   "lines": 779,
+   "oneOff": 3,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/find-parts.js": {
+   "lines": 761,
+   "oneOff": 3,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/find-pen.js": {
+   "lines": 769,
+   "oneOff": 1,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-account.js": {
+   "lines": 778,
+   "oneOff": 6,
+   "emptyCatch": 17,
+   "inlineStyle": 7,
+   "rawButton": 0
+  },
+  "js/me-card.js": {
+   "lines": 781,
+   "oneOff": 15,
+   "emptyCatch": 7,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-messages.js": {
+   "lines": 776,
+   "oneOff": 3,
+   "emptyCatch": 12,
+   "inlineStyle": 1,
+   "rawButton": 5
+  },
+  "js/me-people.js": {
+   "lines": 269,
+   "oneOff": 1,
+   "emptyCatch": 0,
+   "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/me-roles.js": {
+   "lines": 717,
+   "oneOff": 1,
+   "emptyCatch": 6,
+   "inlineStyle": 8,
+   "rawButton": 0
+  },
+  "js/me-settings.js": {
+   "lines": 781,
+   "oneOff": 7,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/me-shelves.js": {
+   "lines": 772,
+   "oneOff": 0,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/shell-api.js": {
+   "lines": 773,
+   "oneOff": 6,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-boot.js": {
+   "lines": 758,
+   "oneOff": 9,
+   "emptyCatch": 12,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-click.js": {
+   "lines": 766,
+   "oneOff": 2,
+   "emptyCatch": 15,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-hold.js": {
+   "lines": 93,
+   "oneOff": 2,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-layout.js": {
+   "lines": 772,
+   "oneOff": 10,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell-pages.js": {
+   "lines": 776,
+   "oneOff": 6,
+   "emptyCatch": 6,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-edit.js": {
+   "lines": 284,
+   "oneOff": 10,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-keys.js": {
+   "lines": 778,
+   "oneOff": 5,
+   "emptyCatch": 11,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad-pad.js": {
+   "lines": 721,
+   "oneOff": 2,
+   "emptyCatch": 8,
+   "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/predicates.js": {
+   "lines": 17,
+   "oneOff": 15,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
@@ -637,19 +872,9 @@
   "js/book.js bookBreakdown": 102,
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
-  "js/find.js typeset_": 231,
-  "js/find.js markRule_": 83,
-  "js/find.js drawMarker_": 645,
-  "js/find.js stuffItemsRaw_": 171,
-  "js/find.js accountPages_": 109,
-  "js/find.js bundleBuild_": 85,
-  "js/find.js paintStuff": 87,
-  "js/find.js paneReach_": 119,
   "js/games.js vidPaint_": 82,
   "js/library.js libraryExtras_": 181,
   "js/mat.js matPaint": 159,
-  "js/me.js fieldHtml": 84,
-  "js/me.js profileRefresh_": 81,
   "js/posts.js camStart_": 97,
   "js/price-rows.js priceCells": 89,
   "js/racer.js raceWorld_": 122,
@@ -657,9 +882,18 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/shell.js placeGrid": 165,
-  "js/shell.js loadOnce_": 251,
-  "js/submit.js subMigrate_": 83
+  "js/submit.js subMigrate_": 83,
+  "js/find-aloud.js stuffItemsRaw_": 171,
+  "js/find-bundles.js bundleBuild_": 85,
+  "js/find-bundles.js paintStuff": 87,
+  "js/find-levels.js accountPages_": 109,
+  "js/find-marking.js markRule_": 83,
+  "js/find-pages.js paneReach_": 119,
+  "js/find-parts.js typeset_": 231,
+  "js/me-settings.js profileRefresh_": 81,
+  "js/me-shelves.js fieldHtml": 84,
+  "js/shell-api.js loadOnce_": 251,
+  "js/shell-layout.js placeGrid": 165
  },
  "variety": {
   "qpage": {
@@ -698,14 +932,14 @@
    "label": "Card tile rows"
   },
   "textbox": {
-   "count": 2,
+   "count": 1,
    "ideal": 1,
    "label": "Text boxes"
   }
  },
  "aiCost": {
-  "searchBytes": 7470149,
-  "commentRatio": 0.265,
+  "searchBytes": 7476432,
+  "commentRatio": 0.266,
   "tombstones": 0,
   "claudeLines": 100
  },
@@ -717,6 +951,19 @@
   "card-order": 0,
   "indent": 0,
   "tap-response": 0,
-  "text-overflow": 0
+  "text-overflow": 0,
+  "tag-colour": 0,
+  "element-box": 0,
+  "card-tags": 0,
+  "attr-outside-tags": 0,
+  "text-boxes": 0
+ },
+ "owner": {
+  "why": "the owner's four (1030): static halves, ideal 0",
+  "tag-colour": 0,
+  "element-box": 0,
+  "card-tags": 0,
+  "attr-outside-tags": 0,
+  "text-boxes": 0
  }
 }

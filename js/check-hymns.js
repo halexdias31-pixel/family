@@ -41,7 +41,7 @@ if (ix) {
 if (!fs.existsSync(path.join(DIR, 'LICENSE'))) bad.push('data/hymns/LICENSE is missing — the sources need their credit');
 fs.readdirSync(DIR).forEach(f => { if (/\.(mp3|ogg|wav|m4a|flac|aac|opus)$/i.test(f)) bad.push('data/hymns/' + f + ' is audio — the audio is Spotify\'s, never hosted here'); });
 const src = n => fs.readFileSync(path.join(ROOT, n), 'utf8');
-const js = src('js/hymns.js'), find = src('js/find.js');
+const js = src('js/hymns.js'), find = require('../tools/find-src.js').findSrc();
 if (!/\.\.\.\(typeof hymnsItems_ === 'function' \? hymnsItems_\(\) : \[\]\)/.test(find)) bad.push('stuffItemsRaw_ does not list hymnsItems_() — the hymns never reach Find');
 if (!/hymnsIndex_\(\)/.test(find)) bad.push('paintStuff never asks for the hymns index');
 if (!/hymn: \{ group: 'Learning'/.test(find)) bad.push('the hymn kind has no card in find.js');

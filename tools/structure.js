@@ -6,7 +6,7 @@ const H = require('./health.js');
 const ROOT = path.resolve(__dirname, '..');
 const BUDGETS = 'data/settings/structure-budgets.json';
 const TARGET = { fileLines: 800, fnLines: 80, variety: 1, oneOff: 0, questions: '1 page + 5 checkers' };
-const MAKERS = new Set(['js/tiles.js', 'js/shell.js']);
+const MAKERS = new Set(['js/tiles.js', ...require('./piece-src.js').pieceFiles('shell')]);
 const WAIT = /(?:Loading|Please wait|Working)(?:…|\.\.\.)|class="[^"]*\bspinner\b|setAttribute\('aria-busy', 'true'\)/;
 
 /* THE FILES MEASURED: every loaded js file (checks excluded), every backend .gs, and style.css. */
@@ -81,11 +81,14 @@ function ratchet(changedFiles) {
   const B = readBudgets(); if (!B) return { bad: ['structure\t' + BUDGETS + '\tmissing: node tools/structure.js --init'], gains: [] };
   const bad = [], gains = [], files = changedFiles.filter(f => /^(js\/(?!check|_)[^/]+\.js|backend\/[^/]+\.gs|style\.css)$/.test(f));
   const M = {};
+  /* A SPLIT (1040): a removed file's functions and counts pass to the new files cut from it, so a move is not a new giant. */
+  const old = {}; Object.keys(B.functions).forEach(k => { const n = k.slice(k.indexOf(' ') + 1); old[n] = Math.max(old[n] || 0, B.functions[k]); });
+  const pool = {}; files.filter(f => !fs.existsSync(path.join(ROOT, f)) && B.files[f]).forEach(f => ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => { pool[k] = (pool[k] || 0) + (B.files[f][k] || 0); }));
   files.forEach(f => {
     if (!fs.existsSync(path.join(ROOT, f))) { if (B.files[f]) { delete B.files[f]; gains.push(f + ' removed'); } Object.keys(B.functions).filter(k => k.startsWith(f + ' ')).forEach(k => delete B.functions[k]); return; }
     const m = M[f] = measure(f), was = B.files[f];
     if (!was) { if (m.lines > TARGET.fileLines) bad.push(`big-file\t${f}\ta new file of ${m.lines} lines (target ${TARGET.fileLines})`);
-      ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => m[k] && bad.push(`${k}\t${f}\t${m[k]} in a new file (allowed 0)`));
+      ['oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => { if (m[k] && m[k] <= (pool[k] || 0)) pool[k] -= m[k]; else if (m[k]) bad.push(`${k}\t${f}\t${m[k]} in a new file (allowed 0)`); });
       B.files[f] = { lines: m.lines, oneOff: m.oneOff, emptyCatch: m.emptyCatch, inlineStyle: m.inlineStyle, rawButton: m.rawButton };
     } else ['lines', 'oneOff', 'emptyCatch', 'inlineStyle', 'rawButton'].forEach(k => {
       const lim = k === 'lines' ? Math.max(was[k], TARGET.fileLines) : was[k];
@@ -94,7 +97,6 @@ function ratchet(changedFiles) {
     });
   });
   /* FUNCTIONS: a known one may shrink, never grow; a new long one fails unless it moved whole from another file (a split). */
-  const old = {}; Object.keys(B.functions).forEach(k => { const n = k.slice(k.indexOf(' ') + 1); old[n] = Math.max(old[n] || 0, B.functions[k]); });
   Object.keys(M).forEach(f => {
     const seen = new Set();
     Object.keys(M[f].fns).forEach(n => { const k = f + ' ' + n, len = M[f].fns[n]; seen.add(k);

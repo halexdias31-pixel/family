@@ -84,7 +84,7 @@ function ansDirtyKeep_(who) {
   try {
     if (s && s.size) localStorage.setItem('ansDirty:' + who, JSON.stringify([...s]));
     else localStorage.removeItem('ansDirty:' + who);
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
 
 /* ---------- THE ONE WRITER § */
@@ -290,7 +290,7 @@ function ansHeld_(k) {
     const a = document.activeElement;
     if (a && a.getAttribute && a.getAttribute('data-k') === k) return true;
     if (typeof padInUse_ === 'function' && PAD_ON && (PAD_ON === k || PAD_ON + ':words' === k) && padInUse_(PAD_ON)) return true;
-  } catch (e) {}
+  } catch (e) { /* a page mid-change: not in use */ }
   return false;
 }
 
@@ -336,7 +336,7 @@ function answersAdopt_(pid, got) {
       ansAtSet_(k, Date.now());
       dirty.add(k);
     }
-  } catch (e) {}
+  } catch (e) { /* a half-drawn page: the next pass records it */ }
   ansDirtyKeep_(who);
   if (changed.length) ansRefresh_(changed);
   ansSavedPaint_();
@@ -441,7 +441,7 @@ function ansRefresh_(keys) {
         s.setAttribute('aria-pressed', lit ? 'true' : 'false');
       });
     });
-  } catch (e) {}
+  } catch (e) { /* a page mid-change: the next paint lights it */ }
 }
 
 /* ---------- THE LINE UNDER THE BOX § */
@@ -525,7 +525,7 @@ function ansGoneMark_(k, v, words, was) {
     /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with the visit's copy of a key the store refused. § */
     Object.keys(map).forEach(x => { if (x !== k && ansValue_(x) === null) delete map[x]; });
     ansRecPut_(ANS_GONE_KEYS, Object.keys(map).length ? JSON.stringify(map) : null);
-  } catch (e) {}
+  } catch (e) { /* storage can be blocked; the visit copy still holds */ }
 }
 /* ---------- DOES A WRITE KEEP WHAT WAS THERE — an edit of it, or a new answer over it? (P7, above) § */
 function ansKeeps_(k, was, v) {
@@ -537,7 +537,7 @@ function ansKeeps_(k, was, v) {
         const old = new Set(a.map(x => JSON.stringify(x)));
         return b.some(x => old.has(JSON.stringify(x)));
       }
-    } catch (e) {}
+    } catch (e) { /* unreadable marks are not the same */ }
   }
   const a = String(was), b = String(v);
   let p = 0;
@@ -565,7 +565,7 @@ function keepWaits_(k) {
   if (!held) return false;
   /* NOT WHEN THE STORED MARKS SAY THE SAME ALREADY — the refused write was about some other answer. */
   let kept = null;
-  try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) {}
+  try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) { /* a bad stored value reads as none */ }
   return !(kept && kept.who === held.who);
 }
 /* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER § */
@@ -655,13 +655,13 @@ function ansSavedPaint_() {
       const say = padNoteSay_(el.getAttribute('data-kept-k'));
       if (el.textContent !== say) el.textContent = say;
     });
-  } catch (e) {}
+  } catch (e) { /* a page mid-change: the next paint says it */ }
   try {
     document.querySelectorAll('.qp-saved[data-k]').forEach(el => {
       const say = ansSavedSay_(el.getAttribute('data-k'));
       if (el.textContent !== say) el.textContent = say;
     });
-  } catch (e) {}
+  } catch (e) { /* a page mid-change: the next paint says it */ }
 }
 /* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried. § */
 function padKeptSay_() {
@@ -705,7 +705,7 @@ window.addEventListener('storage', e => {
     if (typeof KP_UNDO !== 'undefined' && KP_UNDO && typeof KP_UNDO.delete === 'function') KP_UNDO.delete(k);
     ansRefresh_([k]);
     ansSavedPaint_();
-  } catch (err) {}
+  } catch (err) { /* a page mid-change: the answer is already dropped */ }
 });
 
 /* AND THE FIND COLUMN IS NOT REBUILT UNDER A CHILD WHO IS WRITING. § */
@@ -736,7 +736,7 @@ document.addEventListener('focusout', () => {
   FIND_KEPT_TIMER = setTimeout(() => {
     try {
       if (findIs_(AT) && STALE && STALE[AT] && !findKeep_(AT) && !findVerdictShown_(AT)) repaint();
-    } catch (e) {}
+    } catch (e) { /* a page gone by now needs no repaint */ }
   }, 400);
 });
 

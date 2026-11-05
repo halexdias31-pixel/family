@@ -1,5 +1,7 @@
 # js/find.js
 
+Since 1040 Find is sixteen files, `js/find-finder.js` … `js/find-measure.js`, cut in order from this one; the stories of their `§` comments stay here.
+
 The full text of comments in `js/find.js` that `tools/comments.js` shortened to a headline ending in " §".
 Append-only, in the order they were shortened; each entry names what the comment sat in.
 

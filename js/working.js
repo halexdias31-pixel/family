@@ -12,7 +12,7 @@ function workRow_(x) {
 }
 /* THE STRIP UNDER THE BOX: thumbnails, then Mark my working -- the AI's alone ("A human never marks"); a failed mark keeps the photos to try again. */
 function workStrip_(x) {
-  if (!x || x.kind !== 'question') return '';
+  if (!x || !isQ_(x)) return '';
   const k = ansKey_(x);
   return `<div class="qp-work" data-k="${esc(k)}"${(WORK_PICS[k] || []).length ? '' : ' hidden'}>${workStripInner_(k)}</div>`;
 }

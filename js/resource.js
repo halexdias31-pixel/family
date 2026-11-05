@@ -38,7 +38,7 @@ on('wear', el => {
       USER.avatar = d.avatar;
       if (typeof d.credits === 'number') USER.credits = d.credits;
       if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       /* NO SHEET TO CLOSE — this now runs from a row on the card itself. */
       tileSet_(el, { label: 'Wearing it', on: true, off: true });
       toast((d.bought || []).length ? 'Bought ' + d.bought.join(', ') : 'Wearing it');
@@ -54,8 +54,8 @@ on('wear', el => {
 
 /* ---------- THE BASKET § */
 let CART = [];
-try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch {}
-const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch {} };
+try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch { /* a bad stored basket reads as empty */ }
+const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch { /* storage blocked: the basket still holds for this visit */ } };
 
 /* ---------- A SHOP ROW PRICED IN PENCE IS MONEY, NOT CREDITS § */
 function cartPrice_(src) {
@@ -116,7 +116,7 @@ function cartAddBundle_(el) {
   ids.forEach(id => {
     const doc = typeof docById_ === 'function' ? docById_(id) : null;
     if (!doc || !canPrint_(doc)) return;
-    if (CART.some(c => c.kind === 'print' && String(c.key) === id)) { had++; return; }
+    if (CART.some(c => isPrint_(c) && String(c.key) === id)) { had++; return; }
     CART.push({ key: id, kind: 'print', name: paperLabel_(id), short: shortOf[id] || '',
                 pages: Number(doc.pages) || 0, cost: 0, from: from });
     added++;
@@ -174,7 +174,7 @@ function orderTo_() {
 const ORDER_MAX_CHARS = 2000;
 function orderLine_(c, i, full, under) {
   const bits = [];
-  if (c.kind === 'print') {
+  if (isPrint_(c)) {
     if (full) {
       const p = cartPrint_(c);
       bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
@@ -209,7 +209,7 @@ function orderWhere_() {
 function orderText_(cart) {
   const lines = (cart || CART).slice();
   const cash = lines.reduce((n, c) => n + cartMoney_(c), 0);
-  const tbc = lines.filter(c => c.kind === 'print' && cartUnpriced_(c)).length;
+  const tbc = lines.filter(c => isPrint_(c) && cartUnpriced_(c)).length;
   const credits = lines.reduce((n, c) => n + (c.cost || 0), 0);
 
   const head = 'An order from my basket, sent from the app — please print and send:';
@@ -263,7 +263,7 @@ on('cart-send', el => {
       toast('Order sent to ' + to.title + ' — the reply will be in Messages');
       /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after sending something — the `msg-send` handler's own reason. § */
       if (typeof loadMessages === 'function') {
-        try { Promise.resolve(loadMessages()).catch(() => {}); } catch (e) {}
+        try { Promise.resolve(loadMessages()).catch(() => {}); } catch (e) { /* messages load again on the next visit */ }
       }
     })
     /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. This

@@ -39,10 +39,10 @@ any name used but never declared. Run it after every change.
 
 | File | What it is |
 |---|---|
-| `js/shell.js` | **The runtime.** `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
+| `js/shell-*.js` | **The runtime**, six files cut in order from `shell.js` (1040), `shell-boot.js` first; checks read them as one via `tools/piece-src.js` (`pieceSrc('shell')`; `me-*.js` and `keypad-*.js` likewise). `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, the small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
-| `js/find.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`). Biggest file at 1 MB. |
+| `js/find-*.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`): sixteen files cut in order from one (1040), `find-finder.js` first, `find-measure.js` last; checks read them as one through `tools/find-src.js`. |
 | `js/book.js` | Sessions, seats, payment. |
 
 Nineteen screens are registered (eighteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
@@ -359,7 +359,7 @@ reports any name used but never declared. **Run it after every change.**
 
 | File | What it is |
 |---|---|
-| `js/shell.js` | The runtime: `screen(id, draw)`, `go(id)`, `placeCells()`, `toast()`, `TAB_ORDER`. |
+| `js/shell-*.js` | The runtime (cut from shell.js, 1040): `screen(id, draw)`, `go(id)`, `placeCells()`, `toast()`, `TAB_ORDER`. |
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |

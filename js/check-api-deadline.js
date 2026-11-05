@@ -10,7 +10,7 @@ const root = path.join(__dirname, '..');
 const bad = [], said = [];
 const read = p => { try { return fs.readFileSync(path.join(root, p), 'utf8'); } catch (e) { return null; } };
 
-const shell = read('js/shell.js'), post = read('backend/dopost.gs');
+const shell = (() => { try { return require('../tools/piece-src.js').pieceSrc('shell', root); } catch (e) { return null; } })(), post = read('backend/dopost.gs');
 let gs = [];
 try { gs = fs.readdirSync(path.join(root, 'backend')).filter(f => f.endsWith('.gs')).map(f => read('backend/' + f)); } catch (e) {}
 if (!shell || !post || gs.length < 5) { console.error('check-api-deadline: cannot read js/shell.js, backend/dopost.gs or the backend files'); process.exit(1); }

@@ -23,7 +23,7 @@ function cache() {
   /* SECRETS: nothing stored on the device may hold a PIN, password or secret; a session token is reported. */
   js.forEach(([f, s]) => { for (const m of s.matchAll(/(?:localStorage|sessionStorage)\.setItem\(([^;\n]{0,160})/g)) {
     if (/\b(?:pin|password|passcode|secret)\b/i.test(m[1])) W.push({ where: f + ':' + lineOf(s, m.index), say: 'stores what looks like a PIN or secret: ' + m[0].slice(0, 100) }); } });
-  if (/USER\.token/.test(H.read('js/shell.js')) && js.some(([, s]) => /setItem\('familyUser', JSON\.stringify\(USER\)\)/.test(s)))
+  if (/USER\.token/.test(require('./piece-src.js').pieceSrc('shell')) && js.some(([, s]) => /setItem\('familyUser', JSON\.stringify\(USER\)\)/.test(s)))
     W.push({ where: 'js/find.js', say: 'familyUser (with its session token) is kept in localStorage whole — fine for a session, but never let a PIN join it' });
   /* THE WALK'S REPEAT VISIT. */
   let U = null; try { U = JSON.parse(H.read('data/ux-health.json')); } catch (e) { U = null; }

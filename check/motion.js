@@ -122,7 +122,7 @@ fs.readdirSync(JS_DIR).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach
       const a = ACCEPTED.find(x => x.js === 'js/' + f && x.re.test(code));
       if (a) used.add(a); else hits.js.push(where + ': ' + code.trim().slice(0, 120));
     }
-    if (/prefers-reduced-motion/.test(code) && f !== 'shell.js') hits.jsReduce.push(where);
+    if (/prefers-reduced-motion/.test(code) && !/^shell(-|\.)/.test(f)) hits.jsReduce.push(where);
   });
 });
 

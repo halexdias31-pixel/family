@@ -5,7 +5,7 @@ require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): sk
 const fs = require('fs');
 const path = require('path');
 
-const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const src = require('../tools/find-src.js').findSrc();
 
 /* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because other checks need the same functions to ask different questions of § */
 const { NAMES, markingSource } = require('./check-marks-load.js');
@@ -731,7 +731,7 @@ console.log('rule marking: %d key-word cases, the cells, %d library rules each s
 
 /* ---------- A DRAWN ANSWER MARKED BY ITS GEOMETRY (366): every kind, a right drawing right, a near miss wrong, and the tolerance's two edges */
 const cutDraw_ = require('./check-marks-load.js').cutFrom;
-const DRAW_NAMES = ['PAD_GRIDS', 'padGrid_', 'drawFig_', 'drawMarker_'];
+const DRAW_NAMES = ['PAD_GRIDS', 'padGrid_', 'drawFig_', 'drawGeom_', 'drawFrame_', 'drawInk_', 'drawShapes_', 'drawKinds1_', 'drawKinds2_', 'drawKinds3_', 'drawKinds4_', 'drawKinds5_', 'drawExample_', 'drawMarker_'];
 const drawSrc = DRAW_NAMES.map(n => cutDraw_(src, n));
 if (drawSrc.some(x => !x)) { console.log('check-marking: cannot find ' + DRAW_NAMES.filter((n, i) => !drawSrc[i]).join(', ') + ' in find.js — the drawing marker was NOT checked'); process.exit(1); }
 const DM = new Function(drawSrc.join('\n') + '\nreturn { fig: drawFig_, M: drawMarker_() };')();

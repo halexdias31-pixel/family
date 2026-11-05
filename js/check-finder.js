@@ -187,12 +187,12 @@ function scanFile(name, src) {
   return src.split('\n').length;
 }
 
-const files = fs.readdirSync(JS).filter(n => /\.js$/.test(n) && n !== 'find.js' && !/^check/.test(n));
+const files = fs.readdirSync(JS).filter(n => /\.js$/.test(n) && !/^find(-[\w-]+)?\.js$/.test(n) && !/^check/.test(n));
 let lines = 0;
 files.forEach(n => { lines += scanFile(n, fs.readFileSync(path.join(JS, n), 'utf8')); });
 
 /* AND THE ONE WRITER IS THERE TO CALL — a scan of a tree without it would pass by reading nothing. */
-const find = fs.readFileSync(path.join(JS, 'find.js'), 'utf8');
+const find = require('../tools/find-src.js').findSrc();
 if (!/\nfunction finderSet_\s*\(F, o\)/.test(find)) bad.push('js/find.js declares no `finderSet_(F, o)` — the one writer is gone');
 if (files.length < 20 || lines < 10000) bad.push('only ' + files.length + ' file(s), ' + lines + ' line(s) were read — the scan did not reach js/, which is not a pass');
 
