@@ -27,6 +27,14 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 6. **Browser checks** — route secondary ones to report-only, fix the core ones (870): the Find search box shifts ~20px
    when an answer is pressed; the card sits at 183px instead of 300 after clearing.
 
+7. **One question page, mechanical markers** (owner, 5 Nov): every question on one page — type, draw or write
+   anywhere; each question's data names its answer areas; one reader turns any input (typed, finger-written digits
+   read on the phone, drawn needle/bars/points/shading) into a plain answer; ~5 shared checkers (number, expression,
+   points, choice, words) mark it the same every time, offline, no AI. AI only for method marks, never the answer.
+   Steps: map the 24 qtypes onto the checkers → build the page with old markers behind it → move types a few at a
+   time with the answer check proving each batch → remove old screens last. Health checker tracks it (qtypes moved,
+   answer areas present, checker proofs).
+
 ## Paused, to come back to
 - **One scrolling page instead of sideways columns** (owner agreed it's the long-term move, 4 Nov): the browser's own
   scrolling, cards loaded as they scroll in, the @family keypad only in maths answer boxes. Its own careful job, with
