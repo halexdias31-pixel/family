@@ -322,6 +322,12 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
         if (/DATA\.attempts\s*=(?!=)|\bapi\s*\(|action\s*:/.test(m[0])) bad.push('`subMigrate_` writes `DATA.attempts` or posts an action itself — it may only read what an old backend sent');
         code = code.replace(m[0], '');
       }
+      /* ITS GATHERING, SPLIT OUT AS `subDoneOf_` (1040 round 6), is the same one read and held to the same rule. */
+      const g = /function subDoneOf_\s*\([^)]*\)\s*\{[\s\S]*?\n\}\n/.exec(code);
+      if (g) {
+        if (/DATA\.attempts\s*=(?!=)|\bapi\s*\(|action\s*:/.test(g[0])) bad.push('`subDoneOf_` writes `DATA.attempts` or posts an action itself — it may only read what an old backend sent');
+        code = code.replace(g[0], '');
+      }
     }
     RULES.forEach(([re, what]) => { if (re.test(code)) bad.push(f + ' ' + what + ' — it went with the attempts tab (9 Oct)'); });
   });

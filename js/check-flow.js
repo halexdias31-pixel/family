@@ -469,6 +469,9 @@ const check = (name, fn) => {
   if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn, tier });
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
+/* A PAD'S UNDO OR CLEAR (1020): on a question they stand in the part's tool row, paired to the pad by data-k; the whiteboard keeps them in the pad's bar. */
+const padTile_ = (pad, cls) => pad && (pad.querySelector(cls) || [...((pad.closest('.qcard') || pad.parentNode || pad).querySelectorAll('.qt-row ' + cls))]
+  .find(b => b.getAttribute('data-k') === pad.getAttribute('data-k')) || null);
 
 check('the app loads and draws without throwing', async () => {
   const { w, errs } = boot();
@@ -4585,7 +4588,7 @@ check('the finger pen: on a question\'s pad a two-finger tap, pan or pinch, a th
   return bad;
 });
 
-check('the finger pen on the board: a hand resting on the card never moves the column under a stroke, a repaint does not cut a held stroke, Undo and Clear wait for the drawing hand, a change of person puts it all down', async () => {
+check('the finger pen on the whiteboard: a hand resting on the card never moves the column under a stroke, a repaint does not cut a held stroke, Undo and Clear wait for the drawing hand, a change of person puts it all down', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
@@ -4735,7 +4738,7 @@ check('the finger pen on the board: a hand resting on the card never moves the c
 });
 
 /* ---------- THE FINGER PEN, AFTER REVIEW: A HAND THAT STAYS, A HAND THAT SETTLES, A PIN, A LATE REPORT, ANOTHER KIND § */
-check('the finger pen after review: a hand left down after two fingers, a thumb or palm that settles, a held pin, a late report and a pointer of another kind all leave the line that was meant, and Undo takes off one stroke without redrawing the rest', async () => {
+check('the finger pen on the whiteboard after review: a hand left down after two fingers, a thumb or palm that settles, a held pin, a late report and a pointer of another kind all leave the line that was meant, and Undo takes off one stroke without redrawing the rest', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
@@ -10310,7 +10313,9 @@ check('770: the search card has no Find button; no card is titled with a column\
   d.querySelectorAll('.screen .card:not(.is-empty) > h3').forEach(h => { if (names.has(h.textContent.trim().toLowerCase())) bad.push('a card is titled with a column\'s name: ' + h.textContent.trim()); });
   if (w.cardIdOf_(w.deletedCard_()) !== 'biz:deleted') bad.push('the Deleted card is not the registered card biz:deleted');
   const row = w.cardAdminRow_('biz:deleted', 'biz', false);
-  if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');
+  /* LAYOUT EDITING IS OFF (880): then no card, Deleted included, draws an arranging row; on, Deleted moves like any card. */
+  if (!row) { if (d.querySelector('.card-admin [data-do="lay-c-move"]')) bad.push('layout editing is off and a card still draws move tiles'); }
+  else if (!/lay-c-move/.test(row)) bad.push('the Deleted card has no move tiles');
   if (/lay-c-del/.test(row)) bad.push('the Deleted card can be deleted');
   t.USER(null);
   const out = w.studentSetPages_();
@@ -13977,6 +13982,10 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
    from `applyColumns_` when that payload lands — which on this backend is fifteen seconds later. */
 check('business: signing in as an admin adds the column and signing out takes it away, without a reload and without moving anybody', async () => {
   const cols = BIZ_COLS_();
+  /* THE NEIGHBOURS ARE columns.json's (730): the active column left of Business, and one more active column to stand on that is neither it nor Find. */
+  const on = cols.filter(c => /^true$/i.test(String(c.active))).sort((a, b) => a.sort_order - b.sort_order).map(c => c.screen);
+  const left = on[on.indexOf('biz') - 1], away = on.filter(x => x !== 'biz' && x !== left && x !== 'stuff' && x !== 'account')[0];
+  if (!left || !away) return ['columns.json has no active column left of Business, or none to stand on — NOT checked: ' + on.join(', ')];
   let hold = false;
   const { w, gets } = boot({ serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
     reply: body => (body.action === 'verifyLogin' ? Object.assign({ success: true }, BIZ_ADMIN_)
@@ -13994,7 +14003,7 @@ check('business: signing in as an admin adds the column and signing out takes it
 
   /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
      (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go('apprentice', false, true); await wait(LEAVE_MS); await woken_();
+  t.go(left, false, true); await wait(LEAVE_MS); await woken_();
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   const btn = d.querySelector('[data-do="do-signin"]');
@@ -14008,11 +14017,15 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids().slice(-2).join(' ') !== 'apprentice biz') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted Apprentice settings then Biz settings (730), without a reload');
+  if (ids().slice(-2).join(' ') !== left + ' biz') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted ' + left + ' then Biz settings (730), without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== 'apprentice') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Apprentice settings and go back there');
-  await bizSwipe_(w, 'apprentice');
-  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Apprentice settings (730) landed on ' + t.AT() + ', wanted Business');
+  if (t.AT() !== left) bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from ' + left + ' and go back there');
+  await bizSwipe_(w, left);
+  /* ONE SCROLLING PAGE (900): a sideways wheel is the browser's scroll and never changes column; Business is reached by its tab. */
+  const flow = doc.classList.contains('flow');
+  if (flow && t.AT() !== left) bad.push('on the one scrolling page a sideways wheel moved the admin off ' + left + ' to ' + t.AT());
+  if (flow) { t.go('biz', false, true); await wait(LEAVE_MS); await woken_(); }
+  if (t.AT() !== 'biz') bad.push('signed in, ' + (flow ? 'going to Business' : 'a swipe off ' + left + ' (730)') + ' landed on ' + t.AT() + ', wanted Business');
   else {
     for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
     const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
@@ -14022,8 +14035,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   if (!bizNamed_(d)) bad.push('signed in as an admin, nothing in the page names the column — `bizNamed_` cannot see its subject');
   if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
 
-  /* OUT, FROM SPOTLIGHT: the column goes, and the admin stays where they are. */
-  t.go('spotlight', false, true); await wait(LEAVE_MS); await woken_();
+  /* OUT, FROM ANOTHER COLUMN: the column goes, and the admin stays where they are. */
+  t.go(away, false, true); await wait(LEAVE_MS); await woken_();
   try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return bad.concat(['signout threw: ' + e.message]); }
   await wait(LEAVE_MS); await woken_();
   if (t.whoami()) return bad.concat(['Sign out did not sign the admin out — NOT checked']);
@@ -14032,7 +14045,7 @@ check('business: signing in as an admin adds the column and signing out takes it
   if (d.getElementById('s-biz')) bad.push('signed out, the <section id="s-biz"> is still in the page');
   const named = bizNamed_(d);
   if (named) bad.push('signed out, the page still names the column: "…' + named + '…"');
-  if (t.AT() !== 'spotlight') bad.push('signing out moved the person from Spotlight to ' + t.AT());
+  if (t.AT() !== away) bad.push('signing out moved the person from ' + away + ' to ' + t.AT());
 
   /* AND THE ONE PERSON IT MOVES: an admin ON Business whose session the server ended (a Save refused with
      `why: 'signed-out'`). The column goes from under them and they land on the column left of it. */
@@ -14053,8 +14066,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== 'apprentice') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Apprentice settings (730), the column left of it');
-  if (!d2.querySelector('#s-apprentice > .page.on')) bad.push('the session ended on Business and Parent, where they were put, shows no page');
+  if (t2.AT() !== left) bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted ' + left + ' (730), the column left of it');
+  if (!d2.querySelector('#s-' + left + ' > .page.on')) bad.push('the session ended on Business and ' + left + ', where they were put, shows no page');
   return bad;
 });
 
@@ -14487,7 +14500,7 @@ check('review 339: somebody on a Tools page keeps that tool when they sign in an
 });
 
 /* A PAYLOAD WHOSE ROLE MAP HAS NO LIBRARY GROUP — an older server, or `GROUPS_OLD_` with no `profileFields` at all — said § */
-check('review 339: a server that sends no library group is said to be older, not "not arrived yet"', async () => {
+check('review 339: a server that sends no library group is said by the library cards to be older, not "not arrived yet"', async () => {
   const bad = [];
   for (const [label, fields] of [['a role map with no Library cards', { 'About you': ['first_name', 'last_name', 'photo'], 'Where': ['borough', 'city'] }],
                                  ['no profileFields at all', {}]]) {
@@ -15146,9 +15159,13 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
   const again = d.createElement('div');
   again.innerHTML = t.padCard(x, x.diagram, '');
   if (again.querySelector('[data-do="pad-draw"], .qpad-lock') || !again.querySelector('.qpad-ink[data-noswipe]')) bad.push('a pad drawn again grew a lock or lost `data-noswipe`');
-  /* ---------- A FIGURE IN A QUESTION ANSWERED IN A BOX IS NO PEN AT ALL ------------------------------- */
-  if (typeof w.padSource_ === 'function' && w.padSource_({ key: 'q:Q-TYPED', answerType: 'number', accept: '12', diagram: x.diagram }))
-    bad.push('a typed question\'s figure was given a pen');
+  /* ---------- A FIGURE IN A QUESTION ANSWERED IN A BOX IS ITS PAD FROM THE START TOO (1020), and the box stays its answer ---------- */
+  const typed = { kind: 'question', key: 'q:Q-TYPED', name: 'Q3', qNumber: '3', answerType: 'number', accept: '12', diagram: x.diagram,
+    row: { row_id: 'Q-TYPED', paper_id: 'P-TYPED', subject: 'Maths', name: 'Typed' }, stems: [], html: '<p>Work out x.</p>' };
+  const tSrc = typeof w.padSource_ === 'function' ? w.padSource_(typed) : null;
+  if (!tSrc || tSrc.from !== 'part') bad.push('a typed question\'s own figure is not its pad from the start (1020): ' + JSON.stringify(tSrc && tSrc.from));
+  const tCard = d.createElement('div'); tCard.innerHTML = w.questionCard_(typed);
+  if (!tCard.querySelector('.qp-ans-in')) bad.push('a typed question whose figure is a pad lost its answer box');
   w.padDrop_(); t.padOn('');
   [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
   host.remove();
@@ -15413,10 +15430,9 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
      fraction is asked of what that draws, not of the question card, which no longer carries it. */
   const ansDrawn = w.document.createElement('div');
   ansDrawn.innerHTML = typeof w.answerBlock_ === 'function' ? w.answerBlock_(base) : '';
-  /* AND THE STEM IS ITS OWN PAGE NOW, in front of its parts (`questionStemCard_`), so its fraction
-     is asked of that page. */
+  /* AND THE STEM IS DRAWN ONCE AT THE TOP OF ITS QUESTION'S ONE CARD (960, `questionWhole_`), so its fraction is asked of that card. */
   const stemDrawn = w.document.createElement('div');
-  stemDrawn.innerHTML = typeof w.questionStemCard_ === 'function' ? w.questionStemCard_(base, 0) : '';
+  stemDrawn.innerHTML = typeof w.questionWhole_ === 'function' ? w.questionWhole_(base, [base], null, true) : '';
   [['.qsheet-stem', 'the stem'], ['.qsheet-lead', 'the lead'], ['.qsheet-pb', 'the part'],
    ['.qans-body', 'the answer']].forEach(([sel, what]) => {
     const el = (sel === '.qans-body' ? ansDrawn : sel === '.qsheet-stem' ? stemDrawn : tapped).querySelector(sel);
@@ -17135,7 +17151,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
 
   /* ---------- THE FALLBACK GRID, ON THE CARD ------------------------------------------------------ */
   const grid = q('grid', { answerType: 'drawing' }, { figure: 'grid-blank' });
-  if (JSON.stringify(w.pageParts_(grid)) !== '[null]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null] -- the card, its grid where the box would be and no page of its own');
+  /* ONE CARD PER QUESTION NUMBER (960): its one page is 'q' -- the card, its grid where the box would be, no page of its own. */
+  if (JSON.stringify(w.pageParts_(grid)) !== '["q"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted ["q"] -- the card, its grid where the box would be and no page of its own');
   try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
   /* THE CARD IS THE GRID, with no box and nothing to switch (356). */
   const gp = el(w.questionCard_(grid));
@@ -17186,7 +17203,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     html: '<p>Circle the three <b>adjectives</b> in the passage below.</p>' + PASS });
   const tk = 'pad:' + text.key + ':words';
   try { w.localStorage.removeItem(tk); } catch (e) {}
-  if (JSON.stringify(w.pageParts_(text)) !== '[null]') bad.push('a passage question has pages ' + JSON.stringify(w.pageParts_(text)) + ' -- it needs no picture, the passage is the surface');
+  if (JSON.stringify(w.pageParts_(text)) !== '["q"]') bad.push('a passage question has pages ' + JSON.stringify(w.pageParts_(text)) + ', wanted ["q"] -- it needs no picture, the passage is the surface');
   const plain = el(w.questionCard_(Object.assign({}, text, { key: 'q:Q-SURF-text-plain', surface: '', answerType: 'short', row: row('Q-SURF-text-plain') })));
   const card = el(w.questionCard_(text));
   const host = card.querySelector('.qsheet-part.is-text[data-circ]');
@@ -17275,7 +17292,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   if (pb.getAttribute('data-k') !== kB || kB === kA) bad.push('Ben\'s pad writes to ' + pb.getAttribute('data-k') + ' — Ali\'s key is ' + kA);
   LS.setItem(kB, JSON.stringify([[5, 5, 50, 50]]));
   const pb2 = pad();
-  A['pad-undo'](pb2.querySelector('.qpad-undo'));
+  A['pad-undo'](padTile_(pb2, '.qpad-undo'));
   if (got(kB).length !== 0) bad.push('Undo on Ben\'s pad did not take Ben\'s mark: ' + JSON.stringify(got(kB)));
   if (got(kA).length !== 2) bad.push('Undo on Ben\'s pad touched Ali\'s marks: ' + JSON.stringify(got(kA)));
   /* THE PHONE DRAWS AGAIN SIGNED OUT; ALI ALREADY HAS MARKS, SO THEY WAIT FOR SOMEBODY WITH NONE. */
@@ -17454,7 +17471,8 @@ check('a place kept on a figure page that no longer exists reopens on that quest
     const P = typeof w.__t.PAGE === 'function' ? w.__t.PAGE() : w.__t.PAGE;
     const at = ((P || {}).stuff || 0) - w.stuffFirstResult_();
     const pg = pages[at];
-    if (!pg || pg.x !== list[1] || pg.part) bad.push('a place on (b)\'s old figure page opened on ' + (pg ? pg.x.qPart + ':' + (pg.part || 'card') : 'page ' + at) + ', wanted (b)\'s card');
+    /* ONE CARD PER QUESTION NUMBER (960): (b)'s card is its question's one page, (b) among its parts. */
+    if (!pg || pg.part !== 'q' || (pg.parts || [pg.x]).indexOf(list[1]) < 0) bad.push('a place on (b)\'s old figure page opened on ' + (pg ? pg.x.qPart + ':' + (pg.part || 'card') + ' holding ' + (pg.parts || [pg.x]).map(x => x.qPart).join('') : 'page ' + at) + ', wanted (b)\'s card, its question\'s page');
   } catch (e) { bad.push('finderOpen_ threw: ' + e.message); }
   finally { w.stuffFiltered = heldF; w.stuffItemsAll_ = heldA; }
   return bad;
@@ -17519,7 +17537,8 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     const penOf = x => { const c0 = card(x); return c0 ? c0.querySelector('.qsheet .qpad, .qp-area .qpad') : null; };
     /* ---------- IN (c)'s CARD, IN FRONT OF ITS WORDS ---------------------------------------------------- */
     const pc = w.pageParts_(c);
-    if (JSON.stringify(pc) !== '["stem0",null,"ans"]') bad.push('(c) alone has pages ' + JSON.stringify(pc) + ', wanted its opening, its card, its answer -- no page for the graph');
+    /* ONE CARD PER QUESTION NUMBER (960): its opening, its words and its answer are all on the one page 'q' -- no page for the graph. */
+    if (JSON.stringify(pc) !== '["q"]') bad.push('(c) alone has pages ' + JSON.stringify(pc) + ', wanted ["q"]: its opening, its card, its answer on one page -- no page for the graph');
     const cc = card(c), seen = seenIn(c);
     if (!seen) bad.push('(c)\'s card does not show (b)\'s graph');
     else {
@@ -17530,9 +17549,10 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     }
     if (CRED.test(cc.textContent)) bad.push('(c)\'s card still says whose marks these are');
     const saved = w.cardPages_(c, 0);
-    if (saved.length !== 3 || !/qseen/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and its card does not carry the graph');
-    const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
-    if (off !== 1) bad.push('(c)\'s answer is ' + off + ' swipes after its card, not one');
+    if (saved.length !== 1 || !/qseen/.test(saved[0] || '')) bad.push('on Saved, (c) is ' + saved.length + ' pages and its card does not carry the graph');
+    /* ITS ANSWER IS IN ITS OWN PART, AFTER ITS WORDS (960) -- not a page after it. */
+    const sv = el(saved[0] || ''), cPart = sv.querySelector('.qb-part[data-of="Q-USE-24c"]');
+    if (!cPart || !cPart.querySelector('.qans-card') || cPart.innerHTML.indexOf('qans-card') < cPart.innerHTML.indexOf('Use your graph')) bad.push('(c)\'s answer is not in (c)\'s own part, after its words');
     /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
     const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
     if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks');
@@ -17556,7 +17576,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     if (paths(padII, '.qpad-was') !== 1) bad.push('(ii)\'s scale does not carry (i)\'s cross (' + paths(padII, '.qpad-was') + ')');
     if (paths(padII, '.qpad-g') !== 1) bad.push('(ii)\'s own marks are ' + paths(padII, '.qpad-g') + ', wanted its one cross');
     if (padII && CRED.test(padII.textContent)) bad.push('(ii)\'s pad still carries a line about whose marks are fainter');
-    if (padII) A['pad-undo'](padII.querySelector('.qpad-undo'));
+    if (padII) A['pad-undo'](padTile_(padII, '.qpad-undo'));
     if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone');
     if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
     /* EVERY OTHER PART'S INK ON THE ONE PICTURE, a later part's too (381): (ii)'s cross is under (i)'s pen */
@@ -17568,9 +17588,12 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     /* ---------- ONE PICTURE, LOOKED AT: ITS COPY IN THE CARD, NO PEN ------------------------------------ */
     put(f3, [[20, 20, 300, 300]]);
     const c4 = card(f4);
-    if (paths(c4.querySelector('.qsheet .qseen'), '.qpad-was') !== 1 || c4.querySelector('.qpad')) bad.push('(4), which only looks at Figure 2, does not show (3)\'s line on it read only in its card');
+    /* ITS OWN FIGURE IS ITS PAD FROM THE START (1020): (3)'s line lies faint under (4)'s pen, and no read-only copy is drawn as well. */
+    const pen4 = c4.querySelector('.qsheet .qpad');
+    if (paths(pen4, '.qpad-was') !== 1 || c4.querySelector('.qseen')) bad.push('(4), whose own figure is Figure 2, does not show (3)\'s line faint under its pen, once, in its card');
     LS.removeItem(t.padKey(f3));
-    if (card(f4).querySelector('.qseen') || !card(f4).querySelector('.qsheet figure svg')) bad.push('with nothing drawn on (3), (4)\'s card is not its plain figure');
+    const c4b = card(f4);
+    if (c4b.querySelector('.qseen') || paths(c4b.querySelector('.qsheet .qpad'), '.qpad-was') !== 0 || !c4b.querySelector('.qsheet .qpad .qpad-art svg')) bad.push('with nothing drawn on (3), (4)\'s card is not its plain figure under its pen');
     /* ---------- A CHAIN ON ONE PICTURE ------------------------------------------------------------------ */
     put(sa, [[10, 10, 10, 10], [20, 20, 20, 20]]);
     put(sb, [[5, 70, 330, 10]]);
@@ -17580,7 +17603,8 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     if (paths(seenIn(sd), '.qpad-was') !== 4) bad.push('(d)\'s card does not carry (a)\'s, (b)\'s and (c)\'s marks together');
     /* ---------- A STEM'S PEN THAT USES THE PART BEFORE IT: THE PICTURE IN FRONT, AND THE MARKS UNDER ITS PEN -- */
     put(g20a, [[20, 20, 300, 300]]);
-    if (JSON.stringify(w.pageParts_(g20b, g20a)) !== '[null]') bad.push('Q20(b) has pages ' + JSON.stringify(w.pageParts_(g20b, g20a)) + ', wanted its card alone');
+    /* ONE CARD PER QUESTION NUMBER (960): (b) after (a) of the same number has no page of its own -- it is in Q20's card. */
+    if (JSON.stringify(w.pageParts_(g20b, g20a)) !== '[]') bad.push('Q20(b) has pages ' + JSON.stringify(w.pageParts_(g20b, g20a)) + ', wanted none -- it is a part of Q20\'s one card');
     /* ONE FIGURE ON THE CARD (381): (a)'s line is under (b)'s pen, and no marked copy in front of its words as well */
     if (seenIn(g20b)) bad.push('Q20(b)\'s card shows (a)\'s line twice: a copy in front of its words and under its pen');
     const pen20 = penOf(g20b);
@@ -17588,7 +17612,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     /* ---------- A LOOP, AND A PART THAT IS NOT THERE ---------------------------------------------------- */
     put(l1, [[1, 1, 2, 2]]); put(l2, [[3, 3, 4, 4]]);
     if (paths(penOf(l1), '.qpad-was') !== 1) bad.push('two parts naming each other drew ' + paths(penOf(l1), '.qpad-was') + ' earlier marks, wanted the other one\'s and no more');
-    if (JSON.stringify(w.pageParts_(cAlone)) !== '[null]') bad.push('a part naming a part that is not there has pages ' + JSON.stringify(w.pageParts_(cAlone)));
+    if (JSON.stringify(w.pageParts_(cAlone)) !== '["q"]') bad.push('a part naming a part that is not there has pages ' + JSON.stringify(w.pageParts_(cAlone)) + ', wanted its one card ["q"]');
   } catch (e) {
     bad.push('threw: ' + e.message);
   } finally {
@@ -17747,7 +17771,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   const { w } = boot({ payload: p });
   await wait(300);
   const t = w.__t, bad = [];
-  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionWhole_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? The tiles were NOT checked'];
   t.USER({ name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'], token: 'tok' });
   const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
@@ -17770,9 +17794,12 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
       answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
   ];
   const pages = [];
-  const drawAll = when => fam.forEach((x, i) => w.pageParts_(x, i ? fam[i - 1] : null).forEach(part => {
-    pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
-  }));
+  /* ONE CARD PER QUESTION NUMBER (960): a number's page is its whole card, every part inside it. */
+  const nums = [...new Set(fam.map(x => x.qNumber))];
+  const drawAll = when => nums.forEach(q => {
+    const parts = fam.filter(x => x.qNumber === q);
+    pages.push({ at: parts[0].row.row_id + '#q' + when, html: w.questionWhole_(parts[0], parts, null, true) });
+  });
   drawAll('');
   /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. Q7's grid and Q8's own figure
      are drawn on their cards (356) -- Q8's Ruler and Compass are in its bar -- each drawn off and then on. */
@@ -17838,17 +17865,21 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   const d = w.document;
   const bad = [];
   const t = w.__t;
-  const need = ['questionCard_', 'questionAnsCard_', 'questionStemCard_', 'tagRow_', 'chipShow_']
+  const need = ['questionCard_', 'questionAnsCard_', 'questionWhole_', 'tagRow_', 'chipShow_']
     .filter(n => typeof w[n] !== 'function');
   if (need.length || typeof t.facetBy !== 'function') return [need.concat(['facetBy']).join(', ') + ' not reachable — renamed? The tag row was NOT checked'];
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const row = html => {
-    const card = el(html).querySelector('.qcard');
+    /* ONE CARD PER QUESTION NUMBER (960): a whole question's tag row heads its .qwhole; a lone part's its .qcard. */
+    const card = el(html).querySelector('.qwhole, .qcard');
     const r = card && card.querySelector('.qcard-tags');
     return { card, first: card && card.firstElementChild,
              tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', f: s.getAttribute('data-f') || '', text: s.textContent.trim() })) : [] };
   };
-  const say = tags => tags.map(x => (x.tag || '-') + ':' + x.text).join(' | ');
+  /* A TAG IS NAMED BY ITS FACET (data-f); ITS COLOUR IS ITS MENU'S (1030), h<N> from TAG_OF — the same for every answer of one facet. */
+  const hues = (/^const TAG_OF = (\{.*\});$/m.exec(require('../tools/find-src.js').findSrc()) || [])[1] || '';
+  const hueOf = f => { const m = new RegExp('\\b' + f + ': (\\d+)').exec(hues); return 'h' + (m ? m[1] : 0); };
+  const say = tags => tags.map(x => (x.f || '-') + ':' + x.text).join(' | ');
   const svg = '<svg viewBox="0 0 10 10"><text>FIG</text></svg>';
   const gcse = { kind: 'question', name: 'Q4a', qNumber: '4', qPart: 'a', marks: 2, key: 'q-tags-4a',
     sub: 'Paper 1 (Non-Calculator) — November 2018', subject: 'Maths', level: 'GCSE', keystage: 'KS4',
@@ -17858,9 +17889,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     stems: [{ id: 'S-TAGS-4', html: '<p>A shape is drawn on a grid.</p>', diagram: svg }],
     html: '<p>Work out the size of angle x.</p>', diagram: svg, answer: '<b>40</b>', accept: '40' };
   const pages = {
-    question: w.questionCard_(gcse), answer: w.questionAnsCard_(gcse), stem: w.questionStemCard_(gcse, 0, 0),
+    question: w.questionCard_(gcse), answer: w.questionAnsCard_(gcse), whole: w.questionWhole_(gcse, [gcse], null, true),
   };
-  const kind = { question: 'Questions', answer: 'Answers', stem: 'Questions' };
+  const kind = { question: 'Questions', answer: 'Answers', whole: 'Questions' };
   let itemFacts = null;
   Object.keys(pages).forEach(k => {
     const r = row(pages[k]);
@@ -17877,21 +17908,22 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (itemFacts === null) itemFacts = facts;
     else if (facts !== itemFacts) bad.push('the ' + k + ' page says the item as ' + facts + ', the question page as ' + itemFacts);
     const calc = r.tags.filter(x => /calculator/i.test(x.text));
-    if (calc.length !== 1 || calc[0].tag !== 'needs' || calc[0].text !== 'Non-calculator') bad.push('the ' + k + ' page says the calculator as ' + JSON.stringify(calc) + ' -- wanted ONE needs tag, Non-calculator');
+    if (calc.length !== 1 || calc[0].f !== 'needs' || calc[0].text !== 'Non-calculator') bad.push('the ' + k + ' page says the calculator as ' + JSON.stringify(calc) + ' -- wanted ONE needs tag, Non-calculator');
+    r.tags.forEach(x => { if (x.tag !== hueOf(x.f)) bad.push('the ' + k + ' page\'s ' + x.f + ' tag "' + x.text + '" wears ' + x.tag + ', not its menu\'s ' + hueOf(x.f)); });
     const seen = {};
     r.tags.forEach(x => { if (seen[x.text.toLowerCase()]) bad.push('the ' + k + ' page says "' + x.text + '" twice'); seen[x.text.toLowerCase()] = 1; });
   });
   if (itemFacts !== null) {
     const chipPaper = w.chipShow_({ field: 'paperId', value: 'P-TAGS-1H' });
-    ['level:GCSE', 'level:KS4', 'board:Edexcel', 'subject:Maths', 'tier:Higher', 'sitting:2018', 'sitting:November', 'paper:Q4', 'paper:a', 'paper:2 marks', 'needs:Protractor', 'kind:Learning']
+    ['level:GCSE', 'keystage:KS4', 'examBoard:Edexcel', 'subject:Maths', 'tier:Higher', 'examYear:2018', 'examMonth:November', 'qNumber:Q4', 'qPart:a', 'marks:2 marks', 'needs:Protractor', 'forLabel:Learning']
       .forEach(f => { if (itemFacts.split(' | ').indexOf(f) < 0) bad.push('the item\'s tags lack ' + f + ': ' + itemFacts); });
-    if (!itemFacts.split(' | ').some(f => f === 'paper:' + chipPaper)) bad.push('no paper tag reads what its chip reads (' + chipPaper + '): ' + itemFacts);
+    if (!itemFacts.split(' | ').some(f => f === 'paperId:' + chipPaper)) bad.push('no paper tag reads what its chip reads (' + chipPaper + '): ' + itemFacts);
   }
   /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
   const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', qNumber: '3', qPart: '', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: w.needsOf_({ needs: 'Calculator' }),
     row: Object.assign({}, gcse.row, { row_id: 'Q-TAGS-C', name: 'Paper 2 (Calculator) — June 2017' }), stems: [], diagram: '' });
   const c = row(w.questionCard_(calcQ));
-  if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.tag + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
+  if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.f + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
   if (c.tags.some(x => x.f === 'marks' || /\b0 marks?\b/.test(x.text))) bad.push('a row with no marks has a marks tag: ' + say(c.tags));
   /* THE FUNNEL SAYS THE SAME WORD, BECAUSE THE WORD IS THE VALUE (396): no `showOf` on What you need, and its chip reads its value. */
   const nf = t.facetBy('needs');
@@ -17908,11 +17940,11 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
   [['a SATs worksheet', sheet, false], ['an STA paper', sta, true]].forEach(([what, x, board]) => {
     const r = row(w.questionCard_(x));
-    const lv = r.tags.filter(y => y.tag === 'level').map(y => y.text);
-    if (lv.indexOf('SATs') < 0 || lv.indexOf('KS2') !== lv.indexOf('SATs') + 1) bad.push(what + ' does not say SATs and then KS2 as two level tags: ' + say(r.tags));
+    const lv = r.tags.filter(y => y.f === 'level' || y.f === 'keystage').map(y => y.f + ':' + y.text);
+    if (lv.indexOf('level:SATs') < 0 || lv.indexOf('keystage:KS2') !== lv.indexOf('level:SATs') + 1) bad.push(what + ' does not say SATs and then KS2 as two tags, its level and its key stage: ' + say(r.tags));
     if (r.tags.some(y => /KS\s*\d\s*SATs/i.test(y.text))) bad.push(what + ' still says the key stage inside the level: ' + say(r.tags));
     /* THE BOARD IS SAID LIKE ANY PAPER'S: "SATs hides the board" was a rule of its own (355). */
-    if (board && !r.tags.some(y => y.tag === 'board' && y.text === 'STA')) bad.push(what + ' hides its board, STA: ' + say(r.tags));
+    if (board && !r.tags.some(y => y.f === 'examBoard' && y.text === 'STA')) bad.push(what + ' hides its board, STA: ' + say(r.tags));
     if (!r.tags.some(y => y.f === 'qNumber' && y.text === 'Q1')) bad.push(what + ' has no [Q1] tag: ' + say(r.tags));
   });
   /* A MAKER'S SHEET (O3): its maker is its Source tag, and it says no exam board even where the row names one. */
@@ -20515,7 +20547,11 @@ check('a chosen answer is only its value, and Clear is a tile beside the search 
   said.forEach(s => labels.forEach(l => { if (s.indexOf(l + ' ') === 0) bad.push('the chip "' + s + '" starts with its field\'s name, ' + l); }));
   const maths = chips.find(c => text(c) === 'Maths✕');
   if (!maths) bad.push('no chip reads exactly "Maths✕" — they read ' + said.join(' | '));
-  else if (maths.getAttribute('data-tag') !== 'subject') bad.push('the Maths chip lost its colour: data-tag is ' + JSON.stringify(maths.getAttribute('data-tag')) + ', not "subject"');
+  /* ONE COLOUR PER MENU (1030): the chip wears its facet's hue, h<N> from TAG_OF. */
+  else {
+    const hue = /^const TAG_OF = \{.*\bsubject: (\d+)/m.exec(require('../tools/find-src.js').findSrc()), want = 'h' + (hue ? hue[1] : '?');
+    if (maths.getAttribute('data-tag') !== want) bad.push('the Maths chip lost its colour: data-tag is ' + JSON.stringify(maths.getAttribute('data-tag')) + ', not the subject menu\'s ' + want);
+  }
   if (said.indexOf('Learning✕') < 0) bad.push('the What for chip does not read "Learning✕" — ' + said.join(' | '));
   if (said.indexOf('Any school year✕') < 0) bad.push('the skipped School year does not read "Any school year✕" — ' + said.join(' | '));
   if (said.indexOf('Chapter 119✕') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119✕" — ' + said.join(' | '));
@@ -23746,16 +23782,15 @@ check('multipart: a search that finds one part brings its whole question, in ord
     S.q = 'reasonword'; S.filters = [];
     const hits = w.stuffFiltered();
     if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
-    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
-    /* THE OPENING'S FIGURE IS ON ITS PAGE, AMONG ITS WORDS (356). */
-    /* A SHORT OPENING WITH A FIGURE RIDES ON EACH PART'S CARD (500), so it is no page of its own here. */
-    const want = 'Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
+    /* ONE CARD PER QUESTION NUMBER (960): the hit brings one page, its whole question, every part in order; only the hit is open. */
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card') + '[' + (pg.parts || []).map(x => x.name + (pg.open && pg.open.has(x) ? '*' : '')).join(' ') + ']').join(' ');
+    const want = 'Q8(i):q[Q8(i) Q8(ii)*]';
     if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
     if (hits[0]) {
       const at = w.stuffPageOf_(hits[0]);
       const pg = w.stuffPages_()[at];
-      if (!pg || pg.x !== hits[0] || pg.part) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8(ii)\'s card');
-      else if (at !== 2) bad.push('the hit is page ' + at + ' -- Q8(i) and its answer should be the two pages in front of it');
+      if (!pg || pg.part !== 'q' || (pg.parts || []).indexOf(hits[0]) < 0) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8\'s card holding Q8(ii)');
+      else if (at !== 0) bad.push('the hit is page ' + at + ' -- its question is the one page there is');
     }
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
@@ -23835,7 +23870,7 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionCard_', 'questionWhole_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the way to the answer was NOT checked'];
   if (w.__t.ACTIONS['qa-go']) bad.push('`qa-go` still has a handler, so a tile to the answer could still be drawn and work');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
@@ -23845,14 +23880,17 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   const plain = q('1');
   const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
   const front = q('3', { diagram: MP_SVG });
-  [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
+  [[plain, '["q"]', 'a card whose answer is the next page'],
    /* THE GRID IS THE CARD'S OTHER FACE NOW, NOT A PAGE BETWEEN IT AND ITS ANSWER (327). */
-   [grid, '[null,"ans"]', 'a card answered on a grid, the grid on the card itself'],
+   [grid, '["q"]', 'a card answered on a grid, the grid on the card itself'],
    /* A FIGURE IS IN ITS CARD (356), so nothing stands between the card and its answer. */
-   [front, '[null,"ans"]', 'a card with a figure'],
-   [q('4', { answerType: 'drawing', diagram: MP_SVG }), '[null,"ans"]', 'a card drawn on its own figure, the pen on the card itself']].forEach(([x, want, what]) => {
+   [front, '["q"]', 'a card with a figure'],
+   [q('4', { answerType: 'drawing', diagram: MP_SVG }), '["q"]', 'a card drawn on its own figure, the pen on the card itself']].forEach(([x, want, what]) => {
+    /* ONE CARD PER QUESTION NUMBER (960): one page, and the answer is in the part's own card, after its words and its answer row. */
     const got = JSON.stringify(w.pageParts_(x));
-    if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
+    if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want);
+    const whole = el(w.questionWhole_(x, [x], null, true)), part = whole.querySelector('.qb-part'), ac = part && part.querySelector('.qans-card');
+    if (!ac || part.innerHTML.indexOf('qans-card') < part.innerHTML.indexOf('qsheet')) bad.push(what + ' does not carry its answer in its card, after its words');
     /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */
     const all = el(w.questionCard_(x) + '');
     if (all.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next, .qfig-tiles')) bad.push(what + ' still carries a tile to its answer');
@@ -23898,7 +23936,7 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
     /* ONE LINE IN THE FIRST CARD OF THE RUN, WHERE THE FIGURE WOULD STAND -- no page (356). */
     const gap = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x); return h.querySelectorAll('.qsheet .qfig-missing').length; };
     const b = find('Q20b');
-    if (!a || JSON.stringify(w.pageParts_(a)) !== '[null]') bad.push('Q20a has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted its card alone -- the gap is a line in it');
+    if (!a || JSON.stringify(w.pageParts_(a)) !== '["q"]') bad.push('Q20a has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted its card alone, ["q"] -- the gap is a line in it');
     else if (gap(a) !== 1) bad.push('Q20a, "Use the graph" with no graph anywhere, does not say "Figure not drawn yet." once in its card');
     if (b && gap(b)) bad.push('Q20b, the second of the run, says the gap again');
     ['Q14a', 'Q14b', 'Q21'].forEach(n => {
@@ -23940,17 +23978,16 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     if (h0.querySelector('[data-do="qa-only"], [data-do="qa-all"]')) bad.push('the answer page still draws the "Answers only" switch');
     /* CHOSEN: only answer pages, in order, open. */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }];
+    /* ONE CARD PER QUESTION NUMBER (960): Answers keeps each question's one page with its answers on (`ans`), drawn as Find draws it. */
     const pages = w.stuffPages_();
-    const parts = [...new Set(pages.map(pg => pg.part))];
-    if (!pages.length || parts.length !== 1 || parts[0] !== 'ans') bad.push('the Answers strip holds ' + JSON.stringify(parts) + ', wanted answer pages and nothing else');
-    const names = pages.map(pg => pg.x.name).join(' ');
+    const draw = pg => { const h = d.createElement('div'); h.innerHTML = w.questionWhole_(pg.x, pg.parts, pg.open, pg.ans); return h; };
+    if (!pages.length || pages.some(pg => pg.part !== 'q' || !pg.ans)) bad.push('the Answers strip holds ' + JSON.stringify(pages.map(pg => (pg.part || 'card') + (pg.ans ? '+ans' : ''))) + ', wanted each question\'s page with its answers on');
+    const names = pages.map(pg => (pg.parts || [pg.x]).map(x => x.name).join(' ')).join(' ');
     if (names !== 'Q8(i) Q8(ii)') bad.push('the Answers strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
-    pages.forEach(pg => {
-      const h = d.createElement('div');
-      h.innerHTML = w.stuffPart_(pg.x, 'ans');
-      const c = h.querySelector('.qans-card');
-      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the Answers view -- "only see answers" is forty Shows in a row otherwise');
-    });
+    pages.forEach(pg => (pg.parts || [pg.x]).forEach(x => {
+      const c = draw(pg).querySelector('.qb[data-part="' + x.key + '"] .qans-card');
+      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(c.textContent)) bad.push(x.name + '\'s answer is shut in the Answers view -- "only see answers" is forty Shows in a row otherwise');
+    }));
     /* HIDE STILL HIDES ONE. */
     if (A['qa-hide'] && pages[0]) {
       const host = d.createElement('div'); host.className = 'page';
@@ -23960,27 +23997,25 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
       if (!hide) bad.push('an open answer in the Answers view has no Hide');
       else {
         A['qa-hide'](hide);
-        const again = d.createElement('div');
-        again.innerHTML = w.stuffPart_(pages[0].x, 'ans');
-        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the Answers view');
+        const again = draw(pages[0]).querySelector('.qb[data-part="' + pages[0].x.key + '"] .qans-card');
+        if (!again || !again.classList.contains('is-hidden')) bad.push('Hide did not hide an answer in the Answers view');
       }
       host.remove();
     }
     /* ---------- AND "Questions" MEANS QUESTIONS § */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
+    /* QUESTIONS: the question pages with no answer drawn on them; NO KIND: each part's answer in its own card, after its words. */
     const qPages = w.stuffPages_();
-    if (!qPages.some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
-    const leaked = qPages.filter(pg => pg.part === 'ans');
-    if (leaked.length) bad.push('choosing Questions still draws ' + leaked.length + ' answer page(s): ' + leaked.map(pg => pg.x.name).join(', '));
+    if (!qPages.length) bad.push('choosing Questions shows no question pages');
+    const leaked = qPages.filter(pg => pg.ans || draw(pg).querySelector('.qans-card'));
+    if (leaked.length) bad.push('choosing Questions still draws ' + leaked.length + ' answer(s): ' + leaked.map(pg => pg.x.name).join(', '));
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
     const all = w.stuffPages_();
-    const cards = all.filter(pg => !pg.part && w.questionHasAns_(pg.x));
-    if (!cards.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
-    cards.forEach(pg => {
-      const i = all.indexOf(pg);
-      let j = i + 1;
-      while (all[j] && all[j].x === pg.x && all[j].part === 'fig') j++;
-      if (!all[j] || all[j].x !== pg.x || all[j].part !== 'ans') bad.push('with no kind chosen, ' + pg.x.name + '\'s answer is not the page after its card');
+    const answered = [].concat(...all.map(pg => (pg.parts || []).filter(x => w.questionHasAns_(x)).map(x => [pg, x])));
+    if (!answered.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
+    answered.forEach(([pg, x]) => {
+      const part = draw(pg).querySelector('.qb[data-part="' + x.key + '"] .qb-part');
+      if (!part || !part.querySelector('.qans-card') || part.innerHTML.indexOf('qans-card') < part.innerHTML.indexOf('qsheet')) bad.push('with no kind chosen, ' + x.name + '\'s answer is not in its card after its words');
     });
   } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
   return bad;
@@ -24189,9 +24224,10 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
     /* ANSWERS: the answer pages, and only those, through the page's own tag. */
     ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }]);
     const pages = w.stuffPages_();
-    if (!pages.length || pages.some(p => p.part !== 'ans')) bad.push('with Answers chosen the strip holds ' + pages.map(p => p.part || 'card').join(', ') + ' — wanted the answer pages alone');
+    /* ONE CARD PER QUESTION NUMBER (960): each kept page is its question's card with its answers on. */
+    if (!pages.length || pages.some(p => p.part !== 'q' || !p.ans)) bad.push('with Answers chosen the strip holds ' + pages.map(p => (p.part || 'card') + (p.ans ? '+ans' : '')).join(', ') + ' — wanted each question\'s page with its answers on');
     ask('', [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]);
-    if (w.stuffPages_().some(p => p.part === 'ans')) bad.push('with Questions chosen the strip still holds an answer page');
+    if (w.stuffPages_().some(p => p.part === 'ans' || p.ans)) bad.push('with Questions chosen the strip still holds an answer');
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
@@ -25365,7 +25401,7 @@ check('edges: a later visitor who writes over the whole of an answer marked as s
   ansType_(w, c.ta(), 'More words, and a line of Cal\'s. And mine.');
   if (w.ansMayMove_(bareW, benW) !== '') bad.push('a visitor added a sentence to Ada\'s words and they are no longer marked as hers: ' + JSON.stringify(w.ansGoneOf_(bareW)));
   /* AND PRESSES UNDO ON HER DRAWING: § */
-  w.__t.ACTIONS['pad-undo'](c.pad().querySelector('.qpad-undo'));
+  w.__t.ACTIONS['pad-undo'](padTile_(c.pad(), '.qpad-undo'));
   const leftP = w.ansValue_(bareP);
   if (!leftP || JSON.parse(leftP).length !== 1) return bad.concat(['setup: Undo left ' + JSON.stringify(leftP) + ' on the signed-out pad, wanted Ada\'s short stroke — the rest was NOT checked']);
   if (w.ansMayMove_(bareP, benP) !== '') bad.push('a visitor pressed Undo on Ada\'s drawing, all that is left is her own first stroke, and it is no longer marked as hers: ' + JSON.stringify(w.ansGoneOf_(bareP)));
@@ -25594,14 +25630,14 @@ check('edges: Undo puts back whose it was — Clear then Undo on a pad and on th
     w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
     w.signedOut_();
     c.draw();
-    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
+    A['pad-clear'](padTile_(c.pad(), '.qpad-clear'));
     if (w.ansValue_(bareP) !== null) return ['setup: Clear left ' + JSON.stringify(w.ansValue_(bareP)) + ' — NOT checked'];
-    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    A['pad-undo'](padTile_(c.pad(), '.qpad-undo'));
     if (w.ansValue_(bareP) !== ada) return ['setup: Undo after Clear put back ' + JSON.stringify(w.ansValue_(bareP)) + ', not ' + ada + ' — NOT checked'];
     if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo put Ada\'s own stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — `ansMayMove_` for Ben answers ' + JSON.stringify(w.ansMayMove_(bareP, benP)));
     w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P9', at: Date.now() }));
-    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
-    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    A['pad-clear'](padTile_(c.pad(), '.qpad-clear'));
+    A['pad-undo'](padTile_(c.pad(), '.qpad-undo'));
     if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo while Cal\'s ended session was fresh put Ada\'s stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — handed to Cal');
     w.ansRecPut_('familyGone', null);
     /* BEN SIGNS IN FROM NOBODY: nothing of hers. */
@@ -26106,7 +26142,9 @@ check('the PIN box is not a password the iPad keeps, and nothing about who signe
   if (!pin) return ['no PIN box on the account column'];
   if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
   /* THE PAD'S DIGITS, NOT THE PHONE'S (528): the markup's `inputmode="numeric"` picks the pad's face (`data-kpb`), and the phone's keyboard is shut out */
-  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'none', 'data-kpb': 'num' };
+  const flow = d.documentElement.classList.contains('flow');
+  /* ONE SCROLLING PAGE (900): there the PIN keeps the phone's own digits — numeric, never bound to the pad. */
+  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: flow ? 'numeric' : 'none', 'data-kpb': flow ? null : 'num' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
@@ -27325,7 +27363,7 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   return bad;
 });
 
-check('signing out puts away what was drawn for the last person, before the repaint returns — no idle moment in between', async () => {
+check('signing out puts away the widgets drawn for the last person, before the repaint returns — no idle moment in between', async () => {
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
@@ -27529,7 +27567,7 @@ check('nothing drawn ahead asks the network: three repaints with the builder on 
   return bad;
 });
 
-check('signing out puts away every drawing the last person had, including the ones the next person has no slot for: an admin\'s tools and her stars', async () => {
+check('signing out puts away every widget drawing the last person had, including the ones the next person has no slot for: an admin\'s tools and her stars', async () => {
   /* REVIEW, 12 Oct: the re-veil at a change of person walked the NEW person's widgets, so the admin's flyer maker, availability and uploads on Tools, and every § */
   const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
   const { w } = await aheadBoot_({ before: x => { try {
@@ -27585,10 +27623,13 @@ check('a sideways landing in the first seconds after a load draws every column i
     t.go(to, false);
     await wait(LEAVE_MS);
     const ti = ids.indexOf(t.AT());
-    const shown = wide ? t.glass().cols : [ids[ti - 1], ids[ti + 1]].filter(Boolean);
-    if (wide && shown.length < 2) bad.push(say + ': the glass shows ' + shown.length + ' column(s) at ' + to + ', so nothing beside it was asked');
+    /* ONE SCROLLING PAGE (900): one centred column at every width, no glass -- what shows beside it is its neighbours above and below. */
+    const flow = w.document.documentElement.classList.contains('flow'), glassy = wide && !flow;
+    if (wide && flow && t.glass().cols.length > 1) bad.push(say + ': on the one scrolling page the glass still shows ' + t.glass().cols.length + ' columns');
+    const shown = glassy ? t.glass().cols : [ids[ti - 1], ids[ti + 1]].filter(Boolean);
+    if (glassy && shown.length < 2) bad.push(say + ': the glass shows ' + shown.length + ' column(s) at ' + to + ', so nothing beside it was asked');
     const left = shown.filter(id => id !== t.AT() && t.PRE_PAYLOAD().indexOf(id) !== -1);
-    if (left.length) bad.push(say + ': landed on ' + t.AT() + ' and ' + left.join(', ') + ' — on the glass' + (wide ? '' : ', the peek') + ' — still hold the boot\'s loader');
+    if (left.length) bad.push(say + ': landed on ' + t.AT() + ' and ' + left.join(', ') + ' — ' + (glassy ? 'on the glass' : 'beside it') + ' — still hold the boot\'s loader');
   }
   return bad;
 });
@@ -28318,7 +28359,8 @@ check('a part\'s tool row is the owner\'s nine in order with one padlock, the dr
   host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
-  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
+  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const locks = host.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;
   if (locks !== 1) bad.push('the part has ' + locks + ' padlocks, wanted one');
@@ -31963,7 +32005,8 @@ check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car
   if (dci.length >= parts) bad.push('Part → 1.5 dCi did not narrow');
   if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
   const car = all.find(x => x.mKind === 'Car' && x.mEngine === '1.5 dCi (K9K)');
-  const chtml = car ? w.mechCard_(car) : '';
+  /* ONE TILE ROW PER THING (489, 950): the Parts tile is in the card's own row (`CARD_EXTRAS_MORE`), so the whole card is asked. */
+  const chtml = car ? w.stuffCard(car, 0) : '';
   if (!/data-do="mech-parts"[^>]*data-engine="1.5 dCi \(K9K\)"/.test(chtml)) bad.push('a car card offers no Parts tile');
   else {
     const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.engine = '1.5 dCi (K9K)'; w.document.body.appendChild(b); b.click(); b.remove();
@@ -32092,20 +32135,22 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   await wait(400);
   const t = w.__t, d = w.document, bad = [];
   t.go('stuff', false, true); await wait(400);
-  const card = d.querySelector('#s-stuff .miss-card');
-  if (!card) return ['no What’s missing card on Find for an admin — NOT checked'];
+  /* IN FIND, NOT ABOVE IT (owner, 4 Nov, `HEALTH_IN_FIND`): no lead page, Find opens on its question, and the card is the Find item health:missing. */
   const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
-  const cardAt = () => missPages_(d).indexOf(d.querySelector('#s-stuff .miss-card')?.closest('.page'));
-  /* LOGIC HEALTH (770) may sit above it: the card is directly above the question either way. */
-  if (cardAt() !== qAt() - 1) bad.push('the card is page ' + cardAt() + ' and the question page ' + qAt() + ' — not directly above it');
-  if (t.PAGE().stuff !== qAt()) bad.push('Find opens on page ' + t.PAGE().stuff + ', not on the question (' + qAt() + ')');
-  if (t.pageCount('stuff') !== missPages_(d).length) bad.push('the pager counts ' + t.pageCount('stuff') + ' pages for ' + missPages_(d).length + ' drawn');
+  if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('the question is page ' + qAt() + ' and Find opens on page ' + t.PAGE().stuff + ' — wanted the question first, no page above it');
+  if (d.querySelector('#s-stuff .miss-card')) bad.push('the card is still drawn above Find\'s question');
+  const host = d.createElement('div'); host.className = 'miss-host'; d.getElementById('s-stuff').appendChild(host);
+  const item = () => (w.stuffItemsAll_() || []).find(x => x.key === 'health:missing');
+  const draw = async () => { host.innerHTML = item() ? w.stuffCard(item(), 0) : ''; await wait(200); host.innerHTML = item() ? w.stuffCard(item(), 0) : ''; };
+  if (!item()) return bad.concat(['no What’s missing item in Find for an admin — NOT checked']);
+  await draw();
+  if (!host.querySelector('.miss-card')) return bad.concat(['the What’s missing item draws no card — NOT checked']);
   if (d.querySelector('#s-res .miss-card')) bad.push('Find 2 carries the card too');
-  const said = () => [...d.querySelectorAll('#s-stuff .miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
+  const said = () => [...host.querySelectorAll('.miss-card :is(h3, p, .k, .v)')].map(e => e.textContent.trim()).join(' ');
   /* ONE LINE FIRST (660): the rows open behind The list. */
   if (!/papers? missing in \d+ of \d+/.test(said())) bad.push('the card is not one line: ' + said().slice(0, 160));
-  const allTile = d.querySelector('#s-stuff .miss-card [data-do="miss-all"]');
-  if (!allTile) bad.push('no The list tile on the card (660)'); else { allTile.click(); await wait(200); }
+  const allTile = host.querySelector('.miss-card [data-do="miss-all"]');
+  if (!allTile) bad.push('no The list tile on the card (660)'); else { t.ACTIONS['miss-all'](allTile); await wait(100); host.innerHTML = w.stuffCard(item(), 0); }
   const s0 = said();
   if (!/What.s missing/.test(s0)) bad.push('the card has no title: ' + s0.slice(0, 120));
   if (!/Edexcel GCSE Maths 1 missing/.test(s0) || !/June 2017 Paper 2H/.test(s0)) bad.push('Edexcel GCSE Maths does not say 1 missing, Paper 2H June 2017: ' + s0.slice(0, 300));
@@ -32114,37 +32159,24 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   if (!/AQA GCSE Psychology complete/.test(s0)) bad.push('a complete qualification does not say "complete"');
   if (/OCR GCSE Maths|Edexcel GCSE History/.test(s0)) bad.push('an OCR line or an Edexcel line that is not Maths is shown (562)');
   if (!/1 paper waiting for their words|· 1 waiting for words/.test(s0)) bad.push('the paper with pending words is not counted');
-  if (d.querySelectorAll('#s-stuff .miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + d.querySelectorAll('#s-stuff .miss-card details.miss-q').length);
-  if (d.querySelector('#s-stuff .miss-card details[open]')) bad.push('a qualification opens unfolded');
-  if (d.querySelector('#s-stuff .miss-card [aria-busy="true"], #s-stuff .miss-card .loading')) bad.push('the card is still waiting after its list came');
+  if (host.querySelectorAll('.miss-card details.miss-q').length !== 2) bad.push('not one fold per incomplete qualification: ' + host.querySelectorAll('.miss-card details.miss-q').length);
+  if (host.querySelector('.miss-card details[open]')) bad.push('a qualification opens unfolded');
+  if (host.querySelector('.miss-card [aria-busy="true"], .miss-card .loading')) bad.push('the card is still waiting after its list came');
   if (gets.filter(u => /expected-papers\.json/.test(u)).length !== 1) bad.push('the list was fetched ' + gets.filter(u => /expected-papers\.json/.test(u)).length + ' times, not once');
-  /* A CHIP REDRAWS WHAT IS BELOW THE QUESTION, never the card above it. */
+  /* A REPAINT OF THE FUNNEL LEAVES FIND ON ITS QUESTION, nothing put above it. */
   w.paintFinder_('stuff');
   await wait(200);
-  if (cardAt() !== qAt() - 1) bad.push('after a repaint of the funnel the card is page ' + cardAt() + ' and the question ' + qAt());
-  if (t.PAGE().stuff !== qAt()) bad.push('a repaint of the funnel left Find on page ' + t.PAGE().stuff);
-  /* BACK TO TOP IS THE QUESTION. */
-  t.goPage('stuff', 1 + qAt(), true); await wait(100);
-  const top = d.createElement('button'); top.setAttribute('data-do', 'find-top'); d.getElementById('stuff-controls').appendChild(top);
-  t.ACTIONS['find-top'](top); await wait(200); top.remove();
-  if (t.PAGE().stuff !== qAt()) bad.push('Back to top lands on page ' + t.PAGE().stuff + ', not the question');
-  /* AN ITEM (487): Delete in two taps, no move or door; gone, the question is page 0 again and Find is on it. */
-  const del = () => d.querySelector('#s-stuff .miss-card [data-do="lay-c-del"]');
-  if (!del()) bad.push('the card has no Delete tile');
-  else {
-    if (d.querySelector('#s-stuff .miss-card :is([data-do="lay-c-move"], [data-do="lay-c-col"], [data-do="lay-front"])')) bad.push('the card has a move or front-door tile');
-    t.ACTIONS['lay-c-del'](del()); await wait(450); t.ACTIONS['lay-c-del'](del()); await wait(400);   /* sure_'s 400 ms between the two taps (534) */
-    if (d.querySelector('#s-stuff .miss-card')) bad.push('Delete did not take the card off Find');
-    const lead = d.querySelector('#s-stuff .logic-card') ? 1 : 0;
-    if (qAt() !== lead || t.PAGE().stuff !== qAt()) bad.push('after Delete the question is page ' + qAt() + ' and Find is on page ' + t.PAGE().stuff);
-  }
+  if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('a repaint of the funnel left the question on page ' + qAt() + ' and Find on page ' + t.PAGE().stuff);
+  host.remove();
   if (errs.length) bad.push('errors: ' + errs.join(' | ').slice(0, 300));
   w.close();
   /* AN EMPTY OR ABSENT LIST SAYS SO. */
   const e = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(null) });
   await wait(400);
   e.w.__t.go('stuff', false, true); await wait(300);
-  const es = (e.w.document.querySelector('#s-stuff .miss-card') || { textContent: '' }).textContent;
+  const eItem = (e.w.stuffItemsAll_() || []).find(x => x.key === 'health:missing');
+  const eh = e.w.document.createElement('div'); eh.innerHTML = eItem ? e.w.stuffCard(eItem, 0) : ''; await wait(200); eh.innerHTML = eItem ? e.w.stuffCard(eItem, 0) : '';
+  const es = (eh.querySelector('.miss-card') || { textContent: '' }).textContent;
   if (!/Nothing listed to expect yet/.test(es)) bad.push('an absent list does not say "Nothing listed to expect yet": ' + es.replace(/\s+/g, ' ').slice(0, 120));
   e.w.close();
   /* A STUDENT AND A CLIENT: no card, the question is page 0, nothing fetched. */
@@ -32153,7 +32185,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     await wait(400);
     s.w.__t.go('stuff', false, true); await wait(300);
     const sd = s.w.document;
-    if (sd.querySelector('.miss-card')) bad.push('a ' + who.rank + ' sees What’s missing');
+    if (sd.querySelector('.miss-card') || (s.w.stuffItemsAll_() || []).some(x => x.key === 'health:missing')) bad.push('a ' + who.rank + ' sees What’s missing');
     if (missPages_(sd).indexOf(sd.getElementById('stuff-controls')?.closest('.page')) !== 0) bad.push('for a ' + who.rank + ' the question is not page 0');
     if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
     s.w.close();

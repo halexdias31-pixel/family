@@ -148,6 +148,9 @@ function flowPlace_() {
     host.querySelectorAll(':scope > .page').forEach((el, pos) => pageWrite_(el,
       { on: logIndex_(t.id, pos) === (PAGE[t.id] || 0), far: false, soft: false, dim: null, op: '1', vis: 'visible' }));
   });
+  /* PLACED, AS THE GLASS SAYS IT (one column, its page being read): else `GLASS.at !== AT` holds the builder and the widgets' wake for ever. */
+  const front = $('s-' + AT);
+  GLASS = { at: AT, cols: [AT], pages: front ? [...front.querySelectorAll(':scope > .page.on')] : [], reach: 0 };
 }
 /* THE PAGE BEING READ is the first whose foot is past a quarter of the window; turning to it is `goPage`, so Find's window and fills follow the scroll. */
 let FLOW_FRAME = 0, FLOW_TURNING = false;
