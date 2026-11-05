@@ -31,5 +31,38 @@
    "ui": 49.9
   },
   "topKind": "one-off"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "796ef18",
+  "score": 46.4,
+  "parts": {
+   "code": 32.5,
+   "logic": 59.7,
+   "ui": 49.9
+  },
+  "topKind": "one-off"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "796ef18",
+  "score": 42,
+  "parts": {
+   "code": 32.5,
+   "logic": 54.8,
+   "ui": 39.2
+  },
+  "topKind": "one-off"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "796ef18",
+  "score": 32.4,
+  "parts": {
+   "code": 32.5,
+   "logic": 30.8,
+   "ui": 34.6
+  },
+  "topKind": "variety-qpage"
  }
 ]

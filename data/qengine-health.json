@@ -1,0 +1,212 @@
+{
+ "moved": 0,
+ "of": 24,
+ "unmapped": [
+  "essay",
+  "hand"
+ ],
+ "proofs": {
+  "number": {
+   "cases": 8,
+   "pass": 7,
+   "fails": [
+    "\"fifteen\" against \"15\" gave false, wanted true"
+   ]
+  },
+  "expression": {
+   "cases": 5,
+   "pass": 4,
+   "fails": [
+    "\"two x plus one\" against \"2x+1\" gave false, wanted true"
+   ]
+  },
+  "choice": {
+   "cases": 3,
+   "pass": 3,
+   "fails": []
+  },
+  "words": {
+   "cases": 3,
+   "pass": 3,
+   "fails": []
+  },
+  "points": {
+   "cases": 0,
+   "pass": 0,
+   "fails": [
+    "no shared points checker yet"
+   ]
+  }
+ },
+ "types": {
+  "value": {
+   "checker": "number",
+   "moved": false,
+   "questions": 27021,
+   "withAnswer": 3022,
+   "withAreas": 0
+  },
+  "unit": {
+   "checker": "number",
+   "moved": false,
+   "questions": 1582,
+   "withAnswer": 1582,
+   "withAreas": 0
+  },
+  "multi": {
+   "checker": "number",
+   "moved": false,
+   "questions": 346,
+   "withAnswer": 346,
+   "withAreas": 0
+  },
+  "fraction": {
+   "checker": "number",
+   "moved": false,
+   "questions": 436,
+   "withAnswer": 436,
+   "withAreas": 0
+  },
+  "coords": {
+   "checker": "points",
+   "moved": false,
+   "questions": 113,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "expr": {
+   "checker": "expression",
+   "moved": false,
+   "questions": 773,
+   "withAnswer": 773,
+   "withAreas": 0
+  },
+  "choose1": {
+   "checker": "choice",
+   "moved": false,
+   "questions": 751,
+   "withAnswer": 751,
+   "withAreas": 0
+  },
+  "chooseN": {
+   "checker": "choice",
+   "moved": false,
+   "questions": 75,
+   "withAnswer": 75,
+   "withAreas": 0
+  },
+  "order": {
+   "checker": "choice",
+   "moved": false,
+   "questions": 74,
+   "withAnswer": 74,
+   "withAreas": 0
+  },
+  "match": {
+   "checker": "choice",
+   "moved": false,
+   "questions": 43,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "table": {
+   "checker": "number",
+   "moved": false,
+   "questions": 191,
+   "withAnswer": 191,
+   "withAreas": 0
+  },
+  "label": {
+   "checker": "choice",
+   "moved": false,
+   "questions": 13,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "words": {
+   "checker": "words",
+   "moved": false,
+   "questions": 151,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "reason": {
+   "checker": "words",
+   "moved": false,
+   "questions": 0,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "essay": {
+   "checker": "none",
+   "moved": false,
+   "questions": 3578,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "points": {
+   "checker": "points",
+   "moved": false,
+   "questions": 5,
+   "withAnswer": 5,
+   "withAreas": 0
+  },
+  "line": {
+   "checker": "points",
+   "moved": false,
+   "questions": 34,
+   "withAnswer": 34,
+   "withAreas": 0
+  },
+  "shape": {
+   "checker": "points",
+   "moved": false,
+   "questions": 51,
+   "withAnswer": 51,
+   "withAreas": 0
+  },
+  "shade": {
+   "checker": "points",
+   "moved": false,
+   "questions": 13,
+   "withAnswer": 13,
+   "withAreas": 0
+  },
+  "hand": {
+   "checker": "none",
+   "moved": false,
+   "questions": 6,
+   "withAnswer": 0,
+   "withAreas": 0
+  },
+  "graph": {
+   "checker": "points",
+   "moved": false,
+   "questions": 59,
+   "withAnswer": 59,
+   "withAreas": 0
+  },
+  "construct": {
+   "checker": "points",
+   "moved": false,
+   "questions": 1,
+   "withAnswer": 1,
+   "withAreas": 0
+  },
+  "numline": {
+   "checker": "points",
+   "moved": false,
+   "questions": 2,
+   "withAnswer": 2,
+   "withAreas": 0
+  },
+  "measure": {
+   "checker": "number",
+   "moved": false,
+   "questions": 21,
+   "withAnswer": 9,
+   "withAreas": 0
+  }
+ },
+ "ms": 1989
+}
