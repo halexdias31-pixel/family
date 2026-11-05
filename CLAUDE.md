@@ -48,6 +48,8 @@ node tools/health.js --where <x>   # where a name/element lives and what links t
 node tools/health.js --list [n]    # the worklist, dearest first (--kind k to filter)
 node tools/health.js --plan        # writes docs/split-plan.md
 node tools/health.js               # full run: rewrites data/health.json and the report files
+node tools/ai-cost.js -v           # what a change costs an AI to read; tombstones must stay 0
+node tools/facet-data.js -v        # every facet value: merged, near-duplicate, menu/chip/tag mismatch
 ```
 
 Heavier checks (`npm run check`, `js/check-flow.js`, `check/ui.js`) and what each proves: `docs/map-detail.md`.
