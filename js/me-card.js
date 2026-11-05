@@ -42,7 +42,7 @@ function cardEditNow_() {
         if (typeof k.hd === 'string') CARD_EDIT.h0 = k.hd;
         if (typeof k.cr === 'number') CARD_EDIT.cr0 = k.cr;
       }
-    } catch (e) {}
+    } catch (e) { /* a bad stored edit reads as none */ }
   }
   return CARD_EDIT;
 }
@@ -103,7 +103,7 @@ function cardFormVals_(form) {
   const out = {};
   form.querySelectorAll('[data-me]').forEach(b => {
     if (b.disabled) return;
-    const v = b.type === 'checkbox' ? (b.checked ? 'TRUE' : 'FALSE') : String(b.value || '').trim();
+    const v = isCheckbox_(b) ? (b.checked ? 'TRUE' : 'FALSE') : String(b.value || '').trim();
     out[b.dataset.me] = v === QUAL_OTHER ? '' : v;
   });
   return out;
@@ -570,7 +570,7 @@ function cardSecRedraw_(pane, sec) {
     box.innerHTML = ownCardSetPage_(colOfEl_(el)).find(h => h.indexOf('data-sec="' + sec + '"') !== -1) || '';
     const fresh = box.querySelector('.me-form');
     if (fresh) form.replaceWith(fresh);
-  } catch (x) {}
+  } catch (x) { /* a section that cannot redraw keeps its old form */ }
 }
 
 /* ---------- EDIT § */

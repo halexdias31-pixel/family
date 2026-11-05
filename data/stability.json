@@ -1,18 +1,9 @@
 {
  "v": 2,
  "tier": "core",
- "score": 71.3,
+ "score": 77.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
-  {
-   "id": "catches",
-   "label": "Empty catches allowed (check-catches ceiling)",
-   "count": 346,
-   "weight": 0.02,
-   "cap": 15,
-   "off": 6.9,
-   "where": {}
-  },
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
@@ -38,25 +29,13 @@
    }
   },
   {
-   "id": "special",
-   "label": "Per-facet and per-kind special cases",
-   "count": 111,
-   "weight": 0.05,
-   "cap": 10,
-   "off": 5.6,
-   "where": {
-    "js/cards.js": 4,
-    "js/data.js": 4,
-    "js/find.js": 69,
-    "js/keypad.js": 5,
-    "js/links.js": 3,
-    "js/me.js": 7,
-    "js/price-rows.js": 2,
-    "js/qtools.js": 4,
-    "js/resource.js": 4,
-    "js/submit.js": 7,
-    "js/tiles.js": 2
-   }
+   "id": "catches",
+   "label": "Empty catches allowed (check-catches ceiling)",
+   "count": 228,
+   "weight": 0.02,
+   "cap": 15,
+   "off": 4.6,
+   "where": {}
   },
   {
    "id": "dead",
@@ -66,7 +45,33 @@
    "cap": 10,
    "off": 4.5,
    "where": {
-    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), insertsFor_ (find.js), initWhiteboard (find.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+   }
+  },
+  {
+   "id": "special",
+   "label": "Per-facet and per-kind special cases",
+   "count": 68,
+   "weight": 0.05,
+   "cap": 10,
+   "off": 3.4,
+   "where": {
+    "js/cards.js": 4,
+    "js/data.js": 4,
+    "js/find-cells.js": 2,
+    "js/find-figures.js": 4,
+    "js/find-finder.js": 1,
+    "js/find-history.js": 7,
+    "js/find-pad.js": 4,
+    "js/keypad-keys.js": 3,
+    "js/links.js": 3,
+    "js/me-messages.js": 2,
+    "js/me-settings.js": 5,
+    "js/predicates.js": 16,
+    "js/price-rows.js": 2,
+    "js/qtools.js": 4,
+    "js/resource.js": 1,
+    "js/submit.js": 6
    }
   },
   {
@@ -86,20 +91,6 @@
    }
   },
   {
-   "id": "longfiles",
-   "label": "Files over 3000 lines",
-   "count": 4,
-   "weight": 0.5,
-   "cap": 10,
-   "off": 2,
-   "where": {
-    "js/find.js": 12059,
-    "js/me.js": 4873,
-    "js/shell.js": 3933,
-    "backend/dopost.gs": 4636
-   }
-  },
-  {
    "id": "duplicates",
    "label": "Repeated long lines",
    "count": 57,
@@ -111,20 +102,30 @@
    }
   },
   {
+   "id": "longfiles",
+   "label": "Files over 3000 lines",
+   "count": 1,
+   "weight": 0.5,
+   "cap": 10,
+   "off": 0.5,
+   "where": {
+    "backend/dopost.gs": 4636
+   }
+  },
+  {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 10,
+   "count": 9,
    "weight": 0.05,
    "cap": 10,
    "off": 0.5,
    "where": {
     "js/core.js priceFrom": 251,
-    "js/find.js typeset_": 230,
-    "js/find.js drawMarker_": 644,
-    "js/find.js stuffItemsRaw_": 170,
+    "js/find-aloud.js stuffItemsRaw_": 170,
+    "js/find-parts.js typeset_": 230,
     "js/library.js libraryExtras_": 180,
-    "js/shell.js placeGrid": 164,
-    "js/shell.js loadOnce_": 250,
+    "js/shell-api.js loadOnce_": 250,
+    "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1204,
     "backend/dopost.gs doPost": 3593,
     "backend/setup.gs dataProblems": 282

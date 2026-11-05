@@ -160,7 +160,7 @@ function paneReach_(panes, o) {
         }
       }
     });
-  } catch (e) {}
+  } catch (e) { /* a pane gone mid-measure keeps its scroll as it was */ }
 }
 
 /* ---------- AND A CARD THAT GROWS AFTER ITS SCREEN WAS PLACED § */
@@ -228,7 +228,7 @@ function paneWatch_(host) {
     const old = new Set(had);
     kids.forEach(k => { if (!old.has(k)) PANE_WATCH.observe(k); });
     host.PANE_KIDS = kids;
-  } catch (e) {}
+  } catch (e) { /* a pane gone mid-change is watched again on the next draw */ }
 }
 
 /* ---------- ONE PAGE, FILLED: THE LOOP'S BODY, AND THE FAR EDGE OF THE GLASS § */
@@ -716,7 +716,7 @@ function finderScreen_() {
       if (!$(F.id + '-controls')) return;
       fillStuffPages();
       if (stuffOnGlass_(F.id) && stuffBandFill_()) settle_(true);
-    }); } catch (e) {} });
+    }); } catch (e) { /* a band redrawn mid-change settles on the next frame */ } });
   }
   /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than Find 2's `res` id, and nothing to
      do with it: `#s-res .page.is-res` is a result page of Find 2. */

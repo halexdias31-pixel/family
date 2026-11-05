@@ -4376,7 +4376,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard .qsheet { margin-top: .75rem; }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE § */
-.qsheet { font-family: var(--font); line-height: 1.5; }
+.qsheet { font-family: var(--font); line-height: 1.5; overflow-wrap: break-word; }
 /* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE § */
 .qsheet-stem.is-standin { border: 1px dashed var(--line); border-radius: 8px;
   padding: .7rem .8rem; }

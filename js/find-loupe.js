@@ -260,7 +260,7 @@ function padLand_(e, ink, k) {
   if (!at) { PAD_TOUCH.delete(c.id); return; }
   padStart_(c, at, r);
   padLiveShow_();
-  if (c.type === 'mouse' || c.type === 'pen') {
+  if (isSteadyPointer_(c)) {
     PAD_GO.est = true;
     /* A STYLUS: every touch already down, and every one to come, is the hand holding it. */
     if (c.type === 'pen') { PAD_GO.pen = true; PAD_TOUCH.forEach(x => { if (x !== c) x.role = 'rest'; }); }

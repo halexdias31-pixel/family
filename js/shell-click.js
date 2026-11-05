@@ -421,7 +421,7 @@ function api(body, opts) {
           const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
           if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
           else if (rec) localStorage.setItem('familyGone', rec);
-        } catch (e) {}
+        } catch (e) { /* storage can be blocked; the app runs without it */ }
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) { oops_(e, 'shell:api') }
         toast('Signed out — please sign in again');
       }

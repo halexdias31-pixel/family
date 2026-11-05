@@ -267,7 +267,7 @@ function subAdopt_() {
       }
     }
     subPaintAll_();
-  } catch (e) {}
+  } catch (e) { /* answers not adopted stay on the device for the next sign-in */ }
   try { subMigrate_(); } catch (e) { oops_(e, 'submit:subAdopt_') }
   subPush_(true);
 }
@@ -328,6 +328,24 @@ function subMigrateMark_(x, v, slot) {
   const m = markAnswer_(v, accept);
   return m === null ? null : { a: v, v: m ? 'right' : 'wrong' };
 }
+/* WHAT WAS DONE, AND WHEN, by question key: the device's `done:` dates first, then the old backend's rows. */
+function subDoneOf_(who, pid) {
+  const done = {};
+  const pre = 'done:' + who + ':';
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf(pre) === 0) done[k.slice(pre.length)] = String(localStorage.getItem(k) || '');
+    }
+  } catch (e) { /* storage can be blocked; the app runs without it */ }
+  try {
+    const a = DATA && DATA.attempts;
+    if (a && a.mine && typeof a.mine === 'object' && String(a.for || '') === pid) {
+      Object.keys(a.mine).forEach(q => { if (!(q in done)) done[q] = String((a.mine[q] && a.mine[q].last) || ''); });
+    }
+  } catch (e) { /* a malformed attempts block reads as none */ }
+  return done;
+}
 function subMigrate_() {
   if (typeof USER !== 'object' || !USER || !USER.personId) return;
   const pid = String(USER.personId), who = 'u:' + pid;
@@ -346,21 +364,7 @@ function subMigrate_() {
   }
   const items = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : [];
   if (!items.some(it => it && isQ_(it))) return;
-  /* WHAT WAS DONE, AND WHEN — the device's dates, and the old backend's rows of this person. */
-  const done = {};
-  const pre = 'done:' + who + ':';
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf(pre) === 0) done[k.slice(pre.length)] = String(localStorage.getItem(k) || '');
-    }
-  } catch (e) {}
-  try {
-    const a = DATA && DATA.attempts;
-    if (a && a.mine && typeof a.mine === 'object' && String(a.for || '') === pid) {
-      Object.keys(a.mine).forEach(q => { if (!(q in done)) done[q] = String((a.mine[q] && a.mine[q].last) || ''); });
-    }
-  } catch (e) {}
+  const done = subDoneOf_(who, pid);
   const index = new Map();
   items.forEach(it => { if (it) index.set(ansKey_(it), it); });
   const all = subAll_(who), queue = subQueue_(who), made = [];
@@ -564,7 +568,7 @@ function markHush_() {
       n.out.gain.linearRampToValueAtTime(0, t + 0.015);
     }
     setTimeout(() => { try { n.out.disconnect(); } catch (e) { /* already stopped is fine */ } }, 60);
-  } catch (e) {}
+  } catch (e) { /* a sound already stopped is fine */ }
 }
 function markPlay_(v, late) {
   markSound_(markKind_(v), late);
@@ -586,13 +590,13 @@ function markSound_(kind, late) {
       const end = markTone_(ac, ac.currentTime + 0.02, kind, out);
       MARK_NOW = { ac: ac, out: out, end: end };
       markRest_(Math.max(0, end - ac.currentTime) * 1000 + MARK_REST_MS);
-    } catch (e) {}
+    } catch (e) { /* no sound is played, the verdict still shows */ }
   };
   if (ac.state === 'running') { go(); return; }
   try {
     const p = ac.resume();
     if (p && typeof p.then === 'function') p.then(go, () => {});
-  } catch (e) {}
+  } catch (e) { /* a context that cannot wake plays nothing */ }
 }
 /* AN APP OUT OF SIGHT KEEPS NO AUDIO RUNNING, a wait for Mark with AI or not: the next press wakes it
    (`markHear_`), and a verdict landing while hidden is not heard anyway (`markWhere_`). */
@@ -639,7 +643,7 @@ function subBoxPaint_(k) {
     document.querySelectorAll('.qp-order[data-k]').forEach(box => {
       if (box.getAttribute('data-k') === k && typeof orderRedraw_ === 'function') orderRedraw_(box, '');
     });
-  } catch (e) {}
+  } catch (e) { /* a box gone mid-paint is painted on its next draw */ }
 }
 
 /* ---------- AS THE APP GOES AWAY, WHATEVER IS WAITING GOES WITH `keepalive` § */

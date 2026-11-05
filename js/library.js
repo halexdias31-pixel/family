@@ -630,7 +630,7 @@ function libDiskPut_(items, gen) {
       drop.forEach(id => LIB.disk.delete(id));
     }
     if (disk) { disk.put(recs).catch(() => {}); if (drop.length) disk.drop(drop).catch(() => {}); }
-  } catch (e) {}
+  } catch (e) { /* the disk copy is a cache: not kept, it is fetched again */ }
 }
 /* SIGNED OUT: the device forgets every word too. */
 function libDiskClear_() {
@@ -728,7 +728,7 @@ function libForget_() {
         const ins = (D.inserts || []).find(o => o.id === libS(r.insert_id).trim());
         if (ins) { ins.sourceText = ''; ins.libHas = libS(r.lib_has).trim(); }
       }
-    } catch (e) {}
+    } catch (e) { /* a malformed row keeps the card as the payload drew it */ }
   });
   LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear(); LIB.refused.clear();
   LIB.failed = '';

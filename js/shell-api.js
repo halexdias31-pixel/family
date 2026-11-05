@@ -79,7 +79,7 @@ document.addEventListener('click', e => {
       handlerRegistered: d ? !!ACTIONS[d.dataset.do] : false,
       /* A select or a checkbox is deliberately handled by `change` instead, so "no handler ran" is
          the right answer for those and not a fault. */
-      handledByChange: !!(d && (d.tagName === 'SELECT' || d.type === 'checkbox')),
+      handledByChange: !!(d && (d.tagName === 'SELECT' || isCheckbox_(d))),
     });
   }
   /* A PRESS ON THE CARD IN FRONT HOLDS IT WHERE IT IS, before the handler below changes it — see
@@ -92,7 +92,7 @@ document.addEventListener('click', e => {
 
   const doer = e.target.closest('[data-do]');
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
-  if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
+  if (doer && (doer.tagName === 'SELECT' || isCheckbox_(doer))) return;
   if (doer && ACTIONS[doer.dataset.do]) {
     /* ONE PRESS, ONE ACTION — see `pressAgain_`. */
     if (pressAgain_(doer)) {
@@ -181,7 +181,7 @@ async function filesOnly_() {
     libraryInto_(d, await libraryRows_());
     libraryExtras_(d, await libraryExtraRows_());
     settingsInto_(d, await settingsRows_());
-  } catch (e) {}
+  } catch (e) { /* a file that did not come is drawn as empty */ }
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
   d.questions = d.questions || [];

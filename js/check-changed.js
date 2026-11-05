@@ -33,6 +33,7 @@ const MAP = [
   ['js/book.js', ['js/check-booking.js', 'js/check-lifecycle.js', 'js/check-flow.js']],
   ['js/find-*.js', ['js/check-finder.js', 'js/check-funnel.js', 'js/check-flow.js', 'check/centred.js', 'check/chip-feel.js']],
   ['js/check-*.js', ['$self']],
+  ['check/flow/*.js', ['js/check-flow.js']],
   ['check/*.js', ['$self']],
   ['js/*.js', ['js/check-strings.js', 'js/check-scope.js', 'js/check-const.js', 'js/check-payload.js', 'js/check-doors.js', 'js/check-catches.js',
                'js/check-errors.js', 'js/check-loading.js', 'js/check-tiers.js', 'js/check-flow.js']],

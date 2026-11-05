@@ -183,7 +183,7 @@ function padMap_(r, cx, cy) {
 /* A STEADY HAND FOR A MOUSE OR A STYLUS (368): a lazy brush -- the ink follows the pointer on a string -- then a light low-pass. A finger keeps 357's ink under it, untouched */
 const PAD_STRING_PX = 6;      // the string: a pointer's jitter inside it moves no ink, and a straight pull draws a straight line
 const PAD_STEADY_K = 0.55;    // the low-pass: each point this much of the way from the last kept one to the string's end
-const padSteady_ = g => !!(g && g.c && (g.c.type === 'mouse' || g.c.type === 'pen'));
+const padSteady_ = g => !!(g && g.c && isSteadyPointer_(g.c));
 function padLazy_(g, at, st) {
   const sx = g.sx || 1, sy = g.sy || 1;
   if (!g.lz) { g.lz = st.length >= 2 ? [st[st.length - 2], st[st.length - 1]] : at.slice(); g.sm = g.lz.slice(); }
@@ -308,7 +308,7 @@ function padTargets_(g, pad) {
       add(own, [st[0], st[1]]);
       if (st.length > 2) add(own, [st[st.length - 2], st[st.length - 1]]);
     });
-  } catch (e) {}
+  } catch (e) { /* an unreadable stroke list gives no own snap points */ }
   pad.querySelectorAll('.qpad-was path').forEach(p => {
     const n = (p.getAttribute('d') || '').match(/-?\d+(\.\d+)?/g) || [];
     if (n.length >= 2) add(own, [+n[0], +n[1]]);

@@ -420,7 +420,9 @@ function stuffPages_() {
       if (!pageParts_(x, seq[i - 1]).length) return;
       const k = qId_(x), parts = [];
       for (let j = i; j < seq.length && isQ_(seq[j]) && (j === i || (k && qId_(seq[j]) === k)); j++) parts.push(seq[j]);
-      const open = new Set(parts.filter(s => hit.has(s) && kept(s, null)));
+      let open = new Set(parts.filter(s => hit.has(s) && kept(s, null)));
+      /* ANSWERS CHOSEN: no part is kept as a question, so the parts kept for their answers open, or none would be drawn. */
+      if (!open.size) open = new Set(parts.filter(s => hit.has(s) && kept(s, 'ans')));
       if (!open.size && !parts.some(s => kept(s, 'ans'))) return;
       pages.push({ x: x, part: 'q', parts: parts, open: open, ans: parts.some(s => kept(s, 'ans')) });
       return;

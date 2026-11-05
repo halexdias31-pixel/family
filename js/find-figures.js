@@ -760,7 +760,7 @@ on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_()
 /* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardOpts_(x) {
-  if (!x || !x.key || isQ_(x) || x.kind === 'me') return null;
+  if (!x || !x.key || isQ_(x) || isMeCard_(x)) return null;
   if (!MAG_ITEM_KINDS[x.kind] && (typeof ruleOn_ !== 'function' || ruleOn_('mag-items'))) return null;
   return magOpts_();
 }

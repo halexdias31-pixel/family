@@ -480,7 +480,7 @@ on('set-listed', el => {
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-do]');
   if (!el || !ACTIONS[el.dataset.do]) return;
-  if (el.tagName !== 'SELECT' && el.type !== 'checkbox') return;
+  if (el.tagName !== 'SELECT' && !isCheckbox_(el)) return;
   /* The same reason as the click handler: an error that gets out of here loses its message. */
   try {
     ACTIONS[el.dataset.do](el, e);

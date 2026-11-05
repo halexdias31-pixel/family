@@ -96,7 +96,7 @@ function rulesMark_() {
     if (!ruleOn_('search-icon')) uni.push('search-icon');
     if (uni.length) document.documentElement.setAttribute('data-uni', uni.join(' '));
     else document.documentElement.removeAttribute('data-uni');
-  } catch (e) {}
+  } catch (e) { /* no root to mark: the rules stay as CSS defaults */ }
 }
 rulesMark_();
 

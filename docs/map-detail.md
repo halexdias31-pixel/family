@@ -176,7 +176,7 @@ npm install                      # the hook does this for you on a fresh clone
                                  # acorn, jsdom and playwright — for the checks only.
 npm run check                    # everything, via js/check-all.js
 node js/check.js                 # names used but never declared. Two seconds. Run always.
-node js/check-flow.js            # 21 journeys through the real app in jsdom
+node js/check-flow.js            # 550 journeys (check/flow/NN-<feature>.js, read in name order as one) through the real app in jsdom
 node js/check-payload.js         # every DATA key the site reads vs every key doGet sends
 node js/check-booking.js         # the booking state machine, folded in Node
 node js/check-backend.js         # one Apps Script scope: every name declared exactly once
@@ -336,7 +336,7 @@ the rules only; the reasons and figures behind them are in `docs/map-detail.md` 
 
 ## Reading this repo cheaply
 
-- Grep first, then Read a line range. Never Read a whole big file (`js/find.js`, `style.css`, `js/check-flow.js`).
+- Grep first, then Read a line range. Never Read a whole big file (`js/find.js`, `style.css`); a journey lives in `check/flow/NN-<feature>.js` — a new one goes in its feature's file, or a new NN file.
 - Never Read or `cat` `data/*.json` whole: a `node -e`/python one-liner for the rows you need.
 - A pathless Grep skips `docs/` and `data/` (`.ignore`). In `docs/history`, `grep -n` the keyword and read around the hits; some notes are 140 KB.
 - Checks print one line when green; `-v` (or `VERBOSE=1`) for the detail. A failure prints every failure and why.

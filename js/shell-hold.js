@@ -80,13 +80,13 @@ function quietFields_(root) {
     if (!root) return;
     quietField_(root);
     if (root.querySelectorAll) [].forEach.call(root.querySelectorAll('input,textarea'), quietField_);
-  } catch (e) {}
+  } catch (e) { /* a field that cannot be quietened behaves as the browser's own */ }
 }
 try {
   quietFields_(document.documentElement);
   new MutationObserver(ms => ms.forEach(m => [].forEach.call(m.addedNodes || [], quietFields_)))
     .observe(document.documentElement, { childList: true, subtree: true });
-} catch (e) {}
+} catch (e) { /* no MutationObserver: new fields keep the browser's own behaviour */ }
 
 /* A DOUBLE TAP ZOOMS NOTHING (466): iPad Safari zoomed whatever the viewport said. Its two clicks reach the dispatcher, which drops the second on the same control (534). */
 document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) { oops_(err, 'shell:quietFields_') } }, { passive: false });

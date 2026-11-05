@@ -217,7 +217,7 @@ on('apply-cancel', () => closeSheet());
 on('apply-send', el => {
   const f = el.closest('.app-form');
   if (!f || !USER) return;
-  const v = k => { const b = f.querySelector(`[data-app="${k}"]`); return !b ? '' : b.type === 'checkbox' ? (b.checked ? 'TRUE' : '') : String(b.value || '').trim(); };
+  const v = k => { const b = f.querySelector(`[data-app="${k}"]`); return !b ? '' : isCheckbox_(b) ? (b.checked ? 'TRUE' : '') : String(b.value || '').trim(); };
   const subjects = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => {
     const s_ = (f.querySelector(`[data-app-subj="${i}"]`) || {}).value || '', l = (f.querySelector(`[data-app-level="${i}"]`) || {}).value || '';
     return s_ ? s_ + (l ? ' (' + l + ')' : '') : '';
@@ -376,11 +376,11 @@ on('signout', () => {
   let subs = Promise.resolve();
   try {
     if (typeof subDrain_ === 'function') subs = subDrain_(USER && USER.personId, tok, typeof answersCan_ === 'function' && answersCan_('submitAnswer'));
-  } catch (err) {}
+  } catch (err) { /* nothing to send: the waiting answers stay on the device for next time */ }
   /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up (`keepDue_`, data.js) — each is sent only while somebody is signed § */
   let due = Promise.resolve();
   try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) { oops_(err, 'me:googleSignedIn_') }
-  Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) { /* sign out goes on even if the server call cannot be made */ } });
   signedOut_();
   toast('Signed out');
 });
@@ -407,7 +407,7 @@ function signedOut_(opts) {
     if (!opts.keepFind && !(opts.ended && was && !wasAdmin) && typeof finderSet_ === 'function') {
       Object.keys(FINDERS).forEach(id => finderSet_(FINDERS[id], { paint: false }));
     }
-  } catch (err) {}
+  } catch (err) { /* a finder not built yet has no box to clear */ }
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
   MESSAGES = null; MSG_FAILED = false; MSG_PENDING = []; MSG_ASKING = null;
@@ -429,7 +429,7 @@ function signedOut_(opts) {
     DATA.submissions = { for: '', mine: {} };
     DATA.family = []; DATA.familyFor = '';
     DATA.favourites = []; DATA.everyone = [];
-  } catch (e) {}
+  } catch (e) { /* no payload yet: nothing of the last person to clear */ }
   /* ---------- AND THE FILMS, WHICH HAVE NO `for` CHECK AT ALL § */
   try { DATA.films = []; delete DATA.filmsSync; } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE LIBRARY'S WORDS AND ANSWERS THIS VISIT FETCHED (397) — the next person signs in for their own. */
@@ -441,7 +441,7 @@ function signedOut_(opts) {
     /* AND THE PICTURES THAT FAILED, which are remembered by address — and a Drive film's address is its
        file id (`VID_BROKEN` in games.js). */
     if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
-  } catch (e) {}
+  } catch (e) { /* a list not built yet has nothing to clear */ }
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
@@ -494,7 +494,7 @@ function signedIn_(d, typed) {
       if (typeof adoptFavourites_ === 'function') adoptFavourites_();
     }
     if (Array.isArray(got.family) && String(got.familyFor || '') === pid) { DATA.family = got.family; DATA.familyFor = pid; }
-  } catch (e) {}
+  } catch (e) { /* a reply without these keys leaves the empty ones from sign-out */ }
   /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
      sends whatever this device has had waiting for this person (js/answers.js). */
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) { oops_(e, 'me:signedIn_') }
@@ -517,7 +517,7 @@ function signedIn_(d, typed) {
         ? PREV_AT : (kid ? 'stuff' : '');
       if (back) go(back);
     }
-  } catch (e) {}
+  } catch (e) { /* no way back: they stay on the account screen */ }
   load();
   /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
   afterSignIn_(d);

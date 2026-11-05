@@ -218,7 +218,9 @@ function outside(svg, row) {
           + '" class="card prac')).join('')).join('');
     window.__pracHost = host;
     /* ---------- AND WHETHER THE CARD FITS THE PANE, WHICH IS THE OTHER AXIS § */
-    const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+    /* A bare `.pane` has no max-height outside `#screen` (NaN); the phone's own height is the fold then. */
+    const capCss = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+    const cap = isFinite(capCss) ? capCss : window.innerHeight;
     const tall = [];
     host.querySelectorAll('.card.prac').forEach(el => {
       const h = el.getBoundingClientRect().height;
@@ -240,7 +242,9 @@ function outside(svg, row) {
       host.style.cssText = 'position:absolute;left:0;top:0;width:' + width + 'px';
       host.innerHTML = '<section class="page"><div class="pane"></div></section>';
       document.body.appendChild(host);
-      const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+      /* A bare `.pane` has no max-height outside `#screen` (NaN); the phone's own height is the fold then. */
+    const capCss = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+    const cap = isFinite(capCss) ? capCss : window.innerHeight;
       const tall = [], kinds = {};
       /* ---------- EVERY PICTURE IN ITS QUESTION'S CARD, AND NO FIGURE PAGE (docs/history/356) § */
       const inline = [];

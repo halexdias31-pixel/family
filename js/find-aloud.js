@@ -489,7 +489,7 @@ function findPlaceBack_(F) {
       if (i < 0) i = pages.findIndex(pg => mine(pg) && !pg.part);
       if (i < 0) { i = pages.findIndex(pg => (pg.parts || []).some(s => String(s.key || '') === p.key)); if (i >= 0 && String(pages[i].x.key || '') !== p.key) Q_SCROLL_TO = p.key; }
       if (i >= 0) goPage(F.id, stuffFirstResult_() + i, true);
-    } catch (e) {}
+    } catch (e) { /* a kept place that no longer matches stays on page one */ }
   });
 }
 /* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER § */
