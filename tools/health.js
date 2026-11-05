@@ -65,11 +65,19 @@ function findWork(L) {
   /* one-off: a literal kind/facet/finder test in the funnel code, bypassing a shared rule. */
   /* A CARD's kind (x, it, item, card or a bare kind), any facet's field, a facet key, or one finder by name; keys and mark parts are not cards. */
   const ONE = /(?<![\w.])(?:(?:x|it|item|card|y)\.)?kind\s*[!=]==?\s*'[^']+'|\b(?:\w+\.)?field\s*[!=]==?\s*'[^']+'|(?<![\w.])(?:facet|key)\s*[!=]==?\s*'[^']+'|\b(?:F|finder)\s*[!=]==?\s*(?:RES|FINDERS\.\w+)\b/g;
+  /* MENU-THIN (920): no menu asked with < 2 real answers, no answer drawn with 0 (the walk), and no rule in facetWhy_ that lets one through. */
+  ((L.j && L.j.menuSense) || []).filter(m => ['thin', 'zero-count', 'answer-words', 'merged-value'].includes(m.kind)).forEach(m => work.push({ kind: /^(?:answer-words|merged-value)$/.test(m.kind) ? m.kind : 'menu-thin', where: m.where, say: m.kind + ': ' + m.say }));
+  const fw = /function facetWhy_\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
+  if (!fw) work.push({ kind: 'menu-thin', where: 'js/find.js', say: 'facetWhy_ not found — the < 2 answers guard cannot be proved' });
+  else { const body = blank(fw[0]), g = body.search(/if \(\s*vals\s*<\s*2\s*\)/);
+    if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
+    body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
+      work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
   ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
   return work;
 }
-const FIND_PENALTY = { 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
+const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-value': [0.5, 10], 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
 function uniformWork() {
@@ -318,7 +326,7 @@ function extraWork(st) {
   const L = jread('data/logic-health.json');
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
-  ((L && L.menuSense) || []).filter(m => !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
   /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
   const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
   String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
@@ -534,6 +542,8 @@ if (require.main === module && process.argv.includes('--budgets')) {
 } else if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
 else if (require.main === module && process.argv.includes('--fix')) fix();
 else if (require.main === module && process.argv.includes('--changed')) changed();
+else if (require.main === module && process.argv.includes('--cache')) { const C = require('./cache.js').cache(); C.ok.forEach(o => console.log('ok: ' + o)); C.work.forEach(w => console.log(`cache  ${w.where}  ${w.say}`)); console.log('achievable: ' + C.achievable); }
+else if (require.main === module && process.argv.includes('--isolation')) execFileSync(process.execPath, ['tools/isolation.js', '15'], { cwd: ROOT, stdio: 'inherit' });
 else if (require.main === module && process.argv.includes('--plan')) require('./structure.js').plan();
 else if (require.main === module && process.argv.includes('--structure-init')) require('./structure.js').init();
 else if (require.main === module) {

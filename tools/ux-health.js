@@ -190,8 +190,20 @@ function instruments() {
     });
     return out;
   });
+  /* REPEAT VISIT (920 cache): the same browser opens the site again; bytes over the network against bytes from a cache (HTTP or the service worker). */
+  const bytes = pg => pg.evaluate(() => { const r = performance.getEntriesByType('resource').concat(performance.getEntriesByType('navigation'));
+    const o = { n: r.length, netKB: 0, cacheN: 0, cacheKB: 0 };
+    r.forEach(e => { if (e.transferSize > 0) o.netKB += e.transferSize / 1024; else { o.cacheN++; o.cacheKB += (e.decodedBodySize || 0) / 1024; } });
+    o.netKB = Math.round(o.netKB); o.cacheKB = Math.round(o.cacheKB); return o; }).catch(() => null);
+  const firstVisit = await bytes(page);
+  let repeat = null;
+  try { const p2 = await ctx.newPage(); const t1 = Date.now();
+    await p2.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
+    await p2.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 });
+    repeat = Object.assign({ loadedMs: Date.now() - t1 }, await bytes(p2)); await p2.close(); } catch (e) { repeat = { error: String(e.message).slice(0, 120) }; }
   await browser.close(); server.close();
   const out = {
+    visits: { first: firstVisit, repeat },
     walked: { viewport: '390x844 touch', cpu: CPU + 'x (1x for the question sample)', ms: Date.now() - t0, phase },
     firstScreenMs: Math.round(first), findUsableMs: Math.round(usable), signinMs: Math.round(signin), heapMB: Math.round(heap / 1048576 * 10) / 10,
     clicks, thresholds: { clickMs: CLICK_MS, shift: SHIFT },

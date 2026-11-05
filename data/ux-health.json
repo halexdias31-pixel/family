@@ -1,94 +1,109 @@
 {
+ "visits": {
+  "first": {
+   "n": 106,
+   "netKB": 3594,
+   "cacheN": 38,
+   "cacheKB": 55508
+  },
+  "repeat": {
+   "loadedMs": 10083,
+   "n": 82,
+   "netKB": 18,
+   "cacheN": 80,
+   "cacheKB": 57470
+  }
+ },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 77684,
+  "ms": 96026,
   "phase": {
-   "loaded": 6674,
-   "signin": 13314,
-   "findUsable": 20550,
-   "clicks": 50992,
-   "questions": 74611
+   "loaded": 6627,
+   "signin": 13440,
+   "findUsable": 19348,
+   "clicks": 58562,
+   "questions": 82896
   }
  },
- "firstScreenMs": 544,
- "findUsableMs": 7236,
- "signinMs": 6043,
- "heapMB": 670.4,
+ "firstScreenMs": 476,
+ "findUsableMs": 5908,
+ "signinMs": 6175,
+ "heapMB": 756.3,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "ms": 40,
+   "ms": 7312,
    "shift": 0.008,
-   "longs": 1,
+   "longs": 2,
    "by": "event-timing"
   },
   {
    "what": "second menu: first answer",
-   "ms": 32,
+   "ms": 16,
    "shift": 0.018,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "third menu: first answer",
-   "ms": 24,
+   "ms": 32,
    "shift": 0.011,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "back: drop the last chip",
-   "ms": 24,
+   "ms": 40,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "menu answer again",
-   "ms": 24,
+   "ms": 32,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "open a question",
-   "ms": 2397,
+   "ms": 2680,
    "shift": 0.017,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "ms": 56,
+   "ms": 64,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Lock the page",
-   "ms": 48,
+   "ms": 80,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Unlock the page",
-   "ms": 40,
+   "ms": 24,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Fold the question",
-   "ms": 40,
+   "ms": 48,
    "shift": 0.002,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Back to the top of Find",
-   "ms": 56,
+   "ms": 80,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -103,14 +118,14 @@
   },
   {
    "what": "Feed tab",
-   "ms": 39,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "ms": 42,
+   "ms": 45,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -122,8 +137,15 @@
  },
  "slow": [
   {
+   "what": "front menu: first answer",
+   "ms": 7312,
+   "shift": 0.008,
+   "longs": 2,
+   "by": "event-timing"
+  },
+  {
    "what": "open a question",
-   "ms": 2397,
+   "ms": 2680,
    "shift": 0.017,
    "longs": 1,
    "by": "frames"

@@ -66,12 +66,14 @@ function progress(B) {
   const pct = Math.round(10 * Object.values(parts).reduce((a, b) => a + b, 0) / Object.keys(parts).length) / 10;
   return { pct, now, parts, line: `structure: ${pct}% of the way from the ${B.baselineDate} baseline to the targets (file lines over 800: ${now.fileLines}/${base.fileLines}, function lines over 80: ${now.fnLines}/${base.fnLines}, extra variants: ${now.variety}/${base.variety}, one-offs: ${now.oneOff}/${base.oneOff})` };
 }
+/* COUPLING (920 isolation): per js file, the files that use its names plus the names of others it reads; only ever goes down. */
+function coupling() { return Object.fromEntries(require('./isolation.js').isolation().map(x => [x.file, x.inbound + x.outbound])); }
 /* --init: today's numbers become the budgets AND the baseline progress is measured from. Refuses to overwrite without --reset. */
 function init() {
   if (readBudgets() && !process.argv.includes('--reset')) { console.log(BUDGETS + ' exists; --reset to rebase it (and lose the locked-in gains)'); process.exit(1); }
   const M = measureAll(), V = varieties(M), b = toBudget(M, V);
   const B = { why: 'structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.',
-    targets: TARGET, baselineDate: new Date().toISOString().slice(0, 10), baseline: excess(b.files, b.functions, b.variety), ...b };
+    coupling: coupling(), targets: TARGET, baselineDate: new Date().toISOString().slice(0, 10), baseline: excess(b.files, b.functions, b.variety), ...b };
   writeBudgets(B);
   console.log(`wrote ${BUDGETS}: ${Object.keys(b.files).length} files, ${Object.keys(b.functions).length} functions over 80, ${Object.keys(V).length} variety families`);
 }
@@ -111,6 +113,13 @@ function ratchet(changedFiles) {
       if (!was) { B.variety[k] = V[k]; return; }
       if (V[k].count > was.count) bad.push(`variety-${k}\t${V[k].label}\t${V[k].count} variants, over its budget of ${was.count} (node tools/health.js --list --kind variety-${k})`);
       else if (V[k].count < was.count) { gains.push(`${V[k].label} ${was.count} → ${V[k].count}`); B.variety[k] = V[k]; } });
+  }
+  if (files.some(f => f.startsWith('js/'))) {
+    const C = coupling(); B.coupling = B.coupling || {};
+    files.filter(f => C[f] != null).forEach(f => { const was = B.coupling[f];
+      if (was == null) B.coupling[f] = C[f];
+      else if (C[f] > was) bad.push(`coupling\t${f}\t${C[f]} outside links, over its budget of ${was} (node tools/isolation.js)`);
+      else if (C[f] < was) { gains.push(`${f} coupling ${was} → ${C[f]}`); B.coupling[f] = C[f]; } });
   }
   if (!bad.length && gains.length) writeBudgets(B);
   return { bad, gains, B };
