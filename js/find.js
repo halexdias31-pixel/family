@@ -35,11 +35,11 @@ const FINDERS = {
 };
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
-  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES; F.chips = CHIP_SHOW;
+  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES;
   F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
 }
 function finderUnpark_(F) {
-  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages; CHIP_SHOW = F.chips;
+  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages;
   STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
 }
 function inFinder_(F, fn) {
@@ -816,62 +816,23 @@ function facetSay_(facet, v) {
   if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
   return sayCase_(s);
 }
-/* THE SAME WORDS THE BUTTON WOULD SAY FOR THIS VALUE OVER `items` — the shortest unique form among its neighbours. Only a
-   name that has a shorter form is looked up, so a card's ordinary tags cost nothing. */
-function facetShort_(facet, v, items) {
+/* ONE RULE FOR AN ANSWER'S WORDS (940): the menu, the chip and the card's tag line all read them here — the answer as its menu
+   over this finder's whole list draws it (shortest unique form, plus what tells it apart), so it never reads two ways. */
+const ANSWER_SAY = new WeakMap();
+function answerSay_(facet, v) {
   const say = facetSay_(facet, v);
-  if (nameForms_(say).length < 2) return say;
-  try {
-    const hit = facetTally_(items || stuffFiltered(), facet).values.find(w => spellKey_(w.value) === spellKey_(v));
-    if (hit) return hit.show || hit.text || say;
-  } catch (e) { /* the full name, below */ }
-  return say;
-}
-
-/* A CARD'S TAG IS SAID AS ITS BUTTON WOULD BE ONCE EVERY QUESTION BEFORE IT WAS ANSWERED THE CARD'S WAY (396) — the
-   paper among the papers sharing its level, board, tier and sitting is `Paper 1`, wherever the card is drawn. */
-let CARD_LISTS = { from: null, at: new Map(), of: new Map() };
-/* ONE LABELLER FOR A THING (830): an answer that differs among the cards wearing this value (one question's Accuracy)
-   never changes what it is called, so a paper is named by its paper's answers, as the email names it. */
-function cardThingOwn_(facet, x, g) {
-  const own = asList_(facet.of(x)).map(spellKey_).join('|');
-  const key = facet.field + '\u0001' + own + '\u0001' + g.field;
-  let hit = CARD_LISTS.of.get(key);
-  if (hit === undefined) {
-    let by = CARD_LISTS.of.get(facet.field);
-    if (!by) {
-      by = new Map();
-      stuffItems().forEach(y => { let k = ''; try { k = asList_(facet.of(y)).map(spellKey_).join('|'); } catch (e) { k = ''; } if (k) { if (!by.has(k)) by.set(k, []); by.get(k).push(y); } });
-      CARD_LISTS.of.set(facet.field, by);
-    }
-    const said = y => { try { return asList_(g.of(y)).map(spellKey_).sort().join('|'); } catch (e) { return ''; } };
-    const mates = by.get(own) || [x], first = said(mates[0]);
-    hit = mates.every(y => said(y) === first);
-    CARD_LISTS.of.set(key, hit);
+  if (!facet) return say;
+  let items = [];
+  try { items = stuffItems() || []; } catch (e) { return say; }
+  let per = ANSWER_SAY.get(items);
+  if (!per) { per = {}; ANSWER_SAY.set(items, per); }
+  let m = per[facet.field];
+  if (!m || m.facet !== facet) {
+    m = { facet: facet, by: new Map() };
+    try { facetTally_(items, facet).values.forEach(w => m.by.set(spellKey_(w.value), w.show || w.text || w.value)); } catch (e) { /* said in full, below */ }
+    per[facet.field] = m;
   }
-  return hit;
-}
-function cardList_(facet, x) {
-  if (CARD_LISTS.from !== DATA) CARD_LISTS = { from: DATA, at: new Map(), of: new Map() };
-  const chips = [];
-  for (const g of facetList()) {
-    if (g.field === facet.field) break;
-    if (!cardThingOwn_(facet, x, g)) continue;
-    let vals = [];
-    try { vals = asList_(g.of(x)); } catch (e) { vals = []; }
-    vals.forEach(v => chips.push({ field: g.field, value: v }));
-  }
-  /* EACH PREFIX OF THE ANSWERS IS NARROWED ONCE, from the one before it — the cards of one paper share all of them. */
-  let list = stuffItems(), key = '';
-  const byField = [];
-  chips.forEach(c => { const last = byField[byField.length - 1]; if (last && last[0].field === c.field) last.push(c); else byField.push([c]); });
-  for (const same of byField) {
-    key += '\u0001' + same.map(c => c.field + '=' + spellKey_(c.value)).join('|');
-    let hit = CARD_LISTS.at.get(key);
-    if (!hit) { hit = stuffNarrow_(list, same, [], 0); CARD_LISTS.at.set(key, hit); }
-    list = hit;
-  }
-  return list;
+  return m.by.get(spellKey_(v)) || say;
 }
 
 /* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): years and dates newest first, numbers by size, months
@@ -8031,7 +7992,7 @@ function tagMadeOf_(text, said) {
 function tagRow_(x, page) {
   const out = [], words = new Set(), ids = new Set(), said = [];
   if (!x) return '';
-  /* EVERY FACET IS A TAG (396), said as its button would say it (`cardList_`); a word already on the row is not said twice. */
+  /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice. */
   facetList().forEach(facet => {
     let vals;
     try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
@@ -8039,10 +8000,7 @@ function tagRow_(x, page) {
       const raw = String(v == null ? '' : v).trim();
       if (!raw) return;
       let text = raw;
-      try {
-        const say = facetSay_(facet, raw);
-        text = String((nameForms_(say).length > 1 ? facetShort_(facet, raw, cardList_(facet, x)) : say) || raw).trim();
-      } catch (e) { text = raw; }
+      try { text = String(answerSay_(facet, raw) || raw).trim(); } catch (e) { text = raw; }
       const w = norm(text);
       if ((TAG_NAME.test(text) && (words.has(w) || tagMadeOf_(text, said))) || (TAG_NAME.test(raw) && ids.has(raw))) return;
       words.add(w); ids.add(raw); said.push(text);
@@ -10580,24 +10538,10 @@ function stuffCard(x, credits) {
   return x.hdb && typeof tileRowsJoin_ === 'function' ? tileRowsJoin_(out) : out;
 }
 
-/* WHAT A CHIP READS: the words its button said (`facetShort_`), memoised per finder. */
-let CHIP_SHOW = { key: null, from: null, out: {} };   /* a `let`: one per finder, see `inFinder_` */
-function chipShow_(f, i) {
+/* WHAT A CHIP READS: the words its button said (`answerSay_`). */
+function chipShow_(f) {
   const facet = facetBy(f.field);
-  if (!facet) return f.value;
-  const say = facetSay_(facet, f.value);
-  /* THE WORDS ITS BUTTON SAID (396): shortened against the answers it was chosen from, and only a name with a shorter form is looked up. */
-  if (typeof i !== 'number' || nameForms_(say).length < 2) return say;
-  const key = JSON.stringify([STUFF.q || '', STUFF.filters.slice(0, i + 1)]);
-  if (CHIP_SHOW.from !== DATA) { CHIP_SHOW.from = DATA; CHIP_SHOW.out = {}; }
-  if (key in CHIP_SHOW.out) return CHIP_SHOW.out[key];
-  let show = '';
-  try {
-    const before = STUFF.filters.slice(0, i).filter(g => g.field !== f.field);
-    const credits = USER ? (USER.credits || 0) : 0;
-    show = facetShort_(facet, f.value, stuffNarrow_(stuffItems(), before, stuffWords_(STUFF.q), credits));
-  } catch (e) { show = ''; }
-  return (CHIP_SHOW.out[key] = show || say);
+  return facet ? answerSay_(facet, f.value) : f.value;
 }
 
 /* ---------- WHAT KIND OF TAG THIS IS, WHICH IS ITS COLOUR § */
@@ -11559,7 +11503,7 @@ function facetNoneHtml_(items, shown) {
       const every = facetValues(all, facet);
       if (every.length !== 2) return;
       const other = every.find(v => spellKey_(v.value) !== spellKey_(here[0].value));
-      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(other.show || other.value)} <b>0</b></span>`);
+      if (other) out.push(`<span class="none-chip" aria-disabled="true">${esc(answerSay_(facet, other.value))} <b>0</b></span>`);
     });
     return out.length ? `<p class="facet-none" aria-label="answers none of these have">${out.join('')}</p>` : '';
   } catch (e) { return ''; }
@@ -11574,7 +11518,7 @@ function facetAnswersHtml_(facet, values, more) {
         <span class="k">Doesn't matter</span>
       </div>`;
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
-  /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
+  /* `data-value` IS THE FULL NAME AND THE TEXT IS `answerSay_`'s. The chip this
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
@@ -11582,7 +11526,7 @@ function facetAnswersHtml_(facet, values, more) {
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(v.show || v.value)}</span>
+        <span class="k">${mark(answerSay_(facet, v.value))}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 

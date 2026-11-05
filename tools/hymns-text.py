@@ -208,6 +208,10 @@ def brownlie(key):
     return out
 
 
+# ONE SPELLING PER NAME (940): the books print a few names two ways, and the finder would offer both.
+SAME_AS = {'Fanny J. Crosby': 'Fanny Crosby', 'Joseph Hart. _D._': 'Joseph Hart', 'Joseph Hart, d': 'Joseph Hart', "Antiphônon Ia' Êchos Pl. B'": "Antiphônon I' Êchos Pl. B'"}
+
+
 def main():
     hymns = otterbein() + gregory() + brownlie('brownlie1') + brownlie('brownlie2')
     os.makedirs(OUT, exist_ok=True)
@@ -219,8 +223,8 @@ def main():
         file = 'w-%02d.json' % (k // CHUNK)
         n = BOOKS[h['book']][0]
         title = h.get('title') or title_of(h['first'])
-        row = {'id': hid, 'title': title, 'first': h['first'], 'author': h['author'], 'year': h['year'], 'tradition': h['tradition'],
-               'season': h['season'], 'theme': h['theme'], 'tune': h['tune'], 'meter': h['meter'], 'language': h['language'],
+        row = {'id': hid, 'title': title, 'first': h['first'], 'author': SAME_AS.get(h['author'], h['author']), 'year': h['year'], 'tradition': h['tradition'],
+               'season': h['season'], 'theme': SAME_AS.get(h['theme'], h['theme']), 'tune': h['tune'], 'meter': h['meter'], 'language': h['language'],
                'source': BOOKS[h['book']][1] + ', no. %d' % h['n'] if h['book'] in ('otterbein', 'gregory') else BOOKS[h['book']][1],
                'licence': LICENCE.format(n=n), 'file': file}
         if h.get('greek'): row['greek'] = h['greek']
