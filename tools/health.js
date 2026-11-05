@@ -143,9 +143,12 @@ function uxWork() {
       if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
   if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
   ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
+  /* UPDATE CONTINUITY (970): data/update-health.json, from tools/update-health.js; a deploy must land without losing a place or a draft. */
+  let u = null; try { u = JSON.parse(read('data/update-health.json')); } catch (e) { u = null; }
+  if (u) (u.cases || []).filter(c => !c.pass).forEach(c => W.push({ kind: 'update-continuity', where: 'new build: ' + c.name, say: (c.why || []).join('; ') }));
   return { j, work: W };
 }
-const UX_PENALTY = { ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
+const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
