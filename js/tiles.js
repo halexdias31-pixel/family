@@ -261,7 +261,7 @@ function favTile_(x) {
 
 /* ---------- A SHOP THING § */
 function shopTiles_(x) {
-  const inCart = CART.some(c => c.key === x.key && c.kind === 'shop');
+  const inCart = CART.some(c => c.key === x.key && isShop_(c));
   return `
     ${tile_({ icon: 'cart', label: inCart ? 'In your basket' : 'Add to basket',
               tone: 'buy', on: inCart,
@@ -404,11 +404,11 @@ function cardTiles_(x) {
       typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null])
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
-    + (x.key && x.kind !== 'me' && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
+    + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
-  return tileRow_(mine + admin, '', x.kind === 'me');
+  return tileRow_(mine + admin, '', isMeCard_(x));
 }
 /* ---------- EVERY TILE SHOWN (420), ONE FLOW (487): nothing hides behind a "More" -- "I DONT LIKE POP UP MENUS" (420). */
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;

@@ -22,7 +22,7 @@ load();
 /* THE SETTINGS AT ONCE (a few KB the payload's columns need); THE LIBRARY BEHIND THE LATER CODE (670), so its megabyte never holds the feed's code back. */
 try { settingsRows_(); laterFiles_().then(() => { try { libraryRows_(); libraryExtraRows_(); } catch (e) { /* load() asks again */ } }); } catch (e) { /* load() asks again and says what failed */ }
 /* AND THE REST WHEN THE PHONE IS IDLE (466), so the first screen answers a tap at once: what needs no payload (`aheadPreOpen_`), and the old splash's store. */
-const bootIdle_ = f => { try { (window.requestIdleCallback || (g => setTimeout(g, 1)))(() => { try { f(); } catch (e) {} }, { timeout: 2000 }); } catch (e) {} };
+const bootIdle_ = f => { try { (window.requestIdleCallback || (g => setTimeout(g, 1)))(() => { try { f(); } catch (e) { /* an idle job that fails leaves the screen as drawn */ } }, { timeout: 2000 }); } catch (e) { /* no idle callback: the job is skipped, nothing waits on it */ } };
 bootIdle_(() => aheadPreOpen_());
 bootIdle_(() => splashForget_());
 

@@ -476,7 +476,7 @@ function meSave_(el) {
   const fields = {};
   box.querySelectorAll('[data-me]').forEach(box => {
     if (box.disabled) return;
-    fields[box.dataset.me] = box.type === 'checkbox' ? (box.checked ? 'TRUE' : 'FALSE')
+    fields[box.dataset.me] = isCheckbox_(box) ? (box.checked ? 'TRUE' : 'FALSE')
                                                      : String(box.value || '').trim();
   });
   /* A QUALIFICATION WITH NO SUBJECT. § */
@@ -673,7 +673,7 @@ function profileRefresh_(loud, onOld) {
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
-          try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) {}
+          try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) { /* a screen gone before it lands is painted on its next draw */ }
       });
       /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
          copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */

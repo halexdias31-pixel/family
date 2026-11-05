@@ -68,7 +68,7 @@ function cartPrice_(src) {
 function cartUnits_() {
   let moved = false;
   CART.forEach(c => {
-    if (!c || c.kind !== 'shop' || !(Number(c.cost) > 0) || Number(c.money) > 0) return;
+    if (!isShop_(c) || !(Number(c.cost) > 0) || Number(c.money) > 0) return;
     const src = ((typeof DATA !== 'undefined' && DATA.shop) || []).find(x => norm(x.name) === norm(c.key));
     if (!src || String(src.unit || '').trim() !== 'p') return;
     Object.assign(c, cartPrice_(src));

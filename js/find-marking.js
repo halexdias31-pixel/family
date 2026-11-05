@@ -46,7 +46,7 @@ function whoIs_() {
     if (typeof USER !== 'undefined' && USER && (USER.personId || USER.name)) {
       return 'u:' + (USER.personId || USER.name);
     }
-  } catch (e) {}
+  } catch (e) { /* no one readable is signed in: the answer is the device's */ }
   return '';
 }
 

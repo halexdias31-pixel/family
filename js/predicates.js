@@ -10,6 +10,13 @@ const isManuscript_ = x => !!x && x.kind === 'manuscript';
 const isBoxer_ = x => !!x && x.kind === 'boxer';
 const isBible_ = x => !!x && x.kind === 'bible';
 const isWriting_ = x => !!x && x.kind === 'writing';
+const isMeCard_ = x => !!x && x.kind === 'me';
+/* A library row that is a preamble or a whole document, not a question part (1040). */
+const isPreamble_ = r => !!r && r.kind === 'preamble';
+const isDocument_ = r => !!r && r.kind === 'document';
+/* A form field that is a checkbox; a pointer that holds still (mouse or stylus) (1040). */
+const isCheckbox_ = el => !!el && el.type === 'checkbox';
+const isSteadyPointer_ = c => !!c && (c.type === 'mouse' || c.type === 'pen');
 /* A basket line printed on paper, and a question's marking by AI or by its own words list (1040). */
 const isPrint_ = c => !!c && c.kind === 'print';
 const isAiMark_ = m => !!m && m.kind === 'ai';

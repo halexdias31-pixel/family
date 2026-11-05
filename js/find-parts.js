@@ -371,7 +371,7 @@ function partKeyOf_(part, numerals) {
 function partNumerals_(rows) {
   const by = {};
   (rows || []).forEach(r => {
-    if (!r || r.kind === 'preamble' || r.kind === 'document') return;
+    if (!r || isPreamble_(r) || isDocument_(r)) return;
     const k = paperIdOf_(r) + '|' + (r.q == null ? '' : r.q);
     (by[k] = by[k] || []).push(r);
   });
@@ -493,7 +493,7 @@ function stemIndex_(all) {
   const at = { paper: {}, section: {}, question: {}, letter: {} };
   const put = (bag, key, r) => { (bag[key] || (bag[key] = [])).push(r); };
   all.forEach(r => {
-    if (!r || r.kind !== 'preamble') return;
+    if (!isPreamble_(r)) return;
     const pid = paperIdOf_(r);
     if (!pid) return;
     const has = r.q !== undefined && r.q !== null && r.q !== '';
@@ -582,7 +582,7 @@ function questionItems() {
   /* EACH PART'S PLACE IN ITS QUESTION -- see `partKeys_`. */
   const partKey = partKeys_(all), numerals = partNumerals_(all);
 
-  return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
+  return all.filter(r => !isPreamble_(r) && !isDocument_(r)).map(r => {
     const lead = preamble_(r, stems);
     return {
       kind: 'question',

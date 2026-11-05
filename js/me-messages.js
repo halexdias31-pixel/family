@@ -132,7 +132,7 @@ function paidFromLink_() {
       if (paid !== '1' || !ref) { toast('Payment cancelled — nothing was charged. Your booking is still waiting.'); return; }
       try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) { /* storage can be blocked; the app runs without it */ }
     }
-  } catch (e) {}
+  } catch (e) { /* no address bar to read: no payment came back */ }
   if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) { /* storage can be blocked; the app runs without it */ }
   if (!ref || PAID_ASKING_ === ref) return;
   if (!USER || !USER.token) {
