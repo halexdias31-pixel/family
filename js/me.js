@@ -51,7 +51,6 @@ function signInCard_() {
   /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
 }
 
-/* ---------- `signOutCard_` WAS HERE § */
 
 function meRest_() {
   /* `rows` WAS HERE — Name, Role, Credits, Ticks, Email, Where. They are on `meCard` in cards.js
@@ -241,7 +240,6 @@ on('apply-send', el => {
 
 /* THE YOU SCREEN IS ONE PAGE. § */
 /* MESSAGES, ON A PANE OF ITS OWN. § */
-/* `meMessagesCard` WAS HERE — one pane on `You` holding every message from everybody, filled by `fillMessages` into a single `#msg-body`. § */
 
 /* THE MARK BETWEEN THE TWO HALVES of the You screen. A comment in the markup: it survives being
    built into a string, it cannot be mistaken for content, and it renders as nothing if it ever
@@ -263,12 +261,10 @@ const mePages = () => {
 /* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT § */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
-/* ---------- `screen('me')` WAS HERE § */
 function mountGoogleWhenDrawn() {
   if (!USER && typeof googleMount === 'function') requestAnimationFrame(googleMount);
 }
 
-/* `on('health')` WAS HERE — it fetched `?health=1` and drew the backend's problem list in a sheet. § */
 
 /* ---------- MOUNTING GOOGLE'S BUTTON § */
 let gLoaded = false;
@@ -540,7 +536,6 @@ function pinDotsOk_() {
 }
 
 /* ---------- THE WARDROBE § */
-/* `on('build-said')` WAS HERE, opening `versionSaid_` in a sheet from a `Build` tile on your own card. § */
 
 /* ---------- THE WARDROBE IS ONE CARD § */
 const AV_FIG = 56;
@@ -594,7 +589,6 @@ function wardrobeBody_() {
     ${AV_SLOTS.map(slotLine).join('')}`;
 }
 
-/* `on('wardrobe')` WAS HERE — the `Your figure` tile's door, which found the colour page on this column and turned to it. § */
 
 /* A LOOK AS THE CELL HOLDS IT, `skin:2|shirt:4|…` — what `saveAvatar` answers with and `USER.avatar` keeps. */
 const packLook_ = cfg => Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
@@ -960,7 +954,6 @@ function friendsSheet() {
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
       harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
 }
-/* `on('friends')` WAS HERE and nothing on any screen carried `data-do="friends"`. § */
 
 on('friend-add', () => {
   const box = $('fr-add'), said = $('fr-said');
@@ -1317,7 +1310,6 @@ function messageThreads_() {
   return out.sort((a, b) => msgTime_(b.last) - msgTime_(a.last));
 }
 
-/* ---------- THREADS AS WIDGETS WERE HERE, AND THEY PUT CHAT IN TOOLS § */
 
 /* `fillMessages` WAS HERE — it filled the single `#msg-body` on `You` with every message at once.
    `fillThread_` above replaces it, one conversation at a time, into the widget that asked. */
@@ -1525,7 +1517,6 @@ on('uploads-check', el => {
     .catch(err => { UPLOADS_SAID = { error: why_(err) }; uploadsPaint_(); });
 });
 
-/* `on('messages')` was here — a second way to see the same thread, opened in a sheet. § */
 
 
 /* ---------- YOUR OWN DETAILS § */
@@ -1571,7 +1562,6 @@ function pinSlip_(first, handle, pin) {
   </div>`;
 }
 
-/* THE MAKE FORM WAS HERE — the owner (461): "making a child's account shouldn't be a thing". */
 
 /* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET § */
 function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
@@ -2243,12 +2233,9 @@ on('notify-pick', el => {
     });
 });
 
-/* ---------- YOUR JOURNEY WAS HERE, AND IS THE PROGRESS COLUMN'S CARD NOW § */
-
-/* THE TUTOR AGREEMENT (DRAFT) WAS HERE — ten points and a tick for good. It is the Tutor Terms & Conditions in the Staff hub now, versioned (405, staff.js). */
 
 
-/* `on('edit-me')` WAS HERE — `go('settings')`, the door from a `Your settings` tile on your own account card. § */
+
 
 /* THE HOURS SOMEBODY IS FREE, as a week you tick. § */
 /* ---------- AND IT IS `weekGrid_`, BECAUSE THE COMMENT ABOVE STOPPED BEING TRUE § */
@@ -3487,7 +3474,6 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* `initAvail` WAS HERE — the `avail` tool's week; the hours are Tutor settings' Available card now (487). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
@@ -3777,7 +3763,6 @@ on('pin-save', el => {
 
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */
 
-/* `skeleton()` WAS HERE — a grey post (a face, a 4:5 picture, two lines) pulsing on the feed, the reel and Messages while the payload was on its way. § */
 
 /* YOUR CARD IS WHERE YOU EDIT IT (docs/history/330) § */
 

@@ -2763,7 +2763,6 @@ const RANK_COLS_ = [
   ['tutor@example.org', 'staff', 'P-T1'], ['admin@example.org', 'admin', 'P-A1']];
 /* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, and the PIN. */
 const editorsOf_ = (d, into) => {
-  /* (the hub's pricing sliders were here until 620; they save nothing now.) */
   const where = el => { const s = el.closest('section.screen'); return s ? s.id.replace(/^s-/, '') : el.closest('#sheet-body') ? 'staff (hub)' : '?'; };
   const add = (f, el) => {
     /* A PLACE IS A COLUMN AND A CARD'S TITLE — the same card drawn again after a repaint is the same place. */

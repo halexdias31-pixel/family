@@ -787,7 +787,6 @@ function c4Play_(x) {
   }
 }
 
-/* ---------- `c4Reply_` WAS HERE, AND IT WAS THE OPPONENT § */
 
 /* ---------- THE COUNTER FALLS, AND THE FOUR THAT WON ARE RINGED § */
 function c4Paint() {
@@ -890,7 +889,6 @@ function othAdvance_() {
            : b > w ? `Red wins, ${b}\u2013${w}.` : `Blue wins, ${w}\u2013${b}.`;
 }
 
-/* ---------- `othReply_` WAS HERE, AND SO WERE THE RINGS § */
 
 function othPaint() {
   const host = $('oth-board');
@@ -3260,7 +3258,6 @@ on('twq-ask', () => {
 });
 on('twq-reveal', () => { if (PARTY.twq && PARTY.twq.phase === 'play') { PARTY.twq.phase = 'done'; twqPaint(); } });
 
-/* ---------- ALIBI WAS HERE, AND IS DELETED ON REQUEST § */
 
 /* WHAT EACH GAME DOES WHEN ITS CLOCK RUNS OUT, and how it draws. Read by the tick, `partyStart_` and
    `partyStop_`, so a fifth timed game is a row here. */
@@ -4745,7 +4742,6 @@ function videosAll_() {
     add({ key: 'v' + i, title: String(r.title || '').trim(), url, kind, how: vidHow_(url),
           tags: String(r.tags || ''), age: mediaAgeSay_(r.age), notes: String(r.notes || '') });
   });
-  /* THE REELS WERE HERE, numbered by address and listed as "Reel 1", "Reel 2". § */
   /* ---------- A FILM, A SERIES OR A DOCUMENTARY — AND ONE THAT IS NOT IN THE DRIVE YET § */
   ((typeof DATA !== 'undefined' && DATA.films) || []).forEach((f, i) => {
     if (!f || !f.title) return;

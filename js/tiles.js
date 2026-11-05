@@ -254,7 +254,6 @@ function favTile_(x) {
 }
 
 
-/* ---------- `topicTiles_` WAS HERE, AND THERE ARE NO DOCUMENTS TO ACT ON § */
 
 
 
@@ -379,7 +378,6 @@ function boxerTiles_(x) {
                  href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
 }
 
-/* `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card. § */
 
 
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
@@ -437,7 +435,6 @@ function tileRow_(html, cls, own) {
 }
 
 function cardActions_(x) {
-  /* `topic` WAS HERE, routing to `topicTiles_`. No documents, no row. */
   if (x.kind === 'shop') return x.wearable ? wearTiles_(x) : shopTiles_(x);
   if (x.kind === 'tutor') return tutorTiles_(x);
   if (x.kind === 'venue') return venueTiles_(x);
@@ -450,12 +447,10 @@ function cardActions_(x) {
   if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
   /* A DAF'S TWO SIDES, each opening the Vilna page (473). */
   if (x.kind === 'talmud') return typeof talmudTiles_ === 'function' ? talmudTiles_(x) : '';
-  /* `me` WAS HERE (Edit, Sign out, Send the link again): your own card's row is built by `accountPages_` (find.js), Sign out is on Student settings (453). */
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
-  /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. § */
   return '';
 }
 

@@ -156,7 +156,6 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
       /* AND THE LINES INSIDE IT ARE THE MONTH FOLDERS, `May 2017` / `June 2017` / `November 2017` --
          they listed `Summer 2017` and `Autumn 2017` under a Month question offering May and June. */
       groups: ['May 2017', 'June 2017', 'November 2017'] },
-    /* `2017 & 2018` WAS HERE — the Year question's bucket. § */
   ];
   cases.forEach(c => {
     if (c.want.size < 2) {

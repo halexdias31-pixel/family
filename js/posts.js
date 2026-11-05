@@ -341,7 +341,6 @@ function postsBlocks() {
   /* THE ＋ IS ON THE FEED, not in a bar above it. § */
   const cards = posts.map((p, i) => postCard_(p, i));
 
-  /* ---------- THE COMPOSER WAS HERE, AND IT WAS ALSO THE SCREEN TO THE LEFT § */
   /* ---------- SPOTLIGHT IS NOT HERE ANY MORE § */
 
   /* ---------- SIGNING IN IS NOT HERE EITHER § */
@@ -2434,7 +2433,6 @@ on('daive-send', el => {
     .then(done, () => done(null));
 });
 
-/* ---------- THE "MESSAGE EVERYONE" CARD WAS HERE § */
 
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST § */
 function dmFoot_() {

@@ -440,7 +440,6 @@ function findCard(x) {
 }
 
 /* Tapping one opens a sheet rather than expanding the card. § */
-/* ---------- `on('who')` WAS HERE § */
 
 /* The switch. Admin only — a tutor who could list themselves could put themselves in front of
    clients before you had agreed to it. */
@@ -459,7 +458,6 @@ on('set-listed', el => {
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       toast(on ? 'Listed' : 'Hidden from clients');
-      /* `load()` WAS HERE — the whole payload fetched again to change one word. § */
       /* BY ID WHERE THERE IS ONE, for the reason the handler on the other end now records: a
          display name is derived from up to two cells and matching it is the fallback, not the
          route. */
@@ -495,7 +493,6 @@ document.addEventListener('change', e => {
 /* Tapping a SUBJECT. It has emitted `data-do="subject"` since the screen was written and no
    handler was ever registered, so the third of the three lists on this tab was the one that did
    nothing when you pressed it. */
-/* ---------- `on('subject')` WAS HERE § */
 
 /* ---------- BOOKING FROM A CARD § */
 on('book-with', () => {

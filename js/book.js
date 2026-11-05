@@ -7,7 +7,6 @@
    one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
 
-  /* ---------- `jobCard` WAS HERE, AND IT HAS NO CALLERS LEFT § */
 
 
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
@@ -82,7 +81,6 @@ function jobIsPast_(j) {
 const liveJobs_ = () => myJobs_()
   .filter(j => !jobIsPast_(j) && jobStage_(j) === 'receipt');
 
-/* `pastCard_` WAS HERE. § */
 
 /* ---------- ONE WIDGET PER SESSION, NOT ONE WIDGET OF SESSIONS § */
 function liveWidgets_() {
@@ -202,7 +200,6 @@ function paintBook_() {
    its only caller — the same blocks are pages on Find now, assembled by `bookingPages_` there. */
 /* `on('soon')` was here — "Not moved across yet", for screens that had not been rebuilt during
    the rewrite. They all have been, and nothing has carried `data-do="soon"` for a long time. */
-/* `on('signin')` WAS HERE — `toast('Sign-in screen next')`, behind the gold button on the signed-out booking card. § */
 /* THE BOOKER. Nine things have to be known before a session can be asked for: § */
 /* EVERY ANSWER STARTS EMPTY, including the numbers. § */
 const BOOKING = {
@@ -448,7 +445,6 @@ const BOOK_STEPS = [
        outright, so offering it there would be offering a booking that cannot happen. */
     why: v => (v === NOBODY && !isWaiting_())
       ? 'a session needs somebody in it — this opens a waiting list' : '',
-    /* ---------- "your own booking" WAS HERE AND IT WAS THE ROW READ BACK TO YOU § */
   },
 
   { id: 'how', label: 'How would you like to book?', short: 'Kind',
@@ -604,7 +600,6 @@ const BOOK_STEPS = [
     options: () => isWaiting_() ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
-  /* THE JOIN QUESTION WAS HERE, AND IT ASKED SOMETHING THE SEATS ALREADY ANSWER. § */
 
   /* ---------- WHOSE CHILDREN ARE THESE? § */
   { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true,
@@ -919,7 +914,6 @@ function bookEmailsCarry_(st, now) {
   draftDrop_('book', id, 'device');
 }
 
-/* `on('new-booking')` AND `on('book-close')` WERE HERE. § */
 
 /* Ticking an hour. Adjacent ticks become one session; the grid is redrawn so the summary under it
    keeps up. */
@@ -1025,9 +1019,7 @@ document.addEventListener('change', e => {
   drawBooker();
 });
 
-/* `on('book-pick')` WAS HERE — the handler for the option cards in the panel. § */
 
-/* ---------- `on('book-edit')` IS GONE, AND IT WAS THE ONE CONTROL ON THE CARD DRAWN IN GOLD § */
 
 /* NO REDRAW. Every other control on the paper changes what the receipt says, so it repaints; this
    one changes nothing but itself, and repainting would take the cursor out of the box the moment
@@ -1061,7 +1053,6 @@ document.addEventListener('change', e => {
   drawBooker();
 });
 
-/* `on('book-more')` WAS HERE — the Done button that closed a multiple-choice question. § */
 
 /* THE CARD. Photographs, then every priced row, then the dates, then where it stands. § */
 /* THE ROWS OF THE RECEIPT, AS DATA. § */
@@ -1473,7 +1464,6 @@ function stepRows_() {
                   row is text and a grid row has none, and a `for` naming nothing is a label that lies. */
                ctl: st.grid ? '' : st.emails || !stepLocked_(st) ? bkCtl_(st.id) : '',
                /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE § */
-               /* ---------- AND THE ASIDES ARE GONE, WHICH IS THE THIRD TIME OF ASKING § */
                say: (() => {
                  /* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN § */
                  const answered = st.multi ? (v || []).length
@@ -1650,7 +1640,6 @@ function spineRows_(rows, opts) {
 }
 
 function bookBreakdown(L, foot) {
-  /* ---------- THE TWO PHOTOGRAPHS ARE GONE § */
   /* `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class. § */
 
   const venueName = BOOKING.loc || 'No venue yet';
@@ -1748,7 +1737,6 @@ function bookBreakdown(L, foot) {
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
-    /* `aside` WAS HERE — "36 sessions", beside the figure on the total bar. § */
     /* ---------- THE ROSTER IS NOT ON EITHER DOCUMENT § */
     /* ---------- THE SKIN WAS ONE WORD HERE, AND NOW THERE IS NO WORD § */
   });

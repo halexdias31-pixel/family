@@ -14,7 +14,6 @@ const LOOPS = [
      centring sentence is in indexOwn_ — each group moves half the distance. */
   { id: 'index', prefix: 'ix-',
     own: indexOwn_ },
-  /* THE RING WAS HERE — two eight-bit boxers, the one splash on this list that was not in a book. § */
   /* THE ANGLE AT THE CENTRE: centred on its rim, which tools/cent.py places in the box's middle. */
   { id: 'cent', prefix: 'ct-', centreOn: ['ct-rim'],
     own: centOwn_ },

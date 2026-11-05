@@ -2,18 +2,18 @@
  "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.",
  "coupling": {
   "js/find.js": 296,
-  "js/shell.js": 191,
+  "js/shell.js": 186,
   "js/me.js": 184,
   "js/posts.js": 112,
   "js/games.js": 106,
-  "js/tiles.js": 72,
+  "js/tiles.js": 67,
   "js/arcade.js": 93,
   "js/layout.js": 76,
-  "js/data.js": 75,
+  "js/data.js": 70,
   "js/submit.js": 80,
   "js/price-rows.js": 46,
   "js/book.js": 63,
-  "js/core.js": 60,
+  "js/core.js": 55,
   "js/receipt.js": 64,
   "js/collections.js": 52,
   "js/map.js": 61,
@@ -178,7 +178,7 @@
    "rawButton": 0
   },
   "js/arcade.js": {
-   "lines": 1510,
+   "lines": 1509,
    "oneOff": 10,
    "emptyCatch": 7,
    "inlineStyle": 0,
@@ -192,7 +192,7 @@
    "rawButton": 0
   },
   "js/book.js": {
-   "lines": 2255,
+   "lines": 2243,
    "oneOff": 14,
    "emptyCatch": 14,
    "inlineStyle": 0,
@@ -206,7 +206,7 @@
    "rawButton": 0
   },
   "js/cards.js": {
-   "lines": 509,
+   "lines": 506,
    "oneOff": 5,
    "emptyCatch": 0,
    "inlineStyle": 4,
@@ -234,14 +234,14 @@
    "rawButton": 5
   },
   "js/core.js": {
-   "lines": 654,
+   "lines": 653,
    "oneOff": 8,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/data.js": {
-   "lines": 537,
+   "lines": 536,
    "oneOff": 10,
    "emptyCatch": 15,
    "inlineStyle": 0,
@@ -255,7 +255,7 @@
    "rawButton": 0
   },
   "js/find.js": {
-   "lines": 12231,
+   "lines": 12194,
    "oneOff": 167,
    "emptyCatch": 30,
    "inlineStyle": 2,
@@ -269,14 +269,14 @@
    "rawButton": 0
   },
   "js/flyer.js": {
-   "lines": 426,
+   "lines": 425,
    "oneOff": 8,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 2
   },
   "js/games.js": {
-   "lines": 6446,
+   "lines": 6442,
    "oneOff": 18,
    "emptyCatch": 59,
    "inlineStyle": 16,
@@ -339,21 +339,21 @@
    "rawButton": 3
   },
   "js/library.js": {
-   "lines": 751,
+   "lines": 748,
    "oneOff": 0,
    "emptyCatch": 6,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/links.js": {
-   "lines": 309,
+   "lines": 307,
    "oneOff": 4,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/map.js": {
-   "lines": 367,
+   "lines": 360,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 5,
@@ -367,7 +367,7 @@
    "rawButton": 0
   },
   "js/me.js": {
-   "lines": 4890,
+   "lines": 4875,
    "oneOff": 38,
    "emptyCatch": 58,
    "inlineStyle": 18,
@@ -395,7 +395,7 @@
    "rawButton": 0
   },
   "js/overworld.js": {
-   "lines": 714,
+   "lines": 711,
    "oneOff": 1,
    "emptyCatch": 4,
    "inlineStyle": 5,
@@ -423,14 +423,14 @@
    "rawButton": 0
   },
   "js/posts.js": {
-   "lines": 2610,
+   "lines": 2608,
    "oneOff": 6,
    "emptyCatch": 43,
    "inlineStyle": 4,
    "rawButton": 25
   },
   "js/price-rows.js": {
-   "lines": 284,
+   "lines": 283,
    "oneOff": 3,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -479,7 +479,7 @@
    "rawButton": 0
   },
   "js/receipt.js": {
-   "lines": 1052,
+   "lines": 1050,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 1,
@@ -493,7 +493,7 @@
    "rawButton": 0
   },
   "js/resource.js": {
-   "lines": 282,
+   "lines": 278,
    "oneOff": 5,
    "emptyCatch": 4,
    "inlineStyle": 0,
@@ -528,7 +528,7 @@
    "rawButton": 0
   },
   "js/shell.js": {
-   "lines": 3968,
+   "lines": 3952,
    "oneOff": 35,
    "emptyCatch": 44,
    "inlineStyle": 0,
@@ -542,7 +542,7 @@
    "rawButton": 0
   },
   "js/staff.js": {
-   "lines": 418,
+   "lines": 417,
    "oneOff": 0,
    "emptyCatch": 3,
    "inlineStyle": 0,
@@ -570,7 +570,7 @@
    "rawButton": 0
   },
   "js/tiles.js": {
-   "lines": 613,
+   "lines": 608,
    "oneOff": 16,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -605,7 +605,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7232,
+   "lines": 7185,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -626,13 +626,13 @@
   "backend/setup.gs checkEverything": 90,
   "js/answers.js answersPush_": 86,
   "js/book.js breakdownRows": 87,
-  "js/book.js bookBreakdown": 104,
+  "js/book.js bookBreakdown": 102,
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
   "js/find.js typeset_": 231,
   "js/find.js markRule_": 83,
   "js/find.js drawMarker_": 645,
-  "js/find.js stuffItemsRaw_": 179,
+  "js/find.js stuffItemsRaw_": 178,
   "js/find.js accountPages_": 109,
   "js/find.js bundleBuild_": 85,
   "js/find.js paintStuff": 88,
@@ -649,9 +649,9 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/shell.js go": 89,
+  "js/shell.js go": 83,
   "js/shell.js placeGrid": 165,
-  "js/shell.js loadOnce_": 253,
+  "js/shell.js loadOnce_": 252,
   "js/submit.js subMigrate_": 83
  },
  "variety": {

@@ -132,17 +132,14 @@ function paintTimer() {
 let flappyState = null;
 
 /* OPEN A WIDGET. Its markup into the sheet, then the one function that brings it to life. § */
-/* ---------- `on('widget')` IS GONE, AND IT WAS A POP-UP § */
 
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
    is looking at is a flat battery for nothing. */
-/* `wake` IS GONE, and with it the whole idea of a screen having things that need starting. § */
 
 /* `on('chess-new')` and `on('chess-undo')` are in games.js beside the board they act on — they went
    when the board played a computer, and came back when it became two players round one phone. */
 on('tt-start',   () => startTimesTables?.());
 on('tt-stop',    () => endTimesTables?.());
-/* `on('flap-start')` was here — a toast saying "Tap the canvas to flap". § */
 
 /* SWIPING BETWEEN TABS. § */
 

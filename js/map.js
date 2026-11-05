@@ -73,7 +73,6 @@ const WIDGETS = [
   /* THE BOARD, NOT THE DRAWING. § */
   /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
      and leaves nothing running when the widget closes. */
-  /* `The Overworld` WAS A WIDGET HERE and is gone on request: § */
 
   /* `chess`, `tables` and `maze` WERE CARDS HERE (461): Chess and Maze are Board games now, the sprint a Word & number game. */
   /* ---------- BOARD GAMES (414, 461): Connect 4, Othello, Scrabble, Chess and Maze in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
@@ -111,12 +110,10 @@ const WIDGETS = [
   </div>`;
     } },
 
-  /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request ("delete alibi game.") — the note where its engine was in games.js § */
 
 
 
 
-  /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
   /* `reel` (414): with Videos it leads the Reels column — things to watch sit with the reels, not the games. */
@@ -177,7 +174,6 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
-  /* THE `avail` TOOL (My teaching hours) WAS HERE — the hours are the Staff hub's Hours now (432). */
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
@@ -245,8 +241,6 @@ const WIDGETS = [
     <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
     ${/* A TILE, NOT A BUTTON (720): Read is the thing's action, so it is a tile in a row under it (house style). */''}<div class="tile-row">${tile_({ icon: 'play', label: 'Read it', act: 'sr-read' })}</div>
   </div>`; } },
-  /* ---------- `Your week` WAS HERE, AND IS IN THE TIMETABLE NOW § */
-  /* ---------- THE `live` WIDGET WAS HERE § */
 
   /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
   /* NOT `pure`, though it was until the review of 12 Oct: § */
@@ -337,7 +331,6 @@ const WIDGETS = [
     html: `<h3>E-ink screen</h3>
     <div id="eink-box" class="eink-box"></div>` },
 
-  /* CHECK UPLOADS IS GONE (owner, 26 Oct: "delete this"): authoriseDrive's log in the editor says READY. */
 
 
   /* ---------- THE WHITEBOARD § */

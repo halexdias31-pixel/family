@@ -5,7 +5,6 @@
 /* FILTERS YOU ADD, not a mode you pick. § */
 /* `sort` was here and is gone with the control that set it — see `stuffFiltered`. What is left is
    the two things this screen actually holds: what you typed, and what you have narrowed to. */
-/* `groupBy` WAS HERE — the field the list was currently collected by. § */
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: § */
 /* A `let` SINCE THE SECOND FINDER (below): § */
 let STUFF = { q: '', filters: [], whose: '' };
@@ -101,7 +100,6 @@ const finderLeadHtml_ = lead => lead.map(c => `<section class="page is-lead"><di
 const KINDS = {
   /* A person, a place and a subject already have a card each — written for the Find screen and carrying the class that colours the name. § */
   /* ---------- A TUTOR IS TWO THINGS AND THE GROUP HAD ROOM FOR ONE § */
-  /* ---------- `People` IS GONE AND A TUTOR IS JUST A BOOKING THING AGAIN § */
   tutor:   { group: 'Booking', label: 'Tutors',
              /* ---------- YOUR OWN PASS IS YOUR OWN CARD § */
              card: x => (USER && typeof meCard === 'function'
@@ -125,10 +123,8 @@ const KINDS = {
   /* A FRIEND. Their figure, their level, and a way to stop being one. */
   /* ---------- YOU ARE FINDABLE, AND YOU ARE THE ONLY PERSON WHO IS § */
   /* ---------- BACK UNDER `People`, AND THERE IS NO `You` ANSWER § */
-  /* `me` WAS HERE — you, under `People`, found the way every other person is found. § */
 
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
-  /* `post` WAS HERE — the real post card, reactions and all, answering under `Posts`. § */
 
   friend: { group: 'Friends', label: 'Friends', card: x => {
     const f = x.row;
@@ -159,7 +155,6 @@ const KINDS = {
   /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
-  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
@@ -2589,7 +2584,6 @@ on('find-open', el => {
   if (x) finderOpen_(x, null, finderAt_(el));
 });
 
-/* `finderElsewhere_`, `finderWordsCount_` AND THE `finder-words` TILE WERE HERE: § */
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
    same three sentences. */
 function stuffNoneHtml_() {
@@ -2706,10 +2700,8 @@ function stuffPart_(x, part) {
   return practicalPart_(x, part);
 }
 
-/* `on('prac-guide')` WAS HERE and is gone with the tile that opened it. § */
 
 
-/* `filmCard_` WAS HERE — a film's card in Find, a title, its flags and a link out to Drive. § */
 
 /* THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT. § */
 
@@ -3509,7 +3501,6 @@ function answerBlock_(x) {
 }
 
 /* OPENING ONE SHOWS THE STEM, THE LEAD AND THE PART — in that order, because that is the order it is printed and because a part without them cannot be answered. § */
-/* ---------- `on('question')` WAS HERE § */
 
 /* ---------- WHAT A PART IS CALLED § */
 /* WHOLE NUMERAL FIRST, so "iv" is four and not letter i followed by v. Trying letter-then-numeral
@@ -3537,7 +3528,6 @@ function qPartName_(part) {
   return b ? b.letter + '(' + b.roman + ')' : s;
 }
 
-/* `qPartShow_` WAS HERE — the marker down the left of an open question, "1) · b) · a(i)". § */
 
 /* ---------- ONE READER FOR THE PAPER'S ID § */
 function paperIdOf_(r) {
@@ -3681,7 +3671,6 @@ function projectText_(p) {
   return joined.length ? said + ' ' + joined.join(' ') : said;
 }
 
-/* `paperText_` AND ITS MEMO WERE HERE. § */
 
 
 
@@ -3805,7 +3794,6 @@ function questionItems() {
       examBoard: r.examBoard || '', company: r.company || '',
       documentType: r.documentType || '', examWave: r.examWave || '',
       year: r.year || '',
-      /* `paper: true` WAS HERE and it was write-only — see the deleted `Printed?` facet above, which was its one reader. § */
       /* ---------- WHERE THIS QUESTION SITS IN ITS PAPER § */
       qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
       /* THE PART AS ITS TWO TAGS -- see `partSplit_`. `qPart` stays the raw cell beside it, because the
@@ -4018,7 +4006,6 @@ function whoIs_() {
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
-/* `signedName_` WAS HERE -- the first name over the answer box ("Ada's answer"). § */
 
 function ansRead_(k) {
   /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or the empty box a browser keeping nothing answers with: § */
@@ -4044,7 +4031,6 @@ function ansRead_(k) {
   } catch (e) { return ''; }
 }
 
-/* ---------- `Done 4 Oct` WAS HERE, AND THE `attempts` TAB UNDER IT § */
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT § */
 function doneTier_(it) {
   if (!it || it.kind !== 'question') return '';
@@ -5264,7 +5250,6 @@ on('qp-send', (el) => {
 });
 
 /* ---------- WHO IS WORKING § */
-/* ---------- `on('qp-who')` WAS HERE § */
 
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are thousands of these and only one of them is ever being typed into. § */
@@ -8029,7 +8014,6 @@ on('qw-tap', (el) => {
   });
 });
 
-/* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for § */
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
 const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
@@ -8440,7 +8424,6 @@ function circOf_(x) {
   }
   return { k: k, on: circRead_(k) };
 }
-/* `figWhat_` WAS HERE: § */
 
 /* `questionStemFigCard_` WAS HERE, the stem's figure as a page of its own after its words (204, 268). The
    figure is among the stem's words now, or under the pen of the part that draws on it (356). */
@@ -8453,7 +8436,6 @@ function figLabel_(html, not) {
   return hit || 'Figure';
 }
 
-/* ---------- `qHead_` AND `figHead_` WERE HERE: ONE GOLD HEADER LINE FOR EVERY PAGE OF A QUESTION § */
 
 
 /* THE FIGURE IS IN ITS QUESTION'S CARD, WHERE THE PAPER PRINTS IT. § */
@@ -8462,7 +8444,6 @@ function questionHasFig_(x) {
   if (!x || x.kind !== 'question') return false;
   return !!(x.diagram || figImgs_(x.images).length);
 }
-/* `questionFigCard_` WAS HERE, the part's figure as a page of its own where the paper prints it (204, 268, 270, 337). § */
 
 /* ---------- A FIGURE THE PAPER PRINTS AND THIS SITE HAS NOT DRAWN YET § */
 const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
@@ -8555,7 +8536,6 @@ function ansSet_(x, open) {
 function ansShow_(x) { ansSet_(x, true); }
 function ansHide_(x) { ansSet_(x, false); }
 
-/* ---------- `To the answer` AND `ansWhere_` WERE HERE § */
 /* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
 /* NO ROW OF ITS OWN (round 4): the card's padlock is the tool row's alone (`qtRow_`), so a question has one */
 function questionTiles_(x) { return ''; }
@@ -8971,7 +8951,6 @@ const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printa
 
 
 
-/* ---------- THE THREE PASSES WERE HERE, AND THEY ARE NOT COMING BACK IN THIS SHAPE § */
 
 /* The rate as a number of pence, for the line that spells the sum out. */
 const printRatePence = () => {
@@ -9235,7 +9214,6 @@ function stuffItemsRaw_() {
       /* WHICH OF THE TWO, asked before the weight. § */
       boxKind: 'Boxers', shelf: 'Boxing',
       subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
-      /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" § */
     })),
 
     /* A BOUT ANSWERS THE FUNNEL LIKE A BOXER DOES: PE as the subject (499), the weight as the
@@ -9947,7 +9925,6 @@ function jobPage_(j) {
 const forIs_ = want => (STUFF.filters || [])
   .some(f => f.field === 'forLabel' && norm(f.value) === want);
 
-/* ---------- `goFor_` WAS HERE, AND IT WAS NAVIGATING TO ANSWERS THAT NO LONGER EXIST § */
 
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
@@ -9959,7 +9936,6 @@ function bookingPages_(o) {
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON § */
   return form;
 }
 
@@ -9969,7 +9945,6 @@ function feedPages_() {
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
 
-/* ---------- `youPages_` WAS HERE AND LASTED ONE VERSION § */
 
 /* ---------- SIGNING IN AND OUT, ON A PAGE OF ITS OWN § */
 /* ---------- WHICH ROW IS YOU, ASKED IN ONE PLACE § */
@@ -10199,7 +10174,6 @@ function bundleTitle_(items) {
   const parts = [];
   const said = {};
   BUNDLE_TITLE_FIELDS.forEach(field => {
-    /* `if (field === 'keystage' && said.level) return;` WAS HERE. § */
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. § */
     if ((field === 'examMonth' || field === 'examYear') && said.sitting) return;
     const n = parts.length;
@@ -10660,7 +10634,6 @@ const TAG_OF = {
 const tagOf_ = field => TAG_OF[field] || 'other';
 const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 
-/* `chipKeyIn_` WAS HERE, and the small grey field name in front of every chosen answer with it (`.chip-k`). § */
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
 function chipText_(f, i) {
   const key = String((facetBy(f.field) || {}).label || f.field);
@@ -10699,15 +10672,12 @@ function filterClear_() {
     : '';
 }
 
-/* THE PICKER SHEET IS GONE. § */
 
 /* `on('noop')` was here: a handler that did nothing, for markup that wanted to swallow a tap.
    Nothing carries `data-do="noop"`, so it swallowed nothing. */
 /* ANSWERING THE QUESTION ON THE PAGE. One tap: it becomes a chip, and the next question — if
    there is one worth asking — takes its place. */
-/* `on('book-jump')` WAS HERE, with the line that used it. */
 
-/* `on('group-by')` AND `on('group-open')` WERE HERE — press to see the papers, press one to open it. § */
 /* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
@@ -10987,7 +10957,6 @@ function layout(which) {
   return { screen: id, overlaps, unfilled, rows };
 }
 
-/* `STUFF_NEAR` WAS HERE — five pages either side filled, and everything past them emptied again. § */
 
 /* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER § */
 let STUFF_LATE = 0;
@@ -11509,7 +11478,6 @@ function finderWake_(id) {
 
 /* THE QUESTION, ON THE PAGE. § */
 /* NAMED FOR WHAT IT WAS, not what it is. § */
-/* ---------- CARRY ON WAS HERE, AND IT WAS AN ANSWER TO A QUESTION NOBODY ASKED § */
 
 
 /* ---------- THE FIRST PAINT IS THE LAST (546): a question the build already answered (FINDER_TAGS, tools/finder-tags.js) is painted whole while the finder's files still arrive, so no list of answers grows or changes in front of you. */
@@ -11570,7 +11538,6 @@ function stuffQuestion() {
       <b>${SWIPE_UP} for the ${n}.</b></p>` + adding;
   }
 
-  /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
 
   /* ---------- EVERY ANSWER, IN THE ORDER EVERY OTHER QUESTION USES § */
   /* ---------- NOTHING IS TRIMMED HERE ANY MORE, BECAUSE NOTHING ARRIVES OVERSIZED § */
@@ -11599,7 +11566,6 @@ function facetNoneHtml_(items, shown) {
 }
 /* ONE QUESTION'S ANSWERS AS CHIPS, whether counted now or by the build (`finderTagsAt_`); `more` is what follows them. */
 function facetAnswersHtml_(facet, values, more) {
-  /* THE HEADING IS GONE — it read `> WHAT FOR 5` above five rows that were about to say the same thing. § */
   /* `counted` TAKES THE CHEVRON OFF. § */
   /* ---------- "DOESN'T MATTER", UNDER EVERY QUESTION § */
   /* `counted` WITHOUT A COUNT, which is not a contradiction: § */
@@ -11607,7 +11573,6 @@ function facetAnswersHtml_(facet, values, more) {
         data-field="${esc(facet.field)}">
         <span class="k">Doesn't matter</span>
       </div>`;
-  /* ---------- THE COUNT BESIDE EACH ANSWER IS GONE § */
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
@@ -11666,7 +11631,6 @@ function finderScreen_() {
   /* THE CREDITS STAY ON THE QUESTION and the way in and out does not — see `accountPages_`. A number
      is a fact about you and belongs beside the thing it is spent on; a button is a control and has
      earned a page of its own. */
-  /* ---------- YOUR CREDITS WERE HERE, AND A BALANCE IS NOT A SEARCH CONTROL § */
   /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
      rewrites; the input is never rewritten, which is what keeps its focus across a press. */
   const controls = `<div id="${F.id}-controls">`
@@ -11744,7 +11708,6 @@ document.addEventListener('input', e => {
   });
 });
 
-/* `on('stuff-set')` WAS HERE, and the dropdown that sent it went when the funnel replaced the filter row. § */
 
 /* ---------- THE DOCKET § */
 /* ---------- `x ` AS THE DONE MARKER CORRUPTED ANY LINE STARTING WITH AN X § */
