@@ -446,7 +446,7 @@ screen('apprentice', () => pages('apprentice', typeof cardsOf_ === 'function' ? 
 /* ---------- WEB PROFILE (730): @family.'s own public card, from the brand tab, every line with its fallback ---------- */
 function webProfilePages_() {
   const b = typeof matBrand === 'function' ? matBrand() : {};
-  const name = b.name || brand('name', '@family.'), logo = brand('logo_square', '') || brand('logo_circle', '');
+  const name = b.name || brand('name', '@family.'), logo = brandLogo_();
   const lines = [brand('web_tagline', 'Tutoring for every age, at home and online.'), b.area ? 'Where: ' + b.area : '',
     b.phone ? 'Phone: ' + b.phone : '', b.site ? 'Online: ' + b.site : ''].filter(Boolean);
   return [`<div class="card web-card"><h3>${esc(name)}</h3>${logo ? `<img class="web-logo" alt="" src="${esc(logo)}">` : ''}${

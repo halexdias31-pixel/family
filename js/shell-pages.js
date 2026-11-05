@@ -184,6 +184,8 @@ function flowShow_(id, n) {
 function topbarPaint_() {
   const bar = $('topbar-who');
   if (!bar || typeof tile_ !== 'function') return;
+  const mark = document.querySelector('.topbar-brand');
+  if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
   const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}`
     : AT === 'account' ? '' : tile_({ icon: 'in', label: 'Sign in', act: 'topbar-signin' });
@@ -401,12 +403,8 @@ const PAGE_HOME = {
 /* ---------- THE ICON, FROM THE SHEET § */
 function applyBrandIcon_() {
   /* ---------- A DRIVE SHARE LINK IS A PAGE, NOT A PICTURE § */
-  const raw = ((DATA || {}).brand || {}).logo_square;
-  if (!raw) return;
-  const m = String(raw).match(/[-\w]{25,}/);
-  const url = /^https?:\/\//i.test(raw) && !/drive\.google\.com\/file/.test(raw)
-    ? String(raw)
-    : (m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w512' : String(raw));
+  const url = brandLogo_();
+  if (!url) return;
   [['favicon', 'icon'], ['favicon-ios', 'apple-touch-icon']].forEach(([id, rel]) => {
     const old = document.getElementById(id);
     if (old) old.remove();

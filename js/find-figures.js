@@ -222,13 +222,14 @@ function tagRow_(x, page) {
   return `<div class="qtags qcard-tags">${out.map(t => `<span class="qtag"${tagAttr_(t.field)} data-f="${esc(t.field)}"${
     t.also.length ? ` data-also="${esc(t.also.join(' '))}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
-/* A CARD WITH NO TAG LINE GETS ONE AT ITS TOP (1030), under its title: every element says its attributes as tags. */
+/* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
-  if (!x || typeof html !== 'string' || !html || /class="qtags\b/.test(html)) return html;
+  if (!x || typeof html !== 'string' || !html) return html;
+  const top = /^(\s*<div\b[^>]*>)/, had = /<div class="qtags qcard-tags">[\s\S]*?<\/div>/.exec(html);
+  if (had) { const h = html.search(/<h3\b|<p\b/); return h < 0 || had.index < h ? html : html.replace(had[0], '').replace(top, '$1' + had[0]); }
+  if (/class="qtags\b/.test(html)) return html;
   const row = tagRow_(x);
-  if (!/class="qtag"/.test(row)) return html;
-  if (/<\/h3>/.test(html)) return html.replace(/<\/h3>/, '</h3>' + row);
-  return html.replace(/^(\s*<div\b[^>]*>)/, '$1' + row);
+  return /class="qtag"/.test(row) ? html.replace(top, '$1' + row) : html;
 }
 
 /* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */

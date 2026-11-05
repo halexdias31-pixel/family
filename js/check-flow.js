@@ -8,6 +8,8 @@ const { JSDOM } = require('jsdom');
 const dir = __dirname;
 /* THE LIBRARY WITH ITS WORDS (397): data/*.json is card metadata, and the private half comes back from data-private/. */
 const LIB_FULL = require('../check/lib-full.js');
+const { MEMBER_, signedInAs_ } = require('../check/flow-shared.js');   /* boot() reads them */
+let LAST_W = null;
 /* ---------- THE ORDER IS READ FROM index.html, NOT KEPT HERE § */
 function loadOrder_() {
   const html = require('fs').readFileSync(
@@ -171,14 +173,14 @@ function boot(opts) {
       /* `id`: that widget's card, not the first. */
       /* NOBODY SIGNED IN IS A MEMBER HERE: Find is for members (400), and a journey that opened Tools signed out asked about the widget, not the gate. */
       'findGroup: (g, id) => { window.__findKind = g === "Games" ? "game" : "tool";' +
-      '  if (!USER) USER = { name: "Mo Member", personId: "P-MEMBER", role: "parent", roles: ["parent"], rank: "client", token: "t-member", handle: "momember" };' +
+      '  if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
       '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], q: "" }); go("stuff", false, true);' +
       '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
       '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
       /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
       /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
       'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
-      'findGroupOn: (fid, g, id) => { if (!USER) USER = { name: "Mo Member", personId: "P-MEMBER", role: "parent", roles: ["parent"], rank: "client", token: "t-member", handle: "momember" };' +
+      'findGroupOn: (fid, g, id) => { if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
       '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }], q: "" }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
       /* `n` IS AN INDEX INTO `widgetsOf_` of the last group, as it was into the column: the page of that widget's card. */
       'findPage: (n, ...a) => inFinder_(FINDERS.stuff, () => { const w0 = widgetsOf_(window.__findKind || "tool")[n]; const at = w0 ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(w0.id)) : -1;' +
@@ -457,7 +459,7 @@ const checks = [];
 const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
 const FLOW_SLICE = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_SLICE || '');
 let flowSeen = 0;
-/* TIERS (860): a journey is core by data/settings/tiers.json's two patterns; FLOW_TIER=all or =secondary adds the rest, report-only. FLOW_ONLY and FLOW_RE ask regardless of tier. */
+/* TIERS (860): core by tiers.json; FLOW_TIER=all|secondary adds the rest; FLOW_ONLY/FLOW_RE ask any. */
 const FLOW_TIERS_ = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).journeys; } catch (e) { return null; } })();
 const FLOW_TIER = /^(all|secondary)$/.test(process.env.FLOW_TIER || '') ? process.env.FLOW_TIER : 'core';
 const journeyTier_ = name => !FLOW_TIERS_ || (new RegExp(FLOW_TIERS_.core, 'i').test(name) && !new RegExp(FLOW_TIERS_.secondary, 'i').test(name)) ? 'core' : 'secondary';

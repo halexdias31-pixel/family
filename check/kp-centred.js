@@ -53,6 +53,29 @@ const geo = (page, col) => page.evaluate(col => {
     }, FIXTURE);
     await page.goto(`http://localhost:${PORT}/index.html`);
     await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && LATER_IN && !(typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE), null, { timeout: 90000 });
+    /* ONE SCROLLING PAGE (900): Find's box keeps the phone's own keyboard and the column lift is off, so the box is checked to stay put in view with no @family. pad; a column switched off (columns.json, 880) is skipped. */
+    const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
+    if (await page.evaluate(() => document.documentElement.classList.contains('flow'))) {
+      for (const col of ['stuff', 'res'].filter(c => { if (!on(c)) said.push(c + ': off in columns.json, skipped'); return on(c); })) {
+        await page.evaluate(col => go(col, true), col);
+        await page.waitForTimeout(2000);
+        const box = page.locator('#s-' + col + ' input').first();
+        if (!(await box.count())) { fails.push(col + ': no search box, so NOTHING was checked'); continue; }
+        await box.tap(); await page.waitForTimeout(900);
+        const a = await geo(page, col), sel = '#s-' + col + ' input';
+        const at = () => page.evaluate(sel => { const i = document.querySelector(sel); return { top: Math.round(i.getBoundingClientRect().top), focus: document.activeElement === i }; }, sel);
+        const t0 = await at();
+        if (a.padTop !== null) fails.push(col + ': an @family. keypad opened on the search box (900: an ordinary box keeps the phone\'s keyboard)');
+        if (!t0.focus) fails.push(col + ': a tap on the search box did not focus it');
+        if (t0.top < 0 || t0.top > a.vh - 40) fails.push(col + ': the search box is off the screen once tapped (top ' + t0.top + ')');
+        let last = t0.top;
+        for (const ch of 'phot') { await page.keyboard.type(ch); await page.waitForTimeout(500); const b = await at();
+          if (Math.abs(b.top - last) > 1) { fails.push(col + ': the box moved ' + (b.top - last) + 'px as "' + ch + '" was typed'); break; } last = b.top; }
+        said.push(col + ': box at ' + t0.top + ', no pad, still as you type');
+      }
+      await ctx.close();
+      return finish();
+    }
     for (const col of ['stuff', 'res']) {
       await page.evaluate(col => go(col, true), col);
       await page.waitForTimeout(2000);
@@ -87,7 +110,10 @@ const geo = (page, col) => page.evaluate(col => {
   } finally {
     await browser.close(); srv.close();
   }
-  if (process.env.VERBOSE === '1' || process.argv.includes('-v')) said.forEach(s => console.log('   ' + s));
-  if (fails.length) { fails.forEach(f => console.log('FAIL — ' + f)); process.exit(1); }
-  console.log('OK — keypad: Find and Find 2 are centred above the pad, their box holds still as you type, and they are centred again when it goes');
+  finish();
+  function finish() {
+    if (process.env.VERBOSE === '1' || process.argv.includes('-v')) said.forEach(s => console.log('   ' + s));
+    if (fails.length) { fails.forEach(f => console.log('FAIL — ' + f)); process.exit(1); }
+    console.log('OK — keypad: Find\'s box keeps its place above the keyboard and holds still as you type (900), or, with the columns, is centred above the pad');
+  }
 })();

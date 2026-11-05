@@ -1309,6 +1309,7 @@ console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedS
   const need_ = ['partSplit_', 'partNumerals_', 'paperIdOf_'].map(n => cutFrom(findSrc_, n));
   const line_ = n => (findSrc_.match(new RegExp('^const ' + n + ' = .*$', 'm')) || [''])[0];
   const consts_ = ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_'].map(line_);
+  consts_.push(fs.readFileSync(path.join(__dirname, 'predicates.js'), 'utf8'));   /* isPreamble_ */
   if (need_.some(c => !c) || consts_.some(c => !c)) {
     bad_('partSplit_, partNumerals_, paperIdOf_, ROMAN_ONLY, NUM_ROMAN or partBare_ is not in find.js — renamed? The parts were NOT split.');
   } else {

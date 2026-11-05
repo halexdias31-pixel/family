@@ -788,9 +788,6 @@ check('signing in with Google on an unconfirmed account says the PIN has gone, i
 /* ROUND THREE OF THE PR #130 REVIEW, ON THE PHONE. § */
 const JO_PENDING = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
                      pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
-/* A CLIENT, signed in — the member a funnel journey browses as (400); a client sees prices, as a visitor did. */
-const MEMBER_ = { name: 'Mo Member', personId: 'P-MEMBER', role: 'parent', roles: ['parent'], rank: 'client', token: 't-member', handle: 'momember' };
-const signedInAs_ = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
 const toastOf_ = d => String((d.getElementById('toast') || {}).textContent || '');
 const sheetOpen_ = d => { const s = d.getElementById('sheet'), b = d.getElementById('sheet-body');
   return !!(s && b && String(b.textContent || '').trim() && !s.hidden && !/\bhidden\b/.test(s.className)); };

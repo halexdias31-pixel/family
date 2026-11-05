@@ -239,6 +239,8 @@ async function gesture(env, o) {
   return { s0, s1, sp, acts: rec.acts, axes: rec.axes };
 }
 
+/* ONE SCROLLING PAGE (900): with FLOW_LAYOUT on there are no sideways swipes, glass or focus to measure; the check runs again when it is false. */
+if (/^const FLOW_LAYOUT = true;/m.test(fs.readFileSync(path.join(__dirname, '..', 'js', 'shell-boot.js'), 'utf8'))) { console.log('swipe: skipped — FLOW_LAYOUT is on (900), the page scrolls'); process.exit(0); }
 (async () => {
   let server;
   try { server = await serve(); } catch (e) { console.log('swipe: could not serve — ' + e.message); process.exit(1); }
