@@ -169,7 +169,7 @@ if (Q) {
 /* ---------- EVERY PART CARRIES BOTH VERIFIED TAGS (388): find.js's own `verifyTags_`, run on every row */
 const tags = { acc: 0, fn: 0, waiting: 0 };
 if (Q) {
-  const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+  const find = require('../tools/find-src.js').findSrc();
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
   const src = (/^function verifyTags_\([\s\S]*?\n}\n/m.exec(find) || [])[0], tru = (/^const libTrue = [\s\S]*?\n};\n/m.exec(lib) || [])[0];
   /* AND WHAT IT READS WHILE A ROW'S WORDS ARE STILL IN THE LEDGER (397): `libWaits_` and the `libS` under it. */

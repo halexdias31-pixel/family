@@ -703,7 +703,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 /* ---------- EVERY HUE `tagOf_` CAN GIVE HAS A RULE AND A TOKEN, AND NO OTHER TAG COLOUR EXISTS (1010, 1030: one per menu) */
 {
   const tagBad = [];
-  const findSrc = fs.readFileSync(path.join(dir, 'js', 'find.js'), 'utf8');
+  const findSrc = require('../tools/find-src.js').findSrc();
   const n = [...css.matchAll(/--hue-(\d+):/g)].length;
   if (!/^const TAG_OF = \{.*\};$/m.test(findSrc)) tagBad.push('no `const TAG_OF = {…};` line in js/find.js — the menu colours were NOT checked');
   if (!n) tagBad.push('no --hue-N tokens on :root — the menu colours were NOT checked');

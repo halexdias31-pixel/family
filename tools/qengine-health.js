@@ -13,7 +13,7 @@ const map = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.js
 const noop = new Proxy(function () { return noop; }, { get: (t, k) => k === Symbol.toPrimitive ? () => '' : noop, apply: () => noop, construct: () => noop });
 const box = { console, Math, JSON, String, Number, Array, Object, RegExp, Date, Set, Map, Symbol, Promise, parseFloat, parseInt, isFinite, isNaN, Infinity, NaN, Error, __OUT: {} };
 const P = new Proxy(box, { has: () => true, get: (t, k) => (k in t ? t[k] : k === Symbol.unscopables ? undefined : noop), set: (t, k, v) => { t[k] = v; return true; } });
-const src = ['qtypes', 'find'].map(f => fs.readFileSync(path.join(ROOT, 'js', f + '.js'), 'utf8')).join('\n;\n');
+const src = [fs.readFileSync(path.join(ROOT, 'js', 'qtypes.js'), 'utf8'), require('./find-src.js').findSrc()].join('\n;\n');
 vm.runInNewContext('with (__P) {' + src + '\n;Object.assign(__OUT, { markAnswer_, markExpr_, markOrder_, markWords_, qType_, QTYPE_PROTOCOL }); }', { __P: P }, { timeout: 20000 });
 const M = box.__OUT;
 

@@ -182,5 +182,29 @@
    "cost": 57.5
   },
   "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "ffb379b",
+  "score": 38,
+  "parts": {
+   "code": 33,
+   "logic": 33.5,
+   "ui": 33.7,
+   "cost": 80.3
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "ffb379b",
+  "score": 37.1,
+  "parts": {
+   "code": 33,
+   "logic": 33.5,
+   "ui": 33.1,
+   "cost": 71.9
+  },
+  "topKind": "variety-qpage"
  }
 ]

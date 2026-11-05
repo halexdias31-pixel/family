@@ -398,7 +398,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   let plain = null;
   try {
     const { JSDOM } = require('jsdom');
-    const src = fs.readFileSync(path.join(REPO, 'js', 'find.js'), 'utf8');
+    const src = require('../tools/find-src.js').findSrc();
     const i = src.indexOf('const DONE_WORDS_STEM'), f = src.indexOf('function doneWordsPlain_(', i), j = src.indexOf('\n}\n', f);
     if (i !== -1 && f !== -1 && j !== -1) {
       /* ONE ELEMENT, REUSED: the same parse and the same `textContent` as a document per text, measured

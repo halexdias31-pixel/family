@@ -163,7 +163,7 @@ books.forEach(b => {
 if (cvWrong) fail.push(cvWrong + ' book(s) count their chapters\' verses wrongly in index.json, first: ' + firstCvWrong.join(' | '));
 
 /* ---------- THE DRAWING ---------------------------------------------------------------------------- */
-const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
+const findSrc = require('../tools/find-src.js').findSrc();
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const verseSrc = cutFrom(findSrc, 'bibleVerse_');

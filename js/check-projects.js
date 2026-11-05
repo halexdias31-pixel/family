@@ -43,7 +43,7 @@ tree.forEach(t => {
 });
 
 /* THE GROUPING TABLES WENT IN 396 — every facet's answers are drawn as they are — so a subject or level needs no row anywhere. */
-const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
+const findSrc = require('../tools/find-src.js').findSrc();
 
 /* THE KIND ITSELF, AND THE WORD THE OWNER ASKED FOR. The label is what `What kind` prints, so it is
    read off the `KINDS` entry and then looked for in the table that groups it. */

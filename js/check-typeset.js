@@ -8,7 +8,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const { cutFrom } = require('./check-marks-load.js');
 
-const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const src = require('../tools/find-src.js').findSrc();
 const body = cutFrom(src, 'typeset_');
 if (!body) {
   /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO -- "I did not check" is not "I checked

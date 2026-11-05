@@ -126,7 +126,7 @@ const books = fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8')
 
 /* THE APP STILL READS ALL THREE: loaded by library.js, made items and cards by find.js, declared by doGet. */
 const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
-const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+const find = require('../tools/find-src.js').findSrc();
 const doget = fs.readFileSync(path.join(ROOT, 'backend', 'doget.gs'), 'utf8');
 Object.keys(SCHEMA).forEach(f => {
   if (!new RegExp("file: '" + f + "'").test(lib) || !new RegExp("'" + f + "'").test(lib.slice(lib.indexOf('const LIB_EXTRA'), lib.indexOf('const LIB_EXTRA') + 400))) bad.push('js/library.js does not load ' + f + ' (LIB_EXTRA and HIST_DB)');

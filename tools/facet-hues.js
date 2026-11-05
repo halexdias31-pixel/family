@@ -5,7 +5,8 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const FIND = path.join(ROOT, 'js', 'find.js'), GRAPH = path.join(ROOT, 'data', 'facet-graph.json');
+/* THE PIECE OF FIND THAT HOLDS TAG_OF (1040); none is a stop below, never a silent skip. */
+const FIND = (require('./find-src.js').findFiles().map(f => path.join(ROOT, f)).find(f => /^const TAG_OF = /m.test(fs.readFileSync(f, 'utf8')))) || path.join(ROOT, 'js', 'find-bundles.js'), GRAPH = path.join(ROOT, 'data', 'facet-graph.json');
 const CHECK = process.argv.includes('--check');
 const MAX_NODES = Number(process.env.FH_NODES) || 700, MAX_DEPTH = 8, MAX_CHILDREN = 12;
 

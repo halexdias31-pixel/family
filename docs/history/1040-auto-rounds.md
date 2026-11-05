@@ -11,3 +11,13 @@ Each round fixes what does not change the look, plus what the owner asked for ou
 - check-actions red → green: favLinksSave, rewriteCheck, rewriteIdeas carry "switched off, kept for attic/js/…" reasons.
 - A tombstone comment pair (referral sheet) in `js/me.js` dropped; the story is the `on('my-referral')` history above it in git.
 - Dup waitlist rows in `backend/dopost.gs` left: their fields differ, so merging could change what is written.
+
+## Round of 2026-11-05 (2): Find cut into sixteen files
+
+- `js/find.js` (12,081 lines) is now `js/find-finder.js`, `find-facets`, `find-history`, `find-boxers`, `find-parts`, `find-marking`, `find-cells`, `find-pen`, `find-pad`, `find-loupe`, `find-figures`, `find-aloud`, `find-levels`, `find-bundles`, `find-pages`, `find-measure` (all ≤ 790 lines), in that order where `find` stood in `FILES` and `LATER`.
+- Cut in source order at top-level statement boundaries (acorn), not by the plan's prefix groups: order unchanged means load order unchanged. No edits inside any block; one statement moved: `window.CARD_EXTRAS_MORE = …` to the end of `find-boxers.js`, after `bibleOpts_` (a function no longer hoisted across files).
+- `tools/find-src.js` gives the checks Find as one text (`findSrc()`) or its file list (`findFiles()`), read from `index.html`; none found throws. About 25 checks and tools now read it instead of `js/find.js`; check-drafts, check-writings, check-finder, check-widgets, check-tiers, check-strings, check-changed, facet-hues and health.js know the pieces.
+- `tools/structure.js` ratchet: a removed file's functions and counts pass to the files cut from it, so a split is not new giants; `health.js --changed` weighs Find's pieces' empty catches together and keys one-offs to `js/find.js`.
+- Fighter-name facet mismatches (11): the data is right (a fight has two fighters); what the tag shows is a look, so it is a question.
+- The § stories of the pieces stay in `docs/notes/js/find.js.md`.
+- Budgets raised by hand, for the split alone: coupling `js/me.js` 184 → 187 and `js/talmud.js` 25 → 29 (they read Find's names, now from several files); `searchBytes` 7,472,098 → 7,472,640 (the checks' new lines that read the pieces). A `--changed` run before `git add` measures untracked pieces as absent and tightens wrongly; stage new files first.

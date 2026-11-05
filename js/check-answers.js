@@ -15,7 +15,7 @@ const ACCEPTED = {
     + 'cutting "small intestine" to "gut" to fit would be wrong in the mark scheme\'s own terms',
 };
 
-const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const src = require('../tools/find-src.js').findSrc();
 const missing = ['answerParts_', 'typeset_', 'answerBlock_'].filter(n => !cutFrom(src, n));
 if (missing.length) {
   /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO -- "I did not check" is not "I checked

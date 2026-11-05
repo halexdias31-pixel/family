@@ -18,7 +18,7 @@ catch (e) {
 const noop = new Proxy(function () { return noop; }, { get: (t, k) => k === Symbol.toPrimitive ? () => '' : noop, apply: () => noop, construct: () => noop });
 const box = { console, Math, JSON, String, Number, Array, Object, RegExp, Date, Set, Map, Symbol, Promise, parseFloat, parseInt, isFinite, isNaN, Infinity, NaN, Error, __OUT: {} };
 const P = new Proxy(box, { has: () => true, get: (t, k) => (k in t ? t[k] : k === Symbol.unscopables ? undefined : noop), set: (t, k, v) => { t[k] = v; return true; } });
-const src = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+const src = require('./find-src.js').findSrc();
 try { vm.runInNewContext('with (__P) {' + src + '\n;__OUT.markAnswer_ = markAnswer_; __OUT.markOrder_ = markOrder_; }', { __P: P }, { timeout: 20000 }); }
 catch (e) { console.error('answer-health: find.js would not load in the box — ' + e.message); process.exit(2); }
 const { markAnswer_ } = box.__OUT;

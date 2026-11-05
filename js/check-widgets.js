@@ -147,7 +147,7 @@ const ACCEPTED_ENGINE = {
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
-const engineFiles = ['games.js', 'map.js', 'book.js', 'me.js', 'overworld.js', 'find.js', 'receipt.js'];
+const engineFiles = ['games.js', 'map.js', 'book.js', 'me.js', 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
 const orphanEngine = [];
 engineFiles.forEach(f => {
   const fp = path.join(jsDir, f);

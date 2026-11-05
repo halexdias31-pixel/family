@@ -18133,7 +18133,7 @@ check('no line under any drawing says who drew it: not on one page of the librar
     try { w.figsBefore_(x).forEach(f => { if (CRED.test(strip(f.html)) || CRED.test(f.label || '')) hits.push(x.row.row_id + "'s Figure sheet says it"); }); } catch (e) { /* no sheet */ }
   });
   if (hits.length) bad.push(hits.length + ' page(s) carry a credit or a whose-marks line: ' + hits.slice(0, 5).join('; '));
-  const src = fs.readFileSync(path.join(dir, 'find.js'), 'utf8') + fs.readFileSync(path.join(dir, 'library.js'), 'utf8');
+  const src = require('../tools/find-src.js').findSrc() + fs.readFileSync(path.join(dir, 'library.js'), 'utf8');
   ['FIG_BY', 'figCredit_', 'padCredit_', 'usesSaid_', 'FIG_CARD', 'usesHead_'].forEach(n => {
     if (new RegExp('\\b(const|let|var|function)\\s+' + n + '\\b').test(src)) bad.push(n + ' is still declared — the credit is hidden, not deleted');
   });

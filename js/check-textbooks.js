@@ -44,7 +44,7 @@ tree.forEach(t => {
 });
 
 /* ---------- THE SOURCE. The grouping tables went in 396: every facet's answers are drawn as they are. */
-const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
+const findSrc = require('../tools/find-src.js').findSrc();
 
 /* THE REAL `typeset_`, and `tbMath_`'s one line in front of it, which is the whole of how a cell
    becomes markup. If `tbMath_` changes its recipe this check has to change with it — so it is

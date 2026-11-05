@@ -8,7 +8,7 @@ const L = require('./lib-full.js');
 let APP = null;
 function app() {
   if (APP) return APP;
-  const src = fs.readFileSync(path.join(L.ROOT, 'js', 'find.js'), 'utf8');
+  const src = require('../tools/find-src.js').findSrc();
   const grab = (re, what) => {
     const m = re.exec(src);
     if (!m) throw new Error('js/find.js has no ' + what + ' — check/schema.js reads it from there');

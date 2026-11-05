@@ -75,7 +75,7 @@ if (ix) {
 /* WIRED: loaded after works, listed by Find, asked for when a finder paints, never in the boot payload. */
 const order = (src('index.html').match(/'works', 'texts'/) || [])[0];
 if (!order) bad.push('index.html does not load texts right after works');
-const find = src('js/find.js');
+const find = require('../tools/find-src.js').findSrc();
 if (!/\.\.\.\(typeof textsItems_ === 'function' \? textsItems_\(\) : \[\]\)/.test(find)) bad.push('Find does not list textsItems_() — the texts never reach Find');
 if (!/if \(typeof textsIndex_ === 'function'\) textsIndex_\(\);/.test(find)) bad.push('paintStuff does not ask for the texts index');
 if (!/\bwrit: \{ group: 'Learning', label: 'Library', card: x => textsCard_\(x\) \}/.test(find)) bad.push('Find has no `writ` kind drawing textsCard_');

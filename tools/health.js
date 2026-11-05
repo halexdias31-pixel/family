@@ -30,7 +30,8 @@ const dirty = new Set(git(['status', '--porcelain']).split('\n').filter(Boolean)
 const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--format=%ct', '--', f])) * 1000 || 0;
 
 /* WHAT THE FUNNEL WALK READS: a change to any of these makes data/logic-health.json stale. */
-const LOGIC_INPUTS = ['js/find.js', 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
+const FIND_FILES = require('./find-src.js').findFiles();
+const LOGIC_INPUTS = [...FIND_FILES, 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
   'data/projects.json', 'data/topics.json', 'tools/logic-health.js'];
 function logic() {
   const j = (() => { try { return JSON.parse(read('data/logic-health.json')); } catch (e) { return null; } })();
@@ -43,7 +44,7 @@ function logic() {
 const lineOf = (src, i) => src.slice(0, i).split('\n').length;
 const blank = src => src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ' '));
 function findWork(L) {
-  const fsrc = read('js/find.js'), work = [];
+  const fsrc = require('./find-src.js').findSrc(), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
   /* tag-colour (1030): ONE colour per menu — (a) every answer of a menu, (b) its chip and card words take the facet's colour alone, */
@@ -92,7 +93,7 @@ function findWork(L) {
     if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
     body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
       work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
-  ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
+  [...FIND_FILES, 'js/shell.js'].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
   /* EVERY FACET VALUE (940): tools/facet-data.js reads all answers of every menu, not the walk's few; its findings are read here, never re-run. */
   ((jread('data/facet-health.json') || {}).findings || []).forEach(x => work.push({ kind: x.kind, where: 'menu ' + x.menu, say: '"' + x.value + '" ' + x.say }));
@@ -160,7 +161,7 @@ function uxWork() {
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
   const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
   const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };
-  const fsrc = read('js/find.js'), drawer = {};
+  const fsrc = require('./find-src.js').findSrc(), drawer = {};
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) drawer[m[1]] = { fn: m[2], at: 'js/find.js:' + lineOf(fsrc, m.index) };
   Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
     if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
@@ -206,7 +207,7 @@ function textboxRules(css) {
   return tv;
 }
 function ownerWork() {
-  const W = [], css = read('style.css'), flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), fsrc = read('js/find.js');
+  const W = [], css = read('style.css'), flat = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' ')), fsrc = require('./find-src.js').findSrc();
   const rule = sel => { const m = new RegExp('(?:^|\\})\\s*' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(flat); return m ? { body: m[1], line: lineOf(flat, m.index + 1) } : null; };
   /* element-box: an element's own container draws no box — no background, border (but the hairline under a card) or radius. */
   ['.card', '.qwhole'].forEach(sel => { const r = rule(sel); if (!r) { W.push({ kind: 'element-box', where: 'style.css', say: `no ${sel} rule — the element box was NOT checked` }); return; }
@@ -445,7 +446,7 @@ function varietyWork(Q, waits) {
   if (!Q || !Q.moved) qv.unshift({ where: 'roadmap 7', say: 'the one page, not built yet' });
   add('qpage', 'Question pages and markers', 1, 'logic', qv);
   /* CARD DRAWERS: the distinct functions the kinds tab of find.js draws cards with. */
-  const fsrc = read('js/find.js'), seen = new Map();
+  const fsrc = require('./find-src.js').findSrc(), seen = new Map();
   for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) if (!seen.has(m[2])) seen.set(m[2], m[1]);
   add('drawer', 'Card drawers', 1, 'ui', [...seen.keys()].map(fn => ({ where: fnAt(fn) || 'js/find.js', say: `${fn} (first for ${seen.get(fn)})` })));
   /* CARD TILE ROWS (950): cardTiles_ is the one; a card drawer drawing its own tile-row is another, and so is a core row out of order. */
@@ -560,17 +561,18 @@ function changed() {
   const t0 = Date.now();
   const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(f => f && !f.startsWith('attic/')));
   const bad = [];
-  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
+  /* Find's pieces count as the one file they were cut from (1040), so a move between them is not a new finding. */
+  const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '').replace(/^js\/find-[\w-]+\.js$/, 'js/find.js') + '|' + w.say;
   /* A STALE FACET REPORT (940): the library or the funnel changed and tools/facet-data.js was not re-run, so its findings are old. */
   const fAt = mtime('data/facet-health.json'), fNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > fAt);
   if (fNew.length && !files.has('data/facet-health.json')) console.log('note: data/facet-health.json is older than ' + fNew.join(', ') + ' — run node tools/facet-data.js');
-  if (['js/find.js', 'js/shell.js', 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
+  if ([...FIND_FILES, 'js/shell.js', 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
     findWork(logic()).forEach(w => { const k = sig(w); if (had[k]) had[k]--; else bad.push(w.kind + '\t' + w.where + '\t' + w.say); });
   }
   /* A MOVED QTYPE MAY NOT SLIP (920): re-proved when its markers or data changed, against the committed data/qengine-health.json. */
-  if (['js/find.js', 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
+  if ([...FIND_FILES, 'js/qtypes.js', 'data/questions.json', 'data/settings/qengine.json', 'tools/qengine-health.js'].some(f => files.has(f))) {
     let was = null; try { was = JSON.parse(git(['show', 'HEAD:data/qengine-health.json'])); } catch (e) { was = null; }
     /* A TEMP COPY (940): --changed never leaves a rewritten report in the tree; only a full run writes data/*-health.json. */
     const tmp = path.join(require('os').tmpdir(), 'qengine-health-' + process.pid + '.json');
@@ -583,7 +585,11 @@ function changed() {
   }
   const EMPTY = /catch\s*\(\w*\)\s*\{\s*\}|catch\s*\{\s*\}/g;
   [...files].filter(f => /\.(js|gs)$/.test(f)).forEach(f => {
-    const now = read(f), was = git(['show', 'HEAD:' + f]);
+    const piece = FIND_FILES.includes(f), headOf = g => git(['show', 'HEAD:' + g]);
+    /* A FIND PIECE is weighed with all its siblings against what HEAD had for Find, one file or many (1040). */
+    const was = piece ? (headOf('js/find.js') || FIND_FILES.map(headOf).join('')) : git(['show', 'HEAD:' + f]);
+    const whole = piece ? FIND_FILES.map(read).join('') : '', now = read(f);
+    if (piece && (whole.match(EMPTY) || []).length <= (was.match(EMPTY) || []).length) return;
     const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
   });

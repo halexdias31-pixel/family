@@ -5,7 +5,7 @@ require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): sk
 const fs = require('fs');
 const path = require('path');
 
-const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const src = require('../tools/find-src.js').findSrc();
 
 /* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because other checks need the same functions to ask different questions of § */
 const { NAMES, markingSource } = require('./check-marks-load.js');
