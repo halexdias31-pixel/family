@@ -13,7 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
-// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet.
+// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan writes docs/split-plan.md.
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -65,11 +65,19 @@ function findWork(L) {
   /* one-off: a literal kind/facet/finder test in the funnel code, bypassing a shared rule. */
   /* A CARD's kind (x, it, item, card or a bare kind), any facet's field, a facet key, or one finder by name; keys and mark parts are not cards. */
   const ONE = /(?<![\w.])(?:(?:x|it|item|card|y)\.)?kind\s*[!=]==?\s*'[^']+'|\b(?:\w+\.)?field\s*[!=]==?\s*'[^']+'|(?<![\w.])(?:facet|key)\s*[!=]==?\s*'[^']+'|\b(?:F|finder)\s*[!=]==?\s*(?:RES|FINDERS\.\w+)\b/g;
+  /* MENU-THIN (920): no menu asked with < 2 real answers, no answer drawn with 0 (the walk), and no rule in facetWhy_ that lets one through. */
+  ((L.j && L.j.menuSense) || []).filter(m => ['thin', 'zero-count', 'answer-words', 'merged-value'].includes(m.kind)).forEach(m => work.push({ kind: /^(?:answer-words|merged-value)$/.test(m.kind) ? m.kind : 'menu-thin', where: m.where, say: m.kind + ': ' + m.say }));
+  const fw = /function facetWhy_\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
+  if (!fw) work.push({ kind: 'menu-thin', where: 'js/find.js', say: 'facetWhy_ not found — the < 2 answers guard cannot be proved' });
+  else { const body = blank(fw[0]), g = body.search(/if \(\s*vals\s*<\s*2\s*\)/);
+    if (g < 0) work.push({ kind: 'menu-thin', where: 'js/find.js:' + lineOf(fsrc, fw.index), say: 'facetWhy_ has no "vals < 2" guard: a one-answer menu can be asked' });
+    body.slice(0, g < 0 ? body.length : g).split('\n').forEach((l, i) => { if (/return\s*''/.test(l) && !/vals\s*(?:>\s*1|>=\s*2)/.test(l))
+      work.push({ kind: 'menu-thin', where: 'js/find.js:' + (lineOf(fsrc, fw.index) + i), say: 'facetWhy_ lets a menu through before the < 2 answers guard: ' + l.trim().slice(0, 100) }); }); }
   ['js/find.js', 'js/shell.js'].forEach(f => { const src = blank(read(f));
     for (const m of src.matchAll(ONE)) work.push({ kind: 'find-one-off', where: f + ':' + lineOf(src, m.index), say: m[0] }); });
   return work;
 }
-const FIND_PENALTY = { 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
+const FIND_PENALTY = { 'menu-thin': [1, 15], 'answer-words': [0.2, 10], 'merged-value': [0.5, 10], 'tag-colour': [0.1, 10], 'menu-rule': [0.05, 15], 'tag-asked': [1, 10], 'find-one-off': [0.02, 10] };
 
 /* UNIFORM (920): controls not built by the shared makers, each located. App files only; the makers' own files are exempt. */
 function uniformWork() {
@@ -318,7 +326,7 @@ function extraWork(st) {
   const L = jread('data/logic-health.json');
   /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
   const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
-  ((L && L.menuSense) || []).filter(m => !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  ((L && L.menuSense) || []).filter(m => !['thin', 'zero-count', 'answer-words', 'merged-value'].includes(m.kind) && !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
   /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
   const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
   String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
@@ -338,7 +346,7 @@ function extraWork(st) {
 /* VARIETY (920): a family where one is ideal (one question page, one card drawer, one tile maker, one row style, one wait) costs
    for every variant past the first; each variant is listed where it lives. */
 let VARIETY_LAST = null;
-function varietyWork(Q) {
+function varietyWork(Q, waits) {
   const W = [], fam = {}, app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f));
   const fnAt = (name, files) => { for (const f of files || app) { const src = read(f), i = src.search(new RegExp('function ' + name + '\\s*\\(')); if (i >= 0) return f + ':' + lineOf(src, i); } return ''; };
   const add = (id, label, ideal, part, variants) => { fam[id] = { label, count: variants.length, ideal };
@@ -369,7 +377,7 @@ function varietyWork(Q) {
   add('setrow', 'Settings row shapes', 1, 'ui', sv);
   /* WAIT INDICATORS: loading_ is the one; each file that makes its own wait is another. */
   const wv = [{ where: fnAt('loading_', ['js/shell.js']) || 'js/shell.js', say: 'loading_' }];
-  const ow = new Map(); uniformWork().filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
+  const ow = new Map(); (waits || uniformWork()).filter(w => w.kind === 'own-wait').forEach(w => { const f = w.where.split(':')[0]; if (!ow.has(f)) ow.set(f, w.where); });
   ow.forEach((at, f) => wv.push({ where: at, say: 'its own wait in ' + f }));
   add('wait', 'Wait indicators', 1, 'ui', wv);
   VARIETY_LAST = fam;
@@ -447,7 +455,7 @@ function trendAppend(h) {
   const was = t[t.length - 1];
   if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
-module.exports = { health };
+module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles, blank, ONE_OFF, git, read, variety: () => VARIETY_LAST };
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
@@ -475,6 +483,11 @@ function changed() {
     const n = (now.match(EMPTY) || []).length, m = (was.match(EMPTY) || []).length;
     if (n > m) now.split('\n').forEach((l, i) => { if (EMPTY.test(l)) bad.push('empty-catch\t' + f + ':' + (i + 1) + '\t' + (n - m) + ' new empty catch(es) in this file'); EMPTY.lastIndex = 0; });
   });
+  /* THE STRUCTURE RATCHET (920): no file, long function, variety family or one-off over its budget; a gain tightens the budget. */
+  const R = require('./structure.js').ratchet([...files]);
+  bad.push(...R.bad);
+  if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));
+  if (R.B) console.log(require('./structure.js').progress(R.B).line);
   const s = ((Date.now() - t0) / 1000).toFixed(1) + 's';
   if (!bad.length) { console.log(`health --changed: no new findings in ${files.size} changed file(s) (${s})`); process.exit(0); }
   bad.forEach(b => console.log(b));
@@ -529,6 +542,10 @@ if (require.main === module && process.argv.includes('--budgets')) {
 } else if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
 else if (require.main === module && process.argv.includes('--fix')) fix();
 else if (require.main === module && process.argv.includes('--changed')) changed();
+else if (require.main === module && process.argv.includes('--cache')) { const C = require('./cache.js').cache(); C.ok.forEach(o => console.log('ok: ' + o)); C.work.forEach(w => console.log(`cache  ${w.where}  ${w.say}`)); console.log('achievable: ' + C.achievable); }
+else if (require.main === module && process.argv.includes('--isolation')) execFileSync(process.execPath, ['tools/isolation.js', '15'], { cwd: ROOT, stdio: 'inherit' });
+else if (require.main === module && process.argv.includes('--plan')) require('./structure.js').plan();
+else if (require.main === module && process.argv.includes('--structure-init')) require('./structure.js').init();
 else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {

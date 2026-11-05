@@ -98,7 +98,30 @@ const RULES = {
         const ks = values.map(v => String(v.show || v.value).toLowerCase().replace(/[^a-z0-9]/g, '')), dup = [];
         ks.forEach((a, i) => ks.forEach((b, j) => { if (j > i && near(a, b) && a.replace(/\d/g, '#') !== b.replace(/\d/g, '#')) dup.push((values[i].show || values[i].value) + ' ~ ' + (values[j].show || values[j].value)); }));
         const dead = values.filter(v => !v.n).map(v => v.show || v.value);
-        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3) };
+        /* A THIN MENU (920, owner's 5-a-day screenshot): fewer than two answers that keep a card, Doesn't matter not counted. */
+        const real = values.filter(v => v.n > 0 && !v.any && !/^(?:doesn.?t matter|any)$/i.test(String(v.show || v.value).trim()));
+        const thin = real.length < 2 ? real.map(v => v.show || v.value) : null;
+        /* A COUNT OF 0 DRAWN: the asked facet's whole tally (before chips are taken out) may not hold an answer that keeps nothing. */
+        const zero = ((facetTally_(items, f) || {}).values || []).filter(v => !v.n).map(v => v.show || v.value);
+        /* ANSWER WORDS (920): what the menu said, the chip says after the pick and the card's tag line says (facetSay_) must be one text. */
+        const norm = t => String(t == null ? '' : t).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        const words = [], was = STUFF.filters;
+        values.slice(0, 12).forEach(v => { const menu = norm(v.show || v.value);
+          STUFF.filters = filters.concat([{ field: f.field, value: v.value }]);
+          let chip = '', tag = ''; try { chip = norm(chipText_(STUFF.filters[filters.length], filters.length)); } catch (e) { chip = '?'; }
+          try { tag = norm(facetSay_(f, v.value)); } catch (e) { tag = '?'; }
+          if (chip !== menu || tag !== menu) words.push('menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"'); });
+        STUFF.filters = was;
+        /* MERGED VALUES (920): an answer that holds two other answers of the same menu (or one twice) is two values joined; its source rows. */
+        const merged = [], low = values.map(v => String(v.value).toLowerCase());
+        const at = (a, b) => { const out = []; for (let p = a.indexOf(b); p >= 0; p = a.indexOf(b, p + 1)) if ((p === 0 || a[p - 1] === ' ') && (p + b.length === a.length || a[p + b.length] === ' ')) out.push(p); return out; };
+        low.forEach((a, i) => { const hits = low.map((b, j) => j !== i && b.length > 3 ? at(a, b).map(p => [p, p + b.length + 1, b]) : []).flat();
+          const apart = hits.filter(h => hits.some(g => g[2] !== h[2] && (g[0] >= h[1] || h[0] >= g[1])));
+          const inner = [...new Set(apart.map(h => h[2]))];
+          const twice = low.some((b, j) => j !== i && b.length > 3 && at(a, b).length > 1);
+          if (inner.length >= 2 || twice) { const rows = items.filter(x => facetOwn_(f, x).some(t => String(t).toLowerCase() === a)).slice(0, 3).map(x => (x.kind || '?') + ':' + (x.id || x.key || x.name));
+            merged.push('"' + values[i].value + '" holds ' + (inner.slice(0, 2).map(b => '"' + b + '"').join(' + ') || 'one answer twice') + ' — rows ' + rows.join(', ')); } });
+        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), merged: merged.slice(0, 3) };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -154,9 +177,13 @@ const RULES = {
     if (nd.answers.length < 2 && !nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
     (nd.dup || []).forEach(d => menuSense.push({ where: where(nd), kind: 'spelling', say: nd.label + ': ' + d }));
     (nd.dead || []).forEach(d => menuSense.push({ where: where(nd), kind: 'dead-end', say: nd.label + ': ' + d + ' keeps no card' }));
+    if (nd.thin) menuSense.push({ where: where(nd), kind: 'thin', say: nd.label + ' asked with ' + nd.thin.length + ' real answer(s)' + (nd.thin.length ? ' (' + nd.thin.join(', ') + ')' : '') + ' besides Doesn\'t matter' });
+    (nd.zero || []).forEach(d => menuSense.push({ where: where(nd), kind: 'zero-count', say: nd.label + ': ' + d + ' drawn with a count of 0' }));
+    (nd.words || []).forEach(d => menuSense.push({ where: where(nd), kind: 'answer-words', say: nd.label + ': ' + d }));
+    (nd.merged || []).forEach(d => menuSense.push({ where: where(nd), kind: 'merged-value', say: nd.label + ': ' + d }));
     if (nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
   });
-  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; });
+  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; delete nd.thin; delete nd.zero; delete nd.words; delete nd.merged; });
   const out = { score, questions: asked.length, healthy: asked.length - sick.length,
     walked: { nodes: got.length, maxNodes: MAX_NODES, maxDepth: MAX_DEPTH, maxChildren: MAX_CHILDREN, sample: SAMPLE },
     rules: Object.keys(RULES).map(k => ({ id: k, label: RULES[k], count: counts[k] })),

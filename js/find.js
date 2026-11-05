@@ -1004,9 +1004,16 @@ function facetTally_(items, facet) {
 
   const by = {};
   let answered = 0;
-  items.forEach(x => {
+  /* ONE READ PER ITEM (930): the weighed split below once read every item's values again, half of Find's wait on a phone. */
+  const wt = writingWeights_(items);
+  let top = 0, whole = 0;
+  const wBy = {};
+  items.forEach((x, i) => {
     /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. § */
     const vals = facetOwn_(facet, x);
+    whole += wt[i];
+    if (vals.length === 1) { const k = spellKey_(vals[0]); if (k) wBy[k] = (wBy[k] || 0) + wt[i]; }
+    else if (vals.length) new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
     if (!vals.length) return;
     answered++;
     /* ONE VALUE IS THE OVERWHELMING CASE and a `Set` of one is an allocation to prove it. § */
@@ -1034,14 +1041,6 @@ function facetTally_(items, facet) {
 
   /* THE SPLIT IS MEASURED IN THINGS, NOT CARDS (517): a writing (`libBook`) weighs one however many verses it is, so the
      Bible's 31,000 cards cannot make Subject look lopsided. Every facet, one rule. */
-  const wt = writingWeights_(items);
-  let top = 0, whole = 0;
-  const wBy = {};
-  items.forEach((x, i) => {
-    whole += wt[i];
-    const vals = facetOwn_(facet, x);
-    new Set(vals.map(spellKey_).filter(Boolean)).forEach(k => { wBy[k] = (wBy[k] || 0) + wt[i]; });
-  });
   Object.keys(wBy).forEach(k => { if (wBy[k] > top) top = wBy[k]; });
 
   const out = {
@@ -1123,7 +1122,7 @@ const numberedRun_ = values => values.length > 1 && values.every(v => runNumber_
 function facetWhy_(items, facet, over) {
   const all = facetValues(items, facet), vals = all.length;
   /* 680: answers that are all BELOW an answer already chosen are asked even alone — Doesn't matter is the parent's own. */
-  if (vals && underChosen_(all)) return '';
+  if (vals > 1 && underChosen_(all)) return ''; /* owner 5 Nov: one answer is never a question, even below a chosen one */
   if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
   if (!over && vals > (vals <= FACET_MAX_GRID && numberedRun_(all) ? FACET_MAX_GRID : FACET_MAX_ANSWERS)) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
   const cov = facetCoverage(items, facet);
@@ -5313,7 +5312,12 @@ function padAdopt_(k, bare) {
    other part from its first Pen tap (`PEN_OPEN`, qtools.js) or once it has marks saved. */
 /* OPTIONS OR CELLS ARE THE ANSWER where a row has them (as before round 3): their pen waits for its first tap, so the card is not drawn smaller under a pen it may never use */
 const padPicked_ = x => !!x && ((Array.isArray(x.choices) && x.choices.length >= 2) || (typeof cellsOf_ === 'function' && cellsOf_(x).length > 0));
-const padDrawn_ = x => !!x && typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && qtDrawn_(workRow_(x)) && !padPicked_(x);
+/* KEPT ON THE CARD per library generation (930): `stuffPages_` asks it of every result, and each ask copied the whole row (`workRow_`) -- seconds on a phone. */
+const padDrawn_ = x => {
+  if (!x) return false;
+  const g = typeof LIB === 'object' && LIB ? LIB.gen : 0;
+  if (x._pdg !== g || x._pd === undefined) { x._pd = typeof qtDrawn_ === 'function' && typeof workRow_ === 'function' && !!qtDrawn_(workRow_(x)) && !padPicked_(x); x._pdg = g; }
+  return x._pd; };
 /* SOMETHING TO DRAW ON: a drawn answer, a surface the row names, its own figure or its stem's one. Nothing else opens a pen -- no blank working paper (owner, 29 Oct). */
 function padHasArt_(x) {
   if (!x) return false;
@@ -11576,7 +11580,9 @@ function stuffQuestion() {
   return facetAnswersHtml_(facet, values, (sw != null ? sw : typeof awaiting_ === 'function' && awaiting_() ? loading_() : '') + facetNoneHtml_(items, facet));
 }
 /* THE OTHER HALF OF A YES-OR-NO, AT 0 (770): § */
+const FACET_NONE_SHOWN = false; /* owner 5 Nov: "Accuracy verified 0" read as noise; switched off, kept */
 function facetNoneHtml_(items, shown) {
+  if (!FACET_NONE_SHOWN) return '';
   try {
     const asked = (STUFF.filters || []).map(f => f.field), all = stuffItems(), out = [];
     facetList().forEach(facet => {
@@ -11611,7 +11617,7 @@ function facetAnswersHtml_(facet, values, more) {
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
-        <span class="k">${mark(grid ? runNumber_(v)[2] : v.show || v.value)}</span>
+        <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>' + more;
 }
 

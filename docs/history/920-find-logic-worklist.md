@@ -103,3 +103,31 @@ tokens and wrote var(--x, var(--x)); that was caught in the diff before commit a
   - list-row classes in style.css, against .row;
   - settings row builders;
   - wait indicators, against loading_.
+
+## The structure ratchet (2026-11-05)
+
+`data/settings/structure-budgets.json` (written once by `node tools/structure.js --init`) records, for every loaded js file,
+backend .gs and style.css: its lines, one-offs, empty catches, inline styles and raw buttons; every function over 80 lines with
+its length; and the six variety families' counts. `node tools/health.js --changed` fails when a touched file goes over any of
+these (a new file over 800 lines, a function growing, a new long function that did not move whole from another file, a new
+variant), and rewrites the json lower when a change comes in under — gains are locked in. Targets: file ≤ 800, function ≤ 80,
+one variant per family (questions: 1 page + 5 checkers), one-offs 0. The progress line measures the distance still over those
+targets against the day-one baseline (48337 file lines over 800, 7060 function lines over 80, 133 extra variants, 515 one-offs).
+`node tools/health.js --plan` writes `docs/split-plan.md`: each giant cut into ≤ 800-line pieces by name prefix and call graph,
+load-time statements moved into the piece that declares what they read (the js/check.js rule). It does not split anything;
+doPost (3593 lines, one function) is flagged as needing a hand split first.
+
+## Menu sense, answer words, cache, isolation (2026-11-05)
+
+- **menu-thin** (findWork, so `--changed` blocks a new one): the logic walk flags any menu asked with fewer than two answers that keep a
+  card (Doesn't matter not counted) and any answer drawn with a count of 0; statically, any `return ''` in facetWhy_ before its
+  `vals < 2` guard that is not itself guarded by `vals > 1` (mutation-proved against the old `underChosen_` exception). The owner's
+  5-a-day screen. Now 0.
+- **answer-words**: per answer, the menu text, the chip after the pick (chipText_) and facetSay_ must be one text (the "4" / "Year 4"
+  grid). 28 left, all a tag adding "(Clio)" or "(A-Level)". **merged-value**: an answer that holds two other answers of its menu at word
+  boundaries ("Volume of a Cube Volume of a Cuboid"), with its source rows. 0 reached by the walk.
+- **cache** (`node tools/health.js --cache`, tools/cache.js): content-hashed URLs and the worker's cache-first store are in place; the
+  UX walk's repeat visit fetched 18 KB from the network against 3594 KB first time. Missing: a kept doGet payload (roadmap "Instant
+  return visits"). Pages fixes max-age=600, so the worker is the long life.
+- **isolation** (`--isolation`, tools/isolation.js): movability 0-100 per js file from the files that use its names, the names of
+  others it reads, foreign DOM ids, CSS scoping and registrations. Each file's links are a budget in structure-budgets.json `coupling`.

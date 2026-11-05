@@ -64,5 +64,27 @@
    "ui": 34.6
   },
   "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "0e2f1b9",
+  "score": 32.4,
+  "parts": {
+   "code": 32.5,
+   "logic": 30.8,
+   "ui": 34.6
+  },
+  "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "1e71c8f",
+  "score": 30.2,
+  "parts": {
+   "code": 32.5,
+   "logic": 25.2,
+   "ui": 33.6
+  },
+  "topKind": "variety-qpage"
  }
 ]

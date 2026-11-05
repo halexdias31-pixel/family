@@ -1,0 +1,689 @@
+{
+ "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason.",
+ "coupling": {
+  "js/find.js": 297,
+  "js/shell.js": 191,
+  "js/me.js": 184,
+  "js/posts.js": 112,
+  "js/games.js": 106,
+  "js/tiles.js": 72,
+  "js/arcade.js": 93,
+  "js/layout.js": 76,
+  "js/data.js": 75,
+  "js/submit.js": 80,
+  "js/price-rows.js": 46,
+  "js/book.js": 63,
+  "js/core.js": 60,
+  "js/receipt.js": 64,
+  "js/collections.js": 52,
+  "js/map.js": 67,
+  "js/chess.js": 35,
+  "js/keypad.js": 66,
+  "js/overworld.js": 56,
+  "js/records.js": 54,
+  "js/rules.js": 23,
+  "js/answers.js": 46,
+  "js/writings.js": 33,
+  "js/library.js": 26,
+  "js/staff.js": 35,
+  "js/mat.js": 28,
+  "js/hadith.js": 21,
+  "js/push.js": 23,
+  "js/words.js": 23,
+  "js/hymns.js": 20,
+  "js/links.js": 17,
+  "js/missing.js": 21,
+  "js/pdtexts.js": 14,
+  "js/resource.js": 34,
+  "js/cards.js": 36,
+  "js/gtasks.js": 16,
+  "js/board.js": 39,
+  "js/help.js": 13,
+  "js/qtools.js": 41,
+  "js/reader.js": 24,
+  "js/working.js": 29,
+  "js/talmud.js": 25,
+  "js/quran.js": 21,
+  "js/works.js": 17,
+  "js/orthodox.js": 18,
+  "js/flyer.js": 16,
+  "js/qtypes.js": 9,
+  "js/texts.js": 15,
+  "js/inbox.js": 10,
+  "js/poster.js": 9,
+  "js/racer.js": 19,
+  "js/rewrite.js": 19,
+  "js/settings.js": 10,
+  "js/mechanics.js": 14,
+  "js/spotify.js": 12,
+  "js/boot.js": 17,
+  "js/chemistry.js": 10,
+  "js/favlinks.js": 11,
+  "js/pixel.js": 9,
+  "js/ink.js": 2,
+  "js/finder-tags.js": 1,
+  "js/select.js": 3
+ },
+ "targets": {
+  "fileLines": 800,
+  "fnLines": 80,
+  "variety": 1,
+  "oneOff": 0,
+  "questions": "1 page + 5 checkers"
+ },
+ "baselineDate": "2026-11-05",
+ "baseline": {
+  "fileLines": 48337,
+  "fnLines": 7060,
+  "variety": 133,
+  "oneOff": 515
+ },
+ "files": {
+  "backend/booking.gs": {
+   "lines": 1232,
+   "oneOff": 5,
+   "emptyCatch": 16,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/constants.gs": {
+   "lines": 1728,
+   "oneOff": 1,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/content.gs": {
+   "lines": 2435,
+   "oneOff": 10,
+   "emptyCatch": 27,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/core.gs": {
+   "lines": 1074,
+   "oneOff": 1,
+   "emptyCatch": 12,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/digest.gs": {
+   "lines": 1796,
+   "oneOff": 11,
+   "emptyCatch": 12,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/doget.gs": {
+   "lines": 1436,
+   "oneOff": 1,
+   "emptyCatch": 11,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/dopost.gs": {
+   "lines": 4636,
+   "oneOff": 3,
+   "emptyCatch": 21,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/inbox.gs": {
+   "lines": 90,
+   "oneOff": 1,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/people.gs": {
+   "lines": 1279,
+   "oneOff": 2,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/push.gs": {
+   "lines": 125,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/records.gs": {
+   "lines": 64,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/setup.gs": {
+   "lines": 1351,
+   "oneOff": 0,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "backend/sync.gs": {
+   "lines": 209,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/answers.js": {
+   "lines": 755,
+   "oneOff": 1,
+   "emptyCatch": 19,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/arcade.js": {
+   "lines": 1510,
+   "oneOff": 10,
+   "emptyCatch": 7,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/board.js": {
+   "lines": 1317,
+   "oneOff": 24,
+   "emptyCatch": 16,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/book.js": {
+   "lines": 2255,
+   "oneOff": 14,
+   "emptyCatch": 14,
+   "inlineStyle": 0,
+   "rawButton": 3
+  },
+  "js/boot.js": {
+   "lines": 38,
+   "oneOff": 0,
+   "emptyCatch": 3,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/cards.js": {
+   "lines": 509,
+   "oneOff": 5,
+   "emptyCatch": 0,
+   "inlineStyle": 4,
+   "rawButton": 0
+  },
+  "js/chemistry.js": {
+   "lines": 64,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/chess.js": {
+   "lines": 402,
+   "oneOff": 6,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/collections.js": {
+   "lines": 410,
+   "oneOff": 8,
+   "emptyCatch": 3,
+   "inlineStyle": 0,
+   "rawButton": 5
+  },
+  "js/core.js": {
+   "lines": 654,
+   "oneOff": 8,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/data.js": {
+   "lines": 537,
+   "oneOff": 10,
+   "emptyCatch": 15,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/favlinks.js": {
+   "lines": 116,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/find.js": {
+   "lines": 12231,
+   "oneOff": 167,
+   "emptyCatch": 30,
+   "inlineStyle": 2,
+   "rawButton": 9
+  },
+  "js/finder-tags.js": {
+   "lines": 23,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/flyer.js": {
+   "lines": 426,
+   "oneOff": 8,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/games.js": {
+   "lines": 6446,
+   "oneOff": 18,
+   "emptyCatch": 59,
+   "inlineStyle": 16,
+   "rawButton": 71
+  },
+  "js/gtasks.js": {
+   "lines": 152,
+   "oneOff": 0,
+   "emptyCatch": 8,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/hadith.js": {
+   "lines": 122,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/help.js": {
+   "lines": 127,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/hymns.js": {
+   "lines": 92,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/inbox.js": {
+   "lines": 75,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/ink.js": {
+   "lines": 176,
+   "oneOff": 0,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/keypad.js": {
+   "lines": 1786,
+   "oneOff": 18,
+   "emptyCatch": 21,
+   "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/layout.js": {
+   "lines": 1184,
+   "oneOff": 3,
+   "emptyCatch": 15,
+   "inlineStyle": 0,
+   "rawButton": 3
+  },
+  "js/library.js": {
+   "lines": 751,
+   "oneOff": 0,
+   "emptyCatch": 6,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/links.js": {
+   "lines": 309,
+   "oneOff": 4,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/map.js": {
+   "lines": 367,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 5,
+   "rawButton": 6
+  },
+  "js/mat.js": {
+   "lines": 1700,
+   "oneOff": 4,
+   "emptyCatch": 2,
+   "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/me.js": {
+   "lines": 4890,
+   "oneOff": 38,
+   "emptyCatch": 58,
+   "inlineStyle": 18,
+   "rawButton": 19
+  },
+  "js/mechanics.js": {
+   "lines": 68,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/missing.js": {
+   "lines": 274,
+   "oneOff": 2,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/orthodox.js": {
+   "lines": 123,
+   "oneOff": 2,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/overworld.js": {
+   "lines": 714,
+   "oneOff": 1,
+   "emptyCatch": 4,
+   "inlineStyle": 5,
+   "rawButton": 0
+  },
+  "js/pdtexts.js": {
+   "lines": 101,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/pixel.js": {
+   "lines": 91,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/poster.js": {
+   "lines": 184,
+   "oneOff": 4,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/posts.js": {
+   "lines": 2610,
+   "oneOff": 6,
+   "emptyCatch": 43,
+   "inlineStyle": 4,
+   "rawButton": 25
+  },
+  "js/price-rows.js": {
+   "lines": 284,
+   "oneOff": 3,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/push.js": {
+   "lines": 153,
+   "oneOff": 0,
+   "emptyCatch": 9,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/qtools.js": {
+   "lines": 323,
+   "oneOff": 12,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/qtypes.js": {
+   "lines": 282,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/quran.js": {
+   "lines": 121,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/racer.js": {
+   "lines": 971,
+   "oneOff": 4,
+   "emptyCatch": 5,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/reader.js": {
+   "lines": 208,
+   "oneOff": 11,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/receipt.js": {
+   "lines": 1052,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 1,
+   "rawButton": 2
+  },
+  "js/records.js": {
+   "lines": 1180,
+   "oneOff": 9,
+   "emptyCatch": 24,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/resource.js": {
+   "lines": 282,
+   "oneOff": 5,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/rewrite.js": {
+   "lines": 599,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/rules.js": {
+   "lines": 143,
+   "oneOff": 0,
+   "emptyCatch": 2,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/select.js": {
+   "lines": 83,
+   "oneOff": 1,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/settings.js": {
+   "lines": 145,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/shell.js": {
+   "lines": 3968,
+   "oneOff": 35,
+   "emptyCatch": 44,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/spotify.js": {
+   "lines": 186,
+   "oneOff": 2,
+   "emptyCatch": 7,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/staff.js": {
+   "lines": 418,
+   "oneOff": 0,
+   "emptyCatch": 3,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/submit.js": {
+   "lines": 1037,
+   "oneOff": 6,
+   "emptyCatch": 19,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/talmud.js": {
+   "lines": 284,
+   "oneOff": 0,
+   "emptyCatch": 4,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/texts.js": {
+   "lines": 102,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/tiles.js": {
+   "lines": 613,
+   "oneOff": 16,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/words.js": {
+   "lines": 204,
+   "oneOff": 1,
+   "emptyCatch": 7,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/working.js": {
+   "lines": 172,
+   "oneOff": 1,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 1
+  },
+  "js/works.js": {
+   "lines": 111,
+   "oneOff": 0,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/writings.js": {
+   "lines": 216,
+   "oneOff": 13,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "style.css": {
+   "lines": 7232,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  }
+ },
+ "functions": {
+  "backend/content.gs raceBuild_": 122,
+  "backend/content.gs uploadsCheck_": 81,
+  "backend/content.gs filmsSync_": 108,
+  "backend/digest.gs digestPlan_": 89,
+  "backend/digest.gs digestQuestions_": 150,
+  "backend/digest.gs checkSundayEmail": 90,
+  "backend/doget.gs doGet": 1205,
+  "backend/dopost.gs doPost": 3594,
+  "backend/dopost.gs aiGemini_": 85,
+  "backend/setup.gs dataProblems": 283,
+  "backend/setup.gs checkEverything": 90,
+  "js/answers.js answersPush_": 86,
+  "js/book.js breakdownRows": 87,
+  "js/book.js bookBreakdown": 104,
+  "js/cards.js findCard": 142,
+  "js/core.js priceFrom": 252,
+  "js/find.js typeset_": 231,
+  "js/find.js markRule_": 83,
+  "js/find.js drawMarker_": 645,
+  "js/find.js stuffItemsRaw_": 179,
+  "js/find.js accountPages_": 109,
+  "js/find.js bundleBuild_": 85,
+  "js/find.js paintStuff": 88,
+  "js/find.js paneReach_": 119,
+  "js/games.js vidPaint_": 82,
+  "js/library.js libraryExtras_": 181,
+  "js/mat.js matPaint": 159,
+  "js/me.js fieldHtml": 84,
+  "js/me.js profileRefresh_": 81,
+  "js/posts.js camStart_": 97,
+  "js/price-rows.js priceCells": 89,
+  "js/racer.js raceWorld_": 122,
+  "js/racer.js raceRoute_": 83,
+  "js/racer.js raceMesh_": 152,
+  "js/receipt.js initFlappy": 304,
+  "js/settings.js settingsInto_": 129,
+  "js/shell.js go": 89,
+  "js/shell.js placeGrid": 165,
+  "js/shell.js loadOnce_": 253,
+  "js/submit.js subMigrate_": 83
+ },
+ "variety": {
+  "qpage": {
+   "count": 25,
+   "ideal": 1,
+   "label": "Question pages and markers"
+  },
+  "drawer": {
+   "count": 24,
+   "ideal": 1,
+   "label": "Card drawers"
+  },
+  "maker": {
+   "count": 53,
+   "ideal": 1,
+   "label": "Tile and button makers"
+  },
+  "listrow": {
+   "count": 27,
+   "ideal": 1,
+   "label": "List-row styles"
+  },
+  "setrow": {
+   "count": 3,
+   "ideal": 1,
+   "label": "Settings row shapes"
+  },
+  "wait": {
+   "count": 7,
+   "ideal": 1,
+   "label": "Wait indicators"
+  }
+ }
+}
