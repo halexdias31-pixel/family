@@ -228,12 +228,12 @@ const WIDGETS = [
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
   /* ---------- SPOTIFY (510): your own account, connected in this browser alone — spotify.js ---------- */
-  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => initSpotify?.(),
+  { id: 'spotify', kind: 'tool', name: 'Spotify', solid: true, start: () => window.initSpotify?.(),
     into: 'sp-box', what: 'Spotify',
     get html() {
       return `<div class="card">
     <h3>Spotify</h3>
-    <div id="sp-box">${typeof spCard_ === 'function' ? spCard_() : ''}</div>
+    <div id="sp-box">${typeof window.spCard_ === 'function' ? window.spCard_() : ''}</div>
   </div>`;
     } },
   /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
@@ -301,7 +301,7 @@ const WIDGETS = [
   /* ---------- THE E-INK SCREEN (470): the widget is the screen; syncing a real one is a bonus. The owner: "Keep it in the widget." */
   /* ---------- FAVOURITE LINKS (509): ten a person keeps on their account; for everybody, so signing in moves no page (339) — favlinks.js ---------- */
   { id: 'favlinks', kind: 'tool', name: 'Favourite links', solid: true,
-    start: () => initFavLinks_?.(),
+    start: () => window.initFavLinks_?.(),
     into: 'fav-box', what: 'Your favourite links',
     html: `<div class="card">
     <h3>Favourite links</h3>
@@ -309,7 +309,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE REWRITE COACH (509, 519): admin only for now; a fact checklist and questions, never a rewrite — rewrite.js ---------- */
   { id: 'rewrite', kind: 'tool', name: 'Rewrite coach', solid: true, admin: true,
-    start: () => initRewrite_?.(),
+    start: () => window.initRewrite_?.(),
     into: 'rw-box', what: 'The rewrite coach',
     html: `<div class="card">
     <h3>Rewrite coach</h3>
@@ -317,7 +317,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE POSTER PLANNER (547): bare bones -- a page, boxes, JSON and PNG out for Claude; this device only -- poster.js ---------- */
   { id: 'poster', kind: 'tool', name: 'Poster planner', solid: true, pure: true,
-    start: () => initPoster_?.(),
+    start: () => window.initPoster_?.(),
     into: 'pst-box', what: 'The poster planner',
     html: `<div class="card">
     <h3>Poster planner</h3>
@@ -325,7 +325,7 @@ const WIDGETS = [
   </div>` },
   /* ---------- THE PIXEL EDITOR (547): bare bones -- a grid, a colour, pen or eraser, Clear, a PNG; this device only -- pixel.js ---------- */
   { id: 'pixel', kind: 'tool', name: 'Pixel editor', solid: true, pure: true,
-    start: () => initPixel_?.(),
+    start: () => window.initPixel_?.(),
     into: 'pxe-box', what: 'The pixel editor',
     html: `<div class="card">
     <h3>Pixel editor</h3>

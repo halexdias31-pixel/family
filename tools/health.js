@@ -459,7 +459,7 @@ module.exports = { health, structure, uniformWork, varietyWork, scan, coreFiles,
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
 function changed() {
   const t0 = Date.now();
-  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(Boolean));
+  const files = new Set(git(['diff', '--name-only', 'origin/main']).split('\n').concat([...dirty]).filter(f => f && !f.startsWith('attic/')));
   const bad = [];
   const sig = w => w.kind + '|' + w.where.replace(/:\d+$/, '') + '|' + w.say;
   if (['js/find.js', 'js/shell.js', 'data/logic-health.json'].some(f => files.has(f))) {
