@@ -1870,7 +1870,7 @@ function youSettingsPages_() {
       <label class="field"><input id="pin-again" aria-label="new PIN again" placeholder="again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
     </div>
     ${tile_({ form: true, label: 'Change my PIN', act: 'pin-save', kind: 'quiet' })}
-    <p class="faint" id="pin-said" style="margin:.6rem 0 0"></p>
+    <p class="faint" id="pin-said"></p>
   </div>`);
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
   pages.push(rolesCard_());
@@ -3752,11 +3752,6 @@ on('pin-save', el => {
     .catch(() => {});
 });
 
-/* `on('my-referral')` WAS HERE — the referral link sheet. Its card has gone and nothing else opened
-   it. The `referral_code` column stays on the people tab; nothing on a phone hands one out now. */
-
-/* `on('ref-send')` WENT WITH IT. It was the Share button INSIDE the referral sheet — reachable from
-   nowhere else, so removing the sheet stranded it. `check-doors` named it on the next run. */
 
 
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state. § */

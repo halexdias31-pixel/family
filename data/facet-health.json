@@ -3,9 +3,76 @@
  "items": 278934,
  "menus": 81,
  "counts": {
+  "words-all": 11,
   "near-dup": 1
  },
  "findings": [
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Aaron Pryor",
+   "say": "menu \"Aaron Pryor\", chip \"Aaron Pryor\", tag \"Alexis Arguello\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Andy Ruiz Jr.",
+   "say": "menu \"Andy Ruiz Jr.\", chip \"Andy Ruiz Jr.\", tag \"Anthony Joshua\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Antonio Margarito",
+   "say": "menu \"Antonio Margarito\", chip \"Antonio Margarito\", tag \"Miguel Cotto\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Antonio Tarver",
+   "say": "menu \"Antonio Tarver\", chip \"Antonio Tarver\", tag \"Roy Jones Jr.\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Diego Corrales",
+   "say": "menu \"Diego Corrales\", chip \"Diego Corrales\", tag \"Jose Luis Castillo\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Dmitry Bivol",
+   "say": "menu \"Dmitry Bivol\", chip \"Dmitry Bivol\", tag \"Canelo Alvarez\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "James Douglas",
+   "say": "menu \"James Douglas\", chip \"James Douglas\", tag \"Mike Tyson\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Jessica McCaskill",
+   "say": "menu \"Jessica McCaskill\", chip \"Jessica McCaskill\", tag \"Cecilia Braekhus\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Joey Maxim",
+   "say": "menu \"Joey Maxim\", chip \"Joey Maxim\", tag \"Sugar Ray Robinson\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Micky Ward",
+   "say": "menu \"Micky Ward\", chip \"Micky Ward\", tag \"Arturo Gatti\""
+  },
+  {
+   "kind": "words-all",
+   "menu": "Fighter (fighter)",
+   "value": "Teofimo Lopez",
+   "say": "menu \"Teofimo Lopez\", chip \"Teofimo Lopez\", tag \"Vasyl Lomachenko\""
+  },
   {
    "kind": "near-dup",
    "menu": "Paper (paperId)",

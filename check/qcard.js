@@ -102,7 +102,7 @@ function staticControls() {
     let act = '';
     lines.forEach((l, i) => {
       const m = /^on\('([^']+)'/.exec(l);
-      if (m) act = m[1]; else if (/^\}\);?\s*$/.test(l)) act = '';
+      if (m) act = /\}\);?\s*$/.test(l) ? '' : m[1]; else if (/^\}\);?\s*$|^(function |const |let |\/\*)/.test(l)) act = '';
       if (act && /insertAdjacentHTML|outerHTML\s*=|\.remove\(\)/.test(l) && /tile|row|bar/i.test(l)) out.push(`${f}:${i + 1} ${act}`);
     });
   });

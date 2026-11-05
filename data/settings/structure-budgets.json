@@ -368,10 +368,10 @@
    "rawButton": 0
   },
   "js/me.js": {
-   "lines": 4873,
+   "lines": 4868,
    "oneOff": 38,
    "emptyCatch": 58,
-   "inlineStyle": 18,
+   "inlineStyle": 17,
    "rawButton": 7
   },
   "js/mechanics.js": {
@@ -606,7 +606,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7173,
+   "lines": 7172,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,

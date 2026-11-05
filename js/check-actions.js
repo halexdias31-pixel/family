@@ -9,6 +9,9 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 
 /* ---------- A HANDLER NO CODE CALLS, KEPT ON PURPOSE. One sentence each: who reaches it, and why it stays. */
 const REASONS = {
+  favLinksSave: 'switched off, kept for attic/js/favlinks.js',
+  rewriteCheck: 'switched off, kept for attic/js/rewrite.js',
+  rewriteIdeas: 'switched off, kept for attic/js/rewrite.js',
   makeChild: 'kept only to refuse an old page plainly: a child makes their own account and a parent claims it (461, the owner: "making a child\'s account shouldn\'t be a thing").',
   reportQuestion: 'kept for a phone loaded before 486: it is routed into the one `suggest` action (check-suggest proves it).',
   report: 'kept for a phone loaded before 494: it is routed into the one `suggest` action (check-suggest proves it).',

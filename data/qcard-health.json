@@ -9,10 +9,10 @@
   "tile-groups": 0,
   "card-order": 0,
   "indent": 0,
-  "tap-response": 1,
+  "tap-response": 0,
   "text-overflow": 0,
-  "stable-controls": 12,
-  "static-controls": 5,
+  "stable-controls": 9,
+  "static-controls": 2,
   "tag-colour": 0,
   "element-box": 0,
   "card-tags": 0,
@@ -26,29 +26,21 @@
   "tile-groups": [],
   "card-order": [],
   "indent": [],
-  "tap-response": [
-   "question rep-box: 155 / 35 ms"
-  ],
+  "tap-response": [],
   "text-overflow": [],
   "stable-controls": [
-   "settings card-cancel#1: height 3909->3742",
+   "settings card-cancel#1: height 3950->3783",
    "settings card-cancel#1: gone rep-send#1",
    "settings card-cancel#1: gone rep-pic#1",
-   "settings me-save#1: height 3742->3784",
+   "settings me-save#1: height 3783->3800",
    "settings me-save#1: moved lay-split#1",
    "settings me-save#1: moved pin-save#1",
-   "settings lay-split#1: height 3784->3742",
+   "settings lay-split#1: height 3800->3783",
    "settings lay-split#1: moved pin-save#1",
-   "settings lay-split#1: moved voice-try#1",
-   "settings pin-save#1: height 3742->3758",
-   "settings pin-save#1: moved voice-try#1",
-   "settings pin-save#1: moved rep-box#1"
+   "settings lay-split#1: moved voice-try#1"
   ],
   "static-controls": [
-   "find.js:9749 card-share",
-   "find.js:9750 card-share",
    "receipt.js:530 job-request-answer",
-   "talmud.js:273 tal-size",
    "words.js:191 seen-open"
   ],
   "tag-colour": [],
@@ -62,8 +54,8 @@
    "screen": "question",
    "act": "rep-box",
    "ms": [
-    155,
-    35
+    8,
+    5
    ]
   },
   {
@@ -71,22 +63,22 @@
    "act": "qt-pen",
    "ms": [
     2,
-    2
+    1
    ]
   },
   {
    "screen": "question",
    "act": "qt-inst",
    "ms": [
-    18,
-    4
+    16,
+    3
    ]
   },
   {
    "screen": "question",
    "act": "qp-work",
    "ms": [
-    2,
+    1,
     2
    ]
   },
@@ -94,15 +86,15 @@
    "screen": "question",
    "act": "q-mag",
    "ms": [
-    4,
-    8
+    5,
+    6
    ]
   },
   {
    "screen": "question",
    "act": "read-aloud",
    "ms": [
-    14,
+    16,
     14
    ]
   },
@@ -110,8 +102,8 @@
    "screen": "question",
    "act": "q-lock",
    "ms": [
-    8,
-    7
+    5,
+    5
    ]
   },
   {
@@ -135,14 +127,14 @@
    "act": "qp-check",
    "ms": [
     2,
-    1
+    6
    ]
   },
   {
    "screen": "question",
    "act": "card-share",
    "ms": [
-    0,
+    1,
     1
    ]
   },
@@ -150,15 +142,15 @@
    "screen": "question",
    "act": "fav",
    "ms": [
-    44,
-    65
+    60,
+    51
    ]
   },
   {
    "screen": "question",
    "act": "help-hand",
    "ms": [
-    38,
+    40,
     2
    ]
   },
@@ -167,15 +159,15 @@
    "act": "pad-check",
    "ms": [
     1,
-    5
+    1
    ]
   },
   {
    "screen": "question",
    "act": "qp-cells-check",
    "ms": [
-    34,
-    36
+    43,
+    55
    ]
   },
   {
@@ -198,8 +190,8 @@
    "screen": "settings",
    "act": "card-cancel",
    "ms": [
-    1,
-    1
+    0,
+    0
    ]
   },
   {
@@ -214,15 +206,15 @@
    "screen": "settings",
    "act": "lay-split",
    "ms": [
-    1,
-    1
+    0,
+    0
    ]
   },
   {
    "screen": "settings",
    "act": "rep-box",
    "ms": [
-    5,
+    12,
     5
    ]
   }
