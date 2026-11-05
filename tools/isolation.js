@@ -35,7 +35,7 @@ function isolation() {
     const reg = settings.filter(([, t]) => new RegExp('"' + base + '"').test(t)).map(([n]) => n);
     const inbound = r.inbound.size, outbound = r.outbound.size, dom = r.foreignDom.length;
     const score = Math.max(0, Math.round(100 - Math.min(40, inbound * 2) - Math.min(30, outbound / 4) - Math.min(15, dom * 3) - (scoped ? 0 : 10) - Math.min(5, Math.max(0, reg.length - 2))));
-    return { file: f, score, inbound, outbound, foreignDom: dom, scoped, registeredIn: reg,
+    return { file: f, score, inbound, outbound, foreignDom: dom, scoped, registeredIn: reg, inboundFiles: [...r.inbound.keys()],
       links: [...r.inbound.values()].slice(0, 5).concat(r.foreignDom.slice(0, 3)), };
   }).sort((a, b) => a.score - b.score);
 }

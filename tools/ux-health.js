@@ -81,13 +81,16 @@ function instruments() {
     }, sel);
     if (!at && !prog) { clicks.push({ what, missing: true }); return; }
     const s = await page.evaluate(() => performance.now());
+    /* GARBAGE PER CLICK (940): heap grown across the click, before any collection; 930's 905 MB was mostly this, uncollected. */
+    const h0 = await cdp.send('Runtime.getHeapUsage').then(u => u.usedSize, () => 0);
     if (prog) await page.evaluate(prog); else await page.touchscreen.tap(at.x, at.y);
     await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 150)))));
     const m = await page.evaluate(s => { const U = window.__ux, e = performance.now();
       const ev = U.events.filter(x => x[0] >= s - 5).map(x => x[1]);
       return { ms: Math.round(ev.length ? Math.max(...ev) : e - s - 150), shift: Math.round(U.shifts.filter(x => x[0] >= s).reduce((a, x) => a + x[1], 0) * 1000) / 1000,
         longs: U.longs.filter(x => x[0] >= s).length, by: ev.length ? 'event-timing' : 'frames' }; }, s);
-    clicks.push(Object.assign({ what }, m));
+    const h1 = await cdp.send('Runtime.getHeapUsage').then(u => u.usedSize, () => 0);
+    clicks.push(Object.assign({ what, churnMB: Math.round((h1 - h0) / 1048576 * 10) / 10 }, m));
   }
   const PICK = '#s-stuff [data-do="facet-pick"]';
   await page.evaluate(() => go('stuff'));
@@ -135,6 +138,9 @@ function instruments() {
     }, sid));
   }
   const heap = await page.evaluate(() => (performance.memory && performance.memory.usedJSHeapSize) || 0);
+  /* RAW AND LIVE (940, after 930): the raw heap counts garbage not yet collected; after a forced GC is what the page really holds. */
+  await cdp.send('HeapProfiler.collectGarbage').catch(() => {});
+  const live = await cdp.send('Runtime.getHeapUsage').then(u => u.usedSize, () => 0);
 
   /* CORRECTNESS, NOT SPEED, from here: the throttle comes off so thirty questions fit the budget. */
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
@@ -206,6 +212,7 @@ function instruments() {
     visits: { first: firstVisit, repeat },
     walked: { viewport: '390x844 touch', cpu: CPU + 'x (1x for the question sample)', ms: Date.now() - t0, phase },
     firstScreenMs: Math.round(first), findUsableMs: Math.round(usable), signinMs: Math.round(signin), heapMB: Math.round(heap / 1048576 * 10) / 10,
+    heapLiveMB: Math.round(live / 1048576 * 10) / 10, garbageMB: Math.round(Math.max(0, heap - live) / 1048576 * 10) / 10,
     clicks, thresholds: { clickMs: CLICK_MS, shift: SHIFT },
     slow: clicks.filter(c => !c.missing && (c.ms > CLICK_MS || c.shift > SHIFT)),
     missing: clicks.filter(c => c.missing).map(c => c.what),
@@ -214,6 +221,6 @@ function instruments() {
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(`ux-health: wrote data/ux-health.json — first screen ${out.firstScreenMs} ms, Find usable ${out.findUsableMs} ms, sign-in ${out.signinMs} ms, `
-    + `${out.slow.length} slow clicks of ${clicks.length}, ${broken.length} broken of ${questions.length} questions, heap ${out.heapMB} MB (${Math.round(out.walked.ms / 1000)} s)`);
+    + `${out.slow.length} slow clicks of ${clicks.length}, ${broken.length} broken of ${questions.length} questions, heap ${out.heapMB} MB raw, ${out.heapLiveMB} MB live (${Math.round(out.walked.ms / 1000)} s)`);
   process.exit(0);
 })().catch(e => { console.error('ux-health: ' + (e && e.stack || e)); process.exit(2); });

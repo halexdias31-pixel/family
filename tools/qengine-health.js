@@ -5,7 +5,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.join(ROOT, 'data', 'qengine-health.json');
+const OUT = process.env.QENGINE_OUT || path.join(ROOT, 'data', 'qengine-health.json');   /* --changed (940) writes a temp copy, so the tree stays clean */
 const t0 = Date.now();
 const map = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/settings/qengine.json'), 'utf8'));
 
