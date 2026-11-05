@@ -13,7 +13,7 @@
 // selectors    0.002 per selector over 1500, cap 15
 // zindex       0.5 per distinct z-index value over 5, cap 10
 // position     0.01 per transform or position:absolute, cap 10
-// FIND WORKLIST (920): tag-colour, menu-rule, tag-asked, one-off, each located and taken off the walk's score; --list [n] [--kind k]; --changed is the ratchet (and the structure budgets, tools/structure.js); --plan writes docs/split-plan.md.
+// FIND WORKLIST (920): §
 // TOP OFFENDERS: every signal and Find rule priced in points of the OVERALL score it costs; the five dearest, one plain line each.
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -46,11 +46,16 @@ function findWork(L) {
   const fsrc = read('js/find.js'), work = [];
   const at = {};
   for (const m of fsrc.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)) if (!at[m[1]]) at[m[1]] = { line: lineOf(fsrc, m.index), label: m[2] };
-  /* tag-colour: TAG_OF colours a FIELD, so every answer of one menu wears the same colour. */
+  /* tag-colour: a per-FIELD colour table (TAG_OF) gives one menu's answers one colour; each hue must also read on --bg (1010). */
   const tagAt = fsrc.indexOf('const TAG_OF = {'), tagEnd = fsrc.indexOf('};', tagAt), TAGS = {};
-  for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
-  Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
+  if (tagAt >= 0) for (const m of fsrc.slice(tagAt, tagEnd).matchAll(/(\w+):\s*'(\w+)'/g)) TAGS[m[1]] = { c: m[2], line: lineOf(fsrc, tagAt + m.index) };
+  if (tagAt >= 0 || !/tagOf_\(field, value(, at)?\)/.test(fsrc)) Object.keys(at).forEach(k => work.push({ kind: 'tag-colour', where: 'js/find.js:' + (TAGS[k] ? TAGS[k].line : at[k].line),
     say: `menu "${at[k].label}" (${k}): every answer is coloured "${TAGS[k] ? TAGS[k].c : 'other'}" — the colour is per facet, not per answer` }));
+  const css = read('style.css'), lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const bg = (/--bg:\s*#([0-9a-f]{6})/i.exec(css) || [])[1] || '000000', hues = [...css.matchAll(/--hue-(\d+):\s*#([0-9a-f]{6})/gi)];
+  if (!hues.length) work.push({ kind: 'tag-colour', where: 'style.css:1', say: 'no --hue-N palette on :root — the answer colours were NOT checked' });
+  hues.forEach(m => { const a = lum(m[2]), b = lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    if (r < 3) work.push({ kind: 'tag-colour', where: 'style.css:' + lineOf(css, m.index), say: `--hue-${m[1]} #${m[2]} is ${r.toFixed(2)}:1 on --bg, under 3:1` }); });
   /* menu-rule: the walk's nodes where another askable question splits better; and the rule itself, if it picks by order. */
   const nf = /function nextFacet\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(fsrc);
   if (nf && /for \(const facet of facetList\(\)\)[\s\S]*return facet/.test(nf[0]))
@@ -562,9 +567,7 @@ function where(word) {
   if (uses.length > 200) console.log(`  … ${uses.length - 200} more`);
   console.log(`(${files.length} files, ${Date.now() - t0} ms)`);
 }
-/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. A colour literal in a rule that equals a token
-   defined ONCE (never re-themed) becomes var(--token); check-catches' ceiling drops to the count. Empty catches are listed, not
-   rewritten: oops_ reports to the backend, which would change what the site does. */
+/* --fix (920): purely mechanical, behaviour-identical edits only, then js/check.js. § */
 function fix() {
   const t0 = Date.now(), done = [];
   let css = read('style.css');

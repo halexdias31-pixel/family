@@ -34,6 +34,7 @@
   /* SOMETHING IN THE BUSINESS COLUMN NEEDS YOU (400) — the glow, the count line and the dot. */
   --alert:     #ff3b30;
 
+  --hue-0: #ff7b72; --hue-1: #6cb6ff; --hue-2: #c3e88d; --hue-3: #c8a2ff; --hue-4: #ffb454; --hue-5: #4fd1c5; --hue-6: #ff8fc4; --hue-7: #f0f08a; --hue-8: #9ec5e8; --hue-9: #ff9e64; --hue-10: #7ee787; --hue-11: #e2cfa6;
   /* ---------- A COLOUR PER KIND OF TAG § */
   --tag-paper:   var(--coral);
   --tag-level:   #6cb6ff;
@@ -2078,20 +2079,19 @@ button.text-drop { color: var(--bad); }
 
 /* ---------- FILTER CHIPS § */
 /* ---------- REPORTED AS "the tags don't need to be as big" § */
-/* ---------- WHICH KIND OF TAG, AS A COLOUR § */
-[data-tag="paper"]   { --tag: var(--tag-paper); }
-[data-tag="subject"] { --tag: var(--green); }
-[data-tag="level"]   { --tag: var(--tag-level); }
-[data-tag="sitting"] { --tag: var(--tag-sitting); }
-[data-tag="tier"]    { --tag: var(--pink); }
-[data-tag="board"]   { --tag: var(--tag-board); }
-[data-tag="type"]    { --tag: var(--tag-type); }
-[data-tag="topic"]   { --tag: var(--tag-topic); }
-[data-tag="needs"]   { --tag: var(--tag-needs); }
-[data-tag="kind"]    { --tag: var(--tag-kind); }
-[data-tag="check"]   { --tag: var(--tag-check); }
-[data-tag="other"]   { --tag: var(--tag-other); }
-[data-tag="mine"]    { --tag: var(--tag-mine); }
+/* ONE HUE PER PLACE IN A MENU (1010): twelve --hue-N outlines on :root, each at least 3:1 on --bg (tools/health.js). */
+[data-tag="h0"] { --tag: var(--hue-0); }
+[data-tag="h1"] { --tag: var(--hue-1); }
+[data-tag="h2"] { --tag: var(--hue-2); }
+[data-tag="h3"] { --tag: var(--hue-3); }
+[data-tag="h4"] { --tag: var(--hue-4); }
+[data-tag="h5"] { --tag: var(--hue-5); }
+[data-tag="h6"] { --tag: var(--hue-6); }
+[data-tag="h7"] { --tag: var(--hue-7); }
+[data-tag="h8"] { --tag: var(--hue-8); }
+[data-tag="h9"] { --tag: var(--hue-9); }
+[data-tag="h10"] { --tag: var(--hue-10); }
+[data-tag="h11"] { --tag: var(--hue-11); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT § */
 .chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }

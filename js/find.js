@@ -425,7 +425,7 @@ const spellKey_ = v => {
 };
 
 /* THE FUNNEL'S QUESTIONS (396): a field, a label and a reader (`of`) each, asked by `facetWhy_`, sorted by `answerCmp_`,
-   said by `facetSay_`, coloured by `TAG_OF`. */
+   said by `facetSay_`, coloured by `tagOf_`. */
 /* Two optional readers, both about the value: `tagOf` is what one PAGE carries (the answer page says Answers), `showOf`
    the name of a value that is an id (a paper). */
 /* The order here is only the fallback for a facet the facets tab does not place; the tab's sort_order is the order. */
@@ -7935,7 +7935,7 @@ function tagRow_(x, page) {
       const w = norm(text);
       if ((TAG_NAME.test(text) && (words.has(w) || tagMadeOf_(text, said))) || (TAG_NAME.test(raw) && ids.has(raw))) return;
       words.add(w); ids.add(raw); said.push(text);
-      out.push(`<span class="qtag"${tagAttr_(facet.field)} data-f="${esc(facet.field)}">${esc(text)}</span>`);
+      out.push(`<span class="qtag"${tagAttr_(facet.field, raw)} data-f="${esc(facet.field)}">${esc(text)}</span>`);
     });
   });
   return `<div class="qtags qcard-tags">${out.join('')}</div>`;
@@ -9706,7 +9706,7 @@ function myResultNew_(k) {
   try {
     const x = stuffItemsAll_().find(i => isQ_(i) && ansKey_(i) === k);
     if (!x) return;
-    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult')} data-f="myResult">${esc(v)}</span>`).join('');
+    const tags = asList_(myResultOf_(x)).map(v => `<span class="qtag"${tagAttr_('myResult', v)} data-f="myResult">${esc(v)}</span>`).join('');
     document.querySelectorAll('[data-k]').forEach(b => {
       if (b.getAttribute('data-k') !== k) return;
       const pg = b.closest('.page');
@@ -10480,39 +10480,27 @@ function chipShow_(f) {
   return facet ? answerSay_(facet, f.value) : f.value;
 }
 
-/* ---------- WHAT KIND OF TAG THIS IS, WHICH IS ITS COLOUR § */
-const TAG_OF = {
-  /* WHICH ONE: the paper, and inside it the question, part, sub-part and page -- all red, because each names one thing of several as `Paper 1` does. § */
-  paperId: 'paper', fiveDay: 'paper',
-  qNumber: 'paper', qPart: 'paper', qSub: 'paper', qPage: 'paper', qPages: 'paper', marks: 'paper',
-  subject: 'subject',
-  level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
-  examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
-  documentType: 'type', typeOwn: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type', boutWinner: 'topic', boutEvent: 'board',
-  fighter: 'topic', boutMonth: 'sitting', boutYear: 'sitting', boutRound: 'paper',
-  examBoard: 'board', source: 'board',
-  tier: 'tier', division: 'tier',
-  topic: 'topic',
-  needs: 'needs',
-  /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
-  forLabel: 'kind', kindLabel: 'kind', kindOwn: 'kind', shelf: 'kind',
-  /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
-  histKind: 'type', histEra: 'sitting', histRepository: 'board', histSide: 'type', histMaterial: 'tier',
-  histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
-  /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
-  accuracy: 'check', function: 'check', required: 'check',
-  /* YOUR OWN RESULT (463), its own colour. */
-  myResult: 'mine',
-  /* EVERY WRITING'S (520), in kinds that already have colours. */
-  wReligion: 'kind', wWork: 'topic', wSource: 'level', wLanguage: 'level', wText: 'board', wTradition: 'board', wCollection: 'level', wSection: 'level', wBook: 'topic',
-  wChapter: 'paper', wUnit: 'paper', wAuthor: 'type', wForm: 'type',
-  mKind: 'type', mSystem: 'topic', mEngine: 'level',
-  cCategory: 'topic', cGroup: 'board', cPeriod: 'level', cState: 'tier',
-  shopKind: 'topic', shopHow: 'check', shopPrice: 'level', shopBrand: 'board', shopFor: 'paper', shopTheme: 'kind',
-};
-/* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
-const tagOf_ = field => TAG_OF[field] || 'other';
-const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
+/* ---------- AN ANSWER'S COLOUR IS ITS PLACE IN ITS MENU (1010): `at` as drawn; a chip keeps the hue it was picked in, a card word its chip's. */
+const TAG_HUES = 12;
+const TAG_RANK = new WeakMap();
+function tagOf_(field, value, at) {
+  if (typeof at === 'number') return 'h' + (at % TAG_HUES);
+  try {
+    const chip = ((STUFF && STUFF.filters) || []).find(f => f.field === field && typeof f.hue === 'number' && spellKey_(f.value) === spellKey_(value));
+    if (chip) return 'h' + (chip.hue % TAG_HUES);
+    const items = stuffItems(), facet = facetBy(field);
+    if (!facet || value == null) return 'h0';
+    let per = TAG_RANK.get(items);
+    if (!per) { per = {}; TAG_RANK.set(items, per); }
+    let rank = per[field];
+    if (!rank) {
+      rank = per[field] = {};
+      (facetTally_(items, facet).values || []).forEach((v, i) => { rank[spellKey_(v.value)] = i; });
+    }
+    return 'h' + ((rank[spellKey_(value)] || 0) % TAG_HUES);
+  } catch (e) { return 'h0'; }
+}
+const tagAttr_ = (field, value, at) => ` data-tag="${tagOf_(field, value, at)}"`;
 
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
 function chipText_(f, i) {
@@ -10534,7 +10522,7 @@ function filterChips() {
       if (said[key]) return '';
       said[key] = 1;
       return `
-      <button class="chip sm" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
+      <button class="chip sm" data-do="filter-drop" data-i="${i}"${f.any ? '' : tagAttr_(f.field, f.value, f.hue)}>
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody made and has to be able to unmake. § */
              ''}
         ${/* ---------- THE CHIP SHOWS WHAT THE BUTTON SHOWED, NOT WHAT IT MATCHES ON § */
@@ -10561,7 +10549,7 @@ function filterClear_() {
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
   writingFreeze_();
-  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
+  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value, hue: +String(el.dataset.tag || 'h0').slice(1) || 0 });
   paintStuff();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -11458,7 +11446,7 @@ function facetAnswersHtml_(facet, values, more) {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
   /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
   const grid = numberedRun_(values);
-  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field)}
+  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map((v, i) => `<div class="counted row tap" role="button" tabindex="0" data-do="facet-pick"${tagAttr_(facet.field, v.value, i)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + runNumber_(v)[2])}"` : ''}>
         <span class="k">${mark(answerSay_(facet, v.value))}</span>
