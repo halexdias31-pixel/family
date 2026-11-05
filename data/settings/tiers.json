@@ -86,6 +86,7 @@
   "kindDefault": "secondary",
   "files": {
     "core": "core",
+    "predicates": "core",
     "finder-tags": "core",
     "price-rows": "core",
     "chess": "secondary",

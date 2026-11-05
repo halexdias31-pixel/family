@@ -135,8 +135,8 @@ function readAloudFor_(x) {
   /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
   if (isQ_(x)) return true;
   /* EVERY CONTENT CARD AT EVERY LEVEL, and every other thing with words to read (502); the SATs-and-years-1-to-6 limit is gone */
-  if (x.kind === 'content') return true;
-  return typeof speedText_ === 'function' && (x.kind === 'practical' || x.kind === 'project' || x.kind === 'bible') && !!speedText_(x);
+  if (isContent_(x)) return true;
+  return typeof speedText_ === 'function' && (isPractical_(x) || isProject_(x) || isBible_(x)) && !!speedText_(x);
 }
 /* WHAT IS BEING READ, AND WHERE IT WAS PRESSED: a slide to another column or page stops it (`readAloudStray_`, from `placeCells`). */
 let READ_NOW = null;
@@ -180,7 +180,7 @@ on('read-aloud', el => {
 /* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
 /* The worked lines' own-language halves (before " — "), in that language's voice; the English is on the card to read. */
 const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE', Russian: 'ru-RU' };
-const hearItLang_ = x => (x && x.kind === 'content' && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
+const hearItLang_ = x => (x && isContent_(x) && (typeof ruleOn_ !== 'function' || ruleOn_('hear-lang')) && HEAR_LANG[x.subject]) || '';
 const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
 function hearItOpts_(x) {
   if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return null;
@@ -204,8 +204,8 @@ function readAloudLines_(x) {
   if (!x) return [];
   const out = [];
   const add = h => speakLines_(h).forEach(l => out.push(l));
-  if (!isQ_(x) && x.kind !== 'content') return typeof speedText_ === 'function' ? speakLines_(speedText_(x).replace(/\n\s*\n/g, '. ')) : [];
-  if (x.kind === 'content') {
+  if (!isQ_(x) && !isContent_(x)) return typeof speedText_ === 'function' ? speakLines_(speedText_(x).replace(/\n\s*\n/g, '. ')) : [];
+  if (isContent_(x)) {
     const c = x.row || {};
     add(x.name || c.title);
     [].concat(c.words || [], c.formulas || [], c.points || []).forEach(i => {
@@ -359,7 +359,7 @@ function laminatePrice(pages) {
 const cartPrint_ = c => {
   if (!c) return null;
   if (Number(c.money) > 0) return Number(c.money);
-  return c.kind === 'print' ? printPrice(c.pages) : 0;
+  return isPrint_(c) ? printPrice(c.pages) : 0;
 };
 /* NOT YET PRICED — a paper nobody has counted the pages of, or a print when printing is off. It is
    what the basket draws as "tbc" and what the order message says will be priced when it is sent. */
@@ -448,7 +448,7 @@ function findPlaceKeep_(F) {
       draftKeep_(F.place, 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
         key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
     });
-  } catch (e) {}
+  } catch (e) { /* storage blocked: the place is not kept for next time */ }
 }
 /* EACH FINDER UNDER ITS OWN NAME — Find's `find:place` as it always was, the second finder's `res:place` — and only the one in front, which is the only one a § */
 window.addEventListener('pagehide', () => findPlaceKeep_());

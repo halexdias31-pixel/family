@@ -86,8 +86,8 @@ function cardEditTile_(x) {
   if (cardEditing_(t, col)) return '';
   /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
   if (own && !x.settings) return '';
-  if (own ? !ownCardSections_(col).length : col !== 'tutors') return '';
-  return tile_({ icon: 'edit', label: 'Edit', note: own ? (col === 'tutors' && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  if (own ? !ownCardSections_(col).length : !isTutorsCol_(col)) return '';
+  return tile_({ icon: 'edit', label: 'Edit', note: own ? (isTutorsCol_(col) && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -165,7 +165,7 @@ function cardKeep_(form) {
   try {
     if (Object.keys(v).length) draftKeep_('card', key, JSON.stringify({ v, from }));
     else draftDrop_('card', key);
-  } catch (x) {}
+  } catch (x) { /* storage blocked: the draft is not kept */ }
 }
 
 /* ---------- THE COPY OF THE ROW THE FORM IS FILLED FROM § */

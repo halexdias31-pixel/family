@@ -713,7 +713,7 @@ function bootLoaded_(on) {
   clearTimeout(earlyTimer);
   try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) { oops_(e, 'shell:bootLoaded_') }
   /* THE SLOW BOX GOES WHEN THE WAIT ENDS (503): `banner('')` hid #banner, never this, so a 31-second backend left it up for good. */
-  if (on) try { const b = $('boot-slow'); if (b) { b.className = 'hidden'; b.textContent = ''; } } catch (e) {}
+  if (on) try { const b = $('boot-slow'); if (b) { b.className = 'hidden'; b.textContent = ''; } } catch (e) { /* the slow-start note is only a hint */ }
 }
 /* THE OLD SPLASH'S KEPT DRAWINGS (up to 1.5 MB) OUT OF THE STORE: nothing reads them since 466. True when anything went. */
 function splashForget_() {
@@ -724,7 +724,7 @@ function splashForget_() {
       if (k && (k === 'splashAnims' || k === 'splashOff' || k.indexOf('splashAnim:') === 0)) gone.push(k);
     }
     gone.forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
+  } catch (e) { /* storage blocked: old splash keys stay, unread */ }
   return gone.length > 0;
 }
 

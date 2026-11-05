@@ -8,7 +8,7 @@ function libLanded_() {
       const say = el.querySelector('.lib-say');
       if (say && x && libSlim_(x)) say.innerHTML = libSay_(x);
     });
-  } catch (e) {}
+  } catch (e) { /* a card redrawn mid-change keeps its old note */ }
   if (typeof AT === 'undefined') return;
   const F = finderOf_(AT);
   if (F) {

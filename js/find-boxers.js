@@ -163,7 +163,7 @@ const keptPart_ = p => !p || p === 'q' || p === 'fig' || p === 'ans' || /^(stem\
 let KEPT_DRAW = false;
 /* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name from `TABS`, so a renamed column says so. § */
 function finderOpenOpts_(x) {
-  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return null;
+  if (!KEPT_DRAW || !x || !x.key || isBible_(x)) return null;
   let parts;
   try { parts = pageParts_(x); } catch (e) { return null; }
   if (parts.every(keptPart_)) return null;
@@ -189,14 +189,12 @@ function stuffNoneHtml_() {
 }
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS § */
-/* A QUESTION'S PART, one test for the page model (960). */
-const isQ_ = x => !!x && x.kind === 'question';
 function pageParts_(x, prev) {
   /* ONE PAGE PER QUESTION NUMBER (960): its first part stands for the card, the rest are in it (`questionWhole_`). */
   if (isQ_(x)) return qId_(x) && prev && qId_(prev) === qId_(x) ? [] : ['q'];
   /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
      every project ends in something to send. */
-  if (x && x.kind === 'project' && x.row) {
+  if (x && isProject_(x) && x.row) {
     const out = [null];
     if (x.row.materials && x.row.materials.length) out.push('kit');
     if (x.row.steps && x.row.steps.length) out.push('steps');
@@ -205,7 +203,7 @@ function pageParts_(x, prev) {
   }
   /* A CONTENT CARD IS ITSELF, A PAGE PER ANIMATION in the file's order, then its Formulas and its Worked examples (408):
      one titled page per thing, and a page only where the row has the thing. */
-  if (x && x.kind === 'content' && x.row) {
+  if (x && isContent_(x) && x.row) {
     const c = x.row;
     return [null].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id),
       (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
@@ -215,9 +213,9 @@ function pageParts_(x, prev) {
      (see the head of the Bible section). */
   /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
      `boxerFightPages_`. */
-  if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
+  if (x && isBoxer_(x) && x.row) return [null].concat(boxerFightPages_(x.row));
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
-  if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
+  if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the diagrams should be its own widgets" (204), and the owner asked § */
   if (p.diagram) out.push('fig');
@@ -260,9 +258,9 @@ function keptPages_(items, credits) {
 }
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
-  if (x && x.kind === 'project') return projectPart_(x, part);
-  if (x && x.kind === 'content') return contentPart_(x, part);
-  if (x && x.kind === 'boxer') return boxerPart_(x, part);
+  if (x && isProject_(x)) return projectPart_(x, part);
+  if (x && isContent_(x)) return contentPart_(x, part);
+  if (x && isBoxer_(x)) return boxerPart_(x, part);
   if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
   /* A PART THE QUESTION NO LONGER HAS (a stem, a page or an answer kept in a place from before 960) IS ITS CARD. */
   if (isQ_(x)) return part === 'q' ? questionWhole_(x, (questionParts_()[qId_(x)] || [x]), null, true) : stuffCard(x);

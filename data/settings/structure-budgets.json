@@ -6,11 +6,11 @@
   "js/me.js": 187,
   "js/posts.js": 112,
   "js/games.js": 106,
-  "js/tiles.js": 63,
+  "js/tiles.js": 74,
   "js/arcade.js": 93,
   "js/layout.js": 76,
   "js/data.js": 86,
-  "js/submit.js": 80,
+  "js/submit.js": 84,
   "js/price-rows.js": 46,
   "js/book.js": 63,
   "js/core.js": 55,
@@ -24,7 +24,7 @@
   "js/rules.js": 23,
   "js/answers.js": 52,
   "js/writings.js": 33,
-  "js/library.js": 26,
+  "js/library.js": 34,
   "js/staff.js": 35,
   "js/mat.js": 28,
   "js/hadith.js": 21,
@@ -41,7 +41,7 @@
   "js/help.js": 13,
   "js/qtools.js": 40,
   "js/reader.js": 24,
-  "js/working.js": 29,
+  "js/working.js": 31,
   "js/talmud.js": 29,
   "js/quran.js": 21,
   "js/works.js": 17,
@@ -64,21 +64,21 @@
   "js/finder-tags.js": 1,
   "js/select.js": 3,
   "js/resume.js": 13,
-  "js/find-aloud.js": 141,
-  "js/find-boxers.js": 94,
-  "js/find-bundles.js": 128,
+  "js/find-aloud.js": 140,
+  "js/find-boxers.js": 91,
+  "js/find-bundles.js": 127,
   "js/find-cells.js": 78,
   "js/find-facets.js": 57,
-  "js/find-figures.js": 85,
-  "js/find-finder.js": 130,
-  "js/find-history.js": 78,
-  "js/find-levels.js": 99,
-  "js/find-loupe.js": 88,
-  "js/find-marking.js": 54,
+  "js/find-figures.js": 84,
+  "js/find-finder.js": 129,
+  "js/find-history.js": 77,
+  "js/find-levels.js": 98,
+  "js/find-loupe.js": 87,
+  "js/find-marking.js": 53,
   "js/find-measure.js": 24,
   "js/find-pad.js": 29,
   "js/find-pages.js": 124,
-  "js/find-parts.js": 64,
+  "js/find-parts.js": 63,
   "js/find-pen.js": 25,
   "js/me-account.js": 100,
   "js/me-card.js": 78,
@@ -506,7 +506,7 @@
   },
   "js/resource.js": {
    "lines": 278,
-   "oneOff": 5,
+   "oneOff": 2,
    "emptyCatch": 4,
    "inlineStyle": 0,
    "rawButton": 0
@@ -555,7 +555,7 @@
   },
   "js/submit.js": {
    "lines": 1037,
-   "oneOff": 6,
+   "oneOff": 5,
    "emptyCatch": 19,
    "inlineStyle": 0,
    "rawButton": 0
@@ -576,7 +576,7 @@
   },
   "js/tiles.js": {
    "lines": 594,
-   "oneOff": 4,
+   "oneOff": 3,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
@@ -590,7 +590,7 @@
   },
   "js/working.js": {
    "lines": 172,
-   "oneOff": 1,
+   "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 1
@@ -625,35 +625,35 @@
   },
   "js/find-aloud.js": {
    "lines": 765,
-   "oneOff": 10,
+   "oneOff": 4,
    "emptyCatch": 3,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/find-boxers.js": {
-   "lines": 755,
-   "oneOff": 13,
+   "lines": 753,
+   "oneOff": 4,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/find-bundles.js": {
    "lines": 791,
-   "oneOff": 5,
+   "oneOff": 4,
    "emptyCatch": 5,
    "inlineStyle": 0,
    "rawButton": 0
   },
   "js/find-cells.js": {
    "lines": 774,
-   "oneOff": 8,
+   "oneOff": 2,
    "emptyCatch": 2,
    "inlineStyle": 0,
    "rawButton": 2
   },
   "js/find-facets.js": {
    "lines": 789,
-   "oneOff": 4,
+   "oneOff": 0,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 0
@@ -667,21 +667,21 @@
   },
   "js/find-finder.js": {
    "lines": 785,
-   "oneOff": 11,
+   "oneOff": 2,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 1
   },
   "js/find-history.js": {
    "lines": 768,
-   "oneOff": 16,
+   "oneOff": 11,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 1
   },
   "js/find-levels.js": {
    "lines": 791,
-   "oneOff": 11,
+   "oneOff": 4,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 0
@@ -723,7 +723,7 @@
   },
   "js/find-parts.js": {
    "lines": 761,
-   "oneOff": 7,
+   "oneOff": 3,
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 1
@@ -744,7 +744,7 @@
   },
   "js/me-card.js": {
    "lines": 781,
-   "oneOff": 17,
+   "oneOff": 15,
    "emptyCatch": 7,
    "inlineStyle": 0,
    "rawButton": 0
@@ -758,21 +758,21 @@
   },
   "js/me-people.js": {
    "lines": 269,
-   "oneOff": 2,
+   "oneOff": 1,
    "emptyCatch": 0,
    "inlineStyle": 1,
    "rawButton": 0
   },
   "js/me-roles.js": {
    "lines": 717,
-   "oneOff": 2,
+   "oneOff": 1,
    "emptyCatch": 6,
    "inlineStyle": 8,
    "rawButton": 0
   },
   "js/me-settings.js": {
    "lines": 781,
-   "oneOff": 8,
+   "oneOff": 7,
    "emptyCatch": 8,
    "inlineStyle": 0,
    "rawButton": 0
@@ -842,9 +842,16 @@
   },
   "js/keypad-pad.js": {
    "lines": 721,
-   "oneOff": 3,
+   "oneOff": 2,
    "emptyCatch": 8,
    "inlineStyle": 1,
+   "rawButton": 0
+  },
+  "js/predicates.js": {
+   "lines": 17,
+   "oneOff": 15,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
    "rawButton": 0
   }
  },
@@ -931,8 +938,8 @@
   }
  },
  "aiCost": {
-  "searchBytes": 7473886,
-  "commentRatio": 0.263,
+  "searchBytes": 7476432,
+  "commentRatio": 0.266,
   "tombstones": 0,
   "claudeLines": 100
  },

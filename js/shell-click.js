@@ -120,7 +120,7 @@ function sheetKeep_() {
 }
 try {
   new MutationObserver(sheetKeep_).observe(document.documentElement, { childList: true, subtree: true });
-} catch (err) {}
+} catch (err) { /* no MutationObserver: an open sheet is not kept across a redraw */ }
 
 function openSheet(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. § */
@@ -144,7 +144,7 @@ function openSheet(title, html, onClose, step) {
   if (sh.classList.contains('hidden') && at && at.closest('#screen')) expand_([at], fill, { content: () => [sh] });
   else fill();
   sheetOnClose = onClose || null;
-  try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+  try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) { /* an element no longer on the page is not scrolled */ }
   try { placeCells(undefined, true); } catch (err) { oops_(err, 'shell:openSheet') }
 }
 
@@ -413,7 +413,7 @@ function api(body, opts) {
         /* WHOSE SESSION IT WAS, read before it is forgotten — see `ansGoneSay_` (answers.js): the box
            that person wrote in is drawn empty under the signed-out key now, and says why (317). */
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
-        if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
+        if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) { /* the sign-out goes on even if the redraw fails */ } }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ } try { repaint(); } catch (e) { oops_(e, 'shell:api') } }
         /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
            browser keeping no site data never knew whose the next answer was (review of the merge). */

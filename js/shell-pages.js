@@ -73,7 +73,7 @@ function trailY_(host, shift, glassH, now, drag, instant, dur) {
 }
 /* ---------- A SLIDE ENDS `dur` AFTER THE FRAME IT STARTS IN, NOT AFTER THE WRITE THAT ASKED FOR IT § */
 function trailFrom_(band, dur) {
-  try { requestAnimationFrame(() => { band.until = Math.max(band.until, performance.now() + dur + 50); }); } catch (e) {}
+  try { requestAnimationFrame(() => { band.until = Math.max(band.until, performance.now() + dur + 50); }); } catch (e) { /* no frame to wait for: the band ends on its own timer */ }
 }
 /* ---------- AND A SLIDE STILL RUNNING IS STILL A SLIDE, WHATEVER THE CLOCK SAYS § */
 function slideRunning_(host, prop) {
@@ -520,7 +520,7 @@ const AHEAD_SLOW = new Set();
 const AHEAD_QUIET = 400, AHEAD_QUIET_SLOW = 1000, AHEAD_SLOW_MS = 150;
 /* ---------- THE SLOW BIT IS KEPT ON THE DEVICE, AND A COLUMN'S FIRST DRAW IS SLOW UNTIL IT HAS BEEN TIMED § */
 const AHEAD_SLOW_KEY = 'familyAheadSlow';
-try { (JSON.parse(localStorage.getItem(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) {}
+try { (JSON.parse(localStorage.getItem(AHEAD_SLOW_KEY) || '[]') || []).forEach(k => { if (typeof k === 'string') AHEAD_SLOW.add(k); }); } catch (e) { /* a bad stored list reads as none */ }
 function aheadSlowKeep_() {
   try { localStorage.setItem(AHEAD_SLOW_KEY, JSON.stringify([...AHEAD_SLOW].filter(k => /^(paint|widget):/.test(k)))); } catch (e) { /* storage can be blocked; the app runs without it */ }
 }
@@ -635,7 +635,7 @@ const AHEAD_KINDS = [];
 const AHEAD_RANK = ['paint', 'fill', 'widget', 'pics', 'reels', 'centre', 'bible'];
 function aheadJobs_(all) {
   const out = [];
-  AHEAD_KINDS.forEach(k => { try { (k() || []).forEach(j => { if (AHEAD.open || j.pre) out.push(j); }); } catch (e) {} });
+  AHEAD_KINDS.forEach(k => { try { (k() || []).forEach(j => { if (AHEAD.open || j.pre) out.push(j); }); } catch (e) { /* a look-ahead kind that fails adds nothing */ } });
   return all ? out : out.filter(j => !AHEAD.stuck.has(j.key));
 }
 /* HOW FAR, IN MOVES, AND HALF A MOVE NEARER IN THE DIRECTION OF TRAVEL. */
@@ -689,7 +689,7 @@ function aheadPaint_(id) {
   /* A FINDER ON THE GLASS (beside the one in front, on a wide window) is filled as far as the glass shows, in this slice and before it is placed — its draw no § */
   const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
   if (F && typeof stuffOnGlass_ === 'function' && stuffOnGlass_(id)) {
-    try { inFinder_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) {}
+    try { inFinder_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) { /* a finder gone mid-draw keeps its old band */ }
   }
   placeOne_(id);
   if (typeof paneWatch_ === 'function') paneWatch_(host);

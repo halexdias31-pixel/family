@@ -46,7 +46,7 @@ function qualStart_(next, slot) {
   next.querySelector('.q-list').appendChild(group);
   qualFaceNow_(slot);
   qualOpen_(slot);
-  try { slot.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  try { slot.scrollIntoView({ block: 'nearest' }); } catch (e) { /* an element no longer on the page is not scrolled */ }
   qualNext_(slot.querySelector('select.q-name'));
 }
 /* ---------- REMOVING SAVES AT ONCE § */
@@ -514,7 +514,7 @@ function meSave_(el) {
       if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       if (box.closest('#sheet-body')) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_`. */
       const form = el.closest('.me-form');
@@ -664,7 +664,7 @@ function profileRefresh_(loud, onOld) {
       }
       const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) { oops_(e, 'me:profileRefresh_') } return; }
@@ -702,7 +702,7 @@ on('pin-save', el => {
       /* ---------- A NEW PIN ENDS EVERY SESSION, SO THIS PHONE IS HANDED A NEW ONE § */
       if (d && d.token) {
         USER.token = d.token;
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       }
       ['pin-now', 'pin-new', 'pin-again'].forEach(id => { const b = $(id); if (b) b.value = ''; });
       if (said) said.textContent = 'Changed.';
@@ -764,7 +764,7 @@ function ownCardSections_(col) {
   const staff = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) === -1 && s.list.length);
   if (!col) return you.concat(staff);
   /* WHAT YOU TEACH ONLY ON A PUBLIC TUTOR CARD, as on 444's Tutor column. */
-  return (col === 'students' ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
+  return (isStudentsCol_(col) ? you : []).concat(isTutorsCol_(col) && cardMine_() ? staff : []);
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */

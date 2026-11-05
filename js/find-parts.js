@@ -658,14 +658,14 @@ function questionContent_(r) {
 function libSlim_(x) {
   if (!x) return false;
   if (isQ_(x)) return libWaits_(x.row) || (x.stems || []).some(p => libWaits_(p));
-  if (x.kind === 'practical' || x.kind === 'project' || x.kind === 'content') return libWaits_(x.row);
+  if (isPractical_(x) || isProject_(x) || isContent_(x)) return libWaits_(x.row);
   return false;
 }
 function libIdsFor_(x) {
   if (!x || !x.row) return [];
-  if (x.kind === 'practical') return ['pr:' + x.row.id];
-  if (x.kind === 'project') return ['pj:' + x.row.id];
-  if (x.kind === 'content') return ['ct:' + x.row.bookId + '#' + x.row.n];
+  if (isPractical_(x)) return ['pr:' + x.row.id];
+  if (isProject_(x)) return ['pj:' + x.row.id];
+  if (isContent_(x)) return ['ct:' + x.row.bookId + '#' + x.row.n];
   if (!isQ_(x)) return [];
   const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
   const k = qId_(x);

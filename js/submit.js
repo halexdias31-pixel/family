@@ -345,7 +345,7 @@ function subMigrate_() {
     mine = s.mine;
   }
   const items = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : [];
-  if (!items.some(it => it && it.kind === 'question')) return;
+  if (!items.some(it => it && isQ_(it))) return;
   /* WHAT WAS DONE, AND WHEN — the device's dates, and the old backend's rows of this person. */
   const done = {};
   const pre = 'done:' + who + ':';
@@ -523,7 +523,7 @@ function markRest_(ms) {
   const rest = () => {
     MARK_REST = 0;
     if (MARK_HOLD > 0 || !MARK_AC) return;
-    try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) {}
+    try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) { /* a sound already stopped needs no suspending */ }
   };
   if (ms === 0) rest(); else MARK_REST = setTimeout(rest, ms);
 }
@@ -599,7 +599,7 @@ function markSound_(kind, late) {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'hidden' || !MARK_AC) return;
   markRest_(-1);
-  try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) {}
+  try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) { /* a sound already stopped needs no suspending */ }
 });
 
 /* ---------- PAINTED WHERE IT STANDS § */
@@ -989,7 +989,7 @@ on('rep-box', el => {
   const had = reportBoxOf_(kind, id);
   if (had) { boxOut_(had); return; }
   let finder = '';
-  try { finder = (finderAt_(el) || {}).id || ''; } catch (e) {}
+  try { finder = (finderAt_(el) || {}).id || ''; } catch (e) { /* outside any finder reads as none */ }
   /* IN PLACE OF THE THING (489, `boxInPlace_`); a message's box still goes under the whole message. */
   /* A TILE DRAWN WITHOUT A NAME (a widget with no title field) takes its thing's heading, so the note names what a person sees. */
   const home = el.closest('.card, .own-set, .post');
@@ -997,7 +997,7 @@ on('rep-box', el => {
   const label = el.getAttribute('data-rl') || ((h && h.textContent) || '').trim().slice(0, 120);
   const box = boxInPlace_(el, reportBoxHtml_(kind, id, label, finder, reportPath_(el)));
   const s = box && box.querySelector('textarea');
-  if (s) try { s.focus({ preventScroll: true }); } catch (e) {}
+  if (s) try { s.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ }
 });
 /* CANCEL CLOSES THE BOX AND KEEPS THE WORDS as the draft, for the next open. */
 on('rep-cancel', el => { boxOut_(el.closest('.rep-box')); });

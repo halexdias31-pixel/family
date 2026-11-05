@@ -1,7 +1,7 @@
 function docketSave(list) {
   if (!USER) return;
   USER.todo = docketText(list);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
   paintDocket();
 
   /* Debounced, because ticking four things off in four seconds is one intention and four writes
@@ -132,7 +132,7 @@ function padReach_(pad) {
   if (!pad) return;
   try {
     pad.style.touchAction = pad.scrollHeight > pad.clientHeight + 6 ? 'pan-y' : 'none';
-  } catch (e) {}
+  } catch (e) { /* an old browser keeps its default scrolling */ }
 }
 
 function initPad() {
@@ -150,7 +150,7 @@ document.addEventListener('input', e => {
   if (e.target.id !== 'notepad' || !USER) return;
   padReach_(e.target);
   USER.notepad = e.target.value;
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
   clearTimeout(padTimer);
   const said = $('pad-said');
   if (said) said.textContent = 'Saving…';

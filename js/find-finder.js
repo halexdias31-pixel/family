@@ -265,11 +265,11 @@ function thingCard_(x, credits) {
   /* One card shape for both, because they are the same kind of thing to a person looking for one: § */
   {
     const free = x.cost === 0;
-    const afford = x.kind === 'shop' && !free && !x.pence && credits >= x.cost;
+    const afford = isShop_(x) && !free && !x.pence && credits >= x.cost;
     /* WHAT IT TAKES TO HAVE IT. § */
     const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
-    const price = x.kind !== 'shop' ? ''
+    const price = !isShop_(x) ? ''
       : x.level > 0
         ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
             myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
@@ -297,7 +297,7 @@ function thingCard_(x, credits) {
                 ''}
           ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked to stop seeing; `levelOf_` says GCSE. § */
                 ''}
-          ${x.kind === 'shop' ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
+          ${isShop_(x) ? tagRow_(x) : `<p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
             : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
@@ -309,7 +309,7 @@ function thingCard_(x, credits) {
                 ''}
           ${/* WHO IT IS FROM, FIRST. § */
                 ''}
-          ${x.kind === 'shop' ? '' : `<p class="sub">${x.company
+          ${isShop_(x) ? '' : `<p class="sub">${x.company
             ? `${mark(x.company)}${x.sub || x.subject ? ' <span class="faint">· </span>' : ''}` : ''}${
             mark(x.sub || x.subject || '')}${yearOf(x)
             ? ` <span class="mono faint">· ${esc(yearOf(x))}</span>` : ''}${x.wearable && x.slot
@@ -474,16 +474,16 @@ const FACETS = [
   { field: 'cState',    label: 'State',       of: x => x.cState || '' },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
-  { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
+  { field: 'fighter',   label: 'Fighter',     of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
   { field: 'boutMonth', label: 'Month',       of: x => boutDate_(x).month },
   { field: 'boutYear',  label: 'Year',        of: x => boutDate_(x).year },
   { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
-  { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
-  { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
+  { field: 'boutRound', label: 'Round',       of: x => isFight_(x) && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
+  { field: 'boutMethod', label: 'Result',     of: x => (isFight_(x) && x.row && String(x.row.method || '').trim()) || '' },
   /* THE TITLE THE FIGHT CARD LOST (490) said who won and which night: tags now, like everything else. */
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
-  { field: 'boutEvent', label: 'Event',       of: x => (x.kind === 'fight' && x.row && String(x.row.event || '').trim()) || '' },
+  { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
   { field: 'histKind',  label: 'Manuscripts, figures, works or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
@@ -507,7 +507,7 @@ const FACETS = [
   { field: 'shopTheme', label: 'Theme',       of: x => x.shopTheme || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
-    of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
+    of: x => !isPractical_(x) || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
   /* A TYPE UNDER ANOTHER (545, 660): Type offers the one above alone ("spec paper should be in past papers"); Which type, after it, its own. */
   { field: 'documentType', label: 'Type',     of: x => underTop_(DOC_TYPE_UNDER, x.documentType) },
   { field: 'typeOwn',      label: 'Which type', of: x => underOwn_(DOC_TYPE_UNDER, x.documentType) },

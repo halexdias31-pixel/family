@@ -270,7 +270,7 @@ document.addEventListener('change', e => {
       const was = box.getAttribute('data-draft-was') || '';
       if (typeof draftSame_ === 'function' && draftSame_(box.value, was)) draftDrop_(surface, id);
       else draftKeep_(surface, id, box.value, false, was);
-    } catch (err) {}
+    } catch (err) { /* storage blocked: the draft is not kept */ }
   }
   const sum = field.querySelector('summary');
   const cap = field.querySelector('.many-cap');
@@ -383,7 +383,7 @@ on('shelf-more', el => {
   if (next) {
     next.hidden = false;
     const box = next.querySelector('input, select');
-    try { if (box) box.focus({ preventScroll: true }); } catch {}
+    try { if (box) box.focus({ preventScroll: true }); } catch { /* an element that cannot take focus is left as it is */ }
   }
   if (!shelf || !shelf.querySelector('.lib-card[hidden]')) el.remove();
 });
@@ -542,7 +542,7 @@ document.addEventListener('change', e => {
   [...sel.attributes].forEach(a => box.setAttribute(a.name, a.value));
   sel.replaceWith(box);
   qualDirty_(box);
-  try { box.focus({ preventScroll: true }); } catch {}
+  try { box.focus({ preventScroll: true }); } catch { /* an element that cannot take focus is left as it is */ }
 }, true);
 /* THE SLOT'S ANSWERS, READ OFF ITS BOXES — `Something else…` not yet typed counts as no answer. */
 function qualRead_(slot) {
@@ -584,7 +584,7 @@ function qualFaceNow_(slot) {
 /* ---------- THE NEXT BOX THE PERSON NEEDS, GIVEN THE FOCUS — NOT OPENED § */
 function qualNext_(sel) {
   setTimeout(() => {
-    if (sel && sel.isConnected && !sel.disabled) { try { sel.focus({ preventScroll: true }); } catch (e) {} }
+    if (sel && sel.isConnected && !sel.disabled) { try { sel.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   }, 0);
 }
 /* ---------- AN ANSWER CHOSEN IS AN ANSWER SAVED § */
@@ -636,7 +636,7 @@ function qualRedraw_(shelf, over, open) {
   const again = open != null && next.querySelector('.q-list .q-slot[data-slot="' + open + '"]');
   if (again) {
     qualOpen_(again);
-    if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) {} }
+    if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) { oops_(e, 'me:qualRedraw_') } }
   /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no
      `input` reports — a line put back to the pool, a removal — so the draft is written again here. */

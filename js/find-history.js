@@ -354,9 +354,9 @@ function histRows_(x) {
   const r = x.row || {};
   return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim())
-    .filter(l => !(x.kind === 'manuscript' && MS_LOOK[r.id] && MS_SAID.indexOf(l[0]) >= 0));
+    .filter(l => !(isManuscript_(x) && MS_LOOK[r.id] && MS_SAID.indexOf(l[0]) >= 0));
 }
-const histOnCard_ = x => (x.kind === 'manuscript' && MS_LOOK[(x.row || {}).id] ? 0 : HIST_CARD_ROWS);
+const histOnCard_ = x => (isManuscript_(x) && MS_LOOK[(x.row || {}).id] ? 0 : HIST_CARD_ROWS);
 function histPages_(x) {
   const rest = histRows_(x).slice(histOnCard_(x)), out = [];
   for (let i = 0; i * HIST_PAGE_ROWS < rest.length; i++) out.push('facts' + i);
@@ -371,7 +371,7 @@ function histFactsPart_(x, part) {
 }
 /* THE ESSENTIALS (498): "don't need so many" -- three links and one source, on the card's one row (`CARD_EXTRAS_`). */
 function histExtras_(x) {
-  const r = x.row || {}, read = x.kind === 'writing' && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
+  const r = x.row || {}, read = isWriting_(x) && typeof worksFirstKey_ === 'function' ? worksFirstKey_(r.id) : '';
   const icon = l => (l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'flag');
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
@@ -380,7 +380,7 @@ function histCard_(x) {
   const r = x.row || {};
   const rows = histRows_(x).slice(0, histOnCard_(x));
   /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
-  const look = x.kind === 'manuscript' ? msFragSvg_(r, x.msSideIx) : '';
+  const look = isManuscript_(x) ? msFragSvg_(r, x.msSideIx) : '';
   if (look) {
     return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">
     ${tagRow_(x)}
@@ -736,7 +736,7 @@ function bibleByKey_(k) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
-  if (!items.length || !items.every(x => x && x.kind === 'bible')) return '';
+  if (!items.length || !items.every(x => x && isBible_(x))) return '';
   const first = items[0], last = items[items.length - 1];
   if (!first.bb) {
     if (BIBLE.index) return '';

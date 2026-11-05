@@ -56,7 +56,7 @@ function orderRedraw_(box, focus) {
   const next = wrap.firstElementChild;
   box.replaceWith(next);
   const f = focus && next.querySelector(focus);
-  if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} }
+  if (f) { try { f.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
 }
 const orderOf_ = el => {
   const box = el && el.closest('.qp-order');
@@ -399,24 +399,24 @@ function ansBox_(x) {
   const k = ansKey_(x);
   const m = markerOf_(x);
   const can = m.kind === 'accept' ? String(x.accept || '').trim() : '';
-  const rule = m.kind === 'words' ? String(x.markWords || '').trim() : '';
+  const rule = isWordsMark_(m) ? String(x.markWords || '').trim() : '';
   const geo = m.kind === 'draw' ? String(x.drawAnswer || '').trim() : '';
   /* ONE KEYPAD THAT TYPES ANYTHING (keypad.js): the answer's shape only picks the layer it opens on */
   const maths = ansMaths_(x);
   /* THE AI MARKS WHAT NO RULE CAN: it is the Check for an `ai` part, and offered after a key-word rule that falls short */
-  const ai = m.kind === 'ai' || m.kind === 'words' ? tile_(aiOpts_(x)) : '';
-  const later = m.kind === 'words' && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
+  const ai = isAiMark_(m) || isWordsMark_(m) ? tile_(aiOpts_(x)) : '';
+  const later = isWordsMark_(m) && ai ? `<span class="qp-ai-later" hidden>${ai}</span>` : '';
   const val = ansRead_(k);
   const ws = workStrip_(x);
   const row = qtRow_(x);
   /* A DRAWN ANSWER IS MARKED HERE TOO, by its geometry (366): the row carries the pad's key for `padCheck_` */
   const drawAt = geo ? ` data-k="${esc(k)}" data-pad="${esc(padKey_(x))}" data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '';
-  const isAi = (m.kind === 'ai' && m.ready) || (m.kind === 'words' && ai);
+  const isAi = (isAiMark_(m) && m.ready) || (isWordsMark_(m) && ai);
   const cls = 'qp-mark qp-compose' + (isAi ? ' qp-ai' : '') + (geo ? ' qpad-send' : '');
   const dataAt = (can ? ` data-accept="${esc(can)}"` : '') + (rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : '') + drawAt;
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET: the same one box, bigger § */
   if (ansEssay_(x)) {
-    const note = m.kind === 'ai' && !ai ? aiWhyNot_(x) : '';
+    const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
     const kept = isAi && typeof aiKeptView_ === 'function' ? aiKeptView_(k, val) : null;
     const said = subBoxSay_(k, val);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
@@ -434,7 +434,7 @@ function ansBox_(x) {
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', 3)}
   </label></div>`;
-  const note = m.kind === 'ai' && !ai ? aiWhyNot_(x) : '';
+  const note = isAiMark_(m) && !ai ? aiWhyNot_(x) : '';
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = geo ? subBoxSay_(k, padSay_(padRead_(padKey_(x)))) : subBoxSay_(k, val);
   return `<div class="${cls}${said.cls ? ' ' + said.cls : ''}"${dataAt}>
@@ -550,7 +550,7 @@ function padAdopt_(k, bare) {
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     /* AND OFF THE SIGNED-OUT KEY THROUGH THE WRITER: the store's copy, the visit's, and the mark. */
     if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
-  } catch (e) {}
+  } catch (e) { /* storage blocked: the answer stays on the page only */ }
 }
 
 /* THE PICTURE IT DRAWS ON: its figure, else its stem's, else its own surface (a drawn part's a grid) -- for a drawn part (qType_) at once, for any

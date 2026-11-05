@@ -187,7 +187,7 @@ function bundleBuild_(items) {
 /* WHETHER EVERY PAPER IN IT IS ALREADY A LINE IN THE BASKET — the tile fills when it is, exactly as
    the trolley on a shop card does. */
 const bundleInCart_ = b => !!b && b.ids.every(id =>
-  (typeof CART !== 'undefined' ? CART : []).some(c => c.kind === 'print' && String(c.key) === id));
+  (typeof CART !== 'undefined' ? CART : []).some(c => isPrint_(c) && String(c.key) === id));
 
 /* WHAT IT COSTS, SAID HONESTLY. A paper with no page count is not free and is not guessed at. */
 function bundlePriceLine_(b) {
@@ -343,7 +343,7 @@ function favsMerged_() {
     if (!FAVS.has(old)) return;
     const [to, store, k] = FAV_MERGED[old];
     FAVS.delete(old); FAVS.add(to);
-    try { if (!localStorage.getItem('merged:' + old)) { localStorage.setItem('merged:' + old, '1'); localStorage.setItem(store, k); } } catch (e) {}
+    try { if (!localStorage.getItem('merged:' + old)) { localStorage.setItem('merged:' + old, '1'); localStorage.setItem(store, k); } } catch (e) { /* storage blocked: the merge is offered again next time */ }
   });
 }
 favsMerged_();

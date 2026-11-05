@@ -306,10 +306,10 @@ try {
   const was = TAB_GONE[kept] || kept;
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
-} catch {}
+} catch { /* a bad stored tab opens the default one */ }
 /* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED § */
 function tabStampLeft_() {
-  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch {}
+  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch { /* storage blocked: the tab is not remembered */ }
 }
 window.addEventListener('pagehide', tabStampLeft_);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
@@ -332,7 +332,7 @@ function go(id, remember, instant) {
       /* THE STAMP IS WRITTEN WITH THE ID AND NEVER WITHOUT IT — see the note over `AT` above. A
          stamp left behind by an id that was not written is a column remembered by its timestamp. */
       localStorage.setItem('familyTabAt', String(Date.now()));
-    } catch {}
+    } catch { /* storage blocked: the tab is not remembered */ }
   }
 
   /* NOTHING IS HIDDEN ANY MORE. § */
@@ -667,7 +667,7 @@ function shapeSave_() {
       if (hs.some(h => h > 0)) out[t.id] = hs;
     });
     keepPut_(SHAPE_KEY, JSON.stringify(out), true);
-  } catch (e) {}
+  } catch (e) { /* storage blocked: the column shapes are measured again next visit */ }
 }
 
 /* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what

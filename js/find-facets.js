@@ -407,7 +407,7 @@ function fightCard_(x) {
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */
 function boutWinner_(x) {
-  const f = x && x.kind === 'fight' ? x.row : null;
+  const f = x && isFight_(x) ? x.row : null;
   if (!f) return '';
   if (f.winnerId && String(f.winnerId) === String(f.aId)) return f.a || '';
   if (f.winnerId && String(f.winnerId) === String(f.bId)) return f.b || '';
@@ -415,7 +415,7 @@ function boutWinner_(x) {
 }
 /* A BOUT'S MONTH AND YEAR, off its `YYYY-MM-DD` date; blank for anything else. */
 function boutDate_(x) {
-  const m = x && x.kind === 'fight' && x.row ? /^(\d{4})(?:-(\d{2}))?/.exec(String(x.row.date || '')) : null;
+  const m = x && isFight_(x) && x.row ? /^(\d{4})(?:-(\d{2}))?/.exec(String(x.row.date || '')) : null;
   return m ? { year: m[1], month: m[2] ? (MONTH_NAMES[Number(m[2]) - 1] || '') : '' } : { year: '', month: '' };
 }
 
@@ -436,10 +436,10 @@ function decadeOf_(v) {
 
 function decadesOf_(x) {
   const r = (x && x.row) || {};
-  if (!r || (x && x.kind !== 'boxer' && x.kind !== 'fight')) return [];
+  if (!r || (x && !isBoxer_(x) && !isFight_(x))) return [];
   const one = d => d ? String(d) + 's' : '';
   /* A BOUT IS ONE DAY. `date` is the fight; everything else on the row is about the fighters. */
-  if (x.kind === 'fight') return [one(decadeOf_(r.date))].filter(Boolean);
+  if (isFight_(x)) return [one(decadeOf_(r.date))].filter(Boolean);
   const from = decadeOf_(r.activeFrom);
   const to = decadeOf_(r.activeTo) || decadeOf_(r.recordAsOf) || from;
   if (!from && !to) return [];

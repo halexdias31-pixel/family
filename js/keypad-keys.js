@@ -310,7 +310,7 @@ function kpLive_() {
 }
 /* FOCUS THE REPLACEMENT, whose `focusin` reopens the pad on it (`kpOpen_`, which keeps the caret from `KP_WAS`). § */
 function kpTake_(inp) {
-  try { inp.focus({ preventScroll: true }); } catch (e) { try { inp.focus(); } catch (e2) {} }
+  try { inp.focus({ preventScroll: true }); } catch (e) { try { inp.focus(); } catch (e2) { /* an element that cannot take focus is left as it is */ } }
   if (KP_AT !== inp) kpOpen_(inp);
 }
 

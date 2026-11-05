@@ -91,7 +91,7 @@ function heldBy_(err) {
   const d = err && err.reply;
   if (!USER || !d || d.why !== 'unconfirmed' || !d.pendingEmail) return;
   USER.pendingEmail = String(d.pendingEmail);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
   try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
 }
 
@@ -105,7 +105,7 @@ on('resend-link', el => {
       if (d.why === 'confirmed' && USER) {
         accountChanged_();
         USER.pendingEmail = '';
-        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
         try { repaint(true); } catch (e) { oops_(e, 'me:heldBy_') }
       }
     })
@@ -270,7 +270,7 @@ function peopleBelong_(col, family) {
   if (!USER) return false;
   const rel = r => (family || []).some(f => f && f.relation === r);
   if (col === homeCol_()) return true;
-  if (col === 'tutors') return !!(typeof cardMine_ === 'function' && cardMine_());
+  if (isTutorsCol_(col)) return !!(typeof cardMine_ === 'function' && cardMine_());
   if (col === 'parents') return rel('child');
   return rel('parent');
 }
@@ -564,7 +564,7 @@ on('roles-save', el => {
       /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
@@ -660,7 +660,7 @@ on('notify-pick', el => {
         USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
           kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
       } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       NOTIFY_SAID = { pid: String(USER.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the

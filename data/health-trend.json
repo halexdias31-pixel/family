@@ -230,5 +230,17 @@
    "cost": 81.7
   },
   "topKind": "variety-qpage"
+ },
+ {
+  "date": "2026-11-05",
+  "commit": "1a86410",
+  "score": 38.9,
+  "parts": {
+   "code": 34.5,
+   "logic": 34.4,
+   "ui": 33.1,
+   "cost": 81.7
+  },
+  "topKind": "variety-qpage"
  }
 ]

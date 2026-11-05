@@ -471,11 +471,11 @@ function signedIn_(d, typed) {
   const finders_ = () => (typeof finderStates_ === 'function' ? finderStates_()
                          : (typeof STUFF !== 'undefined' ? [STUFF] : []));
   let whose = '';
-  try { whose = String((finders_().find(st => st && st.whose) || {}).whose || ''); } catch (e) {}
+  try { whose = String((finders_().find(st => st && st.whose) || {}).whose || ''); } catch (e) { /* no finder yet: nothing to read or clear */ }
   if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
-  try { finders_().forEach(st => { st.whose = ''; }); } catch (e) {}
+  try { finders_().forEach(st => { st.whose = ''; }); } catch (e) { /* no finder yet: nothing to read or clear */ }
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
@@ -651,7 +651,7 @@ function avatarSave(change) {
       USER.avatar = d.avatar;
       if (typeof d.credits === 'number') USER.credits = d.credits;
       if (d.owned) USER.avatarItems = d.owned;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
       /* ---------- A TOAST, BECAUSE THE PAGE NO LONGER HAS A LINE TO WRITE TO § */
       if ((d.bought || []).length) toast('Bought ' + d.bought.join(', '));
       avatarDraw_();

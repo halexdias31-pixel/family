@@ -38,7 +38,7 @@ function psCard_(who, tiles) {
 }
 /* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. Only on Students: the lookup's one use is Add as my child. */
 const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
-const psChildCol_ = col => col === 'students' && psMayChild_();
+const psChildCol_ = col => isStudentsCol_(col) && psMayChild_();
 function psResults_(col) {
   const S = psState_(col || 'students'), q = psFold_(S.q);
   if (!q) return '';

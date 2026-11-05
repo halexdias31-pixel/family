@@ -276,7 +276,8 @@ function ui() {
 // dup       0.02 per line of a 6+-line chunk already seen (normalised: trimmed, comments out), cap 10
 // nest      0.05 per run of lines nested over 4 blocks deep inside a function, cap 10
 // catch     an empty catch, listed for the fixer; priced by stability's `catches` (0.02 each), never again here
-const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0] };
+// deliberate a catch holding only a why-comment: a chosen fallback, as check-catches counts it; listed, never priced
+const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.001, 10], dup: [0.02, 10], nest: [0.05, 10], catch: [0.02, 0], deliberate: [0, 0] };
 const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
@@ -331,7 +332,7 @@ function structure() {
       const code = C[i] || '', depth = depthAt[i] || 0, before = i ? depthAt[i - 1] : 0;
       if (code.trim().length >= 8) N.push({ t: code.trim(), i });
       if (ONE_OFF.test(code)) push(file, i + 1, 'one-off', raw, 1);
-      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, 'catch', raw, 1);
+      if (/catch\s*(?:\(\s*\w*\s*\))?\s*\{\s*\}/.test(code)) push(file, i + 1, /catch\s*(?:\([^)]*\))?\s*\{\s*\}/.test(raw) ? 'catch' : 'deliberate', raw, 1);
       const m = before === 0 && /^(?:async\s+)?function\s+([\w$]+)|^(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>\s*\{|[\w$]+\s*=>\s*\{)/.exec(raw);
       if (m) fn = { name: m[1] || m[2], at: i };
       if (depth === 0 && fn) {
@@ -502,7 +503,7 @@ function health() {
   const L = logic(), U = ui(), S = structure();
   /* THE CODE PART: stability's signals less the four the structure signals replace, plus the structure signals. */
   const kept = (st.signals || []).filter(s => !REPLACED.has(s.id));
-  const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
+  const sig = kept.concat(Object.keys(STRUCT).filter(k => k !== 'catch' && k !== 'deliberate').map(k => ({ id: k, label: SAY_KIND[k], count: S.totals[k].count, off: S.totals[k].off })));
   const code = r1(Math.max(0, 100 - sig.reduce((a, s) => a + s.off, 0)));
   const work = findWork(L), kinds = {};
   work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });

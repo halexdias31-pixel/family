@@ -269,7 +269,7 @@ function stuffFind(items, credits) {
 /* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
 function stuffLead_(out, words) {
   if (!words.length) return out;
-  const named = x => x.kind === 'content' && (() => {
+  const named = x => isContent_(x) && (() => {
     const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
     return words.every(w => hay.indexOf(w) !== -1);
   })();
@@ -344,7 +344,7 @@ function stuffSorted_(items) {
 /* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` § */
 /* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR § */
 const sortKey_ = x => [
-  x.kind === 'content' ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
+  isContent_(x) ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   isQ_(x) ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
@@ -705,17 +705,17 @@ function accountPages_(col) {
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (col === 'students' && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
+          + (isStudentsCol_(col) && typeof workSeeTile_ === 'function' ? workSeeTile_(p.personId) : '')
           + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''), 'person-tiles') : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
-    const row = col === 'tutors' ? (cardMine_() || myRow) : myRow;
+    const row = isTutorsCol_(col) ? (cardMine_() || myRow) : myRow;
     /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
     const face = row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
-    const share = col === 'tutors' && rankAtLeast_('staff') && USER.handle
+    const share = isTutorsCol_(col) && rankAtLeast_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     /* AND REPORT (486): everything has one, your own card too. */
@@ -730,12 +730,12 @@ function accountPages_(col) {
   /* THE SEARCH CARD (442): Students only; the other columns move into Find (770). */
   const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_(col)].filter(Boolean) : [];
   let out;
-  if (col === 'tutors') {
+  if (isTutorsCol_(col)) {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
     const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
     /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
     out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
-  } else if (col === 'students') {
+  } else if (isStudentsCol_(col)) {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];

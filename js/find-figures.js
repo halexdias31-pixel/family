@@ -137,7 +137,7 @@ function circRead_(k) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];
     }
-  } catch (e) {}
+  } catch (e) { /* a bad stored list reads as none */ }
   return (CIRC_HELD.get(k) || []).slice();
 }
 /* EVERY WORD OF A BLOCK OF MARKUP, WRAPPED, AND NOTHING ELSE TOUCHED. § */
@@ -738,7 +738,7 @@ function ansSet_(x, open) {
     if (!card) return;
     const had = el.contains(document.activeElement);
     el.replaceWith(card);
-    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) {} }
+    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   });
 }
 function ansShow_(x) { ansSet_(x, true); }

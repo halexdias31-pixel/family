@@ -18,7 +18,7 @@ function verifyFromLink_(again) {
         accountChanged_();
         if (USER) {
           USER.profile = Object.assign({}, USER.profile || {}, { email: String(d.email || ''), email_moving: '' });
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Your email is ' + (d.email || 'changed') + ' now — sign in with it from here on.');
@@ -54,7 +54,7 @@ function verifyFromLink_(again) {
           /* AND A `myProfile` ASKED BEFORE THIS IS NOT ALLOWED TO PUT IT BACK (`ACCOUNT_AT_`) — measured by round three of the review: § */
           accountChanged_();
           USER.pendingEmail = '';
-          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
           try { repaint(true); } catch (e) { oops_(e, 'me:verifyFromLink_') }
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
@@ -219,7 +219,7 @@ function friendsSave(list, said) {
   /* A `myProfile` ASKED BEFORE THIS IS ABOUT THE LIST BEFORE IT (342) — it carries `friends` now, and landing after this it would put the old list back § */
   accountChanged_();
   USER.friends = list.join(', ');
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
   /* The list lives on Find now, so that is what has to be redrawn — and the memo has to be told, or it serves the list from before the change. § */
   friendsForget_();
   api({ action: 'saveFriends', name: USER.name, personId: USER.personId, friends: USER.friends })
