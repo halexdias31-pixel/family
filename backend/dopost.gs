@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-04-find-790";
+const DOPOST_VERSION = "2026-11-04-health-920";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2909,6 +2909,9 @@ function doPost(e) {
     if (action === 'clientError') {
       try { return jsonOut(clientError_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
     }
+    if (action === 'healthLog') {
+      try { return jsonOut(healthLog_(body)); } catch (err) { return jsonOut({ error: S(err && err.message || err) }); }
+    }
     if (action === 'listClientErrors') {
       clearCache();
       return jsonOut({ success: true, errors: clientErrorsList_() });
@@ -4605,4 +4608,28 @@ function messagesOf_(me) {
         read: !!sheetDate(r.read_at),
       };
     });
+}
+
+/* ---------- REAL-PHONE HEALTH (920): a batch of sampled visits, numbers and a rank only, five a batch, throttled like an error ---------- */
+const HEALTH_RANKS = { out: 1, student: 1, client: 1, staff: 1, admin: 1 };
+function healthLog_(body) {
+  const rows = (Array.isArray(body.rows) ? body.rows : []).slice(0, 5);
+  if (!rows.length) return { error: 'Nothing to log.' };
+  const device = S(body.device).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40) || 'unknown';
+  const day = Utilities.formatDate(new Date(), 'Etc/UTC', 'yyyy-MM-dd');
+  let cache = null;
+  try { cache = CacheService.getScriptCache(); } catch (err) { cache = null; }
+  const ck = 'hlog:' + device + ':' + day, sent = cache ? Number(cache.get(ck) || 0) : 0;
+  if (sent >= CLIENT_ERROR_DEVICE_DAY) return { success: true, throttled: true };
+  if (cache) { try { cache.put(ck, String(sent + 1), 86400); } catch (err) { cache = null; } }
+  const num = (v, max) => { const n = Number(v); return isFinite(n) && n >= 0 ? Math.min(max, Math.round(n * 10) / 10) : ''; };
+  const t = read(TAB.health_log);
+  if (!t.sheet) return { error: 'No health log yet — an admin opening the site sets it up.', why: 'no-tab' };
+  rows.forEach(r => {
+    const rank = S(r && r.rank).toLowerCase();
+    addRow(t, { at: new Date(), version: S(r && r.version).replace(/[^\w.-]/g, '').slice(0, 60), rank: HEALTH_RANKS[rank] ? rank : 'out',
+      device: S(r && r.device).replace(/[^A-Za-z0-9-]/g, '').slice(0, 40), load_ms: num(r && r.load_ms, 600000), find_ms: num(r && r.find_ms, 600000),
+      long_tasks: num(r && r.long_tasks, 100000), long_ms: num(r && r.long_ms, 6000000), heap_mb: num(r && r.heap_mb, 100000), errors: num(r && r.errors, 10000) });
+  });
+  return { success: true, logged: rows.length };
 }

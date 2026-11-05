@@ -92,7 +92,13 @@ const RULES = {
         /* MENU RULE (920): how well each askable question splits the sample, in bits; the asked one is judged on the same sample. */
         const bits = G => { const vs = facetValues(S, G), t = vs.reduce((a, v) => a + v.n, 0); return t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0; };
         const split = {}; askable.concat([f.field]).forEach(k => { const G = facetBy(k); if (G) split[k] = Math.round(bits(G) * 100) / 100; });
-        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split };
+        /* MENU SENSE (920): two answers one letter or an s apart, and an answer that keeps no card. */
+        const near = (a, b) => { if (a === b) return true; if (Math.abs(a.length - b.length) > 1 || a.length < 5) return false;
+          let i = 0; while (i < a.length && a[i] === b[i]) i++; return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i); };
+        const ks = values.map(v => String(v.show || v.value).toLowerCase().replace(/[^a-z0-9]/g, '')), dup = [];
+        ks.forEach((a, i) => ks.forEach((b, j) => { if (j > i && near(a, b) && a.replace(/\d/g, '#') !== b.replace(/\d/g, '#')) dup.push((values[i].show || values[i].value) + ' ~ ' + (values[j].show || values[j].value)); }));
+        const dead = values.filter(v => !v.n).map(v => v.show || v.value);
+        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3) };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -143,12 +149,19 @@ const RULES = {
     .filter(m => m.bestBits - m.bits > 0.1).sort((a, b) => (b.bestBits - b.bits) * b.cards - (a.bestBits - a.bits) * a.cards);
   const everAsked = new Set(asked.map(nd => nd.field));
   const tagAsked = carried.filter(c => !everAsked.has(c.field)).sort((a, b) => b.cards - a.cards);
-  got.forEach(nd => { delete nd.split; });
+  const menuSense = [];
+  asked.forEach(nd => {
+    if (nd.answers.length < 2 && !nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
+    (nd.dup || []).forEach(d => menuSense.push({ where: where(nd), kind: 'spelling', say: nd.label + ': ' + d }));
+    (nd.dead || []).forEach(d => menuSense.push({ where: where(nd), kind: 'dead-end', say: nd.label + ': ' + d + ' keeps no card' }));
+    if (nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
+  });
+  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; });
   const out = { score, questions: asked.length, healthy: asked.length - sick.length,
     walked: { nodes: got.length, maxNodes: MAX_NODES, maxDepth: MAX_DEPTH, maxChildren: MAX_CHILDREN, sample: SAMPLE },
     rules: Object.keys(RULES).map(k => ({ id: k, label: RULES[k], count: counts[k] })),
     cannot: 'Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.',
-    top, menuRule, tagAsked };
+    top, menuRule, tagAsked, menuSense };
   const text = JSON.stringify(out, null, 1) + '\n';
   if (CHECK) {
     if (text === had) { console.log('logic-health: data/logic-health.json is current (' + score + '%, ' + asked.length + ' questions)'); process.exit(0); }

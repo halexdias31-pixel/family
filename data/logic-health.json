@@ -1070,5 +1070,1067 @@
    "label": "Side",
    "cards": 3
   }
+ ],
+ "menuSense": [
+  {
+   "where": "Find › Library › English Literature",
+   "kind": "spelling",
+   "say": "Translation: First edition (1813) ~ First edition (1843)"
+  },
+  {
+   "where": "Find › Library › English Literature",
+   "kind": "spelling",
+   "say": "Translation: First edition (1843) ~ First edition (1847)"
+  },
+  {
+   "where": "Find › Library › English Literature",
+   "kind": "spelling",
+   "say": "Translation: First edition (1890) ~ First edition (1898)"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works",
+   "kind": "spelling",
+   "say": "Work: Henry IV, Part 1 ~ Henry IV, Part 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works",
+   "kind": "spelling",
+   "say": "Work: Henry VI, Part 1 ~ Henry VI, Part 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works",
+   "kind": "spelling",
+   "say": "Work: Henry VI, Part 1 ~ Henry VI, Part 3"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904)",
+   "kind": "spelling",
+   "say": "Book: Poems Written in 1816 ~ Poems Written in 1817"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904)",
+   "kind": "spelling",
+   "say": "Book: Poems Written in 1816 ~ Poems Written in 1818"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904)",
+   "kind": "spelling",
+   "say": "Book: Poems Written in 1816 ~ Poems Written in 1819"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 3"
+  },
+  {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 4"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Book: Volume 1 ~ Volume 2"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Book: Volume 1 ~ Volume 3"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1813)",
+   "kind": "spelling",
+   "say": "Book: Volume 2 ~ Volume 3"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 2"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 3"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 4"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1898)",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 2"
+  },
+  {
+   "where": "Find › Library › History › The Histories",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 2"
+  },
+  {
+   "where": "Find › Library › History › The Histories",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 3"
+  },
+  {
+   "where": "Find › Library › History › The Histories",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 4"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle",
+   "kind": "spelling",
+   "say": "Chapter: 4th century ~ 5th century"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle",
+   "kind": "spelling",
+   "say": "Chapter: 4th century ~ 6th century"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle",
+   "kind": "spelling",
+   "say": "Chapter: 4th century ~ 7th century"
+  },
+  {
+   "where": "Find › Library › History › The Gallic War",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 2"
+  },
+  {
+   "where": "Find › Library › History › The Gallic War",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 3"
+  },
+  {
+   "where": "Find › Library › History › The Gallic War",
+   "kind": "spelling",
+   "say": "Book: Book 1 ~ Book 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment II"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment IV"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States",
+   "kind": "spelling",
+   "say": "Chapter: Amendment I ~ Amendment IX"
+  },
+  {
+   "where": "Find › Library › History › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 2"
+  },
+  {
+   "where": "Find › Library › History › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 3"
+  },
+  {
+   "where": "Find › Library › History › Bill of Rights 1689",
+   "kind": "spelling",
+   "say": "Unit: Paragraph 1 ~ Paragraph 4"
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers",
+   "kind": "spelling",
+   "say": "Decade: 1890s ~ 1990s"
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers",
+   "kind": "spelling",
+   "say": "Decade: 1900s ~ 1910s"
+  },
+  {
+   "where": "Find › Library › Physical Education › Boxers",
+   "kind": "spelling",
+   "say": "Decade: 1900s ~ 1920s"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Old Testament",
+   "kind": "spelling",
+   "say": "Section: Kathisma 1 ~ Kathisma 2"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Old Testament",
+   "kind": "spelling",
+   "say": "Section: Kathisma 1 ~ Kathisma 3"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Old Testament",
+   "kind": "spelling",
+   "say": "Section: Kathisma 1 ~ Kathisma 4"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Church history",
+   "kind": "spelling",
+   "say": "Work: Schaff, History of the Christian Church, vol. 1 ~ Schaff, History of the Christian Church, vol. 2"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Church history",
+   "kind": "spelling",
+   "say": "Work: Schaff, History of the Christian Church, vol. 1 ~ Schaff, History of the Christian Church, vol. 3"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Church history",
+   "kind": "spelling",
+   "say": "Work: Schaff, History of the Christian Church, vol. 1 ~ Schaff, History of the Christian Church, vol. 4"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Scholastics",
+   "kind": "spelling",
+   "say": "Book: First Part (I) (part 1) ~ First Part (I) (part 2)"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Scholastics",
+   "kind": "spelling",
+   "say": "Book: First Part of the Second Part (I-II) (part 1) ~ First Part of the Second Part (I-II) (part 2)"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Scholastics",
+   "kind": "spelling",
+   "say": "Book: Second Part of the Second Part (II-II) (part 1) ~ Second Part of the Second Part (II-II) (part 2)"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Reformation",
+   "kind": "spelling",
+   "say": "Book: Book I ~ Book II"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Reformation",
+   "kind": "spelling",
+   "say": "Book: Book I ~ Book IV"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Christianity › Reformation",
+   "kind": "spelling",
+   "say": "Book: Book II ~ Book III"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Quran",
+   "kind": "spelling",
+   "say": "Section: Juz 10 ~ Juz 11"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Quran",
+   "kind": "spelling",
+   "say": "Section: Juz 10 ~ Juz 12"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Quran",
+   "kind": "spelling",
+   "say": "Section: Juz 10 ~ Juz 13"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
+   "kind": "spelling",
+   "say": "Book: 2 · Prayer ~ 4 · Prayer"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
+   "kind": "spelling",
+   "say": "Book: 2 · Prayer ~ 5 · Prayer"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
+   "kind": "spelling",
+   "say": "Book: 2 · Prayer ~ 6 · Prayer"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Legends of the Gods",
+   "kind": "spelling",
+   "say": "Chapter: The History of Creation (A) ~ The History of Creation (B)"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Pennsylvania tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column II"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Pennsylvania tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column IV"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Pennsylvania tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column V"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Yale tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column II"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Yale tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column IV"
+  },
+  {
+   "where": "Find › Library › Religious Studies › Mesopotamian religion › Yale tablet",
+   "kind": "spelling",
+   "say": "Chapter: Column I ~ Column V"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
+   "kind": "spelling",
+   "say": "Unit: Sonnet 1 ~ Sonnet 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
+   "kind": "spelling",
+   "say": "Unit: Sonnet 1 ~ Sonnet 3"
+  },
+  {
+   "where": "Find › Library › English Literature › Complete Works › Shakespeare’s Sonnets",
+   "kind": "spelling",
+   "say": "Unit: Sonnet 1 ~ Sonnet 4"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 1 (2)"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1820",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 3"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 1 (2)"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 1 (3)"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1821",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 2"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 3"
+  },
+  {
+   "where": "Find › Library › English Literature › Hutchinson’s (1904) › Poems Written in 1819",
+   "kind": "spelling",
+   "say": "Unit: Stanza 1 ~ Stanza 4"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 2"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 3"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "spelling",
+   "say": "Chapter: Chapter 1 ~ Chapter 4"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Silas Marner",
+   "kind": "spelling",
+   "say": "Book: Part 1 ~ Part 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Julius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Julius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Julius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › D. Octavius Caesar Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › D. Octavius Caesar Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › D. Octavius Caesar Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Tiberius Nero Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Tiberius Nero Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Tiberius Nero Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Caesar Caligula",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Caesar Caligula",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Caius Caesar Caligula",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Nero Claudius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Nero Claudius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Nero Claudius Caesar",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Lives Of Eminent Grammarians",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Lives Of Eminent Grammarians",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Lives Of Eminent Grammarians",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Sergius Sulpicius Galba",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Sergius Sulpicius Galba",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Sergius Sulpicius Galba",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › T. Flavius Vespasianus Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › T. Flavius Vespasianus Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › T. Flavius Vespasianus Augustus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 5"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Titus Flavius Domitianus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Titus Flavius Domitianus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Titus Flavius Domitianus",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Aulus Vitellius",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Aulus Vitellius",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Lives of the Twelve Caesars › Aulus Vitellius",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 10th century",
+   "kind": "spelling",
+   "say": "Unit: AD 901 ~ AD 902"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 10th century",
+   "kind": "spelling",
+   "say": "Unit: AD 901 ~ AD 903"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 10th century",
+   "kind": "spelling",
+   "say": "Unit: AD 901 ~ AD 904"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 8th century",
+   "kind": "spelling",
+   "say": "Unit: AD 702 ~ AD 703"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 8th century",
+   "kind": "spelling",
+   "say": "Unit: AD 702 ~ AD 704"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 8th century",
+   "kind": "spelling",
+   "say": "Unit: AD 702 ~ AD 705"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 9th century",
+   "kind": "spelling",
+   "say": "Unit: AD 802 ~ AD 803"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 9th century",
+   "kind": "spelling",
+   "say": "Unit: AD 802 ~ AD 804"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 9th century",
+   "kind": "spelling",
+   "say": "Unit: AD 802 ~ AD 805"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 7th century",
+   "kind": "spelling",
+   "say": "Unit: AD 601 ~ AD 603"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 7th century",
+   "kind": "spelling",
+   "say": "Unit: AD 601 ~ AD 604"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 7th century",
+   "kind": "spelling",
+   "say": "Unit: AD 601 ~ AD 606"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 11th century",
+   "kind": "spelling",
+   "say": "Unit: AD 1001 ~ AD 1002"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 11th century",
+   "kind": "spelling",
+   "say": "Unit: AD 1001 ~ AD 1003"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 11th century",
+   "kind": "spelling",
+   "say": "Unit: AD 1001 ~ AD 1004"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 6th century",
+   "kind": "spelling",
+   "say": "Unit: AD 501 ~ AD 508"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 6th century",
+   "kind": "spelling",
+   "say": "Unit: AD 501 ~ AD 509"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 6th century",
+   "kind": "spelling",
+   "say": "Unit: AD 501 ~ AD 571"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 5th century",
+   "kind": "spelling",
+   "say": "Unit: AD 418 ~ AD 448"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 5th century",
+   "kind": "spelling",
+   "say": "Unit: AD 418 ~ AD 488"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 5th century",
+   "kind": "spelling",
+   "say": "Unit: AD 423 ~ AD 429"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 2nd century",
+   "kind": "spelling",
+   "say": "Unit: AD 110 ~ AD 116"
+  },
+  {
+   "where": "Find › Library › History › The Anglo-Saxon Chronicle › 2nd century",
+   "kind": "spelling",
+   "say": "Unit: AD 189 ~ AD 199"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › English",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 2"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › English",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 3"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › English",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 4"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › Latin",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 2"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › Latin",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 3"
+  },
+  {
+   "where": "Find › Library › History › Magna Carta › Latin",
+   "kind": "spelling",
+   "say": "Unit: Chapter 1 ~ Chapter 4"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Agricola",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Agricola",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Agricola",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Germania",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Germania",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Germania and Agricola › Germania",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Airs, Waters, and Places",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Airs, Waters, and Places",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Airs, Waters, and Places",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Ancient Medicine",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Ancient Medicine",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Ancient Medicine",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Injuries of the Head",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Injuries of the Head",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Injuries of the Head",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Regimen in Acute Diseases",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Regimen in Acute Diseases",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › The Genuine Works of Hippocrates › On Regimen in Acute Diseases",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 5"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article I",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article I",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article I",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XX",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XX",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XX",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XIV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XIV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XIV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article II",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article II",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article II",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article IV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article IV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article IV",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 4"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XVIII",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XVIII",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XVIII",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXI",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXI",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XXI",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article III",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article III",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Article III",
+   "kind": "spelling",
+   "say": "Unit: Section 2 ~ Section 3"
+  },
+  {
+   "where": "Find › Library › History › Constitution of the United States › Amendment XIII",
+   "kind": "spelling",
+   "say": "Unit: Section 1 ~ Section 2"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 3 ~ Group 4"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 3 ~ Group 5"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 3 ~ Group 6"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Post-transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 14"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Post-transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 15"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Post-transition metal",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 16"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Noble gas",
+   "kind": "spelling",
+   "say": "Period: Period 1 ~ Period 2"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Noble gas",
+   "kind": "spelling",
+   "say": "Period: Period 1 ~ Period 3"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Noble gas",
+   "kind": "spelling",
+   "say": "Period: Period 1 ~ Period 4"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Non-metal",
+   "kind": "spelling",
+   "say": "Group: Group 1 ~ Group 14"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Non-metal",
+   "kind": "spelling",
+   "say": "Group: Group 1 ~ Group 15"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Non-metal",
+   "kind": "spelling",
+   "say": "Group: Group 1 ~ Group 16"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkali metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 3"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkali metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 4"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkali metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 5"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkaline earth metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 3"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkaline earth metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 4"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Alkaline earth metal",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 5"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Halogen",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 3"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Halogen",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 4"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Halogen",
+   "kind": "spelling",
+   "say": "Period: Period 2 ~ Period 5"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Metalloid",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 14"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Metalloid",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 15"
+  },
+  {
+   "where": "Find › Library › Chemistry › Element › Metalloid",
+   "kind": "spelling",
+   "say": "Group: Group 13 ~ Group 16"
+  },
+  {
+   "where": "Find › Library › Maths › SATs › KS2",
+   "kind": "spelling",
+   "say": "Topic: 2-D Shapes ~ 3-D Shapes"
+  },
+  {
+   "where": "Find › Library › Maths › SATs › KS1",
+   "kind": "spelling",
+   "say": "Topic: 2-D Shapes ~ 3-D Shapes"
+  }
  ]
 }

@@ -1,0 +1,29 @@
+{
+ "why": "first-download budgets: current + 5% when set (920); raise one only with a reason in docs/history",
+ "total": 1649513,
+ "files": {
+  "index.html": 18645,
+  "style.css": 486540,
+  "fonts/family-code.woff2": 56528,
+  "js/core.js": 34811,
+  "js/finder-tags.js": 3056,
+  "js/price-rows.js": 13963,
+  "js/data.js": 27234,
+  "js/library.js": 42541,
+  "js/qtypes.js": 25911,
+  "js/settings.js": 6884,
+  "js/shell.js": 230033,
+  "js/rules.js": 11032,
+  "js/cards.js": 28301,
+  "js/me.js": 300026,
+  "js/posts.js": 135823,
+  "js/links.js": 19718,
+  "js/resource.js": 13198,
+  "js/arcade.js": 91221,
+  "js/overworld.js": 38003,
+  "js/select.js": 3845,
+  "js/tiles.js": 39829,
+  "js/missing.js": 20009,
+  "js/boot.js": 2368
+ }
+}
