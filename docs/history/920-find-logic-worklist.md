@@ -42,3 +42,43 @@ tokens and wrote var(--x, var(--x)); that was caught in the diff before commit a
   - `once-class`: a style.css class with one rule and one use.
   - `control-look`: a second border-radius, font-size or font-family for .tile, .chip or button.
   - `own-wait`: Loading… text, a spinner, or aria-busy set by hand.
+
+## Round three: real phones, answers, backend, trend, sizes, menu sense, card tags
+
+- **Real-phone telemetry**: shell.js measures one visit in ten. It records the load time, the time to Find's first
+  menu answer, long tasks, the JS heap where available, OOPS.n errors, the rank and a device class (`phone-4gb-8c`).
+  It never records a name or id. Visits are queued in localStorage and sent three to five at a time to the new
+  `healthLog` doPost action, with `keepalive` and with every step in try/catch, so it never blocks or slows the page.
+  - The rows go to the `health_log` Ledger tab, which is named in TAB, SCHEMA and WHERE, with permission `anyone`
+    and the per-device-day throttle the error log uses. All four stamps went to `2026-11-04-health-920`.
+  - `tools/field-health.js --sheets s.json` writes the p75 of each figure by device class into
+    data/field-health.json. Without `--sheets` it writes a skip with its count.
+  - **The owner must** merge, sync Apps Script, Deploy → New version, and open the site once as an admin, so that
+    setup makes the tab. Until then the posts are refused with `no-tab` and nothing breaks.
+- **Answer correctness**: `tools/answer-health.js` runs find.js's own `markAnswer_` in a node vm box. The box first
+  proves the marker works: 5 vs 5 must be right and 7 vs 5 wrong. Then, for every verified question, the first way in
+  `accept` must mark right and a nonsense answer must mark wrong. It takes about 2 s. With LIB_PRIVATE absent it
+  writes a skip.
+- **Backend**: `tools/backend-health.js` (about 40 s, most of it the jsdom boot):
+  - times doGet cold and warm over js/check-gas-load.js's in-memory ledger;
+  - posts one healthLog batch;
+  - counts check-payload's keys read, keys sent and keys sent but never read;
+  - checks the four stamps agree;
+  - boots the app in jsdom on an empty `{}` payload, which must load and draw without throwing.
+- **Trend**: each full `node tools/health.js` appends date, commit, score, parts and top kind to data/health-trend.json.
+  The card draws the last thirty scores as one line and names the commit of the worst drop.
+- **Size budgets**: `node tools/health.js --budgets` writes data/settings/size-budgets.json at current + 5% for each
+  first-download file (index.html, style.css, the font, EAGER js) and for their total. A file over its budget is a
+  `size` finding.
+- **Menu sense** comes from the logic walk:
+  - a menu asked with one answer;
+  - two answers one letter or an `s` apart (not two that differ only in a digit, like Part 1 and Part 2);
+  - an answer that keeps no card.
+- **Do this next**: the dearest offender, said as one sentence at the top of the output and in the card.
+- **Dead code**: stability's check-dead names, listed one per function and priced only once.
+- **UX walk extras**:
+  - a11y: a tap target under 44 px, an input with no label, and text under 4.5:1 contrast on Find and Feed;
+  - console errors;
+  - `card-tags`: per kind, up to 20 cards drawn by `stuffCard`, each checked for a tag line and for every facet value
+    it has as a `data-f` tag, at the drawing function's file:line. A drawer that called `tagRow_` at 389d843 and no
+    longer does is flagged.

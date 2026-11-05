@@ -2,23 +2,23 @@
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 159807,
+  "ms": 163492,
   "phase": {
-   "loaded": 6873,
-   "signin": 15948,
-   "findUsable": 26584,
-   "clicks": 128357,
-   "questions": 159689
+   "loaded": 6781,
+   "signin": 15572,
+   "findUsable": 26176,
+   "clicks": 128519,
+   "questions": 160434
   }
  },
- "firstScreenMs": 500,
- "findUsableMs": 10636,
- "signinMs": 8428,
+ "firstScreenMs": 536,
+ "findUsableMs": 10604,
+ "signinMs": 8101,
  "heapMB": 905,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "ms": 56,
+   "ms": 72,
    "shift": 0.008,
    "longs": 1,
    "by": "event-timing"
@@ -32,14 +32,14 @@
   },
   {
    "what": "third menu: first answer",
-   "ms": 40,
+   "ms": 32,
    "shift": 0.009,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "back: drop the last chip",
-   "ms": 32,
+   "ms": 24,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -53,35 +53,35 @@
   },
   {
    "what": "open a question",
-   "ms": 3693,
+   "ms": 4031,
    "shift": 0.021,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
-   "ms": 64,
+   "ms": 72,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Lock the page",
-   "ms": 40,
+   "ms": 64,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Unlock the page",
-   "ms": 32,
+   "ms": 24,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
   },
   {
    "what": "Fold the question",
-   "ms": 48,
+   "ms": 40,
    "shift": 0.002,
    "longs": 0,
    "by": "event-timing"
@@ -103,14 +103,14 @@
   },
   {
    "what": "Feed tab",
-   "ms": 50,
+   "ms": 47,
    "shift": 0,
    "longs": 0,
    "by": "frames"
   },
   {
    "what": "Find tab",
-   "ms": 58,
+   "ms": 43,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -123,7 +123,7 @@
  "slow": [
   {
    "what": "open a question",
-   "ms": 3693,
+   "ms": 4031,
    "shift": 0.021,
    "longs": 1,
    "by": "frames"
@@ -138,5 +138,378 @@
   "types": 24,
   "broken": []
  },
- "errors": []
+ "errors": [],
+ "consoleErrors": [],
+ "a11y": [
+  {
+   "screen": "stuff",
+   "what": "label",
+   "say": "input has no label"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-clear is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Practice✕\" is 82x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Questions✕\" is 88x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Maths✕\" is 63x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Past paper✕\" is 95x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Any which type✕\" is 120x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"A-Level✕\" is 76x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Edexcel✕\" is 76x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"2022✕\" is 57x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Accuracy unverified✕\" is 151x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Function verified✕\" is 138x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Q1✕\" is 45x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"a✕\" is 38x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"i✕\" is 38x32 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "rep-box is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "q-mag is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "q-lock is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "read-aloud is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "help-hand is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "fav is 36x36 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "find-top is 36x36 px (under 44)"
+  }
+ ],
+ "cardTags": {
+  "soon": {
+   "cards": 40,
+   "sampled": 20,
+   "noTags": 20,
+   "missing": {
+    "forLabel": 20,
+    "kindLabel": 20
+   },
+   "fn": "card"
+  },
+  "msg": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card"
+  },
+  "person": {
+   "cards": 2,
+   "sampled": 2,
+   "noTags": 2,
+   "missing": {
+    "forLabel": 2,
+    "kindLabel": 2
+   },
+   "fn": "card"
+  },
+  "health": {
+   "cards": 2,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card"
+  },
+  "boxer": {
+   "cards": 103,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "fight": {
+   "cards": 157,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "boutWinner": 20
+   },
+   "fn": "card"
+  },
+  "practical": {
+   "cards": 82,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "project": {
+   "cards": 9,
+   "sampled": 9,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "content": {
+   "cards": 956,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 1
+   },
+   "fn": "card"
+  },
+  "insert": {
+   "cards": 22,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "manuscript": {
+   "cards": 12,
+   "sampled": 12,
+   "noTags": 0,
+   "missing": {
+    "shelf": 12
+   },
+   "fn": "card"
+  },
+  "figure": {
+   "cards": 45,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "shelf": 20
+   },
+   "fn": "card"
+  },
+  "event": {
+   "cards": 109,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "shelf": 20
+   },
+   "fn": "card"
+  },
+  "timeline": {
+   "cards": 2,
+   "sampled": 2,
+   "noTags": 0,
+   "missing": {
+    "shelf": 2
+   },
+   "fn": "card"
+  },
+  "bible": {
+   "cards": 151003,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "talmud": {
+   "cards": 5350,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "quran": {
+   "cards": 12472,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "hadith": {
+   "cards": 34153,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "worktext": {
+   "cards": 454,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "writ": {
+   "cards": 26046,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20,
+    "wWork": 2
+   },
+   "fn": "card"
+  },
+  "pdtext": {
+   "cards": 8540,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "wForm": 6
+   },
+   "fn": "card"
+  },
+  "orthotext": {
+   "cards": 9671,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "hymn": {
+   "cards": 766,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "topic": 20
+   },
+   "fn": "card"
+  },
+  "mech": {
+   "cards": 72,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "chem": {
+   "cards": 417,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {},
+   "fn": "card"
+  },
+  "question": {
+   "cards": 28445,
+   "sampled": 20,
+   "noTags": 0,
+   "missing": {
+    "tier": 1,
+    "paperId": 1
+   },
+   "fn": "card"
+  },
+  "offPosts": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card"
+  },
+  "offShop": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card"
+  },
+  "offBooking": {
+   "cards": 1,
+   "sampled": 1,
+   "noTags": 1,
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card"
+  }
+ }
 }

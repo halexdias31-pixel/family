@@ -62,9 +62,20 @@ function siteHealthCard_() {
   const said = { code: 'Code', logic: 'Find logic', ui: 'UI' };
   return `<div class="card logic-card">${head}<p class="stab-score">${esc(String(s.score))}%</p>
     <p class="sub">Code ${esc(String(p.code))}% · Find logic ${esc(String(p.logic))}%${s.logicStale ? ' (stale)' : ''} · UI ${esc(String(p.ui))}%</p>
+    ${s.next ? `<p><b>${esc(String(s.next))}</b></p>` : ''}${healthTrend_(s.trend)}
     <ol class="stab-top">${list.map(t => `<li>${esc(t.say)} <span class="faint">(${esc(said[t.part] || t.part)}, −${esc(String(t.cost))})</span></li>`).join('')}</ol>
     ${healthWork_(s.worklist)}
     ${(s.all || []).length > 5 ? tileRow_(tile_({ icon: HEALTH.all ? 'hide' : 'show', label: HEALTH.all ? 'Show the top five' : 'Show the full list', act: 'health-all' }), '', true) : ''}</div>`;
+}
+/* THE TREND (920): the last thirty full runs as one thin line in the text colour, and the commit of the worst drop. */
+function healthTrend_(t) {
+  const v = (t && Array.isArray(t.last) ? t.last : []).map(Number).filter(n => isFinite(n));
+  if (v.length < 2) return '';
+  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
+  const pts = v.map((n, i) => (i * 100 / (v.length - 1)).toFixed(1) + ',' + (22 - (n - lo) / span * 20).toFixed(1)).join(' ');
+  const d = t.worstDrop;
+  return `<svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" role="img" aria-label="Score over the last ${v.length} runs"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`
+    + (d ? `<p class="faint">Worst drop ${esc(String(d.by))} at ${esc(String(d.commit))} (${esc(String(d.date))}${d.topKind ? ', ' + esc(String(d.topKind)) : ''})</p>` : '');
 }
 /* THE FIXER'S FIRST FIVE (920): the dearest findings of tools/health.js's worklist, each where it is and what it is, in plain words. */
 const HEALTH_SAY = { 'one-off': 'A special case for one name', 'long-fn': 'A long function', 'big-file': 'A very big file',

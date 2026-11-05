@@ -1,0 +1,31 @@
+{
+ "problems": [
+  {
+   "kind": "resilience",
+   "where": "payload {}",
+   "say": "1 error(s) thrown booting on an empty payload: Cannot access [quoted] before initialization|shell:columnsFor_"
+  }
+ ],
+ "stamps": {
+  "BACKEND_VERSION": "2026-11-04-health-920",
+  "DOGET_VERSION": "2026-11-04-health-920",
+  "DOPOST_VERSION": "2026-11-04-health-920",
+  "BOOKING_VERSION": "2026-11-04-health-920"
+ },
+ "doGetColdMs": 10,
+ "doGetWarmMs": 0,
+ "payloadKB": 23,
+ "healthLog": "ok",
+ "keysRead": 69,
+ "keysSent": 75,
+ "sentUnread": [],
+ "emptyPayload": {
+  "loaded": true,
+  "drawnChars": 11537,
+  "errors": 1,
+  "which": [
+   "Cannot access [quoted] before initialization|shell:columnsFor_"
+  ]
+ },
+ "ms": 41542
+}

@@ -36,6 +36,41 @@ function oops_(err, where, host, o) {
 }
 window.addEventListener('error', e => oops_(e && (e.error || e.message), 'onerror', null, { toast: true }));
 window.addEventListener('unhandledrejection', e => oops_(e && e.reason, 'promise', null, { toast: true }));
+/* REAL-PHONE HEALTH (920): one visit in ten measured, queued and sent five at a time to healthLog; a rank and a device class, never a name. */
+const FIELD = { on: Math.random() < 0.1, longs: 0, longMs: 0, find: 0, t0: Date.now() };
+function fieldDevice_() {
+  try {
+    const w = Math.min(screen.width || 0, screen.height || 0), mem = navigator.deviceMemory || 0, cpu = navigator.hardwareConcurrency || 0;
+    return (w && w < 600 ? 'phone' : w < 1000 ? 'tablet' : 'desk') + '-' + (mem ? mem + 'gb' : 'gb') + '-' + (cpu ? cpu + 'c' : 'c');
+  } catch (e) { return 'unknown'; }
+}
+function fieldRow_() {
+  const nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+  const r = (typeof USER !== 'undefined' && USER) ? String(USER.rank || USER.role || 'student').toLowerCase() : 'out';
+  return { version: typeof SITE_VERSION === 'string' ? SITE_VERSION : '', rank: r, device: fieldDevice_(),
+    load_ms: Math.round(nav.loadEventEnd || 0), find_ms: FIELD.find, long_tasks: FIELD.longs, long_ms: Math.round(FIELD.longMs),
+    heap_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10 : '', errors: OOPS.n };
+}
+function fieldSend_(final) {
+  if (!FIELD.on || FIELD.sent || typeof API !== 'string' || typeof fetch !== 'function') return;
+  FIELD.sent = true;
+  let q = [];
+  try { q = JSON.parse(localStorage.getItem('familyField') || '[]'); } catch (e) { q = []; }
+  q.push(fieldRow_());
+  if (q.length < 3 && !final) { try { localStorage.setItem('familyField', JSON.stringify(q.slice(-5))); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; } return; }
+  try { localStorage.removeItem('familyField'); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
+  try { Promise.resolve(fetch(API, { method: 'POST', cache: 'no-store', keepalive: true, body: JSON.stringify({ action: 'healthLog', device: fieldDevice_(), rows: q.slice(-5) }) })).catch(() => {}); }
+  catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
+}
+if (FIELD.on) {
+  try { new window.PerformanceObserver(l => l.getEntries().forEach(e => { FIELD.longs++; FIELD.longMs += e.duration; })).observe({ type: 'longtask', buffered: true }); } catch (e) { FIELD.longs = -1; }
+  /* TIME TO FIND: the first menu answer on the glass, looked for twice a second for a minute and never again. */
+  const look = setInterval(() => { try {
+    if (!FIELD.find && document.querySelector('#s-stuff [data-do="facet-pick"]')) FIELD.find = Date.now() - FIELD.t0;
+    if (FIELD.find || Date.now() - FIELD.t0 > 60000) { clearInterval(look); setTimeout(() => fieldSend_(false), 2000); }
+  } catch (e) { clearInterval(look); } }, 500);
+  try { addEventListener('pagehide', () => fieldSend_(true)); } catch (e) { FIELD.lost = (FIELD.lost || 0) + 1; }
+}
 /* A STEP THAT MAY THROW, RUN SO THAT IT CANNOT TAKE ITS CALLER WITH IT. */
 function oopsTry_(where, fn, host) {
   try { return fn(); } catch (err) { oops_(err, where, host); return undefined; }

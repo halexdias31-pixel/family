@@ -29,6 +29,8 @@ function instruments() {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e.message).slice(0, 160)));
+  const consoleErrors = [];
+  page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
   await page.addInitScript(instruments);
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
@@ -106,6 +108,32 @@ function instruments() {
   await tap('Feed tab', null, () => go('feed'));
   await tap('Find tab', null, () => go('stuff'));
   mark('clicks');
+  /* ACCESSIBILITY BASICS (920) on Find and Feed as drawn: a target under 44 px, a box with no label, text under 4.5:1 on its own background. */
+  const a11y = [];
+  for (const sid of ['stuff', 'feed']) {
+    await page.evaluate(sid => go(sid), sid); await page.waitForTimeout(500);
+    a11y.push(...await page.evaluate(sid => {
+      const out = [], root = document.getElementById('s-' + sid), seen = new Set();
+      if (!root) return out;
+      const vis = e => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left >= 0 && b.right <= innerWidth && b.top < innerHeight && b.bottom > 0; };
+      const name = e => (e.getAttribute('data-do') || e.tagName.toLowerCase()) + (e.textContent.trim() ? ' "' + e.textContent.trim().slice(0, 24) + '"' : '');
+      root.querySelectorAll('[data-do], button, a[href], input, select, textarea').forEach(e => {
+        if (!vis(e)) return; const b = e.getBoundingClientRect(), k = name(e);
+        if ((b.width < 44 || b.height < 44) && !seen.has('t' + k)) { seen.add('t' + k); out.push({ screen: sid, what: 'tap target', say: `${k} is ${Math.round(b.width)}x${Math.round(b.height)} px (under 44)` }); }
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) && e.type !== 'hidden' && !e.getAttribute('aria-label') && !(e.id && document.querySelector('label[for="' + e.id + '"]')) && !e.closest('label') && !seen.has('l' + k)) {
+          seen.add('l' + k); out.push({ screen: sid, what: 'label', say: `${k} has no label` }); }
+      });
+      const rgb = c => (c.match(/[\d.]+/g) || []).map(Number), lum = c => { const [r, g, b] = rgb(c).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+      const bgOf = e => { for (let p = e; p; p = p.parentElement) { const c = getComputedStyle(p).backgroundColor, a = rgb(c); if (a.length === 3 || (a.length === 4 && a[3] > 0.9)) return c; } return 'rgb(255,255,255)'; };
+      root.querySelectorAll('p, span, b, h3, li, label, .k').forEach(e => {
+        if (!vis(e) || !e.childNodes.length || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return;
+        const f = getComputedStyle(e).color, a = rgb(f); if (a.length === 4 && a[3] < 0.5) return;
+        const L1 = lum(f), L2 = lum(bgOf(e)), r = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+        const k = 'c' + e.className + f; if (r < 4.5 && !seen.has(k)) { seen.add(k); out.push({ screen: sid, what: 'contrast', say: `"${e.textContent.trim().slice(0, 24)}" (${e.tagName.toLowerCase()}.${e.className || '-'}) is ${r.toFixed(2)}:1` }); }
+      });
+      return out;
+    }, sid));
+  }
   const heap = await page.evaluate(() => (performance.memory && performance.memory.usedJSHeapSize) || 0);
 
   /* CORRECTNESS, NOT SPEED, from here: the throttle comes off so thirty questions fit the budget. */
@@ -139,6 +167,29 @@ function instruments() {
     if (r.length) broken.push({ id: q.id, type: q.type, why: r });
   }
   mark('questions');
+  /* CARD TAGS (920): every kind's cards drawn by stuffCard, as Find draws them; each facet value a card has must be a tag (data-f), and a question carries Accuracy and Function. */
+  const cardTags = await page.evaluate(() => {
+    const by = {}, out = {};
+    stuffItemsAll_().forEach(x => { if (x && x.kind) (by[x.kind] = by[x.kind] || []).push(x); });
+    const host = document.createElement('div');
+    Object.keys(by).forEach(k => {
+      const l = by[k], pick = l.filter((x, i) => i % Math.max(1, Math.floor(l.length / 20)) === 0).slice(0, 20);
+      const card = kindOf_(pick[0]).card || thingCard_;
+      const r = out[k] = { cards: l.length, sampled: 0, noTags: 0, missing: {}, fn: card.name || '' };
+      pick.forEach(x => {
+        let html = ''; try { html = stuffCard(x, 0); } catch (e) { html = ''; }
+        if (/lib-wait|aria-busy/.test(html) && !/qtag/.test(html)) return;
+        r.sampled++;
+        host.innerHTML = html;
+        const have = new Set([...host.querySelectorAll('.qtag')].map(t => t.getAttribute('data-f')));
+        if (!have.size) r.noTags++;
+        facetList().forEach(F => { let v = [];
+          try { v = asList_(F.tagOf ? F.tagOf(x, '') : facetOwn_(F, x)).filter(z => String(z == null ? '' : z).trim()); } catch (e) { v = []; }
+          if (v.length && !have.has(F.field)) r.missing[F.field] = (r.missing[F.field] || 0) + 1; });
+      });
+    });
+    return out;
+  });
   await browser.close(); server.close();
   const out = {
     walked: { viewport: '390x844 touch', cpu: CPU + 'x (1x for the question sample)', ms: Date.now() - t0, phase },
@@ -147,7 +198,7 @@ function instruments() {
     slow: clicks.filter(c => !c.missing && (c.ms > CLICK_MS || c.shift > SHIFT)),
     missing: clicks.filter(c => c.missing).map(c => c.what),
     questions: { sampled: questions.length, types: [...new Set(questions.map(q => q.type))].length, broken },
-    errors: [...new Set(errors)].slice(0, 20),
+    errors: [...new Set(errors)].slice(0, 20), consoleErrors: [...new Set(consoleErrors)].slice(0, 20), a11y, cardTags,
   };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   console.log(`ux-health: wrote data/ux-health.json — first screen ${out.firstScreenMs} ms, Find usable ${out.findUsableMs} ms, sign-in ${out.signinMs} ms, `

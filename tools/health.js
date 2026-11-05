@@ -114,11 +114,24 @@ function uxWork() {
   if (j.findUsableMs > 3000 || j.findUsableMs < 0) W.push({ kind: 'ux', where: 'Find usable', say: `${j.findUsableMs} ms from signed in to Find's first menu (budget 3000)` });
   if (j.signinMs > 3000) W.push({ kind: 'ux', where: 'sign-in', say: `${j.signinMs} ms from the press to signed in (budget 3000)` });
   if (j.heapMB > 300) W.push({ kind: 'ux', where: 'JS heap after Practice', say: `${j.heapMB} MB (budget 300)` });
+  (j.a11y || []).forEach(a => W.push({ kind: 'a11y', where: a.screen + ' ' + a.what, say: a.say }));
+  (j.consoleErrors || []).concat(j.errors || []).forEach(e => W.push({ kind: 'console', where: 'the UX walk', say: e }));
+  /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
+  const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
+  const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };
+  const fsrc = read('js/find.js'), drawer = {};
+  for (const m of fsrc.matchAll(/^\s*(\w+): \{[^\n]*?card: x => \(?(?:typeof \w+ === 'function' \? )?(\w+)\(/gm)) drawer[m[1]] = { fn: m[2], at: 'js/find.js:' + lineOf(fsrc, m.index) };
+  Object.keys(j.cardTags || {}).forEach(k => { const d = drawer[k] || {}, c = Object.assign({}, j.cardTags[k], { fn: d.fn || '' }), at = fnAt(c.fn) || d.at || ('kind ' + k);
+    if (c.noTags) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.noTags} of ${c.sampled} sampled cards draw no tag line (${c.fn || 'no drawer'})` });
+    Object.keys(c.missing || {}).forEach(f => W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.missing[f]} of ${c.sampled} cards have a ${f} value that is not a tag` }));
+    const file = at.split(':')[0];
+    if (c.fn && /^js\//.test(file)) { const was = bodyHas(git(['show', '389d843:' + file]), c.fn), now = bodyHas(read(file), c.fn);
+      if (was === true && now === false) W.push({ kind: 'card-tags', where: at, say: `${k}: ${c.fn} drew tagRow_ at 389d843 and no longer does` }); } });
   if (j.signinMs < 0) W.push({ kind: 'ux', where: 'sign-in', say: 'the sign-in with the fixture PIN did not finish' });
   ((j.questions || {}).broken || []).forEach(q => W.push({ kind: 'question', where: q.id + ' (' + q.type + ')', say: q.why.join('; ') }));
   return { j, work: W };
 }
-const UX_PENALTY = { ux: [1, 10], question: [0.5, 10] };
+const UX_PENALTY = { ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10] };
 
 function ui() {
   const css = read('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -277,6 +290,56 @@ const SAY = {
   position: n => `${n} transforms and absolute positions place boxes by hand.`,
 };
 
+/* THE OCCASIONAL WALKS' FILES (920), each written by its own tool and only read here; a missing one is a skip, counted, never a zero. */
+const jread = f => { try { return JSON.parse(read(f)); } catch (e) { return null; } };
+function extraWork(st) {
+  const W = [], skipped = [];
+  const F = jread('data/field-health.json');
+  if (!F || F.skipped) skipped.push('field (' + ((F && F.why) || 'tools/field-health.js not run') + ')');
+  else {
+    [['loadMs', 'load', 3000], ['findMs', 'time to Find', 3000], ['longMs', 'long tasks', 500], ['heapMB', 'JS heap', 300]].forEach(([k, say, b]) => {
+      if (F[k] > b) W.push({ kind: 'field', part: 'ui', where: 'real phones (p75 of ' + F.visits + ')', say: `${say} ${F[k]}${k === 'heapMB' ? ' MB' : ' ms'} (budget ${b})` }); });
+    if (F.visits && F.errorVisits / F.visits > 0.05) W.push({ kind: 'field', part: 'ui', where: 'real phones', say: `${F.errorVisits} of ${F.visits} visits threw an error` });
+  }
+  const A = jread('data/answer-health.json');
+  if (!A || A.skipped) skipped.push('answers (' + ((A && A.why) || 'tools/answer-health.js not run') + ')');
+  else (A.wrong || []).forEach(w => W.push({ kind: 'answer', part: 'logic', where: w.id, say: w.why }));
+  const B = jread('data/backend-health.json');
+  if (!B) skipped.push('backend (tools/backend-health.js not run)');
+  else (B.problems || []).forEach(p => W.push({ kind: p.kind, part: 'code', where: p.where, say: p.say }));
+  const L = jread('data/logic-health.json');
+  /* TWO ANSWERS THAT DIFFER ONLY IN A DIGIT are two things (1813 and 1843, Part 1 and Part 2), not one misspelt. */
+  const digitsOnly = m => { const p = /: (.*) ~ (.*)$/.exec(m.say); const z = t => t.replace(/\d+|\b[IVXLC]+\b/g, '#'); return p && z(p[1]) === z(p[2]); };
+  ((L && L.menuSense) || []).filter(m => !(m.kind === 'spelling' && digitsOnly(m))).forEach(m => W.push({ kind: 'menu-sense', part: 'logic', where: m.where, say: m.kind + ': ' + m.say }));
+  /* DEAD CODE, from stability's own check-dead run: one item per function nothing calls. */
+  const dead = ((st.signals || []).find(x => x.id === 'dead') || {}).where || {};
+  String(dead['check-dead'] || '').split(', ').filter(Boolean).forEach(d => { const m = /^(\w+) \(([\w.-]+)\)$/.exec(d);
+    W.push({ kind: 'dead', part: 'code', where: m ? 'js/' + m[2] : d, say: (m ? m[1] : d) + ' is never called' }); });
+  /* SIZE BUDGETS (920): each first-download file and their total, against data/settings/size-budgets.json (current + 5% when set). */
+  const budget = jread('data/settings/size-budgets.json');
+  const sizes = firstDownload();
+  if (!budget) skipped.push('sizes (no data/settings/size-budgets.json: node tools/health.js --budgets)');
+  else {
+    Object.keys(sizes.files).forEach(f => { const b = budget.files && budget.files[f];
+      if (!b) W.push({ kind: 'size', part: 'code', where: f, say: `${Math.round(sizes.files[f] / 1024)} KB with no budget` });
+      else if (sizes.files[f] > b) W.push({ kind: 'size', part: 'code', where: f, say: `${Math.round(sizes.files[f] / 1024)} KB, over its ${Math.round(b / 1024)} KB budget` }); });
+    if (sizes.total > budget.total) W.push({ kind: 'size', part: 'code', where: 'first download', say: `${Math.round(sizes.total / 1024)} KB, over its ${Math.round(budget.total / 1024)} KB budget` });
+  }
+  return { work: W, skipped, sizes };
+}
+/* THE FIRST DOWNLOAD: index.html, style.css and every file index.html's list loads, in bytes. */
+function firstDownload() {
+  /* EAGER, as index.html works it out: FILES less LATER (fetched after the first screen) and OFF (never fetched). */
+  const html = read('index.html'), arr = k => { const m = new RegExp('window\\.' + k + '\\s*=\\s*\\[([\\s\\S]*?)\\]').exec(html); return m ? [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : []; };
+  const later = new Set(arr('LATER').concat(arr('OFF')));
+  const list = ['index.html', 'style.css', 'fonts/family-code.woff2'].concat(arr('FILES').filter(f => !later.has(f)).map(f => 'js/' + f + '.js'));
+  const files = {}; let total = 0;
+  list.forEach(f => { try { const n = fs.statSync(path.join(ROOT, f)).size; files[f] = n; total += n; } catch (e) { /* a listed file that is missing is check-loading's to say */ } });
+  return { files, total };
+}
+const EXTRA_PENALTY = { field: [2, 10], answer: [0.5, 10], 'menu-sense': [0.1, 10], backend: [2, 10], resilience: [5, 10], dead: [0, 0], size: [1, 10],
+  a11y: [0.05, 5], console: [0.5, 5] };
+
 function health() {
   const st = require('./stability.js').stability();
   const L = logic(), U = ui(), S = structure();
@@ -288,8 +351,16 @@ function health() {
   work.forEach(w => { kinds[w.kind] = (kinds[w.kind] || 0) + 1; });
   const fpen = Object.keys(FIND_PENALTY).map(k => ({ id: k, count: kinds[k] || 0, off: r1(Math.min(FIND_PENALTY[k][1], (kinds[k] || 0) * FIND_PENALTY[k][0])) }));
   const walk = L.j && typeof L.j.score === 'number' ? L.j.score : 0;
-  const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0)));
-  const overall = r1(WEIGHTS.code * code + WEIGHTS.logic * lscore + WEIGHTS.ui * U.score);
+  const X = extraWork(st), xk = {};
+  X.work.forEach(w => { const k = w.part + '|' + w.kind; xk[k] = (xk[k] || 0) + 1; });
+  /* dead is already priced by stability's `dead`; it is listed here, never charged twice. */
+  const xpen = Object.keys(xk).map(k => { const [part, id] = k.split('|'), P = EXTRA_PENALTY[id] || [0.1, 5];
+    return { part, id, count: xk[k], off: r1(Math.min(P[1], xk[k] * P[0])) }; });
+  const less = part => xpen.filter(p => p.part === part).reduce((a, p) => a + p.off, 0);
+  const lscore = r1(Math.max(0, walk - fpen.reduce((a, p) => a + p.off, 0) - less('logic')));
+  const codeX = r1(Math.max(0, code - less('code')));
+  const uiX = r1(Math.max(0, U.score - less('ui')));
+  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX);
   const off = [];
   sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
     say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
@@ -298,15 +369,33 @@ function health() {
   ((L.j && L.j.rules) || []).forEach(r => r.count > 0 && q && off.push({ part: 'logic', id: r.id,
     cost: r1(r.count / q * 100 * WEIGHTS.logic), say: `Find: ${r.count} of ${q} questions break a rule — ${r.label}.` }));
   fpen.forEach(p => p.off > 0 && off.push({ part: 'logic', id: p.id, cost: r1(p.off * WEIGHTS.logic), say: `Find: ${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
+  xpen.forEach(p => p.off > 0 && off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }));
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
+  /* DO THIS NEXT (920): the one change worth most points, in a sentence a person can act on. */
+  const best = off[0];
+  const next = best ? `Do this next: ${best.say.replace(/\.$/, '')} — fixing it is worth up to ${best.cost} points (${best.part}).` : 'Do this next: nothing — every signal is clean.';
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
-    parts: { code, logic: lscore, ui: U.score },
+    parts: { code: codeX, logic: lscore, ui: uiX }, next, skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
-    worklist: S.findings, work: work.concat(U.work),
+    worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
   };
+}
+/* TREND (920): each full run's score in data/health-trend.json; the card draws the last thirty and names the commit of the worst drop. */
+const TREND = path.join(ROOT, 'data', 'health-trend.json');
+function trendSummary() {
+  let t = []; try { t = JSON.parse(fs.readFileSync(TREND, 'utf8')); } catch (e) { t = []; }
+  let drop = null;
+  for (let i = 1; i < t.length; i++) { const d = r1(t[i].score - t[i - 1].score); if (d < 0 && (!drop || d < drop.by)) drop = { by: d, commit: t[i].commit, date: t[i].date, topKind: t[i].topKind }; }
+  return { last: t.slice(-30).map(e => e.score), runs: t.length, worstDrop: drop };
+}
+function trendAppend(h) {
+  let t = []; try { t = JSON.parse(fs.readFileSync(TREND, 'utf8')); } catch (e) { t = []; }
+  const commit = git(['rev-parse', '--short', 'HEAD']), e = { date: new Date().toISOString().slice(0, 10), commit, score: h.score, parts: h.parts, topKind: (h.top[0] || {}).id || '' };
+  const was = t[t.length - 1];
+  if (!was || was.score !== e.score || was.commit !== e.commit) { t.push(e); fs.writeFileSync(TREND, JSON.stringify(t, null, 1) + '\n'); }
 }
 module.exports = { health };
 /* --changed (920): a ratchet over the files this branch touches — no NEW finding against the committed baseline. */
@@ -372,28 +461,36 @@ function fix() {
   try { execFileSync(process.execPath, ['js/check.js'], { cwd: ROOT, stdio: 'inherit' }); } catch (e) { console.log('js/check.js FAILED after --fix'); process.exit(1); }
   console.log(`health --fix: ${done.length} change(s) (${Date.now() - t0} ms)`);
 }
-if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
+if (require.main === module && process.argv.includes('--budgets')) {
+  const z = firstDownload(), up = n => Math.ceil(n * 1.05);
+  fs.writeFileSync(path.join(ROOT, 'data/settings/size-budgets.json'), JSON.stringify({ why: 'first-download budgets: current + 5% when set (920); raise one only with a reason in docs/history', total: up(z.total),
+    files: Object.fromEntries(Object.keys(z.files).map(f => [f, up(z.files[f])])) }, null, 1) + '\n');
+  console.log(`wrote data/settings/size-budgets.json: ${Object.keys(z.files).length} files, total ${Math.round(up(z.total) / 1024)} KB`);
+} else if (require.main === module && process.argv.includes('--where')) where(process.argv[process.argv.indexOf('--where') + 1] || '');
 else if (require.main === module && process.argv.includes('--fix')) fix();
 else if (require.main === module && process.argv.includes('--changed')) changed();
 else if (require.main === module) {
   const at = process.argv.indexOf('--list');
   if (at >= 0) {
     const n = Number(process.argv[at + 1]) || 20, ki = process.argv.indexOf('--kind'), kind = ki >= 0 ? process.argv[ki + 1] : '';
-    const W = structure().findings.concat(findWork(logic()).concat(ui().work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
+    const W = structure().findings.concat(findWork(logic()).concat(ui().work, extraWork(require('./stability.js').stability()).work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
       .filter(f => !kind || f.kind === kind);
     W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  ${f.text}`));
     console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings, dearest first)`);
     process.exit(0);
   }
-  const t0 = Date.now(), h = health(), want = JSON.stringify(h) + '\n';
+  const t0 = Date.now(), h = health();
   const L = logic();
+  h.trend = trendSummary();
   if (CHECK) {
     if (L.stale) { console.log('STALE — data/logic-health.json is older than ' + (L.newer.join(', ') || 'missing') + ': run node tools/logic-health.js'); process.exit(1); }
     const now = read('data/health.json');
-    if (now === want) { console.log('OK — data/health.json is current (' + h.score + '%).'); process.exit(0); }
+    if (now === JSON.stringify(h) + '\n') { console.log('OK — data/health.json is current (' + h.score + '%).'); process.exit(0); }
     console.log('FAILED — data/health.json is stale: run node tools/health.js'); process.exit(1);
   }
-  fs.writeFileSync(OUT, want);
+  trendAppend(h); h.trend = trendSummary();
+  fs.writeFileSync(OUT, JSON.stringify(h) + '\n');
+  console.log(h.next);
   console.log(`wrote data/health.json: ${h.score}% (code ${h.parts.code}, Find logic ${h.parts.logic}${L.stale ? ' STALE' : ''}, UI ${h.parts.ui}) in ${Date.now() - t0} ms`);
   console.log('  findings: ' + Object.keys(h.counts).map(k => k + ' ' + h.counts[k]).join(', '));
   h.top.forEach((t, i) => console.log(`  ${i + 1}. −${t.cost} ${t.say}`));
