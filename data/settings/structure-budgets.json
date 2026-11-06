@@ -5,7 +5,7 @@
   "js/shell.js": 186,
   "js/me.js": 187,
   "js/posts.js": 117,
-  "js/games.js": 106,
+  "js/games.js": 108,
   "js/tiles.js": 85,
   "js/arcade.js": 98,
   "js/layout.js": 76,
@@ -306,7 +306,7 @@
    "rawButton": 2
   },
   "js/games.js": {
-   "lines": 6442,
+   "lines": 6444,
    "oneOff": 18,
    "emptyCatch": 59,
    "inlineStyle": 16,
@@ -968,13 +968,13 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5269805,
+  "searchBytes": 5270149,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,
   "testBiggest": 414941,
   "bigNotes": 10,
-  "spread": 20,
+  "spread": 17,
   "effortLines": 209,
   "effortFiles": 9
  },

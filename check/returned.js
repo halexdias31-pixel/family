@@ -13,7 +13,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const WIDGETS = {
   Tools: ['calculator', 'timer', 'notepad', 'whiteboard', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
     'favlinks', 'console', 'spotify', 'rewrite', 'pixel', 'libcards'],
-  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Newspaper: ['newspaper'], Flyers: ['flyers'], Posters: ['poster'],
+  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Flyers: ['flyers'], Posters: ['poster'],
   Verse: ['verse'], Shop: ['cart'],
 };
 WIDGETS.Tools = WIDGETS.Tools.filter(w => w !== 'console');

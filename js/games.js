@@ -2236,6 +2236,8 @@ function roundPaint(k) {
   const card = $(k + '-card'), said = $(k + '-said'), left = $(k + '-left'), got = $(k + '-got');
   if (!card || !g) return;
   const s = roundAt[k];
+  /* GOT IT AND PASS ARE DRAWN FROM THE START, greyed until Start (the owner, 6 Nov): never hidden, so nothing moves. */
+  document.querySelectorAll('[data-do="rg-next"][data-g="' + k + '"]').forEach(b => b.setAttribute('aria-disabled', s && s.phase === 'go' ? 'false' : 'true'));
   if (!s || s.phase === 'idle') {
     card.innerHTML = `<button class="art-go" data-do="rg-start" data-g="${esc(k)}">Start</button>`;
     if (said) said.textContent = g.say;

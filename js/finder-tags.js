@@ -2,7 +2,7 @@
 const FINDER_TAGS = {
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Newspaper"],["Flyers"],["Posters"],["Verse"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
+  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Flyers"],["Posters"],["Verse"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Science"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]]],
   "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]]],
@@ -13,7 +13,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Islam"],["Judaism"],["Mesopotamian religion"]]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Newspaper"],["Posters"],["Verse"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
+  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Posters"],["Verse"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Library": ["subject",[["Art and Design"],["Astronomy"],["Biology"],["Business"],["Chemistry"],["Citizenship"],["Classical Civilisation"],["Computer Science"],["Design and Technology"],["Drama"],["Economics"],["English Language"],["English Literature"],["Food Preparation and Nutrition"],["French"],["Further Maths"],["Geography"],["German"],["History"],["Latin"],["Maths"],["Mechanics"],["Media Studies"],["Music"],["Non-verbal Reasoning"],["Phonics"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Russian"],["Science"],["Sociology"],["Spanish"],["Statistics"],["Study Skills"],["Verbal Reasoning"]]],
   "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]]],

@@ -259,3 +259,9 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - Register read: no new notes since 14:37 (last one, Camera and Posts into Find, already asked).
 - long-fn: `libraryExtras_` (183 lines, `js/library.js`) is now four blocks it calls in the old order — `libExtrasSheets_`, `libExtrasBooks_`, `libExtrasData_`, `libExtrasBoxing_` — each statement moved unchanged (acorn cut; no bare `return` among them). One tombstone comment (the topic tree) dropped. `searchBytes` budget 5,269,284 → 5,269,805 by hand (the four headers).
 - Returned features: word games Next (Got it before Start), flyer preset (the campaign's ticks already match), console Select (no game loaded) are no-ops in the start state, not breaks; check/returned.js now tries up to three safe presses, first that answers wins. Newspaper is a placeholder by design and countdowns a display (no controls): both asked or left. The full returned.js walk ran past 8 minutes and was stopped, so data/returned-health.json is unchanged.
+
+## Sweep 18:36
+- Owner's answers (6 Nov evening): Articulate and Charades draw Got it / Pass from the start, `aria-disabled` (the shared disabled look) until Start, one line in `roundPaint`. Newspaper `off` in tiers.json (`node tools/tiers.js`), so it is a Coming soon card; dropped from check/returned.js.
+- Register read: no new notes since 14:37.
+- Clutter: the credit rule (`creditsToTags_`) also moves any `.as-tag` line into the tag row; a verse's translation line (`bb-tr`) is one. Taboo / Hot Seat acts still drawn only after Start (left: their Ready card holds the word).
+- Budgets raised by hand for the greying line: games.js lines 6442→6444, coupling 106→108, searchBytes →5,270,149. finder-tags and stability regenerated (stale).
