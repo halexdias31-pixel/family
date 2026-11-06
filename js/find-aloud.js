@@ -722,7 +722,7 @@ function stuffItemsRaw_() {
   ].filter(x => !x || OFF_KINDS[x.kind] === undefined).concat(offKindCards_());
 }
 /* SWITCHED OFF (owner, 4 Nov): these kinds' items leave Find; each area keeps one Coming soon card under its own answer. */
-const OFF_KINDS = { post: 'Posts', shop: 'Shop', tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking' };
+const OFF_KINDS = {};
 function offKindCards_() {
   const seen = {};
   return Object.keys(OFF_KINDS).filter(k => !seen[OFF_KINDS[k]] && (seen[OFF_KINDS[k]] = true)).map(k => ({

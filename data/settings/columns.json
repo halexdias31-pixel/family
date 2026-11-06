@@ -3,7 +3,7 @@
     "screen": "spotlight",
     "label": "Spotlight",
     "icon": "✦",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 2,
     "cards": "TRUE",
     "notes": "what the business has put in the window — one list, the same on every phone, and only an admin can change it. With the other things you read and scroll since 21 Oct (docs/history/392). LEFT OF FEED since 26 Oct (docs/history/461, the owner: \"spotlight should be to the left of the posts column\"); feed stays TAB_HOME. A card column since 730: the window moves whole, and other units may stand on it."
@@ -12,7 +12,7 @@
     "screen": "feed",
     "label": "Feed",
     "icon": "🏠",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 3,
     "notes": "what has been posted, with the camera as the page directly above the newest post. The `make` column that held the camera is gone. TAB_HOME — where the app opens."
   },
@@ -20,7 +20,7 @@
     "screen": "reel",
     "label": "Reels",
     "icon": "▶",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 4,
     "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
   },
@@ -28,7 +28,7 @@
     "screen": "dm",
     "label": "DMs",
     "icon": "✉",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 5,
     "notes": "one conversation per page."
   },
@@ -52,7 +52,7 @@
     "screen": "saved",
     "label": "Saved",
     "icon": "★",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 9,
     "notes": "what you starred — widgets first, then anything else."
   },
@@ -60,7 +60,7 @@
     "screen": "booking",
     "label": "Book",
     "icon": "📅",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 10,
     "notes": "the form and the receipts. The basket is on the Shop column."
   },
@@ -68,7 +68,7 @@
     "screen": "shop",
     "label": "Shop",
     "icon": "🛒",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 11,
     "notes": "the shop: the basket on top, then the things for sale grouped by kind. RIGHT OF BOOKING, the other column you pay on. Find no longer has a Shop door."
   },
@@ -76,7 +76,7 @@
     "screen": "web",
     "label": "Web profile",
     "icon": "🌍",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 13,
     "cards": "TRUE",
     "notes": "@family.'s own public business card, read from the brand tab with a fallback for every line (docs/history/730). First of the five profiles."
@@ -85,7 +85,7 @@
     "screen": "tutors",
     "label": "Tutor profile",
     "icon": "🎓",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 14,
     "cards": "TRUE",
     "notes": "a card per tutor — the directory everybody signed in reads; your own card first when you teach, edited here for everything on it, with Share my profile. An admin's + Add a tutor and Edit / Delete / Show PIN under each (docs/history/461)."
@@ -94,7 +94,7 @@
     "screen": "students",
     "label": "Student profile",
     "icon": "👤",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 15,
     "cards": "TRUE",
     "notes": "Needs help on top for Staff (help.js HELP_COL), then a card per student you may see — your own first when you are one (its Edit is your card), your brothers, sisters and children, Find someone by handle with Add as my child, and Manage your child. An admin sees every student (docs/history/461)."
@@ -103,7 +103,7 @@
     "screen": "parents",
     "label": "Parent profile",
     "icon": "👪",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 16,
     "cards": "TRUE",
     "notes": "a card per parent or client you may see — your own first when you are one, your parents, a parent's claim waiting for your yes. An admin sees every client, with Send last week (docs/history/461)."
@@ -112,7 +112,7 @@
     "screen": "apprentices",
     "label": "Apprentice profile",
     "icon": "🧰",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 17,
     "cards": "TRUE",
     "notes": "a card per apprentice an admin is sent; none yet says so in a line from brand() (docs/history/730)."
@@ -157,7 +157,7 @@
     "screen": "apprentice",
     "label": "Apprentice settings",
     "icon": "🧑‍🔧",
-    "active": "FALSE",
+    "active": "TRUE",
     "sort_order": 22,
     "cards": "TRUE",
     "notes": "work experience: a placeholder beside Tutor settings until it is built (docs/history/570)."

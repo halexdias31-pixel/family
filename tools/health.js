@@ -199,9 +199,9 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1 };
 /* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
 /* from check/chips-settings.js (a 390x844 browser walk); read here, never re-run, each finding located. */
 function cardWork() {
@@ -210,6 +210,10 @@ function cardWork() {
   else (c.work || []).forEach(w => W.push(w));
   if (!b) W.push({ kind: 'chip-size', where: 'data/chips-settings-health.json', say: 'missing — run node check/chips-settings.js; chip sizes and settings were NOT checked' });
   else (b.work || []).forEach(w => W.push(w));
+  /* RETURNED FEATURES (1040 batch B): check/returned.js opens each feature the owner brought back; read here, never re-run. */
+  const rf = jread('data/returned-health.json');
+  if (!rf) W.push({ kind: 'returned-features', where: 'data/returned-health.json', say: 'missing — run node check/returned.js; the returned features were NOT checked' });
+  else (rf.work || []).forEach(w => W.push(w));
   return W;
 }
 /* IN SYNC (1040 r10): anything shown in two places reads one source — a person's face and name their profile, the business's picture brandLogo_. */

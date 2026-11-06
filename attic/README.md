@@ -8,6 +8,8 @@ before the move is 389d843 (and the parent of the "Attic" commit).
 
 ## Bringing a site file back (attic/js/<name>.js)
 
+The five site files (spotify, favlinks, rewrite, poster, pixel) came back on 6 Nov 2026 (docs/history/1040, batch B); the table below is kept for the checks' sake.
+
 1. `git mv attic/js/<name>.js js/<name>.js`
 2. Re-add `'<name>'` to `window.FILES` in `index.html` at its original position (below). Order is load-bearing.
 3. In `data/settings/tiers.json` re-add `files.<name>`, `widgetFiles.<name>` and its place in `later` (below),

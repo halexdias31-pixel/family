@@ -7171,3 +7171,5 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .stability-card .stab-score, .logic-card .stab-score { font-size: 2.6rem; line-height: 1; margin: .4rem 0; color: var(--gold); }
 .stability-card .stab-top, .logic-card .stab-top { margin: .5rem 0 .6rem 1.1rem; padding: 0; }
 .stability-card .stab-top li, .logic-card .stab-top li { font-size: .9rem; }
+/* ONE SEARCH BAR (batch B): a returned widget's own search box is hidden in Find; the main search is the only one. */
+#s-stuff .vid-search, #s-stuff .sp-search { display: none; }

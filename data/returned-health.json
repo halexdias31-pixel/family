@@ -1,0 +1,707 @@
+{
+ "front": [
+  "Practice",
+  "Library",
+  "Videos",
+  "Reels",
+  "Newspaper",
+  "Flyers",
+  "Posters",
+  "Verse",
+  "Posts",
+  "People",
+  "Settings",
+  "Tools",
+  "Games"
+ ],
+ "each": [
+  {
+   "feature": "calculator",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 258,
+    "sample": "CALCULATOR 0 @FAMILY. ON HOME SETTINGS ↶ ⌃ ‹ OK › ⌄ ︽ ︾ SHIFT ⇧ VARIABLE ⇄ x FUN",
+    "pics": 10,
+    "controls": 48,
+    "pressed": "clear",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"clear\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "timer",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 30,
+    "sample": "Timer 25:00 ▶ Reset 5 15 25 45",
+    "pics": 0,
+    "controls": 6,
+    "pressed": "timer-toggle",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "notepad",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 26,
+    "sample": "Notepad Saves as you type.",
+    "pics": 0,
+    "controls": 1,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "1 controls, none a safe press (only the card's own extras or text boxes)"
+   ]
+  },
+  {
+   "feature": "whiteboard",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 36,
+    "sample": "Whiteboard Kept on this device only.",
+    "pics": 7,
+    "controls": 3,
+    "pressed": "nb-pic",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"nb-pic\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "typing",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 300,
+    "sample": "Touch typing 1 2 3 4 5 Home row · 3 more at 90% opens Top row flask gas lass lag",
+    "pics": 0,
+    "controls": 3,
+    "pressed": "kt-lesson",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "speedread",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 97,
+    "sample": "Speed reader Paste anything; it is shown a word at a time, the eye kept still on",
+    "pics": 1,
+    "controls": 2,
+    "pressed": "sr-read",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "countdowns",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 37,
+    "sample": "Countdowns Christmas holidays 43 days",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "calendar",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 112,
+    "sample": "‹ November 2026 › M T W T F S S 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 ",
+    "pics": 0,
+    "controls": 2,
+    "pressed": "cal-back",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "termdates",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 575,
+    "sample": "Term dates Now: Autumn 2 Mon 2 Nov – last day of term Fri 18 Dec Christmas holid",
+    "pics": 0,
+    "controls": 2,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "2 controls, none a safe press (only the card's own extras or text boxes)"
+   ]
+  },
+  {
+   "feature": "timetable",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 69,
+    "sample": "Timetable Mon Tue Wed Thu Fri Nothing on Friday. Add a lesson Weekend",
+    "pics": 0,
+    "controls": 7,
+    "pressed": "tmt-day",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "docket",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 80,
+    "sample": "Docket What there is to do. Tick it off as you go. Nothing on it. ＋ Google Tasks",
+    "pics": 1,
+    "controls": 3,
+    "pressed": "dock-add",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "mat",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 498,
+    "sample": "Cheat sheet maker Maths English Science Every subject Handwriting Lined paper Sq",
+    "pics": 1,
+    "controls": 12,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "12 controls, none a safe press (only the card's own extras or text boxes)"
+   ]
+  },
+  {
+   "feature": "favlinks",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 79,
+    "sample": "Favourite links No links yet. Add the sites you use most. Title Address 0 of 10",
+    "pics": 1,
+    "controls": 3,
+    "pressed": "fav-add",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "spotify",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 230,
+    "sample": "Spotify Not switched on yet — the site's admin turns it on. Admin: make a Spotif",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "rewrite",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 45,
+    "sample": "Rewrite coach Paste the text Your own version",
+    "pics": 3,
+    "controls": 5,
+    "pressed": "rw-ideas",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "pixel",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 46,
+    "sample": "Pixel editor Grid 8 × 8 16 × 16 32 × 32 Colour",
+    "pics": 4,
+    "controls": 6,
+    "pressed": "pxe-tool",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "libcards",
+   "where": "Find › Tools",
+   "r": {
+    "loads": true,
+    "words": 30,
+    "sample": "Library cards LIBRARY CARD PIN",
+    "pics": 2,
+    "controls": 4,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "4 controls, none a safe press (only the card's own extras or text boxes)"
+   ]
+  },
+  {
+   "feature": "boardgames",
+   "where": "Find › Games",
+   "r": {
+    "loads": true,
+    "words": 166,
+    "sample": "Board games Connect 4 Othello Scrabble Chess Maze Two players, one phone. Red st",
+    "pics": 0,
+    "controls": 44,
+    "pressed": "c4-drop",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "wordgames",
+   "where": "Find › Games",
+   "r": {
+    "loads": true,
+    "words": 309,
+    "sample": "Word & number games Articulate Charades Taboo Hot Seat Just a Minute 20 Question",
+    "pics": 0,
+    "controls": 5,
+    "pressed": "rg-next",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"rg-next\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "console",
+   "where": "Find › Games",
+   "r": {
+    "loads": true,
+    "words": 146,
+    "sample": "Console Game files Flabby Pird Colliers Wood racer Linked pictures I can guess N",
+    "pics": 4,
+    "controls": 7,
+    "pressed": "Select",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"Select\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "videos",
+   "where": "Find › Videos",
+   "r": {
+    "loads": true,
+    "words": 6,
+    "sample": "Videos",
+    "pics": 1,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "reels",
+   "where": "Find › Reels",
+   "r": {
+    "loads": true,
+    "words": 287,
+    "sample": "One more thing Something worth knowing. Tap for another. W Alexander Gerst WEATH",
+    "pics": 0,
+    "controls": 1,
+    "pressed": "feed-tap",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "newspaper",
+   "where": "Find › Newspaper",
+   "r": {
+    "loads": true,
+    "words": 9,
+    "sample": "Newspaper",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "blank: 9 characters and no picture (\"Newspaper\")",
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "flyers",
+   "where": "Find › Flyers",
+   "r": {
+    "loads": true,
+    "words": 759,
+    "sample": "Make a flyer CAMPAIGN Back to School Results Day New Year Mocks Before Christmas",
+    "pics": 0,
+    "controls": 25,
+    "pressed": "fm-preset",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"fm-preset\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "poster",
+   "where": "Find › Posters",
+   "r": {
+    "loads": true,
+    "words": 188,
+    "sample": "Poster planner Size A0 A1 A2 A3 Orientation Portrait Landscape Pick a kind, then",
+    "pics": 7,
+    "controls": 6,
+    "pressed": "pst-kind",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "verse",
+   "where": "Find › Verse",
+   "r": {
+    "loads": true,
+    "words": 74,
+    "sample": "E-ink screen Friday, 6 November 2026 Shows Today’s date Bible verses Icons",
+    "pics": 2,
+    "controls": 2,
+    "pressed": "eink-sync",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "cart",
+   "where": "Find › Shop",
+   "r": {
+    "loads": false
+   },
+   "findings": [
+    "no \"Shop\" answer on Find's front menu"
+   ]
+  },
+  {
+   "feature": "spotlight",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 9,
+    "sample": "Spotlight",
+    "pics": 1,
+    "controls": 1,
+    "pressed": "rep-box",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "feed",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 502,
+    "sample": "Camera ▦ Photos ✎ Write a post Waiting for approval A ada ada Waiting on a check",
+    "pics": 21,
+    "controls": 33,
+    "pressed": "new-post",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "reel",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 327,
+    "sample": "One more thing Something worth knowing. Tap for another. L LANGUAGE English has ",
+    "pics": 61,
+    "controls": 61,
+    "pressed": "feed-tap",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "dm",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 202,
+    "sample": "D Daive Ask about lessons, prices and booking, or for help with something you ar",
+    "pics": 5,
+    "controls": 7,
+    "pressed": "daive-send",
+    "responds": false
+   },
+   "findings": [
+    "pressed \"daive-send\" and nothing changed"
+   ]
+  },
+  {
+   "feature": "saved",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 5,
+    "sample": "Saved",
+    "pics": 1,
+    "controls": 1,
+    "pressed": "rep-box",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "booking",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 567,
+    "sample": "Q A × +/h + For — Test Admin Nobody yet — just open it Kind — Instant class Wait",
+    "pics": 3,
+    "controls": 83,
+    "pressed": "book-slot",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "shop",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 773,
+    "sample": "Basket Search the shop BUNDLES 1 Shop Things Bundle Buy Not priced yet Student M",
+    "pics": 82,
+    "controls": 73,
+    "pressed": "fav",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "web",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 141,
+    "sample": "@family. Tutoring for every age, at home and online. Where: Merton & Wandsworth ",
+    "pics": 1,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "tutors",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 594,
+    "sample": "Add a tutor Make an account for a new tutor. ADMIN Every tutor, with what they t",
+    "pics": 20,
+    "controls": 16,
+    "pressed": "person-add",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "students",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 429,
+    "sample": "Add a student Make an account for a new student. Manage your child Link your chi",
+    "pics": 10,
+    "controls": 9,
+    "pressed": "person-add",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "parents",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 116,
+    "sample": "Add a parent Make an account for a new parent. CLIENT Every parent account. Carl",
+    "pics": 9,
+    "controls": 8,
+    "pressed": "person-add",
+    "responds": true
+   },
+   "findings": []
+  },
+  {
+   "feature": "apprentices",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 42,
+    "sample": "A card per apprentice. No apprentices yet.",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  },
+  {
+   "feature": "apprentice",
+   "where": "column",
+   "r": {
+    "loads": true,
+    "words": 95,
+    "sample": "Work experience with us: a placeholder until it is built. Work experience with u",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
+   },
+   "findings": [
+    "no controls to press"
+   ]
+  }
+ ],
+ "work": [
+  {
+   "kind": "returned-features",
+   "where": "calculator (Find › Tools)",
+   "say": "pressed \"clear\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "notepad (Find › Tools)",
+   "say": "1 controls, none a safe press (only the card's own extras or text boxes)"
+  },
+  {
+   "kind": "returned-features",
+   "where": "whiteboard (Find › Tools)",
+   "say": "pressed \"nb-pic\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "countdowns (Find › Tools)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "termdates (Find › Tools)",
+   "say": "2 controls, none a safe press (only the card's own extras or text boxes)"
+  },
+  {
+   "kind": "returned-features",
+   "where": "mat (Find › Tools)",
+   "say": "12 controls, none a safe press (only the card's own extras or text boxes)"
+  },
+  {
+   "kind": "returned-features",
+   "where": "spotify (Find › Tools)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "libcards (Find › Tools)",
+   "say": "4 controls, none a safe press (only the card's own extras or text boxes)"
+  },
+  {
+   "kind": "returned-features",
+   "where": "wordgames (Find › Games)",
+   "say": "pressed \"rg-next\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "console (Find › Games)",
+   "say": "pressed \"Select\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "videos (Find › Videos)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "newspaper (Find › Newspaper)",
+   "say": "blank: 9 characters and no picture (\"Newspaper\")"
+  },
+  {
+   "kind": "returned-features",
+   "where": "newspaper (Find › Newspaper)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "flyers (Find › Flyers)",
+   "say": "pressed \"fm-preset\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "cart (Find › Shop)",
+   "say": "no \"Shop\" answer on Find's front menu"
+  },
+  {
+   "kind": "returned-features",
+   "where": "dm (column)",
+   "say": "pressed \"daive-send\" and nothing changed"
+  },
+  {
+   "kind": "returned-features",
+   "where": "web (column)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "apprentices (column)",
+   "say": "no controls to press"
+  },
+  {
+   "kind": "returned-features",
+   "where": "apprentice (column)",
+   "say": "no controls to press"
+  }
+ ]
+}

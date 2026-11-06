@@ -198,6 +198,7 @@ const KINDS = {
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
+  reel: { group: 'Videos', label: 'Videos', card: x => widgetCard_(x) },
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
   /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
@@ -224,7 +225,7 @@ const KINDS = {
   /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER § */
   /* ---------- `question` WAS A KIND AND IS NOT ANY MORE § */
   /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE § */
-  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
+  shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => (x.widget ? widgetCard_(x) : thingCard_(x, c)) },
 };
 
 /* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */
