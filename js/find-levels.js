@@ -580,7 +580,8 @@ function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+  const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
+    + (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
@@ -592,15 +593,16 @@ function jobPage_(j) {
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
+/* THE FRONT MENU'S ANSWER, read through `DOOR_FIELD` (find-finder.js) — the one name every writer and reader of it uses (1040 friction). */
 const forIs_ = want => (STUFF.filters || [])
-  .some(f => f.field === 'forLabel' && norm(f.value) === want);
+  .some(f => f.field === DOOR_FIELD && norm(f.value) === want);
 
 function bookingPages_(o) {
   /* ---------- THE COLUMN ASKS FOR IT DIRECTLY § */
   if (!(o && o.column) && !forIs_('booking')) return [];
   /* ---------- THE FORM IS THE ANSWER TO `Booking`, NOT TO EVERYTHING UNDER IT § */
   /* ---------- AND THE COLUMN IS EXEMPT FROM THIS TOO, WHICH IT WAS NOT § */
-  const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
+  const narrowed = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
   if (!(o && o.column) && narrowed) return [];
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
@@ -610,7 +612,8 @@ function bookingPages_(o) {
 
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {
-  if (!forIs_('posts')) return [];
+  /* POSTS ARE DOOR ITEMS (find-doors.js); the whole feed only stands in when those are switched off, or each post would show twice. */
+  if (!forIs_('posts') || typeof postDoorItems_ === 'function') return [];
   return (typeof postsBlocks === 'function' ? postsBlocks() : []).filter(Boolean);
 }
 

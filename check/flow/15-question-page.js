@@ -880,8 +880,7 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const admin = u && u.role === 'admin';
     if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
     if (!admin && !got.every(notBible)) bad.push(what + ' is offered the Bible — it is for admins only');
-    /* GCSE TOPICS ARE 14+ (505): an admin is also offered those; the rest must match. */
-    const aged = new Set(w.stuffItemsRaw_().filter(x => w.gcseAgeOf_(x)).map(x => x.key)), same = k => notBible(k) && !aged.has(k);
+    const same = k => notBible(k);
     const rest = got.filter(same).join('|');
     if (rest !== out0.filter(same).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
   });
@@ -1124,7 +1123,7 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
     ['a SATs paper', find(x => x.kind === 'question' && x.row.paper_id === 'P-STA-KS2-2024-P1'), null],
     ['a worksheet', find(x => x.kind === 'question' && x.row.paper_id === 'P-1CM-LINEQ1'), null],
     ['a content card', find(x => x.kind === 'content'), null], ['a practical', find(x => x.kind === 'practical'), null],
-    ['a project', find(x => x.kind === 'project'), null], ['a boxer', find(x => x.kind === 'boxer'), null],
+    ['a project', find(x => x.kind === 'project'), null], ['a boxer', find(x => x.kind === 'people' && x.boxKind === 'Fighters'), null],
     ['a fight', find(x => x.kind === 'fight'), null],
     ['a Bible verse', verse, null], ['a bundle', { kind: 'bundle', kindLabel: 'Bundles' }, null],
   ];

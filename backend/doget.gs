@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-06-biz-checker-1050";
+const DOGET_VERSION = "2026-11-06-timelines-1060";
 
 
 function doGet(e) {
@@ -384,8 +384,8 @@ function doGet(e) {
       textbooks: [],
       /* AND `inserts` IS THE EIGHTH (455): `data/inserts.json`, filled in on the phone, declared for the same reason. */
       inserts: [],
-      /* AND THE HISTORY DATABASE'S FOUR (459, 461): `data/manuscripts|figures|writings|timeline.json`, filled in on the phone, declared for the same reason. */
-      manuscripts: [], figures: [], writings: [], timeline: [],
+      /* AND THE HISTORY DATABASE'S FOUR (459, 461): `data/manuscripts|figures|writings|timeline.json`, filled in on the phone, declared for the same reason; the portraits (batch D) too. */
+      manuscripts: [], figures: [], writings: [], timeline: [], portraits: [], timelines: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. § */

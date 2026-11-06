@@ -27,3 +27,34 @@ Things the health checker flags that would change what you see, so they wait for
 - Top-bar Sign in: **no** — sign in only via Find › Settings.
 - Videos: there are different types (movies and so on) — add a video-type facet (e.g. Movie, Lesson, Documentary, Music video, Clip) and fill what we can; best effort.
 - Grey lines: owner asked "like what?" — answered: the admin Build card's only line was hidden; plan (a), each lost useful line becomes a tag.
+
+## Batch D, 6 Nov
+- ~~Manuscript fragments 18+?~~ **Answered:** no age gates on learning content — the manuscripts, scripture, religious works, GCSE history and fight videos are open to every viewer.
+- A person card no longer has link tiles (a figure's Writing / Event tiles); events still link to their figures. Want the links back as tags?
+- The three lesson videos are marked Documentary (thumbnails look like Discovery/Quest). Right type? Their real titles are still unknown.
+- History › People asks Decade first (the one rule picks it). Fine, or Era / Role first?
+
+## Batch E (6 Nov) — mechanics and PC parts
+- Cars chosen: Fiesta Mk7 1.25 Duratec 16V (engine code SNJB), Golf Mk6 1.6 TDI (CAYC), Corsa D 1.2 16V (Z12XEP). Right generations and engines? The SNJB code in particular is worth checking.
+- Price bands are the Clio's for every car (rough, parts only). Should the Golf have its own?
+- The made-up example part numbers were removed. Do you want real part numbers anywhere?
+- History › Manuscripts/People/Works/Events is now ordered before Work, but it is still not asked because too few History cards answer it (writings are most of History). Should that question be asked anyway?
+
+## Batch F (6 Nov) — timelines
+- History's textbook chapters (32) now answer **Works** under "Manuscripts, people, works, events or timelines" so every History card answers it. Would you rather they had their own answer (e.g. "Textbook chapters")?
+- Old Testament dates follow the traditional early chronology (Exodus c. 1446 BC; many scholars say c. 1250 BC — the date line says so). Keep, or another chronology?
+- The starter timelines are Church history, WWI, WWII, Old Testament, Roman Empire and Space race. Which next (British monarchy, Reformation, Cold War…)? And should a timeline loop at the end rather than stop?
+
+## Friction fixes (6 Nov) — homework
+- **Homework: let a tutor assign a paper/question set to a student; student sees 'Homework' in Find; tutor sees results — build it? (y/n)** Today the friction walk counts three journeys as impossible or a dead end for want of it: a tutor setting homework, a tutor seeing a student's results, a student opening what was set. It would need a new sheet tab (who set what for whom, due when) and a results view; nothing was built until you say.
+
+## Sweep 6 Nov — open suggestions that are visible design (not done without a yes)
+- Students search card: drop the column-name widget and the Find button, and copy the search widget to the column on its right? (y/n)
+- Favourite links as an icon grid (site icons) instead of a list? (y/n)
+- Speed reader: make "Read it" a button? (y/n)
+- ~~A past-paper question's tag reads "Paper 3x…"~~ — answered yes; done in Sweep 12:37 (Paper 3, with Section A/B its own tag, for all papers).
+
+## Sweep 12:37 (6 Nov)
+- Find › Practice › … › GCSE › Higher › 2022 › November › Function verified: you asked "why does it look like this?" with no picture. What looks wrong (a screenshot helps)?
+- Menu vs card words: a menu shortens an answer against its neighbours ("Book 1", "Parchment", "Lambda") while the card's tag keeps the full name ("Book 1 (Clio)", "Parchment (leather)", "Lambda (oxygen) sensor"). One text everywhere — the short one or the full one? (18 places)
+- Tags on cards that no menu ever asks (24 left, e.g. Your result, Needs, 5-a-day level/month/day, Winner, Paper section): should each become a question, or stay detail-only tags?

@@ -1,12 +1,13 @@
 [
   {
-    "title": "PLACEHOLDER - copy this row, fill it in and set active to true. url: a YouTube link or an .mp4. kind: clip or film. age: how old you have to be to watch it, in whole years (blank is everyone). This row is switched off and never shows.",
+    "title": "PLACEHOLDER - copy this row, fill it in and set active to true. url: a YouTube link or an .mp4. kind: clip or film. type: Movie, Lesson, Documentary, Music video or Clip (blank: guessed from the title). age: how old you have to be to watch it, in whole years (blank is everyone). This row is switched off and never shows.",
     "url": "",
     "kind": "clip",
     "tags": "",
     "age": "",
     "notes": "",
-    "active": false
+    "active": false,
+    "type": ""
   },
   {
     "title": "Lesson video 1",
@@ -15,7 +16,8 @@
     "tags": "lesson long video",
     "age": "",
     "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
-    "active": true
+    "active": true,
+    "type": "Documentary"
   },
   {
     "title": "Lesson video 2",
@@ -24,7 +26,8 @@
     "tags": "lesson long video",
     "age": "",
     "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
-    "active": true
+    "active": true,
+    "type": "Documentary"
   },
   {
     "title": "Lesson video 3",
@@ -33,6 +36,7 @@
     "tags": "lesson long video",
     "age": "",
     "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
-    "active": true
+    "active": true,
+    "type": "Documentary"
   }
 ]

@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-06-biz-checker-1050";
+const BACKEND_VERSION = "2026-11-06-timelines-1060";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -728,7 +728,7 @@ const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 const LAYOUT_KEY = 'layout';
 /* THE RULES (496): config's `rules` row, `{set, hist}`; js/rules.js registers each rule. A locked one is in RULES_LOCKED and never saved universal. */
 const RULES_KEY = 'rules';
-const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'scripture-age', 'gcse-sensitive-age', 'kjv-admin', 'finder-members',
+const RULE_IDS = ['mag-items', 'speed-long', 'hear-lang', 'tap-44', 'search-icon', 'whole-widgets', 'library-one-card', 'tell-admin', 'kjv-admin', 'finder-members',
   'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
 const RULES_LOCKED = ['hear-lang', 'keep-basket', 'admin-cols', 'people-no-merge', 'items-no-move', 'form-save-row', 'find-front'];
 const RULES_HIST_MAX = 20;

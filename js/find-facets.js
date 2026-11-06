@@ -64,7 +64,7 @@ function kindRank_() {
 /* FIND'S FRONT MENU, in the owner's order (4 Nov): the first question's answers, whatever kinds stand under them. */
 const FRONT_ORDER = ['Practice', 'Library', 'Videos', 'Reels', 'Newspaper', 'Flyers', 'Posters', 'Verse', 'Coming soon', 'Posts', 'Messages', 'Profiles', 'Booking', 'Shop', 'Settings', 'Tools', 'Games'];
 /* THE DOORS' OWN MENUS IN THE OWNER'S ORDER (batch C): account types, who, which posts, when. */
-const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
+const ANSWER_ORDERS = [FRONT_ORDER, ['Student', 'Parent', 'Staff', 'Apprentice', 'Business', 'Site'], ['Parent', 'Over 18', 'Under 18', 'Student', 'Tutor', 'Apprentice', 'Admin'],
   ['Approved', 'Waiting for approval', 'Deleted'], ['Today', 'This week', 'This month', 'This year', 'Older']];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
@@ -292,7 +292,7 @@ function facetWhy_(items, facet, over) {
   const echo = facetEcho_(items, facet);
   if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
   const split = facetSplit_(items, facet);
-  if (split < FACET_MIN_MINORITY && !kindNamed_(all)) {
+  if (split < FACET_MIN_MINORITY && !kindNamed_(all) && !facet.choose) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }
@@ -364,48 +364,11 @@ function overFacet_(items) {
    ninety parts is scanned rather than read. The whole thing opens on a tap. */
 /* THE RECORD IS THE FACE OF IT. W-L-D first, KOs under it, and the date the count was taken —
    because a record with no date is the one number on the card that can quietly go wrong. */
-/* ---------- ONE BOUT § */
+/* ---------- ONE BOUT (batch D): the two fighters' portraits facing each other under the tags, and nothing else ---------- */
 function fightCard_(x) {
-  const f = x.row;
-  /* ---------- WHO WON, BY ID WHERE THERE IS ONE § */
-  const byId = f.winnerId && (f.aId || f.bId);
-  const wonA = byId ? String(f.winnerId) === String(f.aId)
-                    : !!(f.winner && norm(f.winner) === norm(f.a));
-  const wonB = byId ? String(f.winnerId) === String(f.bId)
-                    : !!(f.winner && norm(f.winner) === norm(f.b));
-
-  /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
-     printed them as two rows would be a form rather than a result. */
-  /* A DECISION THAT WENT THE DISTANCE has no end round to tag, so its length is said here; method and round are tags. */
-  const how2 = (!f.endRound && f.rounds) ? f.rounds + ' rounds' : '';
-
-  const where = [f.venue, f.city].filter(Boolean).join(', ');
-  const bout = f.boutTotal > 1 ? `Bout ${f.boutNo} of ${f.boutTotal}` : '';
-
-  /* ---------- THE SAME HEAD, LINE AND META AS EVERY OTHER KIND § */
-  const about = [f.titles, where ? where + (f.attendance ? ' · ' + f.attendance + ' there' : '') : '']
-    .filter(Boolean).join(' · ');
-  /* ---------- THE TWO FACES, SQUARED UP § */
-  /* A CORNER WITH NO ROW IS A WOMAN WHEN THE OTHER CORNER IS ONE. § */
-  const rowA = boxerOf_(f.aId, f.a), rowB = boxerOf_(f.bId, f.b);
-  const women = [rowA, rowB].some(r => r && String(r.sex || '').trim().toUpperCase() === 'F');
-  const bxA = rowA || { name: f.a, sex: women ? 'F' : '' }, bxB = rowB || { name: f.b, sex: women ? 'F' : '' };
-  /* EACH CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE where one can be named — `boxerCredit_`, the
-     profile's rule, so the two cards cannot credit the same picture two ways. */
-  const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
-    boxerCredit_(bx, 'Photo of ' + bx.name + ': ' + bx.imageCredit.replace(/^photo:\s*/i, '')));
-  /* NO "A v B" TITLE (490): the owner, "it's redundant: just have the tags of both boxes' names" -- the Fighter, Winner and Event tags say it. */
-  return `<div class="card fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">
-    ${/* THE FACTS ARE THE TAGS (445) — fighters, month, year, weight, round, result — so no line repeats them; the picture last, as a question's. */
-      tagRow_(x)}
-    ${bout || how2 ? `<p class="fc-meta">${esc([bout, how2].filter(Boolean).join(' · '))}</p>` : ''}
-    ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
-    ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
-    ${f.verified ? '' : '<p class="fc-note">Not checked yet</p>'}
-    <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA, f.trunksA)}<span class="fight-v">v</span>${
-      boxerPic_(bxB, 'b', wonB, f.trunksB)}</div>
-    ${credits.length ? `<p class="fight-credit">${credits.join(' ')}</p>` : ''}
-  </div>`;
+  const f = x.row || {};
+  return `<div class="card fc fight" aria-label="${esc(f.a + ' and ' + f.b)}">${tagRow_(x)}
+    <div class="fight-faces">${personPic_(f.aId, f.a)}${personPic_(f.bId, f.b, true)}</div></div>`;
 }
 
 /* WHO WON A BOUT, by id where there is one (as the card frames the face), else by the name the row gives. */

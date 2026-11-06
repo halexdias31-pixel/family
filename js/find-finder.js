@@ -157,17 +157,14 @@ const KINDS = {
   content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
-  /* THE HISTORY DATABASE (459): three kinds, Library on the History shelf as boxers are on Boxing's; `histKind` says which. */
+  /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
-  figure: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  people: { group: 'Learning', label: 'Library', card: x => personCard_(x) },
   writing: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
   event: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
   timeline: { group: 'Learning', label: 'Timeline', card: x => histTimelineCard_(x) },
-  /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
-  /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
-  boxer: { group: 'Learning', label: 'Library', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Library', card: x => fightCard_(x) },
@@ -382,6 +379,8 @@ function groupOrderFresh_(m) {
   return Object.keys(seen).sort((a, b) => seen[a] - seen[b] || cmpText(a, b));
 }
 
+/* A CARD'S TAGS ON ONE FACET. */
+const facetTags_ = (G, x, page) => asList_(G.tagOf ? G.tagOf(x, page) : facetOwn_(G, x));
 /* ONE VALUE OR SEVERAL, ALWAYS READ AS SEVERAL. § */
 /* ---------- AND THE COMMON CASE IS ONE STRING, WHICH USED TO COST FOUR ALLOCATIONS § */
 const asList_ = v => {
@@ -389,11 +388,7 @@ const asList_ = v => {
   if (v == null || v === false) return [];
   if (!Array.isArray(v)) { const t = String(v).trim(); return t ? [t] : []; }
   const out = [];
-  for (let i = 0; i < v.length; i++) {
-    const x = v[i];
-    const t = String(x == null ? '' : x).trim();
-    if (t) out.push(t);
-  }
+  for (let i = 0; i < v.length; i++) { const t = String(v[i] == null ? '' : v[i]).trim(); if (t) out.push(t); }
   return out;
 };
 
@@ -446,7 +441,7 @@ const FACETS = [
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
   ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
-    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
+    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level'], ['vidType', 'Type']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
@@ -470,17 +465,38 @@ const FACETS = [
   { field: 'wAuthor',    label: 'Author',     of: x => writingAt_(x, 'author') },
   { field: 'wForm',      label: 'Kind of writing', of: x => writingAt_(x, 'form') },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
+  /* BATCH E: one exact car or any first (`choose`: asked however lopsided), then each car attribute its own question and tag. */
+  { field: 'mScope',    label: 'A specific model, or any?', of: x => mechScope_(x), tagOf: () => '', choose: true },
+  { field: 'mMake',     label: 'Brand',       of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
+  { field: 'mModel',    label: 'Model',       of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
+  { field: 'mGen',      label: 'Generation',  of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
+  { field: 'mEngine',   label: 'Engine',      of: x => mechFit_(x, 'mEngine'), tagOf: x => mechFitTag_(x, 'mEngine') },
   { field: 'mKind',     label: 'Card type',   of: x => x.mKind || '' },
   { field: 'mSystem',   label: 'System',      of: x => x.mSystem || '' },
-  { field: 'mEngine',   label: 'Engine',      of: x => x.mEngine || '' },
+  { field: 'mPhase',    label: 'Phase',       of: x => mechFit_(x, 'mPhase'), tagOf: x => mechFitTag_(x, 'mPhase') },
+  { field: 'mMarket',   label: 'Market',      of: x => mechFit_(x, 'mMarket'), tagOf: x => mechFitTag_(x, 'mMarket') },
+  { field: 'mYears',    label: 'Years made',  of: x => mechFit_(x, 'mYears'), tagOf: x => mechFitTag_(x, 'mYears') },
+  { field: 'mSize',     label: 'Engine size', of: x => mechFit_(x, 'mSize'), tagOf: x => mechFitTag_(x, 'mSize') },
+  { field: 'mValves',   label: 'Valves',      of: x => mechFit_(x, 'mValves'), tagOf: x => mechFitTag_(x, 'mValves') },
+  { field: 'mBadge',    label: 'Version',     of: x => mechFit_(x, 'mBadge'), tagOf: x => mechFitTag_(x, 'mBadge') },
+  { field: 'mFuel',     label: 'Fuel',        of: x => mechFit_(x, 'mFuel'), tagOf: x => mechFitTag_(x, 'mFuel') },
+  { field: 'mPart',     label: 'Part',        of: x => (x.kind === 'mech' && x.mFile !== 'models' && x.name) || '' },
+  { field: 'mPrice',    label: 'Price band',  of: x => mechOwn_(x, 'parts', 'value') },
+  /* A PC PART (batch E): what it is, its socket or form factor, the interfaces it uses and what it plugs into. */
+  { field: 'pcType',    label: 'Part type',   of: x => mechOwn_(x, 'pc', 'type') },
+  { field: 'pcSocket',  label: 'Socket or form factor', of: x => mechOwn_(x, 'pc', 'socket') },
+  { field: 'pcIface',   label: 'Interface',   of: x => mechOwn_(x, 'pc', 'iface') },
+  { field: 'pcLinks',   label: 'Connects to', of: x => mechOwn_(x, 'pc', 'links') },
   /* CHEMISTRY (550): an element's category or a substance's or reaction's type, then group, period and state, off the row. */
   { field: 'cCategory', label: 'Chemical type', of: x => x.cCategory || '' },
   { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
   { field: 'cPeriod',   label: 'Period',      of: x => x.cPeriod || '' },
   { field: 'cState',    label: 'State',       of: x => x.cState || '' },
-  { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* BATCH D: one people kind; a person's name, years and home are tags (the card has no title). */
+  { field: 'boxKind',   label: 'Fighters or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
+  { field: 'personName', label: 'Who', of: x => (isPerson_(x) ? x.name : '') },
   { field: 'boutMonth', label: 'Month',       of: x => boutDate_(x).month },
   { field: 'boutYear',  label: 'Year',        of: x => boutDate_(x).year },
   { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
@@ -491,12 +507,14 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures, works or events', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, people, works, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Works' : '') },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
   { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
-  { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
+  { field: 'histRole',  label: 'Role',        of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
+  { field: 'personYears', label: 'Years',     of: x => personYears_(x) },
+  { field: 'personFrom', label: 'From',       of: x => (isPerson_(x) && x.from) || '' },
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */
@@ -540,7 +558,7 @@ const FACETS = [
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id), tagSay: id => paperTag_(id) },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
-  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
+  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -759,14 +777,16 @@ const paperLabel_ = id => {
   /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
   return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
-/* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12): the title "Paper 1 (Non-calculator) — June 2019" repeats the card's Non-calculator, June and 2019 tags. */
+/* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12): its title repeats the card's other tags. */
 const paperTag_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null, sec = paperSectionOf_(d), n = String((d && d.paper) || '').trim();
-  if (sec) return 'Paper ' + sec.paper + ', ' + sec.section;
-  /* ITS OWN FIRST WORDS where it has them ("Component 1A", "Practice paper 1, Section A"), else its number; with neither, its other tags (a 5-a-day's level and day) name it. */
-  const lead = /^(?:Practice paper|Paper|Component|Unit) \w+(?:, Section [A-F])?/i.exec(String((d && d.name) || '').trim());
+  /* ONE ATTRIBUTE PER TAG (1040 s12:37): the section is its own tag. */
+  if (sec) return 'Paper ' + sec.paper;
+  const lead = /^(?:Practice paper|Paper|Component|Unit) \w+/i.exec(String((d && d.name) || '').trim());
   return lead ? lead[0] : n ? 'Paper ' + n : '';
 };
+/* A SECTION NAMED ONLY IN THE PAPER'S TITLE is its own tag too. */
+const paperNameSection_ = x => (/, (Section [A-F])\b/.exec(String((docById_(((x && x.row) || {}).paper_id) || {}).name || '')) || [])[1] || '';
 /* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
 function paperSectionOf_(row) {
   const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));

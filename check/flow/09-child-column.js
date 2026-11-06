@@ -1035,8 +1035,8 @@ check('a door into Find from a card (Book this, take a seat, Practise) clears th
   const topic = tf ? ((w.facetValues(w.stuffItems(), tf)[0] || {}).value || '') : '';
   /* Book this and take a seat kept the words before 522; Practise already cleared them, and is here so it cannot start keeping them. */
   const doors = [
-    ['Book this', () => t.ACTIONS['book-with'](d.createElement('button')), [{ field: 'forLabel', value: 'Booking' }]],
-    ['take a seat', () => t.ACTIONS['job-take-seat']({ disabled: false, dataset: { id: 'W-LIST' } }), [{ field: 'forLabel', value: 'Booking' }]],
+    ['Book this', () => t.ACTIONS['book-with'](d.createElement('button')), [{ field: 'kindLabel', value: 'Booking' }]],
+    ['take a seat', () => t.ACTIONS['job-take-seat']({ disabled: false, dataset: { id: 'W-LIST' } }), [{ field: 'kindLabel', value: 'Booking' }]],
     ['Practise ' + topic, () => t.ACTIONS['prog-practise']({ dataset: { topic: String(topic || ''), key: '' } }), [{ field: 'topic', value: topic }]],
   ];
   if (!topic) bad.push('Find answers no Topic, so Practise was NOT checked');

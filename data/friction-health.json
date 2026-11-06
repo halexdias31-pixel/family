@@ -1,0 +1,238 @@
+{
+ "roles": {
+  "parent": {
+   "find a tutor": {
+    "taps": 2,
+    "screens": 2,
+    "fields": 0,
+    "waitMs": 8,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Booking",
+     "Booking › Tutors"
+    ],
+    "ms": 1625,
+    "possible": true,
+    "score": 94
+   },
+   "book a session": {
+    "taps": 3,
+    "screens": 1,
+    "fields": 0,
+    "waitMs": 314,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Booking",
+     "a time",
+     "Ask for it"
+    ],
+    "ms": 4282,
+    "possible": true,
+    "score": 91
+   },
+   "pay": {
+    "taps": 3,
+    "screens": 2,
+    "fields": 0,
+    "waitMs": 10,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Booking",
+     "Booking › Receipts",
+     "Pay and confirm"
+    ],
+    "ms": 3749,
+    "possible": true,
+    "score": 92
+   },
+   "message the tutor": {
+    "taps": 5,
+    "screens": 3,
+    "fields": 1,
+    "waitMs": 12,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Booking",
+     "Booking › Tutors",
+     "Message",
+     "the message",
+     "Send"
+    ],
+    "ms": 3181,
+    "possible": true,
+    "score": 84
+   }
+  },
+  "tutor": {
+   "see bookings": {
+    "taps": 2,
+    "screens": 2,
+    "fields": 0,
+    "waitMs": 6,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Booking",
+     "Booking › Receipts"
+    ],
+    "ms": 1548,
+    "possible": true,
+    "score": 94
+   },
+   "message a parent": {
+    "taps": 3,
+    "screens": 1,
+    "fields": 1,
+    "waitMs": 6,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Messages",
+     "the message",
+     "Send"
+    ],
+    "ms": 1634,
+    "possible": true,
+    "score": 90
+   },
+   "set homework": {
+    "taps": 2,
+    "screens": 2,
+    "fields": 0,
+    "waitMs": 5,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [
+     "Set as homework (assign a paper or question to a student)"
+    ],
+    "steps": [
+     "Find › Practice",
+     "Practice › Questions",
+     "Set as homework (assign a paper or question to a student): not found"
+    ],
+    "ms": 2654,
+    "possible": false,
+    "score": 0
+   },
+   "see results": {
+    "taps": 1,
+    "screens": 1,
+    "fields": 0,
+    "waitMs": 3,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [
+     "Profiles › Student",
+     "a student's answers or marks"
+    ],
+    "steps": [
+     "Find › Profiles",
+     "Profiles › Student: not found",
+     "a student's answers or marks: not found"
+    ],
+    "ms": 966,
+    "possible": false,
+    "score": 0
+   }
+  },
+  "student": {
+   "open homework": {
+    "taps": 2,
+    "screens": 2,
+    "fields": 0,
+    "waitMs": 6,
+    "deadEnds": [
+     "no homework list: a student finds a paper themselves"
+    ],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Practice",
+     "Practice › Questions"
+    ],
+    "ms": 2704,
+    "possible": true,
+    "score": 79
+   },
+   "answer": {
+    "taps": 3,
+    "screens": 2,
+    "fields": 1,
+    "waitMs": 9,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Practice",
+     "Practice › Questions",
+     "the answer box",
+     "the answer"
+    ],
+    "ms": 3354,
+    "possible": true,
+    "score": 89
+   },
+   "see result": {
+    "taps": 4,
+    "screens": 2,
+    "fields": 1,
+    "waitMs": 9,
+    "deadEnds": [],
+    "errors": [],
+    "missing": [],
+    "steps": [
+     "Find › Practice",
+     "Practice › Questions",
+     "the answer",
+     "Check"
+    ],
+    "ms": 4332,
+    "possible": true,
+    "score": 87
+   }
+  }
+ },
+ "totals": {
+  "taps": 30,
+  "screens": 20,
+  "fields": 4,
+  "waitMs": 388,
+  "deadEnds": 1,
+  "errors": 0,
+  "impossible": 2
+ },
+ "work": [
+  {
+   "kind": "friction",
+   "where": "tutor: set homework",
+   "say": "cannot be done — no Set as homework (assign a paper or question to a student)"
+  },
+  {
+   "kind": "friction",
+   "where": "tutor: see results",
+   "say": "cannot be done — no Profiles › Student"
+  },
+  {
+   "kind": "friction",
+   "where": "tutor: see results",
+   "say": "cannot be done — no a student's answers or marks"
+  },
+  {
+   "kind": "friction",
+   "where": "student: open homework",
+   "say": "dead end — no homework list: a student finds a paper themselves"
+  }
+ ],
+ "score": 73,
+ "count": 4
+}

@@ -445,7 +445,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car offers the Clio\'s four engines; Part → Engine 1.5 dCi narrows to its parts; the Parts tile on a car card opens them; cards are minimal, with no picture', async () => {
+check('Mechanics (batch E): Library → Mechanics asks a specific model or any; specific → Brand → Engine narrows to one car\'s parts; Any asks no brand; a card is tags, one drawing and a part\'s one line; every car attribute its own tag; Computer Science → PC parts by type', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -461,40 +461,33 @@ check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car
   const all = w.mechItems_(), bad = [];
   if (!all.length) return ['the mechanics files did not load — NOT checked'];
   const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
+  const next = () => (w.nextFacet(w.stuffFiltered()) || {}).field;
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
-  const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Car,Part') bad.push('Mechanics → Card type offers ' + kinds);
   const base = S.filters.slice();
-  /* ONE CAR (740): Brand and Model went, so Engine is the question that splits. */
-  ['mMake', 'mModel'].forEach(f => { if (w.facetList().some(x => x.field === f)) bad.push('the ' + f + ' facet is back, with one car to split'); });
-  S.filters.push({ field: 'mKind', value: 'Car' });
+  if (next() !== 'mScope') bad.push('Mechanics asks ' + next() + ' first, not "a specific model, or any?"');
+  S.filters = base.concat({ field: 'mScope', value: 'Any model' });
+  if (['mMake', 'mModel', 'mEngine'].indexOf(next()) >= 0) bad.push('Any model still asks ' + next());
+  if (w.stuffFiltered().some(x => x.mKind !== 'Part')) bad.push('Any model lists something that is not a part');
+  S.filters = base.concat({ field: 'mScope', value: 'A specific model' });
+  if (vals('mMake').sort().join() !== 'Ford,Renault,Vauxhall,Volkswagen') bad.push('Brand offers ' + vals('mMake').join());
+  S.filters.push({ field: 'mMake', value: 'Renault' });
   if (vals('mEngine').length !== 4) bad.push('the Clio offers ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
-  S.filters = base.concat({ field: 'mKind', value: 'Part' });
-  const parts = w.stuffFiltered().length;
-  if (parts < 60) bad.push('Part found ' + parts + ' Clio parts, wanted 60 or more');
-  S.filters.push({ field: 'mEngine', value: '1.5 dCi (K9K)' });
+  const clio = w.stuffFiltered().filter(x => x.mKind === 'Part').length;
+  S.filters.push({ field: 'mEngine', value: 'K9K' });
   const dci = w.stuffFiltered();
-  if (!dci.length || dci.some(x => (x.mEngine || []).indexOf('1.5 dCi (K9K)') < 0)) bad.push('Part → 1.5 dCi found ' + dci.length + ', not only its parts');
-  if (dci.length >= parts) bad.push('Part → 1.5 dCi did not narrow');
+  if (!dci.some(x => x.mKind === 'Car') || dci.filter(x => x.mKind === 'Part').length >= clio) bad.push('Renault → K9K did not narrow to the car and its parts');
   if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
-  const car = all.find(x => x.mKind === 'Car' && x.mEngine === '1.5 dCi (K9K)');
-  /* ONE TILE ROW PER THING (489, 950): the Parts tile is in the card's own row (`CARD_EXTRAS_MORE`), so the whole card is asked. */
-  const chtml = car ? w.stuffCard(car, 0) : '';
-  if (!/data-do="mech-parts"[^>]*data-engine="1.5 dCi \(K9K\)"/.test(chtml)) bad.push('a car card offers no Parts tile');
-  else {
-    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.engine = '1.5 dCi (K9K)'; w.document.body.appendChild(b); b.click(); b.remove();
-    const got = t.STUFF().filters.map(c => c.field + '=' + c.value).join();
-    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mEngine=1.5 dCi (K9K)') bad.push('the Parts tile set ' + got);
-  }
-  if (!/Renault · Clio/.test(chtml) || !/<b>Engine<\/b>/.test(chtml)) bad.push('a car card does not say brand, model and engine');
-  const part = all.find(x => x.mKind === 'Part');
-  const html = w.mechCard_(part);
-  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/<b>Fits<\/b>/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw what it is, its number, price, fits and tags');
-  /* MINIMAL (740): no picture and no extra sections. */
-  if (/mech-pic|<img|viewBox="0 0 64 64"/.test(html + chtml)) bad.push('a part or car card draws a picture');
-  if ((html.match(/<p><b>/g) || []).length !== 4 || (chtml.match(/<p><b>/g) || []).length !== 2) bad.push('a card draws more than its minimal rows');
+  const car = dci.find(x => x.mKind === 'Car'), chtml = car ? w.stuffCard(car, 0) : '';
+  ['Renault', 'Clio', 'III', 'Phase 2', 'UK', '1.5', '8V', 'K9K'].forEach(v => { if (chtml.indexOf('>' + v + '<') < 0) bad.push('the car card has no tag "' + v + '"'); });
+  /* THE REPORT TILE'S `data-rl` NAMES IT FOR THE REPORT, never drawn: only what is drawn is held to "no title". */
+  if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/(aria-label|data-rl)="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
+  if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
+  const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
+  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || !/>K9K</.test(html)) bad.push('a part card is not tags, one drawing, its one line and the chosen engine');
+  S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Computer Science' }, { field: 'shelf', value: 'PC parts' }];
+  ['CPU', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU'].forEach(k => { if (vals('pcType').indexOf(k) < 0) bad.push('PC parts → Part type lacks ' + k); });
   return bad;
 });
 
@@ -545,13 +538,13 @@ check('Library → a subject offers only shelves that subject has — never Book
   for (let i = 0; i < 160 && !(w.stuffItems().length > 1000 && w.talmudItems_().length && w.stuffItems().some(x => x.kind === 'quran') && w.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
   const bad = [];
   if (w.stuffItems().length < 1000) return ['the library did not load, so NOT checked'];
-  /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), every one 18+, and no cover. */
+  /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), no age limit, and no cover. */
   const bv = w.stuffItems().filter(x => x.kind === 'bible');
   /* ONE A VERSE A TEXT (504): the KJV's 31,102, the WEB's on the same numbering, and each other text over its own books. */
   const bix = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'bible', 'index.json'), 'utf8'));
   const bWant = bix.totals.verses + (bix.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : bix.totals.verses), 0);
   if (bv.length !== bWant) bad.push('the admin\'s list holds ' + bv.length + ' Bible items — wanted ' + bWant + ', one a verse a text');
-  if (bv.some(x => !x.bb || Number(x.min_age) < 18)) bad.push('a Bible item is not a verse, or carries no 18+ limit');
+  if (bv.some(x => !x.bb || 'min_age' in x)) bad.push('a Bible item is not a verse, or carries an age limit');
   const S = t.STUFF();
   const base = [{ field: 'kindLabel', value: 'Library' }];
   S.q = ''; S.filters = base.slice();
@@ -568,19 +561,20 @@ check('Library → a subject offers only shelves that subject has — never Book
     const shelf = w.facetList().find(f => f.field === 'shelf');
     w.facetValues(list, shelf).forEach(v => {
       shelvesSeen++;
-      const n = list.filter(x => String(x.shelf || '') === String(v.value)).length;
+      /* A SHELF MAY BE A LIST (batch D): a boxer is on Boxing and History. */
+      const n = list.filter(x => [].concat(x.shelf || '').map(String).indexOf(String(v.value)) >= 0).length;
       if (!n) bad.push('Library → ' + sub + ' offers the shelf ' + v.value + ' with no item of that subject on it');
     });
   });
   if (!shelvesSeen) bad.push('no subject offered any shelf, so the shelf rule was NOT exercised');
   if (subjects.indexOf('Boxing') >= 0) bad.push('Boxing is still a subject — boxers and bouts are Physical Education (499)');
   S.filters = base.concat([{ field: 'subject', value: 'Physical Education' }]);
-  if (!w.stuffFiltered().some(x => x.kind === 'boxer')) bad.push('Library → Physical Education holds no boxer');
+  if (!w.stuffFiltered().some(x => x.kind === 'people' && x.boxKind === 'Fighters')) bad.push('Library → Physical Education holds no boxer');
   /* ANY SUBJECT, AND SHELF IS SUBJECT AGAIN UNDER OTHER NAMES: it is not asked (facetEcho_). */
   S.filters = base.concat([{ field: 'subject', any: true }]);
   const nx = w.nextFacet(w.stuffFiltered());
   /* AN ECHO ONLY WHILE EVERY SHELF IS ONE SUBJECT'S: Writings holds Religious Studies, English Literature and History (520), so it is asked. */
-  const spans = sh => new Set(w.stuffFiltered().filter(x => String(x.shelf || '') === sh).map(x => String(x.subject || ''))).size;
+  const spans = sh => new Set(w.stuffFiltered().filter(x => [].concat(x.shelf || '').map(String).indexOf(sh) >= 0).map(x => String(x.subject || ''))).size;
   if (nx && nx.field === 'shelf' && w.facetValues(w.stuffFiltered(), nx).every(v => spans(v.value) <= 1)) bad.push('Library → Any subject asks Shelf (' + w.facetValues(w.stuffFiltered(), nx).map(v => v.value).join(', ') + ') — the subject question again');
   S.filters = [];
   return bad;

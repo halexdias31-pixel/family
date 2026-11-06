@@ -7,8 +7,6 @@
    one: the open classes are a dropdown on the booking form, not a kind in Find. */
 
 
-
-
 /* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM § */
 function bookBlocks() {
   if (!USER) {
@@ -23,6 +21,7 @@ function bookBlocks() {
      and the booking they just made is not somewhere else — it is the answer to the form they are
      looking at. Same string. */
   /* THE PAGE IS ALWAYS THE FORM. § */
+  bookPrefill_();
   return [bookerCard() + askedBlock_()].concat(myJobPages_()).filter(Boolean);
 }
 
@@ -782,6 +781,7 @@ function resetBooking_(keepDraft) {
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
   BOOKING.picking = '';
+  BOOK_PREFILLED = false;
   /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). § */
   if (keepDraft) return;
   try {

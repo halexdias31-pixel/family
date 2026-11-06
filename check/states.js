@@ -3992,7 +3992,7 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const all = stuffItemsAll_();
-        window.__keptKeys = ['practical', 'boxer', 'shop']
+        window.__keptKeys = ['practical', 'people', 'shop']
           .map(k => all.find(x => x.kind === k && x.key && !(x.row && x.row.excluded)))
           .filter(Boolean).map(x => x.key);
         window.__keptKeys.forEach(k => { if (!isFav(k)) toggleFav(k); });

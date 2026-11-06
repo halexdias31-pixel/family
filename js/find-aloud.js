@@ -385,40 +385,14 @@ let ALL_MEMO = { key: null, from: null, items: null };
 
 /* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. § */
 const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
-  + (typeof bibleFor_ === 'function' && bibleFor_() ? '+bible' : '') + '@' + viewerAgeCapKey_();
-
-/* ---------- AN AGE LIMIT ON ANY ITEM (490): `min_age` on the item or its row. Under it, of no known age or signed out, it is
-   not listed and so cannot be opened; an admin sees all (`viewerAgeCap_`, games.js). */
-const viewerAgeCapKey_ = () => { try { return String(typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0); } catch (e) { return '0'; } };
-/* GCSE TOPICS FOR GCSE AGES (505): GCSE-and-above history, RS, philosophy, psychology, sociology and sensitive topics, and the history database, are 14+. */
-const GCSE_AGE = 14;
-const GCSE_AGE_SUBJECT = /histor|religio|philosoph|ethic|psycholog|sociolog/i;
-const GCSE_AGE_TOPIC = /\bdrugs?\b|\balcohol\b|abortion|euthanas|\bcrime\b|deviance|religion and life|health and disease/i;
-const GCSE_AGE_LEVEL = /^(gcse|igcse|as|a-?level|alevel|ks4|ks5)$/i;
-function gcseAgeOf_(x) {
-  if (!x || (typeof ruleOn_ === 'function' && !ruleOn_('gcse-sensitive-age'))) return 0;
-  const lv = levelsOf_(x);
-  if (x.hdb && !lv.length) return GCSE_AGE;
-  /* GCSE AND ABOVE ONLY: a thing also taught at KS3 (a level list, O1) is not a GCSE topic */
-  if (!lv.length || !lv.every(l => GCSE_AGE_LEVEL.test(l))) return 0;
-  const said = [x.name, x.topics, x.row && x.row.topics, x.row && x.row.section].filter(Boolean).join(' ');
-  return GCSE_AGE_SUBJECT.test(String(x.subject || '')) || GCSE_AGE_TOPIC.test(said) ? GCSE_AGE : 0;
-}
-const itemMinAge_ = x => Math.max(gcseAgeOf_(x), Number((x && (x.min_age || (x.row && x.row.min_age))) || 0) || 0);
-function itemAgeOk_(x) {
-  const m = itemMinAge_(x);
-  if (!m) return true;
-  try { return (typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0) >= m; } catch (e) { return false; }
-}
-/* WHETHER THIS VIEWER MAY HAVE A WHOLE SHELF OF A GIVEN AGE, asked before its files are even fetched (the Talmud, the Quran). */
-const viewerOfAge_ = m => itemAgeOk_({ min_age: m });
-const FIGHT_VIDEO_AGE = 13;
+  + (typeof bibleFor_ === 'function' && bibleFor_() ? '+bible' : '');
+/* NO AGE GATES ON LEARNING (1040): the owner, "no more one-off rules regarding that" — every viewer is shown every card. */
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER § */
 function stuffItemsAll_() {
   const key = itemMemoKey_();
   if (ALL_MEMO.from === DATA && ALL_MEMO.key === key) return ALL_MEMO.items;
-  const built = stuffItemsRaw_().filter(itemAgeOk_);
+  const built = stuffItemsRaw_();
   ALL_MEMO = { key: key, from: DATA, items: built };
   return built;
 }
@@ -508,9 +482,7 @@ function placeTextMoved_(f) {
 }
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
-  if (f.field === 'shelf' && f.value === BIBLE_SHELF) return !viewerOfAge_(scriptureMinAge_());
-  /* A WRITING'S CHIP (520) kept by a viewer under the writings' age: most of what answers it is not theirs, so it is dropped. */
-  if (/^w[A-Z]/.test(f.field) && typeof writingFor_ === 'function') return !writingFor_(writingWork_('bible'));
+  if (f.field === 'shelf' && f.value === BIBLE_SHELF) return typeof bibleFor_ === 'function' && !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -624,11 +596,12 @@ function stuffItemsRaw_() {
 
     /* A FIGHTER ANSWERS THE FUNNEL'S QUESTIONS IN HIS OWN WORDS. § */
     ...(DATA.boxers || []).filter(b => b.name).map(b => ({
-      kind: 'boxer', name: b.name, key: 'bx:' + (b.id || b.name),
-      sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: b.image,
+      kind: 'people', name: b.name, key: 'bx:' + (b.id || b.name), pixId: b.id,
+      sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: '',
+      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
-      boxKind: 'Boxers', shelf: 'Boxing',
+      boxKind: 'Fighters', shelf: ['Boxing', 'History'],
       subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
     })),
 
@@ -641,8 +614,7 @@ function stuffItemsRaw_() {
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
       boxKind: 'Fights', shelf: 'Boxing',
-      /* THE FIGHT FOOTAGE (499 audit): its Watch link is violent media, so under 13 (or of no known age) the row goes without it. */
-      subject: 'Physical Education', division: divisionOf_(f.division), row: f.video && !viewerOfAge_(FIGHT_VIDEO_AGE) ? Object.assign({}, f, { video: '' }) : f,
+      subject: 'Physical Education', division: divisionOf_(f.division), row: f,
       year: (f.date || '').slice(0, 4),
     })),
 

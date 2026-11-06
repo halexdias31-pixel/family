@@ -180,7 +180,7 @@ function flowShow_(id, n) {
   }, 'flow-show');
 }
 
-/* THE TOP BAR (900): the brand, and who is signed in with Sign out, or a Sign in tile that shows the sign-in card above Find. */
+/* THE TOP BAR (900): the brand, and who is signed in with Sign out; never a Sign in tile (owner, 6 Nov). */
 function topbarPaint_() {
   const bar = $('topbar-who');
   if (!bar || typeof tile_ !== 'function') return;

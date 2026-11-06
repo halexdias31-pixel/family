@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-writings.js ONE MODEL FOR EVERY WRITTEN WORK (520): the loaders build their cards from the real indexes, held to
-   one shape, one shelf, one facet set, a tradition topic, one age rule, no card twice. */
+   one shape, one shelf, one facet set, a tradition topic, no age limit, no card twice. */
 /* Also: facets.json and FACETS list the same fields; no two facets share a label; no answer differs from another only by case,
    punctuation or apostrophe; Apocrypha has one name; histKind never names a shelf. No flags, no port. */
 const fs = require('fs');
@@ -19,16 +19,16 @@ const LOADERS = [['talmud', 'TALMUD', 'talmudItems_', 'data/talmud/index.json'],
   ['texts', 'TEXTS', 'textsItems_', 'data/texts/index.json'], ['pdtexts', 'PDTEXTS', 'pdtextsItems_', 'data/pdtexts/index.json'],
   ['orthodox', 'ORTHO', 'orthoItems_', 'data/orthodox/index.json'], ['hymns', 'HYMNS', 'hymnsItems_', 'data/hymns/index.json']];
 const ctx = { window: {}, Array, String, Number, Object, Promise, Math, JSON, Set, Map, RegExp, console,
-  BIBLE_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', brand: (k, v) => v, viewerOfAge_: () => true,
+  BIBLE_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', brand: (k, v) => v,
   ruleOn_: () => true, ANSWER_ORDERS: [], esc: s => String(s), on: () => {}, $: () => null, loading_: () => '', tagRow_: () => '', tile_: () => '', spellKey_: s => String(s).toLowerCase() };
 vm.createContext(ctx);
 let items = [], WR = null;
 try {
-  /* THE AGE RULE AND THE SHELF ARE find.js's OWN LINES, read out of it. */
+  /* THE SHELF IS find.js's OWN LINE, read out of it. */
   const line = re => { const m = find.match(re); if (!m) throw new Error('find.js has no ' + re); return m[0]; };
-  vm.runInContext([line(/const SCRIPTURE_MIN_AGE = \d+;/), line(/const scriptureMinAge_ = [^\n]+/), line(/const WRITINGS_SHELF = [^\n]+/),
+  vm.runInContext([line(/const WRITINGS_SHELF = [^\n]+/),
     src('js/writings.js'), ...LOADERS.map(l => src('js/' + l[0] + '.js'))].join('\n;\n')
-    + '\n;this.WR = { writingFold_, writingSourceOf_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingAge_, writingOf_, bibleW_,'
+    + '\n;this.WR = { writingFold_, writingSourceOf_, WRITING_KEYS, WRITING_WORKS, WRITING_DEUTERO, writingOf_, bibleW_,'
     + ' writingLanguageOf_, writingVersionOf_, WRITING_LANGUAGES, WRITING_TEXTS, writingText_, writingAt_ };', ctx);
   WR = ctx.WR;
   LOADERS.forEach(([file, store, fn, ix]) => {
@@ -50,7 +50,7 @@ try {
 } catch (e) { bad.push('data/bible/index.json does not load: ' + e.message); }
 
 if (WR && items.length) {
-  const SHAPE = new Set(['kind', 'key', 'name', 'sub', 'text', 'image', 'row', 'w', 'wSrc', 'wDate', 'shelf', 'subject', 'topic', 'min_age']);
+  const SHAPE = new Set(['kind', 'key', 'name', 'sub', 'text', 'image', 'row', 'w', 'wSrc', 'wDate', 'shelf', 'subject', 'topic']);
   const OWN = new Set(['tx', 'wt', 'ot', 'hy', 'qr', 'hd', 'tal']);
   const topics = new Map(json('data/topics.json').map(t => [t.label, t]));
   const tuples = new Map(), bySrc = {};
@@ -70,8 +70,8 @@ if (WR && items.length) {
       if (!t) bad.push(x.key + ' is Religious Studies with the topic "' + x.topic + '", which data/topics.json does not have');
       else if (t.only_subject !== 'Religious Studies') bad.push('topic ' + x.topic + ' is not a Religious Studies topic in data/topics.json');
     } else if (x.topic) bad.push(x.key + ' (' + x.subject + ') has the tradition topic ' + x.topic);
-    /* R5: ONE AGE, writingAge_ of its registry entry. */
-    if (x.min_age !== (x.topic ? 18 : 0)) bad.push(x.key + ' is ' + x.min_age + '+, not writingAge_ of its entry (' + (x.topic ? 18 : 0) + ')');
+    /* R5: NO AGE GATES (1040). */
+    if ('min_age' in x) bad.push(x.key + ' carries an age limit');
     /* R6: NO CARD TWICE — one work, place and text is one card. */
     /* Across entries only: one index entry's own repeated headings (two "Canon 18") are its source's, not a second copy. */
     const t = WR.WRITING_KEYS.map(k => [].concat(w[k]).join('/')).join('|'), entry = x.key.split(':').slice(0, 2).join(':');
@@ -149,14 +149,6 @@ if (items.length) {
   });
 }
 
-/* R5: THE AGE IS READ ONE WAY — the constant only inside scriptureMinAge_. */
-fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
-  src('js/' + f).split('\n').forEach((l, i) => {
-    if (/\bSCRIPTURE_MIN_AGE\b/.test(l) && !/const SCRIPTURE_MIN_AGE = |const scriptureMinAge_ = /.test(l)) bad.push('js/' + f + ':' + (i + 1) + ' reads SCRIPTURE_MIN_AGE outside scriptureMinAge_');
-    if (/\bviewerOfAge_\(scriptureMinAge_\(\)\)/.test(l) && !/^find(-[\w-]+)?\.js$/.test(f)) bad.push('js/' + f + ':' + (i + 1) + ' asks the age its own way — writingFor_');
-  });
-});
-
 /* R7: facets.json AND FACETS LIST THE SAME FIELDS; R8: NO TWO FACETS SHARE A LABEL. */
 const block = find.slice(find.indexOf('const FACETS = ['), find.indexOf('\n];', find.indexOf('const FACETS = [')));
 const code = [...block.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)].map(m => ({ field: m[1], label: m[2] }));
@@ -213,9 +205,7 @@ if (WR && items.length) {
   /* AND THE REAL FUNNEL ASKS IT THERE: tools/finder-tags.js walks Library › Religious Studies over every file (kept current by its --check). */
   try {
     const T = vm.runInNewContext(src('js/finder-tags.js') + ';FINDER_TAGS');
-    /* ONLY WHERE THE WRITINGS ARE: a viewer under the writings' age (`@14`) has none, and is asked what their list holds. */
-    const age = Number((find.match(/const SCRIPTURE_MIN_AGE = (\d+);/) || [])[1]);
-    const at = Object.keys(T.views).filter(v => /^bible@/.test(v) || Number(v.split('@')[1]) >= age)
+    const at = Object.keys(T.views)
       .map(v => [v, T.views[v]['kindLabel=Library&subject=Religious Studies']]).filter(p => p[1]);
     if (!at.length) bad.push('js/finder-tags.js holds no Library › Religious Studies, so "Religion is asked there" proves nothing');
     at.forEach(([v, q]) => { if (q[0] !== 'wReligion') bad.push('Library › Religious Studies asks ' + q[0] + ', not Religion, for the view ' + v); });

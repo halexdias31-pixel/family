@@ -525,17 +525,14 @@ const finderSettled_ = () => {
     return !writingAsking_();
   } catch (e) { return true; }
 };
-/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: the Bible or not, and the oldest age line in the file they pass — the build's own `ages`. */
+/* WHICH VIEW OF THE LIBRARY THIS VIEWER HAS: admin or not, the Bible or not — no age lines (1040). */
 function finderTagsView_() {
   const T = typeof FINDER_TAGS !== 'undefined' ? FINDER_TAGS : null;
   if (!T || !T.views) return null;
-  let cap = 0;
-  try { cap = typeof viewerAgeCap_ === 'function' ? viewerAgeCap_() : 0; } catch (e) { cap = 0; }
-  const band = (T.ages || []).filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
   /* AN ADMIN SEES People and Settings: a view of its own. */
   let adm = false;
   try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
-  return T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '') + '@' + band] || null;
+  return T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')] || null;
 }
 /* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter; words have no key. */
 const finderStateKey_ = () => (String(STUFF.q || '').trim() ? null

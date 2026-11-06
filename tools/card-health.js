@@ -4,6 +4,9 @@
 /*   odd-tags      a tag made of two or more of its card's other tags ("Paper 1 (Non-calculator) — June 2019" beside June, 2019), or a */
 /*                 value on (almost) every card, which tells a reader nothing                                                           */
 /*   dup-controls  one control twice on one card: the same data-do with the same data-* values (the magnifier in the tool row and the foot) */
+/*   picture-first, people-one-kind, manuscripts-reach (batch D): a person or fight card is portraits and tags only; one people kind;  */
+/*   car-tags-split (batch E): no car or part card carries a combined attribute string as one tag or line; mech cards picture-first   */
+/*                 every manuscript under Library › History › Manuscripts                                                              */
 /* Every question card is read (they carry the most tags); other kinds are sampled evenly, SAMPLE per kind. --check: exit 1 when stale. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -38,7 +41,7 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
   A.w.speechSynthesis = { speak() {}, cancel() {}, getVoices: () => [] }; A.w.SpeechSynthesisUtterance = function () {};
   const ev = s => A.w.__ev(s), t0 = Date.now();
   ev('inFinder_(FINDERS.stuff, () => stuffItems())');
-  while (!ev('LOADED && finderSettled_() && (LIBRARY_ROWS || []).length > 0')) {
+  while (!ev('LOADED && finderSettled_() && (LIBRARY_ROWS || []).length > 0 && (typeof mechItems_ !== "function" || mechItems_().length > 0 || MECH.failed)')) {
     if (Date.now() - t0 > 240000) { console.error('card-health: the app never settled in 240s'); process.exit(2); }
     await tick(250); ev('inFinder_(FINDERS.stuff, () => stuffItems())');
   }
@@ -66,7 +69,25 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
       USER = Object.assign({ name: 'S', personId: 'P-S' }, { role: 'Student', roles: ['student'] });
       const asStudent = acts(); USER = keep;
       const ranks = qs.map((x, i) => ({ id: 'question:' + x.key, admin: asAdmin[i], student: asStudent[i] }));
-      return JSON.stringify({ items: all.length, cards, drawn, ranks });
+      /* BATCH D: every person and fight card is its portrait(s) under the tags and nothing else (picture-first); one people kind (people-one-kind). */
+      const pics = [].concat(by.people || [], by.fight || []).map(x => { const d = document.createElement('div');
+        try { d.innerHTML = stuffCard(x); } catch (e) { return { id: x.kind + ':' + x.key, err: String(e.message) }; }
+        const card = d.querySelector('.card'), n = card ? card.querySelectorAll('svg.pp').length : 0;
+        if (card) card.querySelectorAll('.qtags, svg.pp, .fc-tiles, .tile-row').forEach(e => e.remove());
+        return { id: x.kind + ':' + x.key, want: x.kind === 'fight' ? 2 : 1, n, rest: card ? card.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : 'no card' }; });
+      /* BATCH E: every car, car part and PC part is one drawing under its tags (a part adds its one line); car-tags-split: no tag or */
+      /* drawn text holds a car's whole name ("Renault Clio III 1.2 16V") or two of its card's other tags run together. */
+      const mech = (by.mech || []).map(x => { const d = document.createElement('div');
+        try { d.innerHTML = stuffCard(x); } catch (e) { return { id: 'mech:' + x.key, err: String(e.message) }; }
+        const card = d.querySelector('.card'), n = card ? card.querySelectorAll('svg.pp').length : 0;
+        const tags = card ? [...card.querySelectorAll('.qtag')].map(s => s.textContent.trim()) : [];
+        if (card) card.querySelectorAll('.qtags, svg.pp, .fc-tiles, .tile-row, .mech-does').forEach(e => e.remove());
+        return { id: 'mech:' + x.key, name: x.name, car: x.mFile === 'models', tags, n, rest: card ? card.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : 'no card' }; });
+      const kinds = Object.keys(by).filter(k => /^(boxer|figure)$/.test(k) || (by[k].some(x => x.pixId) && k !== 'people'));
+      STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Manuscripts' }];
+      const msReach = stuffItems().filter(x => x.kind === 'manuscript').length, msAll = (by.manuscript || []).length;
+      STUFF.filters = [];
+      return JSON.stringify({ items: all.length, cards, drawn, ranks, pics, mech, kinds, msReach, msAll });
     }); })()`));
   A.close();
   const work = [], counts = {};
@@ -79,9 +100,25 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
   (got.ranks || []).forEach(r => {
     if (r.admin != null && r.student != null && r.admin !== r.student) work.push({ kind: 'dup-controls', where: r.id, say: `controls differ by rank: admin "${r.admin}" vs student "${r.student}"` });
     ['admin', 'student'].forEach(k => { if (r[k] != null && !/\bhelp-hand\b/.test(r[k])) work.push({ kind: 'dup-controls', where: r.id, say: `no Help tile for a ${k}` }); }); });
+  (got.pics || []).forEach(c => {
+    if (c.err) work.push({ kind: 'picture-first', where: c.id, say: 'the card threw: ' + c.err });
+    else if (c.n !== c.want) work.push({ kind: 'picture-first', where: c.id, say: `${c.n} portrait(s), wanted ${c.want}` });
+    else if (c.rest) work.push({ kind: 'picture-first', where: c.id, say: `text besides the tags: "${c.rest}"` }); });
+  if (!(got.pics || []).length) work.push({ kind: 'picture-first', where: 'Find', say: 'no person or fight card reached Find, so none was checked' });
+  (got.mech || []).forEach(c => {
+    if (c.err) return work.push({ kind: 'picture-first', where: c.id, say: 'the card threw: ' + c.err });
+    if (c.n !== 1) work.push({ kind: 'picture-first', where: c.id, say: `${c.n} drawing(s), wanted 1` });
+    if (c.rest) work.push({ kind: 'picture-first', where: c.id, say: `text besides the tags, drawing and one line: "${c.rest}"` });
+    if (c.car && (c.tags.indexOf(c.name) >= 0 || c.rest.indexOf(c.name) >= 0)) work.push({ kind: 'car-tags-split', where: c.id, say: `the car's whole name "${c.name}" is drawn as one tag or line` });
+    c.tags.forEach(t => { const held = composite(t, c.tags); if (held.length) work.push({ kind: 'car-tags-split', where: c.id, say: `tag "${t}" runs ${held.map(u => '"' + u + '"').join(' + ')} together` }); }); });
+  if (!(got.mech || []).length) work.push({ kind: 'car-tags-split', where: 'Find', say: 'no car, car part or PC part reached Find, so none was checked' });
+  (got.kinds || []).forEach(k => work.push({ kind: 'people-one-kind', where: 'kind ' + k, say: `a person drawn as kind "${k}", not "people"` }));
+  if (!got.msReach || got.msReach < got.msAll) work.push({ kind: 'manuscripts-reach', where: 'Library › History › Manuscripts', say: `${got.msReach || 0} of ${got.msAll || 0} manuscripts reachable for an admin` });
   const by = k => work.filter(w => w.kind === k).length;
   const pairs = {}; work.forEach(w => { const k = w.kind === 'dup-controls' ? w.say.replace(/ \(.*\)/, '') : w.say.replace(/"[^"]*"/g, '…'); pairs[k] = (pairs[k] || 0) + 1; });
-  const out = { items: got.items, tagCards: got.cards.length, drawnCards: got.drawn.length, counts: { 'odd-tags': by('odd-tags'), 'dup-controls': by('dup-controls') },
+  const out = { items: got.items, tagCards: got.cards.length, drawnCards: got.drawn.length, counts: { 'odd-tags': by('odd-tags'), 'dup-controls': by('dup-controls'), 'picture-first': by('picture-first'), 'people-one-kind': by('people-one-kind'), 'manuscripts-reach': by('manuscripts-reach'), 'car-tags-split': by('car-tags-split') },
+    mech: (got.mech || []).length,
+    people: (got.pics || []).length,
     byRule: Object.entries(pairs).sort((a, b) => b[1] - a[1]).slice(0, 60), work: work.slice(0, 2000) };
   const text = JSON.stringify(out, null, 1) + '\n';
   if (process.argv.includes('--check')) { let had = ''; try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) { had = ''; /* no file yet: stale */ }

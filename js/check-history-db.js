@@ -40,9 +40,9 @@ Object.keys(SCHEMA).forEach(f => {
   T[f].forEach((r, i) => {
     const at = 'data/' + f + '.json row ' + (i + 1) + (r && r.id ? ' (' + r.id + ')' : '');
     if (!r || typeof r !== 'object') return bad.push(at + ' is not an object');
-    /* `min_age` (490, 499) is the one optional column: a whole number of years, the item's age limit. */
-    const miss = s.cols.filter(c => !(c in r)), extra = Object.keys(r).filter(c => s.cols.indexOf(c) < 0 && c !== 'min_age');
-    if ('min_age' in r && !(Number.isInteger(r.min_age) && r.min_age > 0 && r.min_age <= 21)) bad.push(at + ' min_age must be a whole number of years, 1 to 21');
+    const miss = s.cols.filter(c => !(c in r)), extra = Object.keys(r).filter(c => s.cols.indexOf(c) < 0);
+    /* NO AGE GATES ON LEARNING (1040): a row carries no age limit. */
+    if ('min_age' in r) bad.push(at + ' has min_age — learning content has no age gates (1040)');
     if (miss.length) bad.push(at + ' lacks ' + miss.join(', '));
     if (extra.length) bad.push(at + ' has columns the schema does not name: ' + extra.join(', ') + ' (add them to docs/history-db.md and this check)');
     if (!ID.test(String(r.id)) || String(r.id).indexOf(s.prefix) !== 0) bad.push(at + ' id must be ' + s.prefix + ' and four digits');
@@ -101,27 +101,34 @@ T.figures.concat(T.writings).forEach(x => list(x.events).filter(v => byId.has(v)
   if (!has(byId.get(e).r, c, x.id)) bad.push(x.id + ' names event ' + e + ', whose ' + c + ' do not name ' + x.id);
 }));
 /* EVENT DATES: date_iso is a real day in date_from's year, date_iso_to (if any) in date_to's and not before it; the file is in date order. */
-const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO = /^(-?\d{4})-(\d{2})-(\d{2})$/;   /* a BC day has a minus (batch F: the Old Testament) */
 const realDay = v => { const m = ISO.exec(v); if (!m) return false; const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3]; };
 T.timeline.forEach((e, i) => {
   if (!realDay(e.date_iso)) bad.push(e.id + ' date_iso "' + e.date_iso + '" is not a real YYYY-MM-DD day');
-  else if (+e.date_iso.slice(0, 4) !== e.date_from) bad.push(e.id + ' date_iso ' + e.date_iso + ' is not in date_from ' + e.date_from);
+  else if (+ISO.exec(e.date_iso)[1] !== e.date_from) bad.push(e.id + ' date_iso ' + e.date_iso + ' is not in date_from ' + e.date_from);
   if (e.date_iso_to !== '') {
     if (!realDay(e.date_iso_to)) bad.push(e.id + ' date_iso_to "' + e.date_iso_to + '" is not a real YYYY-MM-DD day');
-    else if (+e.date_iso_to.slice(0, 4) !== e.date_to) bad.push(e.id + ' date_iso_to ' + e.date_iso_to + ' is not in date_to ' + e.date_to);
-    else if (e.date_iso_to < e.date_iso) bad.push(e.id + ' ends (' + e.date_iso_to + ') before it starts (' + e.date_iso + ')');
+    else if (+ISO.exec(e.date_iso_to)[1] !== e.date_to) bad.push(e.id + ' date_iso_to ' + e.date_iso_to + ' is not in date_to ' + e.date_to);
+    else if (e.date_to === e.date_from && e.date_iso_to < e.date_iso) bad.push(e.id + ' ends (' + e.date_iso_to + ') before it starts (' + e.date_iso + ')');
   } else if (e.date_to !== e.date_from) bad.push(e.id + ' has no date_iso_to but date_to ' + e.date_to + ' is not date_from');
   if (!String(e.era || '').trim()) bad.push(e.id + ' has no era — it would be on no timeline');
   if (!String(e.date_text || '').trim()) bad.push(e.id + ' has no date_text — the card and the timeline tile say the date from it');
-  const prev = T.timeline[i - 1];
-  if (prev && String(prev.date_iso) > String(e.date_iso)) bad.push(e.id + ' (' + e.date_iso + ') comes after ' + prev.id + ' (' + prev.date_iso + ') in the file — keep it in date order');
+  const prev = T.timeline[i - 1], when = r => [r.date_from, String(r.date_iso).slice(-5)];
+  if (prev && (when(prev)[0] > when(e)[0] || (when(prev)[0] === when(e)[0] && when(prev)[1] > when(e)[1]))) bad.push(e.id + ' (' + e.date_iso + ') comes after ' + prev.id + ' (' + prev.date_iso + ') in the file — keep it in date order');
 });
-/* EVERY TIMELINE HAS ITS DRAWING: an animation row titled with the era, which the timeline card's Animation tile opens. */
+/* EVERY ERA IS ON A TIMELINE (batch F, data/timelines.json): five events at least, each an event row; a named era has its one textbook animation. */
 const books = fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8').split('\n').map(l => l.trim().replace(/,$/, ''))
   .filter(l => l.startsWith('{') && l.indexOf('"anim"') >= 0).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+let TLS = [];
+try { TLS = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'timelines.json'), 'utf8')); } catch (e) { bad.push('data/timelines.json does not parse — run python3 tools/timelines.py'); }
+const onTl = new Set(TLS.flatMap(t => (t.events || []).map(e => e.id)));
 [...new Set(T.timeline.map(e => String(e.era || '').trim()).filter(Boolean))].forEach(era => {
-  const n = books.filter(a => String(a.title || '').indexOf(era) === 0).length;
-  if (n !== 1) bad.push('the ' + era + ' timeline has ' + n + ' animation rows titled "' + era + '…" — its Animation tile opens exactly one');
+  if (!T.timeline.some(e => e.era === era && onTl.has(e.id))) bad.push('the ' + era + ' era is on no timeline in data/timelines.json');
+});
+TLS.forEach(t => {
+  if ((t.events || []).length < 5) bad.push(t.id + ' has ' + (t.events || []).length + ' events — a timeline needs five at least');
+  (t.events || []).forEach(e => { if (!byId.has(e.id) || e.id.indexOf('EV-') !== 0) bad.push(t.id + ' names ' + e.id + ', which is no event row'); });
+  if (t.era && books.filter(a => String(a.title || '').indexOf(t.era) === 0).length !== 1) bad.push(t.id + ' names era ' + t.era + ' but not exactly one animation row is titled with it');
 });
 
 /* THE APP STILL READS ALL THREE: loaded by library.js, made items and cards by find.js, declared by doGet. */
@@ -132,8 +139,9 @@ Object.keys(SCHEMA).forEach(f => {
   if (!new RegExp("file: '" + f + "'").test(lib) || !new RegExp("'" + f + "'").test(lib.slice(lib.indexOf('const LIB_EXTRA'), lib.indexOf('const LIB_EXTRA') + 400))) bad.push('js/library.js does not load ' + f + ' (LIB_EXTRA and HIST_DB)');
   if (!new RegExp('\\b' + f + ': \\[\\]').test(doget)) bad.push('backend/doget.gs does not declare ' + f + ': [] — check-payload would call it read-and-never-sent');
 });
-['manuscript', 'figure', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => histCard_\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by histCard_'); });
+['manuscript', 'writing', 'event'].forEach(k => { if (!new RegExp('\\n  ' + k + ": \\{ group: 'Learning', label: 'Library', card: x => histCard_\\(x\\) \\}").test(find)) bad.push('find.js KINDS has no ' + k + ' drawn by histCard_'); });
 
+if (!/\n  people: \{ group: 'Learning', label: 'Library', card: x => personCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no people (boxers and figures alike) drawn by personCard_ (batch D)');
 if (!/\n  timeline: \{ group: 'Learning', label: 'Timeline', card: x => histTimelineCard_\(x\) \}/.test(find)) bad.push('find.js KINDS has no timeline drawn by histTimelineCard_');
 const n = Object.keys(T).map(f => T[f].length + ' ' + f).join(', ');
 if (bad.length) { bad.forEach(b => console.log('FAIL ' + b)); console.log(bad.length + ' problem(s) in the history database (' + n + ')'); process.exit(1); }

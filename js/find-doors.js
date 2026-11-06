@@ -1,6 +1,9 @@
 /* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Messages, Profiles, Settings and Videos as Find items,
    each answering its own menus through the one funnel (FACETS). */
 
+/* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
+const DOOR_FIELD = 'kindLabel';
+
 /* ---------- POSTS: state, then who, then when ---------- */
 const POST_STATES = ['Approved', 'Waiting for approval', 'Deleted'];
 function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
@@ -25,11 +28,20 @@ function postDoorItems_() {
 function msgDoorItems_() {
   if (!USER || typeof messageThreads_ !== 'function') return [];
   if (typeof MESSAGES === 'undefined' || !MESSAGES) doorAsk_(typeof loadMessages === 'function' ? loadMessages() : null);
-  return messageThreads_().map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
-    msgWith: t.name, text: t.name }));
+  const threads = messageThreads_(), had = {};
+  threads.forEach(t => { had[norm(t.name)] = 1; });
+  /* AND EVERYONE YOU MAY WRITE TO FROM YOUR SESSIONS, with no conversation yet (1040 friction): the card opens on an empty one. */
+  const people = [];
+  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => (typeof jobPeople_ === 'function' ? jobPeople_(j) : []).forEach(p => {
+    if (!had[norm(p.name)]) { had[norm(p.name)] = 1; people.push(p); } }));
+  return threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
+    msgWith: t.name, text: t.name }))
+    .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
 function msgDoorCard_(x) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
+  if (!t && x.to) return `<div class="card dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
+    ${msgForm_(x.to.name, x.to.id)}</div>`;
   if (!t) return `<div class="card"><h3>${esc(x.name)}</h3></div>`;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'doors:msg'); }
   return `<div class="card dm-card"><div class="dm-head">${typeof dmFace_ === 'function' ? dmFace_(t) : ''}<h3>${esc(t.name)}</h3></div>
@@ -83,8 +95,8 @@ const SETTING_TYPES = [
   ['Parent', 'family', () => rankAtLeast_('client')],
   ['Staff', 'staff', () => rankAtLeast_('staff')],
   ['Apprentice', 'apprentice', () => rankAtLeast_('admin') || hasRole('apprentice')],
-  ['Admin', 'biz', () => rankAtLeast_('admin')],
-  ['Admin', 'site', () => rankAtLeast_('admin')],
+  ['Business', 'biz', () => rankAtLeast_('admin')],
+  ['Site', 'site', () => rankAtLeast_('admin')],
 ];
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
 const plain_ = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -113,7 +125,7 @@ function settingDoorItems_() {
     });
   });
   if (rankAtLeast_('admin')) out.push({ kind: 'setting', name: 'Notifications', key: 'set:notify', sub: '', image: '', notify: true,
-    settingFor: 'Admin', text: 'notifications business due approvals waiting' });
+    settingFor: 'Business', text: 'notifications business due approvals waiting' });
   return out;
 }
 function settingDoorCard_(x) {
@@ -133,6 +145,13 @@ function notifyDoorCard_() {
 
 /* ---------- VIDEOS: one Find card a video, a thumbnail and tags; the menus come off the video rows ---------- */
 const ytId_ = u => (String(u || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1] || '';
+/* A VIDEO'S TYPE (owner, 6 Nov): the row's own `type`, else a best guess from its title, tags and kind. */
+const VIDEO_TYPES = [['Music video', /music video|official video|\blyrics?\b/i], ['Documentary', /documentary|\bdocu/i],
+  ['Lesson', /lesson|tutorial|explained|revision|how to/i], ['Movie', /\bfilm\b|movie/i]];
+function videoType_(r) {
+  const s = [r.title, r.tags, r.kind].join(' '), hit = VIDEO_TYPES.find(([, re]) => re.test(s));
+  return hit ? hit[0] : 'Clip';
+}
 function videoDoorItems_() {
   if (typeof VIDEOS_LIST === 'undefined') return [];
   if (VIDEOS_LIST === null) { doorAsk_(typeof videosAsk_ === 'function' ? videosAsk_() : null); return []; }
@@ -144,7 +163,7 @@ function videoDoorItems_() {
       const id = ytId_(r.url);
       return { kind: 'video', name: String(r.title), key: 'vid:' + (id || i), sub: '', url: String(r.url),
         image: r.thumb || (id ? 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg' : ''),
-        vidSubject: subj, vidTopic: r.topic || tags.filter(t => norm(t) !== norm(subj)), vidChannel: r.channel || '', vidLevel: r.level || '',
+        vidSubject: subj, vidTopic: r.topic || tags.filter(t => norm(t) !== norm(subj)), vidChannel: r.channel || '', vidLevel: r.level || '', vidType: r.type || videoType_(r),
         text: [r.title, r.tags, r.channel, r.subject].filter(Boolean).join(' ') };
     });
 }
@@ -171,7 +190,7 @@ function doorItems_() {
 function findSignedOut_(x) { return kindTop_(x) === 'Settings'; }
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
-const SETTINGS_HOME = { account: 'Student', family: 'Parent', staff: 'Staff', apprentice: 'Apprentice', biz: 'Admin', site: 'Admin' };
+const SETTINGS_HOME = { account: 'Student', family: 'Parent', staff: 'Staff', apprentice: 'Apprentice', biz: 'Business', site: 'Site' };
 function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {

@@ -211,9 +211,6 @@ function pageParts_(x, prev) {
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
      (see the head of the Bible section). */
-  /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
-     `boxerFightPages_`. */
-  if (x && isBoxer_(x) && x.row) return [null].concat(boxerFightPages_(x.row));
   if (x && x.hdb && x.row && HIST_LINES[x.kind]) return [null].concat(histPages_(x));
   if (!x || !isPractical_(x) || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
@@ -260,62 +257,13 @@ function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && isProject_(x)) return projectPart_(x, part);
   if (x && isContent_(x)) return contentPart_(x, part);
-  if (x && isBoxer_(x)) return boxerPart_(x, part);
   if (x && x.hdb && /^facts\d+$/.test(String(part))) return histFactsPart_(x, part);
   /* A PART THE QUESTION NO LONGER HAS (a stem, a page or an answer kept in a place from before 960) IS ITS CARD. */
   if (isQ_(x)) return part === 'q' ? questionWhole_(x, (questionParts_()[qId_(x)] || [x]), null, true) : stuffCard(x);
   return practicalPart_(x, part);
 }
 
-/* THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT. § */
 
-/* ---------- A FLAG FOR THE COUNTRY, WHERE THE COUNTRY IS ONE OF THESE § */
-const BOXER_FLAG = {
-  'usa': 'US', 'united states': 'US', 'uk': 'GB', 'united kingdom': 'GB', 'great britain': 'GB',
-  'england': 'GB', 'scotland': 'GB', 'wales': 'GB', 'northern ireland': 'GB',
-  'mexico': 'MX', 'ukraine': 'UA', 'puerto rico': 'PR', 'argentina': 'AR', 'ireland': 'IE',
-  'germany': 'DE', 'canada': 'CA', 'panama': 'PA', 'philippines': 'PH', 'kazakhstan': 'KZ',
-  'sweden': 'SE', 'italy': 'IT', 'nigeria': 'NG', 'nicaragua': 'NI', 'cuba': 'CU', 'jamaica': 'JM',
-  'australia': 'AU', 'japan': 'JP', 'norway': 'NO', 'netherlands': 'NL', 'france': 'FR',
-  'ghana': 'GH', 'south africa': 'ZA', 'russia': 'RU', 'dominican republic': 'DO', 'venezuela': 'VE',
-  'colombia': 'CO', 'brazil': 'BR', 'thailand': 'TH', 'south korea': 'KR', 'china': 'CN',
-  'new zealand': 'NZ', 'spain': 'ES', 'poland': 'PL', 'uzbekistan': 'UZ', 'belgium': 'BE',
-  'denmark': 'DK', 'hungary': 'HU', 'cameroon': 'CM', 'uganda': 'UG', 'zambia': 'ZM',
-};
-/* TWO REGIONAL-INDICATOR LETTERS ARE A FLAG, which is the whole of the encoding. § */
-function boxerFlag_(country) {
-  const cc = BOXER_FLAG[norm(country)];
-  return cc ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
-}
-
-/* ---------- A DATE AS A FIGHT POSTER WRITES ONE § */
-const BOXER_ISO = /^\d{4}-\d{1,2}-\d{1,2}/;
-function boxerDate_(v) {
-  const s = String(v || '').trim();
-  const d = BOXER_ISO.test(s) ? parseWhen(s) : null;
-  return d ? d.getDate() + ' ' + MONTH_NAMES[d.getMonth()].slice(0, 3) + ' ' + d.getFullYear() : s;
-}
-/* WHOLE YEARS BETWEEN TWO DATES, or null when either is not one. A birthday not yet reached in the
-   last year is taken off, which is the one step a subtraction of years gets wrong. */
-function boxerAge_(from, to) {
-  const a = BOXER_ISO.test(String(from || '')) ? parseWhen(from) : null;
-  const b = to instanceof Date ? to : (BOXER_ISO.test(String(to || '')) ? parseWhen(to) : null);
-  if (!a || !b || b < a) return null;
-  let n = b.getFullYear() - a.getFullYear();
-  if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) n--;
-  return n;
-}
-/* CENTIMETRES, WITH WHAT A BOXING FAN ACTUALLY QUOTES beside them. A reach is said in inches alone
-   ("a 78-inch reach"), a height in feet and inches. Rounded to the inch first and then split, so
-   six foot twelve cannot happen. */
-function boxerCm_(cm, height) {
-  if (!(cm > 0)) return '';
-  const inches = Math.round(cm / 2.54);
-  return cm + ' cm · ' + (height ? Math.floor(inches / 12) + '′ ' + (inches % 12) + '″' : inches + '″');
-}
-/* THE NAMES, SPLIT ON THE PIPE THE SHEET USES FOR EVERY LIST, blanks and repeats taken out. */
-const boxerNames_ = v => String(v || '').split('|').map(s => s.trim())
-  .filter((s, i, a) => s && a.indexOf(s) === i);
 /* TWO LETTERS FOR THE PLACEHOLDER: § */
 const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
 function boxerInitials_(name) {
@@ -325,54 +273,6 @@ function boxerInitials_(name) {
     .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
   return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
 }
-
-/* ---------- THE BOXER IN A BOUT'S CORNER § */
-function boxerOf_(id, name) {
-  const all = (DATA && DATA.boxers) || [];
-  return (id && all.find(b => String(b.id) === String(id)))
-      || (name && all.find(b => norm(b.name) === norm(name))) || null;
-}
-
-/* ---------- HIS BOUTS, NEWEST FIRST, EACH ONE READ FROM HIS SIDE § */
-function boxerBouts_(b) {
-  const id = String((b && b.id) || ''), name = norm(b && b.name);
-  if (!id && !name) return [];
-  const mine = (cid, cname) => (id && cid) ? String(cid) === id : (!cid && !!name && norm(cname) === name);
-  return ((DATA && DATA.fights) || []).map(f => {
-    const side = mine(f.aId, f.a) ? 'a' : mine(f.bId, f.b) ? 'b' : '';
-    if (!side) return null;
-    const me = side === 'a' ? { id: f.aId, n: f.a } : { id: f.bId, n: f.b };
-    const them = side === 'a' ? { id: f.bId, n: f.b } : { id: f.aId, n: f.a };
-    let res;
-    if (f.winnerId) res = String(f.winnerId) === String(me.id || id) ? 'W' : 'L';
-    else if (f.winner) res = norm(f.winner) === norm(me.n) ? 'W' : 'L';
-    else res = /no.?contest|^nc$/i.test(String(f.result || '')) ? 'NC' : 'D';
-    return { f, res, opp: them.n, oppId: them.id };
-  }).filter(Boolean).sort((p, q) => String(q.f.date || '').localeCompare(String(p.f.date || '')));
-}
-/* HOW IT ENDED, as a record writes it: § */
-function boxerHow_(f) {
-  const m = String(f.method || '').trim();
-  const dist = (!m || /^(UD|SD|MD|TD|PTS|D|DRAW)$/i.test(m)) ? (f.rounds || '') : '';
-  return [m, f.endRound || dist].filter(Boolean).join(' ');
-}
-
-/* ---------- THE RECORD BAR'S WIDTHS, WHICH ADD UP TO A HUNDRED EXACTLY § */
-function boxerSplit_(parts) {
-  const live = parts.filter(p => p.n > 0);
-  const total = live.reduce((s, p) => s + p.n, 0);
-  if (!total) return [];
-  let used = 0;
-  return live.map((p, i) => {
-    const w = i === live.length - 1 ? +(100 - used).toFixed(2) : +(p.n / total * 100).toFixed(2);
-    const out = Object.assign({}, p, { x: +used.toFixed(2), w });
-    used += w;
-    return out;
-  });
-}
-
-/* ---------- THE PHOTO, OR A RING WITH THE BOXER IN IT, AT EIGHT BITS § */
-
 /* ---------- THE WORDS A LOOK MAY USE, AND THE ONLY ONES § */
 const BOXER_LOOK = {
   skin: ['s1', 's2', 's3', 's4', 's5', 's6'],
@@ -557,191 +457,46 @@ document.addEventListener('error', e => {
   if (el && el.matches && el.matches('img.boxer-img')) boxerPicFail_(el);
 }, true);
 
-/* ---------- WHAT HE IS NOW, AND THE YEARS THAT GO WITH IT § */
-function boxerStatus_(b) {
-  const s = norm(b.status), y = v => (String(v || '').match(/\d{4}/) || [''])[0];
-  if (s === 'active') return { k: 'is-active', t: 'Active' + (y(b.activeFrom) ? ' · since ' + y(b.activeFrom) : '') };
-  if (s === 'retired') return { k: 'is-retired', t: 'Retired' + (y(b.activeTo) ? ' · ' + y(b.activeTo) : '') };
-  if (s === 'deceased') {
-    const born = y(b.dob), died = y(b.dod);
-    return { k: 'is-dead', t: 'Deceased' + (born && died ? ' · ' + born + '–' + died : died ? ' · ' + died : '') };
-  }
-  return b.status ? { k: '', t: b.status } : null;
+/* ---------- ONE PEOPLE KIND (batch D): every person, boxer or figure, is a pixel portrait under their tags, and nothing else ---------- */
+/* The portraits are rows of data/portraits.json, written by tools/people_pix.py: 16 strings of palette letters, '.' empty. */
+let PIX_BY = null, PIX_FROM = null;
+function personPix_(id, name) {
+  const all = (typeof DATA !== 'undefined' && DATA && DATA.portraits) || [];
+  if (PIX_FROM !== all) { PIX_BY = new Map(); all.forEach(r => { if (r && r.id) PIX_BY.set(String(r.id), r); }); PIX_FROM = all; }
+  return PIX_BY.get(String(id || '')) || PIX_BY.get('name:' + String(name || '')) || null;
 }
-
-/* ---------- THE RECORD § */
-/* ---------- A NOTE TO THE EDITOR IS NOT A NOTE TO THE READER § */
-const BOXER_EDITOR_NOTE = /\bcheck(ing)?\b/i;
-function boxerNote_(b) {
-  const s = String((b && b.notes) || '').trim();
-  return s && !BOXER_EDITOR_NOTE.test(s) ? s : '';
+/* A PORTRAIT NOT YET ARRIVED (or never written) is a plain grey bust, the same shape, so the card never jumps. */
+const PIX_NONE = ['', '', '......ssss', '.....ssssss', '.....ssssss', '.....ssssss', '.....sssssss', '.....ssssss', '.....ssssss',
+  '......ssss', '.......ss', '...ssssssssss', '..ssssssssssss', '.ssssssssssssss', '.ssssssssssssss', '.ssssssssssssss'];
+const personYear_ = v => { const m = /^-?\d{1,4}/.exec(String(v == null ? '' : v).trim()); return m ? Number(m[0]) : 0; };
+function personYears_(x) {
+  if (!isPerson_(x) || !(x.born || x.died)) return '';
+  const y = n => (n < 0 ? -n + ' BC' : n ? String(n) : '?');
+  return x.died ? y(x.born) + '–' + y(x.died) : 'Born ' + y(x.born);
 }
-function boxerRecord_(b) {
-  const has = v => typeof v === 'number' && isFinite(v);
-  if (!has(b.wins) && !has(b.losses) && !has(b.draws)) {
-    return '<section class="boxer-rec is-none"><p class="fc-note">No fight record on file yet.</p></section>';
-  }
-  const W = b.wins || 0, L = b.losses || 0, D = b.draws || 0, NC = b.noContests || 0;
-  const cols = [
-    { k: 'w', n: W, label: W === 1 ? 'Win' : 'Wins', ko: has(b.winsKo) && W ? b.winsKo : null },
-    { k: 'l', n: L, label: L === 1 ? 'Loss' : 'Losses', ko: has(b.lossesKo) && L ? b.lossesKo : null },
-    { k: 'd', n: D, label: D === 1 ? 'Draw' : 'Draws', ko: null },
-  ].concat(NC ? [{ k: 'nc', n: NC, label: 'NC', say: NC === 1 ? 'no contest' : 'no contests', ko: null }] : []);
-  /* `NC` ON THE SCOREBOARD, because "NO CONTEST" in the label's capitals is wider than a quarter of a
-     320px card; the words are what a screen reader hears. */
-  const said = cols.map(c => c.n + ' ' + (c.say || c.label.toLowerCase())).join(', ');
-  const bar = boxerSplit_(cols);
-  const fights = W + L + D + NC;
-  const koRate = W && has(b.winsKo) ? Math.round(b.winsKo / W * 100) : null;
-  /* THE DATE THE COUNT WAS TAKEN, FOR A FIGHTER STILL FIGHTING. § */
-  const asOf = norm(b.status) === 'active' && b.recordAsOf ? 'Record as of ' + boxerDate_(b.recordAsOf) : '';
-  const line = [koRate != null ? 'KO rate ' + koRate + '%' : '',
-                fights + (fights === 1 ? ' fight' : ' fights')].filter(Boolean).join(' · ');
-  return `<section class="boxer-rec" aria-label="Record: ${esc(said)}">
-    <div class="boxer-tally">${cols.map(c => `<div class="boxer-n is-${c.k}${c.n ? '' : ' is-zero'}"><b>${c.n}</b><span class="boxer-k">${
-      c.label}</span>${c.ko != null ? `<span class="boxer-ko">${c.ko} KO</span>` : ''}</div>`).join('')}</div>
-    ${bar.length ? `<svg class="boxer-bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true">${
-      bar.map(s => `<rect class="is-${s.k}" x="${s.x}" y="0" width="${s.w}" height="4"/>`).join('')}</svg>` : ''}
-    <p class="fc-meta boxer-line">${esc(line)}</p>
-    ${asOf || boxerNote_(b) ? `<p class="fc-note">${esc([asOf, boxerNote_(b)].filter(Boolean).join(' · '))}</p>` : ''}
-  </section>`;
+/* `flip` TURNS THE FACE LEFT: a fight's second corner faces the first. */
+function personPic_(id, name, flip) {
+  const r = personPix_(id, name);
+  return pixSvg_(r && Array.isArray(r.px) ? r.px : PIX_NONE, name, flip, r ? '' : ' is-none');
 }
-
-/* ---------- THE WEIGHTS HE BOXED AT, SAID IN ONE LINE WHEN THERE ARE MANY § */
-const BOXER_LADDER = [
-  ['minimumweight', 'strawweight', 'mini flyweight', 'atomweight'], ['light flyweight', 'junior flyweight'],
-  ['flyweight'], ['super flyweight', 'junior bantamweight'], ['bantamweight'],
-  ['super bantamweight', 'junior featherweight'], ['featherweight'], ['super featherweight', 'junior lightweight'],
-  ['lightweight'], ['light welterweight', 'super lightweight', 'junior welterweight'], ['welterweight'],
-  ['light middleweight', 'super welterweight', 'junior middleweight'], ['middleweight'], ['super middleweight'],
-  ['light heavyweight'], ['cruiserweight', 'junior heavyweight'], ['bridgerweight'], ['heavyweight']];
-const boxerRung_ = w => BOXER_LADDER.findIndex(r => r.indexOf(norm(w)) >= 0);
-function boxerWeights_(list) {
-  if (list.length < 2) return list[0] || '';
-  if (list.length <= 3) return list.join(', ');
-  const ranked = list.every(w => boxerRung_(w) >= 0)
-    ? list.slice().sort((p, q) => boxerRung_(p) - boxerRung_(q)) : list;
-  return list.length + ' · ' + ranked[0] + ' → ' + ranked[ranked.length - 1];
+/* ONE 8-BIT DRAWER (batch E): portraits, cars, car parts and PC parts are all 16 rows of palette letters (`.pp-<letter>`). */
+function pixSvg_(rows, name, flip, cls) {
+  const byC = {};
+  (rows || []).forEach((line, y) => {
+    for (let x = 0; x < line.length;) {
+      const c = line[x];
+      let w = 1;
+      while (line[x + w] === c) w++;
+      if (c !== '.') (byC[c] = byC[c] || []).push(`M${x} ${y}h${w}v1h-${w}z`);
+      x += w;
+    }
+  });
+  const paths = Object.keys(byC).map(c => `<path class="pp-${c}" d="${byC[c].join('')}"/>`).join('');
+  return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
+    flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
-
-/* ---------- THE TALE OF THE TAPE § */
-function boxerTape_(b) {
-  const dead = !!b.dod || norm(b.status) === 'deceased';
-  const born = [boxerDate_(b.dob), b.bornIn].filter(Boolean).join(' · ');
-  const reached = b.dod ? boxerAge_(b.dob, b.dod) : null;
-  const age = dead ? null : boxerAge_(b.dob, new Date());
-  const y = v => (String(v || '').match(/\d{4}/) || [''])[0];
-  const from = y(b.activeFrom), to = y(b.activeTo);
-  const career = from && to ? from + '–' + to : from ? 'since ' + from : to ? 'to ' + to : '';
-  const weights = String(b.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
-  const rows = [
-    ['Age', age != null ? String(age) : ''],
-    ['Born', born],
-    ['Died', b.dod ? boxerDate_(b.dod) + (reached != null ? ' · aged ' + reached : '') : ''],
-    ['Height', boxerCm_(b.heightCm, true)],
-    ['Reach', boxerCm_(b.reachCm, false)],
-    ['Stance', b.stance],
-    /* EVERY WEIGHT HE BOXED AT, ONLY WHEN THERE WAS MORE THAN ONE — the one he is known at is under
-       his name already, and a tape row repeating it is the same fact twice on one card. */
-    [weights.length > 1 ? 'Weights' : 'Weight', weights.length > 1 ? boxerWeights_(weights) : (!b.bestDivision && weights[0]) || ''],
-    ['Career', career],
-    ['Trainer', b.trainer],
-    ['Promoter', b.promoter],
-    ['Ranked', b.ringRank],
-  ].filter(r => r[1]);
-  if (!rows.length) return '';
-  return `<section class="fc-sec boxer-tape"><h4>Tale of the tape</h4>
-    <dl>${rows.map(r => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>
-  </section>`;
-}
-
-/* ---------- THE BELTS AND THE HONOURS § */
-function boxerTitles_(b) {
-  const badges = (b.hallOfFame ? '<li class="is-hof">Hall of Fame</li>' : '')
-               + (b.lineal ? '<li>Lineal champion</li>' : '');
-  if (!b.worldTitles && !badges) return '';
-  /* THE BADGES RIDE ON THE HEADING'S LINE, at its right, the way a broadcast pins "HALL OF FAME" to the corner of a fighter's caption. § */
-  return `<section class="fc-sec boxer-titles"><div class="boxer-titles-head"><h4>${b.worldTitles ? 'Titles' : 'Honours'}</h4>${
-    badges ? `<ul class="boxer-badges">${badges}</ul>` : ''}</div>
-    ${b.worldTitles ? `<p class="boxer-belt">${esc(b.worldTitles)}</p>` : ''}
-  </section>`;
-}
-
-/* WHO HE BEAT AND WHO BEAT HIM, as names: two rows of chips under one heading, the won ones edged
-   in the win colour and the lost ones in the loss colour, so the two lists are told apart before
-   their labels are read. */
-function boxerNotable_(b) {
-  const won = boxerNames_(b.notableWins), lost = boxerNames_(b.notableLosses);
-  if (!won.length && !lost.length) return '';
-  const row = (label, k, names) => names.length ? `<div class="boxer-vs is-${k}"><span class="boxer-vs-k">${
-    label}</span><ul class="boxer-names">${names.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
-  return `<section class="fc-sec boxer-notable"><h4>Notable fights</h4>${row('Beat', 'w', won)}${row('Lost to', 'l', lost)}</section>`;
-}
-
-/* ---------- THE BOUTS ON FILE § */
-const BOXER_BOUTS_PAGE = 7;
-function boxerBoutList_(b, n) {
-  const bouts = boxerBouts_(b);
-  if (!bouts.length) return '';
-  const page = n || 1, from = (page - 1) * BOXER_BOUTS_PAGE;
-  const here = bouts.slice(from, from + BOXER_BOUTS_PAGE);
-  if (!here.length) return '';
-  /* THE COUNT IS THE WHOLE FILE'S, and a page that holds part of it says which part. */
-  const count = bouts.length > BOXER_BOUTS_PAGE
-    ? (from + 1) + '–' + (from + here.length) + ' of ' + bouts.length : String(bouts.length);
-  const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' };
-  return `<section class="fc-sec boxer-bouts"><h4>Fights on file · ${count}</h4>
-    <ul>${here.map(o => `<li class="is-${o.res.toLowerCase()}"><span class="boxer-res" aria-hidden="true">${
-      o.res}</span><span class="boxer-say">${word[o.res]}, </span><span class="boxer-opp">${esc(o.opp || 'Unknown')}</span><span class="boxer-how">${
-      esc([boxerHow_(o.f), boxerDate_(o.f.date)].filter(Boolean).join(' · '))}${o.f.titles
-      ? `<span class="boxer-tt" title="${esc(o.f.titles)}">title</span>` : ''}</span></li>`).join('')}</ul>
-  </section>`;
-}
-
-function boxerCard_(x) {
-  const b = x.row || {};
-  const flag = boxerFlag_(b.country);
-  /* COUNTRY, THEN THE WEIGHT HE IS KNOWN AT, ONE LINE EACH. § */
-  const where = (b.country ? `<span class="boxer-country">${flag ? `<span class="boxer-flag" aria-hidden="true">${flag}</span>` : ''}${
-    esc(b.country)}</span>` : '') + (b.bestDivision ? `<span class="boxer-weight">${esc(b.bestDivision)}</span>` : '');
-  const st = boxerStatus_(b);
-  /* `.boxer-rec` IS STILL THE RECORD'S NAME, on the whole record box now rather than on one gold line. § */
-  return `<div class="card fc boxer">
-    <div class="fc-head">
-      <h3>${esc(b.name || x.name)}${b.nickname ? `<span class="boxer-nick">“${esc(b.nickname)}”</span>` : ''}</h3>
-    </div>
-    ${tagRow_(x)}
-    ${where ? `<p class="sub boxer-from">${where}</p>` : ''}
-    ${st ? `<p class="boxer-status ${st.k}">${esc(st.t)}</p>` : ''}
-    ${boxerPic_(b)}
-    ${boxerRecord_(b)}
-    ${boxerTape_(b)}
-    ${boxerTitles_(b)}
-  </div>`;
-}
-
-/* ---------- HIS FIGHTS, THE PAGE AFTER HIS CARD § */
-function boxerHasFights_(b) {
-  return !!b && (boxerNames_(b.notableWins).length > 0 || boxerNames_(b.notableLosses).length > 0
-                 || boxerBouts_(b).length > 0);
-}
-/* ---------- AND AS MANY PAGES OF THEM AS IT TAKES, SEVEN BOUTS A PAGE § */
-function boxerFightPages_(b) {
-  if (!boxerHasFights_(b)) return [];
-  const n = Math.max(1, Math.ceil(boxerBouts_(b).length / BOXER_BOUTS_PAGE));
-  return Array.from({ length: n }, (_, i) => i ? 'fights' + (i + 1) : 'fights');
-}
-/* HEADED WITH WHOSE PAGE IT IS, as every part page is — `.fc-kick` and then the page's own `h3` — because it is somewhere you can land from a flick four results § */
-function boxerPart_(x, part) {
-  const b = x.row || {};
-  const m = /^fights(\d*)$/.exec(String(part || ''));
-  if (!m) return '';
-  const n = Number(m[1] || 1);
-  return `<div class="card fc prac-part boxer is-fights">
-    <p class="fc-kick">${esc(b.name || x.name)}</p><h3>${n > 1 ? 'Fights, continued' : 'Fights'}</h3>
-    ${n === 1 ? boxerNotable_(b) : ''}
-    ${boxerBoutList_(b, n)}
-  </div>`;
+function personCard_(x) {
+  return `<div class="card fc person" aria-label="${esc(x.name)}">${tagRow_(x)}<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure></div>`;
 }
 
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
@@ -749,4 +504,4 @@ function vecHtml_(html) {
   return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
-window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, figure: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
+window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });

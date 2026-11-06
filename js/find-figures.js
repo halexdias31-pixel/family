@@ -205,7 +205,7 @@ function tagRow_(x, page) {
   /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {
     let vals;
-    try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
+    try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();
       if (!raw) return;
@@ -235,7 +235,8 @@ function tagsOnTop_(x, html) {
 
 /* A CREDIT LINE IS A TAG (A+): a card's small source or licence line, however late it is drawn, moves into its tag row, said in full. */
 function creditsToTags_(root) {
-  (root && root.querySelectorAll ? root : document).querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
+  const at = root && root.querySelectorAll ? root : document;
+  if (at && at.querySelectorAll) at.querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     if (!row || !w || el.closest('.qcard-tags')) return;
     const t = document.createElement('span');

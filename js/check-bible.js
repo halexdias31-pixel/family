@@ -230,7 +230,7 @@ if (bibleV_) {
 }
 
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX § */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_TR_WORDS', 'bibleTrs_', 'bibleSlot_', 'WRITINGS_SHELF', 'SCRIPTURE_SUBJECT', 'SCRIPTURE_MIN_AGE', 'scriptureMinAge_', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_TR_WORDS', 'bibleTrs_', 'bibleSlot_', 'WRITINGS_SHELF', 'SCRIPTURE_SUBJECT', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
@@ -298,9 +298,9 @@ else if (kindM[1] !== 'Learning' || kindM[2] !== 'Library') fail.push('the bible
    the Bible shown to somebody the owner did not name. */
 const gateM = /const bibleFor_ = \(\) => ([^;]+);/.exec(findSrc);
 if (!gateM) fail.push('`bibleFor_` is not in js/find.js — there is no one place deciding who sees the Bible');
-/* OR THE RULES CARD'S `kjv-admin` made universal (496): the owner's own switch, of age still required. */
-else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()))") {
-  fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — an admin, or anyone of age while `kjv-admin` is Universal (504)');
+/* OR THE RULES CARD'S `kjv-admin` made universal (496): the owner's own switch; no age gate (1040). */
+else if (gateM[1].replace(/\s+/g, ' ').trim() !== "(typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'))") {
+  fail.push('`bibleFor_` is `' + gateM[1].trim() + '` — an admin, or anyone while `kjv-admin` is Universal (504)');
 }
 /* PUBLIC BY DEFAULT (504): "it's open source so I don't care about it being public" — `kjv-admin` is a `flip` rule, Universal until switched. */
 if (!/\{\s*id: 'kjv-admin',[^}]*flip: true\s*\}/.test(fs.readFileSync(path.join(root, 'js', 'rules.js'), 'utf8'))) fail.push('`kjv-admin` in js/rules.js is not `flip: true` — the Bible would be admin-only until the owner switched it, and he said he does not mind it public');

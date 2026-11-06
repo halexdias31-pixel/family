@@ -103,6 +103,7 @@
   --dur-move:  280ms;
   /* AN INFORMATION HIGHLIGHT (`.lay-moved`, `.post-lit`): it says where something is, so reduced motion keeps it. */
   --dur-mark:  1.3s;
+  --dur-pan:   900ms; /* the timeline axis pan (owner-asked, batch F): slow enough to read the years go by */
   /* how long anything takes to respond to a touch; the old name, kept as an alias until every use moves onto `--dur-quick`. */
   --quick: var(--dur-quick);
   --ease-out:    cubic-bezier(.2, .8, .2, 1);
@@ -4899,6 +4900,27 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
 
 /* ---------- THE FIGHT CARD'S TWO FACES § */
+/* ---------- A PERSON'S 8-BIT PORTRAIT (batch D): the same drawer for every person and both corners of a fight, palette letters from tools/people_pix.py ---------- */
+.pp { display: block; width: 100%; height: auto; image-rendering: pixelated;
+  --pp-k: #1b1816; --pp-1: #ecc9aa; --pp-2: #e7bf9b; --pp-3: #cf9a6c; --pp-4: #ad7448; --pp-5: #855433; --pp-6: #643d25;
+  --pp-hbk: #2a2522; --pp-hdb: #5e402c; --pp-hbr: #6f4a2d; --pp-hlb: #9b7249; --pp-hbl: #dcb866; --pp-hrd: #b45a2c; --pp-hgr: #9d9b97; --pp-hwh: #ecebe6;
+  --pp-w: #f5f5f2; --pp-b: #26262b; --pp-r: #c8302c; --pp-m: #86283a; --pp-n: #2c4290; --pp-u: #2f6fe0; --pp-c: #8cc8f0;
+  --pp-g: #23914f; --pp-o: #6b7240; --pp-e: #b49a6a; --pp-t: #6e4a2e; --pp-y: #e4ae30; --pp-p: #7440ad; --pp-s: #8b8d91;
+  --pp-f: #f08cbc; --pp-a: #f07f24; }
+.pp.is-none path { fill: var(--faint); }
+.pp-k { fill: var(--pp-k); } .pp-1 { fill: var(--pp-1); } .pp-2 { fill: var(--pp-2); } .pp-3 { fill: var(--pp-3); }
+.pp-4 { fill: var(--pp-4); } .pp-5 { fill: var(--pp-5); } .pp-6 { fill: var(--pp-6); } .pp-B { fill: var(--pp-hbk); }
+.pp-D { fill: var(--pp-hdb); } .pp-N { fill: var(--pp-hbr); } .pp-L { fill: var(--pp-hlb); } .pp-Y { fill: var(--pp-hbl); }
+.pp-R { fill: var(--pp-hrd); } .pp-G { fill: var(--pp-hgr); } .pp-W { fill: var(--pp-hwh); } .pp-w { fill: var(--pp-w); }
+.pp-b { fill: var(--pp-b); } .pp-r { fill: var(--pp-r); } .pp-m { fill: var(--pp-m); } .pp-n { fill: var(--pp-n); }
+.pp-u { fill: var(--pp-u); } .pp-c { fill: var(--pp-c); } .pp-g { fill: var(--pp-g); } .pp-o { fill: var(--pp-o); }
+.pp-e { fill: var(--pp-e); } .pp-t { fill: var(--pp-t); } .pp-y { fill: var(--pp-y); } .pp-p { fill: var(--pp-p); }
+.pp-s { fill: var(--pp-s); } .pp-f { fill: var(--pp-f); } .pp-a { fill: var(--pp-a); }
+.person-pic { margin: .6rem auto 0; width: min(100%, 16rem); background: var(--raised); border-radius: 12px; padding: .6rem; }
+/* BATCH E: a car, car part or PC part is its tags, its 8-bit drawing and (a part) one line of what it does. */
+.mech-pic { margin: .6rem auto 0; width: min(100%, 12rem); background: var(--raised); border-radius: 12px; padding: .6rem; }
+.mech-does { margin: .6rem 0 0; }
+.fight .fight-faces .pp { flex: 1 1 0; max-width: 10rem; background: var(--raised); border-radius: 12px; padding: .4rem; }
 .fight-faces { display: flex; align-items: center; justify-content: center; gap: .7rem;
                margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */
 .boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
@@ -7148,18 +7170,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* MECHANICS PICTURES (548): a 64x64 drawing on each card, scaled whole and crisp. */
 
-/* THE TIMELINE STEP-THROUGH (570): one for every timeline card; the event shown slides in, the dots behind it fill. */
-.tl-bar { position: relative; height: 1.4rem; margin: .6rem .5rem; border-bottom: 2px solid var(--line); }
-.tl-dot { position: absolute; bottom: -.3rem; width: .5rem; height: .5rem; margin-left: -.25rem; border-radius: 50%; background: var(--line); }
-.tl-dot.past, .tl-dot.on { background: var(--ink); }
-.tl-mark { position: absolute; bottom: -.15rem; width: 0; height: 1.3rem; border-left: 3px solid var(--gold); }
-.tl-now { animation: tl-in var(--dur-enter) var(--ease-out); }
-.tl-when { margin: 0; color: var(--dim); font-size: .85rem; }
-@keyframes tl-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .tl-now { animation: none; } }
+/* THE TIMELINES (batch F): a scene of fixed height, the tiles under it never moving, then an axis that pans (a transform, so nothing reflows). */
+.tl-anim { overflow: hidden; } .tl-scene { height: 10rem; display: flex; flex-direction: column; align-items: center; text-align: center; } .tl-scene > * { animation: tl-pop var(--dur-enter) var(--ease-out); }
+.tl-pic { margin: .2rem 0 0; width: 5.5rem; height: 5.5rem; } .tl-big, .tl-mini { width: 100%; height: 100%; display: block; } .tl-year { margin: .3rem 0 0; font: 600 .8rem/1.2 var(--mono); color: var(--gold); }
+.tl-label { margin: .1rem 0 0; font-weight: 700; font-size: 1rem; line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tl-view { position: relative; height: 3.4rem; margin: .6rem 0 .2rem; overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform var(--dur-pan) var(--ease-out); will-change: transform; }
+.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 .6rem/1 var(--mono); font-style: normal; color: color-mix(in srgb, var(--ink) 55%, transparent); white-space: nowrap; }
+.tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; filter: opacity(.45); transition: filter var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { filter: opacity(.8); } .tl-ev.on { filter: none; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
+@keyframes tl-pop { from { opacity: 0; transform: translateY(.4rem) scale(.9); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tl-scene > *, .tl-track, .tl-ev { animation: none; transition: none; } }
 .rep-vids { margin: .4rem 0; }
 .rep-vid { align-items: center; }
-
 /* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
 .web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
 

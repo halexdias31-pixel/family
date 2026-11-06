@@ -152,9 +152,10 @@ function histEras_(from, to) {
 function histErasOf_(x) {
   /* A WRITING'S UNIT CARRIES ITS WORK'S DATE (520), so Era asks a page of First Clement as it asked the row it replaced. */
   if (x && x.wDate) return histEras_(x.wDate[0], x.wDate[1]);
+  if (isPerson_(x)) return x.born || x.died ? histEras_(x.born || x.died, x.died || x.born) : [];
   const r = x && x.hdb ? x.row : null;
   if (!r) return [];
-  return x.kind === 'figure' ? histEras_(r.born_year, r.died_year) : histEras_(r.date_from, r.date_to);
+  return histEras_(r.date_from, r.date_to);
 }
 /* ONE READER FOR EVERY HISTORY FACET: a column of the row, split as a list; nothing on any other kind. */
 const histCol_ = (x, col) => (x && x.hdb && x.row ? histList_(x.row[col]) : []);
@@ -189,13 +190,16 @@ const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUppe
 /* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
 function histItem_(kind, r) {
   const fig = kind === 'figure';
+  if (fig) return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: 'People',
+    born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
+    shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
   const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
   const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
   const ev = kind === 'event';
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Works',
+    histKind: kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Works',
     /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
     shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
@@ -396,97 +400,6 @@ function histCard_(x) {
   </div>`;
 }
 
-/* THE TIMELINES (461): one item per `era` of data/timeline.json, its events in date order (`date_iso`); its years span theirs. */
-const histTimelineKey_ = era => 'hdb:tl:' + String(era).toLowerCase().replace(/[^a-z0-9]+/g, '-');
-function histTimelines_() {
-  const by = new Map();
-  (DATA.timeline || []).forEach(e => { const era = String(e.era || '').trim(); if (era) by.set(era, (by.get(era) || []).concat([e])); });
-  return [...by].map(([era, evs]) => {
-    const list = evs.slice().sort((a, b) => String(a.date_iso || a.date_from).localeCompare(String(b.date_iso || b.date_from)));
-    const ys = list.flatMap(e => [e.date_from, e.date_to]).filter(n => n != null && isFinite(n));
-    const row = { id: 'TL-' + era, name: era + ' timeline', date_from: Math.min(...ys), date_to: Math.max(...ys),
-      theatre: [...new Set(list.flatMap(e => histList_(e.theatre)))].join(' | '), events: list };
-    return { kind: 'timeline', hdb: true, name: row.name, key: histTimelineKey_(era), image: '',
-      sub: list.length + ' events · ' + row.date_from + '–' + row.date_to, histKind: 'Events', shelf: 'History', subject: 'History',
-      text: plainText_(row.name + ' ' + list.map(e => e.name).join(' ')), row: row, era: era };
-  });
-}
-/* THE CHAPTER WHOSE DRAWING IS THIS TIMELINE: an animation titled with the era ("World War 2, 1939–45"). check-history-db holds it. */
-function histTimelineChapter_(era) {
-  for (const b of DATA.textbooks || []) for (const c of b.chapters || []) {
-    const a = (c.animations || []).find(n => String(n.title).indexOf(era) === 0);
-    if (a) return { key: 'ct:' + b.id + '-' + c.n, title: a.title };
-  }
-  return null;
-}
-/* A DAY AS A LINE OF THE TIMELINE SAYS IT: 1939-09-01 → 1 Sep 1939; anything else as written. */
-const histDay_ = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? +m[3] + ' ' + MONTH_NAMES[+m[2] - 1].slice(0, 3) + ' ' + m[1] : String(iso || ''); };
-/* ONE LINE PER EVENT (421): its first day, its name and the tile to its card; then the Animation tile under the list. */
-function histTimelineCard_(x) {
-  const r = x.row || {};
-  const lines = (r.events || []).map(e => `<div><dt>${esc(histDay_(e.date_iso) || String(e.date_from))}</dt><dd class="hdb-ev"><span>${esc(e.name)}</span>${
-    tile_({ icon: 'flag', label: e.name, note: e.date_text, act: 'find-open', data: { key: 'hdb:' + e.id } })}</dd></div>`);
-  return `<div class="card fc hdb hdb-tl">
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${tagRow_(x)}
-    <section class="fc-sec tl-step" data-tl="${esc(x.key)}">${tlStep_(x.key)}</section>
-    <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
-  </div>`;
-}
-function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }
-
-/* ONE STEP-THROUGH FOR EVERY TIMELINE (570): driven by the card's own events, the marker moving along its span from one to the next. */
-const TL_AT = {}, TL_PLAY = { key: '', timer: null }, TL_STEP_MS = 2600;
-const tlEvents_ = key => { const t = histTimelines_().find(y => y.key === key); return t ? t.row.events || [] : []; };
-function tlStep_(key) {
-  const evs = tlEvents_(key);
-  if (!evs.length) return '';
-  const i = Math.min(TL_AT[key] || 0, evs.length - 1), e = evs[i], last = evs[evs.length - 1];
-  const from = Number(evs[0].date_from), span = Math.max(1, Number(last.date_to || last.date_from) - from);
-  const at = v => Math.max(0, Math.min(100, (Number(v) - from) / span * 100)).toFixed(1);
-  const playing = TL_PLAY.key === key && !!TL_PLAY.timer;
-  return `<div class="tl-bar">${evs.map((d, k) => `<span class="tl-dot${k === i ? ' on' : k < i ? ' past' : ''}" style="left:${at(d.date_from)}%"></span>`).join('')}
-    <span class="tl-mark" style="left:${at(e.date_from)}%"></span></div>
-    <div class="tl-now" data-i="${i}"><p class="tl-when">${esc(e.date_text || histDay_(e.date_iso))} · ${i + 1} of ${evs.length}</p>
-    <h4>${esc(e.name)}</h4><p>${esc(e.summary || '')}</p></div>
-    <div class="tile-row">${tile_({ icon: 'left', label: 'Back', act: 'tl-step', data: { key, by: -1 }, off: i === 0 })}${
-      tile_({ icon: playing ? 'pause' : 'play', label: playing ? 'Pause' : 'Play', act: 'tl-play', data: { key }, pressed: playing })}${
-      tile_({ icon: 'right', label: 'Next', act: 'tl-step', data: { key, by: 1 }, off: i === evs.length - 1 })}</div>`;
-}
-function tlPaint_(key) {
-  document.querySelectorAll('.tl-step').forEach(s => { if (s.getAttribute('data-tl') === key) s.innerHTML = tlStep_(key); });
-}
-function tlStop_() {
-  if (TL_PLAY.timer) clearInterval(TL_PLAY.timer);
-  const k = TL_PLAY.key;
-  TL_PLAY.timer = null; TL_PLAY.key = '';
-  if (k) tlPaint_(k);
-}
-function tlMove_(key, by) {
-  const n = tlEvents_(key).length;
-  TL_AT[key] = Math.max(0, Math.min(n - 1, (TL_AT[key] || 0) + by));
-  if (TL_AT[key] >= n - 1 && TL_PLAY.key === key) return tlStop_();
-  tlPaint_(key);
-}
-on('tl-step', el => {
-  const key = el.getAttribute('data-key');
-  if (TL_PLAY.key === key) tlStop_();
-  tlMove_(key, +el.getAttribute('data-by'));
-});
-/* PLAY ADVANCES ON A TIMER that holds its own timeline's key, and stops at the last event or once the card is gone. */
-on('tl-play', el => {
-  const key = el.getAttribute('data-key');
-  if (TL_PLAY.key === key) return tlStop_();
-  tlStop_();
-  if ((TL_AT[key] || 0) >= tlEvents_(key).length - 1) TL_AT[key] = 0;
-  TL_PLAY.key = key;
-  TL_PLAY.timer = setInterval(() => {
-    if (![...document.querySelectorAll('.tl-step')].some(s => s.getAttribute('data-tl') === key)) return tlStop_();
-    tlMove_(key, 1);
-  }, TL_STEP_MS);
-  tlPaint_(key);
-});
-
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. § */
@@ -505,12 +418,8 @@ const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}
                 item: null, verses: null, rank: null, hays: null };
 
 /* ---------- WHO IS SHOWN IT § */
-/* A RULE (496, 504): `kjv-admin` — Universal by default now, anyone of age like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
-const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
-/* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
-const SCRIPTURE_MIN_AGE = 18;
-/* A RULE (496): `scripture-age` — Universal, scripture has no age limit, like every other item. */
-const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('scripture-age')) ? SCRIPTURE_MIN_AGE : 0;
+/* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
+const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
@@ -523,7 +432,7 @@ function scriptureWait_(items) {
     ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
     ['the Talmud', typeof TALMUD !== 'undefined' ? TALMUD : null, typeof talmudFor_ === 'function' && talmudFor_()],
     ['the Hadith', typeof HADITH !== 'undefined' ? HADITH : null, typeof hadithFor_ === 'function' && hadithFor_()],
-    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, viewerOfAge_(scriptureMinAge_())]]
+    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, true]]
     .filter(b => b[1] && b[2]);
   if (books.some(b => b[1].asking)) return loading_();
   const gone = books.filter(b => b[1].failed).map(b => b[0]);
@@ -685,7 +594,7 @@ const bibleV_ = t => '<p class="bb-v">'
 /* ---------- EVERY VERSE, AS AN ITEM § */
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
-  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT(), reg = writingWork_('bible'), age = writingAge_(reg);
+  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT(), reg = writingWork_('bible');
   bibleTrs_(ix).forEach(t => {
     const text = writingText_(writingTextOf_(t.tr));
     const head = 'bible:' + t.tr.toLowerCase() + ':', st = starts[t.tr.toLowerCase()] = [];
@@ -698,8 +607,7 @@ function bibleVerseList_(ix) {
         at.push(list.length);
         for (let v = 1; v <= count; v++) {
           list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                      shelf: WRITINGS_SHELF, wSrc: 'bible', topic: reg.topic, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
-                      min_age: age });
+                      shelf: WRITINGS_SHELF, wSrc: 'bible', topic: reg.topic, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
         }
       });
     });
@@ -750,11 +658,10 @@ function bibleEnd_(items) {
       <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
-   a book's words only when one of its cards is drawn. */
+/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */
 function bibleItems_() {
   if (!bibleFor_()) return [];
-  bibleIndex_();
+  if (USER || !ruleOn_('finder-members')) bibleIndex_();
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   const list = bibleVerses_();
   BIBLE.item = list[0] || null;
