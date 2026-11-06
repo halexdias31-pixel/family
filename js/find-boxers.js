@@ -571,8 +571,13 @@ function personYears_(x) {
 }
 /* `flip` TURNS THE FACE LEFT: a fight's second corner faces the first. */
 function personPic_(id, name, flip) {
-  const r = personPix_(id, name), rows = r && Array.isArray(r.px) ? r.px : PIX_NONE, byC = {};
-  rows.forEach((line, y) => {
+  const r = personPix_(id, name);
+  return pixSvg_(r && Array.isArray(r.px) ? r.px : PIX_NONE, name, flip, r ? '' : ' is-none');
+}
+/* ONE 8-BIT DRAWER (batch E): portraits, cars, car parts and PC parts are all 16 rows of palette letters (`.pp-<letter>`). */
+function pixSvg_(rows, name, flip, cls) {
+  const byC = {};
+  (rows || []).forEach((line, y) => {
     for (let x = 0; x < line.length;) {
       const c = line[x];
       let w = 1;
@@ -582,7 +587,7 @@ function personPic_(id, name, flip) {
     }
   });
   const paths = Object.keys(byC).map(c => `<path class="pp-${c}" d="${byC[c].join('')}"/>`).join('');
-  return `<svg class="pp${r ? '' : ' is-none'}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
+  return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
 function personCard_(x) {

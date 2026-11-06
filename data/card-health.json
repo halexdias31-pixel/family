@@ -1,14 +1,16 @@
 {
- "items": 278994,
- "tagCards": 33046,
+ "items": 279011,
+ "tagCards": 33063,
  "drawnCards": 689,
  "counts": {
   "odd-tags": 330,
   "dup-controls": 0,
   "picture-first": 0,
   "people-one-kind": 0,
-  "manuscripts-reach": 0
+  "manuscripts-reach": 0,
+  "car-tags-split": 0
  },
+ "mech": 89,
  "people": 313,
  "byRule": [
   [
@@ -28,7 +30,7 @@
    7
   ],
   [
-   "tag … (forLabel) is on 32946 of 33046 cards read — it tells a reader nothing (owner question)",
+   "tag … (forLabel) is on 32963 of 33063 cards read — it tells a reader nothing (owner question)",
    1
   ]
  ],
@@ -1681,7 +1683,7 @@
   {
    "kind": "odd-tags",
    "where": "every card",
-   "say": "tag \"Learning\" (forLabel) is on 32946 of 33046 cards read — it tells a reader nothing (owner question)"
+   "say": "tag \"Learning\" (forLabel) is on 32963 of 33063 cards read — it tells a reader nothing (owner question)"
   }
  ]
 }

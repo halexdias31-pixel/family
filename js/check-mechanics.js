@@ -1,57 +1,56 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check-mechanics.js MECHANICS (548, 740): each card has a system and a source; one car, the Clio; no part
-   numbers but a part's labelled example; a part's engines are car cards'; no pictures. No flags, no port. */
+/* @family. — check-mechanics.js MECHANICS AND PC PARTS (548, batch E): written by tools/mech_rows.py; every card has a
+   source and a 16x16 drawing; every car attribute is its own field (no combined string but the hidden name); a part's
+   fits are car cards' engine codes; no catalogue numbers, no number plates. No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data', 'mechanics');
-const FILES = ['parts', 'models'];
-/* TWO DATABASES (650): parts and cars. ONE CAR (740): the owner's Renault Clio, a car card per engine. */
-const ENGINES = new Set();
+const FILES = ['parts', 'models', 'pc'];
 const SYSTEMS = ['Engine', 'Fuel', 'Ignition', 'Cooling', 'Lubrication', 'Exhaust', 'Transmission/Clutch', 'Brakes', 'Suspension', 'Steering',
   'Electrical', 'Lighting', 'Body', 'Tyres & wheels', 'HVAC'];
-/* A PART'S EXAMPLE NUMBER IS THE SITE'S OWN FORMAT (570), never a maker's: EX-<system>-<nnn>. */
-const EXAMPLE_NO = /^EX-[A-Z]{3}-\d{3}$/;
+const PC_TYPES = ['CPU', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU', 'Case', 'Cooling', 'Cables', 'OS media'];
+/* ONE ATTRIBUTE A FIELD (owner, 6 Nov): each car field is one short value, never "Renault Clio III 1.2 16V". */
+const CAR_FIELDS = ['make', 'model', 'gen', 'phase', 'market', 'years', 'size', 'valves', 'badge', 'fuel', 'code'];
 /* A CATALOGUE NUMBER: seven or more digits run together or spaced, or letters then five or more digits. */
 const PARTNO = /\d(?:[ -]?\d){6,}|\b[A-Z]{1,3}\d{5,}\b/;
+const PALETTE = /^[.k1-6BDNLYRGWwbrmnucgoetypsfa]{16}$/;
 const fail = [], data = {};
 FILES.forEach(f => {
   try { data[f] = JSON.parse(fs.readFileSync(path.join(dir, f + '.json'), 'utf8'))[f]; } catch (e) { data[f] = null; }
   if (!Array.isArray(data[f]) || !data[f].length) { console.error('check-mechanics: data/mechanics/' + f + '.json did not load or is empty — NOTHING was checked'); process.exit(1); }
 });
-const partNames = new Set(data.parts.map(p => p.name)), ids = new Set();
-data.models.forEach(m => ENGINES.add(m.engine));
-if (fs.existsSync(path.join(dir, 'fits.json'))) fail.push('data/mechanics/fits.json is back — parts lists went in 650; a part says its cars');
-/* NO PICTURES (740): the owner's "doesn't even need pictures anymore". */
-if (fs.existsSync(path.join(dir, 'pixels.json'))) fail.push('data/mechanics/pixels.json is back — the pictures went in 740');
+const codes = new Set(data.models.map(m => m.code)), ids = new Set();
+if (data.parts.length < 60) fail.push('only ' + data.parts.length + ' car parts — the Clio had 68');
+['Renault', 'Ford', 'Volkswagen', 'Vauxhall'].forEach(b => { if (!data.models.some(m => m.make === b)) fail.push('no ' + b + ' car card'); });
+PC_TYPES.forEach(t => { if (!data.pc.some(p => p.type === t)) fail.push('no PC part of type ' + t); });
 FILES.forEach(f => data[f].forEach(r => {
   const at = f + ' ' + (r.id || JSON.stringify(r).slice(0, 40));
   if (!r.id || ids.has(r.id)) fail.push(at + ': no id, or an id used twice');
   ids.add(r.id);
   if (!r.name) fail.push(at + ': no name');
-  if (SYSTEMS.indexOf(r.system) < 0) fail.push(at + ': system "' + r.system + '" is not one of the ' + SYSTEMS.length);
   if (!String(r.source || '').trim()) fail.push(at + ': no source line');
-  ['system', 'make', 'model', 'engine'].forEach(k => {
-    if (r[k] != null && typeof r[k] !== 'string') fail.push(at + ': ' + k + ' is not one string');
-  });
-  if (f === 'parts' && !(r.does && EXAMPLE_NO.test(r.part_no || '') && /£\d/.test(r.value || '') && /example/.test(r.source) && /approximate/.test(r.source)))
-    fail.push(at + ': a part needs what it is, an example number EX-XXX-nnn, a £ value, and a source saying example and approximate');
-  if (['steps', 'causes', 'signs', 'check'].some(k => r[k] != null)) fail.push(at + ': carries jobs-and-symptoms teaching, which went in 570');
-  if (f === 'parts' && !(Array.isArray(r.engines) && r.engines.length && r.engines.every(e => ENGINES.has(e)) && r.fits))
-    fail.push(at + ': engines must name car cards\' engines (' + [...ENGINES].join(', ') + ') and come with a fits line');
-  if (f === 'models' && !(r.make === 'Renault' && /^Clio/.test(r.model || '') && /\d{4}/.test(r.years || '') && r.engine))
-    fail.push(at + ': a car card is the Renault Clio (740), with model, year range and engine');
-  if (['cars', 'facts', 'image', 'picture'].some(k => r[k] != null)) fail.push(at + ': carries `cars`, `facts` or a picture, which went in 740 — cards are minimal');
-  if (f === 'jobs' && !((r.steps || []).length && r.time && r.difficulty && r.tools)) fail.push(at + ': a job needs steps, time, difficulty and tools');
-  [].concat(r.causes || [], r.parts || []).forEach(p => { if (!partNames.has(p)) fail.push(at + ': names "' + p + '", which is no part card'); });
-  const words = JSON.stringify(Object.assign({}, r, { part_no: '' }));
+  if (!Array.isArray(r.px) || r.px.length !== 16 || !r.px.every(l => PALETTE.test(l))) fail.push(at + ': px is not 16 rows of 16 palette letters (tools/mech_rows.py)');
+  if (r.part_no != null) fail.push(at + ': carries a part number — only plain facts (owner, 6 Nov)');
+  if (f === 'parts') {
+    if (SYSTEMS.indexOf(r.system) < 0) fail.push(at + ': system "' + r.system + '" is not one of the ' + SYSTEMS.length);
+    if (!(r.does && /£\d/.test(r.value || '') && /approximate/.test(r.source))) fail.push(at + ': a part needs what it does, a £ band and a source saying approximate');
+    if (!(Array.isArray(r.fits) && r.fits.length && r.fits.every(c => codes.has(c)))) fail.push(at + ': fits must name car cards\' engine codes (' + [...codes].join(', ') + ')');
+  }
+  if (f === 'models') {
+    CAR_FIELDS.forEach(k => { if (r[k] != null && (typeof r[k] !== 'string' || r[k].split(' ').length > 2)) fail.push(at + ': ' + k + ' "' + r[k] + '" is not one attribute'); });
+    if (!(r.make && r.model && r.gen && r.code && /\d{4}/.test(r.years || '') && r.size && r.fuel)) fail.push(at + ': a car needs make, model, generation, years, size, fuel and engine code');
+  }
+  if (f === 'pc' && !(PC_TYPES.indexOf(r.type) >= 0 && r.socket && (r.iface || []).length && (r.links || []).length && r.does))
+    fail.push(at + ': a PC part needs a type, socket or form factor, interfaces, what it connects to and what it does');
+  const words = JSON.stringify(Object.assign({}, r, { px: [] }));
   const m = words.match(PARTNO);
   if (m) fail.push(at + ': "' + m[0] + '" looks like a part number');
-  if (/\b[A-Z]{1,3}\s?\d{2}\s?[A-Z]{3}\b|\b[A-Z]\d{1,3}\s?[A-Z]{3}\b/.test(words)) fail.push(at + ': something that looks like a number plate');
+  if (/\b[A-Z]{2}\d{2}\s?[A-Z]{3}\b/.test(words)) fail.push(at + ': something that looks like a number plate');
 }));
 if (fail.length) {
   fail.forEach(f => console.error('  ' + f));
   console.error('check-mechanics: ' + fail.length + ' fault(s)');
   process.exit(1);
 }
-console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a system and a source, part numbers only as labelled examples; every part fits a Clio engine.');
+console.log('check-mechanics: ' + FILES.map(f => data[f].length + ' ' + f).join(', ') + ' — every card has a source and a drawing, every car attribute its own field, every part fits a car card.');

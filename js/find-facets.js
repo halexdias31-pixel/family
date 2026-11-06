@@ -292,7 +292,7 @@ function facetWhy_(items, facet, over) {
   const echo = facetEcho_(items, facet);
   if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
   const split = facetSplit_(items, facet);
-  if (split < FACET_MIN_MINORITY && !kindNamed_(all)) {
+  if (split < FACET_MIN_MINORITY && !kindNamed_(all) && !facet.choose) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
          + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
   }

@@ -33,3 +33,9 @@ Things the health checker flags that would change what you see, so they wait for
 - A person card no longer has link tiles (a figure's Writing / Event tiles); events still link to their figures. Want the links back as tags?
 - The three lesson videos are marked Documentary (thumbnails look like Discovery/Quest). Right type? Their real titles are still unknown.
 - History › People asks Decade first (the one rule picks it). Fine, or Era / Role first?
+
+## Batch E (6 Nov) — mechanics and PC parts
+- Cars chosen: Fiesta Mk7 1.25 Duratec 16V (engine code SNJB), Golf Mk6 1.6 TDI (CAYC), Corsa D 1.2 16V (Z12XEP). Right generations and engines? The SNJB code in particular is worth checking.
+- Price bands are the Clio's for every car (rough, parts only). Should the Golf have its own?
+- The made-up example part numbers were removed. Do you want real part numbers anywhere?
+- History › Manuscripts/People/Works/Events is now ordered before Work, but it is still not asked because too few History cards answer it (writings are most of History). Should that question be asked anyway?

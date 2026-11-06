@@ -4916,6 +4916,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .pp-e { fill: var(--pp-e); } .pp-t { fill: var(--pp-t); } .pp-y { fill: var(--pp-y); } .pp-p { fill: var(--pp-p); }
 .pp-s { fill: var(--pp-s); } .pp-f { fill: var(--pp-f); } .pp-a { fill: var(--pp-a); }
 .person-pic { margin: .6rem auto 0; width: min(100%, 16rem); background: var(--raised); border-radius: 12px; padding: .6rem; }
+/* BATCH E: a car, car part or PC part is its tags, its 8-bit drawing and (a part) one line of what it does. */
+.mech-pic { margin: .6rem auto 0; width: min(100%, 12rem); background: var(--raised); border-radius: 12px; padding: .6rem; }
+.mech-does { margin: .6rem 0 0; }
 .fight .fight-faces .pp { flex: 1 1 0; max-width: 10rem; background: var(--raised); border-radius: 12px; padding: .4rem; }
 .fight-faces { display: flex; align-items: center; justify-content: center; gap: .7rem;
                margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */

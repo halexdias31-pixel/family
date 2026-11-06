@@ -1,48 +1,9 @@
-{
- "models": [
-  {
-   "id": "MM-001",
-   "make": "Renault",
-   "model": "Clio III",
-   "years": "2009–2012 (phase 2, UK)",
-   "system": "Engine",
-   "engine": "1.2 16V (D4F)",
-   "name": "Renault Clio III 1.2 16V",
-   "source": "Wikipedia, 'Renault Clio' (Clio III) and 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine",
-   "car": "Clio"
-  },
-  {
-   "id": "MM-002",
-   "make": "Renault",
-   "model": "Clio III",
-   "years": "2009–2012 (phase 2, UK)",
-   "system": "Engine",
-   "engine": "1.2 TCe 100 (D4FT)",
-   "name": "Renault Clio III 1.2 TCe 100",
-   "source": "Wikipedia, 'Renault D engine' — https://en.wikipedia.org/wiki/Renault_D_engine",
-   "car": "Clio"
-  },
-  {
-   "id": "MM-003",
-   "make": "Renault",
-   "model": "Clio III",
-   "years": "2009–2012 (phase 2, UK)",
-   "system": "Engine",
-   "engine": "1.5 dCi (K9K)",
-   "name": "Renault Clio III 1.5 dCi",
-   "source": "Wikipedia, 'Renault K engine' — https://en.wikipedia.org/wiki/Renault_K_engine",
-   "car": "Clio"
-  },
-  {
-   "id": "MM-004",
-   "make": "Renault",
-   "model": "Clio III",
-   "years": "2009–2012 (phase 2, UK)",
-   "system": "Engine",
-   "engine": "2.0 16V Renaultsport (F4R)",
-   "name": "Renault Clio III Renaultsport 200",
-   "source": "Wikipedia, 'Renault Clio' (Clio Renault Sport) — https://en.wikipedia.org/wiki/Renault_Clio",
-   "car": "Clio"
-  }
- ]
-}
+{"models": [
+{"id": "MM-001", "make": "Renault", "model": "Clio", "gen": "III", "phase": "Phase 2", "market": "UK", "years": "2009–2012", "size": "1.2", "valves": "16V", "fuel": "Petrol", "code": "D4F", "name": "Renault Clio III 1.2 16V", "source": "Wikipedia, 'Renault Clio' (Clio III), with the Renault D, K and F engine articles", "px": ["................", "................", "................", ".....kkkkkk.....", "....krcccrrk....", "...krccccrrrk...", "..krrccccrrrrkk.", ".krrrrrrrrrrrrrk", ".kwrrrrrrrrrrrak", ".krrrrrrrrrrrrrk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-002", "make": "Renault", "model": "Clio", "gen": "III", "phase": "Phase 2", "market": "UK", "years": "2009–2012", "size": "1.2", "valves": "16V", "badge": "TCe 100", "fuel": "Petrol", "code": "D4FT", "name": "Renault Clio III 1.2 TCe 100", "source": "Wikipedia, 'Renault Clio' (Clio III), with the Renault D, K and F engine articles", "px": ["................", "................", "................", ".....kkkkkk.....", "....krcccrrk....", "...krccccrrrk...", "..krrccccrrrrkk.", ".krrrrrrrrrrrrrk", ".kwrrrrrrrrrrrak", ".krrrrrrrrrrrrrk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-003", "make": "Renault", "model": "Clio", "gen": "III", "phase": "Phase 2", "market": "UK", "years": "2009–2012", "size": "1.5", "valves": "8V", "badge": "dCi", "fuel": "Diesel", "code": "K9K", "name": "Renault Clio III 1.5 dCi", "source": "Wikipedia, 'Renault Clio' (Clio III), with the Renault D, K and F engine articles", "px": ["................", "................", "................", ".....kkkkkk.....", "....krcccrrk....", "...krccccrrrk...", "..krrccccrrrrkk.", ".krrrrrrrrrrrrrk", ".kwrrrrrrrrrrrak", ".krrrrrrrrrrrrrk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-004", "make": "Renault", "model": "Clio", "gen": "III", "phase": "Phase 2", "market": "UK", "years": "2009–2012", "size": "2.0", "valves": "16V", "badge": "Renaultsport 200", "fuel": "Petrol", "code": "F4R", "name": "Renault Clio III 2.0 Renaultsport 200", "source": "Wikipedia, 'Renault Clio' (Clio III), with the Renault D, K and F engine articles", "px": ["................", "................", "................", ".....kkkkkk.....", "....kycccyyk....", "...kyccccyyyk...", "..kyyccccyyyykk.", ".kyyyyyyyyyyyyyk", ".kwyyyyyyyyyyyak", ".kyyyyyyyyyyyyyk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-005", "make": "Ford", "model": "Fiesta", "gen": "Mk7", "market": "UK", "years": "2008–2012", "size": "1.25", "valves": "16V", "badge": "Duratec", "fuel": "Petrol", "code": "SNJB", "name": "Ford Fiesta Mk7 1.25 Duratec", "source": "Wikipedia, 'Ford Fiesta (sixth generation)' and 'Ford Sigma engine'", "px": ["................", "................", "................", ".....kkkkkk.....", "....kucccuuk....", "...kuccccuuuk...", "..kuuccccuuuukk.", ".kuuuuuuuuuuuuuk", ".kwuuuuuuuuuuuak", ".kuuuuuuuuuuuuuk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-006", "make": "Volkswagen", "model": "Golf", "gen": "Mk6", "market": "UK", "years": "2009–2012", "size": "1.6", "valves": "16V", "badge": "TDI", "fuel": "Diesel", "code": "CAYC", "name": "Volkswagen Golf Mk6 1.6 TDI", "source": "Wikipedia, 'Volkswagen Golf Mk6' and 'List of Volkswagen Group diesel engines'", "px": ["................", "................", "................", ".....kkkkkk.....", "....kscccssk....", "...ksccccsssk...", "..kssccccsssskk.", ".ksssssssssssssk", ".kwsssssssssssak", ".ksssssssssssssk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]},
+{"id": "MM-007", "make": "Vauxhall", "model": "Corsa", "gen": "D", "market": "UK", "years": "2006–2010", "size": "1.2", "valves": "16V", "badge": "Ecotec", "fuel": "Petrol", "code": "Z12XEP", "name": "Vauxhall Corsa D 1.2 Ecotec", "source": "Wikipedia, 'Opel Corsa D' and 'GM Family 0 engine'", "px": ["................", "................", "................", ".....kkkkkk.....", "....kgcccggk....", "...kgccccgggk...", "..kggccccggggkk.", ".kgggggggggggggk", ".kwgggggggggggak", ".kgggggggggggggk", ".kkkbbbkkkkbbbkk", "...bbsbb..bbsbb.", "....bbb....bbb..", "................", "................", "................"]}
+]}

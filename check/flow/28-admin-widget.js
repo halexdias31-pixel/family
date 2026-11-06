@@ -445,7 +445,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car offers the Clio\'s four engines; Part → Engine 1.5 dCi narrows to its parts; the Parts tile on a car card opens them; cards are minimal, with no picture', async () => {
+check('Mechanics (batch E): Library → Mechanics asks a specific model or any; specific → Brand → Engine narrows to one car\'s parts; Any asks no brand; a card is tags, one drawing and a part\'s one line; every car attribute its own tag; Computer Science → PC parts by type', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -461,40 +461,32 @@ check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car
   const all = w.mechItems_(), bad = [];
   if (!all.length) return ['the mechanics files did not load — NOT checked'];
   const S = t.STUFF(), vals = field => w.facetValues(w.stuffFiltered(), w.facetList().find(f => f.field === field)).map(v => v.value);
+  const next = () => (w.nextFacet(w.stuffFiltered()) || {}).field;
   S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Library' }];
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
-  const kinds = vals('mKind').sort().join(',');
-  if (kinds !== 'Car,Part') bad.push('Mechanics → Card type offers ' + kinds);
   const base = S.filters.slice();
-  /* ONE CAR (740): Brand and Model went, so Engine is the question that splits. */
-  ['mMake', 'mModel'].forEach(f => { if (w.facetList().some(x => x.field === f)) bad.push('the ' + f + ' facet is back, with one car to split'); });
-  S.filters.push({ field: 'mKind', value: 'Car' });
+  if (next() !== 'mScope') bad.push('Mechanics asks ' + next() + ' first, not "a specific model, or any?"');
+  S.filters = base.concat({ field: 'mScope', value: 'Any model' });
+  if (['mMake', 'mModel', 'mEngine'].indexOf(next()) >= 0) bad.push('Any model still asks ' + next());
+  if (w.stuffFiltered().some(x => x.mKind !== 'Part')) bad.push('Any model lists something that is not a part');
+  S.filters = base.concat({ field: 'mScope', value: 'A specific model' });
+  if (vals('mMake').sort().join() !== 'Ford,Renault,Vauxhall,Volkswagen') bad.push('Brand offers ' + vals('mMake').join());
+  S.filters.push({ field: 'mMake', value: 'Renault' });
   if (vals('mEngine').length !== 4) bad.push('the Clio offers ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
-  S.filters = base.concat({ field: 'mKind', value: 'Part' });
-  const parts = w.stuffFiltered().length;
-  if (parts < 60) bad.push('Part found ' + parts + ' Clio parts, wanted 60 or more');
-  S.filters.push({ field: 'mEngine', value: '1.5 dCi (K9K)' });
+  const clio = w.stuffFiltered().filter(x => x.mKind === 'Part').length;
+  S.filters.push({ field: 'mEngine', value: 'K9K' });
   const dci = w.stuffFiltered();
-  if (!dci.length || dci.some(x => (x.mEngine || []).indexOf('1.5 dCi (K9K)') < 0)) bad.push('Part → 1.5 dCi found ' + dci.length + ', not only its parts');
-  if (dci.length >= parts) bad.push('Part → 1.5 dCi did not narrow');
+  if (!dci.some(x => x.mKind === 'Car') || dci.filter(x => x.mKind === 'Part').length >= clio) bad.push('Renault → K9K did not narrow to the car and its parts');
   if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
-  const car = all.find(x => x.mKind === 'Car' && x.mEngine === '1.5 dCi (K9K)');
-  /* ONE TILE ROW PER THING (489, 950): the Parts tile is in the card's own row (`CARD_EXTRAS_MORE`), so the whole card is asked. */
-  const chtml = car ? w.stuffCard(car, 0) : '';
-  if (!/data-do="mech-parts"[^>]*data-engine="1.5 dCi \(K9K\)"/.test(chtml)) bad.push('a car card offers no Parts tile');
-  else {
-    const b = w.document.createElement('button'); b.dataset.do = 'mech-parts'; b.dataset.engine = '1.5 dCi (K9K)'; w.document.body.appendChild(b); b.click(); b.remove();
-    const got = t.STUFF().filters.map(c => c.field + '=' + c.value).join();
-    if (got !== 'kindLabel=Library,subject=Mechanics,mKind=Part,mEngine=1.5 dCi (K9K)') bad.push('the Parts tile set ' + got);
-  }
-  if (!/Renault · Clio/.test(chtml) || !/<b>Engine<\/b>/.test(chtml)) bad.push('a car card does not say brand, model and engine');
-  const part = all.find(x => x.mKind === 'Part');
-  const html = w.mechCard_(part);
-  if (!/What it is/.test(html) || !/Part number \(example\)/.test(html) || !/approximate/.test(html) || !/<b>Fits<\/b>/.test(html) || !/qtag/.test(html)) bad.push('a part card does not draw what it is, its number, price, fits and tags');
-  /* MINIMAL (740): no picture and no extra sections. */
-  if (/mech-pic|<img|viewBox="0 0 64 64"/.test(html + chtml)) bad.push('a part or car card draws a picture');
-  if ((html.match(/<p><b>/g) || []).length !== 4 || (chtml.match(/<p><b>/g) || []).length !== 2) bad.push('a card draws more than its minimal rows');
+  const car = dci.find(x => x.mKind === 'Car'), chtml = car ? w.stuffCard(car, 0) : '';
+  ['Renault', 'Clio', 'III', 'Phase 2', 'UK', '1.5', '8V', 'K9K'].forEach(v => { if (chtml.indexOf('>' + v + '<') < 0) bad.push('the car card has no tag "' + v + '"'); });
+  if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/aria-label="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
+  if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
+  const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
+  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || !/>K9K</.test(html)) bad.push('a part card is not tags, one drawing, its one line and the chosen engine');
+  S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Computer Science' }, { field: 'shelf', value: 'PC parts' }];
+  ['CPU', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU'].forEach(k => { if (vals('pcType').indexOf(k) < 0) bad.push('PC parts → Part type lacks ' + k); });
   return bad;
 });
 
