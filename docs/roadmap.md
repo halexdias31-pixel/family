@@ -52,6 +52,9 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
   (parent, over/under 18, student, tutor, apprentice, admin); Settings by account type (parent, student, staff, apprentice).
 - D. One "people" kind for everyone (boxers, historical figures…), 8-bit pixel portraits; History › People; manuscript
   fragments back in Library › History (pixel drawings OK).
+- D+. Boxing = only two kinds: fighters (people) and fights. Drop the boxer's own list of fights (and any extra
+  sections). A fighter card = their pixel portrait, nothing else but tags. A fight card = the two fighters' same pixel
+  portraits facing each other, nothing else but tags. Picture is the focus; all facts live in tags.
 - E. Car parts: every attribute its own tag (Renault, Clio, III, Phase 2, UK, 1.2, 16V, D4F…), ask "specific model or
   any", pixel drawings of cars and parts; a computer-parts database (Computer Science) for teaching PC building.
 - F. Timelines as animations (event to event), many timelines at different zoom levels (church history, WWI, WWII,
