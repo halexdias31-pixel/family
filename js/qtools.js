@@ -22,6 +22,10 @@ const QT_ORDER = QT_TOOLS.map(t => t.id);
 const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
+/* ONE OF EACH CONTROL A CARD (1040 r12): the magnifier and padlock hold the page, so they are the card foot's; a part reads itself aloud only where the card has more parts. */
+const QT_CARD_LEVEL = { mag: 1, lock: 1 };
+const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
+const qtHere_ = (id, x) => !QT_CARD_LEVEL[id] && (id !== 'read' || qMulti_(x));
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
@@ -103,7 +107,7 @@ function qtCheck_(x, m) {
   if (k === 'accept') return tile_({ send: true, act: 'qp-check', cls: 'qp-check' });
   if (k === 'words') return tile_({ send: true, act: 'qp-rule', cls: 'qp-check' });
   /* NO SCHEME, NO AI CHECK: a request could only fail, so its Check says so under the row, as options with no key do (round 4) */
-  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check' });
+  if (!(m || markerOf_(x)).ready) return tile_({ send: true, act: 'qp-noscheme', cls: 'qp-check', data: { key: (x && x.key) || '' } });
   const ai = typeof aiOpts_ === 'function' ? tile_(aiOpts_(x)) : '';
   return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
@@ -113,7 +117,7 @@ const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the s
 function qtToolTile_(t, x) {
   const key = (x && x.key) || '';
   if (t.id === 'mag') return typeof magOpts_ === 'function' ? tile_(magOpts_()) : '';
-  /* THE CARD'S ONE PADLOCK: it was in the card's own row as well as on its pages; here it is the row's, once (round 4) */
+  /* THE PADLOCK IS THE CARD FOOT'S (1040 r12, `qtHere_`); this tile is drawn only if a caller asks for it by id */
   if (t.id === 'lock') return typeof qLockOpts_ === 'function' ? tile_(qLockOpts_()) : '';
   if (t.id === 'read') {
     const live = typeof readAloudOpts_ === 'function' ? tile_(readAloudOpts_(x)) : '';
@@ -138,7 +142,7 @@ function qtRow_(x) {
   /* THE DRAWING TOOLS ONLY WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank grid -- "the working paper", which the owner had removed (29 Oct) */
   /* AND ONLY WHERE THE PAD IS ALREADY ON THE CARD (1020), so a tap never redraws it; a passage's grid is the one still made on the first tap */
   const art = typeof padReady_ !== 'function' || padReady_(x);
-  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id])).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id]) && qtHere_(t.id, x)).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
   return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>
     <p class="qt-how">${esc(m.how)}</p>`;
