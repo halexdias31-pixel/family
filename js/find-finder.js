@@ -509,7 +509,7 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, people, works or events', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, people, works, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Works' : '') },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },

@@ -199,9 +199,9 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10], 'picture-first': [1, 10], 'car-tags-split': [1, 10], 'people-one-kind': [2, 10], 'manuscripts-reach': [2, 10], 'no-age-gates': [5, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10], 'picture-first': [1, 10], 'car-tags-split': [1, 10], 'people-one-kind': [2, 10], 'manuscripts-reach': [2, 10], 'no-age-gates': [5, 10], 'timeline-anim': [2, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1, 'picture-first': 1, 'car-tags-split': 1, 'people-one-kind': 1, 'manuscripts-reach': 1, 'no-age-gates': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1, 'picture-first': 1, 'car-tags-split': 1, 'people-one-kind': 1, 'manuscripts-reach': 1, 'no-age-gates': 1, 'timeline-anim': 1 };
 /* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
 /* from check/chips-settings.js (a 390x844 browser walk); read here, never re-run, each finding located. */
 function cardWork() {
@@ -214,6 +214,10 @@ function cardWork() {
   const rf = jread('data/returned-health.json');
   if (!rf) W.push({ kind: 'returned-features', where: 'data/returned-health.json', say: 'missing — run node check/returned.js; the returned features were NOT checked' });
   else (rf.work || []).forEach(w => W.push(w));
+  /* THE TIMELINES (batch F): check/timelines.js walks each one; read here, never re-run. */
+  const tl = jread('data/timeline-health.json');
+  if (!tl) W.push({ kind: 'timeline-anim', where: 'data/timeline-health.json', say: 'missing — run node check/timelines.js; the timelines were NOT checked' });
+  else (tl.work || []).forEach(w => W.push(w));
   /* NO GREY CLUTTER (A+): the walk's grey text outside a card's tag row (check/returned.js), and the markup that makes it. */
   ((rf && rf.clutter) || []).forEach(w => W.push(w));
   git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f)).forEach(f => { const src = read(f);

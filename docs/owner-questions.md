@@ -39,3 +39,8 @@ Things the health checker flags that would change what you see, so they wait for
 - Price bands are the Clio's for every car (rough, parts only). Should the Golf have its own?
 - The made-up example part numbers were removed. Do you want real part numbers anywhere?
 - History › Manuscripts/People/Works/Events is now ordered before Work, but it is still not asked because too few History cards answer it (writings are most of History). Should that question be asked anyway?
+
+## Batch F (6 Nov) — timelines
+- History's textbook chapters (32) now answer **Works** under "Manuscripts, people, works, events or timelines" so every History card answers it. Would you rather they had their own answer (e.g. "Textbook chapters")?
+- Old Testament dates follow the traditional early chronology (Exodus c. 1446 BC; many scholars say c. 1250 BC — the date line says so). Keep, or another chronology?
+- The starter timelines are Church history, WWI, WWII, Old Testament, Roman Empire and Space race. Which next (British monarchy, Reformation, Cold War…)? And should a timeline loop at the end rather than stop?

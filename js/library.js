@@ -86,7 +86,7 @@ async function libraryRowsAsk_() {
 /* `inserts` IS THE EIGHTH: the sheets a candidate is handed in the exam (455), public whole — facts, not library words. */
 /* THE HISTORY DATABASE IS FOUR MORE (459, 461): manuscripts, figures, writings, timeline events — public whole, linked by id; then the portraits (batch D). */
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts',
-                   'manuscripts', 'figures', 'writings', 'timeline', 'portraits'];
+                   'manuscripts', 'figures', 'writings', 'timeline', 'portraits', 'timelines'];
 let LIBRARY_EXTRA = null;
 /* THE TABLES (459, 461): their file, id prefix, Find kind and the columns that are years (negative is BC). */
 const HIST_DB = [
@@ -319,8 +319,8 @@ function libraryExtras_(d, extra) {
   }
 
   /* the history database ------------------------------------------------------------------- (459) every cell a string, the years numbers or null; a row needs its id. */
-  /* EVERY PERSON'S PIXEL PORTRAIT (batch D), written by tools/people_pix.py; drawn by `personPic_`. */
-  if (extra.portraits && extra.portraits.length) d.portraits = extra.portraits.filter(r => r && r.id && Array.isArray(r.px));
+  /* EVERY PERSON'S PIXEL PORTRAIT (batch D, tools/people_pix.py) and the TIMELINES (batch F, tools/timelines.py: events by id). */
+  if (extra.portraits && extra.portraits.length) d.portraits = extra.portraits.filter(r => r && r.id && Array.isArray(r.px)); if (extra.timelines && extra.timelines.length) d.timelines = extra.timelines.filter(r => r && r.id && Array.isArray(r.events));
   HIST_DB.forEach(t => {
     if (!extra[t.file] || !extra[t.file].length) return;
     d[t.file] = extra[t.file].filter(r => r && libS(r.id).trim()).map(r => {

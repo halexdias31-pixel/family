@@ -375,7 +375,7 @@ def main():
     for i, f in enumerate(FIG):
         key[f[0]] = 'FIG-%04d' % (FIRST_FIG + i)
     ev_rows = []
-    start = max(int(e['id'][3:]) for e in tl) + 1
+    start = 27  # fixed: tools/timelines.py's eras hold EV-0201 on, and the timelines link these ids
     for i, e in enumerate(sorted(EV, key=lambda e: e[3])):
         (name, a, b, iso, iso_to, said, basis, places, theatre, summary, who, writ, src) = e
         ids = [key.get(w.strip(), w.strip()) for w in who.split('|') if w.strip()]
@@ -399,7 +399,7 @@ def main():
         mine = [e['id'] for e in ev_rows if w['id'] in e['writings'].split(' | ')]
         old = [v.strip() for v in w['events'].split('|') if v.strip() and int(v.strip()[3:]) < start]
         w['events'] = ' | '.join(old + mine)
-    rows = sorted(tl + ev_rows, key=lambda e: e['date_iso'])
+    rows = sorted(tl + ev_rows, key=lambda e: (e['date_from'], e['date_iso'][-5:]))  # BC years are negative
 
     def dump(p, rows):
         with open(p, 'w', encoding='utf-8') as fh:
