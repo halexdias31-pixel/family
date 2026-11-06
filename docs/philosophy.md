@@ -16,6 +16,10 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 0. **Our own way.** Designed from this philosophy, not copied from famous apps. Checks: `philosophy`
 0. **New features: asked for, and built from existing parts.** The owner asks for it, and it's made as a kind of card, a tool or a setting — never a new kind of screen. Checks: `variety`
 0. **Ship 80%, then improve.** Ship what works now; the checker lists the rest (fits 'bold'). Checks: `structure`
+0. **Check, then trust.** Actions are gated until the person is verified (approval, ID, DBS) — then they act freely. Checks: `business`
+0. **Private by default.** Anything that could be seen by others is private (person, parents, admin) until shared. Checks: `in-sync`
+0. **Settings for everyone, greyed where not yours.** Every account sees the same settings sections; those for other account types are greyed. Checks: `same-controls`
+0. **A better rule updates everything.** Old cards, data and layouts are migrated to the new rule, never left behind. Checks: `structure`
 0. **Automatic, except what can't be undone.** Only irreversible actions need a human tap: deleting data, approving tutors, publishing policies. Checks: `friction`
 
 ## The principles, ranked
