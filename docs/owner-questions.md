@@ -15,3 +15,4 @@ Find › Settings › Business › Checks; answers land in the `owner_answers` t
 - Word games: grey out (disable) Got it / Pass until Start — never hide them. **Yes.**
 - Newspaper: leave it switched off as a "Coming soon" card for now.
 - Inbox length (6 Nov, owner said "3–5 at a time"): show only the 5 open questions whose answers settle the most, answered ones fold away; the rest wait their turn.
+- Homework (6 Nov): for now a "Coming soon" card under Find › Tools (no function yet).
