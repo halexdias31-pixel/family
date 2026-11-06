@@ -1,9 +1,9 @@
 {
- "items": 279011,
- "tagCards": 33063,
- "drawnCards": 689,
+ "items": 279069,
+ "tagCards": 33121,
+ "drawnCards": 694,
  "counts": {
-  "odd-tags": 330,
+  "odd-tags": 334,
   "dup-controls": 0,
   "picture-first": 0,
   "people-one-kind": 0,
@@ -23,14 +23,14 @@
   ],
   [
    "tag … (wWork) is a title made of the card's other tags … + …",
-   24
+   28
   ],
   [
    "tag … (wAuthor) is a title made of the card's other tags … + …",
    7
   ],
   [
-   "tag … (forLabel) is on 32963 of 33063 cards read — it tells a reader nothing (owner question)",
+   "tag … (forLabel) is on 33021 of 33121 cards read — it tells a reader nothing (owner question)",
    1
   ]
  ],
@@ -1527,6 +1527,26 @@
   },
   {
    "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0053:0:0",
+   "say": "tag \"The Genuine Works of Hippocrates\" (wWork) is a title made of the card's other tags \"Hippocrates\" + \"Works\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0053:0:22",
+   "say": "tag \"The Genuine Works of Hippocrates\" (wWork) is a title made of the card's other tags \"Hippocrates\" + \"Works\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0053:0:44",
+   "say": "tag \"The Genuine Works of Hippocrates\" (wWork) is a title made of the card's other tags \"Hippocrates\" + \"Works\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0053:0:66",
+   "say": "tag \"The Genuine Works of Hippocrates\" (wWork) is a title made of the card's other tags \"Hippocrates\" + \"Works\""
+  },
+  {
+   "kind": "odd-tags",
    "where": "pdtext:tx:TX-0073:0:9",
    "say": "tag \"AQA GCSE English Literature anthology\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
   },
@@ -1683,7 +1703,7 @@
   {
    "kind": "odd-tags",
    "where": "every card",
-   "say": "tag \"Learning\" (forLabel) is on 32963 of 33063 cards read — it tells a reader nothing (owner question)"
+   "say": "tag \"Learning\" (forLabel) is on 33021 of 33121 cards read — it tells a reader nothing (owner question)"
   }
  ]
 }

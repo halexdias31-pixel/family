@@ -203,8 +203,8 @@ function tagRow_(x, page) {
   if (!x) return '';
   /* A TAG SHOWS ONLY WHAT IS NOT ALREADY PICKED AS A CHIP (owner, 6 Nov): the chip above already says it. */
   const picked = new Set(), pickedWords = new Set();
-  try { (STUFF.filters || []).filter(f => f && !f.any).forEach(f => { picked.add(f.field + '\u0000' + f.value);
-    pickedWords.add(norm(String(f.value))); try { pickedWords.add(norm(String(chipShow_(f)))); } catch (e) { /* no chip words: the value stands */ } }); } catch (e) { /* no finder yet */ }
+  (STUFF.filters || []).filter(f => f && !f.any).forEach(f => { picked.add(f.field + '\u0000' + f.value);
+    pickedWords.add(norm(String(f.value))); if (typeof chipShow_ === 'function') pickedWords.add(norm(String(chipShow_(f) || ''))); });
   /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice, */
   /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {

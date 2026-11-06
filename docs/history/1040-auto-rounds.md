@@ -265,3 +265,12 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - Register read: no new notes since 14:37.
 - Clutter: the credit rule (`creditsToTags_`) also moves any `.as-tag` line into the tag row; a verse's translation line (`bb-tr`) is one. Taboo / Hot Seat acts still drawn only after Start (left: their Ready card holds the word).
 - Budgets raised by hand for the greying line: games.js lines 6442→6444, coupling 106→108, searchBytes →5,270,149. finder-tags and stability regenerated (stale).
+
+## Sweep 20:36
+- owner_answers / claude_notes: not read this sweep (no new notes beyond 14:37 in the register).
+- Inbox: Checks shows the five open questions that settle most (philosophy first, then an optional `settles`, then file order); answered fold into "Answered · n". Marked answered from the 6 Nov philosophy: philo-minimal-info, philo-stable-new, philo-menu-next, philo-autonomy, learning-tag, read-aloud-parts, dont-matter-first, homework.
+- Homework: `homework` widget (map.js) `off` in tiers.json; its Coming soon card waits under Tools (`SOON_WIDGET_UNDER`, `x.top` read by `kindTop_`).
+- Tags omit what is picked: `tagRow_` skips a facet value or word equal to a current chip. card-health checks Practice+Maths+GCSE (no repeats); ux-health's missing-attribute count exempts chipped fields.
+- Ranks: `tile_` greys any admin-tone tile for a non-admin (`aria-disabled`); `adminTiles_` and Listed drawn for everyone. card-health's rank check now compares every control, admin group included: 0 differences.
+- Taboo / Hot Seat: Correct|Got it / Pass drawn from the start, disabled until the round runs (`partyPair_`).
+- Budgets raised by hand (structure-budgets why line). Left for next: f. best split always (menu order, sort_order out, finder-tags regenerate); drop the always-on "Learning" tag (learning-tag answered a); odd-tags composite work titles.
