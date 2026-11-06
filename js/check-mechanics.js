@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-mechanics.js MECHANICS AND PC PARTS (548, batch E): written by tools/mech_rows.py; every card has a
-   source and a 16x16 drawing; every car attribute is its own field (no combined string but the hidden name); a part's
-   fits are car cards' engine codes; no catalogue numbers, no number plates. No flags, no port. */
+   source and a 16x16 drawing; every car attribute is its own field (no combined string but the hidden name). */
+/* A part's fits are car cards' engine codes; no catalogue numbers, no number plates. No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data', 'mechanics');
