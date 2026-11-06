@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /* @family. — tools/health.js THE SITE'S ONE HEALTH SCORE (890), measured, never judged by AI. --check: write nothing, exit 1 when stale. */
-/* Blends four parts into data/health.json (1040: AI cost raised from 10% to 20%, the other three scaled by 0.8/0.9):                 */
-//   code stability (core)  32%  tools/stability.js, re-run here (cheap, reads the repo)
-//   AI cost                20%  tools/ai-cost.js: read bytes, comments, tombstones, CLAUDE.md, search bytes, effort, test/note size, spread
-//   Find logic             28%  data/logic-health.json, written by tools/logic-health.js (slow: walks the funnel). Never re-walked here;
+/* Blends five parts into data/health.json (1060: business 12% joins; code 28, Find logic 25, UI 18, AI cost 17): */
+//   code stability (core)  28%  tools/stability.js, re-run here (cheap, reads the repo)
+//   AI cost                17%  tools/ai-cost.js: read bytes, comments, tombstones, CLAUDE.md, search bytes, effort, test/note size, spread
+//   Find logic             25%  data/logic-health.json, written by tools/logic-health.js (slow: walks the funnel). Never re-walked here;
 //                               it is "stale" when any of its inputs is newer than it.
-//   UI simplicity          20%  style.css, read here — 100 less a penalty per signal, each capped:
+//   business               12%  one-place.json coverage (yes 1, partly ½) less 5 per js/check-biz.js finding; the card swaps in the live ticks
+//   UI simplicity          18%  style.css, read here — 100 less a penalty per signal, each capped:
 // important    0.05 per !important, cap 15
 // pxlit        0.004 per px literal outside :root, cap 15
 // colourlit    0.02 per hex/rgb()/hsl() colour literal outside :root and custom-property definitions, cap 15
@@ -21,7 +22,7 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'health.json');
 const CHECK = process.argv.includes('--check');
-const WEIGHTS = { code: 0.32, logic: 0.28, ui: 0.20, cost: 0.20 };   /* cost (940): tools/ai-cost.js, what a change costs an AI to read */
+const WEIGHTS = { code: 0.28, logic: 0.25, ui: 0.18, cost: 0.17, business: 0.12 };   /* cost (940): ai-cost.js; business (1060): the checker, one score */
 const r1 = n => Math.round(n * 10) / 10;
 const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return ''; } };
 /* WHEN A FILE LAST CHANGED: its last commit, or now when the working tree has it edited (a checkout's mtimes all say "just now"). */
@@ -520,7 +521,22 @@ function extraWork(st) {
       else if (sizes.files[f] > b) W.push({ kind: 'size', part: 'code', where: f, say: `${Math.round(sizes.files[f] / 1024)} KB, over its ${Math.round(b / 1024)} KB budget` }); });
     if (sizes.total > budget.total) W.push({ kind: 'size', part: 'code', where: 'first download', say: `${Math.round(sizes.total / 1024)} KB, over its ${Math.round(budget.total / 1024)} KB budget` });
   }
+  /* ONE SYSTEM (1060): every principle in docs/philosophy.md names a check that exists; the inbox file is well formed. */
+  const P = require('./philosophy.js');
+  W.push(...P.coverage(knownChecks(st)).work, ...P.ownerQuestions().work);
   return { work: W, skipped, sizes };
+}
+/* THE CHECK IDS health.js prices, for the philosophy's coverage. */
+const knownChecks = st => [FIND_PENALTY, UX_PENALTY, UNIFORM_PENALTY, STRUCT, EXTRA_PENALTY, VARIETY_PENALTY].flatMap(Object.keys)
+  .concat((st.signals || []).map(x => x.id), ['important', 'pxlit', 'colourlit', 'order', 'selectors', 'zindex', 'position'],
+    ['read-bytes', 'search-bytes', 'comment-ratio', 'big-notes', 'spread', 'test-biggest', 'tombstones', 'claude-lines', 'effort']);
+/* THE BUSINESS AREA (1060): how much of the business the site runs (one-place.json), less the checker's own faults; the card goes live. */
+function business() {
+  let bad = []; try { bad = require('../js/check-biz.js').work(); } catch (e) { bad = [{ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }]; }
+  const items = ((jread('data/settings/biz-checklist.json') || {}).items || []);
+  const op = require('./philosophy.js').onePlace(), got = op.reduce((a, f) => a + (f.status === 'yes' ? 1 : f.status === 'partly' ? 0.5 : 0), 0);
+  const gaps = op.filter(f => f.status !== 'yes').map(f => `The site does not yet run ${f.name.toLowerCase()} (${f.status}).`);
+  return { score: r1(Math.max(0, (op.length ? got / op.length * 100 : 0) - bad.length * 5)), bad, items: items.length, next: bad.map(b => b.say).concat(gaps, items.slice(0, 3).map(i => 'Tick in Checks: ' + i.title)).slice(0, 3) };
 }
 /* VARIETY (920): a family where one is ideal (one question page, one card drawer, one tile maker, one row style, one wait) costs
    for every variant past the first; each variant is listed where it lives. */
@@ -584,7 +600,7 @@ function firstDownload() {
   return { files, total };
 }
 const EXTRA_PENALTY = { field: [2, 10], answer: [0.5, 10], 'menu-sense': [0.1, 10], backend: [2, 10], resilience: [5, 10], dead: [0, 0], size: [1, 10],
-  a11y: [0.05, 5], console: [0.5, 5], qengine: [0.5, 5], variety: [0, 0] };
+  a11y: [0.05, 5], console: [0.5, 5], qengine: [0.5, 5], variety: [0, 0], philosophy: [1, 5], 'owner-questions': [0.5, 5] };
 
 function health() {
   const st = require('./stability.js').stability();
@@ -607,7 +623,8 @@ function health() {
   const codeX = r1(Math.max(0, code - less('code')));
   const uiX = r1(Math.max(0, U.score - less('ui')));
   const C = require('./ai-cost.js').aiCost();
-  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX + WEIGHTS.cost * C.score);
+  const B = business();
+  const overall = r1(WEIGHTS.code * codeX + WEIGHTS.logic * lscore + WEIGHTS.ui * uiX + WEIGHTS.cost * C.score + WEIGHTS.business * B.score);
   const off = [];
   sig.forEach(s => s.off > 0 && off.push({ part: 'code', id: s.id, cost: r1(s.off * WEIGHTS.code),
     say: (SAY[s.id] ? SAY[s.id](s.count) : s.label + ': ' + s.count) }));
@@ -619,14 +636,23 @@ function health() {
   xpen.forEach(p => { if (!(p.off > 0)) return; const v = /^variety-(\w+)$/.exec(p.id), F = v && VARIETY_LAST && VARIETY_LAST[v[1]];
     off.push({ part: p.part, id: p.id, cost: r1(p.off * WEIGHTS[p.part]), say: F ? `${F.label}: ${F.count - F.ideal} past the ideal ${F.ideal} (node tools/health.js --list --kind ${p.id})` : `${p.count} ${p.id} findings (node tools/health.js --list --kind ${p.id}).` }); });
   C.signals.forEach(s => s.off > 0 && off.push({ part: 'cost', id: s.id, cost: r1(s.off * WEIGHTS.cost), say: 'AI cost: ' + s.say + '.' }));
+  B.score < 100 && off.push({ part: 'business', id: 'business', cost: r1((100 - B.score) * WEIGHTS.business), say: `Business: ${B.next[0] || 'the site runs part of the business'}` });
   off.sort((a, b) => b.cost - a.cost || a.id.localeCompare(b.id));
+  /* THE AREAS (1060): the five weighted parts, plus friction (inside UI) and speed (inside code) shown on their own; each with its next three. */
+  const fr = U.signals.find(x => x.id === 'friction') || { off: 0, cap: 15 }, sz = xpen.filter(p => p.id === 'size').reduce((a, p) => a + p.off, 0);
+  const nextOf = part => off.filter(o => o.part === part).slice(0, 3).map(o => o.say);
+  const says = kind => U.work.concat(X.work).filter(w => w.kind === kind).slice(0, 3).map(w => w.where + ': ' + w.say);
+  const areas = { code: { score: codeX, next: nextOf('code') }, logic: { score: lscore, next: nextOf('logic') }, ui: { score: uiX, next: nextOf('ui') },
+    friction: { score: r1(100 - fr.off / (fr.cap || 15) * 100), next: says('friction') }, cost: { score: C.score, next: nextOf('cost') },
+    speed: { score: r1(Math.max(0, 100 - sz * 10)), next: says('size') }, business: { score: B.score, next: B.next } };
+  const Ph = require('./philosophy.js'), cov = Ph.coverage(knownChecks(st)), oq = Ph.ownerQuestions();
   /* DO THIS NEXT (920): the one change worth most points, in a sentence a person can act on. */
   const best = off[0];
   const next = best ? `Do this next: ${best.say.replace(/\.$/, '')} — fixing it is worth up to ${best.cost} points (${best.part}).` : 'Do this next: nothing — every signal is clean.';
   const counts = {}; Object.keys(S.totals).forEach(k => { counts[k] = S.totals[k].count; });
   return {
     v: 2, score: overall, weights: WEIGHTS,
-    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score }, aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
+    parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score, business: B.score }, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(), aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
     worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
@@ -791,7 +817,11 @@ else if (require.main === module) {
   trendAppend(h); h.trend = trendSummary();
   fs.writeFileSync(OUT, JSON.stringify(h) + '\n');
   console.log(h.next);
-  console.log(`wrote data/health.json: ${h.score}% (code ${h.parts.code}, Find logic ${h.parts.logic}${L.stale ? ' STALE' : ''}, UI ${h.parts.ui}) in ${Date.now() - t0} ms`);
+  console.log(`wrote data/health.json: ${h.score}% (code ${h.parts.code}, Find logic ${h.parts.logic}${L.stale ? ' STALE' : ''}, UI ${h.parts.ui}, business ${h.parts.business}) in ${Date.now() - t0} ms`);
+  console.log('  areas: ' + Object.keys(h.areas).map(k => k + ' ' + h.areas[k].score).join(', '));
+  console.log(`  philosophy: ${h.philosophy.principles} principles, ${h.philosophy.findings} coverage findings; checks tied to no principle (report-only): ${h.philosophy.untied.join(' ') || 'none'}`);
+  console.log(`  owner questions: ${h.ownerQuestions.open} open of ${h.ownerQuestions.of}`);
+  console.log('  one place: ' + h.onePlace.map(f => f.name + ' ' + f.status).join(' · '));
   console.log('  findings: ' + Object.keys(h.counts).map(k => k + ' ' + h.counts[k]).join(', '));
   h.top.forEach((t, i) => console.log(`  ${i + 1}. −${t.cost} ${t.say}`));
 }

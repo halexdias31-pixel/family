@@ -379,5 +379,83 @@
    "bigNotes": 10,
    "spread": 17
   }
+ },
+ {
+  "date": "2026-11-06",
+  "commit": "5674d4b",
+  "score": 44,
+  "parts": {
+   "code": 35.2,
+   "logic": 35.8,
+   "ui": 2.2,
+   "cost": 75.2,
+   "business": 100
+  },
+  "topKind": "variety-qpage",
+  "effort": {
+   "commits": 30,
+   "medianLines": 274,
+   "worstLines": 63773,
+   "medianFiles": 10,
+   "worstFiles": 42,
+   "testBytes": 5924269,
+   "testBiggest": 415062,
+   "historyBytes": 4515613,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 17
+  }
+ },
+ {
+  "date": "2026-11-06",
+  "commit": "5674d4b",
+  "score": 42.1,
+  "parts": {
+   "code": 35.2,
+   "logic": 35.8,
+   "ui": 2.2,
+   "cost": 75.2,
+   "business": 84.6
+  },
+  "topKind": "variety-qpage",
+  "effort": {
+   "commits": 30,
+   "medianLines": 274,
+   "worstLines": 63773,
+   "medianFiles": 10,
+   "worstFiles": 42,
+   "testBytes": 5924269,
+   "testBiggest": 415062,
+   "historyBytes": 4515613,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 17
+  }
+ },
+ {
+  "date": "2026-11-06",
+  "commit": "5674d4b",
+  "score": 42.2,
+  "parts": {
+   "code": 35.2,
+   "logic": 35.8,
+   "ui": 2.2,
+   "cost": 75.4,
+   "business": 84.6
+  },
+  "topKind": "variety-qpage",
+  "effort": {
+   "commits": 30,
+   "medianLines": 274,
+   "worstLines": 63773,
+   "medianFiles": 10,
+   "worstFiles": 42,
+   "testBytes": 5924460,
+   "testBiggest": 415062,
+   "historyBytes": 4517792,
+   "historyBiggest": 166839,
+   "bigNotes": 10,
+   "spread": 17
+  }
  }
 ]

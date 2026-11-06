@@ -96,7 +96,7 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 279068,
+   "cards": 279067,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
@@ -260,8 +260,8 @@
    "asks": "kindLabel",
    "bits": 0.49,
    "best": "wCollection",
-   "bestBits": 2.91,
-   "cards": 279068
+   "bestBits": 2.92,
+   "cards": 279067
   },
   {
    "where": "Find › Library",
@@ -1036,7 +1036,7 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 279068,
+   "cards": 279067,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {

@@ -1,0 +1,47 @@
+# The philosophy — the owner's principles
+
+One system with three parts: this file (what we want), `tools/health.js` (the one checker that measures it),
+and Find › Settings › Business › **Checks** (the one place to see the score and answer the owner's questions).
+Each rule says why, and names the health check ids that enforce it (`node tools/health.js --list --kind <id>`).
+`tools/health.js` reads the `Checks:` lines: a principle naming no existing check is a finding (`philosophy`);
+a check tied to no principle is listed, report-only. Edit a rule here, never in code.
+
+1. **The site IS the business.** Everything runs from here, in one place: learning resources, bookings, payments, staff, taxes and accounts, logistics, compliance — as scalable, stable and efficient as possible.
+   Why: one place is cheaper to run, check and hand to ~100 staff than a dozen tools. Checks: `business`, `biz-checker`, `friction`, `one-place`
+2. **Stability first.** Sacrificing complexity for stability or simplicity is a valid trade; Apple-like minimal, few features done well.
+   Why: a site that breaks loses trust faster than a missing feature gains it. Checks: `exceptions`, `resilience`, `catches`, `one-off`, `long-fn`, `big-file`, `nest`, `dead`
+3. **Find is the core.** One search bar only; everything browsable lives in Find; one front door for everyone (signed out sees the same Find, with only Settings).
+   Why: one way in is one thing to learn and one thing to keep working. Checks: `front-door`, `returned-features`, `people-one-kind`, `manuscripts-reach`
+4. **One rule, never one-offs.** One way to draw each thing: one card, one tile row, one button maker, one text box (the cream answer pill), one chip size, one question engine.
+   Why: uniformity removes arbitrariness; a fix in one place fixes every place. Checks: `find-one-off`, `raw-button`, `hand-tile`, `text-boxes`, `chip-size`, `qengine`, `variety-qpage`, `variety-maker`, `variety-drawer`, `variety-wait`, `variety-listrow`, `variety-textbox`, `once-class`, `inline-style`, `own-wait`, `dup`
+5. **Cards are minimal and picture-first.** Tags at the top as outlined pills; one tag per attribute, never composites, repeats or always-on tags; no grey clutter (information becomes a tag); every element kind has its tags.
+   Why: a card read at a glance on a phone needs one kind of label, not five. Checks: `card-tags`, `picture-first`, `attr-outside-tags`, `odd-tags`, `clutter`, `element-box`, `car-tags-split`, `timeline-anim`
+6. **Menus follow one rule.** Each category one fixed colour, neighbours differ; every tag askable; one consistent rule for which menu comes next; a menu needs at least two answers; the same words in menu, chip and tag.
+   Why: a menu that behaves the same everywhere can be trusted without thinking. Checks: `tag-colour`, `tag-asked`, `menu-rule`, `menu-thin`, `menu-order`, `menu-sense`, `answer-words`, `words-all`, `near-dup`, `merged-value`, `merged-all`
+7. **Controls stay put.** The same buttons for every rank; never move, appear or disappear on tap (disable instead); respond instantly; grouped in one row.
+   Why: a control that jumps is pressed by mistake. Checks: `dup-controls`, `control-look`, `ux`, `settings-work`, `update-continuity`
+8. **Questions are one card per number.** Parts inside, no box; marked mechanically (no AI for answers); every question works if one works.
+   Why: a learner must get the same, fair mark every time. Checks: `question`, `answer`, `qengine`
+9. **Fast and light.** Fast first load, phone-memory safe, low AI edit cost; data from one source (in sync); seamless updates that never interrupt.
+   Why: a phone on a bus is the real user, and every edit is paid for in reading. Checks: `size`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
+10. **Frictionless for clients and tutors.** Booking, messaging, paying and homework in the fewest taps, none a dead end.
+    Why: every extra step loses a booking. Checks: `friction`, `a11y`, `console`
+11. **Run legally and safely.** Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
+    Why: one missed obligation can end the business. Checks: `business`, `biz-checker`, `secrets`
+12. **Nothing is lost.** Switched off, never deleted; every feature comes back on and is stabilised by the sweeps; no age gates on learning content.
+    Why: work already paid for should not vanish. Checks: `returned-features`, `no-age-gates`, `dead`
+13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; ask before guessing visible design; quick checks only, no long waits.
+    Why: the owner's time is the scarcest thing; guesses on looks are the costliest to undo. Checks: `philosophy`, `owner-questions`
+
+## How the loop works
+
+Each sweep (the scheduled prompt) does, in order:
+
+1. Reads this file.
+2. Reads the `owner_answers` tab (Google Sheets MCP; the ledger spreadsheet) — one row per answer given in Checks.
+3. Applies each answer: a specific answer (a/b/c or a note) becomes the change it asks for; its question in
+   `data/settings/owner-questions.json` gets `status: "answered"` and the answer copied in.
+4. Turns a general answer (a philosophy question, or "always do X") into an edit of a rule above, with the checks that enforce it.
+5. Works the one worklist: `node tools/health.js --list`, dearest first, budgets only going down (`--changed`).
+6. Anything it cannot decide without the owner (visible design, money, law) becomes a new question in
+   `data/settings/owner-questions.json` (id, question, options a/b/c, status "open") — never a guess.

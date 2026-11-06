@@ -191,7 +191,7 @@
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 28,
+    "count": 29,
     "weight": 0.02,
     "cap": 10,
     "off": 0.6,

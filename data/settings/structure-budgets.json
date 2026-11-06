@@ -968,7 +968,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5270149,
+  "searchBytes": 5278152,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,

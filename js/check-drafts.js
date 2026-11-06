@@ -96,6 +96,7 @@ const EXEMPT = [
   { file: 'rewrite.js', fn: 'rwOneHtml_', has: 'data-rw="mine"', why: 'the Rewrite coach\'s own-words box, one fact at a time (509, 519) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
   { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="free"', why: 'the Rewrite coach\'s own-version box (509) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
+  { file: 'one-place.js', fn: 'oqItem_', has: 'data-oq-note', why: 'the owner\'s "Something else" (1060) — typed and sent at once; a reload draws the saved note from owner_answers' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="note"', why: 'the Business checker\'s one-line proof (1050) — a policy number typed and Marked done at once; a reload draws the saved note' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
