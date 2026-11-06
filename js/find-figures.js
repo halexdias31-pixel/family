@@ -205,7 +205,7 @@ function tagRow_(x, page) {
   /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {
     let vals;
-    try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
+    try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();
       if (!raw) return;

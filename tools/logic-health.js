@@ -110,13 +110,14 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
         const thin = real.length < 2 ? real.map(v => v.show || v.value) : null;
         /* A COUNT OF 0 DRAWN: the asked facet's whole tally (before chips are taken out) may not hold an answer that keeps nothing. */
         const zero = ((facetTally_(items, f) || {}).values || []).filter(v => !v.n).map(v => v.show || v.value);
-        /* ANSWER WORDS (920): what the menu said, the chip says after the pick and the card's tag line says (facetSay_) must be one text. */
+        /* ANSWER WORDS (920): what the menu said, the chip says after the pick and the card's tag line says (tagSay or answerSay_) must be one text. */
         const norm = t => String(t == null ? '' : t).replace(/<[^>]*>/g, '').replace(/\\s+/g, ' ').trim();
         const words = [], mangled = [], was = STUFF.filters;
         values.slice(0, 12).forEach(v => { const menu = norm(v.show || v.value);
           STUFF.filters = filters.concat([{ field: f.field, value: v.value }]);
           let chip = '', tag = ''; try { chip = norm(chipText_(STUFF.filters[filters.length], filters.length)); } catch (e) { chip = '?'; }
-          try { tag = norm(facetSay_(f, v.value)); } catch (e) { tag = '?'; }
+          /* THE TAG THE CARD REALLY DRAWS (find-figures: tagSay, else answerSay_), not a raw facetSay_ the card never shows. */
+          try { tag = norm(f.tagSay ? f.tagSay(v.value) : answerSay_(f, v.value) || v.value); } catch (e) { tag = '?'; }
           if (chip !== menu || tag !== menu) words.push('menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"');
           /* MANGLED TEXT (1040 r11): each drawn text must hold, or sit inside, a source value letter for letter. */
           const src = [String(v.value)].concat(items.flatMap(x => facetOwn_(f, x)).filter(t => spellKey_(t) === spellKey_(v.value)).map(String));
@@ -180,7 +181,8 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     Object.keys(nd.split).forEach(k => { if (nd.split[k] > nd.split[b]) b = k; });
     return { where: where(nd), asks: nd.field, bits: nd.split[nd.field], best: b, bestBits: nd.split[b], cards: nd.n }; })
     .filter(m => m.bestBits - m.bits > 0.1).sort((a, b) => (b.bestBits - b.bits) * b.cards - (a.bestBits - a.bits) * a.cards);
-  const everAsked = new Set(asked.map(nd => nd.field));
+  /* ASKABLE COUNTS AS ASKED: a facet the funnel offers below the walk's depth is a question a finger can reach. */
+  const everAsked = new Set(asked.map(nd => nd.field).concat(got.flatMap(nd => nd.askable || [])));
   const tagAsked = carried.filter(c => !everAsked.has(c.field)).sort((a, b) => b.cards - a.cards);
   const menuSense = [];
   asked.forEach(nd => {

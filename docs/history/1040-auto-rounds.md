@@ -243,3 +243,9 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - flow 8/8, 28 Mechanics: the car card's Report tile carries the name in `data-rl` (never drawn); the "no title" test now ignores it as it does aria-label.
 - flow 8/8, 28 shelves: batch D's boxer is kind `people` (Fighters) with `shelf` a list (Boxing, History); the journey counted shelves as strings and looked for kind `boxer`. Updated to the batch D design.
 - All flow parts 1–8 and browser 2/8 green locally (LIB_PRIVATE=absent).
+
+## Sweep 12:37
+- Register read: one new note (5 Nov, no picture) asked; the "Paper 3x" note done.
+- `paperTag_`: a paper's tag is "Paper N" only; its section is the Paper-section tag, also read from a title like "Practice paper 1, Section A" (one attribute per tag).
+- logic-health: a facet askable below the walk's depth counts as asked (tag-asked 56 to 24); answer-words compares the tag the card really draws (`tagSay`/`answerSay_`). 18 menu/card word gaps left as a question.
+- find-figures coupling 89 to 88: `facetTags_` (find-finder) reads a card's tags on one facet.

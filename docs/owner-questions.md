@@ -52,4 +52,9 @@ Things the health checker flags that would change what you see, so they wait for
 - Students search card: drop the column-name widget and the Find button, and copy the search widget to the column on its right? (y/n)
 - Favourite links as an icon grid (site icons) instead of a list? (y/n)
 - Speed reader: make "Read it" a button? (y/n)
-- A past-paper question's tag reads "Paper 3x…" instead of "Paper 3" — relabel as "Paper 3" with "Section A/B" as tags? (y/n)
+- ~~A past-paper question's tag reads "Paper 3x…"~~ — answered yes; done in Sweep 12:37 (Paper 3, with Section A/B its own tag, for all papers).
+
+## Sweep 12:37 (6 Nov)
+- Find › Practice › … › GCSE › Higher › 2022 › November › Function verified: you asked "why does it look like this?" with no picture. What looks wrong (a screenshot helps)?
+- Menu vs card words: a menu shortens an answer against its neighbours ("Book 1", "Parchment", "Lambda") while the card's tag keeps the full name ("Book 1 (Clio)", "Parchment (leather)", "Lambda (oxygen) sensor"). One text everywhere — the short one or the full one? (18 places)
+- Tags on cards that no menu ever asks (24 left, e.g. Your result, Needs, 5-a-day level/month/day, Winner, Paper section): should each become a question, or stay detail-only tags?

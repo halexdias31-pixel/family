@@ -1039,74 +1039,9 @@
    "cards": 279068
   },
   {
-   "field": "wSource",
-   "label": "Source text",
-   "cards": 179952
-  },
-  {
-   "field": "accuracy",
-   "label": "Accuracy",
-   "cards": 28445
-  },
-  {
-   "field": "function",
-   "label": "Function",
-   "cards": 28445
-  },
-  {
-   "field": "paperId",
-   "label": "Paper",
-   "cards": 28445
-  },
-  {
-   "field": "qNumber",
-   "label": "Question",
-   "cards": 28445
-  },
-  {
    "field": "myResult",
    "label": "Your result",
    "cards": 28445
-  },
-  {
-   "field": "marks",
-   "label": "Marks",
-   "cards": 25642
-  },
-  {
-   "field": "examBoard",
-   "label": "Exam board",
-   "cards": 23943
-  },
-  {
-   "field": "examYear",
-   "label": "Year",
-   "cards": 23137
-  },
-  {
-   "field": "examMonth",
-   "label": "Month",
-   "cards": 23137
-  },
-  {
-   "field": "wAuthor",
-   "label": "Author",
-   "cards": 19431
-  },
-  {
-   "field": "wForm",
-   "label": "Kind of writing",
-   "cards": 19431
-  },
-  {
-   "field": "qPart",
-   "label": "Part",
-   "cards": 18432
-  },
-  {
-   "field": "wTradition",
-   "label": "Tradition",
-   "cards": 10437
   },
   {
    "field": "needs",
@@ -1149,54 +1084,14 @@
    "cards": 1355
   },
   {
-   "field": "yearGroup",
-   "label": "School year",
-   "cards": 1348
-  },
-  {
-   "field": "boutYear",
-   "label": "Year",
-   "cards": 157
-  },
-  {
-   "field": "boutMethod",
-   "label": "Result",
-   "cards": 157
-  },
-  {
-   "field": "personName",
-   "label": "Who",
-   "cards": 156
-  },
-  {
-   "field": "personYears",
-   "label": "Years",
-   "cards": 155
-  },
-  {
    "field": "boutWinner",
    "label": "Winner",
    "cards": 150
   },
   {
-   "field": "personFrom",
-   "label": "From",
-   "cards": 149
-  },
-  {
-   "field": "boutRound",
-   "label": "Round",
-   "cards": 80
-  },
-  {
    "field": "paperSection",
    "label": "Paper section",
-   "cards": 74
-  },
-  {
-   "field": "mPrice",
-   "label": "Price band",
-   "cards": 69
+   "cards": 98
   },
   {
    "field": "boutEvent",
@@ -1224,63 +1119,13 @@
    "cards": 13
   },
   {
-   "field": "histFormat",
-   "label": "Format",
-   "cards": 12
-  },
-  {
-   "field": "shopFor",
-   "label": "For",
-   "cards": 8
-  },
-  {
-   "field": "mModel",
-   "label": "Model",
-   "cards": 7
-  },
-  {
-   "field": "mGen",
-   "label": "Generation",
-   "cards": 7
-  },
-  {
    "field": "mMarket",
    "label": "Market",
    "cards": 7
   },
   {
-   "field": "mYears",
-   "label": "Years made",
-   "cards": 7
-  },
-  {
-   "field": "mSize",
-   "label": "Engine size",
-   "cards": 7
-  },
-  {
-   "field": "mValves",
-   "label": "Valves",
-   "cards": 7
-  },
-  {
-   "field": "mFuel",
-   "label": "Fuel",
-   "cards": 7
-  },
-  {
-   "field": "mBadge",
-   "label": "Version",
-   "cards": 6
-  },
-  {
    "field": "mPhase",
    "label": "Phase",
-   "cards": 4
-  },
-  {
-   "field": "shopTheme",
-   "label": "Theme",
    "cards": 4
   },
   {
@@ -1297,11 +1142,6 @@
    "field": "histSide",
    "label": "Side",
    "cards": 3
-  },
-  {
-   "field": "postBy",
-   "label": "Who posted",
-   "cards": 2
   },
   {
    "field": "postWhen",
@@ -1336,6 +1176,11 @@
    "say": "Unit: Stanza 1 ~ Stanza 12"
   },
   {
+   "where": "Find › Library › English Literature › Baker’s selection (1899)",
+   "kind": "answer-words",
+   "say": "Unit: menu \"Stanza 12\", chip \"Stanza 12\", tag \"Stanza 1 (2)\""
+  },
+  {
    "where": "Find › Library › English Literature › First edition (1847)",
    "kind": "spelling",
    "say": "Chapter: Chapter 1 ~ Chapter 10"
@@ -1349,6 +1194,21 @@
    "where": "Find › Library › English Literature › First edition (1847)",
    "kind": "spelling",
    "say": "Chapter: Chapter 1 ~ Chapter 12"
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו דמן\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1847)",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה עומד\""
   },
   {
    "where": "Find › Library › Maths › A-Level",
@@ -1546,6 +1406,21 @@
    "say": "Chapter: Chapter 1 ~ Chapter 12"
   },
   {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 1\", chip \"Chapter 1\", tag \"Chapter 1 · ארבעה ראשי שנים\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 2\", chip \"Chapter 2\", tag \"Chapter 2 · כל הזבחים שקבלו דמן\""
+  },
+  {
+   "where": "Find › Library › English Literature › First edition (1861) › Great Expectations",
+   "kind": "answer-words",
+   "say": "Chapter: menu \"Chapter 3\", chip \"Chapter 3\", tag \"Chapter 3 · הקורא את המגילה עומד\""
+  },
+  {
    "where": "Find › Library › History › Works › The Histories",
    "kind": "answer-words",
    "say": "Book: menu \"Book 1\", chip \"Book 1\", tag \"Book 1 (Clio)\""
@@ -1609,36 +1484,6 @@
    "where": "Find › Library › Chemistry › Element › Non-metal",
    "kind": "spelling",
    "say": "Group: Group 1 ~ Group 16"
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › Engine",
-   "kind": "answer-words",
-   "say": "Part: menu \"Auxiliary\", chip \"Auxiliary\", tag \"Auxiliary (drive) belt\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › Cooling",
-   "kind": "answer-words",
-   "say": "Part: menu \"Coolant\", chip \"Coolant\", tag \"Coolant (antifreeze)\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › Suspension",
-   "kind": "answer-words",
-   "say": "Part: menu \"Wishbones\", chip \"Wishbones\", tag \"Wishbones (control arms)\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › Exhaust",
-   "kind": "answer-words",
-   "say": "Part: menu \"Diesel particulate filter\", chip \"Diesel particulate filter\", tag \"Diesel particulate filter (DPF)\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › Exhaust",
-   "kind": "answer-words",
-   "say": "Part: menu \"Lambda\", chip \"Lambda\", tag \"Lambda (oxygen) sensor\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Any model › HVAC",
-   "kind": "answer-words",
-   "say": "Part: menu \"Cabin\", chip \"Cabin\", tag \"Cabin (pollen) filter\""
   }
  ]
 }

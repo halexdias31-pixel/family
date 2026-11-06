@@ -379,6 +379,8 @@ function groupOrderFresh_(m) {
   return Object.keys(seen).sort((a, b) => seen[a] - seen[b] || cmpText(a, b));
 }
 
+/* A CARD'S TAGS ON ONE FACET. */
+const facetTags_ = (G, x, page) => asList_(G.tagOf ? G.tagOf(x, page) : facetOwn_(G, x));
 /* ONE VALUE OR SEVERAL, ALWAYS READ AS SEVERAL. § */
 /* ---------- AND THE COMMON CASE IS ONE STRING, WHICH USED TO COST FOUR ALLOCATIONS § */
 const asList_ = v => {
@@ -386,11 +388,7 @@ const asList_ = v => {
   if (v == null || v === false) return [];
   if (!Array.isArray(v)) { const t = String(v).trim(); return t ? [t] : []; }
   const out = [];
-  for (let i = 0; i < v.length; i++) {
-    const x = v[i];
-    const t = String(x == null ? '' : x).trim();
-    if (t) out.push(t);
-  }
+  for (let i = 0; i < v.length; i++) { const t = String(v[i] == null ? '' : v[i]).trim(); if (t) out.push(t); }
   return out;
 };
 
@@ -560,7 +558,7 @@ const FACETS = [
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperLabel_(id), tagSay: id => paperTag_(id) },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
-  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : ''; } },
+  { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
   { field: 'qNumber',   label: 'Question',
     of: x => isQ_(x) && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
@@ -779,14 +777,16 @@ const paperLabel_ = id => {
   /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
   return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
-/* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12): the title "Paper 1 (Non-calculator) — June 2019" repeats the card's Non-calculator, June and 2019 tags. */
+/* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12): its title repeats the card's other tags. */
 const paperTag_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null, sec = paperSectionOf_(d), n = String((d && d.paper) || '').trim();
-  if (sec) return 'Paper ' + sec.paper + ', ' + sec.section;
-  /* ITS OWN FIRST WORDS where it has them ("Component 1A", "Practice paper 1, Section A"), else its number; with neither, its other tags (a 5-a-day's level and day) name it. */
-  const lead = /^(?:Practice paper|Paper|Component|Unit) \w+(?:, Section [A-F])?/i.exec(String((d && d.name) || '').trim());
+  /* ONE ATTRIBUTE PER TAG (1040 s12:37): the section is its own tag. */
+  if (sec) return 'Paper ' + sec.paper;
+  const lead = /^(?:Practice paper|Paper|Component|Unit) \w+/i.exec(String((d && d.name) || '').trim());
   return lead ? lead[0] : n ? 'Paper ' + n : '';
 };
+/* A SECTION NAMED ONLY IN THE PAPER'S TITLE is its own tag too. */
+const paperNameSection_ = x => (/, (Section [A-F])\b/.exec(String((docById_(((x && x.row) || {}).paper_id) || {}).name || '')) || [])[1] || '';
 /* WHICH SECTION OF ITS PAPER A DOCUMENT IS (770): § */
 function paperSectionOf_(row) {
   const m = /-(\d)(\d)$/.exec(String((row && (row.paper_id || row.paperId)) || ''));
