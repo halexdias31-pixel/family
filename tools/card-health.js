@@ -64,7 +64,7 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
       const qs = pick(by.q || [], 60), acts = () => qs.map(x => { const d = document.createElement('div');
         if ((questionParts_()[qId_(x)] || []).indexOf(x) < 0) return null; /* not on this rank's list: nothing to compare */
         try { d.innerHTML = questionWhole_(x, questionParts_()[qId_(x)] || [x]); } catch (e) { return null; }
-        return [...d.querySelectorAll('[data-do]')].filter(b => !b.closest('.tile-group.is-admin')).map(b => b.getAttribute('data-do')).join(' '); });
+        return [...d.querySelectorAll('[data-do]')].map(b => b.getAttribute('data-do')).join(' '); });
       const asAdmin = acts(), keep = USER;
       USER = Object.assign({ name: 'S', personId: 'P-S' }, { role: 'Student', roles: ['student'] });
       const asStudent = acts(); USER = keep;
@@ -84,10 +84,15 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
         if (card) card.querySelectorAll('.qtags, svg.pp, .fc-tiles, .tile-row, .mech-does').forEach(e => e.remove());
         return { id: 'mech:' + x.key, name: x.name, car: x.mFile === 'models', tags, n, rest: card ? card.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : 'no card' }; });
       const kinds = Object.keys(by).filter(k => /^(boxer|figure)$/.test(k) || (by[k].some(x => x.pixId) && k !== 'people'));
+      /* TAGS OMIT THE CHIPS (owner, 6 Nov): with Practice, Maths, GCSE picked, no question's tag row repeats one. */
+      STUFF.filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' }];
+      const chipWords = STUFF.filters.map(f => norm(String(f.value)));
+      const repeats = stuffItems().filter(isQ_).slice(0, 40).map(x => { const d = document.createElement('div'); d.innerHTML = tagRow_(x);
+        return { id: 'question:' + x.key, hit: [...d.querySelectorAll('.qtag')].map(s => s.textContent.trim()).filter(t => chipWords.indexOf(norm(t)) >= 0) }; }).filter(r => r.hit.length);
       STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Manuscripts' }];
       const msReach = stuffItems().filter(x => x.kind === 'manuscript').length, msAll = (by.manuscript || []).length;
       STUFF.filters = [];
-      return JSON.stringify({ items: all.length, cards, drawn, ranks, pics, mech, kinds, msReach, msAll });
+      return JSON.stringify({ items: all.length, repeats, cards, drawn, ranks, pics, mech, kinds, msReach, msAll });
     }); })()`));
   A.close();
   const work = [], counts = {};
@@ -96,6 +101,7 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
     if (held.length) work.push({ kind: 'odd-tags', where: c.id, say: `tag "${t}" (${f}) is a title made of the card's other tags ${held.map(u => '"' + u + '"').join(' + ')}` }); }));
   Object.keys(counts).filter(k => counts[k] >= EVERYWHERE * got.cards.length).forEach(k =>
     work.push({ kind: 'odd-tags', where: 'every card', say: `tag "${k.split('=').slice(1).join('=')}" (${k.split('=')[0]}) is on ${counts[k]} of ${got.cards.length} cards read — it tells a reader nothing (owner question)` }));
+  (got.repeats || []).forEach(r => work.push({ kind: 'odd-tags', where: r.id, say: `tag ${r.hit.map(t => '"' + t + '"').join(', ')} repeats a picked chip` }));
   got.drawn.forEach(c => dups(c.acts).forEach(d => work.push({ kind: 'dup-controls', where: c.id, say: `${d} drawn twice on one card` })));
   (got.ranks || []).forEach(r => {
     if (r.admin != null && r.student != null && r.admin !== r.student) work.push({ kind: 'dup-controls', where: r.id, say: `controls differ by rank: admin "${r.admin}" vs student "${r.student}"` });

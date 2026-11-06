@@ -1,0 +1,48 @@
+# The philosophy — the owner's principles
+
+One system with three parts: this file (what we want), `tools/health.js` (the one checker that measures it),
+and Find › Settings › Business › **Checks** (the one place to see the score and answer the owner's questions).
+Each rule says why, and names the health check ids that enforce it (`node tools/health.js --list --kind <id>`).
+`tools/health.js` reads the `Checks:` lines: a principle naming no existing check is a finding (`philosophy`);
+a check tied to no principle is listed, report-only. Edit a rule here, never in code.
+
+1. **The site IS the business.** Everything runs from here, in one place: learning resources, bookings, payments, staff, taxes and accounts, logistics, compliance — as scalable, stable and efficient as possible. One place beats light (owner, 6 Nov): when a business function makes the site heavier, keep it fast by good code hygiene — each section isolated in its own protected block, loaded only when opened, so one area can change without touching the others. All learning content (questions, library, animations) is free for every student, behind a free sign-in (signed out sees only Settings to sign in or join); the business earns from tutoring, bookings and the shop (owner, 6 Nov). Students come first when a choice helps one group but slightly hurts another (then parents, tutors, admin).
+   Why: one place is cheaper to run, check and hand to ~100 staff than a dozen tools. Checks: `business`, `biz-checker`, `friction`, `one-place`
+2. **Nothing is lost.** Switched off, never deleted, and never removed for good, however big the site grows (owner, 6 Nov); every feature stays on, even half-working, and the sweeps stabilise it; no age gates on learning content. (Owner, 6 Nov: when it clashes with minimal/stability, this wins.)
+
+3. **Stability first, but bold.** The sweeps may take big leaps that could break something briefly; the checker catches it and the next sweep fixes it fast (owner, 6 Nov). Sacrificing complexity for stability or simplicity is a valid trade; Apple-like minimal, few features done well.
+   Why: a site that breaks loses trust faster than a missing feature gains it. Checks: `exceptions`, `resilience`, `catches`, `one-off`, `long-fn`, `big-file`, `nest`, `dead`
+4. **Find is the core.** One search bar only; everything browsable lives in Find; one front door for everyone (signed out sees the same Find, with only Settings).
+   Why: one way in is one thing to learn and one thing to keep working. Checks: `front-door`, `returned-features`, `people-one-kind`, `manuscripts-reach`
+5. **One rule, never one-offs — absolute, no exceptions, front end and backend alike** (owner, 6 Nov: the Apps Script backend is split and tidied under the same rules, even with more redeploys; even where one place is slightly worse, e.g. the essay box is the cream pill, keypad keys are tiles, one read-aloud per card). One way to draw each thing: one card, one tile row, one button maker, one text box (the cream answer pill), one chip size, one question engine.
+   Why: uniformity removes arbitrariness; a fix in one place fixes every place. Checks: `find-one-off`, `raw-button`, `hand-tile`, `text-boxes`, `chip-size`, `qengine`, `variety-qpage`, `variety-maker`, `variety-drawer`, `variety-wait`, `variety-listrow`, `variety-textbox`, `once-class`, `inline-style`, `own-wait`, `dup`
+6. **Cards are minimal and picture-first; fewest words possible** — icons and one-word labels, no sentences unless essential (owner, 6 Nov); pixel portraits need no 'impression' label. Picture-first when the thing has a picture (people, parts, fights, timelines, icons); text things stay text with tags. Tags at the top as outlined pills, showing only what is NOT already picked as a chip (owner, 6 Nov); one tag per attribute, never composites, repeats or always-on tags (e.g. no 'Learning' tag on cards — owner, 6 Nov); no grey clutter (information becomes a tag); every element kind has its tags.
+   Why: a card read at a glance on a phone needs one kind of label, not five. Checks: `card-tags`, `picture-first`, `attr-outside-tags`, `odd-tags`, `clutter`, `element-box`, `car-tags-split`, `timeline-anim`
+7. **Menus follow one rule.** Each category one fixed colour, neighbours differ; every tag askable; the next menu is always the one that splits the list best (owner, 6 Nov: best split, always — no hand-ordered list); a menu needs at least two answers; the same words in menu, chip and tag.
+   Why: a menu that behaves the same everywhere can be trusted without thinking. Checks: `tag-colour`, `tag-asked`, `menu-rule`, `menu-thin`, `menu-order`, `menu-sense`, `answer-words`, `words-all`, `near-dup`, `merged-value`, `merged-all`
+8. **Controls stay put.** The same buttons in the same places for every rank — ones you can't use are greyed, never hidden (owner, 6 Nov); never move, appear or disappear on tap (disable instead); respond instantly; grouped in one row.
+   Why: a control that jumps is pressed by mistake. Checks: `dup-controls`, `control-look`, `ux`, `settings-work`, `update-continuity`
+9. **Questions are one card per number.** Parts inside, no box; marked mechanically wherever possible; AI marks only open writing (essays, long answers), clearly labelled (owner, 6 Nov); every question works if one works.
+   Why: a learner must get the same, fair mark every time. Checks: `question`, `answer`, `qengine`
+10. **Fast and light.** Fast first load, phone-memory safe, low AI edit cost; data from one source (in sync); seamless updates that never interrupt.
+   Why: a phone on a bus is the real user, and every edit is paid for in reading. Checks: `size`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
+11. **Frictionless for clients and tutors.** Booking, messaging, paying and homework in the fewest taps, none a dead end.
+    Why: every extra step loses a booking. Checks: `friction`, `a11y`, `console`
+12. **Run legally and safely.** Private things (learners, money, staff records) live only in the owner's Google Sheets, never in the public code. Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; fully autonomous (owner, 6 Nov): booking, tutor matching, payment, reminders and receipts happen without anyone pressing anything; a human can always step in. 'No preference' bookings: every fitting tutor is told and may apply; the client picks one from the applicants and it goes through (owner, 6 Nov). Money: the client pays the business, and each tutor's share is paid out to them automatically, with receipts and tax records written as it happens. People hear about things by phone push for urgent events and email for the rest. Prices come from one formula for every session, never set by hand: level, group size, length, and online vs in person (the existing pricing in the site is the starting point; tidy it into one formula). Cancellations are free up to 24h before; after that the session is charged and the tutor paid. All exam boards are treated equally in Find. Phone first, but it must work on a computer or any device. Words are written so they could be translated later (English only for now). Recently opened things keep working offline; answers sync when back online. No separate accessibility work beyond what exists (read aloud, magnifier stay). Grade-prediction/progress targets are on hold (no good metric yet); the existing work emails and progress widget stay. Quality: every session gathers feedback, visible to the owner whenever, with a hidden rating; no public stars. Tutors may message students 1-to-1; every message is kept and visible to admin. Growth: product first for now; later, applications, marketing and family credit are built from the parts the site already has (applications as Profiles cards, marketing as posts/flyers, credit as a basket discount), never as a separate system. When the site gets something wrong for a family (double booking, wrong charge) it detects it, fixes it, refunds automatically and tells everyone. Staff use the same Find, with extra cards (their bookings, students, pay).
+    Why: one missed obligation can end the business. Checks: `business`, `biz-checker`, `secrets`
+    Why: work already paid for should not vanish. Checks: `returned-features`, `no-age-gates`, `dead`
+13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; the sweeps decide visible design — and money, law and safeguarding changes too (owner, 6 Nov) — themselves when the philosophy points one way, and ask only when it genuinely doesn't (owner, 6 Nov) — any decision can be undone from the inbox; quick checks only, no long waits.
+    Why: the owner's time is the scarcest thing; guesses on looks are the costliest to undo. Checks: `philosophy`, `owner-questions`
+
+## How the loop works
+
+Each sweep (the scheduled prompt) does, in order:
+
+1. Reads this file.
+2. Reads the `owner_answers` tab (Google Sheets MCP; the ledger spreadsheet) — one row per answer given in Checks.
+3. Applies each answer: a specific answer (a/b/c or a note) becomes the change it asks for; its question in
+   `data/settings/owner-questions.json` gets `status: "answered"` and the answer copied in.
+4. Turns a general answer (a philosophy question, or "always do X") into an edit of a rule above, with the checks that enforce it.
+5. Works the one worklist: `node tools/health.js --list`, dearest first, budgets only going down (`--changed`).
+6. Anything it cannot decide without the owner (visible design, money, law) becomes a new question in
+   `data/settings/owner-questions.json` (id, question, options a/b/c, status "open") — never a guess.

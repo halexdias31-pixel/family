@@ -13,13 +13,13 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const WIDGETS = {
   Tools: ['calculator', 'timer', 'notepad', 'whiteboard', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
     'favlinks', 'console', 'spotify', 'rewrite', 'pixel', 'libcards'],
-  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Newspaper: ['newspaper'], Flyers: ['flyers'], Posters: ['poster'],
+  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Flyers: ['flyers'], Posters: ['poster'],
   Verse: ['verse'], Shop: ['cart'],
 };
 WIDGETS.Tools = WIDGETS.Tools.filter(w => w !== 'console');
 const COLUMNS = ['spotlight', 'feed', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents', 'apprentices'];
-/* A SAFE PRESS: not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */
-const SKIP = /del|bin|lock|star|suggest|share|save|top|edit|hide|eye|lay-|help|sign|out|report|facet|chip/i;
+/* A SAFE PRESS (a picture picker opens the device chooser, which a page cannot see): not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */
+const SKIP = /-pic\b|del|bin|lock|star|suggest|share|save|top|edit|hide|eye|lay-|help|sign|out|report|facet|chip/i;
 
 /* IN THE PAGE: what a host draws, and one safe press inside it. */
 async function probe(page, sel, label) {
@@ -32,14 +32,16 @@ async function probe(page, sel, label) {
     const pics = host.querySelectorAll('canvas, img, svg, video, iframe').length;
     const re = new RegExp(skip);
     const ctl = [...host.querySelectorAll('button, [data-do], input, select, textarea')].filter(e => e.offsetParent !== null && !e.disabled);
-    const press = ctl.find(e => !(e.closest('.tile-row.card-x, .card-extras')) && !re.test((e.dataset && e.dataset.do) || '') && !re.test(e.getAttribute('aria-label') || '') && e.tagName !== 'INPUT' && e.tagName !== 'TEXTAREA' && e.tagName !== 'SELECT');
+    /* UP TO THREE SAFE PRESSES, first that answers wins: a first button can be a no-op in the start state (Got it before Start, the preset already ticked). */
+    const safe = ctl.filter(e => !(e.closest('.tile-row.card-x, .card-extras')) && !re.test((e.dataset && e.dataset.do) || '') && !re.test(e.getAttribute('aria-label') || '') && e.tagName !== 'INPUT' && e.tagName !== 'TEXTAREA' && e.tagName !== 'SELECT');
     let responds = null, pressed = '';
-    if (press) {
+    for (const press of safe.slice(0, 3)) {
       pressed = (press.dataset && press.dataset.do) || press.getAttribute('aria-label') || press.textContent.trim().slice(0, 30);
       const before = document.body.innerHTML.length + ':' + host.innerHTML, sc = location.hash;
       press.click();
       await new Promise(r => setTimeout(r, 1500));
       responds = (document.body.innerHTML.length + ':' + host.innerHTML) !== before || location.hash !== sc;
+      if (responds) break;
     }
     return { loads: true, words: text.length, sample: text.slice(0, 80), pics, controls: ctl.length, pressed, responds };
   }, { sel, skip: SKIP.source });

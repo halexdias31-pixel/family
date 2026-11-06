@@ -256,7 +256,7 @@ const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Pract
   friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', reel: 'Videos', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
-function kindTop_(x) { return (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
+function kindTop_(x) { return (x && x.top) || (x && x.widget && typeof FIND_WIDGET_GROUPS !== 'undefined' && FIND_WIDGET_GROUPS[x.widget.id]) || (x && KIND_UNDER[x.kind]) || ''; }
 /* ONE RULE FOR A VALUE UNDER ANOTHER (660): the first question answers the one above, the second the value itself — only in a family that has one. */
 function underTop_(table, v) { return (v && table[v]) || v || ''; }
 /* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */

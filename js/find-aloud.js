@@ -546,8 +546,8 @@ function stuffItemsRaw_() {
     ...soonItems_(),
     /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
     ...(typeof doorItems_ === 'function' ? doorItems_() : []),
-    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['health', 'Site health'], ['bizcheck', 'Business checker']].map(([w, n]) => ({
-      kind: 'health', name: n, key: 'health:' + w, sub: 'Settings', image: '', which: w, text: n + ' site health what’s missing' })) : []),
+    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [{ kind: 'health', name: 'Checks', key: 'health:checks', sub: 'Settings', image: '', which: 'checks', settingFor: 'Business',
+      text: 'checks site health business checker owner questions what’s missing' }] : []),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,

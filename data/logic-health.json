@@ -96,7 +96,7 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 279068,
+   "cards": 279067,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
@@ -260,8 +260,8 @@
    "asks": "kindLabel",
    "bits": 0.49,
    "best": "wCollection",
-   "bestBits": 2.91,
-   "cards": 279068
+   "bestBits": 2.92,
+   "cards": 279067
   },
   {
    "where": "Find › Library",
@@ -1036,122 +1036,56 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 279068
+   "cards": 279067,
+   "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {
    "field": "myResult",
    "label": "Your result",
-   "cards": 28445
-  },
-  {
-   "field": "needs",
-   "label": "What you need",
-   "cards": 6884
-  },
-  {
-   "field": "source",
-   "label": "Source",
-   "cards": 4653
-  },
-  {
-   "field": "qSub",
-   "label": "Sub-part",
-   "cards": 2467
-  },
-  {
-   "field": "bandValue",
-   "label": "Grade",
-   "cards": 1959
-  },
-  {
-   "field": "typeOwn",
-   "label": "Which type",
-   "cards": 1843
+   "cards": 28445,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "fiveLevel",
    "label": "Level",
-   "cards": 1355
-  },
-  {
-   "field": "fiveMonth",
-   "label": "Month",
-   "cards": 1355
-  },
-  {
-   "field": "fiveDay",
-   "label": "Day",
-   "cards": 1355
-  },
-  {
-   "field": "boutWinner",
-   "label": "Winner",
-   "cards": 150
-  },
-  {
-   "field": "paperSection",
-   "label": "Paper section",
-   "cards": 98
-  },
-  {
-   "field": "boutEvent",
-   "label": "Event",
-   "cards": 46
-  },
-  {
-   "field": "pcType",
-   "label": "Part type",
-   "cards": 13
-  },
-  {
-   "field": "pcSocket",
-   "label": "Socket or form factor",
-   "cards": 13
-  },
-  {
-   "field": "pcIface",
-   "label": "Interface",
-   "cards": 13
-  },
-  {
-   "field": "pcLinks",
-   "label": "Connects to",
-   "cards": 13
+   "cards": 1355,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "mMarket",
    "label": "Market",
-   "cards": 7
+   "cards": 7,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "mPhase",
    "label": "Phase",
-   "cards": 4
+   "cards": 4,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "vidTopic",
    "label": "Topic",
-   "cards": 3
+   "cards": 3,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "vidType",
    "label": "Type",
-   "cards": 3
-  },
-  {
-   "field": "histSide",
-   "label": "Side",
-   "cards": 3
+   "cards": 3,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "postWhen",
    "label": "When",
-   "cards": 2
+   "cards": 2,
+   "why": "one answer — nothing to decide"
   },
   {
    "field": "shopBrand",
    "label": "Brand",
-   "cards": 1
+   "cards": 1,
+   "why": "one answer — nothing to decide"
   }
  ],
  "menuSense": [

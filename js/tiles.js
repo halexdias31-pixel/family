@@ -192,7 +192,9 @@ function tile_(o) {
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is said in `aria-pressed` beside the `on` the eye reads § */
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
-  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${o.off ? ' disabled' : ''}
+  /* SAME TILES FOR EVERY RANK (owner, 6 Nov): an admin's tile is drawn for everyone in its place, greyed for those without the right. */
+  const barred = o.tone === 'admin' && typeof isAdmin === 'function' && !isAdmin() ? ' aria-disabled="true"' : '';
+  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
@@ -236,7 +238,7 @@ let SPOT_TILES = false;
 const adminLearn_ = x => typeof kindOf_ === 'function'
   && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
 function adminTiles_(x, t) {
-  if (!isAdmin() || (adminLearn_(x) && !SPOT_TILES)) return '';
+  if (adminLearn_(x) && !SPOT_TILES) return '';
   /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
      the group for a screen reader, which is the half of the old wrapper worth having. */
   return `<span class="tile-group is-admin" role="group" aria-label="Admin">
@@ -299,7 +301,7 @@ function tutorTiles_(x) {
     ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
           ''}
     ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
-    ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
+    ${x.key ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
               note: t.listed === false ? 'clients cannot see them' : 'clients can see them',

@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77,
+ "score": 77.1,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -116,15 +116,14 @@
   {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 9,
+   "count": 8,
    "weight": 0.05,
    "cap": 10,
-   "off": 0.5,
+   "off": 0.4,
    "where": {
     "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 161,
     "js/find-parts.js typeset_": 230,
-    "js/library.js libraryExtras_": 182,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1204,
@@ -192,7 +191,7 @@
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 28,
+    "count": 29,
     "weight": 0.02,
     "cap": 10,
     "off": 0.6,
@@ -208,7 +207,7 @@
     "cap": 10,
     "off": 0.5,
     "where": {
-     "js/games.js": 6442
+     "js/games.js": 6446
     }
    },
    {

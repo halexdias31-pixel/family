@@ -249,3 +249,28 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - `paperTag_`: a paper's tag is "Paper N" only; its section is the Paper-section tag, also read from a title like "Practice paper 1, Section A" (one attribute per tag).
 - logic-health: a facet askable below the walk's depth counts as asked (tag-asked 56 to 24); answer-words compares the tag the card really draws (`tagSay`/`answerSay_`). 18 menu/card word gaps left as a question.
 - find-figures coupling 89 to 88: `facetTags_` (find-finder) reads a card's tags on one facet.
+
+## Sweep 14:37
+- Register read: one new note (move Camera and Posts into Find) asked in owner-questions — a visible layout change.
+- Tags asked, by default ("all tags are asked"): logic-health judges each carried facet on its own cards by the usual rules (a long one as the paged list), since the walk stops at grids and its cap. tag-asked 24 to 9: eight hold one value in the fixture (one answer is never a question), and What for is lopsided at the top.
+- returned.js: a picture picker (`-pic`) is not a safe press — it opens the device chooser, which the page cannot see (whiteboard's Picture was a false "nothing changed").
+
+## Sweep 16:36
+- Register read: no new notes since 14:37 (last one, Camera and Posts into Find, already asked).
+- long-fn: `libraryExtras_` (183 lines, `js/library.js`) is now four blocks it calls in the old order — `libExtrasSheets_`, `libExtrasBooks_`, `libExtrasData_`, `libExtrasBoxing_` — each statement moved unchanged (acorn cut; no bare `return` among them). One tombstone comment (the topic tree) dropped. `searchBytes` budget 5,269,284 → 5,269,805 by hand (the four headers).
+- Returned features: word games Next (Got it before Start), flyer preset (the campaign's ticks already match), console Select (no game loaded) are no-ops in the start state, not breaks; check/returned.js now tries up to three safe presses, first that answers wins. Newspaper is a placeholder by design and countdowns a display (no controls): both asked or left. The full returned.js walk ran past 8 minutes and was stopped, so data/returned-health.json is unchanged.
+
+## Sweep 18:36
+- Owner's answers (6 Nov evening): Articulate and Charades draw Got it / Pass from the start, `aria-disabled` (the shared disabled look) until Start, one line in `roundPaint`. Newspaper `off` in tiers.json (`node tools/tiers.js`), so it is a Coming soon card; dropped from check/returned.js.
+- Register read: no new notes since 14:37.
+- Clutter: the credit rule (`creditsToTags_`) also moves any `.as-tag` line into the tag row; a verse's translation line (`bb-tr`) is one. Taboo / Hot Seat acts still drawn only after Start (left: their Ready card holds the word).
+- Budgets raised by hand for the greying line: games.js lines 6442→6444, coupling 106→108, searchBytes →5,270,149. finder-tags and stability regenerated (stale).
+
+## Sweep 20:36
+- owner_answers / claude_notes: not read this sweep (no new notes beyond 14:37 in the register).
+- Inbox: Checks shows the five open questions that settle most (philosophy first, then an optional `settles`, then file order); answered fold into "Answered · n". Marked answered from the 6 Nov philosophy: philo-minimal-info, philo-stable-new, philo-menu-next, philo-autonomy, learning-tag, read-aloud-parts, dont-matter-first, homework.
+- Homework: `homework` widget (map.js) `off` in tiers.json; its Coming soon card waits under Tools (`SOON_WIDGET_UNDER`, `x.top` read by `kindTop_`).
+- Tags omit what is picked: `tagRow_` skips a facet value or word equal to a current chip. card-health checks Practice+Maths+GCSE (no repeats); ux-health's missing-attribute count exempts chipped fields.
+- Ranks: `tile_` greys any admin-tone tile for a non-admin (`aria-disabled`); `adminTiles_` and Listed drawn for everyone. card-health's rank check now compares every control, admin group included: 0 differences.
+- Taboo / Hot Seat: Correct|Got it / Pass drawn from the start, disabled until the round runs (`partyPair_`).
+- Budgets raised by hand (structure-budgets why line). Left for next: f. best split always (menu order, sort_order out, finder-tags regenerate); drop the always-on "Learning" tag (learning-tag answered a); odd-tags composite work titles.

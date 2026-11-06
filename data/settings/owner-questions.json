@@ -1,0 +1,392 @@
+{
+ "why": "THE OWNER’S INBOX (1060): every open question, drawn in Find › Settings › Business › Checks; answers go to the owner_answers tab and each sweep applies them (docs/philosophy.md).",
+ "questions": [
+  {
+   "id": "philo-minimal-info",
+   "question": "When minimal and informative clash on a card, which wins?",
+   "options": {
+    "a": "Minimal: drop the line",
+    "b": "Informative: keep it, as a tag",
+    "c": "Ask each time"
+   },
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 2 (6 Nov): nothing lost outranks minimal"
+  },
+  {
+   "id": "philo-stable-new",
+   "question": "When stability and a new feature clash, which wins?",
+   "options": {
+    "a": "Stability always: the feature waits",
+    "b": "The feature, if it is switched off by default",
+    "c": "Ask each time"
+   },
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 2: every feature stays on, even half-working; sweeps stabilise"
+  },
+  {
+   "id": "philo-menu-next",
+   "question": "Which menu comes next: one rule for every menu?",
+   "options": {
+    "a": "Best split (the menu that divides the list most evenly)",
+    "b": "First in the facets tab order that passes the rule",
+    "c": "Keep both: best split on the front page only"
+   },
+   "status": "answered",
+   "answer": "a",
+   "philosophy": true,
+   "note": "Philosophy 7: best split, always"
+  },
+  {
+   "id": "philo-words",
+   "question": "One text everywhere for an answer: the short name or the full one?",
+   "options": {
+    "a": "The short name everywhere",
+    "b": "The full name everywhere",
+    "c": "Short in menus and chips, full on the card"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": true
+  },
+  {
+   "id": "philo-autonomy",
+   "question": "How much may a sweep change on its own?",
+   "options": {
+    "a": "Anything that does not change the look",
+    "b": "Small look changes too, listed afterwards",
+    "c": "Nothing visible without a yes"
+   },
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 13: sweeps decide visible design when the philosophy points one way"
+  },
+  {
+   "id": "card-editor-cancel",
+   "question": "Settings, Cancel on your card’s editor closes it and the controls below move up.",
+   "options": {
+    "a": "Keep as is",
+    "b": "Keep the editor’s space and show “Closed”",
+    "c": "Open the editor as a sheet over the page"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "me-save-room",
+   "question": "Settings, Save on your details: a two-line “saved” message nudges the controls below.",
+   "options": {
+    "a": "Keep two lines of room",
+    "b": "Shorten the message to one line",
+    "c": "Leave it"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "lay-split-apply",
+   "question": "Settings, Split on a layout card moves Change PIN and Try voice below.",
+   "options": {
+    "a": "Accept: splitting is a layout change",
+    "b": "Apply the split only after an “Apply” press"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "request-decline",
+   "question": "Requests, Decline opens a “Why not?” line that pushes the rest down.",
+   "options": {
+    "a": "Keep",
+    "b": "Ask in a small sheet over the page",
+    "c": "Always show an empty “why not” line"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "seen-open",
+   "question": "“Who sees this” opens under the tiles and pushes the rest down.",
+   "options": {
+    "a": "Keep",
+    "b": "Open it as a sheet over the page"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "fighter-tag",
+   "question": "Find, Fighter menu: pick a fighter and the fight’s tag names the other boxer.",
+   "options": {
+    "a": "Keep: the tag names the fight’s lead",
+    "b": "The tag names the fighter you picked",
+    "c": "The tag names both"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "stored-names",
+   "question": "Receipts, reports and logs keep a person’s name as it was when written.",
+   "options": {
+    "a": "Keep: a record of that moment",
+    "b": "Show the people row’s name now"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "learning-tag",
+   "question": "“What for · Learning” is on almost every card.",
+   "options": {
+    "a": "Drop a tag whose value is on almost every card",
+    "b": "Drop only “What for” from cards",
+    "c": "Keep"
+   },
+   "status": "answered",
+   "answer": "a",
+   "philosophy": false,
+   "note": "Philosophy 6: never always-on tags"
+  },
+  {
+   "id": "writing-titles",
+   "question": "Titles drawn as tags on writings repeat the card’s other tags.",
+   "options": {
+    "a": "Keep the names",
+    "b": "Cut the repeated words",
+    "c": "Fix the data (an anthology is not an author)"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "read-aloud-parts",
+   "question": "Read aloud on a question with parts: each part has its own.",
+   "options": {
+    "a": "Keep",
+    "b": "One Read aloud in the foot reading every part"
+   },
+   "status": "answered",
+   "answer": "b",
+   "philosophy": false,
+   "note": "Philosophy 5: one read-aloud per card"
+  },
+  {
+   "id": "dont-matter-first",
+   "question": "After “Doesn’t matter” on the first menu, what is asked next?",
+   "options": {
+    "a": "Ask “Which” (every kind)",
+    "b": "Switch every menu to best split",
+    "c": "Keep (Subject)"
+   },
+   "status": "answered",
+   "answer": "b",
+   "philosophy": false,
+   "note": "Philosophy 7: best split, always"
+  },
+  {
+   "id": "accuracy-function",
+   "question": "Accuracy and Function menus are never asked.",
+   "options": {
+    "a": "Move them before Year in the facets tab",
+    "b": "Keep them as tags only"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "person-links",
+   "question": "A person card no longer has link tiles (Writing, Event). Bring the links back as tags?",
+   "options": {
+    "a": "Yes, as tags",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "lesson-videos",
+   "question": "The three lesson videos are marked Documentary. Right type?",
+   "options": {
+    "a": "Yes",
+    "b": "No: Lesson",
+    "c": "No: something else (say in the note)"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "history-people-first",
+   "question": "History › People asks Decade first. Fine?",
+   "options": {
+    "a": "Fine",
+    "b": "Era first",
+    "c": "Role first"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "cars-engines",
+   "question": "Cars chosen: Fiesta Mk7 1.25 (SNJB), Golf Mk6 1.6 TDI (CAYC), Corsa D 1.2 (Z12XEP). Right?",
+   "options": {
+    "a": "Yes",
+    "b": "No (say which in the note)"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "car-prices",
+   "question": "Price bands are the Clio’s for every car. Should each car have its own?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "part-numbers",
+   "question": "Real part numbers anywhere?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "history-kind-ask",
+   "question": "History › Manuscripts/People/Works/Events is not asked (too few cards answer). Ask it anyway?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "textbook-chapters",
+   "question": "History’s textbook chapters answer “Works”. Their own answer instead?",
+   "options": {
+    "a": "Keep as Works",
+    "b": "Their own answer: Textbook chapters"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "ot-chronology",
+   "question": "Old Testament dates follow the early chronology (Exodus c. 1446 BC).",
+   "options": {
+    "a": "Keep",
+    "b": "The late chronology (c. 1250 BC)",
+    "c": "Show both"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "next-timelines",
+   "question": "Which timelines next, and should a timeline loop at the end?",
+   "options": {
+    "a": "British monarchy, Reformation, Cold War; stop at the end",
+    "b": "The same, but loop",
+    "c": "Others (say in the note)"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "homework",
+   "question": "Homework: a tutor sets a paper for a student, the student sees it in Find, the tutor sees results. Build it?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "answered",
+   "answer": "a",
+   "philosophy": false,
+   "note": "Owner 6 Nov: a Coming soon card under Find › Tools for now"
+  },
+  {
+   "id": "students-search-card",
+   "question": "Students search card: drop the column-name widget and Find button, copy the search widget right?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "favlinks-grid",
+   "question": "Favourite links as an icon grid instead of a list?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "speed-reader-button",
+   "question": "Speed reader: make “Read it” a button?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "function-verified-look",
+   "question": "GCSE Higher 2022 November › Function verified: what looks wrong?",
+   "options": {
+    "a": "Send a screenshot via Suggest",
+    "b": "It is fine now"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  },
+  {
+   "id": "camera-posts",
+   "question": "Camera and Posts: move both into Find and drop their column?",
+   "options": {
+    "a": "Yes",
+    "b": "No"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
+  }
+ ]
+}

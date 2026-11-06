@@ -1,12 +1,12 @@
 {
- "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040); batch D: one people kind and its portraits (1040). Raised 6 Nov, batch E: car and PC parts (coupling mechanics 19, find-boxers 98, find-finder 146; find-finder 819 lines, oneOff 4; mechanics oneOff 4; style.css 7199). Raised 6 Nov, batch G (found over at the start of G, from batches E–F): coupling find-boxers 99, works 20; variety maker 38; owner clutter 379; aiCost bigNotes 10 (1040-auto-rounds.md, appended as asked), spread 22. Raised 6 Nov, friction fixes (1040-auto-rounds.md): coupling book 69, cards 45, find-doors 55, find-levels 106, receipt 65, tiles 85 — the booking prefill, Message tiles and Find › Messages contacts link the files they join.",
+ "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040); batch D: one people kind and its portraits (1040). Raised 6 Nov, batch E: car and PC parts (coupling mechanics 19, find-boxers 98, find-finder 146; find-finder 819 lines, oneOff 4; mechanics oneOff 4; style.css 7199). Raised 6 Nov, batch G (found over at the start of G, from batches E–F): coupling find-boxers 99, works 20; variety maker 38; owner clutter 379; aiCost bigNotes 10 (1040-auto-rounds.md, appended as asked), spread 22. Raised 6 Nov, friction fixes (1040-auto-rounds.md): coupling book 69, cards 45, find-doors 55, find-levels 106, receipt 65, tiles 85 — . Raised Sweep 20:36 (1040-auto-rounds.md): coupling tiles 86, find-figures 90, shell-boot 136; lines games 6446, find-finder 821; searchBytes 5279907 — tags omit chips, greyed admin tiles, Homework card, Taboo/Hot Seat pairs. the booking prefill, Message tiles and Find › Messages contacts link the files they join.",
  "coupling": {
   "js/find.js": 0,
   "js/shell.js": 186,
   "js/me.js": 187,
   "js/posts.js": 117,
-  "js/games.js": 106,
-  "js/tiles.js": 85,
+  "js/games.js": 108,
+  "js/tiles.js": 86,
   "js/arcade.js": 98,
   "js/layout.js": 76,
   "js/data.js": 86,
@@ -69,7 +69,7 @@
   "js/find-bundles.js": 132,
   "js/find-cells.js": 80,
   "js/find-facets.js": 57,
-  "js/find-figures.js": 88,
+  "js/find-figures.js": 90,
   "js/find-finder.js": 146,
   "js/find-history.js": 80,
   "js/find-levels.js": 106,
@@ -88,7 +88,7 @@
   "js/me-settings.js": 93,
   "js/me-shelves.js": 45,
   "js/shell-api.js": 102,
-  "js/shell-boot.js": 135,
+  "js/shell-boot.js": 136,
   "js/shell-click.js": 108,
   "js/shell-hold.js": 13,
   "js/shell-layout.js": 61,
@@ -306,7 +306,7 @@
    "rawButton": 2
   },
   "js/games.js": {
-   "lines": 6442,
+   "lines": 6446,
    "oneOff": 18,
    "emptyCatch": 59,
    "inlineStyle": 16,
@@ -670,7 +670,7 @@
    "rawButton": 0
   },
   "js/find-finder.js": {
-   "lines": 819,
+   "lines": 821,
    "oneOff": 4,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -905,7 +905,6 @@
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
   "js/games.js vidPaint_": 82,
-  "js/library.js libraryExtras_": 183,
   "js/mat.js matPaint": 159,
   "js/posts.js camStart_": 97,
   "js/price-rows.js priceCells": 89,
@@ -969,13 +968,13 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5269284,
+  "searchBytes": 5279907,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,
   "testBiggest": 414941,
   "bigNotes": 10,
-  "spread": 20,
+  "spread": 17,
   "effortLines": 209,
   "effortFiles": 9
  },

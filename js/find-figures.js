@@ -201,6 +201,10 @@ function tagMadeOf_(text, said) {
 function tagRow_(x, page) {
   const out = [], words = new Map(), ids = new Map(), said = [];
   if (!x) return '';
+  /* A TAG SHOWS ONLY WHAT IS NOT ALREADY PICKED AS A CHIP (owner, 6 Nov): the chip above already says it. */
+  const picked = new Set(), pickedWords = new Set();
+  (STUFF.filters || []).filter(f => f && !f.any).forEach(f => { picked.add(f.field + '\u0000' + f.value);
+    pickedWords.add(norm(String(f.value))); if (typeof chipShow_ === 'function') pickedWords.add(norm(String(chipShow_(f) || ''))); });
   /* EVERY FACET IS A TAG (396), said as its button says it (`answerSay_`); a word already on the row is not said twice, */
   /* but that tag names this facet too (`data-also`, 1030), so every attribute is on the line. */
   facetList().forEach(facet => {
@@ -208,11 +212,12 @@ function tagRow_(x, page) {
     try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();
-      if (!raw) return;
+      if (!raw || picked.has(facet.field + '\u0000' + raw)) return;
       let text = raw;
       try { text = String((facet.tagSay ? facet.tagSay(raw) : answerSay_(facet, raw) || raw) || '').trim(); } catch (e) { text = raw; }
       if (!text) return;
       const w = norm(text);
+      if (pickedWords.has(w)) return;
       const twin = TAG_NAME.test(text) && words.has(w) ? words.get(w) : TAG_NAME.test(raw) && ids.has(raw) ? ids.get(raw) : null;
       if (twin) { if (twin.field !== facet.field && twin.also.indexOf(facet.field) < 0) twin.also.push(facet.field); return; }
       if (TAG_NAME.test(text) && tagMadeOf_(text, said)) return;
@@ -233,10 +238,10 @@ function tagsOnTop_(x, html) {
   return /class="qtag"/.test(row) ? html.replace(top, '$1' + row) : html;
 }
 
-/* A CREDIT LINE IS A TAG (A+): a card's small source or licence line, however late it is drawn, moves into its tag row, said in full. */
+/* A CREDIT LINE IS A TAG (A+): a card's small source, licence or edition line (`-credit`, or marked `as-tag`), however late it is drawn, moves into its tag row. */
 function creditsToTags_(root) {
   const at = root && root.querySelectorAll ? root : document;
-  if (at && at.querySelectorAll) at.querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
+  if (at && at.querySelectorAll) at.querySelectorAll('.card :is([class$="-credit"], .as-tag):not(.qtag)').forEach(el => {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     if (!row || !w || el.closest('.qcard-tags')) return;
     const t = document.createElement('span');

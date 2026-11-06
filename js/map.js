@@ -140,6 +140,9 @@ const WIDGETS = [
   /* ---------- NEWSPAPER (466): a placeholder on Reels, its title alone until it has something to say. */
   { id: 'newspaper', kind: 'reel', name: 'Newspaper',
     html: `<h3>Newspaper</h3>` },
+  /* HOMEWORK (owner, 6 Nov): a tutor sets a paper, the student sees it; off in tiers.json, so a Coming soon card under Tools. */
+  { id: 'homework', kind: 'tool', name: 'Homework',
+    html: `<h3>Homework</h3>` },
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
   /* MESSAGES, as a widget. § */
   /* MESSAGES IS NOT A WIDGET ANY MORE. § */

@@ -204,7 +204,8 @@ function instruments() {
         if (out_.length) r.outside = (r.outside || 0) + 1;
         facetList().forEach(F => { let v = [];
           try { v = asList_(F.tagOf ? F.tagOf(x, '') : facetOwn_(F, x)).filter(z => String(z == null ? '' : z).trim()); } catch (e) { v = []; }
-          if (v.length && !have.has(F.field)) r.missing[F.field] = (r.missing[F.field] || 0) + 1; });
+          /* A FIELD PICKED AS A CHIP is said by the chip, not the tag (owner, 6 Nov). */
+          if (v.length && !have.has(F.field) && !(STUFF.filters || []).some(f => f.field === F.field && !f.any)) r.missing[F.field] = (r.missing[F.field] || 0) + 1; });
       });
     });
     /* A WHOLE QUESTION (960) as its page draws it: each part's marks must be a tag on the top line, never beside a part label. */

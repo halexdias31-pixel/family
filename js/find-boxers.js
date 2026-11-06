@@ -6,7 +6,7 @@ function bibleVerseCard_(x) {
   let body;
   if (d) {
     const w = bibleText_(x), he = bb.lang === 'he';
-    body = '<p class="bb-tr">' + esc(bb.translation) + '</p>'
+    body = '<p class="bb-tr as-tag">' + esc(bb.translation) + '</p>'
       + (!w ? '<p class="fc-note">This text has no verse with this number.</p>'
         : he || bb.lang === 'grc' ? `<p class="bb-v bb-${he ? 'he' : 'grc'}"${he ? ' dir="rtl"' : ''} lang="${he ? 'he' : 'grc'}">${esc(w)}</p>`
         : bibleV_(w))

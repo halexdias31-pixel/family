@@ -209,7 +209,14 @@ function libChapterBody_(r) {
 /* ---------- THE THREE BLOCKS, MOVED OUT OF `doget.gs` § */
 function libraryExtras_(d, extra) {
   if (!d || !extra) return d;
-
+  libExtrasSheets_(d, extra);
+  libExtrasBooks_(d, extra);
+  libExtrasData_(d, extra);
+  libExtrasBoxing_(d, extra);
+  return d;
+}
+/* Cheat sheet, practicals and projects: one block of libraryExtras_, reading only `d` and `extra`. */
+function libExtrasSheets_(d, extra) {
   /* the cheat sheet's components ------------------------------------------------------------ BLANK IS NOT ZERO and three states are not two. § */
   if (extra.cheatsheet && extra.cheatsheet.length) {
     const out = [];
@@ -230,8 +237,6 @@ function libraryExtras_(d, extra) {
     d.cheatsheet = out;
   }
 
-  /* --- the topic tree WAS PASSED THROUGH HERE as `d.topicTree`, for `topicAreaOf_`; both went
-     with the `Topic area` question. See `topics` WAS THE FOURTH above. */
 
   /* the practicals -------------------------------------------------------------------------- TWO COLUMNS ARE PIPE-SEPARATED AND THAT IS MEASURED, NOT PREFERRED. § */
   if (extra.practicals && extra.practicals.length) {
@@ -254,6 +259,9 @@ function libraryExtras_(d, extra) {
     });
     d.projects = out;
   }
+}
+/* The textbooks and their chapters' animations: one block of libraryExtras_, reading only `d` and `extra`. */
+function libExtrasBooks_(d, extra) {
   /* the textbooks --------------------------------------------------------------------------- ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK, because a § */
   /* ---------- AND THE CHAPTER'S ANIMATIONS, WHICH ARE ROWS OF THEIR OWN § */
   if (extra.textbooks && extra.textbooks.length) {
@@ -299,7 +307,9 @@ function libraryExtras_(d, extra) {
         return c;
       }) }));
   }
-
+}
+/* Inserts, portraits, timelines and the history database: one block of libraryExtras_, reading only `d` and `extra`. */
+function libExtrasData_(d, extra) {
   /* the inserts ---------------------------------------------------------------------------- ONE ROW EACH, read whole (455). */
   if (extra.inserts && extra.inserts.length) {
     const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
@@ -329,7 +339,9 @@ function libraryExtras_(d, extra) {
       return o;
     });
   });
-
+}
+/* Boxers and bouts (`libLook` serves both): one block of libraryExtras_, reading only `d` and `extra`. */
+function libExtrasBoxing_(d, extra) {
   /* the boxers ------------------------------------------------------------------------------ ---------- THE RECORD IS `libNum`, NOT `libN`, AND FOURTEEN FIGHTERS § */
   const libLook = v => libS(v).trim().toLowerCase();
   if (extra.boxers && extra.boxers.length) {
@@ -387,8 +399,6 @@ function libraryExtras_(d, extra) {
     out.sort((p, q) => libS(p.date).localeCompare(libS(q.date)));
     d.fights = out;
   }
-
-  return d;
 }
 
 /* ONE QUESTION ROW, AS THE APP READS IT — a function so a row whose words arrive later (397) is mapped again in place. */

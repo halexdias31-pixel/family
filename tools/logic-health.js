@@ -142,7 +142,10 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     }
     /* TAG ASKED (920): every facet a front-page card carries as a tag, with its label, to compare with the questions ever asked. */
     const carried = inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; const all = stuffFiltered();
-      return facetList().map(G => ({ field: G.field, label: G.label, cards: all.filter(x => { try { return asList_(G.tagOf ? G.tagOf(x, '') : facetOwn_(G, x)).some(v => String(v == null ? '' : v).trim()); } catch (e) { return false; } }).length }))
+      return facetList().map(G => { const has = all.filter(x => { try { return asList_(G.tagOf ? G.tagOf(x, '') : facetOwn_(G, x)).some(v => String(v == null ? '' : v).trim()); } catch (e) { return false; } });
+        /* ASKED ON ITS OWN CARDS: the walk stops at grids and its cap; a facet the rules would ask once its cards are reached (a long one as the paged list) is askable. */
+        let why; try { why = facetWhy_(has, G, true); } catch (e) { why = 'unread: ' + e.message; }
+        return { field: G.field, label: G.label, cards: has.length, why }; })
         .filter(c => c.cards > 0); });
     inFinder_(FINDERS.stuff, () => { STUFF.filters = []; STUFF.q = ''; STUFF.admit = null; });
     return JSON.stringify({ nodes, carried });
@@ -183,7 +186,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     .filter(m => m.bestBits - m.bits > 0.1).sort((a, b) => (b.bestBits - b.bits) * b.cards - (a.bestBits - a.bits) * a.cards);
   /* ASKABLE COUNTS AS ASKED: a facet the funnel offers below the walk's depth is a question a finger can reach. */
   const everAsked = new Set(asked.map(nd => nd.field).concat(got.flatMap(nd => nd.askable || [])));
-  const tagAsked = carried.filter(c => !everAsked.has(c.field)).sort((a, b) => b.cards - a.cards);
+  const tagAsked = carried.filter(c => !everAsked.has(c.field) && c.why).sort((a, b) => b.cards - a.cards);
   const menuSense = [];
   asked.forEach(nd => {
     if (nd.answers.length < 2 && !nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
