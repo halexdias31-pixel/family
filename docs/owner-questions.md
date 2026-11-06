@@ -20,3 +20,10 @@ Things the health checker flags that would change what you see, so they wait for
 - **Grey lines removed (A+):** one CSS rule hides a card's `.sub`, `.faint` and `.muted` lines (not a live message such as "Saved" or an error); credit and licence lines (Tanzil CC BY, Pickthall…) became tags in the tag row. Some cards lost their only words — the admin's Build card, the Brownie points / Code of conduct placeholders still say theirs in `.note`. Options: (a) each card's lost line becomes a tag (the sweep rounds); (b) bring a named line back.
 - **Signed out (C+):** Find shows the search bar and one answer, Settings, which holds the sign-in card (Sign in, a new PIN, Make an account). The top bar shows only @family. (no Sign in tile). Options: (a) keep; (b) a Sign in tile in the top bar as well.
 - **Videos (batch B/C):** each video is a Find card (thumbnail, tags, Watch); the data has 3 rows with one tag string ("lesson long video") and no channel, subject or level, so no menu is asked under Videos yet. Options: (a) fill subject/channel/level in data/videos.json or the media tab; (b) split the tags cell on spaces.
+
+## Owner's answers, 6 Nov
+- Old Feed/Messages/Booking/Shop/profile screens: **keep them on**; the 2-hourly sweeps stabilise them over time.
+- Admin settings: **split into Business and Site**.
+- Top-bar Sign in: **no** — sign in only via Find › Settings.
+- Videos: there are different types (movies and so on) — add a video-type facet (e.g. Movie, Lesson, Documentary, Music video, Clip) and fill what we can; best effort.
+- Grey lines: owner asked "like what?" — answered: the admin Build card's only line was hidden; plan (a), each lost useful line becomes a tag.
