@@ -659,10 +659,10 @@ function bibleEnd_(items) {
 }
 
 /* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone or everyone's (kjv-admin);
-   a book's words only when one of its cards is drawn. */
+   a book's words only when one of its cards is drawn; its index only where paintStuff asks the others: signed out none (503). */
 function bibleItems_() {
   if (!bibleFor_()) return [];
-  bibleIndex_();
+  if (USER || !ruleOn_('finder-members')) bibleIndex_();
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   const list = bibleVerses_();
   BIBLE.item = list[0] || null;

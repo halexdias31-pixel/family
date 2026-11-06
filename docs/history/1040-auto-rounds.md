@@ -236,3 +236,10 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - Red fixed: check-css (timeline `.tl-tick i`/`.tl-ev` dimmed by opacity → colour-mix / `filter: opacity`), motion (timeline pan 900ms → `--dur-pan` token, owner-asked), check-aiimage (`creditsToTags_` assumed a full DOM), stability 74.6% → 77% (nine boxer helpers left uncalled by batch D's people kind removed from `find-boxers.js`).
 - Suggest register (ledger `claude_notes`) read; four error reports already fixed logged in `docs/suggestions-handled.md`; four visible ones asked in `docs/owner-questions.md`.
 - Known: `find-figures.js` coupling 89 vs budget 88 predates this sweep.
+
+## CI after D–G (run 42204896918, 6 Nov)
+- browser 2/8, bootslow: no age gates opened `bibleFor_` to signed-out viewers, and `bibleItems_` asked `data/bible/index.json` on every listing, so a cold load fetched it. Now it asks only where `paintStuff` asks the other indexes (signed in, or `finder-members` off).
+- browser 2/8, logic-health --check: data/logic-health.json stale after batches D–G's funnel changes; regenerated.
+- flow 8/8, 28 Mechanics: the car card's Report tile carries the name in `data-rl` (never drawn); the "no title" test now ignores it as it does aria-label.
+- flow 8/8, 28 shelves: batch D's boxer is kind `people` (Fighters) with `shelf` a list (Boxing, History); the journey counted shelves as strings and looked for kind `boxer`. Updated to the batch D design.
+- All flow parts 1–8 and browser 2/8 green locally (LIB_PRIVATE=absent).

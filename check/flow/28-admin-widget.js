@@ -481,7 +481,8 @@ check('Mechanics (batch E): Library → Mechanics asks a specific model or any; 
   if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
   const car = dci.find(x => x.mKind === 'Car'), chtml = car ? w.stuffCard(car, 0) : '';
   ['Renault', 'Clio', 'III', 'Phase 2', 'UK', '1.5', '8V', 'K9K'].forEach(v => { if (chtml.indexOf('>' + v + '<') < 0) bad.push('the car card has no tag "' + v + '"'); });
-  if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/aria-label="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
+  /* THE REPORT TILE'S `data-rl` NAMES IT FOR THE REPORT, never drawn: only what is drawn is held to "no title". */
+  if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/(aria-label|data-rl)="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
   if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
   const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
   if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || !/>K9K</.test(html)) bad.push('a part card is not tags, one drawing, its one line and the chosen engine');
@@ -560,19 +561,20 @@ check('Library → a subject offers only shelves that subject has — never Book
     const shelf = w.facetList().find(f => f.field === 'shelf');
     w.facetValues(list, shelf).forEach(v => {
       shelvesSeen++;
-      const n = list.filter(x => String(x.shelf || '') === String(v.value)).length;
+      /* A SHELF MAY BE A LIST (batch D): a boxer is on Boxing and History. */
+      const n = list.filter(x => [].concat(x.shelf || '').map(String).indexOf(String(v.value)) >= 0).length;
       if (!n) bad.push('Library → ' + sub + ' offers the shelf ' + v.value + ' with no item of that subject on it');
     });
   });
   if (!shelvesSeen) bad.push('no subject offered any shelf, so the shelf rule was NOT exercised');
   if (subjects.indexOf('Boxing') >= 0) bad.push('Boxing is still a subject — boxers and bouts are Physical Education (499)');
   S.filters = base.concat([{ field: 'subject', value: 'Physical Education' }]);
-  if (!w.stuffFiltered().some(x => x.kind === 'boxer')) bad.push('Library → Physical Education holds no boxer');
+  if (!w.stuffFiltered().some(x => x.kind === 'people' && x.boxKind === 'Fighters')) bad.push('Library → Physical Education holds no boxer');
   /* ANY SUBJECT, AND SHELF IS SUBJECT AGAIN UNDER OTHER NAMES: it is not asked (facetEcho_). */
   S.filters = base.concat([{ field: 'subject', any: true }]);
   const nx = w.nextFacet(w.stuffFiltered());
   /* AN ECHO ONLY WHILE EVERY SHELF IS ONE SUBJECT'S: Writings holds Religious Studies, English Literature and History (520), so it is asked. */
-  const spans = sh => new Set(w.stuffFiltered().filter(x => String(x.shelf || '') === sh).map(x => String(x.subject || ''))).size;
+  const spans = sh => new Set(w.stuffFiltered().filter(x => [].concat(x.shelf || '').map(String).indexOf(sh) >= 0).map(x => String(x.subject || ''))).size;
   if (nx && nx.field === 'shelf' && w.facetValues(w.stuffFiltered(), nx).every(v => spans(v.value) <= 1)) bad.push('Library → Any subject asks Shelf (' + w.facetValues(w.stuffFiltered(), nx).map(v => v.value).join(', ') + ') — the subject question again');
   S.filters = [];
   return bad;
