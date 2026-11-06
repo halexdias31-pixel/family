@@ -22,6 +22,8 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 0. **A better rule updates everything.** Old cards, data and layouts are migrated to the new rule, never left behind. Checks: `structure`
 0. **Fewer, broader rules.** Merge rules where possible; nuance lives in decisions.md. The sweeps may tidy and merge wording without changing meaning, and tell the owner. Checks: `philosophy`
 0. **The health score is the north star.** Each sweep takes one coherent theme (one area done fully) and moves the score. Checks: `health`
+0. **Data first, one home.** Anything that might change (wording, prices, lists, menus) is data, not code; every fact has exactly one home and everything reads from it — the checker flags copies. Checks: `in-sync`, `payload`
+0. **Breaks are told clearly.** When something fails, the user gets one short plain message saying what failed; the rest keeps working. Undo is by asking (git), no undo button. Checks: `errors`, `resilience`
 0. **Automatic, except what can't be undone.** Only irreversible actions need a human tap: deleting data, approving tutors, publishing policies. Checks: `friction`
 
 ## The principles, ranked
