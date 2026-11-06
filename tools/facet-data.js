@@ -61,7 +61,10 @@ const CHECK = process.argv.includes('--check');
           tag = hit === null ? menu : hit; } catch (e) { tag = '?'; }
         STUFF.filters = [];
         const chipOk = chip === menu || chip === norm(f.label + ' ' + menu);
-        if (!chipOk || tag !== menu) out.push({ kind: 'words-all', menu: label, value: String(v.value), say: 'menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"' }); });
+        /* A FACET WITH ITS OWN TAG WORDS (tagSay, 1040 r12: "Paper 1" for "Biology Paper 1") says part of the menu's words, never others. */
+        const ws = t => ' ' + String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+        const tagOk = tag === menu || (!!f.tagSay && !!tag && ws(menu).indexOf(ws(tag)) !== -1);
+        if (!chipOk || !tagOk) out.push({ kind: 'words-all', menu: label, value: String(v.value), say: 'menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"' }); });
     });
     return JSON.stringify({ items: items.length, menus: facetList().length, findings: out });
   }))()`));

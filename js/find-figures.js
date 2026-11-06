@@ -210,7 +210,8 @@ function tagRow_(x, page) {
       const raw = String(v == null ? '' : v).trim();
       if (!raw) return;
       let text = raw;
-      try { text = String(answerSay_(facet, raw) || raw).trim(); } catch (e) { text = raw; }
+      try { text = String((facet.tagSay ? facet.tagSay(raw) : answerSay_(facet, raw) || raw) || '').trim(); } catch (e) { text = raw; }
+      if (!text) return;
       const w = norm(text);
       const twin = TAG_NAME.test(text) && words.has(w) ? words.get(w) : TAG_NAME.test(raw) && ids.has(raw) ? ids.get(raw) : null;
       if (twin) { if (twin.field !== facet.field && twin.also.indexOf(facet.field) < 0) twin.also.push(facet.field); return; }
@@ -359,7 +360,7 @@ function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
   const ctx = { x: x, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
   const tree = qTree_(list);
-  const tools = tile_([magOpts_(), qLockOpts_(), readAloudOpts_(x), typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]);
+  const tools = tile_([magOpts_(), qLockOpts_(), qMulti_(x) ? null : readAloudOpts_(x), typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]);
   const foot = cardTiles_(Object.assign(Object.create(x), { more: (x.more || '') + tools }));
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
     ${qWholeTags_(x, list)}${qBlock_(tree, ctx)}
@@ -758,7 +759,7 @@ function magPaint_() {
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
 }
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
-/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's pages have theirs already (`qtRow_`) */
+/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's is in its card foot (`questionWhole_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardOpts_(x) {
   if (!x || !x.key || isQ_(x) || isMeCard_(x)) return null;

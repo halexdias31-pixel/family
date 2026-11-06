@@ -1,0 +1,558 @@
+{
+ "notes": "THE BUSINESS CHECKER (docs/history/1050): what a UK sole-trader tutoring business needs, in order. Guidance, not legal or financial advice. sense: an auto rule in js/biz-check.js (BC_RULES) or manual; renew: months or null; when: facts that must all hold (config biz_* keys). Links: gov.uk, ico.org.uk, nspcc.org.uk only (check-biz).",
+ "facts": {
+  "under18": true,
+  "under8": true,
+  "adults": true,
+  "online": true,
+  "home_visits": true,
+  "venue": false,
+  "employees": false
+ },
+ "items": [
+  {
+   "id": "hmrc_register",
+   "group": "Start legally",
+   "title": "Register with HMRC as self-employed",
+   "why": "You must tell HMRC by 5 October after the tax year you start, or face a penalty.",
+   "how": "Register online for Self Assessment; you get a UTR (Unique Taxpayer Reference) in the post.",
+   "link": "https://www.gov.uk/register-for-self-assessment/self-employed",
+   "sense": "records:hmrc_utr",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "bank_account",
+   "group": "Start legally",
+   "title": "Open a separate business bank account",
+   "why": "Keeping business money apart makes your records and tax return far easier.",
+   "how": "Any high-street or online bank; note the bank under Business records.",
+   "link": "https://www.gov.uk/set-up-sole-trader",
+   "sense": "records:bank_account",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "records_kept",
+   "group": "Start legally",
+   "title": "Keep records of every payment in and out",
+   "why": "HMRC can ask to see records for at least 5 years after the return deadline.",
+   "how": "Keep receipts, invoices and bank statements; this site keeps a receipt for every booking.",
+   "link": "https://www.gov.uk/self-employed-records",
+   "sense": "records:bookkeeping",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "business_name",
+   "group": "Start legally",
+   "title": "Check your trading name is allowed",
+   "why": "Some words need permission and you must not pass yourself off as another business.",
+   "how": "Check the rules for sole trader names and put your own name on paperwork.",
+   "link": "https://www.gov.uk/set-up-sole-trader/names",
+   "sense": "manual",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "tax_return",
+   "group": "Money and tax",
+   "title": "File your Self Assessment tax return",
+   "why": "Online returns are due by 31 January after the tax year ends; late filing is fined.",
+   "how": "File online with your UTR; pay any tax by the same date.",
+   "link": "https://www.gov.uk/self-assessment-tax-returns",
+   "sense": "records:tax_return",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "payments_on_account",
+   "group": "Money and tax",
+   "title": "Plan for payments on account",
+   "why": "Once your tax bill passes £1,000 HMRC asks for half of next year's tax in advance.",
+   "how": "Put aside a share of every payment; dates are 31 January and 31 July.",
+   "link": "https://www.gov.uk/understand-self-assessment-bill/payments-on-account",
+   "sense": "records:payments_on_account",
+   "renew": 6,
+   "when": {}
+  },
+  {
+   "id": "vat_watch",
+   "group": "Money and tax",
+   "title": "Watch the VAT registration threshold",
+   "why": "You must register within 30 days once 12 months' turnover passes the threshold.",
+   "how": "Check the current threshold on gov.uk and set vat_threshold in config; this list warns as you near it.",
+   "link": "https://www.gov.uk/vat-registration",
+   "sense": "vat-watch",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "income_goal",
+   "group": "Money and tax",
+   "title": "Track income against your £100k goal",
+   "why": "Knowing the weekly number keeps the goal real.",
+   "how": "Bookings on this site are counted automatically from 6 April each tax year.",
+   "link": "https://www.gov.uk/self-employed-records",
+   "sense": "income-goal",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "pub_liability",
+   "group": "Insurance",
+   "title": "Get public liability insurance",
+   "why": "Covers you if a learner or family is injured or their property damaged during a lesson.",
+   "how": "Get quotes from insurers that cover tutors; record the policy under Business records.",
+   "link": "https://www.gov.uk/set-up-sole-trader",
+   "sense": "records:pub_liability",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "prof_indemnity",
+   "group": "Insurance",
+   "title": "Get professional indemnity insurance",
+   "why": "Covers claims that your teaching or advice caused someone a loss.",
+   "how": "Often sold together with public liability for tutors; record the renewal date.",
+   "link": "https://www.gov.uk/set-up-sole-trader",
+   "sense": "records:prof_indemnity",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "home_visit_cover",
+   "group": "Insurance",
+   "title": "Check insurance covers home visits and online lessons",
+   "why": "Policies can exclude lessons in clients' homes or over video.",
+   "how": "Ask your insurer in writing and keep the answer with the policy.",
+   "link": "https://www.gov.uk/set-up-sole-trader",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "home_visits": true
+   }
+  },
+  {
+   "id": "ico_fee",
+   "group": "Data and privacy",
+   "title": "Pay the ICO data protection fee",
+   "why": "Most businesses holding personal data must pay it every year or be fined.",
+   "how": "Use the ICO self-assessment; the fee is renewed yearly.",
+   "link": "https://ico.org.uk/for-organisations/data-protection-fee/",
+   "sense": "records:ico_fee",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "privacy_notice",
+   "group": "Data and privacy",
+   "title": "Publish a privacy notice",
+   "why": "People must be told what data you hold, why and for how long; children in words they understand.",
+   "how": "Write one for families, learners and tutors and link it from the site.",
+   "link": "https://ico.org.uk/for-organisations/advice-for-small-organisations/",
+   "sense": "records:privacy_notice",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "data_breach",
+   "group": "Data and privacy",
+   "title": "Know what to do if data is lost",
+   "why": "Serious breaches must be reported to the ICO within 72 hours.",
+   "how": "Write a one-page plan: who decides, who is told, how it is logged.",
+   "link": "https://ico.org.uk/for-organisations/report-a-breach/",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "childrens_data",
+   "group": "Data and privacy",
+   "title": "Handle children's data with extra care",
+   "why": "Under-18s get extra protection; photos and recordings need consent.",
+   "how": "Collect only what lessons need; get a parent's consent for under-13s online.",
+   "link": "https://ico.org.uk/for-organisations/advice-for-small-organisations/",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "safeguarding_policy",
+   "group": "Safeguarding",
+   "title": "Write a safeguarding policy",
+   "why": "Anyone teaching children needs a written policy that tutors and parents can read.",
+   "how": "Use the government guidance for tuition providers and the NSPCC template; review yearly.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "records:safeguarding_policy",
+   "renew": 12,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "dsl",
+   "group": "Safeguarding",
+   "title": "Name a designated safeguarding lead",
+   "why": "Someone must be the person concerns go to, with a deputy when they are away.",
+   "how": "Usually you at first; put their name and number in the policy.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "dbs_owner",
+   "group": "Safeguarding",
+   "title": "Get an enhanced DBS check for yourself",
+   "why": "Families and councils expect the owner to be checked too.",
+   "how": "Apply through an umbrella body, then join the DBS Update Service to keep it current.",
+   "link": "https://www.gov.uk/government/organisations/disclosure-and-barring-service",
+   "sense": "manual",
+   "renew": 36,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "dbs_tutors",
+   "group": "Safeguarding",
+   "title": "Enhanced DBS for every tutor who teaches children",
+   "why": "A tutor working alone with children must be checked, including the barred list.",
+   "how": "Tick the DBS box on each tutor's record; ask them to join the Update Service.",
+   "link": "https://www.gov.uk/dbs-update-service",
+   "sense": "dbs-tutors",
+   "renew": 36,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "safeguarding_training",
+   "group": "Safeguarding",
+   "title": "Safeguarding training for you and your tutors",
+   "why": "Training means people spot and report concerns properly.",
+   "how": "Take a recognised course and refresh it every 2 to 3 years.",
+   "link": "https://learning.nspcc.org.uk/training",
+   "sense": "records:safeguarding_training",
+   "renew": 24,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "online_safety",
+   "group": "Safeguarding",
+   "title": "Set online-safety rules for video lessons",
+   "why": "Online lessons with children need clear rules about platforms, recording and contact.",
+   "how": "Lessons on business accounts only, parent nearby for young learners, no private messaging.",
+   "link": "https://learning.nspcc.org.uk/online-safety",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under18": true,
+    "online": true
+   }
+  },
+  {
+   "id": "home_visit_rules",
+   "group": "Safeguarding",
+   "title": "Set rules for lessons in families' homes",
+   "why": "Home visits need an adult present and a way to report concerns.",
+   "how": "A parent or carer stays in the home; tutors never take children elsewhere.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under18": true,
+    "home_visits": true
+   }
+  },
+  {
+   "id": "under8_care",
+   "group": "Safeguarding",
+   "title": "Extra care for under-8s",
+   "why": "The youngest learners need a parent present and shorter, supervised sessions.",
+   "how": "A parent or carer stays in the room for every under-8 lesson.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under8": true
+   }
+  },
+  {
+   "id": "employment_status",
+   "group": "Your tutors",
+   "title": "Check your tutors really are self-employed",
+   "why": "If they work like employees, HMRC can ask you for tax and National Insurance.",
+   "how": "Run the HMRC employment status tool for a typical tutor and keep the result.",
+   "link": "https://www.gov.uk/guidance/check-employment-status-for-tax",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "tutor_agreements",
+   "group": "Your tutors",
+   "title": "Every tutor signs the tutor agreement",
+   "why": "A written agreement shows the self-employed terms and the safeguarding rules.",
+   "how": "Tutors agree in their Staff hub; this list ticks once every tutor has.",
+   "link": "https://www.gov.uk/employment-status/selfemployed-contractor",
+   "sense": "tutor-terms",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "safer_recruitment",
+   "group": "Your tutors",
+   "title": "Safer recruitment for every new tutor",
+   "why": "Checks before someone starts keep unsuitable people away from children.",
+   "how": "Interview, check ID, qualifications and right to work, and get two references.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "references",
+   "group": "Your tutors",
+   "title": "Take up two references for each tutor",
+   "why": "References catch what an interview misses.",
+   "how": "Ask referees directly, not through the tutor, and note the answers.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": null,
+   "when": {
+    "under18": true
+   }
+  },
+  {
+   "id": "tutor_onboarding",
+   "group": "Your tutors",
+   "title": "Onboard each tutor the same way",
+   "why": "The same steps every time means nothing is missed as you grow.",
+   "how": "Agreement, DBS, training, policy read, a first lesson observed.",
+   "link": "https://www.gov.uk/government/publications/keeping-children-safe-during-community-activities-after-school-clubs-and-tuition",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "staff_count",
+   "group": "Your tutors",
+   "title": "Keep enough checked tutors for the work",
+   "why": "Growing to £100k needs more tutors with every check done.",
+   "how": "Listed tutors are counted from the site.",
+   "link": "https://www.gov.uk/employment-status/selfemployed-contractor",
+   "sense": "staff-count",
+   "renew": null,
+   "when": {}
+  },
+  {
+   "id": "family_terms",
+   "group": "Families and customers",
+   "title": "Publish terms and conditions for families",
+   "why": "Clear terms prevent disputes about payment, lateness and missed lessons.",
+   "how": "Say what you provide, prices, how to pay and how either side can end it.",
+   "link": "https://www.gov.uk/consumer-protection-rights",
+   "sense": "records:family_terms",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "cancellation",
+   "group": "Families and customers",
+   "title": "Publish a cancellation and refund policy",
+   "why": "Online bookings usually carry a 14-day right to cancel.",
+   "how": "State notice needed, what is refunded and how; follow the distance-selling rules.",
+   "link": "https://www.gov.uk/online-and-distance-selling-for-businesses",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "complaints",
+   "group": "Families and customers",
+   "title": "Have a simple complaints process",
+   "why": "Families need to know how to complain and how fast you answer.",
+   "how": "Name who handles it, how long you take and what happens next.",
+   "link": "https://www.gov.uk/consumer-protection-rights",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "accessibility",
+   "group": "Families and customers",
+   "title": "Make lessons and the site accessible",
+   "why": "You must make reasonable adjustments for disabled learners.",
+   "how": "Ask about needs at booking; check the site works with large text and screen readers.",
+   "link": "https://www.gov.uk/guidance/equality-act-2010-guidance",
+   "sense": "manual",
+   "renew": 12,
+   "when": {}
+  },
+  {
+   "id": "ofsted",
+   "group": "A venue (later)",
+   "title": "Check if a venue needs Ofsted registration",
+   "why": "Care for under-8s for more than 2 hours a day can need the Early Years or Childcare Register.",
+   "how": "Read the Ofsted rules before opening; some tuition is exempt, check yours.",
+   "link": "https://www.gov.uk/government/organisations/ofsted",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "venue": true,
+    "under8": true
+   }
+  },
+  {
+   "id": "risk_assessment",
+   "group": "A venue (later)",
+   "title": "Do a written risk assessment for the venue",
+   "why": "You must identify and reduce risks to children, staff and visitors.",
+   "how": "Walk the space, write down hazards and what you do about each; review yearly.",
+   "link": "https://www.hse.gov.uk/simple-health-safety/risk/",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "venue": true
+   }
+  },
+  {
+   "id": "fire_safety",
+   "group": "A venue (later)",
+   "title": "Do a fire risk assessment",
+   "why": "Anyone responsible for premises must assess fire risk.",
+   "how": "Exits, alarms, extinguishers, a plan, and a drill.",
+   "link": "https://www.gov.uk/workplace-fire-safety-your-responsibilities",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "venue": true
+   }
+  },
+  {
+   "id": "first_aid",
+   "group": "A venue (later)",
+   "title": "First aid kit and a trained first aider",
+   "why": "Children at a venue need someone who can help at once.",
+   "how": "Keep a stocked kit and train at least one person on site.",
+   "link": "https://www.hse.gov.uk/firstaid/",
+   "sense": "manual",
+   "renew": 36,
+   "when": {
+    "venue": true
+   }
+  },
+  {
+   "id": "venue_insurance",
+   "group": "A venue (later)",
+   "title": "Insure the venue",
+   "why": "Buildings, contents and visitors need their own cover.",
+   "how": "Tell your insurer about the venue and children on site.",
+   "link": "https://www.gov.uk/set-up-sole-trader",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "venue": true
+   }
+  },
+  {
+   "id": "paye",
+   "group": "Employing people (later)",
+   "title": "Register as an employer for PAYE",
+   "why": "You must register before the first payday.",
+   "how": "Register with HMRC and run payroll every time you pay staff.",
+   "link": "https://www.gov.uk/register-employer",
+   "sense": "manual",
+   "renew": null,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "pension",
+   "group": "Employing people (later)",
+   "title": "Auto-enrol staff in a workplace pension",
+   "why": "Employers must enrol eligible staff and pay in.",
+   "how": "Pick a scheme and tell The Pensions Regulator you have done it.",
+   "link": "https://www.thepensionsregulator.gov.uk/en/employers",
+   "sense": "manual",
+   "renew": 36,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "employers_liability",
+   "group": "Employing people (later)",
+   "title": "Get employers' liability insurance",
+   "why": "It is a legal requirement once you employ anyone.",
+   "how": "Display the certificate; record the renewal under Business records.",
+   "link": "https://www.gov.uk/employers-liability-insurance",
+   "sense": "records:employers_liability",
+   "renew": 12,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "contracts",
+   "group": "Employing people (later)",
+   "title": "Give each employee a written contract",
+   "why": "Employees must have written terms from their first day.",
+   "how": "Use the gov.uk checklist for what a written statement must include.",
+   "link": "https://www.gov.uk/employment-contracts-and-conditions",
+   "sense": "manual",
+   "renew": null,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "right_to_work",
+   "group": "Employing people (later)",
+   "title": "Check every employee's right to work",
+   "why": "Hiring someone without the right to work can bring a large fine.",
+   "how": "Check and copy documents before they start.",
+   "link": "https://www.gov.uk/check-job-applicant-right-to-work",
+   "sense": "manual",
+   "renew": null,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "min_wage",
+   "group": "Employing people (later)",
+   "title": "Pay at least the minimum wage",
+   "why": "Rates rise every April.",
+   "how": "Check the current rates on gov.uk each spring.",
+   "link": "https://www.gov.uk/national-minimum-wage-rates",
+   "sense": "manual",
+   "renew": 12,
+   "when": {
+    "employees": true
+   }
+  },
+  {
+   "id": "ltd_company",
+   "group": "Becoming a company (later)",
+   "title": "Consider a limited company when profitable",
+   "why": "A company can change your tax and protect personal assets; it adds paperwork.",
+   "how": "Read the gov.uk guide and talk to an accountant before deciding.",
+   "link": "https://www.gov.uk/business-legal-structures",
+   "sense": "manual",
+   "renew": null,
+   "when": {}
+  }
+ ]
+}

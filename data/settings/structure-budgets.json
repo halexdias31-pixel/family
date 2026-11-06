@@ -20,7 +20,7 @@
   "js/chess.js": 35,
   "js/keypad.js": 65,
   "js/overworld.js": 56,
-  "js/records.js": 54,
+  "js/records.js": 56,
   "js/rules.js": 27,
   "js/answers.js": 52,
   "js/writings.js": 33,
@@ -32,14 +32,14 @@
   "js/words.js": 23,
   "js/hymns.js": 18,
   "js/links.js": 17,
-  "js/missing.js": 21,
+  "js/missing.js": 22,
   "js/pdtexts.js": 14,
   "js/resource.js": 36,
   "js/cards.js": 38,
   "js/gtasks.js": 16,
   "js/board.js": 39,
   "js/help.js": 13,
-  "js/qtools.js": 40,
+  "js/qtools.js": 44,
   "js/reader.js": 24,
   "js/working.js": 32,
   "js/talmud.js": 29,
@@ -69,7 +69,7 @@
   "js/find-bundles.js": 129,
   "js/find-cells.js": 80,
   "js/find-facets.js": 59,
-  "js/find-figures.js": 86,
+  "js/find-figures.js": 87,
   "js/find-finder.js": 134,
   "js/find-history.js": 81,
   "js/find-levels.js": 102,
@@ -96,7 +96,8 @@
   "js/keypad-edit.js": 36,
   "js/keypad-keys.js": 52,
   "js/keypad-pad.js": 53,
-  "js/predicates.js": 21
+  "js/predicates.js": 21,
+  "js/biz-check.js": 28
  },
  "targets": {
   "fileLines": 800,
@@ -156,7 +157,7 @@
    "rawButton": 0
   },
   "backend/dopost.gs": {
-   "lines": 4636,
+   "lines": 4635,
    "oneOff": 3,
    "emptyCatch": 21,
    "inlineStyle": 0,
@@ -458,7 +459,7 @@
   },
   "js/qtools.js": {
    "lines": 316,
-   "oneOff": 12,
+   "oneOff": 13,
    "emptyCatch": 2,
    "inlineStyle": 0,
    "rawButton": 0
@@ -611,7 +612,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7172,
+   "lines": 7174,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -854,6 +855,20 @@
    "emptyCatch": 0,
    "inlineStyle": 0,
    "rawButton": 0
+  },
+  "backend/bizchecks.gs": {
+   "lines": 23,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
+  },
+  "js/biz-check.js": {
+   "lines": 207,
+   "oneOff": 0,
+   "emptyCatch": 0,
+   "inlineStyle": 0,
+   "rawButton": 0
   }
  },
  "functions": {
@@ -864,7 +879,7 @@
   "backend/digest.gs digestQuestions_": 150,
   "backend/digest.gs checkSundayEmail": 90,
   "backend/doget.gs doGet": 1205,
-  "backend/dopost.gs doPost": 3594,
+  "backend/dopost.gs doPost": 3593,
   "backend/dopost.gs aiGemini_": 85,
   "backend/setup.gs dataProblems": 283,
   "backend/setup.gs checkEverything": 90,
@@ -938,7 +953,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5153725,
+  "searchBytes": 5174975,
   "commentRatio": 0.266,
   "tombstones": 0,
   "claudeLines": 100,
@@ -964,12 +979,16 @@
   "text-boxes": 0
  },
  "owner": {
-  "why": "the owner's four (1030): static halves, ideal 0",
+  "why": "the owner's four (1030): static halves, ideal 0; odd-tags 330 (1040 r12) are writings' own titles, an owner question",
   "tag-colour": 0,
   "element-box": 0,
   "card-tags": 0,
   "attr-outside-tags": 0,
   "text-boxes": 0,
-  "in-sync": 4
+  "in-sync": 4,
+  "odd-tags": 330,
+  "dup-controls": 0,
+  "chip-size": 0,
+  "settings-work": 0
  }
 }

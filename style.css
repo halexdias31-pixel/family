@@ -57,6 +57,8 @@
   --r:      3px;
   /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
+  /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
+  --tp-fs: .64rem; --tp-lh: 1.35; --tp-pad: .05rem .45rem; --tp-h: 1.1rem;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -2111,7 +2113,8 @@ button.text-drop { color: var(--bad); }
 }
 .chip:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 /* THE FUNNEL'S OWN CHIPS: smaller type, but a 44px tap like every control (950); the radius is the one chip token. */
-.chip.sm { min-height: 44px; border-radius: var(--btn-r); padding: 0 .6rem; position: relative; }
+.chip.sm { min-height: var(--tp-h); border-radius: var(--btn-r); padding: var(--tp-pad); position: relative; font-size: var(--tp-fs); line-height: var(--tp-lh); gap: .2rem; }
+.chip.sm::before, .row.tap.counted::before { content: ""; position: absolute; inset: calc((var(--tp-h) - 44px) / 2) 0; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: § */
 .chip[data-tag] {
   border-color: var(--tag); color: var(--tag);
@@ -2197,7 +2200,7 @@ html.flow .page { width: 100%; }
 html.flow .pane { max-height: none; touch-action: auto; background: none; border: 0; border-radius: 0; box-shadow: none; padding-inline: 0; }
 html.flow #screen .page + .page { border-top: 1px solid var(--line); }
 /* EACH TAG A PILL LIKE ITS MENU CHIP (owner, 5 Nov): the chip's outline, tint and radius in its menu's colour, smaller and with no ✕. */
-html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid var(--tag, var(--chip-line)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent); border-radius: var(--btn-r); padding: .05rem .45rem; }
+html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid var(--tag, var(--chip-line)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent); border-radius: var(--btn-r); padding: var(--tp-pad); }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 
@@ -4364,9 +4367,9 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. § */
 .qtag {
-  display: inline-block; max-width: 100%; padding: .05rem .45rem; border-radius: var(--btn-r);
+  display: inline-flex; align-items: center; max-width: 100%; min-height: var(--tp-h); padding: var(--tp-pad); border-radius: var(--btn-r);
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent);
-  font-size: .64rem; line-height: 1.35;
+  font-size: var(--tp-fs); line-height: var(--tp-lh);
 }
 /* NO TAG IS DRAWN DIFFERENTLY FROM ANOTHER. § */
 
@@ -5152,12 +5155,12 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-width: 44px;
   justify-content: center;
   border: 1px solid var(--chip-line);
-  border-radius: 16px;
+  border-radius: var(--btn-r);
   background: none;
-  padding: .2rem .7rem;
+  padding: var(--tp-pad);
   margin: 0;
-  /* ---------- 32px TALL NOW, AND THE FINGER STILL GETS ITS 44 § */
-  min-height: 32px;
+  /* ---------- THE TAG'S SIZE NOW (1040 r12), AND THE FINGER STILL GETS ITS 44 in the ::before § */
+  min-height: var(--tp-h);
   position: relative;
   align-items: center;
   transition: background var(--quick) ease, border-color var(--quick) ease,
@@ -5172,14 +5175,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW § */
 /* A CHIP'S WORDS ARE ITS WHOLE WIDTH now, so they take what they need and give way only when the chip is already the width of the card — `0 1 auto` rather than § */
-.row.tap.counted::before { content: ""; position: absolute; inset: -6px 0; }
-.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: .8rem; line-height: 1.2;
+.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: var(--tp-fs); line-height: var(--tp-lh);
   flex: 0 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is
    behind it. */
-.row.tap.counted .v { color: var(--dim); font-size: .82rem; }
+.row.tap.counted .v { color: var(--dim); font-size: var(--tp-fs); line-height: var(--tp-lh); }
 
 /* PRESSED, AND IT MOVES. `:active` alone is invisible on a phone — the finger is over the row.
    A shift of one pixel is felt rather than seen, which is the point. */
@@ -5217,7 +5219,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .answers.is-grid { display: flex; flex-wrap: wrap; }
 /* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; padding: .2rem .7rem; border-radius: 16px; }
+.answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; }
 
 
 /* REELS — one reel per widget, one widget per page § */

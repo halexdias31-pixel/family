@@ -37,7 +37,10 @@ const missingLeadN_ = () => HEALTH_IN_FIND ? 0 : (LOGIC_SHOWN && logicFor_() ? 1
 /* ONE CARD EACH, for Find: `logic` or `missing`, the same markup the lead page drew. */
 /* ONE SCORE (890): `health` is Site health; the Logic health card stays written but is off behind LOGIC_SHOWN. */
 const LOGIC_SHOWN = false;
+/* SETTINGS CARDS IN FIND BESIDE THE HEALTH ONES, drawn by their own files: the business checker (1050). */
+const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
 function healthCardOf_(which) {
+  if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
   if (which === 'health') { try { return siteHealthCard_(); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;

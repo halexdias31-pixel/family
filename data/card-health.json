@@ -1,0 +1,1683 @@
+{
+ "items": 278933,
+ "tagCards": 32985,
+ "drawnCards": 688,
+ "counts": {
+  "odd-tags": 330,
+  "dup-controls": 0
+ },
+ "byRule": [
+  [
+   "tag … (wSource) is a title made of the card's other tags … + …",
+   216
+  ],
+  [
+   "tag … (wText) is a title made of the card's other tags … + …",
+   82
+  ],
+  [
+   "tag … (wWork) is a title made of the card's other tags … + …",
+   24
+  ],
+  [
+   "tag … (wAuthor) is a title made of the card's other tags … + …",
+   7
+  ],
+  [
+   "tag … (forLabel) is on 32938 of 32985 cards read — it tells a reader nothing (owner question)",
+   1
+  ]
+ ],
+ "work": [
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:1:11:6",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:1:24:59",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:1:35:17",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:1:46:20",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:2:10:7",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:2:23:18",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:2:35:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:3:8:1",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:3:19:15",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:4:2:16",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:4:11:28",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:4:23:14",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:4:33:48",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:5:9:29",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:5:25:17",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:6:5:8",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:6:18:27",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:7:7:4",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:7:20:22",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:9:11:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:9:23:22",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:10:8:1",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:10:21:8",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:11:7:32",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:11:18:3",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:12:7:15",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:12:20:2",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:13:6:24",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:13:16:36",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:14:3:5",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:14:20:25",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:14:35:24",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:16:4:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:17:2:22",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:18:11:16",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:18:27:21",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:18:40:16",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:25:7",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:48:2",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:72:14",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:90:14",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:109:15",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:19:130:8",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:20:5:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:20:18:3",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:20:30:31",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:23:1:6",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:23:21:3",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:23:39:4",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:23:58:8",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:24:8:19",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:24:25:16",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:24:39:5",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:24:52:30",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:26:12:4",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:26:24:6",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:26:38:15",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:27:3:11",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:28:8:2",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:32:4:6",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:38:6:5",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:40:7:14",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:40:17:8",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:40:26:32",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:41:7:1",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:41:15:16",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:42:7:25",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:42:15:10",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:42:23:41",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:43:7:26",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:43:16:6",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:44:6:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:44:16:5",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:44:27:11",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:45:11:35",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:46:11:22",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:47:11:11",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:50:1:17",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:54:4:9",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:58:10:1",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:61:2:12",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:web:66:11:18",
+   "say": "tag \"World English Bible (2000)\" (wText) is a title made of the card's other tags \"English\" + \"Bible\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:40:8:17",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:40:18:13",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:40:26:64",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:41:7:33",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:41:16:1",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:42:8:7",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:42:16:10",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:42:24:17",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:43:8:5",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:43:17:5",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:44:7:26",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:44:16:37",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:44:27:43",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:45:13:10",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:46:12:20",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:47:12:10",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:50:2:19",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:54:5:25",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:58:10:33",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:62:1:4",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "bible:bible:gnt:66:13:13",
+   "say": "tag \"Greek New Testament\" (wSource) is a title made of the card's other tags \"New Testament\" + \"Greek\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:1:1",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:26",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:58",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:90",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:122",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:154",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:186",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:218",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:250",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:2:282",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:28",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:60",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:92",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:124",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:156",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:3:188",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:4:20",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:4:52",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:4:84",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:4:116",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:4:148",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:5:4",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:5:36",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:5:68",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:5:100",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:6:12",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:6:44",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:6:76",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:6:108",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:6:140",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:7",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:39",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:71",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:103",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:135",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:167",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:7:199",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:8:25",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:8:57",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:9:14",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:9:46",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:9:78",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:9:110",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:10:13",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:10:45",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:10:77",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:10:109",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:11:32",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:11:64",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:11:96",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:12:5",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:12:37",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:12:69",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:12:101",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:13:22",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:14:11",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:14:43",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:15:23",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:15:55",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:15:87",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:16:20",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:16:52",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:16:84",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:16:116",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:17:20",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:17:52",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:17:84",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:18:5",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:18:37",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:18:69",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:18:101",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:19:23",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:19:55",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:19:87",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:20:21",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:20:53",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:20:85",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:20:117",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:21:14",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:21:46",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:21:78",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:21:110",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:22:30",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:22:62",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:23:16",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:23:48",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:23:80",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:23:112",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:24:26",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:24:58",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:25:26",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:25:58",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:13",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:45",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:77",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:109",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:141",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:173",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:26:205",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:27:10",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:27:42",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:27:74",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:28:13",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:28:45",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:28:77",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:29:21",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:29:53",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:30:16",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:30:48",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:31:20",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:32:18",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:33:20",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:33:52",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:34:11",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:34:43",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:35:21",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:36:8",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:36:40",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:36:72",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:21",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:53",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:85",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:117",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:149",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:37:181",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:38:31",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:38:63",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:39:7",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:39:39",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:39:71",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:40:28",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:40:60",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:41:7",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:41:39",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:42:17",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:42:49",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:43:28",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:43:60",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:44:3",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:44:35",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:45:8",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:46:3",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:46:35",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:47:32",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:48:26",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:50:11",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:50:43",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:51:30",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:52:2",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:52:34",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:53:17",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:53:49",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:54:19",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:54:51",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:55:28",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:55:60",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:56:14",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:56:46",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:56:78",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:57:14",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:58:17",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:60:3",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:62:8",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:64:18",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:67:8",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:68:10",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:68:42",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:69:22",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:70:2",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:70:34",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:71:22",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:72:26",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:74:10",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:74:42",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:75:18",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:76:10",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:77:11",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:77:43",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:78:25",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:79:17",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:80:3",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:80:35",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:81:25",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:83:9",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:84:5",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:85:12",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:87:5",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:88:18",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:89:24",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:91:6",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:93:2",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:96:7",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:99:7",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:103:1",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "quran:qr:109:2",
+   "say": "tag \"Arabic Quran\" (wSource) is a title made of the card's other tags \"Arabic\" + \"Quran\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0073:0:9",
+   "say": "tag \"AQA GCSE English Literature anthology\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0076:0:12",
+   "say": "tag \"AQA GCSE English Literature anthology\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0078:0:4",
+   "say": "tag \"Pearson Edexcel GCSE English Literature anthology\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0079:0:11",
+   "say": "tag \"OCR GCSE English Literature anthology, Towards a World Unknown\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0081:0:3",
+   "say": "tag \"OCR GCSE English Literature anthology, Towards a World Unknown\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0082:0:10",
+   "say": "tag \"WJEC Eduqas GCSE English Literature anthology\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Anthology\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "pdtext:tx:TX-0083:0:14",
+   "say": "tag \"GCSE English Literature set texts\" (wAuthor) is a title made of the card's other tags \"English Literature\" + \"Set texts\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:13",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:38",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:63",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:88",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:113",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:138",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:163",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:188",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:213",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0013:English:238",
+   "say": "tag \"Socrates Scholasticus, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Socrates Scholasticus\" + \"Ecclesiastical\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:17",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:42",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:67",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:92",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:117",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:142",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:167",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:192",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:217",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0014:English:242",
+   "say": "tag \"Sozomen, Ecclesiastical History\" (wWork) is a title made of the card's other tags \"Ecclesiastical\" + \"Sozomen\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0018:English:14",
+   "say": "tag \"John of Damascus, An Exact Exposition of the Orthodox Faith\" (wWork) is a title made of the card's other tags \"John of Damascus\" + \"Orthodox\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0018:English:39",
+   "say": "tag \"John of Damascus, An Exact Exposition of the Orthodox Faith\" (wWork) is a title made of the card's other tags \"John of Damascus\" + \"Orthodox\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0018:English:64",
+   "say": "tag \"John of Damascus, An Exact Exposition of the Orthodox Faith\" (wWork) is a title made of the card's other tags \"John of Damascus\" + \"Orthodox\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "orthotext:or:OR-0018:English:89",
+   "say": "tag \"John of Damascus, An Exact Exposition of the Orthodox Faith\" (wWork) is a title made of the card's other tags \"John of Damascus\" + \"Orthodox\""
+  },
+  {
+   "kind": "odd-tags",
+   "where": "every card",
+   "say": "tag \"Learning\" (forLabel) is on 32938 of 32985 cards read — it tells a reader nothing (owner question)"
+  }
+ ]
+}

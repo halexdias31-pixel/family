@@ -199,9 +199,19 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1 };
+/* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
+/* from check/chips-settings.js (a 390x844 browser walk); read here, never re-run, each finding located. */
+function cardWork() {
+  const W = [], c = jread('data/card-health.json'), b = jread('data/chips-settings-health.json');
+  if (!c) W.push({ kind: 'odd-tags', where: 'data/card-health.json', say: 'missing — run node tools/card-health.js; tags and controls were NOT checked' });
+  else (c.work || []).forEach(w => W.push(w));
+  if (!b) W.push({ kind: 'chip-size', where: 'data/chips-settings-health.json', say: 'missing — run node check/chips-settings.js; chip sizes and settings were NOT checked' });
+  else (b.work || []).forEach(w => W.push(w));
+  return W;
+}
 /* IN SYNC (1040 r10): anything shown in two places reads one source — a person's face and name their profile, the business's picture brandLogo_. */
 function inSyncWork() {
   const W = [], app = git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f)), add = (where, say) => W.push({ kind: 'in-sync', where, say });
@@ -275,9 +285,11 @@ function ownerWork() {
   for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
     for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))
       W.push({ kind: 'attr-outside-tags', where: f + ':' + lineOf(src, m.index), say: `${m[0].slice(0, 50)} draws an attribute outside the tag line` }); }
-  W.push(...inSyncWork());
+  W.push(...inSyncWork(), ...cardWork());
   /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
   textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
+  /* biz-checker (1050): the business checker's items, links and rules, and its card drawn with nothing loaded — js/check-biz.js. */
+  try { W.push(...require('../js/check-biz.js').work()); } catch (e) { W.push({ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }); }
   return W;
 }
 
@@ -669,6 +681,8 @@ function changed() {
     const ow = ownerWork().concat(findWork(logic()).filter(w => w.kind === 'tag-colour')), n = {};
     ow.forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
     Object.keys(OWNER_KINDS).forEach(k => { if ((n[k] || 0) > (OB[k] || 0)) ow.filter(w => w.kind === k).forEach(w => bad.push(k + '\t' + w.where + '\t' + w.say)); }); }
+  /* THE BUSINESS CHECKER (1050), ideal 0, every change. */
+  try { require('../js/check-biz.js').work().forEach(w => bad.push(w.kind + '\t' + w.where + '\t' + w.say)); } catch (e) { bad.push('biz-checker\tjs/check-biz.js\t' + e.message); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));

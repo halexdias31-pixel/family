@@ -42,6 +42,28 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
    and it appears in Find. Mechanical, no AI; unclear items flagged, never guessed. Health checks every batch and
    every imported question. Default: waits for OK in preview. Needs one Apps Script deploy.
 
+## Owner's list, 6 Nov (worked in batches A–H)
+- A. Fixes: Help tile missing for admin (must be the same for everyone); notification dot clashes; part letters a/b/c
+  as pill tags; "Doesn't matter" on the first menu shows only library (must follow the one rule); Islam asks Quran vs
+  Hadith first, then the six Hadith books; shop bundles carry the same tags as their sections; check why Accuracy/
+  Function menus aren't asked; merge Site health with What's missing (incl. how complete Find's resources are).
+- B. Bring every switched-off thing back, where it belonged (check 389d843); the health checker reports what's broken.
+- C. Menus: Posts (approved / waiting / deleted, then who, then when); Messages (pick a person); People → Profiles
+  (parent, over/under 18, student, tutor, apprentice, admin); Settings by account type (parent, student, staff, apprentice).
+- D. One "people" kind for everyone (boxers, historical figures…), 8-bit pixel portraits; History › People; manuscript
+  fragments back in Library › History (pixel drawings OK).
+- D+. Boxing = only two kinds: fighters (people) and fights. Drop the boxer's own list of fights (and any extra
+  sections). A fighter card = their pixel portrait, nothing else but tags. A fight card = the two fighters' same pixel
+  portraits facing each other, nothing else but tags. Picture is the focus; all facts live in tags.
+- E. Car parts: every attribute its own tag (Renault, Clio, III, Phase 2, UK, 1.2, 16V, D4F…), ask "specific model or
+  any", pixel drawings of cars and parts; a computer-parts database (Computer Science) for teaching PC building.
+- F. Timelines as animations (event to event), many timelines at different zoom levels (church history, WWI, WWII,
+  Old Testament…), under Library › History.
+- G. Health: everything above checked; a "frictionless" check for clients and tutors (booking, messaging, paying, homework).
+- C+. Signed-out visitors see the same Find (search bar + menus) as everyone, not a sign-in screen; signed out, Find
+  offers only Settings, and Settings holds Sign in / Join. Ranks decide what's inside Find, never a different front door.
+- H. Favicon = an image from the owner's Drive (owner to say which).
+
 ## Paused, to come back to
 - **One scrolling page instead of sideways columns** (owner agreed it's the long-term move, 4 Nov): the browser's own
   scrolling, cards loaded as they scroll in, the @family keypad only in maths answer boxes. Its own careful job, with
