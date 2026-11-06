@@ -202,11 +202,11 @@ const KINDS = {
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
   /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
-  person: { group: 'People', label: 'People', card: x => (KINDS.tutor && KINDS.tutor.card ? KINDS.tutor.card({ kind: 'tutor', row: x.row }) : `<div class="card"><h3>${esc(x.name)}</h3></div>`) },
+  person: { group: 'Profiles', label: 'Profiles', card: x => profileDoorCard_(x) }, video: { group: 'Videos', label: 'Videos', card: x => videoDoorCard_(x) },
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
-  setting: { group: 'Settings', label: 'Settings', card: x => soonCard_(x) },
+  setting: { group: 'Settings', label: 'Settings', card: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)) },
   /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */
-  msg: { group: 'Messages', label: 'Messages', card: x => soonCard_(x) },
+  msg: { group: 'Messages', label: 'Messages', card: x => (x.soon ? soonCard_(x) : msgDoorCard_(x)) },
   /* THE SWITCHED-OFF AREAS' ONE CARD EACH (OFF_KINDS). */
   offPosts: { group: 'Posts', label: 'Posts', card: x => soonCard_(x) },
   offShop: { group: 'Shop', label: 'Shop', card: x => soonCard_(x) },
@@ -214,7 +214,7 @@ const KINDS = {
   /* SITE HEALTH (owner, 4 Nov): Logic health and What's missing, an admin's, as Find cards. */
   health: { group: 'Settings', label: 'Settings', card: x => (typeof healthCardOf_ === 'function' ? healthCardOf_(x.which) : '') },
   /* POSTS (owner, 4 Nov): the feed's posts as Find cards, drawn by the feed's own postCard_. */
-  post: { group: 'Posts', label: 'Posts', card: x => (typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<div class="card"><p>${esc(x.name)}</p></div>`) },
+  post: { group: 'Posts', label: 'Posts', card: x => `<div class="card post-door">${typeof postCard_ === 'function' ? postCard_(x.row, 0) : `<p>${esc(x.name)}</p>`}</div>` },
 
   /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND § */
 
@@ -247,7 +247,9 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
   rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards' };
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
-  const cols = ((DATA && DATA.columnsOff) || []).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
+  /* A COLUMN WHOSE THINGS ARE FIND ITEMS NOW (batch C: settings, reels) is no Coming soon card. */
+  const inFind = c => c.screen === 'reel' || (typeof SETTINGS_HOME !== 'undefined' && !!SETTINGS_HOME[c.screen]);
+  const cols = ((DATA && DATA.columnsOff) || []).filter(c => !inFind(c)).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id }));
   /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
@@ -442,6 +444,9 @@ const FACETS = [
     of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
     tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
+  /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
+  ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
+    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },

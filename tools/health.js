@@ -199,9 +199,9 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1 };
 /* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
 /* from check/chips-settings.js (a 390x844 browser walk); read here, never re-run, each finding located. */
 function cardWork() {
@@ -214,6 +214,10 @@ function cardWork() {
   const rf = jread('data/returned-health.json');
   if (!rf) W.push({ kind: 'returned-features', where: 'data/returned-health.json', say: 'missing — run node check/returned.js; the returned features were NOT checked' });
   else (rf.work || []).forEach(w => W.push(w));
+  /* NO GREY CLUTTER (A+): the walk's grey text outside a card's tag row (check/returned.js), and the markup that makes it. */
+  ((rf && rf.clutter) || []).forEach(w => W.push(w));
+  git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f)).forEach(f => { const src = read(f);
+    for (const m of src.matchAll(/class="(?:sub|faint|muted)[ "]/g)) W.push({ kind: 'clutter', where: f + ':' + lineOf(src, m.index), say: 'a small grey line in markup — say it as a tag, or drop it' }); });
   return W;
 }
 /* IN SYNC (1040 r10): anything shown in two places reads one source — a person's face and name their profile, the business's picture brandLogo_. */
@@ -237,9 +241,9 @@ function inSyncWork() {
   if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
   const html = read('index.html');
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
-  /* THE TOP BAR'S CONTROLS NEVER OVERLAP (owner, 6 Nov): the Business dot rides in #topbar-who's own row, and the bar's repaint keeps it there. */
-  if (!/topbar-who/.test(fnOf('bizNeedsPaint_'))) add('js/records.js', "the Business dot is a fixed corner badge over the top bar's Sign out, not a control in #topbar-who's row");
-  if (!/biz-dot/.test(fnOf('topbarPaint_'))) add('js/shell-pages.js', "topbarPaint_ rewrites #topbar-who and drops the Business dot");
+  /* THE TOP BAR IS @family., THE NAME AND SIGN OUT (owner, 6 Nov): no badge; what the dot counted is Find › Settings › Notifications. */
+  if (/biz-dot|createElement\(/.test(fnOf('bizNeedsPaint_') + fnOf('topbarPaint_'))) add('js/records.js', 'a badge is drawn in the top bar — notifications live in Find › Settings');
+  if (!/name: 'Notifications'/.test(fnOf('settingDoorItems_'))) add('js/find-doors.js', 'no Notifications item in Find › Settings');
   /* THE ICON FILES ARE THE SOURCE (6 Nov): the manifest names icon.png, and applyBrandIcon_ never swaps the tab for a sheet link. */
   if (/brandLogo_\(|brand\(\s*'logo/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', "the tab icon follows the sheet's logo, not favicon.png / icon.png");
   try { const man = JSON.parse(read('manifest.webmanifest'));

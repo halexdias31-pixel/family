@@ -20,8 +20,8 @@ const RULES = [
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490, 504)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
-  { id: 'finder-members', say: 'Signed out, Find and Find 2 are one "Members only" card', where: 'Find and Find 2 (400)',
-    uni: 'Signed out sees the finders like every other column.' },
+  { id: 'finder-members', say: 'Signed out, Find answers only Settings, which holds Sign in and Join', where: 'Find (C+, 1040)',
+    uni: 'Signed out, Find answers everything, as signed in.' },
   { id: 'keep-basket', say: 'The basket can never be deleted', where: 'Shop (462)',
     uni: 'Delete on it like every other widget.', lock: 'It is the one place a shop order is paid; without it nobody could pay.' },
   { id: 'admin-cols', say: 'Business and Site cards stay on those two columns and admin-only columns made past Site (508), and no other card moves onto them', where: 'Business and Site (491)',

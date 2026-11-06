@@ -20,7 +20,7 @@
     "screen": "reel",
     "label": "Reels",
     "icon": "▶",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 4,
     "notes": "one clip per page, opening on the first reel; before it, one swipe back, the Videos and One more thing widgets and an admin's \"+ Add a reel\" (docs/history/414)."
   },
@@ -121,7 +121,7 @@
     "screen": "staff",
     "label": "Tutor settings",
     "icon": "🛠",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 18,
     "cards": "TRUE",
     "notes": "a tutor's settings: the Staff hub (terms, hours, pricing) and the teaching settings with no card to live on. Below Staff it says it is not for your account and offers Apply to teach (docs/history/461)."
@@ -130,7 +130,7 @@
     "screen": "site",
     "label": "Web settings",
     "icon": "🌐",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 19,
     "cards": "TRUE",
     "notes": "Web settings since 730 (was Site): the site's own settings, split from Business on 27 Oct (docs/history/491, the owner: \"one for business settings and one for site settings\"): Setup, posts waiting, reports, the library import, the weekly email's preview and words, the build. FOR AN ADMIN ONLY, like Business; last."
@@ -139,7 +139,7 @@
     "screen": "account",
     "label": "Kids settings",
     "icon": "⚙",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 20,
     "cards": "TRUE",
     "notes": "Kids settings since 730 (was Student settings): every account's own settings: signing in and out, the PIN, your roles, notifications, Reading aloud (a sample of the device voice, 463), and what was the Progress column (countdowns, answered, activity, topics to work on, grades, each series, sessions; 461), and a student's details. Signed out, the sign-in card (docs/history/461)."
@@ -148,7 +148,7 @@
     "screen": "family",
     "label": "Parent settings",
     "icon": "🔧",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 21,
     "cards": "TRUE",
     "notes": "a parent's or payer's own details (contact, address). Below Client it says it is not for your account (docs/history/461)."
@@ -157,7 +157,7 @@
     "screen": "apprentice",
     "label": "Apprentice settings",
     "icon": "🧑‍🔧",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 22,
     "cards": "TRUE",
     "notes": "work experience: a placeholder beside Tutor settings until it is built (docs/history/570)."
@@ -166,7 +166,7 @@
     "screen": "biz",
     "label": "Biz settings",
     "icon": "📋",
-    "active": "TRUE",
+    "active": "FALSE",
     "sort_order": 23,
     "cards": "TRUE",
     "notes": "Biz settings since 730 (was Business): what only an admin has: the money and the paperwork — profit, applications to teach, staff, and the business records (insurance, tax, legal and data, safeguarding, money and company). FOR AN ADMIN ONLY: for anybody else the column is not there at all (columnsFor_ in shell.js). The site's own settings went to the Site column on 27 Oct (docs/history/491)."

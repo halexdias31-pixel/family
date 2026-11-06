@@ -80,5 +80,15 @@
 {"field": "shopPrice", "label": "Price", "sort_order": 38.3, "note": "shop items only (499): a band from its price", "active": true},
 {"field": "shopBrand", "label": "Brand", "sort_order": 38.4, "note": "shop items only (499): its maker", "active": true},
 {"field": "shopFor", "label": "For", "sort_order": 38.5, "note": "shop items only (499): who it is for when not everybody", "active": true},
-{"field": "shopTheme", "label": "Theme", "sort_order": 38.6, "note": "shop items only (740): its theme, from the shop tab's theme column; empty is no tag", "active": true}
+{"field": "shopTheme", "label": "Theme", "sort_order": 38.6, "note": "shop items only (740): its theme, from the shop tab's theme column; empty is no tag", "active": true},
+{"field": "postState", "label": "Which posts", "sort_order": 20.6, "note": "a post (batch C): Approved, Waiting for approval or Deleted; only an admin is sent the last two", "active": true},
+{"field": "postBy", "label": "Who posted", "sort_order": 20.61, "note": "a post (batch C): its author", "active": true},
+{"field": "postWhen", "label": "When", "sort_order": 20.62, "note": "a post (batch C): a time frame, Today to Older", "active": true},
+{"field": "msgWith", "label": "Who with", "sort_order": 20.63, "note": "a conversation (batch C): the person it is with", "active": true},
+{"field": "profileType", "label": "Who", "sort_order": 20.64, "note": "a profile (batch C): Parent, Student, Tutor; an admin also Over/Under 18, Apprentice, Admin", "active": true},
+{"field": "settingFor", "label": "Account type", "sort_order": 20.65, "note": "a settings card (batch C): Student, Parent, Staff, Apprentice, Admin", "active": true},
+{"field": "vidSubject", "label": "Subject", "sort_order": 20.66, "note": "a video (batch C): its subject", "active": true},
+{"field": "vidTopic", "label": "Topic", "sort_order": 20.67, "note": "a video (batch C): its tags", "active": true},
+{"field": "vidChannel", "label": "Channel", "sort_order": 20.68, "note": "a video (batch C): its channel", "active": true},
+{"field": "vidLevel", "label": "Level", "sort_order": 20.69, "note": "a video (batch C): its level", "active": true}
 ]

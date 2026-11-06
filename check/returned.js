@@ -13,11 +13,11 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const WIDGETS = {
   Tools: ['calculator', 'timer', 'notepad', 'whiteboard', 'typing', 'speedread', 'countdowns', 'calendar', 'termdates', 'timetable', 'docket', 'mat',
     'favlinks', 'console', 'spotify', 'rewrite', 'pixel', 'libcards'],
-  Games: ['boardgames', 'wordgames', 'console'], Videos: ['videos'], Reels: ['reels'], Newspaper: ['newspaper'], Flyers: ['flyers'], Posters: ['poster'],
+  Games: ['boardgames', 'wordgames', 'console'], Reels: ['reels'], Newspaper: ['newspaper'], Flyers: ['flyers'], Posters: ['poster'],
   Verse: ['verse'], Shop: ['cart'],
 };
 WIDGETS.Tools = WIDGETS.Tools.filter(w => w !== 'console');
-const COLUMNS = ['spotlight', 'feed', 'reel', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents', 'apprentices', 'apprentice'];
+const COLUMNS = ['spotlight', 'feed', 'dm', 'saved', 'booking', 'shop', 'web', 'tutors', 'students', 'parents', 'apprentices'];
 /* A SAFE PRESS: not a card's own extras (star, lock, suggest, share, edit, hide, delete, move), which every card has and prove nothing. */
 const SKIP = /del|bin|lock|star|suggest|share|save|top|edit|hide|eye|lay-|help|sign|out|report|facet|chip/i;
 
@@ -43,6 +43,35 @@ async function probe(page, sel, label) {
     }
     return { loads: true, words: text.length, sample: text.slice(0, 80), pics, controls: ctl.length, pressed, responds };
   }, { sel, skip: SKIP.source });
+}
+/* GREY TEXT ON A CARD OUTSIDE ITS TAG ROW (A+): visible words in the --dim or --faint colour, ideal none. */
+async function clutterIn(page, where) {
+  const got = await page.evaluate(() => {
+    const cs = getComputedStyle(document.documentElement), rgb = c => { const d = document.createElement('i'); d.style.color = c; document.body.appendChild(d); const r = getComputedStyle(d).color; d.remove(); return r; };
+    const grey = ['--dim', '--faint'].map(v => cs.getPropertyValue(v).trim()).filter(Boolean).map(rgb), out = [];
+    document.querySelectorAll('#s-stuff .card *').forEach(e => {
+      if (e.closest('.qtags, .tile-row, button, a, label, input, textarea, select') || e.offsetParent === null) return;
+      const own = [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+      if (own && grey.indexOf(getComputedStyle(e).color) !== -1) out.push(String(e.className || e.tagName).split(' ')[0] + ': ' + own.slice(0, 40));
+    });
+    return [...new Set(out)].slice(0, 20);
+  });
+  return got.map(t => ({ kind: 'clutter', where: where, say: 'grey text outside the tag row — ' + t }));
+}
+/* THE FRONT DOOR (C+): signed out, a student and an admin see one shape first — the search bar and a menu, no sign-in card. */
+async function frontShape(browser, port, as) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+  const page = await ctx.newPage();
+  const v = glass.VIEWERS.find(x => x.as === as);
+  if (v.user) await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) { /* shown */ } }, Object.assign({ token: 'rf' }, v.user));
+  await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: r.request().method() === 'POST' ? '{"success":true}' : (v.user ? glass.FIXTURE : glass.FIXTURE_ANON || glass.FIXTURE) }));
+  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 }); await wait(2500);
+  await page.evaluate(() => go('stuff')); await wait(2500);
+  const shape = await page.evaluate(() => ({ search: !!document.getElementById('stuff-q'), menu: document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="kindLabel"]').length > 0,
+    signInCard: !!document.querySelector('#s-stuff .members-only') }));
+  await ctx.close();
+  return shape;
 }
 function judge(name, where, r, errs) {
   const W = [], add = say => W.push({ kind: 'returned-features', where: name + ' (' + where + ')', say });
@@ -97,8 +126,19 @@ function judge(name, where, r, errs) {
     const w = judge(col, 'column', r, errs);
     each.push({ feature: col, where: 'column', r, findings: w.map(x => x.say) }); work.push(...w);
   }
+  const clutter = [], door = [], shapes = {};
+  await load(); clutter.push(...await clutterIn(page, 'Find front'));
+  for (const top of front.filter(t => t !== "Doesn't matter")) {
+    await load();
+    await page.evaluate(t => { const e = [...document.querySelectorAll('#s-stuff [data-do="facet-pick"]')].find(e => (e.querySelector('.k') || e).textContent.trim() === t); if (e) e.click(); }, top);
+    await wait(2500); clutter.push(...await clutterIn(page, 'Find › ' + top));
+  }
+  for (const as of ['out', 'student', 'admin']) shapes[as] = await frontShape(browser, port, as);
+  Object.keys(shapes).forEach(as => { const s = shapes[as];
+    if (!s.search || !s.menu || s.signInCard) door.push({ kind: 'front-door', where: 'Find, ' + as, say: 'first screen is not the search bar and the menu (' + JSON.stringify(s) + ')' }); });
   await browser.close(); server.close();
-  fs.writeFileSync(OUT, JSON.stringify({ front, each, work }, null, 1) + '\n');
+  fs.writeFileSync(OUT, JSON.stringify({ front, each, work: work.concat(door), clutter, shapes }, null, 1) + '\n');
+  console.log(`clutter: ${clutter.length} grey lines on cards; front door: ${JSON.stringify(shapes)}`);
   console.log(`returned-features: ${work.length} findings over ${each.length} features; front menu: ${front.join(' | ')}`);
   each.filter(e => e.findings.length).forEach(e => console.log('  ' + e.feature + ' (' + e.where + '): ' + e.findings.join('; ')));
   process.exit(0);

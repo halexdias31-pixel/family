@@ -187,13 +187,9 @@ function topbarPaint_() {
   const mark = document.querySelector('.topbar-brand');
   if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
-  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}`
-    : AT === 'account' ? '' : tile_({ icon: 'in', label: 'Sign in', act: 'topbar-signin' });
-  /* THE BUSINESS DOT RIDES IN THIS ROW (records.js); lifted out to compare, then put back first. */
-  const dot = $('biz-dot'), had = !!dot && dot.parentElement === bar;
-  if (had) dot.remove();
+  /* ONLY @family., THE NAME AND SIGN OUT (owner, 6 Nov); signed out, Sign in is Find › Settings (C+). */
+  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}` : '';
   if (bar.innerHTML !== html) bar.innerHTML = html;
-  if (had) bar.insertBefore(dot, bar.firstChild);
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */

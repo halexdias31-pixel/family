@@ -37,29 +37,17 @@ const BIZ_PAGES = [
 const BIZ = { list: null, asking: false, error: '' };
 
 /* ---------- WHAT NEEDS YOU (400): "maybe the business widgets glow red" — the owner, 24 Oct ----------
-   Each Business card registers its count by key (`bizNeed_`) and carries `data-need`; `bizNeedsPaint_` glows it and fills the dot. */
+   Each Business card registers its count by key (`bizNeed_`) and carries `data-need`; `bizNeedsPaint_` glows it. */
 const BIZ_NEEDS = {};
 function bizNeed_(key, n, say) {
   n = Math.max(0, Math.floor(Number(n) || 0));
   BIZ_NEEDS[key] = n;
   return n ? `<p class="biz-need" role="status">${esc(say)}</p>` : '';
 }
-const bizNeedsTotal_ = () => Object.keys(BIZ_NEEDS).reduce((t, k) => t + (BIZ_NEEDS[k] || 0), 0);
 function bizNeedsPaint_() {
   document.querySelectorAll('#s-biz [data-need], #s-site [data-need]').forEach(c => c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0));
-  const n = (typeof isAdmin === 'function' && isAdmin()) ? bizNeedsTotal_() : 0;
-  let dot = document.getElementById('biz-dot');
-  if (!n) { if (dot) dot.remove(); return; }
-  if (!dot) {
-    dot = document.createElement('button');
-    dot.id = 'biz-dot'; dot.type = 'button'; dot.className = 'biz-dot'; dot.setAttribute('data-do', 'biz-dot');
-  } /* IN THE TOP BAR'S ROW when it shows (owner, 6 Nov: the corner dot sat on Sign out), else the screen's corner. */
-  const bar = document.getElementById('topbar-who'), inBar = !!(bar && bar.offsetParent !== null), home = inBar ? bar : document.body;
-  if (dot.parentElement !== home) home.insertBefore(dot, inBar ? bar.firstChild : null); dot.classList.toggle('in-bar', inBar);
-  dot.textContent = String(n);
-  dot.setAttribute('aria-label', n + (n === 1 ? ' thing needs you' : ' things need you') + ' in Business and Site');
+  /* NO DOT IN THE TOP BAR (owner, 6 Nov): what it counted is Find › Settings › Admin › Notifications (`notifyDoorCard_`). */
 }
-on('biz-dot', () => go('biz'));
 /* THE RECORDS DUE ON ONE CARD: soon or overdue, counted only once the sheet has answered. */
 const bizDueCount_ = pg => !BIZ.list ? 0 : pg.items.filter(item => bizState_(item, bizRow_(item.id).due_on)).length;
 const recDays_ = iso => {

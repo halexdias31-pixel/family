@@ -233,6 +233,21 @@ function tagsOnTop_(x, html) {
   return /class="qtag"/.test(row) ? html.replace(top, '$1' + row) : html;
 }
 
+/* A CREDIT LINE IS A TAG (A+): a card's small source or licence line, however late it is drawn, moves into its tag row, said in full. */
+function creditsToTags_(root) {
+  (root && root.querySelectorAll ? root : document).querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
+    const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
+    if (!row || !w || el.closest('.qcard-tags')) return;
+    const t = document.createElement('span');
+    t.className = 'qtag q-credit'; t.textContent = w;
+    row.appendChild(t); el.remove();
+  });
+}
+/* ONCE A FRAME, however many things were drawn in it. */
+let CREDIT_DUE = false;
+try { if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined')
+  new MutationObserver(() => { if (CREDIT_DUE) return; CREDIT_DUE = true; requestAnimationFrame(() => { CREDIT_DUE = false; creditsToTags_(document); }); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { oops_(e, 'credits'); }
+
 /* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
 const qPagesOf_ = x => (isQ_(x) ? partChunks_(x).length : 0);
 function qPageAt_(x, page) {

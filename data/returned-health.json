@@ -9,7 +9,9 @@
   "Posters",
   "Verse",
   "Posts",
-  "People",
+  "Profiles",
+  "Booking",
+  "Shop",
   "Settings",
   "Tools",
   "Games"
@@ -82,8 +84,8 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 300,
-    "sample": "Touch typing 1 2 3 4 5 Home row · 3 more at 90% opens Top row flask gas lass lag",
+    "words": 185,
+    "sample": "Touch typing 1 2 3 4 5 Home row had glass lass shall ask alas dash lass Tap the ",
     "pics": 0,
     "controls": 3,
     "pressed": "kt-lesson",
@@ -96,8 +98,8 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 97,
-    "sample": "Speed reader Paste anything; it is shown a word at a time, the eye kept still on",
+    "words": 12,
+    "sample": "Speed reader",
     "pics": 1,
     "controls": 2,
     "pressed": "sr-read",
@@ -140,7 +142,7 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 575,
+    "words": 468,
     "sample": "Term dates Now: Autumn 2 Mon 2 Nov – last day of term Fri 18 Dec Christmas holid",
     "pics": 0,
     "controls": 2,
@@ -156,8 +158,8 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 69,
-    "sample": "Timetable Mon Tue Wed Thu Fri Nothing on Friday. Add a lesson Weekend",
+    "words": 50,
+    "sample": "Timetable Mon Tue Wed Thu Fri Add a lesson Weekend",
     "pics": 0,
     "controls": 7,
     "pressed": "tmt-day",
@@ -170,8 +172,8 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 80,
-    "sample": "Docket What there is to do. Tick it off as you go. Nothing on it. ＋ Google Tasks",
+    "words": 21,
+    "sample": "Docket ＋ Google Tasks",
     "pics": 1,
     "controls": 3,
     "pressed": "dock-add",
@@ -214,14 +216,15 @@
    "where": "Find › Tools",
    "r": {
     "loads": true,
-    "words": 230,
-    "sample": "Spotify Not switched on yet — the site's admin turns it on. Admin: make a Spotif",
+    "words": 7,
+    "sample": "Spotify",
     "pics": 0,
     "controls": 0,
     "pressed": "",
     "responds": null
    },
    "findings": [
+    "blank: 7 characters and no picture (\"Spotify\")",
     "no controls to press"
    ]
   },
@@ -274,8 +277,8 @@
    "where": "Find › Games",
    "r": {
     "loads": true,
-    "words": 166,
-    "sample": "Board games Connect 4 Othello Scrabble Chess Maze Two players, one phone. Red st",
+    "words": 85,
+    "sample": "Board games Connect 4 Othello Scrabble Chess Maze Red starts — tap a column. New",
     "pics": 0,
     "controls": 44,
     "pressed": "c4-drop",
@@ -288,7 +291,7 @@
    "where": "Find › Games",
    "r": {
     "loads": true,
-    "words": 309,
+    "words": 262,
     "sample": "Word & number games Articulate Charades Taboo Hot Seat Just a Minute 20 Question",
     "pics": 0,
     "controls": 5,
@@ -304,8 +307,8 @@
    "where": "Find › Games",
    "r": {
     "loads": true,
-    "words": 146,
-    "sample": "Console Game files Flabby Pird Colliers Wood racer Linked pictures I can guess N",
+    "words": 95,
+    "sample": "Console Game files Flabby Pird Colliers Wood racer Linked pictures I can guess S",
     "pics": 4,
     "controls": 7,
     "pressed": "Select",
@@ -316,28 +319,12 @@
    ]
   },
   {
-   "feature": "videos",
-   "where": "Find › Videos",
-   "r": {
-    "loads": true,
-    "words": 6,
-    "sample": "Videos",
-    "pics": 1,
-    "controls": 0,
-    "pressed": "",
-    "responds": null
-   },
-   "findings": [
-    "no controls to press"
-   ]
-  },
-  {
    "feature": "reels",
    "where": "Find › Reels",
    "r": {
     "loads": true,
-    "words": 287,
-    "sample": "One more thing Something worth knowing. Tap for another. W Alexander Gerst WEATH",
+    "words": 242,
+    "sample": "One more thing M likeablerodent MONEY A shopkeeper rounding to 99p is using a re",
     "pics": 0,
     "controls": 1,
     "pressed": "feed-tap",
@@ -383,8 +370,8 @@
    "where": "Find › Posters",
    "r": {
     "loads": true,
-    "words": 188,
-    "sample": "Poster planner Size A0 A1 A2 A3 Orientation Portrait Landscape Pick a kind, then",
+    "words": 62,
+    "sample": "Poster planner Size A0 A1 A2 A3 Orientation Portrait Landscape",
     "pics": 7,
     "controls": 6,
     "pressed": "pst-kind",
@@ -410,10 +397,17 @@
    "feature": "cart",
    "where": "Find › Shop",
    "r": {
-    "loads": false
+    "loads": true,
+    "words": 6,
+    "sample": "Basket",
+    "pics": 0,
+    "controls": 0,
+    "pressed": "",
+    "responds": null
    },
    "findings": [
-    "no \"Shop\" answer on Find's front menu"
+    "blank: 6 characters and no picture (\"Basket\")",
+    "no controls to press"
    ]
   },
   {
@@ -445,26 +439,12 @@
    "findings": []
   },
   {
-   "feature": "reel",
-   "where": "column",
-   "r": {
-    "loads": true,
-    "words": 327,
-    "sample": "One more thing Something worth knowing. Tap for another. L LANGUAGE English has ",
-    "pics": 61,
-    "controls": 61,
-    "pressed": "feed-tap",
-    "responds": true
-   },
-   "findings": []
-  },
-  {
    "feature": "dm",
    "where": "column",
    "r": {
     "loads": true,
-    "words": 202,
-    "sample": "D Daive Ask about lessons, prices and booking, or for help with something you ar",
+    "words": 62,
+    "sample": "D Daive Send 5 of 5 questions left today Messages Nothing yet.",
     "pics": 5,
     "controls": 7,
     "pressed": "daive-send",
@@ -509,8 +489,8 @@
     "loads": true,
     "words": 773,
     "sample": "Basket Search the shop BUNDLES 1 Shop Things Bundle Buy Not priced yet Student M",
-    "pics": 82,
-    "controls": 73,
+    "pics": 85,
+    "controls": 76,
     "pressed": "fav",
     "responds": true
    },
@@ -521,8 +501,8 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 141,
-    "sample": "@family. Tutoring for every age, at home and online. Where: Merton & Wandsworth ",
+    "words": 8,
+    "sample": "@family.",
     "pics": 1,
     "controls": 0,
     "pressed": "",
@@ -537,8 +517,8 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 594,
-    "sample": "Add a tutor Make an account for a new tutor. ADMIN Every tutor, with what they t",
+    "words": 483,
+    "sample": "Add a tutor ADMIN T Test Admin @testadmin TUTOR · HEAD OF BOXING Ada Tutor @ada ",
     "pics": 20,
     "controls": 16,
     "pressed": "person-add",
@@ -551,8 +531,8 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 429,
-    "sample": "Add a student Make an account for a new student. Manage your child Link your chi",
+    "words": 98,
+    "sample": "Add a student Manage your child Add your child STUDENT Evie @evie_calm31 12 ques",
     "pics": 10,
     "controls": 9,
     "pressed": "person-add",
@@ -565,8 +545,8 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 116,
-    "sample": "Add a parent Make an account for a new parent. CLIENT Every parent account. Carl",
+    "words": 60,
+    "sample": "Add a parent CLIENT Carl Everyclient-Longername @carl_kind32",
     "pics": 9,
     "controls": 8,
     "pressed": "person-add",
@@ -579,30 +559,15 @@
    "where": "column",
    "r": {
     "loads": true,
-    "words": 42,
-    "sample": "A card per apprentice. No apprentices yet.",
+    "words": 0,
+    "sample": "",
     "pics": 0,
     "controls": 0,
     "pressed": "",
     "responds": null
    },
    "findings": [
-    "no controls to press"
-   ]
-  },
-  {
-   "feature": "apprentice",
-   "where": "column",
-   "r": {
-    "loads": true,
-    "words": 95,
-    "sample": "Work experience with us: a placeholder until it is built. Work experience with u",
-    "pics": 0,
-    "controls": 0,
-    "pressed": "",
-    "responds": null
-   },
-   "findings": [
+    "blank: 0 characters and no picture (\"\")",
     "no controls to press"
    ]
   }
@@ -641,6 +606,11 @@
   {
    "kind": "returned-features",
    "where": "spotify (Find › Tools)",
+   "say": "blank: 7 characters and no picture (\"Spotify\")"
+  },
+  {
+   "kind": "returned-features",
+   "where": "spotify (Find › Tools)",
    "say": "no controls to press"
   },
   {
@@ -660,11 +630,6 @@
   },
   {
    "kind": "returned-features",
-   "where": "videos (Find › Videos)",
-   "say": "no controls to press"
-  },
-  {
-   "kind": "returned-features",
    "where": "newspaper (Find › Newspaper)",
    "say": "blank: 9 characters and no picture (\"Newspaper\")"
   },
@@ -681,7 +646,12 @@
   {
    "kind": "returned-features",
    "where": "cart (Find › Shop)",
-   "say": "no \"Shop\" answer on Find's front menu"
+   "say": "blank: 6 characters and no picture (\"Basket\")"
+  },
+  {
+   "kind": "returned-features",
+   "where": "cart (Find › Shop)",
+   "say": "no controls to press"
   },
   {
    "kind": "returned-features",
@@ -696,12 +666,471 @@
   {
    "kind": "returned-features",
    "where": "apprentices (column)",
-   "say": "no controls to press"
+   "say": "blank: 0 characters and no picture (\"\")"
   },
   {
    "kind": "returned-features",
-   "where": "apprentice (column)",
+   "where": "apprentices (column)",
    "say": "no controls to press"
   }
- ]
+ ],
+ "clutter": [
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-tr: KJV"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-tr: WEB"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-tr: Masoretic (Hebrew)"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — wt-refs-h: Sources"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: Emanuel Tov, Textual Criticism of the He"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-tr: Septuagint (Greek)"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: Karen H. Jobes and Moisés Silva, Invitat"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: 'The Letter of Aristeas', trans. by H. T"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: Philo, On the Life of Moses, trans. by C"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: Jennifer M. Dines, The Septuagint, ed. b"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — LI: Timothy Michael Law, When God Spoke Gree"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-tr: Brenton (English Septuagint)"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Library",
+   "say": "grey text outside the tag row — bb-para: ¶"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Flyers",
+   "say": "grey text outside the tag row — SPAN: Colours"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Flyers",
+   "say": "grey text outside the tag row — fm-said: Prints  to an A4 sheet ·  · header, head"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Verse",
+   "say": "grey text outside the tag row — k: Shows"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Posts",
+   "say": "grey text outside the tag row — post-where: Colliers Wood Library"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Posts",
+   "say": "grey text outside the tag row — post-face: A"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Small room 1"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Small room 2"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Large room 1"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Notice"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Surcharge"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Subjects"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Tutors"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — k: Booking form"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — H3: Tutor · Head of Boxing"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — SMALL: /hour"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-cap: At a glance"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: 10 years experience"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: Ages 8–16"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: 1–4 students"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: 1–3 hours"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-cap: Teaches"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: Maths"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — SPAN: GCSE"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-cap: Can also teach"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Booking",
+   "say": "grey text outside the tag row — prof-tag: English"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Shop",
+   "say": "grey text outside the tag row — price: 3 credits"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Shop",
+   "say": "grey text outside the tag row — price: £0.30"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Shop",
+   "say": "grey text outside the tag row — price: £0.80"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Shop",
+   "say": "grey text outside the tag row — price: £14.00"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Shop",
+   "say": "grey text outside the tag row — price: £350.00"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — dob-cap: ages you teach"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — f-dash: –"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — dob-cap: you, in three words"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — note: Points you earn for good work. Coming so"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Register with HMRC as self-employed"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-when: · to do"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Open a separate business bank account"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Keep records of every payment in and out"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Check your trading name is allowed"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: File your Self Assessment tax return"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Plan for payments on account"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Watch the VAT registration threshold"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-when: · sensed"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Track income against your £100k goal"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-when: · in progress"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Get public liability insurance"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Get professional indemnity insurance"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Check insurance covers home visits and o"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Pay the ICO data protection fee"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Settings",
+   "say": "grey text outside the tag row — biz-cap: Publish a privacy notice"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — calc-name: Calculator"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — cal-h: M"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — cal-h: T"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — cal-h: W"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — cal-h: F"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — cal-h: S"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — mat-said: · tick pieces"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: Christmas holidays"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — kt-go: Tap the line, then type."
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — SPAN: wpm"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — SPAN: right"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — kt-k: space"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — faint: Saves as you type."
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: Now: Autumn 2"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: Spring 1"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: February half-term"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: My school starts"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — k: My school ends"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — nb-note: Kept on this device only."
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Tools",
+   "say": "grey text outside the tag row — note: No links yet. Add the sites you use most"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Games",
+   "say": "grey text outside the tag row — note: Red starts — tap a column."
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Games",
+   "say": "grey text outside the tag row — faint: left ·\n       so far"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Games",
+   "say": "grey text outside the tag row — SPAN: 1:30"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Games",
+   "say": "grey text outside the tag row — B: 0"
+  },
+  {
+   "kind": "clutter",
+   "where": "Find › Games",
+   "say": "grey text outside the tag row — note: Describe it. Not the word, not a rhyme, "
+  }
+ ],
+ "shapes": {
+  "out": {
+   "search": true,
+   "menu": true,
+   "signInCard": false
+  },
+  "student": {
+   "search": true,
+   "menu": true,
+   "signInCard": false
+  },
+  "admin": {
+   "search": true,
+   "menu": true,
+   "signInCard": false
+  }
+ }
 }
