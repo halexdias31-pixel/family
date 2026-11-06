@@ -522,14 +522,12 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
   return bad;
 });
 
-/* THE PAYLOAD THAT SIGNING IN ASKS FOR IS HELD, so the column has to come from signing in itself and not
-   from `applyColumns_` when that payload lands — which on this backend is fifteen seconds later. */
-check('business: signing in as an admin adds the column and signing out takes it away, without a reload and without moving anybody', async () => {
+check('business: signing in as an admin adds Find › Settings › Admin (the Business cards, batch C) and signing out takes it away, without a reload and without moving anybody', async () => {
   const cols = BIZ_COLS_();
-  /* THE NEIGHBOURS ARE columns.json's (730): the active column left of Business, and one more active column to stand on that is neither it nor Find. */
-  const on = cols.filter(c => /^true$/i.test(String(c.active))).sort((a, b) => a.sort_order - b.sort_order).map(c => c.screen);
-  const left = on[on.indexOf('biz') - 1], away = on.filter(x => x !== 'biz' && x !== left && x !== 'stuff' && x !== 'account')[0];
-  if (!left || !away) return ['columns.json has no active column left of Business, or none to stand on — NOT checked: ' + on.join(', ')];
+  /* BATCH C (1040): Business is no column; its cards are Find › Settings › Admin items, so an admin's signing in adds items, not a tab. */
+  const on = cols.filter(c => /^true$/i.test(String(c.active))).map(c => c.screen);
+  const away = on.filter(x => x !== 'stuff' && x !== 'biz')[0];
+  if (!away) return ['columns.json has no active column but Find to stand on — NOT checked: ' + on.join(', ')];
   let hold = false;
   const { w, gets } = boot({ serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
     reply: body => (body.action === 'verifyLogin' ? Object.assign({ success: true }, BIZ_ADMIN_)
@@ -539,19 +537,19 @@ check('business: signing in as an admin adds the column and signing out takes it
   const t = w.__t, d = w.document;
   if (!t) return ['the app did not finish loading'];
   const bad = [];
-  const ids = () => t.TABS.map(x => x.id);
+  const admin = () => w.stuffItemsBuild_().filter(x => x && x.kind === 'setting' && x.settingFor === 'Admin');
   if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
-  if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked: ' + ids().join(', ')];
-  if (ids().indexOf('biz') !== -1 || d.getElementById('s-biz')) return ['signed out, the Business column is already there — the sign-in was NOT checked'];
+  if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked'];
+  if (admin().length) return ['signed out, Find already holds Admin settings — the sign-in was NOT checked'];
   const doc = d.documentElement;
 
-  /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
-     (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go(left, false, true); await wait(LEAVE_MS); await woken_();
-  t.go('account', false, true); await wait(LEAVE_MS); await woken_();
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  const btn = d.querySelector('[data-do="do-signin"]');
-  if (!name || !pin || !btn) return ['the sign-in card is not on the account column — NOT checked'];
+  /* IN, THROUGH FIND'S ONE SETTINGS CARD (C+), from another column. */
+  t.go(away, false, true); await wait(LEAVE_MS); await woken_();
+  const sign = w.stuffItemsBuild_().find(x => x && x.signIn);
+  if (!sign) return ['signed out, Find holds no Sign in card — NOT checked'];
+  const host = d.createElement('div'); host.innerHTML = w.settingDoorCard_(sign); d.body.appendChild(host);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin'), btn = host.querySelector('[data-do="do-signin"]');
+  if (!name || !pin || !btn) return ['the sign-in card has no name, PIN and Sign in — NOT checked'];
   name.value = 'annadmin'; pin.value = '4826';
   const asked = () => gets.filter(u => /script\.google\.com/.test(u)).length;
   const askedBefore = asked();
@@ -559,59 +557,24 @@ check('business: signing in as an admin adds the column and signing out takes it
   try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
   for (let n = 0; n < 50 && !(t.whoami() && t.whoami().role === 'admin'); n++) await wait(100);
   await wait(LEAVE_MS); await woken_();
+  host.remove();
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids().slice(-2).join(' ') !== left + ' biz') bad.push('signed in as an admin, the last columns are ' + ids().slice(-2).join(' ') + ', wanted ' + left + ' then Biz settings (730), without a reload');
-  if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== left) bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from ' + left + ' and go back there');
-  await bizSwipe_(w, left);
-  /* ONE SCROLLING PAGE (900): a sideways wheel is the browser's scroll and never changes column; Business is reached by its tab. */
-  const flow = doc.classList.contains('flow');
-  if (flow && t.AT() !== left) bad.push('on the one scrolling page a sideways wheel moved the admin off ' + left + ' to ' + t.AT());
-  if (flow) { t.go('biz', false, true); await wait(LEAVE_MS); await woken_(); }
-  if (t.AT() !== 'biz') bad.push('signed in, ' + (flow ? 'going to Business' : 'a swipe off ' + left + ' (730)') + ' landed on ' + t.AT() + ', wanted Business');
-  else {
-    for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
-    const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
-    if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('signed in, the Business column holds ' + JSON.stringify(cards));
-  }
-  /* AND THE INSTRUMENT CAN SEE WHAT IT IS ASKED ABOUT — signed in, the page does name the column. */
-  if (!bizNamed_(d)) bad.push('signed in as an admin, nothing in the page names the column — `bizNamed_` cannot see its subject');
+  if (t.AT() !== away) bad.push('signing in moved the admin from ' + away + ' to ' + t.AT());
+  if (!admin().some(x => x.setCol === 'biz')) bad.push('signed in as an admin, Find › Settings › Admin holds no Business card: ' + JSON.stringify(admin().map(x => x.name)));
+  if (!admin().some(x => x.notify)) bad.push('signed in as an admin, Find › Settings › Admin has no Notifications');
+  if (t.TABS.some(x => x.id === 'biz') || d.getElementById('s-biz')) bad.push('signed in, a Business column came back (batch C: its cards are Find items)');
   if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
 
-  /* OUT, FROM ANOTHER COLUMN: the column goes, and the admin stays where they are. */
-  t.go(away, false, true); await wait(LEAVE_MS); await woken_();
+  /* OUT, FROM THE SAME COLUMN: the Admin items go, and the person stays where they are. */
   try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return bad.concat(['signout threw: ' + e.message]); }
   await wait(LEAVE_MS); await woken_();
   if (t.whoami()) return bad.concat(['Sign out did not sign the admin out — NOT checked']);
   if (d.documentElement !== doc) bad.push('the page was reloaded');
-  if (ids().indexOf('biz') !== -1) bad.push('signed out, the row still has Business in it: ' + ids().join(', '));
-  if (d.getElementById('s-biz')) bad.push('signed out, the <section id="s-biz"> is still in the page');
+  if (admin().length) bad.push('signed out, Find still holds Admin settings: ' + admin().map(x => x.name).join(', '));
   const named = bizNamed_(d);
-  if (named) bad.push('signed out, the page still names the column: "…' + named + '…"');
+  if (named) bad.push('signed out, the page still names Business: "…' + named + '…"');
   if (t.AT() !== away) bad.push('signing out moved the person from ' + away + ' to ' + t.AT());
-
-  /* AND THE ONE PERSON IT MOVES: an admin ON Business whose session the server ended (a Save refused with
-     `why: 'signed-out'`). The column goes from under them and they land on the column left of it. */
-  const ended = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
-    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
-    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
-      : body.action === 'saveRecordsPage' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
-  const w2 = ended.w;
-  for (let n = 0; n < 80 && !w2.__t; n++) await wait(100);
-  await wait(600);
-  const t2 = w2.__t, d2 = w2.document;
-  t2.go('biz', false, true); await wait(LEAVE_MS); await woken_();
-  for (let n = 0; n < 50 && d2.querySelector('#s-biz .loading'); n++) await wait(100);
-  const save = d2.querySelector('#s-biz .me-form[data-biz-page="Tax"] .tile[data-do="biz-save"]');
-  if (t2.AT() !== 'biz' || !save) return bad.concat(['the admin could not be put on Business with a Save to press — the ended session was NOT checked']);
-  try { t2.ACTIONS['biz-save'](save); } catch (e) { return bad.concat(['biz-save threw: ' + e.message]); }
-  for (let n = 0; n < 50 && t2.whoami(); n++) await wait(100);
-  await wait(LEAVE_MS); await woken_();
-  if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
-  if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== left) bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted ' + left + ' (730), the column left of it');
-  if (!d2.querySelector('#s-' + left + ' > .page.on')) bad.push('the session ended on Business and ' + left + ', where they were put, shows no page');
   return bad;
 });
 

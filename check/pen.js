@@ -61,8 +61,8 @@ const found = [];
 const fail = (sec, where, msg) => found.push(`${sec} ${where}: ${msg}`);
 const say = s => { if (VERBOSE) console.log('  ' + s); };
 let reached = 0;
-/* THE WHITEBOARD IS OFF (owner, 4 Nov, tiers.json): its board sections are skipped and counted, as the whiteboard journeys went secondary (1040). */
-const BOARD_OFF = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).widgets.whiteboard === 'off'; } catch (e) { return false; } })();
+/* THE WHITEBOARD IS NOT CORE (tiers.json: off, or secondary since batch B): its board sections are skipped and counted here, as its journeys run secondary (860, 1040). */
+const BOARD_OFF = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'tiers.json'), 'utf8')).widgets.whiteboard !== 'core'; } catch (e) { return false; } })();
 const BSKIP = new Set();
 
 async function boot(browser, W, H, port, o) {
@@ -193,7 +193,7 @@ const MO = (env, type, x, y, kind, buttons) => env.cdp.send('Input.dispatchMouse
 
 /* ---------- THE BOARD ------------------------------------------------------------------------------- */
 async function board(env) {
-  if (BOARD_OFF) { BSKIP.add('the whiteboard (off)'); return null; }
+  if (BOARD_OFF) { BSKIP.add('the whiteboard (not core)'); return null; }
   return env.page.evaluate(async () => {
     window.__openWidgetCard('whiteboard');   /* a Find card (790) */
     for (let i = 0; i < 100; i++) {
@@ -1908,7 +1908,7 @@ const unmoved = (sec, where, r, b) => {
       await reset(env, k);
     }
     /* THE TOOLS WHITEBOARD, the notebook (board.js), as a child finds it: no arming, a finger writes */
-    if (BOARD_OFF) BSKIP.add('the whiteboard notebook (off)');
+    if (BOARD_OFF) BSKIP.add('the whiteboard notebook (not core)');
     else {
       const where = `${dev.name} notebook`;
       const nb = await env.page.evaluate(async () => {

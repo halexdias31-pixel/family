@@ -92,8 +92,9 @@ function meRest_() {
           ''}`);}
 
 /* ---------- THE BUILD STAMPS, FOR WHEN SOMETHING HAS CHANGED AND HAS NOT § */
+/* THE BUILD CARD IS ITS LINES, so they are no grey clutter (A+): `build-said` keeps them past the rule that hides a card's grey lines. */
 function versionSaid_() {
-  return `<p class="faint" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
+  return `<p class="build-said" style="text-align:center">@family. · Merton &amp; Wandsworth<br>
       site ${esc(SITE_VERSION)} · css ${esc(cssVersion())}<br>
       backend ${esc(DATA.version || '—')}</p>
       ${(() => {
@@ -103,7 +104,7 @@ function versionSaid_() {
         const newest = names.map(k => f[k]).sort().pop();
         const stale = names.filter(k => f[k] !== newest);
         return stale.length
-          ? `<p class="sub" style="color:#c8853c">Not deployed: ${stale
+          ? `<p class="build-said" style="color:#c8853c">Not deployed: ${stale
               .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
               ? 'that file' : 'those files'} into Apps Script.</p>`
           : '';

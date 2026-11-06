@@ -21,7 +21,7 @@
   "js/keypad.js": 65,
   "js/overworld.js": 56,
   "js/records.js": 57,
-  "js/rules.js": 26,
+  "js/rules.js": 27,
   "js/answers.js": 52,
   "js/writings.js": 38,
   "js/library.js": 34,
@@ -66,7 +66,7 @@
   "js/resume.js": 13,
   "js/find-aloud.js": 145,
   "js/find-boxers.js": 97,
-  "js/find-bundles.js": 131,
+  "js/find-bundles.js": 132,
   "js/find-cells.js": 80,
   "js/find-facets.js": 61,
   "js/find-figures.js": 88,
@@ -613,7 +613,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7177,
+   "lines": 7178,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -961,7 +961,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5273771,
+  "searchBytes": 5275740,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,

@@ -1,24 +1,12 @@
 {
  "v": 1,
- "items": 278987,
+ "items": 278985,
  "menus": 91,
  "counts": {
-  "words-all": 13,
+  "words-all": 11,
   "near-dup": 1
  },
  "findings": [
-  {
-   "kind": "words-all",
-   "menu": "Which (kindOwn)",
-   "value": "Tools",
-   "say": "menu \"Tools\", chip \"Tools\", tag \"Answers\""
-  },
-  {
-   "kind": "words-all",
-   "menu": "Which (kindOwn)",
-   "value": "Videos",
-   "say": "menu \"Videos\", chip \"Videos\", tag \"Answers\""
-  },
   {
    "kind": "words-all",
    "menu": "Fighter (fighter)",

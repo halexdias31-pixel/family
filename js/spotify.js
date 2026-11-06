@@ -11,7 +11,7 @@ const spRedirect_ = () => location.origin + location.pathname + '?spotify=cb';
 
 /* STORAGE: the access token for this tab (sessionStorage); the refresh token on this device (localStorage) so a phone stays connected — Disconnect forgets both. */
 const spGet_ = (s, k) => { try { return window[s].getItem(k) || ''; } catch (e) { return ''; } };
-const spSet_ = (s, k, v) => { try { v ? window[s].setItem(k, v) : window[s].removeItem(k); } catch (e) {} };
+const spSet_ = (s, k, v) => { try { v ? window[s].setItem(k, v) : window[s].removeItem(k); } catch (e) { /* storage blocked (private window): the token just is not kept */ } };
 function spKeep_(t, secs, refresh) {
   SP.token = t || ''; SP.exp = t ? Date.now() + Math.max(60, (+secs || 3600) - 60) * 1000 : 0;
   spSet_('sessionStorage', 'spTok', t ? JSON.stringify({ t: SP.token, e: SP.exp }) : '');
@@ -19,7 +19,7 @@ function spKeep_(t, secs, refresh) {
 }
 function spToken_() {
   if (SP.token && Date.now() < SP.exp) return SP.token;
-  try { const s = JSON.parse(spGet_('sessionStorage', 'spTok') || 'null'); if (s && s.t && Date.now() < s.e) { SP.token = s.t; SP.exp = s.e; return s.t; } } catch (e) {}
+  try { const s = JSON.parse(spGet_('sessionStorage', 'spTok') || 'null'); if (s && s.t && Date.now() < s.e) { SP.token = s.t; SP.exp = s.e; return s.t; } } catch (e) { /* no stored token: sign in again */ }
   return '';
 }
 const spLinked_ = () => !!(spToken_() || spGet_('localStorage', 'spRefresh'));
@@ -59,15 +59,15 @@ function spCallback_() {
   let q;
   try { q = new URLSearchParams(location.search); } catch (e) { return; }
   if (q.get('spotify') !== 'cb') return;
-  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* the code stays in the address bar; harmless */ }
   let pk = null;
-  try { pk = JSON.parse(spGet_('sessionStorage', 'spPkce') || 'null'); } catch (e) {}
+  try { pk = JSON.parse(spGet_('sessionStorage', 'spPkce') || 'null'); } catch (e) { /* no verifier kept: the exchange below refuses plainly */ }
   spSet_('sessionStorage', 'spPkce', '');
   if (q.get('error')) { SP.err = q.get('error') === 'access_denied' ? 'You said no to Spotify — nothing was connected.' : 'Spotify did not connect.'; return; }
   if (!pk || !q.get('code') || q.get('state') !== pk.state) { SP.err = 'Spotify did not connect (the reply did not match). Try again.'; return; }
   SP.busy = true;
   spTokenCall_({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: pk.back, client_id: pk.cid, code_verifier: pk.v })
-    .then(() => { SP.busy = false; SP.err = ''; spRefreshAll_(); try { if (typeof toast === 'function') toast('Spotify connected'); } catch (e) {} })
+    .then(() => { SP.busy = false; SP.err = ''; spRefreshAll_(); try { if (typeof toast === 'function') toast('Spotify connected'); } catch (e) { /* a toast is a nicety */ } })
     .catch(() => { SP.busy = false; SP.err = 'Spotify did not connect. Try again.'; spPaint_(); });
 }
 
@@ -172,7 +172,7 @@ function spCard_() {
   }
   return `<div class="sp-card">${body}${SP.err ? `<p class="faint sp-err">${esc(SP.err)}</p>` : ''}</div>`;
 }
-function spPaint_() { try { const el = typeof $ === 'function' && $('sp-box'); if (el) el.innerHTML = spCard_(); } catch (e) {} }
+function spPaint_() { try { const el = typeof $ === 'function' && $('sp-box'); if (el) el.innerHTML = spCard_(); } catch (e) { /* the box is not on screen */ } }
 function initSpotify() { spPaint_(); if (spLinked_() && spClientId_()) spRefreshAll_(); }
 
 on('sp-connect', () => spConnect_());
@@ -181,5 +181,5 @@ on('sp-search', () => spSearch_());
 on('sp-refresh', () => { SP.err = ''; spRefreshAll_(); });
 on('sp-off', () => spDisconnect_());
 on('sp-focus', el => spFocusToggle_(el.dataset.id));
-try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'sp-q') { e.preventDefault(); spSearch_(); } }); } catch (e) {}
+try { document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'sp-q') { e.preventDefault(); spSearch_(); } }); } catch (e) { /* no document (node checks) */ }
 spCallback_();

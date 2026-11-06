@@ -405,29 +405,34 @@ const keepWalk_ = async (w, id) => {
   return said;
 };
 /* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find and Find 2 are one card, Sign in or Join ---------- */
-check('signed out, Find is one "Members only" card with Sign in and Join and no search box; Join opens the sign-up with Student and Client; signed in, Find is the finder again', async () => {
+check('signed out, Find is the one front door: the search bar and the menu, whose only answer is Settings, holding Sign in and Make an account; Make an account asks Student or Client; signed in, Find answers more (C+, 1040)', async () => {
   const { w } = boot({ payload: payload() });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
   t.go('stuff', false, true); w.paint('stuff'); await wait(100);
-  const card = d.querySelector('#s-stuff .members-only');
-  if (!card) return ['signed out, Find draws no Members only card'];
-  if (!/Members only/.test(card.textContent)) bad.push('the card does not say Members only: ' + card.textContent.trim().slice(0, 80));
-  if (d.getElementById('stuff-q') || d.getElementById('stuff-chips')) bad.push('signed out, Find still draws the search box or the chips');
-  if (d.querySelectorAll('#s-stuff .page.is-res').length) bad.push('signed out, Find still holds result pages');
-  const signin = card.querySelector('[data-do="members-signin"]'), join = card.querySelector('[data-do="members-join"]');
-  if (!signin || !join) return bad.concat(['the card has no Sign in and Join tiles']);
-  A['members-join'](join); await wait(50);
+  if (d.querySelector('#s-stuff .members-only')) bad.push('signed out, Find still draws the old Members only card');
+  if (!d.getElementById('stuff-q')) bad.push('signed out, Find draws no search bar (one front door: the same shape for everyone)');
+  const items = w.stuffItemsBuild_();
+  const own = (items || []).filter(Boolean);
+  if (own.some(x => x.kind !== 'setting')) bad.push('signed out, Find holds more than Settings: ' + JSON.stringify([...new Set(own.map(x => x.kind))]));
+  const signItem = own.find(x => x.signIn);
+  if (!signItem) return bad.concat(['signed out, Settings holds no Sign in item']);
+  const host = d.createElement('div'); host.innerHTML = w.settingDoorCard_(signItem || { signIn: true }); d.body.appendChild(host);
+  const signin = host.querySelector('[data-do="do-signin"]'), join = host.querySelector('[data-do="register"]');
+  if (!signin || !join) return bad.concat(['the Settings card has no Sign in and Make an account tiles']);
+  A.register(join); await wait(50);
   const who = [...d.querySelectorAll('#sheet #reg-who-in option')].map(b => b.textContent.trim());
-  if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Join did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
-  A['members-signin'](signin); await wait(50);
-  if (t.AT() !== 'account') bad.push('Sign in did not go to the You column, it is on ' + t.AT());
+  if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Make an account did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
+  host.remove();
   w.signedIn_(Object.assign({ success: true }, MEMBER_), 'momember');
   await wait(80);
   t.go('stuff', false, true); w.paint('stuff'); await wait(150);
-  if (!d.getElementById('stuff-q') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder again');
+  const after = w.stuffItemsBuild_();
+  if (!d.getElementById('stuff-q') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder');
+  if (after.some(x => x && x.signIn)) bad.push('signed in, Settings still offers Sign in');
+  if (!after.some(x => x && x.kind !== 'setting')) bad.push('signed in, Find still answers only Settings');
   return bad;
 });
 

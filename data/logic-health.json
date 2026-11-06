@@ -1,7 +1,7 @@
 {
- "score": 84.6,
- "questions": 214,
- "healthy": 181,
+ "score": 84.7,
+ "questions": 216,
+ "healthy": 183,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -28,7 +28,7 @@
   {
    "id": "subtype",
    "label": "a finer question asked before its coarser one",
-   "count": 27
+   "count": 28
   },
   {
    "id": "siblings",
@@ -43,7 +43,7 @@
   {
    "id": "twins",
    "label": "two answers that keep exactly the same cards",
-   "count": 5
+   "count": 4
   }
  ],
  "cannot": "Whether a card is filed under the right answer, or an answer has the best name: content and categorisation need a person.",
@@ -257,17 +257,17 @@
   {
    "where": "Find",
    "asks": "kindLabel",
-   "bits": 0.47,
+   "bits": 0.48,
    "best": "wCollection",
-   "bestBits": 2.78,
-   "cards": 278932
+   "bestBits": 2.91,
+   "cards": 278985
   },
   {
    "where": "Find › Library",
    "asks": "subject",
    "bits": 0.33,
-   "best": "wText",
-   "bestBits": 2.89,
+   "best": "wCollection",
+   "bestBits": 2.91,
    "cards": 250350
   },
   {
@@ -283,7 +283,7 @@
    "asks": "wReligion",
    "bits": 1.27,
    "best": "wCollection",
-   "bestBits": 2.73,
+   "bestBits": 2.87,
    "cards": 239972
   },
   {
@@ -309,6 +309,14 @@
    "best": "wChapter",
    "bestBits": 5.91,
    "cards": 23213
+  },
+  {
+   "where": "Find › Library › Religious Studies › Islam",
+   "asks": "wCollection",
+   "bits": 0.84,
+   "best": "wWork",
+   "bestBits": 2.7,
+   "cards": 46625
   },
   {
    "where": "Find › Library › Religious Studies › Christianity › New Testament",
@@ -877,13 +885,21 @@
    "best": "cPeriod",
    "bestBits": 2.08,
    "cards": 12
+  },
+  {
+   "where": "Find › Shop › Equipment",
+   "asks": "shopHow",
+   "bits": 0.92,
+   "best": "shopPrice",
+   "bestBits": 1.58,
+   "cards": 3
   }
  ],
  "tagAsked": [
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 278932
+   "cards": 278985
   },
   {
    "field": "shelf",
@@ -1066,9 +1082,39 @@
    "cards": 12
   },
   {
+   "field": "shopFor",
+   "label": "For",
+   "cards": 8
+  },
+  {
+   "field": "shopTheme",
+   "label": "Theme",
+   "cards": 4
+  },
+  {
+   "field": "vidTopic",
+   "label": "Topic",
+   "cards": 3
+  },
+  {
    "field": "histSide",
    "label": "Side",
    "cards": 3
+  },
+  {
+   "field": "postBy",
+   "label": "Who posted",
+   "cards": 2
+  },
+  {
+   "field": "postWhen",
+   "label": "When",
+   "cards": 2
+  },
+  {
+   "field": "shopBrand",
+   "label": "Brand",
+   "cards": 1
   }
  ],
  "menuSense": [
@@ -1216,61 +1262,6 @@
    "where": "Find › Library › Religious Studies › Christianity › Reformation",
    "kind": "spelling",
    "say": "Book: Book II ~ Book III"
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"4 · Ablutions\", chip \"4 · Ablutions\", tag \"4 · Ablutions (Wudu')\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"5 · Bathing\", chip \"5 · Bathing\", tag \"5 · Bathing (Ghusl)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sahih al-Bukhari",
-   "kind": "answer-words",
-   "say": "Book: menu \"7 · Rubbing hands and feet with dust\", chip \"7 · Rubbing hands and feet with dust\", tag \"7 · Rubbing hands and feet with dust (Tayammum)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
-   "kind": "answer-words",
-   "say": "Book: menu \"6 · The Book of the Times\", chip \"6 · The Book of the Times\", tag \"6 · The Book of the Times (of Prayer)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
-   "kind": "answer-words",
-   "say": "Book: menu \"7 · The Book of the Adhan\", chip \"7 · The Book of the Adhan\", tag \"7 · The Book of the Adhan (The Call to Prayer)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan an-Nasa'i",
-   "kind": "answer-words",
-   "say": "Book: menu \"10 · The Book of Leading the Prayer\", chip \"10 · The Book of Leading the Prayer\", tag \"10 · The Book of Leading the Prayer (Al-Imamah)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
-   "kind": "answer-words",
-   "say": "Book: menu \"1 · Purification\", chip \"1 · Purification\", tag \"1 · Purification (Kitab Al-Taharah)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
-   "kind": "answer-words",
-   "say": "Book: menu \"2 · Prayer\", chip \"2 · Prayer\", tag \"2 · Prayer (Kitab Al-Salat)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Sunan Abi Dawud",
-   "kind": "answer-words",
-   "say": "Book: menu \"3 · The Book Of The Prayer For Rain\", chip \"3 · The Book Of The Prayer For Rain\", tag \"3 · The Book Of The Prayer For Rain (Kitab al-Istisqa')\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Jami' at-Tirmidhi",
-   "kind": "answer-words",
-   "say": "Book: menu \"2 · The Book on Salat\", chip \"2 · The Book on Salat\", tag \"2 · The Book on Salat (Prayer)\""
-  },
-  {
-   "where": "Find › Library › Religious Studies › Islam › Jami' at-Tirmidhi",
-   "kind": "answer-words",
-   "say": "Book: menu \"10 · The Book on Jana''iz\", chip \"10 · The Book on Jana''iz\", tag \"10 · The Book on Jana''iz (Funerals)\""
   },
   {
    "where": "Find › Library › Religious Studies › Ancient Egyptian religion › Isis and Osiris",
@@ -1706,21 +1697,6 @@
    "where": "Find › Library › Chemistry › Element › Non-metal",
    "kind": "spelling",
    "say": "Group: Group 1 ~ Group 16"
-  },
-  {
-   "where": "Find › Library › Mechanics › Part › Brakes",
-   "kind": "answer-words",
-   "say": "Engine: menu \"1.2 16V\", chip \"1.2 16V\", tag \"1.2 16V (D4F)\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Part › Brakes",
-   "kind": "answer-words",
-   "say": "Engine: menu \"1.2 TCe 100\", chip \"1.2 TCe 100\", tag \"1.2 TCe 100 (D4FT)\""
-  },
-  {
-   "where": "Find › Library › Mechanics › Part › Brakes",
-   "kind": "answer-words",
-   "say": "Engine: menu \"1.5 dCi\", chip \"1.5 dCi\", tag \"1.5 dCi (K9K)\""
   }
  ]
 }

@@ -632,9 +632,9 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
-  /* THE TALMUD'S INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473), never by a widget drawing the list ahead. */
+  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out none, as Find answers only Settings (C+, 503). */
+  if (USER || !ruleOn_('finder-members')) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
-  /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
   if (typeof hadithIndex_ === 'function') hadithIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
@@ -643,7 +643,7 @@ function paintStuff(keepPage) {
   if (typeof orthoIndex_ === 'function') orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
-  if (typeof chemIndex_ === 'function') chemIndex_();
+  if (typeof chemIndex_ === 'function') chemIndex_(); }
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

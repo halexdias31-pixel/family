@@ -2205,6 +2205,7 @@ html.flow #screen .page + .page { border-top: 1px solid var(--line); }
 html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid var(--tag, var(--chip-line)); background: color-mix(in srgb, var(--tag, var(--chip-line)) 10%, transparent); border-radius: var(--btn-r); padding: var(--tp-pad); }
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
+html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column holds a screen till the payload lands, or a short feed landing above Find pushes it down (CLS, 1040) */
 
 
 /* ---------- ONE DIAL, AND THE FRONT OF IT § */
@@ -7169,8 +7170,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ONE SEARCH BAR (batch B): a returned widget's own search box is hidden in Find; the main search is the only one. */
 #s-stuff .vid-search, #s-stuff .sp-search { display: none; }
 /* PICTURE FIRST (batch C): a profile card and a video card lead with the picture, the name under it; the facts are the tags above. */
-.prof-door .prof-big { display: block; width: 100%; max-width: 20rem; height: auto; aspect-ratio: 1; margin: 0 auto .6rem; border-radius: 1rem; object-fit: cover; }
-.vid-door .vid-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: .8rem; margin-bottom: .6rem; background: var(--line); }
+.prof-door .prof-big { display: block; width: 100%; max-width: 20rem; height: auto; aspect-ratio: 1; margin: 0 auto .6rem; border-radius: 16px; object-fit: cover; }
+.vid-door .vid-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; margin-bottom: .6rem; background: var(--line); }
 .notify-door .notify-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 .post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }

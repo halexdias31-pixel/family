@@ -451,7 +451,8 @@ check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car
     if (!m) return undefined;
     try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
   };
-  const { w } = boot({ serve: serveAll });
+  /* A MEMBER: signed out, Find answers only Settings (C+, 1040). */
+  const { w } = boot({ member: true, serve: serveAll });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   if (!w.__t) return ['the app did not boot — NOT checked'];
   const t = w.__t;
@@ -504,7 +505,8 @@ check('Chemistry (550): Library → Chemistry offers Element, Substance and Reac
     if (!m) return undefined;
     try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
   };
-  const { w } = boot({ serve: serveAll });
+  /* A MEMBER: signed out, Find answers only Settings (C+, 1040). */
+  const { w } = boot({ member: true, serve: serveAll });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   if (!w.__t) return ['the app did not boot — NOT checked'];
   const t = w.__t;

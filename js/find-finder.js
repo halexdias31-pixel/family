@@ -438,11 +438,11 @@ const FACETS = [
   /* A KIND UNDER ANOTHER (`KIND_UNDER`, 610) ANSWERS ONLY THAT ONE HERE: Questions are reached through Practice, a Timeline through Library. */
   { field: 'kindLabel', label: 'What kind',
     of: x => kindTop_(x) || x.kindLabel || kindOf_(x).label,
-    tagOf: (x, page) => kindTop_(x) || (page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
-  /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one). */
+    tagOf: (x, page) => kindTop_(x) || (page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+  /* AND ITS OWN KIND IS THE NEXT QUESTION, asked by the one rule like any other (`Answers` beside a question that has one, and on no tool or video). */
   { field: 'kindOwn', label: 'Which',
     of: x => !kindTop_(x) ? '' : notTop_(x, isQ_(x) && questionHasAns_(x) ? [kindOf_(x).label, ansKind_()] : (x.kindLabel || kindOf_(x).label)),
-    tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
+    tagOf: (x, page) => !kindTop_(x) ? '' : notTop_(x, page === 'ans' && isQ_(x) ? ansKind_() : (x.kindLabel || kindOf_(x).label)) },
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
   ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
