@@ -30,9 +30,8 @@ a check tied to no principle is listed, report-only. Edit a rule here, never in 
     Why: every extra step loses a booking. Checks: `friction`, `a11y`, `console`
 12. **Run legally and safely.** Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
     Why: one missed obligation can end the business. Checks: `business`, `biz-checker`, `secrets`
-13. **Nothing is lost.** Switched off, never deleted; every feature comes back on and is stabilised by the sweeps; no age gates on learning content.
     Why: work already paid for should not vanish. Checks: `returned-features`, `no-age-gates`, `dead`
-14. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; ask before guessing visible design; quick checks only, no long waits.
+13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; ask before guessing visible design; quick checks only, no long waits.
     Why: the owner's time is the scarcest thing; guesses on looks are the costliest to undo. Checks: `philosophy`, `owner-questions`
 
 ## How the loop works
