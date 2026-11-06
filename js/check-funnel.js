@@ -130,7 +130,7 @@ boot(f => {
     const wholeKinds = [...new Set(f.stuffItemsAll_().filter(x => !notFor(x)).map(x => x.kind))];
     const missing = wholeKinds.filter(k => !kindsHeld[k]);
     if (missing.length) bad.push('Find\'s list holds no ' + missing.join(', ') + ' — the whole list does, and Find carries everything the funnel is for (347)');
-    ['content', 'boxer', 'fight'].forEach(k => { if (!kindsHeld[k]) bad.push('Find holds no ' + k + ' — the content cards and the resources are Find\'s too (347)'); });
+    ['content', 'people', 'fight'].forEach(k => { if (!kindsHeld[k]) bad.push('Find holds no ' + k + ' — the content cards and the resources are Find\'s too (347)'); });
   } else bad.push('`kindOf_` or `stuffItemsAll_` is not exported, so Find holding everything was NOT checked');
 
   /* ---------- 1. EVERY FACET IS THE SAME KIND OF THING, ASKED, SORTED, SAID AND COLOURED BY ONE RULE (396) § */

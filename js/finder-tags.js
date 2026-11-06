@@ -10,7 +10,7 @@ const FINDER_TAGS = {
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]]],
   "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"]]],
   "kindLabel=Shop": ["shopKind",[["Basket"],["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]]],
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Business"],["Site"]]],
   "kindLabel=Library&subject=Religious Studies": ["wReligion",[["Ancient Egyptian religion"],["Christianity"],["Islam"],["Judaism"],["Mesopotamian religion"]]]
 },
 "@0": {

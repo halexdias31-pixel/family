@@ -90,8 +90,8 @@ if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no shelf q
 const itemM = /function contentItem_\([^)]*\)\s*\{([\s\S]*?)\n\}/.exec(findSrc);
 if (!itemM) fail.push('js/find.js has no `contentItem_` — nothing makes a content card of a chapter');
 else if (/\bshelf\s*:/.test(itemM[1])) fail.push('`contentItem_` puts a content card on a shelf — the textbooks\' shelf went (347, part 2)');
-['Boxers', 'Fights'].forEach(k => {
-  if (!new RegExp("boxKind: '" + k + "', shelf: 'Boxing'").test(findSrc)) {
+['Fighters', 'Fights'].forEach(k => {
+  if (!new RegExp("boxKind: '" + k + "', shelf: (\\[)?'Boxing'").test(findSrc)) {
     fail.push(k + " are not on the 'Boxing' shelf — a shelf only the book carries fails the coverage rule and is never asked");
   }
 });

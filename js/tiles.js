@@ -360,29 +360,11 @@ function wearTiles_(x) {
 }
 
 
-/* ---------- A BOUT § */
-/* ---------- WHAT YOU CAN DO ABOUT YOURSELF — NOTHING, ON THIS CARD § */
-function fightTiles_(x) {
-  const f = x.row || {};
-  return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
-}
-
-/* ---------- A FIGHTER'S ONE DOOR: HIS FIGHTS, ON FILM § */
-function boxerTiles_(x) {
-  const b = x.row || {};
-  const name = String(b.name || x.name || '').trim();
-  if (!name) return '';
-  return tile_({ icon: 'play', label: 'Highlights', note: 'on YouTube',
-                 href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
-}
-
-
-
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
-  level: levelTiles_, fight: fightTiles_, boxer: boxerTiles_, receipt: jobTiles_, talmud: x => talmudTiles_(x) };
+  level: levelTiles_, receipt: jobTiles_, talmud: x => talmudTiles_(x) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),

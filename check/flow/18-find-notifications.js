@@ -676,7 +676,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   }
   /* AND NOTHING THAT WAS IN RESOURCES FELL OFF THE SHELVES (445 moved it to Content): the boxing and the Bible keep their door. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
-  const resources = R.stuffItems().filter(i => i.kind === 'boxer' || i.kind === 'fight' || i.kind === 'bible');
+  const resources = R.stuffItems().filter(i => i.kind === 'people' || i.kind === 'fight' || i.kind === 'bible');
   const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
   if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' boxing / Bible items are on no shelf — pressing a shelf hides them');
   if (R.stuffItems().some(i => w.kindOf_(i).label === 'Resources')) bad.push('an item is still labelled Resources — it went into Content (445)');
@@ -953,7 +953,7 @@ check('both finders carry the same items — the same keys, the same count, ever
   if (onlyR.length) bad.push(onlyR.length + ' item(s) on Find 2 and not on Find, first ' + onlyR.slice(0, 3).join(', '));
   /* EVERYTHING THE WHOLE LIST OFFERS, on each — the content cards, the boxers, the fights AND the
      projects — less only what the funnel offers nobody (`FUNNEL_NOT_FOR`: Booking and Shop). */
-  ['content', 'boxer', 'fight', 'project'].forEach(k => {
+  ['content', 'people', 'fight', 'project'].forEach(k => {
     if (!find.some(x => x.kind === k)) bad.push('Find holds no ' + k);
     if (!res.some(x => x.kind === k)) bad.push('Find 2 holds no ' + k);
   });
@@ -984,10 +984,10 @@ check('both finders carry the same items — the same keys, the same count, ever
   if (fBare !== rBare) bad.push('Find and Find 2 ask their first question of two copies of the same list — every tally of it is counted twice');
   /* A KIND RELABELLED IN THE LIVE SHEET MOVES NOTHING BETWEEN THEM: § */
   const was = t.DATA().kinds;
-  t.DATA().kinds = [{ kind: 'boxer', group: 'Learning', label: 'Fighters', active: true }];
+  t.DATA().kinds = [{ kind: 'people', group: 'Learning', label: 'Fighters', active: true }];
   w.stuffForget_();
   const f2 = w.stuffItems(), r2 = inRes_(w, () => w.stuffItems());
-  const fB = f2.filter(x => x.kind === 'boxer').length, rB = r2.filter(x => x.kind === 'boxer').length;
+  const fB = f2.filter(x => x.kind === 'people').length, rB = r2.filter(x => x.kind === 'people').length;
   if (!fB || fB !== rB) bad.push('the kinds tab relabelled the boxers and the finders hold ' + fB + ' and ' + rB + ' of them — wanted all of them on both');
   const fS2 = said(f2), rS2 = inRes_(w, () => said(r2));
   if (!/\bFighters\b/.test(fS2) || fS2 !== rS2) bad.push('after the relabel What kind says ' + fS2 + ' on Find and ' + rS2 + ' on Find 2 — wanted Fighters on both, the same');

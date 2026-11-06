@@ -4,6 +4,8 @@
 /*   odd-tags      a tag made of two or more of its card's other tags ("Paper 1 (Non-calculator) — June 2019" beside June, 2019), or a */
 /*                 value on (almost) every card, which tells a reader nothing                                                           */
 /*   dup-controls  one control twice on one card: the same data-do with the same data-* values (the magnifier in the tool row and the foot) */
+/*   picture-first, people-one-kind, manuscripts-reach (batch D): a person or fight card is portraits and tags only; one people kind;  */
+/*                 every manuscript under Library › History › Manuscripts                                                              */
 /* Every question card is read (they carry the most tags); other kinds are sampled evenly, SAMPLE per kind. --check: exit 1 when stale. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -66,7 +68,17 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
       USER = Object.assign({ name: 'S', personId: 'P-S' }, { role: 'Student', roles: ['student'] });
       const asStudent = acts(); USER = keep;
       const ranks = qs.map((x, i) => ({ id: 'question:' + x.key, admin: asAdmin[i], student: asStudent[i] }));
-      return JSON.stringify({ items: all.length, cards, drawn, ranks });
+      /* BATCH D: every person and fight card is its portrait(s) under the tags and nothing else (picture-first); one people kind (people-one-kind). */
+      const pics = [].concat(by.people || [], by.fight || []).map(x => { const d = document.createElement('div');
+        try { d.innerHTML = stuffCard(x); } catch (e) { return { id: x.kind + ':' + x.key, err: String(e.message) }; }
+        const card = d.querySelector('.card'), n = card ? card.querySelectorAll('svg.pp').length : 0;
+        if (card) card.querySelectorAll('.qtags, svg.pp, .fc-tiles, .tile-row').forEach(e => e.remove());
+        return { id: x.kind + ':' + x.key, want: x.kind === 'fight' ? 2 : 1, n, rest: card ? card.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : 'no card' }; });
+      const kinds = Object.keys(by).filter(k => /^(boxer|figure)$/.test(k) || (by[k].some(x => x.pixId) && k !== 'people'));
+      STUFF.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Manuscripts' }];
+      const msReach = stuffItems().filter(x => x.kind === 'manuscript').length, msAll = (by.manuscript || []).length;
+      STUFF.filters = [];
+      return JSON.stringify({ items: all.length, cards, drawn, ranks, pics, kinds, msReach, msAll });
     }); })()`));
   A.close();
   const work = [], counts = {};
@@ -79,9 +91,17 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
   (got.ranks || []).forEach(r => {
     if (r.admin != null && r.student != null && r.admin !== r.student) work.push({ kind: 'dup-controls', where: r.id, say: `controls differ by rank: admin "${r.admin}" vs student "${r.student}"` });
     ['admin', 'student'].forEach(k => { if (r[k] != null && !/\bhelp-hand\b/.test(r[k])) work.push({ kind: 'dup-controls', where: r.id, say: `no Help tile for a ${k}` }); }); });
+  (got.pics || []).forEach(c => {
+    if (c.err) work.push({ kind: 'picture-first', where: c.id, say: 'the card threw: ' + c.err });
+    else if (c.n !== c.want) work.push({ kind: 'picture-first', where: c.id, say: `${c.n} portrait(s), wanted ${c.want}` });
+    else if (c.rest) work.push({ kind: 'picture-first', where: c.id, say: `text besides the tags: "${c.rest}"` }); });
+  if (!(got.pics || []).length) work.push({ kind: 'picture-first', where: 'Find', say: 'no person or fight card reached Find, so none was checked' });
+  (got.kinds || []).forEach(k => work.push({ kind: 'people-one-kind', where: 'kind ' + k, say: `a person drawn as kind "${k}", not "people"` }));
+  if (!got.msReach || got.msReach < got.msAll) work.push({ kind: 'manuscripts-reach', where: 'Library › History › Manuscripts', say: `${got.msReach || 0} of ${got.msAll || 0} manuscripts reachable for an admin` });
   const by = k => work.filter(w => w.kind === k).length;
   const pairs = {}; work.forEach(w => { const k = w.kind === 'dup-controls' ? w.say.replace(/ \(.*\)/, '') : w.say.replace(/"[^"]*"/g, '…'); pairs[k] = (pairs[k] || 0) + 1; });
-  const out = { items: got.items, tagCards: got.cards.length, drawnCards: got.drawn.length, counts: { 'odd-tags': by('odd-tags'), 'dup-controls': by('dup-controls') },
+  const out = { items: got.items, tagCards: got.cards.length, drawnCards: got.drawn.length, counts: { 'odd-tags': by('odd-tags'), 'dup-controls': by('dup-controls'), 'picture-first': by('picture-first'), 'people-one-kind': by('people-one-kind'), 'manuscripts-reach': by('manuscripts-reach') },
+    people: (got.pics || []).length,
     byRule: Object.entries(pairs).sort((a, b) => b[1] - a[1]).slice(0, 60), work: work.slice(0, 2000) };
   const text = JSON.stringify(out, null, 1) + '\n';
   if (process.argv.includes('--check')) { let had = ''; try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) { had = ''; /* no file yet: stale */ }

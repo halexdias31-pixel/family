@@ -1,11 +1,15 @@
 {
- "items": 278932,
- "tagCards": 32984,
- "drawnCards": 687,
+ "items": 278994,
+ "tagCards": 33046,
+ "drawnCards": 689,
  "counts": {
   "odd-tags": 330,
-  "dup-controls": 0
+  "dup-controls": 0,
+  "picture-first": 0,
+  "people-one-kind": 0,
+  "manuscripts-reach": 0
  },
+ "people": 313,
  "byRule": [
   [
    "tag … (wSource) is a title made of the card's other tags … + …",
@@ -24,7 +28,7 @@
    7
   ],
   [
-   "tag … (forLabel) is on 32938 of 32984 cards read — it tells a reader nothing (owner question)",
+   "tag … (forLabel) is on 32946 of 33046 cards read — it tells a reader nothing (owner question)",
    1
   ]
  ],
@@ -1677,7 +1681,7 @@
   {
    "kind": "odd-tags",
    "where": "every card",
-   "say": "tag \"Learning\" (forLabel) is on 32938 of 32984 cards read — it tells a reader nothing (owner question)"
+   "say": "tag \"Learning\" (forLabel) is on 32946 of 33046 cards read — it tells a reader nothing (owner question)"
   }
  ]
 }

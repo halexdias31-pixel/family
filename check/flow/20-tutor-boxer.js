@@ -22,7 +22,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const onCard = el => !el.closest('svg, figure, .tb-an-stage');
   const strayFilms = all.filter(x => x.kind === 'film' || p.films.some(f => f.title === x.name));
   if (strayFilms.length) bad.push(strayFilms.length + ' of the payload\'s films reached Find (' + strayFilms.map(x => x.name).join(', ') + ') — films are found in Games → Videos, not in Find');
-  const KINDS_HERE =['practical', 'project', 'content', 'boxer', 'fight'];
+  const KINDS_HERE =['practical', 'project', 'content', 'people', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
@@ -32,7 +32,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
       const card = host.querySelector('.favwrap > .card') || host.firstElementChild;
       if (!card || !card.classList.contains('fc')) { bad.push(name + ' is not a `.card.fc`'); return; }
       /* A FIGHT HAS NO HEAD (490): "just have the tags of both boxes' names" -- it opens on its tag row. */
-      if (kind === 'fight') {
+      if (kind === 'fight' || kind === 'people') {
         const tr0 = card.firstElementChild;
         if (!tr0 || !tr0.classList.contains('qtags') || card.querySelector('h3')) bad.push(name + ' does not open on its tag row');
         return;
@@ -89,423 +89,36 @@ const boxerApp_ = async (edit) => {
   p.boxers = made.boxers; p.fights = made.fights || [];
   const { w, errs } = boot({ payload: p });
   await wait(300);
-  const item = name => w.stuffItemsAll_().find(x => x.kind === 'boxer' && x.name === name);
+  const item = name => w.stuffItemsAll_().find(x => x.kind === 'people' && x.name === name);
   const draw = html => { const d = w.document.createElement('div'); d.innerHTML = html; w.document.body.appendChild(d); return d; };
   return { w, errs, raw, made, item, draw };
 };
 
-check('a boxer with a photo: the picture, its credit, the record and a bar that adds up to 100', async () => {
+/* ---------- ONE PEOPLE KIND (batch D): a boxer is the same card as a historical figure, a fight their two portraits face to face ---------- */
+check('a boxer is a people card: the tags over one 8-bit portrait and nothing else, no fights page; a fight is the two corners\' portraits facing each other under its tags', async () => {
   const a = await boxerApp_();
   if (a.fail) return [a.fail];
-  const bad = [];
-  const row = a.raw.boxers.find(b => b.name === 'Muhammad Ali');
-  if (!row || !row.image) return ['data/boxers.json has no Muhammad Ali with a photo — this journey has nothing to look at'];
+  const bad = [], w = a.w;
+  w.__t.DATA().portraits = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'portraits.json'), 'utf8'));
   const x = a.item('Muhammad Ali');
-  if (!x) return ['Muhammad Ali is not in Find'];
-  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
-  if (!card) return ['Ali\'s card is not a `.card.fc.boxer`'];
-  const img = card.querySelector('.boxer-pic img.boxer-img');
-  if (!img) bad.push('no <img> on the card of the one boxer with a photo');
-  else {
-    if (img.getAttribute('src') !== row.image) bad.push('the <img> points at ' + img.getAttribute('src') + ', not the row\'s image');
-    if (img.getAttribute('alt') !== row.name) bad.push('the photo\'s alt is "' + img.getAttribute('alt') + '", not his name');
-    if (img.getAttribute('loading') !== 'lazy') bad.push('the photo is not lazy-loaded');
-  }
-  /* THE CREDIT IS THE LINE STRAIGHT AFTER THE PHOTO — across the card under it rather than a caption
-     in its narrow column (see `boxerPic_`), so it is asked for as the photo's next sibling. */
-  const credit = card.querySelector('.boxer-pic + .boxer-credit');
-  if (!credit || credit.textContent.trim() !== row.image_credit.trim()) bad.push('the credit under the photo is "' + (credit ? credit.textContent.trim() : 'missing') + '", not the row\'s "' + row.image_credit + '"');
-  /* ---------- AND THE CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE § */
-  const file = (row.image.match(/\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/) || [])[1];
-  const link = credit && credit.querySelector('a.boxer-src');
-  if (!file) bad.push('Ali\'s image is not a Commons upload address, so the link rule was NOT checked: ' + row.image);
-  else if (!link) bad.push('the credit under a Commons photo is not a link to its file page');
-  else {
-    if (link.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file) bad.push('the credit links to ' + link.getAttribute('href') + ', not the file page File:' + file);
-    if (link.getAttribute('target') !== '_blank' || !/noopener/.test(link.getAttribute('rel') || '')) bad.push('the credit link does not open outside the app with rel=noopener');
-  }
-  const flink = (() => {
-    const t = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.aId === row.boxer_id);
-    const fcard = t && a.draw(a.w.stuffCard(t));
-    return fcard && fcard.querySelector('.fight-credit a.boxer-src');
-  })();
-  if (file && (!flink || flink.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file)) bad.push('a fight card with Ali\'s face does not link his credit to the same file page');
-  /* THE NUMBERS, AS THE ROW SAYS THEM. */
-  const num = k => { const el = card.querySelector('.boxer-tally .boxer-n.is-' + k + ' b'); return el ? el.textContent.trim() : null; };
-  [['w', 'wins'], ['l', 'losses'], ['d', 'draws']].forEach(([k, col]) => {
-    if (num(k) !== String(Number(row[col]))) bad.push('the ' + col + ' column reads ' + num(k) + ', the row says ' + row[col]);
-  });
-  const ko = card.querySelector('.boxer-n.is-w .boxer-ko');
-  if (!ko || ko.textContent.trim() !== row.wins_ko + ' KO') bad.push('under the wins: "' + (ko ? ko.textContent.trim() : 'nothing') + '", not "' + row.wins_ko + ' KO"');
-  if (String(row.losses_ko).trim() === '' && card.querySelector('.boxer-n.is-l .boxer-ko')) bad.push('a KO count is printed under the losses and that cell is blank — "0 KO" is a claim nobody made');
-  if (!card.querySelector('.boxer-rec')) bad.push('the record has lost the `.boxer-rec` name the textbook state looks for');
-  const rate = Math.round(Number(row.wins_ko) / Number(row.wins) * 100);
-  if (!new RegExp('KO rate ' + rate + '%').test((card.querySelector('.boxer-line') || {}).textContent || '')) bad.push('the KO rate is not ' + rate + '%');
-  /* THE BAR ADDS UP TO A HUNDRED, and each segment is its share. */
-  const rects = [...card.querySelectorAll('svg.boxer-bar rect')];
-  const total = rects.reduce((s, r) => s + Number(r.getAttribute('width')), 0);
-  if (!rects.length) bad.push('no record bar');
-  else if (Math.abs(total - 100) > 0.001) bad.push('the bar\'s segments add up to ' + total + ', not 100');
-  const all = Number(row.wins) + Number(row.losses) + Number(row.draws) + Number(row.no_contests || 0);
-  const wr = rects.find(r => r.getAttribute('class') === 'is-w');
-  if (wr && Math.abs(Number(wr.getAttribute('width')) - Number(row.wins) / all * 100) > 0.01) bad.push('the win segment is ' + wr.getAttribute('width') + '%, his wins are ' + (Number(row.wins) / all * 100).toFixed(2) + '%');
-  /* THE TAPE ONLY HAS ROWS WITH SOMETHING IN THEM, and the reach is the row's. */
-  const tape = [...card.querySelectorAll('.boxer-tape dt')].map(d => d.textContent.trim());
-  if (row.reach_cm && tape.indexOf('Reach') < 0) bad.push('the tape has no Reach row and the row has ' + row.reach_cm);
-  if (card.querySelectorAll('.boxer-tape dd:empty').length) bad.push('the tape draws an empty value');
-  /* AND THE ACTIONS ARE TILES UNDER THE CARD — the star's row with a Highlights link in it. */
-  const host = a.draw(a.w.stuffCard(x));
-  const hl = host.querySelector(':scope > .tile-row a.tile[href*="youtube.com"]');
-  if (!hl) bad.push('no Highlights tile in the row under the card');
-  else if (hl.getAttribute('target') !== '_blank') bad.push('the Highlights tile does not open somewhere else');
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  if (!x) return ['Muhammad Ali is not a people item — NOT checked'];
+  if (w.pageParts_(x).length !== 1) bad.push('a boxer still has pages after his card: ' + JSON.stringify(w.pageParts_(x)));
+  const card = a.draw(w.stuffCard(x)).querySelector('.card.fc.person');
+  if (!card) return bad.concat(['a boxer is not drawn as `.card.fc.person`']);
+  if (!card.firstElementChild.matches('.qtags')) bad.push('the boxer card does not open on its tags');
+  if (card.querySelectorAll('svg.pp').length !== 1 || card.querySelector('svg.pp.is-none')) bad.push('the boxer card has no portrait of his own');
+  const rest = card.cloneNode(true); rest.querySelectorAll('.qtags, svg.pp').forEach(e => e.remove());
+  if (rest.textContent.trim()) bad.push('the boxer card says more than its tags: ' + JSON.stringify(rest.textContent.trim().slice(0, 60)));
+  const f = w.stuffItemsAll_().find(y => y.kind === 'fight' && y.row && y.row.a === 'Muhammad Ali');
+  const fc = f && a.draw(w.stuffCard(f)).querySelector('.card.fc.fight');
+  if (!fc) return bad.concat(['no fight of Muhammad Ali drawn — NOT checked']);
+  const pics = fc.querySelectorAll('.fight-faces svg.pp');
+  if (pics.length !== 2) bad.push('a fight card has ' + pics.length + ' portraits, wanted two');
+  else if (pics[0].querySelector('g[transform]') || !pics[1].querySelector('g[transform*="scale(-1 1)"]')) bad.push('the two corners do not face each other');
+  if (pics[0] && pics[0].innerHTML.replace(/<\/?g[^>]*>/g, '') !== a.draw(w.personPic_(x.pixId, x.name)).querySelector('svg').innerHTML) bad.push('the fight draws Ali differently from his own card');
   return bad;
 });
 
-check('a boxer without a photo: the ring and his initials, no <img>; no credit means no photo; no record says so', async () => {
-  const a = await boxerApp_(raw => {
-    /* TWO ROWS EDITED IN THE COPY, never the file: a photo address with its credit taken away, which
-       the licence rule must refuse to draw. */
-    const g = raw.boxers.find(b => b.name === 'George Foreman');
-    if (g) { g.image = 'https://upload.wikimedia.org/wikipedia/commons/x/xx/Foreman.jpg'; g.image_credit = ''; }
-    /* AND JOE LOUIS WITH NO PHOTO, IN THE COPY. § */
-    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
-    if (jl) { jl.image = ''; jl.image_credit = ''; }
-  });
-  if (a.fail) return [a.fail];
-  const bad = [];
-  const x = a.item('Joe Louis');
-  if (!x) return ['Joe Louis is not in Find'];
-  if (x.row.image) return ['Joe Louis has a photo now — pick another boxer for the no-photo journey'];
-  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
-  const fig = card && card.querySelector('.boxer-pic');
-  if (!fig) return ['no picture box on a boxer with no photo — the placeholder was not drawn'];
-  if (!fig.classList.contains('is-none')) bad.push('the picture box is not marked as the placeholder');
-  if (card.querySelector('img')) bad.push('an <img> is on the card of a boxer with no photo');
-  if (card.querySelector('.boxer-credit')) bad.push('a credit is on the card and there is no photo to credit');
-  const ring = fig.querySelector('svg.boxer-ring');
-  if (!ring) bad.push('no ring drawn in the placeholder');
-  else {
-    const ini = ring.querySelector('.boxer-ini');
-    if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
-    if (!ring.querySelector('.bf-l .bf-glove')) bad.push('the placeholder has no fighter in it');
-  }
-  /* A `Jr.` IS NOT A SURNAME — the placeholder for Floyd Mayweather Jr. says FM. */
-  const fm = a.item('Floyd Mayweather Jr.');
-  const fmi = fm && a.draw(a.w.stuffCard(fm)).querySelector('.boxer-ini');
-  if (fm && (!fmi || fmi.textContent.trim() !== 'FM')) bad.push('Floyd Mayweather Jr.\'s initials are "' + (fmi ? fmi.textContent : '') + '", not FM');
-  /* AND A SURNAME CAN START WITH A PARTICLE — Oscar De La Hoya is OD, not OH. Asked of the function
-     too, for the particle names the file does not hold yet, and for a particle that is a FIRST name. */
-  const odl = a.item('Oscar De La Hoya');
-  const odi = odl && a.draw(a.w.stuffCard(odl)).querySelector('.boxer-ini');
-  if (!odl) bad.push('Oscar De La Hoya is not in Find, so the particle rule was NOT checked on a real row');
-  else if (!odi || odi.textContent.trim() !== 'OD') bad.push('Oscar De La Hoya\'s initials are "' + (odi ? odi.textContent : '') + '", not OD');
-  [['Ingemar Van Der Berg', 'IV'], ['Joe Von Rosen Jr.', 'JV'], ['De Wayne Smith', 'DS'], ['Juan Manuel Marquez', 'JM']].forEach(([n, i]) => {
-    if (a.w.boxerInitials_(n) !== i) bad.push('"' + n + '" gives initials ' + a.w.boxerInitials_(n) + ', not ' + i);
-  });
-  /* AN ADDRESS WITH NO CREDIT IS NOT DRAWN. */
-  const g = a.item('George Foreman');
-  const gc = g && a.draw(a.w.stuffCard(g)).querySelector('.card.fc.boxer');
-  if (!gc) bad.push('George Foreman is not in Find');
-  else if (gc.querySelector('img')) bad.push('a photo with no credit was drawn — the licence makes the credit the condition of showing it');
-  /* NO RECORD ON FILE IS SAID, NOT ZEROED. */
-  const blank = a.raw.boxers.find(b => String(b.wins).trim() === '' && String(b.losses).trim() === '');
-  const bx = blank && a.item(blank.name);
-  if (!bx) bad.push('no boxer with a blank record reached Find, so that case was NOT checked');
-  else {
-    const bc = a.draw(a.w.stuffCard(bx)).querySelector('.card.fc.boxer');
-    if (bc.querySelector('.boxer-tally')) bad.push(blank.name + ' has no record in the file and the card drew a scoreboard: ' + bc.querySelector('.boxer-tally').textContent.replace(/\s+/g, ' '));
-    if (!/No fight record on file/.test(bc.textContent)) bad.push(blank.name + '\'s card does not say there is no record on file');
-  }
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
-  return bad;
-});
-
-check('a boxer photo that will not load falls back to the ring, takes its credit, and is not asked for again', async () => {
-  const BROKEN = 'https://example.invalid/no-such-boxer.jpg';
-  const a = await boxerApp_(raw => {
-    const ali = raw.boxers.find(b => b.name === 'Muhammad Ali');
-    if (ali) { ali.image = BROKEN; ali.image_credit = ali.image_credit || 'Photo: test'; }
-  });
-  if (a.fail) return [a.fail];
-  const bad = [];
-  const x = a.item('Muhammad Ali');
-  if (!x) return ['Muhammad Ali is not in Find'];
-  const host = a.draw(a.w.stuffCard(x));
-  const img = host.querySelector('img.boxer-img');
-  if (!img) return ['the card drew no <img> for the broken address, so the fallback was NOT exercised'];
-  /* THE BROWSER'S OWN SIGNAL. `error` does not bubble; the app listens for it in the capture phase on
-     the document, which is the only place a failure on any card can be heard. */
-  img.dispatchEvent(new a.w.Event('error'));
-  const fig = host.querySelector('.boxer-pic');
-  if (host.querySelector('img.boxer-img')) bad.push('the <img> is still on the card after it failed — a broken picture');
-  if (!fig || !fig.classList.contains('is-none')) bad.push('the picture box did not fall back to the placeholder');
-  if (!fig || !fig.querySelector('svg.boxer-ring .boxer-ini')) bad.push('the ring is not there to fall back to');
-  if (host.querySelector('.boxer-credit')) bad.push('the credit stayed under a picture nobody can see');
-  /* AND A REPAINT DOES NOT PUT IT BACK, which would flicker the ring behind a picture never coming. */
-  const again = a.draw(a.w.stuffCard(x));
-  if (again.querySelector('img.boxer-img')) bad.push('drawing the card again asked for the address that already failed');
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
-  return bad;
-});
-
-check('a boxer\'s fights: every bout they are in, newest first, from their side — and the fight card\'s two faces', async () => {
-  /* FRAZIER WITHOUT HIS PHOTO, IN THE COPY, so the blue corner's placeholder is tested whatever the
-     file holds -- the same reason Joe Louis is made photo-less in the journey above. */
-  const a = await boxerApp_(raw => {
-    const jf = raw.boxers.find(b => b.name === 'Joe Frazier');
-    if (jf) { jf.image = ''; jf.image_credit = ''; }
-  });
-  if (a.fail) return [a.fail];
-  const bad = [];
-  const x = a.item('Muhammad Ali');
-  if (!x) return ['Muhammad Ali is not in Find'];
-  const id = a.raw.boxers.find(b => b.name === 'Muhammad Ali').boxer_id;
-  /* COUNTED FROM THE FILE, BY ID, not by the function being checked. */
-  const his = a.raw.fights.filter(f => f.boxer_a_id === id || f.boxer_b_id === id)
-    .sort((p, q) => String(q.date).localeCompare(String(p.date)));
-  if (!his.length) return ['data/fights.json has no bout with Ali\'s id — nothing to check'];
-  /* ---------- SEVEN BOUTS A PAGE, AS MANY PAGES AS THAT TAKES § */
-  const PER = 7;
-  const wantParts = [null].concat(Array.from({ length: Math.ceil(his.length / PER) }, (_, i) => i ? 'fights' + (i + 1) : 'fights'));
-  const parts = a.w.pageParts_(x);
-  if (JSON.stringify(parts) !== JSON.stringify(wantParts)) bad.push('Ali\'s pages are ' + JSON.stringify(parts) + ', not his card and ' + (wantParts.length - 1) + ' pages of fights for his ' + his.length + ' bouts');
-  const pgs = parts.filter(Boolean).map(part => a.draw(a.w.stuffPart_(x, part)).firstElementChild);
-  const pg = pgs[0];
-  if (!pg || !pg.classList.contains('fc')) return bad.concat(['the fights page is not a `.card.fc`']);
-  pgs.forEach((p, i) => {
-    const k = p && p.firstElementChild, h = k && k.nextElementSibling;
-    if (!k || !k.classList.contains('fc-kick') || k.textContent.trim() !== 'Muhammad Ali' || !h || h.tagName !== 'H3') bad.push('fights page ' + (i + 1) + ' does not open on his name and then its title');
-    const n = p ? p.querySelectorAll('.boxer-bouts li').length : 0;
-    if (n > PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts — more than ' + PER + ' is past what a 320x568 pane shows at full size');
-    if (i < pgs.length - 1 && n !== PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts and is not the last — a short page in the middle');
-    const from = i * PER + 1, to = Math.min(his.length, (i + 1) * PER);
-    const h4 = p && p.querySelector('.boxer-bouts h4');
-    if (!h4 || h4.textContent.indexOf(from + '–' + to + ' of ' + his.length) < 0) bad.push('fights page ' + (i + 1) + '\'s heading is "' + (h4 ? h4.textContent : '') + '", not bouts ' + from + '–' + to + ' of ' + his.length);
-    if (i > 0 && p && p.querySelector('.boxer-notable')) bad.push('fights page ' + (i + 1) + ' repeats who he beat — that is the first page\'s');
-  });
-  if (!pg.querySelector('.boxer-notable')) bad.push('the first fights page has lost who he beat and who beat him');
-  const lis = pgs.reduce((all, p) => all.concat(p ? [...p.querySelectorAll('.boxer-bouts li')] : []), []);
-  if (lis.length !== his.length) bad.push('the pages list ' + lis.length + ' bouts; the file has ' + his.length + ' with his id');
-  lis.forEach((li, i) => {
-    const f = his[i];
-    if (!f) return;
-    const opp = f.boxer_a_id === id ? f.boxer_b : f.boxer_a;
-    const want = f.winner_id ? (f.winner_id === id ? 'W' : 'L')
-      : f.winner ? (f.winner === 'Muhammad Ali' ? 'W' : 'L') : 'D';
-    const got = (li.querySelector('.boxer-res') || {}).textContent;
-    const name = (li.querySelector('.boxer-opp') || {}).textContent;
-    if (name !== opp) bad.push('bout ' + (i + 1) + ' (' + f.date + ') names "' + name + '", the other corner is "' + opp + '"');
-    if (got !== want) bad.push('bout ' + (i + 1) + ' against ' + opp + ' on ' + f.date + ' is marked ' + got + ', the file says ' + want);
-    if (!li.classList.contains('is-' + want.toLowerCase())) bad.push('bout ' + (i + 1) + ' is not coloured as a ' + want);
-    const how = (li.querySelector('.boxer-how') || {}).textContent || '';
-    if (f.method && how.indexOf(f.method) !== 0) bad.push('bout ' + (i + 1) + ' does not say how it ended (' + f.method + '): "' + how + '"');
-    /* THE RESULT IN WORDS FOR A SCREEN READER, the letter hidden from it. An `aria-label` on a bare
-       span is ignored by most readers, so the word has to be text they read. */
-    const say = (li.querySelector('.boxer-say') || {}).textContent || '';
-    const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' }[want];
-    if (say.trim().replace(/,$/, '') !== word) bad.push('bout ' + (i + 1) + ' says "' + say + '" to a screen reader, not "' + word + '"');
-    const sq = li.querySelector('.boxer-res');
-    if (sq && (sq.getAttribute('aria-hidden') !== 'true' || sq.hasAttribute('aria-label'))) bad.push('bout ' + (i + 1) + '\'s letter square is read out as well as the word');
-  });
-  /* A FIGHTER WITH NOTHING FOR THAT PAGE HAS NO SUCH PAGE. */
-  const none = a.made.boxers.find(b => !a.w.boxerHasFights_(b));
-  const nx = none && a.item(none.name);
-  if (nx && a.w.pageParts_(nx).length !== 1) bad.push(none.name + ' has no fights on file and still gets a fights page');
-  /* THE FIGHT CARD: BOTH FACES, THE WINNER'S FRAMED, AND THE CREDIT FOR THE ONE PHOTO. */
-  const thrilla = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.a === 'Muhammad Ali' && i.row.date === '1975-10-01');
-  if (!thrilla) bad.push('the Thrilla in Manila is not in Find');
-  else {
-    const fc = a.draw(a.w.stuffCard(thrilla)).querySelector('.card.fc.fight');
-    const faces = fc ? [...fc.querySelectorAll('.fight-faces .boxer-pic')] : [];
-    if (faces.length !== 2) bad.push('the fight card has ' + faces.length + ' faces, not 2');
-    else {
-      if (!faces[0].classList.contains('won') || faces[1].classList.contains('won')) bad.push('the winner\'s face is not the one framed');
-      if (!faces[0].querySelector('img')) bad.push('Ali\'s photo is not on the fight card');
-      if (faces[1].querySelector('img') || !faces[1].querySelector('.bf-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
-    }
-    const cr = fc && fc.querySelector('.fight-credit');
-    if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
-    /* ITS FACTS ARE TAGS, LIKE A QUESTION'S (445): each fighter, the month, the year, the weight, the round, how it ended — then the picture. */
-    const tags = fc ? [...fc.querySelectorAll('.qcard-tags .qtag')].map(el => el.getAttribute('data-f') + '=' + el.textContent.trim()) : [];
-    ['fighter=Muhammad Ali', 'fighter=Joe Frazier', 'boutMonth=October', 'boutYear=1975', 'division=Heavyweight', 'boutRound=Round 14', 'boutMethod=RTD', 'boutEvent=The Thrilla in Manila']
-      .forEach(want => { if (tags.indexOf(want) < 0) bad.push('the fight card has no tag ' + want + ': ' + tags.join(', ')); });
-    if (tags.some(x => /^kindLabel=Resources$/.test(x))) bad.push('the fight card still wears Resources');
-    if (fc && fc.querySelector(':scope > .sub')) bad.push('the fight card still prints a line of the facts its tags carry: ' + fc.querySelector(':scope > .sub').textContent.trim());
-    const kids = fc ? [...fc.children] : [];
-    const at = sel => kids.findIndex(el => el.matches(sel));
-    if (fc && !(at('.qcard-tags') >= 0 && at('.fight-faces') > at('.qcard-tags') && kids.slice(at('.fight-faces') + 1).every(el => el.matches('.fight-credit')))) bad.push('the picture is not at the bottom under the tags: ' + kids.map(el => el.className).join(' | '));
-    if (fc && /\d{4}-\d{2}-\d{2}/.test(fc.textContent)) bad.push('the fight card prints an ISO date');
-    /* NO "A v B" TITLE (490): the fighters are tags, and the card starts with them. */
-    if (fc && (fc.querySelector('h3') || !fc.firstElementChild.matches('.qcard-tags'))) bad.push('the fight card still has a title above its tags');
-  }
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
-  return bad;
-});
-
-/* ---------- THE EIGHT-BIT FIGHTER WEARS WHAT HIS ROW SAYS, AND A FIGHT WHAT THAT NIGHT'S ROW SAYS § */
-check('the eight-bit fighter: every profile wears its row, a fight wears that night\'s trunks, a woman wears a top, a blank claims nothing', async () => {
-  const a = await boxerApp_(raw => {
-    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
-    if (jl) { jl.trunks_usual = 'whte/black'; jl.look_skin = 's7'; }
-  });
-  if (a.fail) return [a.fail];
-  const bad = [];
-  const K = a.w.__t.BOXER && a.w.__t.BOXER();
-  if (!K || !K.LOOK) return ['the figure\'s vocabulary (BOXER_LOOK) is not reachable — NOT checked'];
-  const runs = s => a.w.boxerRuns_(s);
-  const groupIn = el => el && el.querySelector('svg.boxer-ring g.bf');
-  const ok = (k, v) => (K.LOOK[k].indexOf(v) >= 0 ? v : '');
-  /* ONE QUESTION, ASKED OF EVERY FIGURE: does `g` carry exactly this look and these trunks? */
-  const wears = (g, who, look, trunks, blue, sex) => {
-    if (!g) { bad.push(who + ': no fighter drawn in the ring'); return; }
-    const cls = [...g.classList], style = g.getAttribute('style') || '';
-    const woman = String(sex || '').trim().toUpperCase() === 'F';
-    if (g.classList.contains('bf-f') !== woman) bad.push(who + (woman ? ' is a woman and is not drawn as one (no `bf-f`)' : ' is drawn as a woman'));
-    const top = g.querySelector('.bf-top');
-    if (woman ? (!top || top.getAttribute('d') !== runs(K.BODY.top)) : top) bad.push(who + (woman ? ' is a woman and wears no top — a bare torso' : ' is a man and wears a top'));
-    if (!g.classList.contains(blue ? 'bf-r' : 'bf-l')) bad.push(who + ' is not drawn in the ' + (blue ? 'blue' : 'red') + ' corner');
-    if (/scale\(-1 1\)/.test(g.getAttribute('transform') || '') !== !!blue) bad.push(who + (blue ? ' does not face left' : ' is mirrored'));
-    const skin = ok('skin', look.skin), hair = ok('hair', look.hair), hc = ok('hair_colour', look.hairColour);
-    const face = ok('facial', look.facial) === 'none' ? '' : ok('facial', look.facial);
-    [['bf-sk-', skin], ['bf-hs-', hair], ['bf-hc-', hc], ['bf-fh-', face]].forEach(([pre, v]) => {
-      const got = cls.filter(c => c.indexOf(pre) === 0);
-      if (v ? (got.length !== 1 || got[0] !== pre + v) : got.length) bad.push(who + ' wears ' + (got.join(' ') || 'nothing') + ' for ' + pre + '*, the row says "' + v + '"');
-    });
-    if (skin && style.indexOf('--bf-skin:var(--bf-' + skin + ')') < 0) bad.push(who + '\'s skin is not painted from --bf-' + skin);
-    if (hc && style.indexOf('--bf-hair:var(--bf-hc-' + hc + ')') < 0) bad.push(who + '\'s hair is not painted from --bf-hc-' + hc);
-    if (g.classList.contains('bf-seen') !== !!(skin || hair || hc || face)) bad.push(who + (skin || hair || hc || face ? ' has a look and is not `.bf-seen`' : ' has no look and is `.bf-seen`'));
-    const hp = g.querySelector('.bf-hair');
-    if (hair === 'bald' || hair === 'shaved') { if (hp) bad.push(who + ' is ' + hair + ' and has hair drawn'); }
-    else if (!hp || hp.getAttribute('d') !== runs(hair ? K.HAIR[hair] : K.UNSAID[woman ? 'F' : 'M'])) bad.push(who + '\'s hair is not the ' + (hair || (woman ? 'unsaid woman\'s' : 'unsaid man\'s')) + ' shape');
-    else if (woman && !hair && hp.getAttribute('d') === runs(K.HAIR.short)) bad.push(who + ' has no hair on file and is given the men\'s short cap');
-    const fp = g.querySelector('.bf-face');
-    if (face ? (!fp || fp.getAttribute('d') !== runs(K.FACE[face])) : fp) bad.push(who + '\'s face hair is not the ' + (face || 'none') + ' shape');
-    const parts = String(trunks || '').split('/').filter(Boolean);
-    const t = parts.length && parts.every(c => K.LOOK.trunks.indexOf(c) >= 0) && parts.length <= 2 ? parts : [];
-    const tk = cls.filter(c => /^bf-t[kt]-/.test(c)).sort().join(' ');
-    const wantTk = t.length ? ['bf-tk-' + t[0]].concat(t[1] ? ['bf-tt-' + t[1]] : []).sort().join(' ') : '';
-    if (tk !== wantTk) bad.push(who + ' wears "' + tk + '" for trunks "' + (trunks || '') + '", not "' + wantTk + '"');
-    if (t.length) {
-      if (style.indexOf('--bf-main:var(--bf-tk-' + t[0] + ')') < 0 || style.indexOf('--bf-trim:var(--bf-tk-' + (t[1] || t[0]) + ')') < 0) bad.push(who + '\'s trunks are not painted ' + t.join(' with a ') + ' trim');
-    } else if (/--bf-(main|trim):/.test(style)) bad.push(who + ' has no trunks on file and is given a trunks colour: ' + style);
-    if (!!g.querySelector('.bf-stripe') !== !!t[1]) bad.push(who + (t[1] ? ' has a trim and no side stripe' : ' has a side stripe and no trim'));
-    if (!!g.querySelector('.bf-spot') !== t.indexOf('leopard') >= 0) bad.push(who + '\'s leopard spots do not match "' + (trunks || '') + '"');
-  };
-  const lookOf = r => (r ? { skin: r.look_skin, hair: r.look_hair, hairColour: r.look_hair_colour, facial: r.look_facial } : {});
-  let profiles = 0, words = 0, women = 0;
-  a.raw.boxers.forEach(row => {
-    const x = a.item(row.name);
-    if (!x) { bad.push(row.name + ' is not in Find'); return; }
-    const g = groupIn(a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer .boxer-pic'));
-    wears(g, row.name + '\'s profile', lookOf(row), row.trunks_usual, false, row.sex);
-    profiles++;
-    if (String(row.sex).trim().toUpperCase() === 'F') women++;
-    words += ['look_skin', 'look_hair', 'look_hair_colour', 'look_facial', 'trunks_usual'].filter(k => row[k]).length;
-  });
-  console.log('          profiles asked: ' + profiles + ' (' + women + ' women, each in a top) · look and trunks words drawn from the file: ' + words);
-  if (words < 100) bad.push('only ' + words + ' look words in data/boxers.json — the profiles barely tested anything, NOT a pass');
-  if (!women) bad.push('no row in data/boxers.json is sex F — the women\'s top was NOT tested');
-  /* THE MISSPELT COPY: the unknown words drew nothing of their own. */
-  const jl = a.item('Joe Louis');
-  const jg = jl && groupIn(a.draw(a.w.stuffCard(jl)).querySelector('.boxer-pic'));
-  if (!jg || [...jg.classList].some(c => /^bf-(sk|tk|tt)-/.test(c)) || /--bf-(skin|main):/.test(jg.getAttribute('style') || '')) bad.push('a misspelt skin or trunks word drew something of its own on Joe Louis: ' + (jg ? jg.outerHTML.slice(0, 160) : 'no figure'));
-  /* THE FIGHTS. */
-  const fight = id => a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.id === id);
-  const rowOf = id => a.raw.boxers.find(b => b.boxer_id === id);
-  const corners = (id, need) => {
-    const f = a.raw.fights.find(r => r.fight_id === id), x = fight(id);
-    if (!f || !x) { bad.push(id + ' is not in data/fights.json or not in Find'); return null; }
-    if (need && !need(f)) { bad.push(id + ' no longer has the trunks this journey is about — pick another bout'); return null; }
-    const faces = [...a.draw(a.w.stuffCard(x)).querySelectorAll('.card.fc.fight .fight-faces .boxer-pic')];
-    if (faces.length !== 2) { bad.push(id + ' draws ' + faces.length + ' faces'); return null; }
-    /* A CORNER WITH NO ROW TAKES THE OTHER CORNER'S SEX — `fightCard_`'s rule, asked rather than copied. */
-    const ra = rowOf(f.boxer_a_id), rb = rowOf(f.boxer_b_id);
-    const sexOf = r => (r ? r.sex : [ra, rb].some(o => o && String(o.sex).trim().toUpperCase() === 'F') ? 'F' : '');
-    wears(groupIn(faces[0]), id + ' red corner (' + f.boxer_a + ')', lookOf(ra), f.trunks_a, false, sexOf(ra));
-    wears(groupIn(faces[1]), id + ' blue corner (' + f.boxer_b + ')', lookOf(rb), f.trunks_b, true, sexOf(rb));
-    return { f, g: faces.map(groupIn) };
-  };
-  const fotc = corners('FT0033', f => f.trunks_a === 'red/white' && f.trunks_b === 'green/gold');
-  if (fotc) {
-    const ali = rowOf(fotc.f.boxer_a_id);
-    if (!ali || !ali.trunks_usual || ali.trunks_usual === fotc.f.trunks_a) bad.push('Ali\'s usual trunks are not different from the Fight of the Century\'s, so "that night\'s pair, not his usual" was NOT tested');
-    else if (fotc.g[0].classList.contains('bf-tk-' + ali.trunks_usual.split('/')[0]) && ali.trunks_usual.split('/')[0] !== 'red') bad.push('the Fight of the Century dresses Ali in his usual trunks');
-    if (!fotc.g[0].classList.contains('bf-sk-' + ali.look_skin) || !fotc.g[1].classList.contains('bf-hs-' + rowOf(fotc.f.boxer_b_id).look_hair)) bad.push('the Fight of the Century corners do not carry their own skin and hair');
-  }
-  const blank = corners('FT0001', f => !f.trunks_a && !f.trunks_b && !f.boxer_b_id);
-  if (blank && blank.g[1] && blank.g[1].classList.contains('bf-seen')) bad.push('Jeffries has no row and his figure claims a look');
-  corners('FT0031', f => !f.boxer_b_id && f.trunks_b === 'black');
-  const lyde = corners('FT0085', f => !f.boxer_b_id && rowOf(f.boxer_a_id) && rowOf(f.boxer_a_id).sex === 'F');
-  if (lyde && lyde.g[1] && lyde.g[1].classList.contains('bf-seen')) bad.push('Frazier-Lyde has no row and her figure claims a look');
-  /* THE FALLBACKS THE BLANK CORNERS LEAN ON, read off the stylesheet itself: the silhouette's one
-     shadow tone for skin and hair, and the corner's muted colour for trunks, top and waistband. */
-  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8');
-  [['.boxer-ring .bf-skin', 'fill', 'var(--bf-skin, var(--bf-ghost))'], ['.boxer-ring .bf-hair', 'fill', 'var(--bf-hair, var(--bf-ghost))'],
-   ['.boxer-ring .bf-trunks, .boxer-ring .bf-top', 'fill', 'var(--bf-main, var(--bf-corner))'],
-   ['.boxer-ring .bf-l', '--bf-corner', 'var(--bf-unsaid-l)'], ['.boxer-ring .bf-r', '--bf-corner', 'var(--bf-unsaid-r)']].forEach(([sel, prop, val]) => {
-    const re = new RegExp('(^|\\n)' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{\\s*' + prop + ':\\s*' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ';');
-    if (!re.test(css)) bad.push('style.css has lost `' + sel + ' { ' + prop + ': ' + val + '; }` — a blank corner would be painted the colour of nothing');
-  });
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
-  return bad.length > 14 ? bad.slice(0, 14).concat(['… and ' + (bad.length - 14) + ' more']) : bad;
-});
-
-/* ---------- WHAT A BOXER READS ON EVERY FIGHTER'S CARD, ALL 103 OF THEM § */
-check('every fighter\'s card: no note to the editor, Titles only over a title, many weights in one line', async () => {
-  const a = await boxerApp_();
-  if (a.fail) return [a.fail];
-  const bad = [];
-  const EDITOR = /\bcheck(ing)?\b/i;
-  let editor = 0, shown = 0, honours = 0, titled = 0, folded = 0;
-  a.raw.boxers.forEach(row => {
-    const x = a.item(row.name);
-    if (!x) { bad.push(row.boxer_id + ' ' + row.name + ' is not in Find'); return; }
-    const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
-    if (!card) { bad.push(row.name + ' drew no boxer card'); return; }
-    const text = card.textContent.replace(/\s+/g, ' ');
-    const note = String(row.notes || '').trim();
-    if (note && EDITOR.test(note)) {
-      editor++;
-      if (text.indexOf(note) >= 0) bad.push(row.name + '\'s card prints the editor\'s note "' + note + '"');
-    } else if (note) {
-      shown++;
-      /* ONLY WHERE THERE IS A RECORD TO QUALIFY: a fighter with none says so, and that is the line. */
-      if (card.querySelector('.boxer-tally') && text.indexOf(note) < 0) bad.push(row.name + '\'s note "' + note + '" qualifies his record and is not on his card');
-    }
-    const h4 = card.querySelector('.boxer-titles h4');
-    const belt = String(row.world_titles || '').trim();
-    const honour = /^true$/i.test(String(row.hall_of_fame || '').trim()) || /^true$/i.test(String(row.lineal || '').trim());
-    if (belt) {
-      titled++;
-      if (!h4 || h4.textContent.trim() !== 'Titles') bad.push(row.name + ' holds "' + belt + '" under a heading of "' + (h4 ? h4.textContent : 'nothing') + '"');
-    } else if (honour) {
-      honours++;
-      if (!h4 || h4.textContent.trim() !== 'Honours') bad.push(row.name + ' has no belt on file and the section is headed "' + (h4 ? h4.textContent : 'nothing') + '" — Titles over no title says he never won one');
-    } else if (h4) bad.push(row.name + ' has neither a belt nor an honour and still draws "' + h4.textContent + '"');
-    const weights = String(row.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
-    const dd = [...card.querySelectorAll('.boxer-tape dt')].find(d => d.textContent.trim() === 'Weights');
-    const val = dd ? dd.nextElementSibling.textContent.trim() : '';
-    if (weights.length > 3) {
-      folded++;
-      const want = weights.length + ' · ' + weights[0] + ' → ' + weights[weights.length - 1];
-      if (val !== want) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not "' + want + '"');
-    } else if (weights.length > 1 && val !== weights.join(', ')) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not the list');
-  });
-  /* A RULE THAT FOUND NOTHING TO ASK IS NOT A PASS — print what each one actually looked at. */
-  console.log('          editor\'s notes kept off: ' + editor + ' · notes shown: ' + shown + ' · Titles: ' + titled
-    + ' · Honours: ' + honours + ' · weights folded: ' + folded);
-  if (!editor) bad.push('no row carries an editor\'s note, so that rule was NOT exercised on the real file');
-  if (!shown) bad.push('no row carries a note that qualifies its record, so hiding too much was NOT checked');
-  if (!folded) bad.push('no row has four or more weights, so the folding was NOT checked');
-  /* THE LADDER, NOT THE CELL'S ORDER, decides lightest and heaviest — asked of a cell typed out of order. */
-  const out = a.w.boxerWeights_(['Heavyweight', 'Cruiserweight', 'Light Heavyweight', 'Middleweight']);
-  if (out !== '4 · Middleweight → Heavyweight') bad.push('a cell typed heavy-to-light folds to "' + out + '", not "4 · Middleweight → Heavyweight"');
-  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
-  return bad;
-});
-
-/* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT § */
 check('sharing a booking hands over a PNG of the receipt: share sheet, else download, else a sheet', async () => {
   const bad = [];
   const BOX = { left: 12.5, top: 30, width: 300, height: 520, right: 312.5, bottom: 550, x: 12.5, y: 30 };

@@ -624,11 +624,12 @@ function stuffItemsRaw_() {
 
     /* A FIGHTER ANSWERS THE FUNNEL'S QUESTIONS IN HIS OWN WORDS. § */
     ...(DATA.boxers || []).filter(b => b.name).map(b => ({
-      kind: 'boxer', name: b.name, key: 'bx:' + (b.id || b.name),
-      sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: b.image,
+      kind: 'people', name: b.name, key: 'bx:' + (b.id || b.name), pixId: b.id,
+      sub: [b.bestDivision, b.country].filter(Boolean).join(' · '), image: '',
+      born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
-      boxKind: 'Boxers', shelf: 'Boxing',
+      boxKind: 'Fighters', shelf: ['Boxing', 'History'],
       subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
     })),
 

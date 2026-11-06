@@ -7,7 +7,9 @@ const isProject_ = x => !!x && x.kind === 'project';
 const isShop_ = x => !!x && x.kind === 'shop';
 const isPractical_ = x => !!x && x.kind === 'practical';
 const isManuscript_ = x => !!x && x.kind === 'manuscript';
-const isBoxer_ = x => !!x && x.kind === 'boxer';
+/* ONE PEOPLE KIND (batch D): a boxer and a historical figure are both `people`; a boxer is the person Boxing's Fighters answer holds. */
+const isPerson_ = x => !!x && x.kind === 'people';
+const isBoxer_ = x => isPerson_(x) && x.boxKind === 'Fighters';
 const isBible_ = x => !!x && x.kind === 'bible';
 const isWriting_ = x => !!x && x.kind === 'writing';
 const isMeCard_ = x => !!x && x.kind === 'me';

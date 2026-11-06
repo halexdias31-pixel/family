@@ -157,17 +157,14 @@ const KINDS = {
   content: { group: 'Learning', label: 'Library', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455), and Content (463): the owner, "inserts count as content" -- no tag of its own. */
   insert: { group: 'Learning', label: 'Library', card: x => insertCard_(x) },
-  /* THE HISTORY DATABASE (459): three kinds, Library on the History shelf as boxers are on Boxing's; `histKind` says which. */
+  /* THE HISTORY DATABASE (459) and ONE PEOPLE KIND (batch D: boxers and figures alike, a pixel portrait under the tags); `histKind` says which. */
   manuscript: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
-  figure: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
+  people: { group: 'Learning', label: 'Library', card: x => personCard_(x) },
   writing: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
   event: { group: 'Learning', label: 'Library', card: x => histCard_(x) },
   /* A TIMELINE IS ITS OWN KIND OF ITEM (545): the owner, "timelines should have a tag called timeline". */
   timeline: { group: 'Learning', label: 'Timeline', card: x => histTimelineCard_(x) },
-  /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
-  /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
-  boxer: { group: 'Learning', label: 'Library', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Library', card: x => fightCard_(x) },
@@ -446,7 +443,7 @@ const FACETS = [
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
   ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
-    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
+    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level'], ['vidType', 'Type']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
@@ -478,9 +475,11 @@ const FACETS = [
   { field: 'cGroup',    label: 'Group',       of: x => x.cGroup || '' },
   { field: 'cPeriod',   label: 'Period',      of: x => x.cPeriod || '' },
   { field: 'cState',    label: 'State',       of: x => x.cState || '' },
-  { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* BATCH D: one people kind; a person's name, years and home are tags (the card has no title). */
+  { field: 'boxKind',   label: 'Fighters or fights', of: x => x.boxKind || '' },
   /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
   { field: 'fighter',   label: 'Fighter',     of: x => isFight_(x) && x.row ? [x.row.a, x.row.b].filter(Boolean) : isBoxer_(x) ? x.name : '' },
+  { field: 'personName', label: 'Who', of: x => (isPerson_(x) ? x.name : '') },
   { field: 'boutMonth', label: 'Month',       of: x => boutDate_(x).month },
   { field: 'boutYear',  label: 'Year',        of: x => boutDate_(x).year },
   { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
@@ -491,12 +490,14 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures, works or events', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, people, works or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
   { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
-  { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
+  { field: 'histRole',  label: 'Role',        of: x => (isPerson_(x) ? x.roles || [] : histCol_(x, 'roles')) },
+  { field: 'personYears', label: 'Years',     of: x => personYears_(x) },
+  { field: 'personFrom', label: 'From',       of: x => (isPerson_(x) && x.from) || '' },
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */

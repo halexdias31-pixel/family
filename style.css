@@ -4899,6 +4899,24 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
 
 /* ---------- THE FIGHT CARD'S TWO FACES § */
+/* ---------- A PERSON'S 8-BIT PORTRAIT (batch D): the same drawer for every person and both corners of a fight, palette letters from tools/people_pix.py ---------- */
+.pp { display: block; width: 100%; height: auto; image-rendering: pixelated;
+  --pp-k: #1b1816; --pp-1: #ecc9aa; --pp-2: #e7bf9b; --pp-3: #cf9a6c; --pp-4: #ad7448; --pp-5: #855433; --pp-6: #643d25;
+  --pp-hbk: #2a2522; --pp-hdb: #5e402c; --pp-hbr: #6f4a2d; --pp-hlb: #9b7249; --pp-hbl: #dcb866; --pp-hrd: #b45a2c; --pp-hgr: #9d9b97; --pp-hwh: #ecebe6;
+  --pp-w: #f5f5f2; --pp-b: #26262b; --pp-r: #c8302c; --pp-m: #86283a; --pp-n: #2c4290; --pp-u: #2f6fe0; --pp-c: #8cc8f0;
+  --pp-g: #23914f; --pp-o: #6b7240; --pp-e: #b49a6a; --pp-t: #6e4a2e; --pp-y: #e4ae30; --pp-p: #7440ad; --pp-s: #8b8d91;
+  --pp-f: #f08cbc; --pp-a: #f07f24; }
+.pp.is-none path { fill: var(--faint); }
+.pp-k { fill: var(--pp-k); } .pp-1 { fill: var(--pp-1); } .pp-2 { fill: var(--pp-2); } .pp-3 { fill: var(--pp-3); }
+.pp-4 { fill: var(--pp-4); } .pp-5 { fill: var(--pp-5); } .pp-6 { fill: var(--pp-6); } .pp-B { fill: var(--pp-hbk); }
+.pp-D { fill: var(--pp-hdb); } .pp-N { fill: var(--pp-hbr); } .pp-L { fill: var(--pp-hlb); } .pp-Y { fill: var(--pp-hbl); }
+.pp-R { fill: var(--pp-hrd); } .pp-G { fill: var(--pp-hgr); } .pp-W { fill: var(--pp-hwh); } .pp-w { fill: var(--pp-w); }
+.pp-b { fill: var(--pp-b); } .pp-r { fill: var(--pp-r); } .pp-m { fill: var(--pp-m); } .pp-n { fill: var(--pp-n); }
+.pp-u { fill: var(--pp-u); } .pp-c { fill: var(--pp-c); } .pp-g { fill: var(--pp-g); } .pp-o { fill: var(--pp-o); }
+.pp-e { fill: var(--pp-e); } .pp-t { fill: var(--pp-t); } .pp-y { fill: var(--pp-y); } .pp-p { fill: var(--pp-p); }
+.pp-s { fill: var(--pp-s); } .pp-f { fill: var(--pp-f); } .pp-a { fill: var(--pp-a); }
+.person-pic { margin: .6rem auto 0; width: min(100%, 16rem); background: var(--raised); border-radius: 12px; padding: .6rem; }
+.fight .fight-faces .pp { flex: 1 1 0; max-width: 10rem; background: var(--raised); border-radius: 12px; padding: .4rem; }
 .fight-faces { display: flex; align-items: center; justify-content: center; gap: .7rem;
                margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */
 .boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }

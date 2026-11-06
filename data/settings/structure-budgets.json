@@ -1,5 +1,5 @@
 {
- "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040).",
+ "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040); batch D: one people kind and its portraits (1040).",
  "coupling": {
   "js/find.js": 0,
   "js/shell.js": 186,
@@ -64,14 +64,14 @@
   "js/finder-tags.js": 1,
   "js/select.js": 3,
   "js/resume.js": 13,
-  "js/find-aloud.js": 145,
+  "js/find-aloud.js": 146,
   "js/find-boxers.js": 97,
   "js/find-bundles.js": 132,
   "js/find-cells.js": 80,
-  "js/find-facets.js": 61,
+  "js/find-facets.js": 57,
   "js/find-figures.js": 88,
-  "js/find-finder.js": 140,
-  "js/find-history.js": 81,
+  "js/find-finder.js": 142,
+  "js/find-history.js": 84,
   "js/find-levels.js": 102,
   "js/find-loupe.js": 89,
   "js/find-marking.js": 54,
@@ -86,7 +86,7 @@
   "js/me-people.js": 38,
   "js/me-roles.js": 101,
   "js/me-settings.js": 93,
-  "js/me-shelves.js": 44,
+  "js/me-shelves.js": 45,
   "js/shell-api.js": 102,
   "js/shell-boot.js": 135,
   "js/shell-click.js": 108,
@@ -578,7 +578,7 @@
    "rawButton": 0
   },
   "js/tiles.js": {
-   "lines": 594,
+   "lines": 577,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -613,7 +613,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7178,
+   "lines": 7196,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -634,7 +634,7 @@
    "rawButton": 0
   },
   "js/find-boxers.js": {
-   "lines": 753,
+   "lines": 598,
    "oneOff": 4,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -655,7 +655,7 @@
    "rawButton": 2
   },
   "js/find-facets.js": {
-   "lines": 789,
+   "lines": 755,
    "oneOff": 0,
    "emptyCatch": 1,
    "inlineStyle": 0,
@@ -677,7 +677,7 @@
   },
   "js/find-history.js": {
    "lines": 768,
-   "oneOff": 11,
+   "oneOff": 10,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 1
@@ -897,7 +897,7 @@
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
   "js/games.js vidPaint_": 82,
-  "js/library.js libraryExtras_": 181,
+  "js/library.js libraryExtras_": 183,
   "js/mat.js matPaint": 159,
   "js/posts.js camStart_": 97,
   "js/price-rows.js priceCells": 89,
@@ -906,7 +906,7 @@
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
   "js/settings.js settingsInto_": 129,
-  "js/find-aloud.js stuffItemsRaw_": 162,
+  "js/find-aloud.js stuffItemsRaw_": 163,
   "js/find-bundles.js bundleBuild_": 85,
   "js/find-bundles.js paintStuff": 87,
   "js/find-levels.js accountPages_": 109,
@@ -930,7 +930,7 @@
    "label": "Card drawers"
   },
   "maker": {
-   "count": 39,
+   "count": 37,
    "ideal": 1,
    "label": "Tile and button makers"
   },
@@ -987,7 +987,7 @@
   "text-boxes": 0
  },
  "owner": {
-  "why": "the owner's four (1030): static halves, ideal 0; odd-tags 330 (1040 r12) are writings' own titles, an owner question; returned-features 19 (batch B: owner brought features back, today's count); batch C: returned-features 20 (the Basket reachable now, drawn empty), clutter 378 (88 walked + 290 in markup, today's count)",
+  "why": "the owner's four (1030): static halves, ideal 0; odd-tags 330 (1040 r12) are writings' own titles, an owner question; returned-features 19 (batch B: owner brought features back, today's count); batch C: returned-features 20 (the Basket reachable now, drawn empty), clutter 378 (88 walked + 290 in markup, today's count); batch D: picture-first, people-one-kind, manuscripts-reach, ideal 0",
   "tag-colour": 0,
   "element-box": 0,
   "card-tags": 0,
@@ -1000,6 +1000,9 @@
   "settings-work": 0,
   "returned-features": 20,
   "clutter": 378,
-  "front-door": 0
+  "front-door": 0,
+  "picture-first": 0,
+  "people-one-kind": 0,
+  "manuscripts-reach": 0
  }
 }

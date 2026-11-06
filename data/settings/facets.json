@@ -26,7 +26,7 @@
 {"field": "book", "label": "Book", "sort_order": 31, "note": "off and retired in code: it asked which @family. textbook, and since 12 Oct every chapter is a content card of its own, so nothing answers it (docs/history/347, part 2)", "active": false},
 {"field": "projectType", "label": "Project or coursework", "sort_order": 21, "note": "projects only, which the coverage rule decides: asked once half the list is projects", "active": true},
 {"field": "subject", "label": "Subject", "sort_order": 22, "note": "asked first after What kind (494): \"the library should go subject first\"; every Library item carries one (scripture is Religious Studies)", "active": true},
-{"field": "boxKind", "label": "Boxers or fights", "sort_order": 34, "note": "boxers or bouts", "active": true},
+{"field": "boxKind", "label": "Fighters or fights", "sort_order": 34, "note": "fighters (people) or bouts (batch D)", "active": true},
 {"field": "fighter", "label": "Fighter", "sort_order": 34.1, "note": "a bout's two corners, and a boxer's own name (445)", "active": true},
 {"field": "boutMonth", "label": "Month", "sort_order": 34.2, "note": "the month a bout was fought (445)", "active": true},
 {"field": "boutYear", "label": "Year", "sort_order": 34.3, "note": "the year a bout was fought (445)", "active": true},
@@ -65,12 +65,15 @@
 {"field": "accuracy", "label": "Accuracy", "sort_order": 136, "note": "Accuracy verified when the answer was checked against the official scheme (388); asked before Paper, Question and Part, which narrow to one question and left it nothing to split (owner, 29 Oct)", "active": true},
 {"field": "function", "label": "Function", "sort_order": 137, "note": "Function verified when the question type is complete and machine-marked (388); asked before Paper, Question and Part, as Accuracy is (owner, 29 Oct)", "active": true},
 {"field": "myResult", "label": "Your result", "sort_order": 156, "note": "the signed-in person's own latest answer to a question: Unattempted, Attempted, and Correct, Incorrect or Part marks once marked (463)", "active": true},
-{"field": "histKind", "label": "Manuscripts, figures, works or events", "sort_order": 37.1, "note": "history database only (459, 461): which of the four tables (a timeline is Events)", "active": true},
+{"field": "histKind", "label": "Manuscripts, people, works or events", "sort_order": 37.1, "note": "history database only (459, 461): which of the four tables (a timeline is Events)", "active": true},
 {"field": "histEra", "label": "Era", "sort_order": 37.2, "note": "history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)", "active": true},
 {"field": "histMaterial", "label": "Material", "sort_order": 37.4, "note": "manuscripts only: papyrus, parchment, paper", "active": true},
 {"field": "histFormat", "label": "Format", "sort_order": 37.5, "note": "manuscripts only: codex, roll, fragment", "active": true},
 {"field": "histGenre", "label": "Genre", "sort_order": 37.6, "note": "writings only: letter, history, poem", "active": true},
 {"field": "histRole", "label": "Role", "sort_order": 37.7, "note": "historical figures only: a list cell, one tag each", "active": true},
+{"field": "personName", "label": "Who", "sort_order": 37.705, "note": "a person (batch D): their name, the card's only title", "active": true},
+{"field": "personYears", "label": "Years", "sort_order": 37.71, "note": "a person (batch D), boxer or figure: born–died", "active": true},
+{"field": "personFrom", "label": "From", "sort_order": 37.72, "note": "a person (batch D): a boxer's country, a figure's birthplace", "active": true},
 {"field": "histTheme", "label": "Theme", "sort_order": 37.8, "note": "writings only: a list cell, one tag each", "active": true},
 {"field": "histRepository", "label": "Held at", "sort_order": 37.9, "note": "manuscripts only: the library or museum that holds it", "active": true},
 {"field": "histSide", "label": "Side", "sort_order": 37.92, "note": "drawn manuscripts only (507): Front (recto) or Back (verso), one card a side", "active": true},
@@ -90,5 +93,6 @@
 {"field": "vidSubject", "label": "Subject", "sort_order": 20.66, "note": "a video (batch C): its subject", "active": true},
 {"field": "vidTopic", "label": "Topic", "sort_order": 20.67, "note": "a video (batch C): its tags", "active": true},
 {"field": "vidChannel", "label": "Channel", "sort_order": 20.68, "note": "a video (batch C): its channel", "active": true},
-{"field": "vidLevel", "label": "Level", "sort_order": 20.69, "note": "a video (batch C): its level", "active": true}
+{"field": "vidLevel", "label": "Level", "sort_order": 20.69, "note": "a video (batch C): its level", "active": true},
+{"field": "vidType", "label": "Type", "sort_order": 20.695, "note": "a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title", "active": true}
 ]

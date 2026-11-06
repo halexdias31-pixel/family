@@ -1124,7 +1124,7 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
     ['a SATs paper', find(x => x.kind === 'question' && x.row.paper_id === 'P-STA-KS2-2024-P1'), null],
     ['a worksheet', find(x => x.kind === 'question' && x.row.paper_id === 'P-1CM-LINEQ1'), null],
     ['a content card', find(x => x.kind === 'content'), null], ['a practical', find(x => x.kind === 'practical'), null],
-    ['a project', find(x => x.kind === 'project'), null], ['a boxer', find(x => x.kind === 'boxer'), null],
+    ['a project', find(x => x.kind === 'project'), null], ['a boxer', find(x => x.kind === 'people' && x.boxKind === 'Fighters'), null],
     ['a fight', find(x => x.kind === 'fight'), null],
     ['a Bible verse', verse, null], ['a bundle', { kind: 'bundle', kindLabel: 'Bundles' }, null],
   ];

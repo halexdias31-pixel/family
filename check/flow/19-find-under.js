@@ -60,10 +60,10 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const all = w.stuffItemsAll_();
   /* A CONTENT CARD WITH AN ANIMATION: its words are on the card, the drawing is a page after it. */
   const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-15');
-  const boxer = all.find(x => x.kind === 'boxer' && w.pageParts_(x).length > 1);
+  const boxer = all.find(x => x.kind === 'people' && x.boxKind === 'Fighters');
   const fight = all.find(x => x.kind === 'fight');
   const proj = all.find(x => x.kind === 'project');
-  if (!book || !boxer || !fight || !proj) return ['no Probability content card, boxer with fights, fight or project in the whole list — NOT checked'];
+  if (!book || !boxer || !fight || !proj) return ['no Probability content card, boxer, fight or project in the whole list — NOT checked'];
   const onCard = (x, when, next) => {
     if (t.AT() !== 'stuff') bad.push(when + ': the column in front is ' + t.AT() + ', not Find');
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -468,7 +468,7 @@ check('the history database: a manuscript and a historical figure are each found
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
     if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
   };
-  for (const [x, kind] of [[ms, 'Manuscripts'], [fig, 'Historical figures']]) {
+  for (const [x, kind] of [[ms, 'Manuscripts'], [fig, 'People']]) {
     /* THE FUNNEL ITSELF: these four answers keep it, and the walk the funnel asks reaches it. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                          { field: 'shelf', value: 'History' }, { field: 'histKind', value: kind }];
@@ -477,8 +477,14 @@ check('the history database: a manuscript and a historical figure are each found
     const walk = w.finderWalk_(x);
     t.STUFF().filters = walk;
     if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
-    /* THE CARD: its name, its tags, one line per field, an era tag. */
+    /* THE CARD: its name, its tags, one line per field, an era tag; a person (batch D) is the portrait under the tags, nothing else. */
     const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
+    if (x.kind === 'people') {
+      const pc = el.querySelector('.card.person');
+      if (!pc || !pc.firstElementChild.matches('.qtags') || pc.querySelectorAll('svg.pp').length !== 1 || pc.querySelector('h3, dl, p')) bad.push(x.name + '\'s card is not its tags over one portrait');
+      if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
+      continue;
+    }
     const h3 = el.querySelector('.hdb .fc-head h3');
     /* A DRAWN MANUSCRIPT (490) leads with its tags and is named by its aria-label instead. */
     const drawn = el.querySelector('.hdb-msc');
@@ -512,7 +518,6 @@ check('the history database: a manuscript and a historical figure are each found
   A['find-open'](opener); await wait(120);
   onCard(ms, 'the manuscript opened');
   if (press(ms, 'WR-0001')) { await wait(120); onCard(wr, 'the manuscript\'s Writing tile'); }
-  if (press(fig, 'WR-0001')) { await wait(120); onCard(wr, 'the author\'s Writing tile'); }
   if (t.AT() !== 'stuff') bad.push('following links left Find for ' + t.AT());
   return bad;
 });
@@ -578,7 +583,6 @@ check('the history timeline: events are found under Learning, Content, History, 
   onCard(tl, 'the timeline opened');
   if (press(tl, ev.key)) { await wait(120); onCard(ev, 'the timeline\'s tile to ' + ev.name); }
   if (press(ev, hit.key)) { await wait(120); onCard(hit, 'the event\'s Figure tile'); }
-  if (press(hit, ev.key)) { await wait(120); onCard(ev, 'the figure\'s Event tile'); }
   if (press(tl, animKey)) {
     await wait(150);
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -596,7 +600,7 @@ check('an empty search on either finder says "take a filter off" under a chip th
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
-  const olivares = w.stuffItemsAll_().find(x => x.kind === 'boxer' && /Olivares/.test(x.name));
+  const olivares = w.stuffItemsAll_().find(x => x.kind === 'people' && /Olivares/.test(x.name));
   if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
   for (const id of ['stuff', 'res']) {
     const name = id === 'stuff' ? 'Find' : 'Find 2';

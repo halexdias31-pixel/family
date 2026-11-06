@@ -152,9 +152,10 @@ function histEras_(from, to) {
 function histErasOf_(x) {
   /* A WRITING'S UNIT CARRIES ITS WORK'S DATE (520), so Era asks a page of First Clement as it asked the row it replaced. */
   if (x && x.wDate) return histEras_(x.wDate[0], x.wDate[1]);
+  if (isPerson_(x)) return x.born || x.died ? histEras_(x.born || x.died, x.died || x.born) : [];
   const r = x && x.hdb ? x.row : null;
   if (!r) return [];
-  return x.kind === 'figure' ? histEras_(r.born_year, r.died_year) : histEras_(r.date_from, r.date_to);
+  return histEras_(r.date_from, r.date_to);
 }
 /* ONE READER FOR EVERY HISTORY FACET: a column of the row, split as a list; nothing on any other kind. */
 const histCol_ = (x, col) => (x && x.hdb && x.row ? histList_(x.row[col]) : []);
@@ -189,13 +190,16 @@ const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUppe
 /* THE ITEM: Library, on the History shelf, as boxers are on Boxing's. */
 function histItem_(kind, r) {
   const fig = kind === 'figure';
+  if (fig) return { kind: 'people', hdb: true, name: histName_(r), key: 'hdb:' + r.id, pixId: r.id, image: '', sub: '', histKind: 'People',
+    born: personYear_(r.born_year), died: personYear_(r.died_year), from: r.born_place || '', roles: histList_(r.roles),
+    shelf: 'History', subject: 'History', text: plainText_(Object.keys(r).map(k => r[k]).join(' ')), row: r };
   const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
   const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
   const ev = kind === 'event';
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Works',
+    histKind: kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Works',
     /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
     shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),

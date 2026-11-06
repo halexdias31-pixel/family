@@ -385,9 +385,9 @@ let PORT = 0;
     if (want('res') && !OFF_COLS.includes('res')) await go_(`${at} resources, boxing`, async () => {
       await window.__rc.place('res', 0);
       return inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'boxer');
+        const x = stuffItemsAll_().find(it => isBoxer_(it));
         if (!x) return { err: 'no boxer on the Resources column' };
-        STUFF.q = ''; STUFF.filters = [{ field: 'shelf', value: x.shelf }];
+        STUFF.q = ''; STUFF.filters = [{ field: 'shelf', value: [].concat(x.shelf)[0] }];
         paintStuff();
         let first = stuffFirstResult_();
         if (AXES.y.count('res') <= first + 2) {

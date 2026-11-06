@@ -447,9 +447,9 @@ function qualSlot_(i, value, o) {
   return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     <input type="hidden" data-me="${esc(f('_spec'))}" value="${q.spec ? 'TRUE' : 'FALSE'}">
     <input type="hidden" data-me="${esc(f('_teach'))}" value="${q.teach ? 'TRUE' : 'FALSE'}">
-    <button type="button" class="q-line" data-do="qual-open" data-unlocked aria-expanded="false"
+    <button type="button" class="q-line" data-do="qual-open" data-at="${esc(i)}" data-unlocked aria-expanded="false"
       aria-label="${esc(said)}" title="${esc(said)}">${qualFace_(q)}</button>
-    <button type="button" class="q-mark-b" data-do="qual-teach" data-face="1" data-unlocked
+    <button type="button" class="q-mark-b" data-do="qual-teach" data-face="1" data-at="${esc(i)}" data-unlocked
       aria-label="Teaching: ${esc(qualTeachWord_(q))}, tap to change">${qualTeachVal_(q)}</button>
     <div class="q-ed">
       <div class="q-row">
@@ -466,9 +466,9 @@ function qualSlot_(i, value, o) {
           <input type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"></label>
       </div>
       ${cyc}
-      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '' } })}${
+      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '', at: i } })}${
         tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
-                data: { unlocked: '' } })}</div>
+                data: { unlocked: '', at: i } })}</div>
     </div>
   </div>`;
 }
