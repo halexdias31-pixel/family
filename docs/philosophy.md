@@ -8,29 +8,31 @@ a check tied to no principle is listed, report-only. Edit a rule here, never in 
 
 1. **The site IS the business.** Everything runs from here, in one place: learning resources, bookings, payments, staff, taxes and accounts, logistics, compliance — as scalable, stable and efficient as possible.
    Why: one place is cheaper to run, check and hand to ~100 staff than a dozen tools. Checks: `business`, `biz-checker`, `friction`, `one-place`
-2. **Stability first.** Sacrificing complexity for stability or simplicity is a valid trade; Apple-like minimal, few features done well.
+2. **Nothing is lost.** Switched off, never deleted; every feature stays on, even half-working, and the sweeps stabilise it; no age gates on learning content. (Owner, 6 Nov: when it clashes with minimal/stability, this wins.)
+
+3. **Stability first.** Sacrificing complexity for stability or simplicity is a valid trade; Apple-like minimal, few features done well.
    Why: a site that breaks loses trust faster than a missing feature gains it. Checks: `exceptions`, `resilience`, `catches`, `one-off`, `long-fn`, `big-file`, `nest`, `dead`
-3. **Find is the core.** One search bar only; everything browsable lives in Find; one front door for everyone (signed out sees the same Find, with only Settings).
+4. **Find is the core.** One search bar only; everything browsable lives in Find; one front door for everyone (signed out sees the same Find, with only Settings).
    Why: one way in is one thing to learn and one thing to keep working. Checks: `front-door`, `returned-features`, `people-one-kind`, `manuscripts-reach`
-4. **One rule, never one-offs.** One way to draw each thing: one card, one tile row, one button maker, one text box (the cream answer pill), one chip size, one question engine.
+5. **One rule, never one-offs — absolute, no exceptions** (owner, 6 Nov: even where one place is slightly worse, e.g. the essay box is the cream pill, keypad keys are tiles, one read-aloud per card). One way to draw each thing: one card, one tile row, one button maker, one text box (the cream answer pill), one chip size, one question engine.
    Why: uniformity removes arbitrariness; a fix in one place fixes every place. Checks: `find-one-off`, `raw-button`, `hand-tile`, `text-boxes`, `chip-size`, `qengine`, `variety-qpage`, `variety-maker`, `variety-drawer`, `variety-wait`, `variety-listrow`, `variety-textbox`, `once-class`, `inline-style`, `own-wait`, `dup`
-5. **Cards are minimal and picture-first.** Tags at the top as outlined pills; one tag per attribute, never composites, repeats or always-on tags; no grey clutter (information becomes a tag); every element kind has its tags.
+6. **Cards are minimal and picture-first.** Tags at the top as outlined pills; one tag per attribute, never composites, repeats or always-on tags; no grey clutter (information becomes a tag); every element kind has its tags.
    Why: a card read at a glance on a phone needs one kind of label, not five. Checks: `card-tags`, `picture-first`, `attr-outside-tags`, `odd-tags`, `clutter`, `element-box`, `car-tags-split`, `timeline-anim`
-6. **Menus follow one rule.** Each category one fixed colour, neighbours differ; every tag askable; one consistent rule for which menu comes next; a menu needs at least two answers; the same words in menu, chip and tag.
+7. **Menus follow one rule.** Each category one fixed colour, neighbours differ; every tag askable; the next menu is always the one that splits the list best (owner, 6 Nov: best split, always — no hand-ordered list); a menu needs at least two answers; the same words in menu, chip and tag.
    Why: a menu that behaves the same everywhere can be trusted without thinking. Checks: `tag-colour`, `tag-asked`, `menu-rule`, `menu-thin`, `menu-order`, `menu-sense`, `answer-words`, `words-all`, `near-dup`, `merged-value`, `merged-all`
-7. **Controls stay put.** The same buttons for every rank; never move, appear or disappear on tap (disable instead); respond instantly; grouped in one row.
+8. **Controls stay put.** The same buttons for every rank; never move, appear or disappear on tap (disable instead); respond instantly; grouped in one row.
    Why: a control that jumps is pressed by mistake. Checks: `dup-controls`, `control-look`, `ux`, `settings-work`, `update-continuity`
-8. **Questions are one card per number.** Parts inside, no box; marked mechanically (no AI for answers); every question works if one works.
+9. **Questions are one card per number.** Parts inside, no box; marked mechanically wherever possible; AI marks only open writing (essays, long answers), clearly labelled (owner, 6 Nov); every question works if one works.
    Why: a learner must get the same, fair mark every time. Checks: `question`, `answer`, `qengine`
-9. **Fast and light.** Fast first load, phone-memory safe, low AI edit cost; data from one source (in sync); seamless updates that never interrupt.
+10. **Fast and light.** Fast first load, phone-memory safe, low AI edit cost; data from one source (in sync); seamless updates that never interrupt.
    Why: a phone on a bus is the real user, and every edit is paid for in reading. Checks: `size`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
-10. **Frictionless for clients and tutors.** Booking, messaging, paying and homework in the fewest taps, none a dead end.
+11. **Frictionless for clients and tutors.** Booking, messaging, paying and homework in the fewest taps, none a dead end.
     Why: every extra step loses a booking. Checks: `friction`, `a11y`, `console`
-11. **Run legally and safely.** Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
+12. **Run legally and safely.** Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
     Why: one missed obligation can end the business. Checks: `business`, `biz-checker`, `secrets`
-12. **Nothing is lost.** Switched off, never deleted; every feature comes back on and is stabilised by the sweeps; no age gates on learning content.
+13. **Nothing is lost.** Switched off, never deleted; every feature comes back on and is stabilised by the sweeps; no age gates on learning content.
     Why: work already paid for should not vanish. Checks: `returned-features`, `no-age-gates`, `dead`
-13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; ask before guessing visible design; quick checks only, no long waits.
+14. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; ask before guessing visible design; quick checks only, no long waits.
     Why: the owner's time is the scarcest thing; guesses on looks are the costliest to undo. Checks: `philosophy`, `owner-questions`
 
 ## How the loop works
