@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-04-health-920";
+const DOPOST_VERSION = "2026-11-06-biz-checker-1050";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -536,9 +536,8 @@ function doPost(e) {
     /* --- admin: everyone ---------------------------------------------------------------------- */
     /* THE BUSINESS RECORDS — admin only by `ACTION_ACCESS`, and read by a POST rather than sent in
        the payload, because the payload is cached and goes to every visitor. See records.gs. */
-    if (action === 'listRecords' || action === 'saveRecordsPage') {
-      return jsonOut(recordsAction_(action, body));
-    }
+    if (action === 'listRecords' || action === 'saveRecordsPage') return jsonOut(recordsAction_(action, body));
+    if (action === 'listBizChecks' || action === 'saveBizCheck') return jsonOut(bizChecksAction_(action, body));   /* the business checker's ticks (1050) */
 
     /* --- profile writes ---------------------------------------------------------------------- */
     if (action === 'updateProfile') {

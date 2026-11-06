@@ -1,5 +1,6 @@
 [
   "appsscript.json",
+  "bizchecks.gs",
   "booking.gs",
   "constants.gs",
   "content.gs",

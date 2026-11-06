@@ -278,6 +278,8 @@ function ownerWork() {
   W.push(...inSyncWork());
   /* text-boxes: every text-box rule matches the cream answer pill (the variety family `textbox`, one finding each). */
   textboxRules(css).slice(1).forEach(t => W.push({ kind: 'text-boxes', where: t.where, say: t.say }));
+  /* biz-checker (1050): the business checker's items, links and rules, and its card drawn with nothing loaded — js/check-biz.js. */
+  try { W.push(...require('../js/check-biz.js').work()); } catch (e) { W.push({ kind: 'biz-checker', where: 'js/check-biz.js', say: 'would not run: ' + e.message }); }
   return W;
 }
 
@@ -669,6 +671,8 @@ function changed() {
     const ow = ownerWork().concat(findWork(logic()).filter(w => w.kind === 'tag-colour')), n = {};
     ow.forEach(w => { n[w.kind] = (n[w.kind] || 0) + 1; });
     Object.keys(OWNER_KINDS).forEach(k => { if ((n[k] || 0) > (OB[k] || 0)) ow.filter(w => w.kind === k).forEach(w => bad.push(k + '\t' + w.where + '\t' + w.say)); }); }
+  /* THE BUSINESS CHECKER (1050), ideal 0, every change. */
+  try { require('../js/check-biz.js').work().forEach(w => bad.push(w.kind + '\t' + w.where + '\t' + w.say)); } catch (e) { bad.push('biz-checker\tjs/check-biz.js\t' + e.message); }
   const R = require('./structure.js').ratchet([...files]);
   bad.push(...R.bad);
   if (!R.bad.length && R.gains.length) console.log('structure budgets tightened: ' + R.gains.join('; '));

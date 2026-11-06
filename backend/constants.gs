@@ -24,7 +24,7 @@ const WHERE = {
   receipts:       { file: 'ledger' },
   invites:        { file: 'ledger' },
   messages:       { file: 'ledger' },
-  records:        { file: 'ledger' },
+  records:        { file: 'ledger' }, biz_checks: { file: 'ledger' },
   exams:          { file: 'ledger' },
   posts:          { file: 'ledger' },
   post_votes:     { file: 'ledger' },
@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-04-health-920";
+const BACKEND_VERSION = "2026-11-06-biz-checker-1050";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -140,7 +140,7 @@ const TAB = {
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   promo_codes: 'promo_codes',
   exams: 'exams', messages: 'messages',
-  records: 'records',
+  records: 'records', biz_checks: 'biz_checks',
   herd: 'herd',
   /* Every receipt ever issued, kept as it was issued. See the schema below. */
   receipts: 'receipts',
@@ -443,7 +443,7 @@ const SCHEMA = {
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
-  ],
+  ], /* the business checker's ticks (1050), bizchecks.gs */ biz_checks: ["check_id", "done_on", "note", "by", "updated_at"],
 
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
@@ -1607,7 +1607,7 @@ const ACTION_ACCESS = {
   raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  listRecords: 'admin', saveRecordsPage: 'admin',
+  listRecords: 'admin', saveRecordsPage: 'admin', listBizChecks: 'admin', saveBizCheck: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
   checkUploads: 'admin',
