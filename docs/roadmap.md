@@ -57,6 +57,8 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 - F. Timelines as animations (event to event), many timelines at different zoom levels (church history, WWI, WWII,
   Old Testament…), under Library › History.
 - G. Health: everything above checked; a "frictionless" check for clients and tutors (booking, messaging, paying, homework).
+- C+. Signed-out visitors see the same Find (search bar + menus) as everyone, not a sign-in screen; signed out, Find
+  offers only Settings, and Settings holds Sign in / Join. Ranks decide what's inside Find, never a different front door.
 - H. Favicon = an image from the owner's Drive (owner to say which).
 
 ## Paused, to come back to
