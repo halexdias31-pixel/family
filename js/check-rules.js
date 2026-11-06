@@ -39,7 +39,7 @@ const MARKERS = [
   { re: /min_age: (SCRIPTURE_MIN_AGE|18)\b|viewerOfAge_\((SCRIPTURE_MIN_AGE|18)\)/, rule: 'scripture-age', none: true },
   { re: /all\.find\(has\) \|\| all\[0\]/, rule: 'library-one-card' },
   { re: /!adminCol_\([a-z]\) \|\| adminCol_\(cardHome0_/, rule: 'admin-cols' },
-  { re: /finderMembersOnly_\(F\);/, rule: 'finder-members' },
+  { re: /return findSignedOut_\(x\);/, rule: 'finder-members' },
   { re: /closest\('\.me-form'\)/, rule: 'form-save-row', file: 'tiles.js' },
 ];
 let seen = 0;

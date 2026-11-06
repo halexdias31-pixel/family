@@ -9,6 +9,8 @@ const { chromium } = require('playwright');
 /* THE COLUMNS THE OWNER SWITCHED OFF (4 Nov, columns.json active FALSE): never a tab once the payload lands, so not visited or asked of. */
 /* A column left of Find still on, for the arrival from the left; the owner's list puts every one of them off. */
 const LEFT_OF_FIND_ON = (() => { try { const c = require('../data/settings/columns.json'), i = c.findIndex(r => r.screen === 'stuff'); return c.slice(0, i).some(r => String(r.active).toUpperCase() !== 'FALSE'); } catch (e) { return true; } })();
+/* ONE SCROLLING PAGE (900, shell-boot.js FLOW_LAYOUT): a sideways flick never changes column, so no run arrives at Find by one. */
+const FLOW_ON = (() => { try { return /const FLOW_LAYOUT = true;/.test(require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'shell-boot.js'), 'utf8')); } catch (e) { return false; } })();
 const OFF_COLS = (() => { try { return require('../data/settings/columns.json').filter(c => String(c.active).toUpperCase() === 'FALSE').map(c => c.screen); } catch (e) { return []; } })();
 
 const ROOT = path.join(__dirname, '..');
@@ -194,7 +196,8 @@ function READER() {
         if (t.id === AT || !PRE_PAYLOAD.has(t.id)) return;
         const host = document.getElementById('s-' + t.id);
         const r = host && host.getBoundingClientRect();
-        const on = r && Math.min(r.right, W) - Math.max(r.left, 0) > 8;
+        /* IN VIEW BOTH WAYS: on the one page (900) every column spans the width, and only the ones the window reaches are seen. */
+        const on = r && Math.min(r.right, W) - Math.max(r.left, 0) > 8 && Math.min(r.bottom, innerHeight) - Math.max(r.top, 0) > 8;
         if (on || (!WIDE && !(typeof FLOW_LAYOUT !== 'undefined' && FLOW_LAYOUT) && Math.abs(i - ti) === 1)) out.push(t.id);   /* one scrolling page (900): no neighbour is a swipe away */
       });
     } catch (e) { out.push('could not read: ' + e.message); }
@@ -454,7 +457,7 @@ let PORT = 0;
     });
     /* FIND SHOWING TOOLS (790: the tools are Find cards), ARRIVED AT AFTER A LANDING AND THE QUIET THAT FOLLOWS — the builder has drawn what the landing
        marked; the arrival must find it drawn. */
-    if (want('tools') && LEFT_OF_FIND_ON) await go_(`${at} tools after a landing`, async () => {
+    if (want('tools') && LEFT_OF_FIND_ON && !FLOW_ON) await go_(`${at} tools after a landing`, async () => {
       const i = TABS.findIndex(t => t.id === 'stuff');
       if (i < 1) return { err: 'no column left of Find to arrive from' };
       finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
@@ -514,7 +517,8 @@ let PORT = 0;
       /* BEFORE THE PAYLOAD: every widget that reads no facts is drawn on every column but the one in front. */
       await sleep(Math.max(0, PRE_MS - (Date.now() - t0)));
       const pre = await page.evaluate(offCols => ({ loaded: !!LOADED, veiled: WIDGET_COLS.filter(c => c !== AT && TABS.some(t => t.id === c) && offCols.indexOf(c) === -1)
-        .flatMap(c => widgetsOn_(c).filter(w => w.pure).map(w => [c, slotOn_(c, String(w.id))]).filter(([, sl]) => !sl || sl.getAttribute('aria-busy')).map(([c, sl]) => c + ' #wgt-' + (sl ? sl.id.slice(4) : '?'))) }), OFF_COLS);
+      /* A WIDGET THAT IS A FIND CARD (widgets-in-find.json, batch B) has no slot on its old column: it is drawn in Find. */
+        .flatMap(c => widgetsOn_(c).filter(w => w.pure && !(typeof widgetInFind_ === 'function' && widgetInFind_(w))).map(w => [c, slotOn_(c, String(w.id))]).filter(([, sl]) => !sl || sl.getAttribute('aria-busy')).map(([c, sl]) => c + ' #wgt-' + (sl ? sl.id.slice(4) : '?'))) }), OFF_COLS);
       if (pre.loaded) fail('REACH', where, `the payload landed before ${PRE_MS / 1000}s, so nothing was asked of the time before it`);
       else if (pre.veiled.length) fail('NOT DRAWN BEFORE THE PAYLOAD', where, `${pre.veiled.length} widget(s) that read no facts still under the loader at ${PRE_MS / 1000}s: ${pre.veiled.slice(0, 6).join(', ')}`);
       note(`${where}: at ${PRE_MS / 1000}s, the payload not in, widgets reading no facts under the loader: ${pre.veiled.length}`);

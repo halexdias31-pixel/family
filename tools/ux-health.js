@@ -212,7 +212,7 @@ function instruments() {
       Object.keys(qp).filter(k => (qp[k] || []).length > 1).slice(0, 20).forEach(k => { const ps = qp[k];
         host.innerHTML = questionWhole_(ps[0], ps, new Set(ps), true);
         const top = host.querySelector('.qwhole > .qtags'), want = ps.filter(p => Number(p.marks) > 0).length;
-        const bad = !top || [...host.querySelectorAll('.qtags')].length !== 1 || (want > 1 && top.querySelectorAll('[data-f="marks"]').length < want)
+        const bad = !top || [...host.querySelectorAll('.qtags')].filter(e => !e.classList.contains('qb-head')).length !== 1 || (want > 1 && top.querySelectorAll('[data-f="marks"]').length < want)
           || [...host.querySelectorAll('span, small, div')].some(e => !e.closest('.qtags') && /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim()));
         if (bad) r.outside = (r.outside || 0) + 1; }); } catch (e) { /* no question parts in this build: nothing to measure */ }
     host.remove(); probe.remove();
@@ -230,8 +230,9 @@ function instruments() {
       const bi = host.querySelector('img.post-face');
       if (!bi || abs(bi.getAttribute('src')) !== abs(brandLogo_())) off.push('business post face ' + (bi ? bi.getAttribute('src') : 'none') + ' is not brandLogo_ ' + brandLogo_());
       const want = abs(brandLogo_());
-      [['favicon', 'tab icon'], ['favicon-ios', 'home-screen icon']].forEach(([id, say]) => { const l = document.getElementById(id), h = l ? l.href : '';
-        if (h !== want && !(brandLogo_() === 'icon.png' && /favicon\.png$/.test(h))) off.push(say + ' ' + h + ' is not brandLogo_ ' + want); });
+      /* THE ICON FILES ARE THE SOURCE (6 Nov): the tab is favicon.png and the home screen icon.png, whatever the sheet's logo says. */
+      [['favicon', 'tab icon', 'favicon.png'], ['favicon-ios', 'home-screen icon', 'icon.png']].forEach(([id, say, file]) => { const l = document.getElementById(id), h = l ? l.href : '';
+        if (h !== abs(file)) off.push(say + ' ' + h + ' is not ' + file); });
       host.innerHTML = webProfilePages_()[0]; const wl = host.querySelector('img.web-logo');
       if (!wl || abs(wl.getAttribute('src')) !== want) off.push('Web profile picture is not brandLogo_');
       const tb = document.querySelector('.topbar-brand'); if (tb && tb.textContent.trim() !== brand('name', '@family.')) off.push('top bar says ' + tb.textContent + ', brand name ' + brand('name', '@family.'));

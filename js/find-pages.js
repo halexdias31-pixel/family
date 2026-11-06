@@ -562,7 +562,8 @@ function stuffQuestion() {
   if (!items.length) return stuffNoneHtml_();
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT § */
-  const facet = nextFacet(items) || overFacet_(items);
+  /* THE FRONT MENU IS ALWAYS ASKED (C+): one front answer (Settings, signed out) is still a menu, so every first screen is the same shape. */
+  const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length && !String(STUFF.q || '').trim() ? facetBy('kindLabel') : null);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
     ? `<p class="find-end"><button type="button" class="text-action" data-do="friend-add-open"
         >Add someone by their handle</button></p>` : '';
@@ -637,28 +638,10 @@ function facetAnswersHtml_(facet, values, more) {
    the thing `check-dead.js` would name next time anyway. */
 
 /* ---------- ONE DRAW FOR BOTH FINDERS § */
-/* ---------- THE FINDER IS FOR MEMBERS (400): signed out, Find and Find 2 are one card, Sign in or Join ----------
-   Find's booking and feed pages stay (they are not results); the bundle is made of results, so it goes. */
-function finderMembersCard_(F) {
-  return `<div class="card members-only" id="${F.id}-members"><h3>Members only</h3>
-    <p class="sub">The finder is for members. Sign in, or join free as a student or a client.</p>
-    <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'members-signin' })}${
-      tile_({ icon: 'join', label: 'Join', note: 'free', act: 'members-join' })}</div></div>`;
-}
-function finderMembersOnly_(F) {
-  const front = F.id === 'stuff' ? [].concat(bookingPages_(), feedPages_()) : [];
-  finderLeadShift_(F, 0);
-  PAGE_KEEP[F.id] = 1 + front.length;
-  return pages(F.id, [finderMembersCard_(F)].concat(front));
-}
-on('members-signin', () => go('account'));
-on('members-join', () => { if (typeof registerSheet_ === 'function') registerSheet_(); });
-
 /* FIND'S MENU BEFORE THE PAYLOAD (1000): the build's own (FINDER_TAGS). */
 setTimeout(() => { try { if (awaiting_() && SCREENS[FINDER.id]) paint(FINDER.id); } catch (e) { oops_(e, 'find:early'); } }, 0);
 function finderScreen_() {
   const F = FINDER;
-  if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members'))) return finderMembersOnly_(F);
   /* THE LIBRARY STILL COMING (670): one wait, and no menu until every card is in, so the first answers shown are the last (546). */
   if (LIBRARY_LATE && !finderTagsAt_()) { PAGE_KEEP[F.id] = 1; return pages(F.id, [loading_()]); }
   const credits = USER ? (USER.credits || 0) : 0;

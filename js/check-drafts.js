@@ -76,6 +76,12 @@ const KEPT = [
   { file: 'games.js', fn: 'tmtHtml_', has: 'tmt-weekend',
     why: 'the timetable\'s weekend tick — kept as it changes, like the rest of the timetable',
     proof: [['games.js', /tmt-weekend/]] },
+  { file: 'poster.js', fn: 'pstHtml_', has: 'data-pst-label=',
+    why: 'a poster box\'s label (547) — kept in `posterPlan` on this device at every keystroke (`pstKeep_`), never sent',
+    proof: [['poster.js', /closest\('\[data-pst-label\]'\)[\s\S]{0,300}?b\.label = [\s\S]{0,60}?pstKeep_\(\);/]] },
+  { file: 'pixel.js', fn: 'pxeHtml_', has: 'data-pxe-set="colour"',
+    why: 'the pixel editor\'s colour (547) -- kept in `pixelArt` on this device as it is picked (`pxeKeep_`), never sent',
+    proof: [['pixel.js', /pxeSet === 'colour'[\s\S]{0,80}?PXE\.colour = [\s\S]{0,60}?pxeKeep_\(\);/]] },
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
@@ -83,6 +89,14 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  { file: 'spotify.js', fn: 'spCard_', has: 'id="sp-q"', why: 'a Spotify search (510) — a few words, run at once and shown as results; a reload starts a new search' },
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="title"', why: 'a favourite link\'s title (509) — a few words typed and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
+  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="src"', why: 'the Rewrite coach\'s pasted text (509) — kept in memory only on purpose: the owner\'s rule is that nothing pasted or written outlives the session' },
+  { file: 'rewrite.js', fn: 'rwOneHtml_', has: 'data-rw="mine"', why: 'the Rewrite coach\'s own-words box, one fact at a time (509, 519) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
+  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="free"', why: 'the Rewrite coach\'s own-version box (509) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
+  { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
+  { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="note"', why: 'the Business checker\'s one-line proof (1050) — a policy number typed and Marked done at once; a reload draws the saved note' },
   { file: 'working.js', fn: '(top)', has: 'createElement(input)', why: 'the photo picker of 501 — a file chosen, never typed; the photos it adds live in WORK_PICS until Marked' },
   { file: 'records.js', fn: 'digestWordsCard_', has: 'data-dw=', why: 'the weekly email\'s four lines (491) — a few words edited and Saved in one sitting, with the preview beside them; a reload draws the saved words' },
   { file: 'receipt.js', fn: '(top)', has: 'name="why" maxlength="200"', why: 'a tutor\'s optional one-line reason for declining a request (488) — typed and sent in one press; nothing is lost but a few words' },

@@ -76,7 +76,7 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
-const TIER_OFF_WIDGETS = ['console', 'boardgames', 'wordgames', 'reels', 'videos', 'newspaper', 'calculator', 'flyers', 'mat', 'timer', 'docket', 'notepad', 'spotify', 'speedread', 'timetable', 'typing', 'cart', 'shopfind', 'calendar', 'termdates', 'countdowns', 'favlinks', 'rewrite', 'poster', 'pixel', 'verse', 'whiteboard', 'libcards'];
+const TIER_OFF_WIDGETS = [];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
 const TIER_RUN = { depth: 0 };
@@ -319,7 +319,7 @@ let PREV_AT = '';
 function go(id, remember, instant) {
   /* A SCREEN CHANGE IS A SAFE MOMENT FOR A WAITING BUILD (610). */
   if (BUILD_WAITING) buildQuietly_();
-  id = TAB_GONE[id] || id;
+  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];

@@ -199,9 +199,9 @@ function uxWork() {
   return { j, work: W };
 }
 const UX_PENALTY = { 'update-continuity': [5, 10], ux: [1, 10], question: [0.5, 10], a11y: [0.05, 5], console: [0.5, 5], 'card-tags': [0.5, 10],
-  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10] };
+  'tag-colour': [0.5, 10], 'element-box': [0.5, 10], 'attr-outside-tags': [0.5, 10], 'text-boxes': [0.5, 10], 'in-sync': [0.5, 10], 'odd-tags': [0.02, 10], 'dup-controls': [0.5, 10], 'chip-size': [0.5, 10], 'settings-work': [1, 10], 'returned-features': [0.5, 10], clutter: [0.02, 10], 'front-door': [2, 10] };
 /* THE OWNER'S FOUR (1030), each its own named check, ideal 0, budget `owner` in structure-budgets.json; the drawn halves come from check/qcard.js. */
-const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1 };
+const OWNER_KINDS = { 'tag-colour': 1, 'element-box': 1, 'card-tags': 1, 'attr-outside-tags': 1, 'text-boxes': 1, 'in-sync': 1, 'odd-tags': 1, 'dup-controls': 1, 'chip-size': 1, 'settings-work': 1, 'returned-features': 1, clutter: 1, 'front-door': 1 };
 /* ONE CARD, ONE OF EACH (1040 r12): odd-tags and dup-controls from tools/card-health.js (the library in jsdom), chip-size and settings-work */
 /* from check/chips-settings.js (a 390x844 browser walk); read here, never re-run, each finding located. */
 function cardWork() {
@@ -210,6 +210,14 @@ function cardWork() {
   else (c.work || []).forEach(w => W.push(w));
   if (!b) W.push({ kind: 'chip-size', where: 'data/chips-settings-health.json', say: 'missing — run node check/chips-settings.js; chip sizes and settings were NOT checked' });
   else (b.work || []).forEach(w => W.push(w));
+  /* RETURNED FEATURES (1040 batch B): check/returned.js opens each feature the owner brought back; read here, never re-run. */
+  const rf = jread('data/returned-health.json');
+  if (!rf) W.push({ kind: 'returned-features', where: 'data/returned-health.json', say: 'missing — run node check/returned.js; the returned features were NOT checked' });
+  else (rf.work || []).forEach(w => W.push(w));
+  /* NO GREY CLUTTER (A+): the walk's grey text outside a card's tag row (check/returned.js), and the markup that makes it. */
+  ((rf && rf.clutter) || []).forEach(w => W.push(w));
+  git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f)).forEach(f => { const src = read(f);
+    for (const m of src.matchAll(/class="(?:sub|faint|muted)[ "]/g)) W.push({ kind: 'clutter', where: f + ':' + lineOf(src, m.index), say: 'a small grey line in markup — say it as a tag, or drop it' }); });
   return W;
 }
 /* IN SYNC (1040 r10): anything shown in two places reads one source — a person's face and name their profile, the business's picture brandLogo_. */
@@ -226,7 +234,6 @@ function inSyncWork() {
     for (const m of src.matchAll(/brand\(\s*'logo_(?:square|circle)'|\.logo_(?:square|circle)\b/g))
       if (!/^function brandLogo_\(/.test(src.slice(src.lastIndexOf('\nfunction ', m.index) + 1))) add(f + ':' + lineOf(src, m.index), `${m[0]} read outside brandLogo_ — a second source for the business's picture`); });
   const fsrc = app.map(read).join('\n'), fnOf = n => (new RegExp('function ' + n + '\\([\\s\\S]*?\\n\\}').exec(fsrc) || [''])[0];
-  if (!/brandLogo_\(/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', 'the tab and home-screen icons do not follow brandLogo_ (applyBrandIcon_)');
   if (!/brandLogo_\(/.test(fnOf('webProfilePages_'))) add('js/me-roles.js', 'the Web profile picture does not read brandLogo_');
   const fw = fnOf('postFaceWho_');
   if (!/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
@@ -234,11 +241,13 @@ function inSyncWork() {
   if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
   const html = read('index.html');
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
-  /* THE MANIFEST CANNOT FOLLOW AT RUNTIME: its icons must be the repo's logo_square (brand.json) while that is a file here. */
-  try { const logo = (read('data/settings/brand.json').split('\n').map(l => { try { return JSON.parse(l.replace(/,\s*$/, '')); } catch (e) { return null; } }).find(r => r && r.key === 'logo_square') || {}).value || 'icon.png';
-    const man = JSON.parse(read('manifest.webmanifest'));
-    (man.icons || []).filter(i => i.src !== logo).forEach(i => add('manifest.webmanifest', `icon ${i.src} is not brand logo_square (${logo})`));
-    if (/^https?:/.test(logo)) add('manifest.webmanifest', `logo_square is a URL (${logo.slice(0, 40)}); the manifest's icons stay ${(man.icons || [])[0] && man.icons[0].src}`);
+  /* THE TOP BAR IS @family., THE NAME AND SIGN OUT (owner, 6 Nov): no badge; what the dot counted is Find › Settings › Notifications. */
+  if (/biz-dot|createElement\(/.test(fnOf('bizNeedsPaint_') + fnOf('topbarPaint_'))) add('js/records.js', 'a badge is drawn in the top bar — notifications live in Find › Settings');
+  if (!/name: 'Notifications'/.test(fnOf('settingDoorItems_'))) add('js/find-doors.js', 'no Notifications item in Find › Settings');
+  /* THE ICON FILES ARE THE SOURCE (6 Nov): the manifest names icon.png, and applyBrandIcon_ never swaps the tab for a sheet link. */
+  if (/brandLogo_\(|brand\(\s*'logo/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', "the tab icon follows the sheet's logo, not favicon.png / icon.png");
+  try { const man = JSON.parse(read('manifest.webmanifest'));
+    (man.icons || []).filter(i => i.src !== 'icon.png').forEach(i => add('manifest.webmanifest', `icon ${i.src} is not icon.png`));
     if (man.name !== '@family.' && !html.includes('<title>' + man.name + '</title>')) add('manifest.webmanifest', `the manifest's name "${man.name}" is not the page's title`); } catch (e) { add('manifest.webmanifest', 'cannot read the manifest or brand.json: ' + e.message); }
   /* THE BRAND'S NAME: the top bar paints it from brand('name'), not only the HTML's literal. */
   if (!/brand\(\s*'name'/.test(fnOf('topbarPaint_'))) add('js/shell-pages.js', "the top bar's brand name is index.html's literal, not brand('name')");

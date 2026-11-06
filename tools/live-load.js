@@ -18,7 +18,7 @@ const NET = { offline: false, latency: 150, downloadThroughput: 1.6e6 / 8, uploa
 const CPU = 4;
 const LIMIT = 60000;
 /* FIND'S FRONT: a member's menu (Practice), or the Members-only card signed out. */
-const MENU = '[data-do="facet-pick"][data-field="kindLabel"][data-value="Practice"], .members-only';
+const MENU = '[data-do="facet-pick"][data-field="kindLabel"][data-value="Practice"], [data-do="facet-pick"][data-field="kindLabel"][data-value="Settings"]';
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 const r0 = n => Math.round(n);

@@ -1044,7 +1044,8 @@ check('every question has an Accuracy and a Function tag on its card and as funn
     R_({ row_id: 'HX-1', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '1', marks: '4', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation', verified: 'True' }),
     R_({ row_id: 'HX-2', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '2', marks: '3', html: '<p>Work out 6 × 7.</p>', answer_type: 'calculation' }),
   ];
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  /* A MEMBER: signed out, Find answers only Settings (C+, 1040). */
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
   const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'stuffQuestion', 'questionCard_', 'stuffItemsAll_', 'stuffFiltered', 'facetList']

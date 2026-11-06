@@ -62,6 +62,8 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 - G. Health: everything above checked; a "frictionless" check for clients and tutors (booking, messaging, paying, homework).
 - C+. Signed-out visitors see the same Find (search bar + menus) as everyone, not a sign-in screen; signed out, Find
   offers only Settings, and Settings holds Sign in / Join. Ranks decide what's inside Find, never a different front door.
+- A+. No grey clutter: the small grey text lines under/around sections (e.g. Scripture › an Arabic text) go —
+  anything worth knowing is a tag; health check flags grey secondary text outside the tag row.
 - H. Favicon = an image from the owner's Drive (owner to say which).
 
 ## Paused, to come back to

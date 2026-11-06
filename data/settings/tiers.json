@@ -24,34 +24,34 @@
     "biz": "secondary"
   },
   "widgets": {
-    "console": "off",
-    "boardgames": "off",
-    "wordgames": "off",
-    "reels": "off",
-    "videos": "off",
-    "newspaper": "off",
-    "calculator": "off",
-    "flyers": "off",
-    "mat": "off",
-    "timer": "off",
-    "docket": "off",
-    "notepad": "off",
-    "spotify": "off",
-    "speedread": "off",
-    "timetable": "off",
-    "typing": "off",
-    "cart": "off",
-    "shopfind": "off",
-    "calendar": "off",
-    "termdates": "off",
-    "countdowns": "off",
-    "favlinks": "off",
-    "rewrite": "off",
-    "poster": "off",
-    "pixel": "off",
-    "verse": "off",
-    "whiteboard": "off",
-    "libcards": "off"
+    "console": "secondary",
+    "boardgames": "secondary",
+    "wordgames": "secondary",
+    "reels": "secondary",
+    "videos": "secondary",
+    "newspaper": "secondary",
+    "calculator": "secondary",
+    "flyers": "secondary",
+    "mat": "secondary",
+    "timer": "secondary",
+    "docket": "secondary",
+    "notepad": "secondary",
+    "spotify": "secondary",
+    "speedread": "secondary",
+    "timetable": "secondary",
+    "typing": "secondary",
+    "cart": "secondary",
+    "shopfind": "secondary",
+    "calendar": "secondary",
+    "termdates": "secondary",
+    "countdowns": "secondary",
+    "favlinks": "secondary",
+    "rewrite": "secondary",
+    "poster": "secondary",
+    "pixel": "secondary",
+    "verse": "secondary",
+    "whiteboard": "secondary",
+    "libcards": "secondary"
   },
   "kinds": {
     "question": "core",
@@ -123,6 +123,7 @@
     "find-loupe": "core",
     "find-figures": "core",
     "find-aloud": "core",
+    "find-doors": "core",
     "find-levels": "core",
     "find-bundles": "core",
     "find-pages": "core",
@@ -131,8 +132,8 @@
     "keypad-pad": "core",
     "keypad-edit": "core",
     "answers": "core",
-    "ink": "off",
-    "board": "off",
+    "ink": "secondary",
+    "board": "secondary",
     "submit": "core",
     "working": "core",
     "qtools": "core",
@@ -141,7 +142,7 @@
     "map": "core",
     "book": "secondary",
     "receipt": "secondary",
-    "flyer": "off",
+    "flyer": "secondary",
     "records": "secondary",
     "biz-check": "secondary",
     "mat": "secondary",
@@ -172,7 +173,12 @@
     "inbox": "secondary",
     "missing": "secondary",
     "resume": "core",
-    "boot": "core"
+    "boot": "core",
+    "spotify": "secondary",
+    "favlinks": "secondary",
+    "rewrite": "secondary",
+    "poster": "secondary",
+    "pixel": "secondary"
   },
   "eagerSecondary": {
     "posts": "the Feed is TAB_HOME, the column drawn at first paint (670); its draw runs inside drawOne's guard",
@@ -352,8 +358,12 @@
     "receipt",
     "flyer",
     "records",
+    "rewrite",
     "biz-check",
     "staff",
+    "poster",
+    "pixel",
+    "spotify",
     "inbox",
     "gtasks",
     "push",
@@ -372,6 +382,7 @@
     "layout",
     "words",
     "help",
+    "favlinks",
     "map",
     "book",
     "collections",
@@ -387,6 +398,7 @@
     "find-loupe",
     "find-figures",
     "find-aloud",
+    "find-doors",
     "find-levels",
     "find-bundles",
     "find-pages",
@@ -401,6 +413,21 @@
     ],
     "flyer": [
       "flyers"
+    ],
+    "poster": [
+      "poster"
+    ],
+    "pixel": [
+      "pixel"
+    ],
+    "spotify": [
+      "spotify"
+    ],
+    "rewrite": [
+      "rewrite"
+    ],
+    "favlinks": [
+      "favlinks"
     ]
   }
 }

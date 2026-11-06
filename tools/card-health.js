@@ -57,7 +57,16 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
         try { d.innerHTML = isQ_(x) ? questionWhole_(x, questionParts_()[qId_(x)] || [x]) : stuffCard(x); } catch (e) { return null; }
         return { id: (x.kind || '?') + ':' + x.key, acts: [...d.querySelectorAll('[data-do]')].filter(b => b.getAttribute('data-do')).map(b => [b.getAttribute('data-do'), [...b.attributes].filter(a => /^data-/.test(a.name) && a.name !== 'data-do').map(a => a.value).join(' ')]) };
       }).filter(Boolean);
-      return JSON.stringify({ items: all.length, cards, drawn });
+      /* SAME CONTROLS FOR EVERY RANK (owner, 6 Nov): a question drawn for an admin and for a student holds the same viewer controls, Help among them. */
+      const qs = pick(by.q || [], 60), acts = () => qs.map(x => { const d = document.createElement('div');
+        if ((questionParts_()[qId_(x)] || []).indexOf(x) < 0) return null; /* not on this rank's list: nothing to compare */
+        try { d.innerHTML = questionWhole_(x, questionParts_()[qId_(x)] || [x]); } catch (e) { return null; }
+        return [...d.querySelectorAll('[data-do]')].filter(b => !b.closest('.tile-group.is-admin')).map(b => b.getAttribute('data-do')).join(' '); });
+      const asAdmin = acts(), keep = USER;
+      USER = Object.assign({ name: 'S', personId: 'P-S' }, { role: 'Student', roles: ['student'] });
+      const asStudent = acts(); USER = keep;
+      const ranks = qs.map((x, i) => ({ id: 'question:' + x.key, admin: asAdmin[i], student: asStudent[i] }));
+      return JSON.stringify({ items: all.length, cards, drawn, ranks });
     }); })()`));
   A.close();
   const work = [], counts = {};
@@ -67,6 +76,9 @@ if (!repeats('Paper 1 (Non-calculator) – June 2019', 'June') || repeats('Paper
   Object.keys(counts).filter(k => counts[k] >= EVERYWHERE * got.cards.length).forEach(k =>
     work.push({ kind: 'odd-tags', where: 'every card', say: `tag "${k.split('=').slice(1).join('=')}" (${k.split('=')[0]}) is on ${counts[k]} of ${got.cards.length} cards read — it tells a reader nothing (owner question)` }));
   got.drawn.forEach(c => dups(c.acts).forEach(d => work.push({ kind: 'dup-controls', where: c.id, say: `${d} drawn twice on one card` })));
+  (got.ranks || []).forEach(r => {
+    if (r.admin != null && r.student != null && r.admin !== r.student) work.push({ kind: 'dup-controls', where: r.id, say: `controls differ by rank: admin "${r.admin}" vs student "${r.student}"` });
+    ['admin', 'student'].forEach(k => { if (r[k] != null && !/\bhelp-hand\b/.test(r[k])) work.push({ kind: 'dup-controls', where: r.id, say: `no Help tile for a ${k}` }); }); });
   const by = k => work.filter(w => w.kind === k).length;
   const pairs = {}; work.forEach(w => { const k = w.kind === 'dup-controls' ? w.say.replace(/ \(.*\)/, '') : w.say.replace(/"[^"]*"/g, '…'); pairs[k] = (pairs[k] || 0) + 1; });
   const out = { items: got.items, tagCards: got.cards.length, drawnCards: got.drawn.length, counts: { 'odd-tags': by('odd-tags'), 'dup-controls': by('dup-controls') },

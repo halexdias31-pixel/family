@@ -1050,10 +1050,13 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     r.tags.forEach(x => { if (seen[x.text.toLowerCase()]) bad.push('the ' + k + ' page says "' + x.text + '" twice'); seen[x.text.toLowerCase()] = 1; });
   });
   if (itemFacts !== null) {
-    const chipPaper = w.chipShow_({ field: 'paperId', value: 'P-TAGS-1H' });
+    /* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12, `paperTag_`), never its whole title; with no number or first words it has none. */
+    const chipPaper = (w.facetList().find(f => f.field === 'paperId') || { tagSay: () => '' }).tagSay('P-TAGS-1H');
     ['level:GCSE', 'keystage:KS4', 'examBoard:Edexcel', 'subject:Maths', 'tier:Higher', 'examYear:2018', 'examMonth:November', 'qNumber:Q4', 'qPart:a', 'marks:2 marks', 'needs:Protractor', 'forLabel:Learning']
       .forEach(f => { if (itemFacts.split(' | ').indexOf(f) < 0) bad.push('the item\'s tags lack ' + f + ': ' + itemFacts); });
-    if (!itemFacts.split(' | ').some(f => f === 'paperId:' + chipPaper)) bad.push('no paper tag reads what its chip reads (' + chipPaper + '): ' + itemFacts);
+    const paperTags = itemFacts.split(' | ').filter(f => /^paperId:/.test(f));
+    if (paperTags.join() !== (chipPaper ? 'paperId:' + chipPaper : '')) bad.push('the paper tag is not its own number (' + (chipPaper || 'none') + '): ' + itemFacts);
+    if (/Non-Calculator\) —/.test(itemFacts)) bad.push('a tag still carries the paper\'s whole title: ' + itemFacts);
   }
   /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
   const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', qNumber: '3', qPart: '', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: w.needsOf_({ needs: 'Calculator' }),

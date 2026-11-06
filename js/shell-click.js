@@ -666,7 +666,6 @@ function on(name, fn) {
     const a = arguments; el.setAttribute('aria-busy', 'true');
     requestAnimationFrame(() => setTimeout(() => { try { fn.apply(this, a); } finally { el.removeAttribute('aria-busy'); } })); };
 }
-on('topbar-signin', () => go('account'));
 
 /* Asking again. A failure that offers no way to retry costs a whole page reload, and on a phone a
    reload is the thing most likely to lose whatever was half-typed on another screen. */

@@ -187,8 +187,8 @@ function topbarPaint_() {
   const mark = document.querySelector('.topbar-brand');
   if (mark && mark.textContent !== brand('name', '@family.')) mark.textContent = brand('name', '@family.');
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
-  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}`
-    : AT === 'account' ? '' : tile_({ icon: 'in', label: 'Sign in', act: 'topbar-signin' });
+  /* ONLY @family., THE NAME AND SIGN OUT (owner, 6 Nov); signed out, Sign in is Find › Settings (C+). */
+  const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}` : '';
   if (bar.innerHTML !== html) bar.innerHTML = html;
 }
 
@@ -400,19 +400,11 @@ const PAGE_HOME = {
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
   reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
 };
-/* ---------- THE ICON, FROM THE SHEET § */
+/* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
-  /* ---------- A DRIVE SHARE LINK IS A PAGE, NOT A PICTURE § */
-  const url = brandLogo_();
-  if (!url) return;
-  [['favicon', 'icon'], ['favicon-ios', 'apple-touch-icon']].forEach(([id, rel]) => {
-    const old = document.getElementById(id);
-    if (old) old.remove();
-    const el = document.createElement('link');
-    /* THE DEFAULT `logo_square` IS `icon.png`, THE SQUARE ONE, so taken as given it would put the square back on the tab the moment the payload lands. § */
-    el.id = id; el.rel = rel;
-    el.href = (rel === 'icon' && url === 'icon.png') ? 'favicon.png' : url;
-    document.head.appendChild(el);
+  [['favicon', 'favicon.png'], ['favicon-ios', 'icon.png']].forEach(([id, file]) => {
+    const el = document.getElementById(id);
+    if (el && el.getAttribute('href') !== file) el.setAttribute('href', file);
   });
 }
 

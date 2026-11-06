@@ -2,35 +2,35 @@
  "visits": {
   "first": {
    "n": 251,
-   "netKB": 3602,
-   "cacheN": 153,
-   "cacheKB": 81040
+   "netKB": 3657,
+   "cacheN": 151,
+   "cacheKB": 77163
   },
   "repeat": {
-   "loadedMs": 5718,
-   "n": 126,
+   "loadedMs": 15856,
+   "n": 128,
    "netKB": 19,
-   "cacheN": 124,
-   "cacheKB": 59116
+   "cacheN": 126,
+   "cacheKB": 59170
   }
  },
  "walked": {
   "viewport": "390x844 touch",
   "cpu": "4x (1x for the question sample)",
-  "ms": 89781,
+  "ms": 82757,
   "phase": {
-   "loaded": 10316,
-   "signin": 13843,
-   "findUsable": 19284,
-   "clicks": 54880,
-   "questions": 78552,
-   "boxLooks": 83680
+   "loaded": 5277,
+   "signin": 8563,
+   "findUsable": 12378,
+   "clicks": 38273,
+   "questions": 63255,
+   "boxLooks": 66804
   }
  },
- "firstScreenMs": 268,
- "findUsableMs": 5441,
- "signinMs": 3095,
- "heapMB": 905,
+ "firstScreenMs": 272,
+ "findUsableMs": 3815,
+ "signinMs": 2841,
+ "heapMB": 712.4,
  "boxLooks": {
   "faces": [
    {
@@ -69,37 +69,37 @@
   ],
   "off": []
  },
- "heapLiveMB": 272.8,
- "garbageMB": 632.3,
+ "heapLiveMB": 272.3,
+ "garbageMB": 440.1,
  "clicks": [
   {
    "what": "front menu: first answer",
-   "churnMB": 149.9,
-   "ms": 5328,
-   "shift": 0.011,
-   "longs": 5,
+   "churnMB": -4,
+   "ms": 48,
+   "shift": 0.001,
+   "longs": 3,
    "by": "event-timing"
   },
   {
    "what": "second menu: first answer",
-   "churnMB": 5.6,
-   "ms": 72,
-   "shift": 0.022,
+   "churnMB": 9.8,
+   "ms": 32,
+   "shift": 0.01,
    "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "third menu: first answer",
-   "churnMB": -3.2,
-   "ms": 40,
-   "shift": 0.013,
-   "longs": 2,
+   "churnMB": 26.2,
+   "ms": 32,
+   "shift": 0.005,
+   "longs": 1,
    "by": "event-timing"
   },
   {
    "what": "back: drop the last chip",
-   "churnMB": 3.1,
-   "ms": 56,
+   "churnMB": 4,
+   "ms": 24,
    "shift": 0,
    "longs": 1,
    "by": "event-timing"
@@ -107,23 +107,23 @@
   {
    "what": "menu answer again",
    "churnMB": 7.8,
-   "ms": 120,
+   "ms": 200,
    "shift": 0,
    "longs": 2,
    "by": "event-timing"
   },
   {
    "what": "open a question",
-   "churnMB": 10.4,
-   "ms": 1107,
-   "shift": 0.026,
+   "churnMB": 6.7,
+   "ms": 2577,
+   "shift": 0.006,
    "longs": 1,
    "by": "frames"
   },
   {
    "what": "Check",
    "churnMB": 0,
-   "ms": 56,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -131,7 +131,7 @@
   {
    "what": "Lock the page",
    "churnMB": 0,
-   "ms": 64,
+   "ms": 32,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -147,7 +147,7 @@
   {
    "what": "Back to the top of Find",
    "churnMB": 0.1,
-   "ms": 56,
+   "ms": 40,
    "shift": 0,
    "longs": 0,
    "by": "event-timing"
@@ -162,7 +162,7 @@
   },
   {
    "what": "Feed tab",
-   "churnMB": 0.1,
+   "churnMB": 0,
    "ms": 38,
    "shift": 0,
    "longs": 0,
@@ -171,7 +171,7 @@
   {
    "what": "Find tab",
    "churnMB": 0,
-   "ms": 41,
+   "ms": 42,
    "shift": 0,
    "longs": 0,
    "by": "frames"
@@ -183,26 +183,18 @@
  },
  "slow": [
   {
-   "what": "front menu: first answer",
-   "churnMB": 149.9,
-   "ms": 5328,
-   "shift": 0.011,
-   "longs": 5,
-   "by": "event-timing"
-  },
-  {
    "what": "menu answer again",
    "churnMB": 7.8,
-   "ms": 120,
+   "ms": 200,
    "shift": 0,
    "longs": 2,
    "by": "event-timing"
   },
   {
    "what": "open a question",
-   "churnMB": 10.4,
-   "ms": 1107,
-   "shift": 0.026,
+   "churnMB": 6.7,
+   "ms": 2577,
+   "shift": 0.006,
    "longs": 1,
    "by": "frames"
   }
@@ -227,12 +219,62 @@
   {
    "screen": "stuff",
    "what": "tap target",
-   "say": "filter-drop \"a✕\" is 38x44 px (under 44)"
+   "say": "filter-drop \"Practice✕\" is 71x16 px (under 44)"
   },
   {
    "screen": "stuff",
    "what": "tap target",
-   "say": "filter-drop \"i✕\" is 38x44 px (under 44)"
+   "say": "filter-drop \"Questions✕\" is 76x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Maths✕\" is 54x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Past paper✕\" is 82x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"A-Level✕\" is 65x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Edexcel✕\" is 65x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"2022✕\" is 48x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Accuracy unverified✕\" is 132x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Function verified✕\" is 121x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"Q1✕\" is 37x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"a✕\" is 32x16 px (under 44)"
+  },
+  {
+   "screen": "stuff",
+   "what": "tap target",
+   "say": "filter-drop \"i✕\" is 32x16 px (under 44)"
   },
   {
    "screen": "stuff",
@@ -266,8 +308,12 @@
    "cards": 2,
    "sampled": 2,
    "noTags": 0,
-   "missing": {},
-   "fn": "card"
+   "missing": {
+    "forLabel": 1,
+    "kindLabel": 1
+   },
+   "fn": "card",
+   "notPill": 1
   },
   "boxer": {
    "cards": 103,
@@ -420,7 +466,9 @@
    "cards": 28445,
    "sampled": 20,
    "noTags": 0,
-   "missing": {},
+   "missing": {
+    "paperId": 4
+   },
    "fn": "card",
    "outside": 20
   },
@@ -445,5 +493,8 @@
    "missing": {},
    "fn": "card"
   }
+ },
+ "inSync": {
+  "off": []
  }
 }

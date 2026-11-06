@@ -36,7 +36,6 @@ function docById_(id) {
 
 /* A TYPE, IN THE PLURAL, for a title naming several of them. `5-a-day` is already a count noun. */
 const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + 's';
-
 /* ---------- WHAT THE BUNDLE IS CALLED, BUILT FROM THE CHIPS AND THE DATA § */
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'source', 'subject', 'level', 'keystage', 'yearGroup',
                              'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
@@ -180,7 +179,7 @@ function bundleBuild_(items) {
   const inBundle = items.filter(x => isQ_(x)
     && count[String(paperIdOf_(x.row || x) || '')] === whole[String(paperIdOf_(x.row || x) || '')]);
   return { papers: papers, printable: printable, ids: printable.map(p => p.id), grouped: grouped,
-           title: bundleTitle_(inBundle), noun: bundleNoun_(printable, printable.length),
+           title: bundleTitle_(inBundle), firsts: printable.map(p => first[p.id]).filter(Boolean), noun: bundleNoun_(printable, printable.length),
            stray: { questions: strayQs, other: other, papers: partial.map(id => paperLabel_(id)) } };
 }
 
@@ -217,6 +216,12 @@ function bundleStrayLine_(b) {
 
 /* WHAT A BUNDLE CARD'S TAG ROW IS ASKED OF: § */
 const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
+/* A BUNDLE CARRIES EVERY TAG ITS PAPERS SHARE (owner, 6 Nov: "the same tags the sections have"), after its own Bundles tag. */
+function bundleTags_(b) {
+  const own = String(tagRow_(BUNDLE_ITEM) || '<div class="qtags qcard-tags"></div>'), RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, skip = /^(kindLabel|kindOwn|qNumber|qPart|qSub|marks|myResult)$/;
+  const sets = (b.firsts || []).map(x => { const m = {}; String(tagRow_(x) || '').replace(RE, (t, f) => { if (!skip.test(f)) m[t] = 1; return t; }); return m; });
+  return sets.length ? own.replace(/<\/div>\s*$/, Object.keys(sets[0]).filter(t => sets.every(m => m[t])).join('') + '</div>') : own;
+}
 function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
@@ -241,7 +246,7 @@ function bundleCard_(b) {
   const stray = bundleStrayLine_(b);
   /* ---------- THE QUESTION CARD'S HEADER, BECAUSE IT IS THE SAME FAMILY § */
   return `<div class="card bundle qcard">
-      ${tagRow_(BUNDLE_ITEM)}
+      ${bundleTags_(b)}
       <h3 class="bundle-title">${esc(b.title || 'These papers')}</h3>
       <p class="bundle-sub">Printed and sent &middot; ${esc(b.noun)} &middot; ${esc(bundlePriceLine_(b))}</p>
       <ol class="bundle-list">${list}</ol>
@@ -627,9 +632,9 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
-  /* THE TALMUD'S INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473), never by a widget drawing the list ahead. */
+  /* EVERY LIBRARY INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473, 490), never by a widget drawing ahead; signed out none, as Find answers only Settings (C+, 503). */
+  if (USER || !ruleOn_('finder-members')) {
   if (typeof talmudIndex_ === 'function') talmudIndex_();
-  /* AND THE QURAN'S (490), the same way. */
   if (typeof quranIndex_ === 'function') quranIndex_();
   if (typeof hadithIndex_ === 'function') hadithIndex_();
   if (typeof worksIndex_ === 'function') worksIndex_();
@@ -638,7 +643,7 @@ function paintStuff(keepPage) {
   if (typeof orthoIndex_ === 'function') orthoIndex_();
   if (typeof hymnsIndex_ === 'function') hymnsIndex_();
   if (typeof mechIndex_ === 'function') mechIndex_();
-  if (typeof chemIndex_ === 'function') chemIndex_();
+  if (typeof chemIndex_ === 'function') chemIndex_(); }
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');

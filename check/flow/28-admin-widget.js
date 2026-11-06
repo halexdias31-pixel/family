@@ -451,7 +451,8 @@ check('Mechanics (548, 650, 740): Library → Mechanics offers Part and Car; Car
     if (!m) return undefined;
     try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
   };
-  const { w } = boot({ serve: serveAll });
+  /* A MEMBER: signed out, Find answers only Settings (C+, 1040). */
+  const { w } = boot({ member: true, serve: serveAll });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   if (!w.__t) return ['the app did not boot — NOT checked'];
   const t = w.__t;
@@ -504,7 +505,8 @@ check('Chemistry (550): Library → Chemistry offers Element, Substance and Reac
     if (!m) return undefined;
     try { return JSON.parse(fs.readFileSync(path.join(dir, '..', m[1]), 'utf8')); } catch (e) { return undefined; }
   };
-  const { w } = boot({ serve: serveAll });
+  /* A MEMBER: signed out, Find answers only Settings (C+, 1040). */
+  const { w } = boot({ member: true, serve: serveAll });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   if (!w.__t) return ['the app did not boot — NOT checked'];
   const t = w.__t;
@@ -609,12 +611,12 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   await wait(400);
   const t = w.__t, d = w.document, bad = [];
   t.go('stuff', false, true); await wait(400);
-  /* IN FIND, NOT ABOVE IT (owner, 4 Nov, `HEALTH_IN_FIND`): no lead page, Find opens on its question, and the card is the Find item health:missing. */
+  /* IN FIND, NOT ABOVE IT (owner, 4 Nov, `HEALTH_IN_FIND`): no lead page, Find opens on its question, and the card is the Find item health:health (Site health and What’s missing in one, 6 Nov). */
   const qAt = () => missPages_(d).indexOf(d.getElementById('stuff-controls')?.closest('.page'));
   if (qAt() !== 0 || t.PAGE().stuff !== 0) bad.push('the question is page ' + qAt() + ' and Find opens on page ' + t.PAGE().stuff + ' — wanted the question first, no page above it');
   if (d.querySelector('#s-stuff .miss-card')) bad.push('the card is still drawn above Find\'s question');
   const host = d.createElement('div'); host.className = 'miss-host'; d.getElementById('s-stuff').appendChild(host);
-  const item = () => (w.stuffItemsAll_() || []).find(x => x.key === 'health:missing');
+  const item = () => (w.stuffItemsAll_() || []).find(x => x.key === 'health:health');
   const draw = async () => { host.innerHTML = item() ? w.stuffCard(item(), 0) : ''; await wait(200); host.innerHTML = item() ? w.stuffCard(item(), 0) : ''; };
   if (!item()) return bad.concat(['no What’s missing item in Find for an admin — NOT checked']);
   await draw();
@@ -648,7 +650,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
   const e = boot({ before: signedInAs_(LAY_ADMIN_), serve: missServe_(null) });
   await wait(400);
   e.w.__t.go('stuff', false, true); await wait(300);
-  const eItem = (e.w.stuffItemsAll_() || []).find(x => x.key === 'health:missing');
+  const eItem = (e.w.stuffItemsAll_() || []).find(x => x.key === 'health:health');
   const eh = e.w.document.createElement('div'); eh.innerHTML = eItem ? e.w.stuffCard(eItem, 0) : ''; await wait(200); eh.innerHTML = eItem ? e.w.stuffCard(eItem, 0) : '';
   const es = (eh.querySelector('.miss-card') || { textContent: '' }).textContent;
   if (!/Nothing listed to expect yet/.test(es)) bad.push('an absent list does not say "Nothing listed to expect yet": ' + es.replace(/\s+/g, ' ').slice(0, 120));
@@ -659,7 +661,7 @@ check('What\'s missing (526): an admin sees the card directly above Find\'s ques
     await wait(400);
     s.w.__t.go('stuff', false, true); await wait(300);
     const sd = s.w.document;
-    if (sd.querySelector('.miss-card') || (s.w.stuffItemsAll_() || []).some(x => x.key === 'health:missing')) bad.push('a ' + who.rank + ' sees What’s missing');
+    if (sd.querySelector('.miss-card') || (s.w.stuffItemsAll_() || []).some(x => x.key === 'health:health')) bad.push('a ' + who.rank + ' sees What’s missing');
     if (missPages_(sd).indexOf(sd.getElementById('stuff-controls')?.closest('.page')) !== 0) bad.push('for a ' + who.rank + ' the question is not page 0');
     if (s.gets.some(u => /expected-papers\.json/.test(u))) bad.push('a ' + who.rank + ' fetched expected-papers.json');
     s.w.close();

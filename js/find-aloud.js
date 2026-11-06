@@ -538,10 +538,12 @@ function stuffItems() {
 
 /* ---------- BOOKING IS NOT IN THE FUNNEL, AND THIS IS THE TOOLS AND GAMES DECISION AGAIN § */
 /* ---------- AND THE SHOP LEFT WITH IT, ONCE IT HAD A COLUMN TO GO TO § */
-const FUNNEL_NOT_FOR = ['Booking', 'Shop'];
+const FUNNEL_NOT_FOR = [];
 
 function stuffItemsBuild_() {
   return stuffItemsAll_().filter(x => {
+    /* SIGNED OUT, ONE ANSWER (C+): Settings, which holds Sign in and Join — the same Find, never a second front door. */
+    if (!USER && (typeof ruleOn_ !== 'function' || ruleOn_('finder-members')) && typeof findSignedOut_ === 'function') return findSignedOut_(x);
     /* READ EXACTLY AS THE `forLabel` FACET READS IT — `x.groups || kindOf_(x).group`, through `asList_` — so what leaves the funnel is what would have answered § */
     const g = asList_(x.groups || kindOf_(x).group);
     if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
@@ -566,23 +568,14 @@ function stuffItemsRaw_() {
     ...(typeof allWidgets === 'function' && typeof widgetInFind_ === 'function' ? findWidgetList_() : []).map(w => ({
       kind: w.kind, name: w.name || w.title || w.label || String(w.id), sub: w.what || '', image: '',
       groups: w.groups, widget: w, text: [w.name, w.what, w.label].filter(Boolean).join(' '),
+      /* A SHOP WIDGET (the Basket) IS ITS OWN ANSWER UNDER SHOP (batch C), beside the things' categories. */
+      shopKind: w.kind === 'shop' ? (w.name || '') : '',
     })).filter(x => typeof TIER_OFF_WIDGETS === 'undefined' || TIER_OFF_WIDGETS.indexOf(String(x.widget.id)) === -1),
     ...soonItems_(),
-    ...(typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : []).filter(p => p && p.title).map(p => ({
-      kind: 'person', name: p.title, key: 'person:' + (p.personId || p.title), sub: p.role || 'Client', image: p.image || '', row: p,
-      text: [p.title, p.handle, p.role].filter(Boolean).join(' ') })),
-    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['health', 'Site health'], ['missing', 'What’s missing'], ['bizcheck', 'Business checker']].map(([w, n]) => ({
-      kind: 'health', name: n, key: 'health:' + w, sub: 'Settings', image: '', which: w, text: n + ' site health' })) : []),
-    ...((DATA && DATA.posts) || []).filter(p => p && p.id).map(p => ({ kind: 'post', name: String(p.text || p.caption || p.title || 'Post').slice(0, 80),
-      key: 'post:' + p.id, sub: p.handle || p.author || '', image: '', row: p, text: [p.text, p.caption, p.title, p.handle, p.author].filter(Boolean).join(' ') })),
-    /* FRIENDS. People are found on the Find tab like everything else — they were a card on You, which made them a setting about yourself rather than a set of people § */
-    ...(canTrack() ? friendHandles().map(h => {
-      const s2 = (DATA.students || []).find(x => norm(x.handle) === norm(h)) || {};
-      return {
-        kind: 'friend', name: s2.name || h, key: 'friend:' + h, sub: h, image: '',
-        row: Object.assign({ handle: h }, s2),
-      };
-    }) : []),
+    /* POSTS, MESSAGES, PROFILES, SETTINGS AND VIDEOS (batch C): their items and menus are find-doors.js's. */
+    ...(typeof doorItems_ === 'function' ? doorItems_() : []),
+    ...(typeof rankAtLeast_ === 'function' && rankAtLeast_('admin') ? [['health', 'Site health'], ['bizcheck', 'Business checker']].map(([w, n]) => ({
+      kind: 'health', name: n, key: 'health:' + w, sub: 'Settings', image: '', which: w, text: n + ' site health what’s missing' })) : []),
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,
@@ -722,7 +715,7 @@ function stuffItemsRaw_() {
   ].filter(x => !x || OFF_KINDS[x.kind] === undefined).concat(offKindCards_());
 }
 /* SWITCHED OFF (owner, 4 Nov): these kinds' items leave Find; each area keeps one Coming soon card under its own answer. */
-const OFF_KINDS = { post: 'Posts', shop: 'Shop', tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking' };
+const OFF_KINDS = {};
 function offKindCards_() {
   const seen = {};
   return Object.keys(OFF_KINDS).filter(k => !seen[OFF_KINDS[k]] && (seen[OFF_KINDS[k]] = true)).map(k => ({
