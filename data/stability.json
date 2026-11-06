@@ -29,6 +29,17 @@
    }
   },
   {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 16,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 4.8,
+   "where": {
+    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+   }
+  },
+  {
    "id": "catches",
    "label": "Empty catches allowed (check-catches ceiling)",
    "count": 228,
@@ -36,17 +47,6 @@
    "cap": 15,
    "off": 4.6,
    "where": {}
-  },
-  {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 15,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 4.5,
-   "where": {
-    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
-   }
   },
   {
    "id": "special",
@@ -61,8 +61,8 @@
     "js/find-aloud.js": 1,
     "js/find-cells.js": 2,
     "js/find-figures.js": 4,
-    "js/find-finder.js": 1,
-    "js/find-history.js": 7,
+    "js/find-finder.js": 2,
+    "js/find-history.js": 6,
     "js/find-pad.js": 4,
     "js/keypad-keys.js": 3,
     "js/links.js": 3,
@@ -94,12 +94,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 65,
+   "count": 50,
    "weight": 0.02,
    "cap": 10,
-   "off": 1.3,
+   "off": 1,
    "where": {
-    "lines": 24
+    "lines": 18
    }
   },
   {
@@ -124,7 +124,7 @@
     "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 161,
     "js/find-parts.js typeset_": 230,
-    "js/library.js libraryExtras_": 180,
+    "js/library.js libraryExtras_": 182,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1204,
@@ -143,7 +143,7 @@
   }
  ],
  "secondary": {
-  "score": 81,
+  "score": 80.9,
   "verdict": "Steady, with duct tape worth paying down.",
   "signals": [
    {
@@ -169,10 +169,10 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 76,
+    "count": 77,
     "weight": 0.05,
     "cap": 10,
-    "off": 3.8,
+    "off": 3.9,
     "where": {
      "js/arcade.js": 7,
      "js/board.js": 20,
@@ -180,6 +180,7 @@
      "js/games.js": 11,
      "js/layout.js": 1,
      "js/mat.js": 3,
+     "js/mechanics.js": 1,
      "js/orthodox.js": 2,
      "js/posts.js": 7,
      "js/racer.js": 3,

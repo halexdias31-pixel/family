@@ -235,7 +235,8 @@ function tagsOnTop_(x, html) {
 
 /* A CREDIT LINE IS A TAG (A+): a card's small source or licence line, however late it is drawn, moves into its tag row, said in full. */
 function creditsToTags_(root) {
-  (root && root.querySelectorAll ? root : document).querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
+  const at = root && root.querySelectorAll ? root : document;
+  if (at && at.querySelectorAll) at.querySelectorAll('.card [class$="-credit"]:not(.qtag)').forEach(el => {
     const card = el.closest('.card'), row = card && card.querySelector('.qcard-tags'), w = (el.textContent || '').trim();
     if (!row || !w || el.closest('.qcard-tags')) return;
     const t = document.createElement('span');

@@ -47,3 +47,9 @@ Things the health checker flags that would change what you see, so they wait for
 
 ## Friction fixes (6 Nov) — homework
 - **Homework: let a tutor assign a paper/question set to a student; student sees 'Homework' in Find; tutor sees results — build it? (y/n)** Today the friction walk counts three journeys as impossible or a dead end for want of it: a tutor setting homework, a tutor seeing a student's results, a student opening what was set. It would need a new sheet tab (who set what for whom, due when) and a results view; nothing was built until you say.
+
+## Sweep 6 Nov — open suggestions that are visible design (not done without a yes)
+- Students search card: drop the column-name widget and the Find button, and copy the search widget to the column on its right? (y/n)
+- Favourite links as an icon grid (site icons) instead of a list? (y/n)
+- Speed reader: make "Read it" a button? (y/n)
+- A past-paper question's tag reads "Paper 3x…" instead of "Paper 3" — relabel as "Paper 3" with "Section A/B" as tags? (y/n)

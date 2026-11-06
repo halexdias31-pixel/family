@@ -103,6 +103,7 @@
   --dur-move:  280ms;
   /* AN INFORMATION HIGHLIGHT (`.lay-moved`, `.post-lit`): it says where something is, so reduced motion keeps it. */
   --dur-mark:  1.3s;
+  --dur-pan:   900ms; /* the timeline axis pan (owner-asked, batch F): slow enough to read the years go by */
   /* how long anything takes to respond to a touch; the old name, kept as an alias until every use moves onto `--dur-quick`. */
   --quick: var(--dur-quick);
   --ease-out:    cubic-bezier(.2, .8, .2, 1);
@@ -7173,14 +7174,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tl-anim { overflow: hidden; } .tl-scene { height: 10rem; display: flex; flex-direction: column; align-items: center; text-align: center; } .tl-scene > * { animation: tl-pop var(--dur-enter) var(--ease-out); }
 .tl-pic { margin: .2rem 0 0; width: 5.5rem; height: 5.5rem; } .tl-big, .tl-mini { width: 100%; height: 100%; display: block; } .tl-year { margin: .3rem 0 0; font: 600 .8rem/1.2 var(--mono); color: var(--gold); }
 .tl-label { margin: .1rem 0 0; font-weight: 700; font-size: 1rem; line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.tl-view { position: relative; height: 3.4rem; margin: .6rem 0 .2rem; overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform 900ms var(--ease-out); will-change: transform; }
-.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 .6rem/1 var(--mono); font-style: normal; color: var(--ink); opacity: .55; white-space: nowrap; }
-.tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; opacity: .45; transition: opacity var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { opacity: .8; } .tl-ev.on { opacity: 1; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
+.tl-view { position: relative; height: 3.4rem; margin: .6rem 0 .2rem; overflow: hidden; border-bottom: 2px solid var(--line); } .tl-track { position: absolute; left: 0; top: 0; bottom: 0; transition: transform var(--dur-pan) var(--ease-out); will-change: transform; }
+.tl-tick { position: absolute; bottom: 0; height: .5rem; border-left: 1px solid var(--line); } .tl-tick i { position: absolute; bottom: .55rem; left: 0; transform: translateX(-50%); font: 400 .6rem/1 var(--mono); font-style: normal; color: color-mix(in srgb, var(--ink) 55%, transparent); white-space: nowrap; }
+.tl-ev { position: absolute; top: .2rem; width: 1.25rem; height: 1.25rem; margin-left: -.625rem; filter: opacity(.45); transition: filter var(--dur-enter), transform var(--dur-enter); } .tl-ev.past { filter: opacity(.8); } .tl-ev.on { filter: none; transform: translateY(-.1rem) scale(1.35); } .tl-pin { position: absolute; left: 50%; bottom: 0; width: 0; height: 1rem; border-left: 3px solid var(--gold); margin-left: -1.5px; }
 @keyframes tl-pop { from { opacity: 0; transform: translateY(.4rem) scale(.9); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-scene > *, .tl-track, .tl-ev { animation: none; transition: none; } }
 .rep-vids { margin: .4rem 0; }
 .rep-vid { align-items: center; }
-
 /* THE WEB PROFILE (730): the business card's logo, small, beside its lines. */
 .web-card .web-logo { width: 4rem; height: 4rem; object-fit: contain; display: block; margin: .4rem 0; }
 

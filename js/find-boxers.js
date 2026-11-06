@@ -264,53 +264,6 @@ function stuffPart_(x, part) {
 }
 
 
-/* ---------- A FLAG FOR THE COUNTRY, WHERE THE COUNTRY IS ONE OF THESE § */
-const BOXER_FLAG = {
-  'usa': 'US', 'united states': 'US', 'uk': 'GB', 'united kingdom': 'GB', 'great britain': 'GB',
-  'england': 'GB', 'scotland': 'GB', 'wales': 'GB', 'northern ireland': 'GB',
-  'mexico': 'MX', 'ukraine': 'UA', 'puerto rico': 'PR', 'argentina': 'AR', 'ireland': 'IE',
-  'germany': 'DE', 'canada': 'CA', 'panama': 'PA', 'philippines': 'PH', 'kazakhstan': 'KZ',
-  'sweden': 'SE', 'italy': 'IT', 'nigeria': 'NG', 'nicaragua': 'NI', 'cuba': 'CU', 'jamaica': 'JM',
-  'australia': 'AU', 'japan': 'JP', 'norway': 'NO', 'netherlands': 'NL', 'france': 'FR',
-  'ghana': 'GH', 'south africa': 'ZA', 'russia': 'RU', 'dominican republic': 'DO', 'venezuela': 'VE',
-  'colombia': 'CO', 'brazil': 'BR', 'thailand': 'TH', 'south korea': 'KR', 'china': 'CN',
-  'new zealand': 'NZ', 'spain': 'ES', 'poland': 'PL', 'uzbekistan': 'UZ', 'belgium': 'BE',
-  'denmark': 'DK', 'hungary': 'HU', 'cameroon': 'CM', 'uganda': 'UG', 'zambia': 'ZM',
-};
-/* TWO REGIONAL-INDICATOR LETTERS ARE A FLAG, which is the whole of the encoding. § */
-function boxerFlag_(country) {
-  const cc = BOXER_FLAG[norm(country)];
-  return cc ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
-}
-
-/* ---------- A DATE AS A FIGHT POSTER WRITES ONE § */
-const BOXER_ISO = /^\d{4}-\d{1,2}-\d{1,2}/;
-function boxerDate_(v) {
-  const s = String(v || '').trim();
-  const d = BOXER_ISO.test(s) ? parseWhen(s) : null;
-  return d ? d.getDate() + ' ' + MONTH_NAMES[d.getMonth()].slice(0, 3) + ' ' + d.getFullYear() : s;
-}
-/* WHOLE YEARS BETWEEN TWO DATES, or null when either is not one. A birthday not yet reached in the
-   last year is taken off, which is the one step a subtraction of years gets wrong. */
-function boxerAge_(from, to) {
-  const a = BOXER_ISO.test(String(from || '')) ? parseWhen(from) : null;
-  const b = to instanceof Date ? to : (BOXER_ISO.test(String(to || '')) ? parseWhen(to) : null);
-  if (!a || !b || b < a) return null;
-  let n = b.getFullYear() - a.getFullYear();
-  if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) n--;
-  return n;
-}
-/* CENTIMETRES, WITH WHAT A BOXING FAN ACTUALLY QUOTES beside them. A reach is said in inches alone
-   ("a 78-inch reach"), a height in feet and inches. Rounded to the inch first and then split, so
-   six foot twelve cannot happen. */
-function boxerCm_(cm, height) {
-  if (!(cm > 0)) return '';
-  const inches = Math.round(cm / 2.54);
-  return cm + ' cm · ' + (height ? Math.floor(inches / 12) + '′ ' + (inches % 12) + '″' : inches + '″');
-}
-/* THE NAMES, SPLIT ON THE PIPE THE SHEET USES FOR EVERY LIST, blanks and repeats taken out. */
-const boxerNames_ = v => String(v || '').split('|').map(s => s.trim())
-  .filter((s, i, a) => s && a.indexOf(s) === i);
 /* TWO LETTERS FOR THE PLACEHOLDER: § */
 const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
 function boxerInitials_(name) {
@@ -320,54 +273,6 @@ function boxerInitials_(name) {
     .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
   return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
 }
-
-/* ---------- THE BOXER IN A BOUT'S CORNER § */
-function boxerOf_(id, name) {
-  const all = (DATA && DATA.boxers) || [];
-  return (id && all.find(b => String(b.id) === String(id)))
-      || (name && all.find(b => norm(b.name) === norm(name))) || null;
-}
-
-/* ---------- HIS BOUTS, NEWEST FIRST, EACH ONE READ FROM HIS SIDE § */
-function boxerBouts_(b) {
-  const id = String((b && b.id) || ''), name = norm(b && b.name);
-  if (!id && !name) return [];
-  const mine = (cid, cname) => (id && cid) ? String(cid) === id : (!cid && !!name && norm(cname) === name);
-  return ((DATA && DATA.fights) || []).map(f => {
-    const side = mine(f.aId, f.a) ? 'a' : mine(f.bId, f.b) ? 'b' : '';
-    if (!side) return null;
-    const me = side === 'a' ? { id: f.aId, n: f.a } : { id: f.bId, n: f.b };
-    const them = side === 'a' ? { id: f.bId, n: f.b } : { id: f.aId, n: f.a };
-    let res;
-    if (f.winnerId) res = String(f.winnerId) === String(me.id || id) ? 'W' : 'L';
-    else if (f.winner) res = norm(f.winner) === norm(me.n) ? 'W' : 'L';
-    else res = /no.?contest|^nc$/i.test(String(f.result || '')) ? 'NC' : 'D';
-    return { f, res, opp: them.n, oppId: them.id };
-  }).filter(Boolean).sort((p, q) => String(q.f.date || '').localeCompare(String(p.f.date || '')));
-}
-/* HOW IT ENDED, as a record writes it: § */
-function boxerHow_(f) {
-  const m = String(f.method || '').trim();
-  const dist = (!m || /^(UD|SD|MD|TD|PTS|D|DRAW)$/i.test(m)) ? (f.rounds || '') : '';
-  return [m, f.endRound || dist].filter(Boolean).join(' ');
-}
-
-/* ---------- THE RECORD BAR'S WIDTHS, WHICH ADD UP TO A HUNDRED EXACTLY § */
-function boxerSplit_(parts) {
-  const live = parts.filter(p => p.n > 0);
-  const total = live.reduce((s, p) => s + p.n, 0);
-  if (!total) return [];
-  let used = 0;
-  return live.map((p, i) => {
-    const w = i === live.length - 1 ? +(100 - used).toFixed(2) : +(p.n / total * 100).toFixed(2);
-    const out = Object.assign({}, p, { x: +used.toFixed(2), w });
-    used += w;
-    return out;
-  });
-}
-
-/* ---------- THE PHOTO, OR A RING WITH THE BOXER IN IT, AT EIGHT BITS § */
-
 /* ---------- THE WORDS A LOOK MAY USE, AND THE ONLY ONES § */
 const BOXER_LOOK = {
   skin: ['s1', 's2', 's3', 's4', 's5', 's6'],

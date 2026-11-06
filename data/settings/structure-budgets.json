@@ -969,13 +969,13 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5274165,
+  "searchBytes": 5269284,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,
   "testBiggest": 414941,
   "bigNotes": 10,
-  "spread": 22,
+  "spread": 20,
   "effortLines": 209,
   "effortFiles": 9
  },
