@@ -635,8 +635,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
   const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
   const cards = w.stuffItems().filter(i => i.kind === 'content');
-  const aged = w.stuffItemsRaw_().filter(i => i.kind === 'content' && !w.itemAgeOk_(i)).length;   // 14+ for this viewer (505)
-  if (cards.length + aged !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
+  if (cards.length !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
   if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
   /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
   if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');

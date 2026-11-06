@@ -15,7 +15,7 @@ const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', va
 
 const HEAD = '/* @family. — js/finder-tags.js WRITTEN BY tools/finder-tags.js, NEVER BY HAND (546): the finder\'s first questions and answers, counted at build time. */\n';
 /* ONE QUESTION A LINE, so a change to the library shows in a diff as the questions it changed. */
-const render = T => HEAD + 'const FINDER_TAGS = {\n"ages": ' + JSON.stringify(T.ages) + ',\n"views": {\n'
+const render = T => HEAD + 'const FINDER_TAGS = {\n"views": {\n'
   + Object.keys(T.views).map(v => JSON.stringify(v) + ': {\n' + Object.keys(T.views[v]).map(k => '  ' + JSON.stringify(k) + ': '
     + JSON.stringify(T.views[v][k])).join(',\n') + '\n}').join(',\n') + '\n}};\n';
 
@@ -41,17 +41,14 @@ const render = T => HEAD + 'const FINDER_TAGS = {\n"ages": ' + JSON.stringify(T.
     + '["the texts",TEXTS],["the pdtexts",PDTEXTS],["the Orthodox texts",ORTHO],["the hymns",HYMNS]].filter(p => p[1].failed).map(p => p[0]))');
   if (JSON.parse(failed).length) { console.error('finder-tags: these did not load, so nothing is written: ' + JSON.parse(failed).join(', ')); process.exit(2); }
 
-  /* THE VIEWERS: an admin (every age, the Bible), and a student at each age line any item draws, from none upwards. */
-  const ages = JSON.parse(ev(`(() => { const s = new Set([0, SCRIPTURE_MIN_AGE]); USER = Object.assign({}, USER, { role: 'Admin', roles: ['admin'] });
-    stuffForget_(); stuffItemsRaw_().forEach(x => s.add(itemMinAge_(x))); return JSON.stringify([...s].filter(a => isFinite(a)).sort((a, b) => a - b)); })()`));
-  const viewers = [{ role: 'Admin', roles: ['admin'] }].concat(ages.map(a => ({ role: 'Student', roles: ['student'], profile: { age: a } })));
+  /* THE VIEWERS: an admin (the Bible, People and Settings) and a student; no age lines (1040). */
+  const viewers = [{ role: 'Admin', roles: ['admin'] }, { role: 'Student', roles: ['student'], profile: {} }];
   const views = {};
   for (const v of viewers) {
     const got = JSON.parse(ev(`(() => {
       USER = Object.assign({ name: 'T', personId: 'P-T' }, ${JSON.stringify(v)});
       stuffForget_();
-      const ages = ${JSON.stringify(ages)}, cap = viewerAgeCap_();
-      const key = (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '') + '@' + ages.filter(a => a <= cap).reduce((m, a) => Math.max(m, a), 0);
+      const key = (isAdmin() ? 'admin+' : '') + (bibleFor_() ? 'bible' : '');
       const at = filters => inFinder_(FINDERS.stuff, () => {
         STUFF.filters = filters; STUFF.q = ''; STUFF.admit = null;
         const items = stuffFiltered();
@@ -79,14 +76,13 @@ const render = T => HEAD + 'const FINDER_TAGS = {\n"ages": ' + JSON.stringify(T.
     views[got.key] = got.out;
   }
   A.close();
-  const text = render({ ages: ages, views: views });
+  const text = render({ views: views });
   if (CHECK) {
     if (text === had) { console.log('finder-tags: js/finder-tags.js is current (' + Object.keys(views).length + ' views)'); process.exit(0); }
     console.error('finder-tags: js/finder-tags.js is STALE — the finder\'s first answers have changed. Run: node tools/finder-tags.js');
     process.exit(1);
   }
   fs.writeFileSync(OUT, text);
-  console.log('finder-tags: wrote js/finder-tags.js — ' + Object.keys(views).length + ' views, ages ' + ages.join(', ')
-    + ', ' + Object.values(views).reduce((n, o) => n + Object.keys(o).length, 0) + ' questions');
+  console.log('finder-tags: wrote js/finder-tags.js — ' + Object.keys(views).length + ' views, ' + Object.values(views).reduce((n, o) => n + Object.keys(o).length, 0) + ' questions');
   process.exit(0);
 })().catch(e => { console.error('finder-tags: ' + (e && e.stack || e)); process.exit(2); });

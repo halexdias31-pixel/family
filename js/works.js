@@ -3,7 +3,6 @@
    data/works/: the index when a finder paints, the words when a card is drawn. */
 
 const WORKS = { index: null, asking: null, failed: false, texts: {}, loading: {}, missed: {}, items: null, from: null };
-/* A RELIGIOUS WORK IS FOR A VIEWER OF AGE (490), as scripture is; a work's own `min_age` in the index says so. */
 const worksGet_ = file => {
   const stamp = deployStamp_();
   return Promise.resolve()

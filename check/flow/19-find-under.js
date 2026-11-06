@@ -226,8 +226,8 @@ check('the Talmud (473, 490): Berakhot 2a is a card of its own found under Learn
   return bad;
 });
 
-/* ---------- AN AGE LIMIT (490): the Talmud and the Quran carry min_age 18 — a child, an adult with no date of birth and a signed-out visitor are never sent them ---------- */
-check('an age limit (490, 504): a ten-year-old, a member with no date of birth and a signed-out visitor are never shown or sent the Talmud, the Quran or the Bible; an adult is shown all three; an item with min_age is hidden alike', async () => {
+/* ---------- NO AGE GATES (1040): the owner, "cancel all that" — every viewer is shown scripture ---------- */
+check('no age gates (1040): a ten-year-old, a member with no date of birth, a signed-out visitor and an adult are each shown the Talmud, the Quran and the Bible', async () => {
   const serve = url => {
     const m = /(?:^|\/)data\/(talmud|quran|bible)\/([a-z0-9-]+\/[a-z0-9-]+\.json|[a-z0-9-]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -235,9 +235,9 @@ check('an age limit (490, 504): a ten-year-old, a member with no date of birth a
     return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
   };
   const y = new Date().getFullYear();
-  const who = [['a ten-year-old', Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 10) } }), false],
-               ['a member with no date of birth', MEMBER_, false],
-               ['a signed-out visitor', null, false],
+  const who = [['a ten-year-old', Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 10) } }), true],
+               ['a member with no date of birth', MEMBER_, true],
+               ['a signed-out visitor', null, true],
                ['an adult', Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 30) } }), true]];
   const bad = [];
   for (const [what, u, ok] of who) {
@@ -250,27 +250,19 @@ check('an age limit (490, 504): a ten-year-old, a member with no date of birth a
     if (!ok) await wait(150);
     const all = w.stuffItemsAll_();
     const kinds = k => all.filter(x => x.kind === k).length;
-    const sent = b.gets.filter(g => /data\/(talmud|quran|bible)\//.test(g));
-    if (ok) {
-      if (!kinds('talmud') || !kinds('quran')) bad.push(what + ' is not shown the Talmud (' + kinds('talmud') + ') and the Quran (' + kinds('quran') + ')');
-      /* PUBLIC NOW (504): "bible should also be in there as it's open source" — `kjv-admin` is Universal until the owner switches it. */
-      if (!kinds('bible')) bad.push(what + ' is not shown the Bible — it is open to anyone of age since 504');
-    } else {
-      if (kinds('talmud') || kinds('quran') || kinds('bible')) bad.push(what + ' is shown ' + ['talmud', 'quran', 'bible'].map(k => kinds(k) + ' ' + k).join(', '));
-      if (sent.length) bad.push(what + ' was sent ' + sent.join(', '));
-    }
-    if (w.itemAgeOk_({ min_age: 18 }) !== ok) bad.push(what + ': an item with min_age 18 is ' + (ok ? 'hidden' : 'shown'));
-    if (!w.itemAgeOk_({ row: {} })) bad.push(what + ': an item with no min_age is hidden');
+    if (!kinds('talmud') || !kinds('quran')) bad.push(what + ' is not shown the Talmud (' + kinds('talmud') + ') and the Quran (' + kinds('quran') + ')');
+    /* PUBLIC (504): `kjv-admin` is Universal until the owner switches it. */
+    if (!kinds('bible')) bad.push(what + ' is not shown the Bible');
   }
   return bad;
 });
 
-/* ---------- GCSE TOPICS FOR GCSE AGES (505): GCSE history, RS, psychology, sociology and the history database are 14+ by one derived rule ---------- */
-check('GCSE topics for GCSE ages (505): a 12-year-old, a member with no date of birth and a visitor see no GCSE History question or card and no WW2 timeline; a 15-year-old and the admin do; a KS3 history item stays open to the 12-year-old', async () => {
+/* ---------- NO AGE GATES (1040): GCSE history and the history database are everyone's ---------- */
+check('no age gates (1040): a 12-year-old, a member with no date of birth, a visitor, a 15-year-old and the admin all see GCSE History and the WW2 timeline', async () => {
   const y = new Date().getFullYear();
   const at = n => Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(y - n) } });
   const ADMIN = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk' };
-  const who = [['a 12-year-old', at(12), false], ['a member with no date of birth', MEMBER_, false], ['a signed-out visitor', null, false],
+  const who = [['a 12-year-old', at(12), true], ['a member with no date of birth', MEMBER_, true], ['a signed-out visitor', null, true],
                ['a 15-year-old', at(15), true], ['the admin', ADMIN, true]];
   const p0 = await resPayload_();
   if (!p0) return ['the app did not load — NOT checked'];
@@ -288,21 +280,13 @@ check('GCSE topics for GCSE ages (505): a 12-year-old, a member with no date of 
     const { w } = b;
     w.__t.go('stuff'); w.paintStuff();
     const raw = w.stuffItemsRaw_(), all = w.stuffItemsAll_();
-    const gated = raw.filter(x => w.gcseAgeOf_(x) === 14);
-    const hist = gated.filter(x => /histor/i.test(x.subject || '') && !x.hdb);
+    const hist = raw.filter(x => /histor/i.test(x.subject || '') && !x.hdb && /gcse/i.test(String(x.level || '')));
     const tl = raw.filter(x => x.kind === 'timeline' && x.era === 'World War 2');
     if (!hist.length || !tl.length) { bad.push(what + ': no GCSE History item (' + hist.length + ') or WW2 timeline (' + tl.length + ') to ask about (of ' + raw.length + ') — NOT checked'); continue; }
     const keys = new Set(all.map(x => x.key)), shown = x => keys.has(x.key);
     if (hist.some(shown) !== ok || hist.every(shown) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' GCSE History (' + hist.filter(shown).length + ' of ' + hist.length + ')');
     if (shown(tl[0]) !== ok) bad.push(what + (ok ? ' is not shown' : ' is shown') + ' the WW2 timeline');
-    const ks3 = { kind: 'content', subject: 'History', level: 'KS3', name: 'The Norman Conquest', row: {} };
-    if (w.gcseAgeOf_(ks3) || !w.itemAgeOk_(ks3)) bad.push(what + ': a KS3 History item is age-limited');
-    const gq = { kind: 'question', subject: 'History', level: 'GCSE', name: 'Paper 1', row: {} };
-    if (w.itemAgeOk_(gq) !== ok) bad.push(what + ': a GCSE History question is ' + (ok ? 'hidden' : 'shown'));
-    if (what === 'the admin' && process.env.GCSE_AGE_COUNTS) {
-      const c = {}; gated.forEach(x => { const k = (x.hdb ? 'History database' : x.subject || '?') + ' / ' + x.kind; c[k] = (c[k] || 0) + 1; });
-      console.log('GCSE_AGE_COUNTS ' + JSON.stringify(c));
-    }
+    if (raw.length !== all.length) bad.push(what + ' is shown ' + all.length + ' of ' + raw.length + ' items — something is hidden');
   }
   return bad;
 });
@@ -1011,7 +995,7 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   /* A CARD A VERSE A TEXT (504): the KJV and the WEB on the KJV's numbering, each other text on its own books. */
   const wantN = index.totals.verses + (index.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : index.totals.verses), 0);
   if (verses.length !== wantN) bad.push('an admin\'s list holds ' + verses.length + ' Bible items — wanted ' + wantN + ', a card a verse a text');
-  if (verses.some(x => !x.bb || Number(x.min_age) !== 18)) bad.push('a Bible item is not a verse or is not 18+');
+  if (verses.some(x => !x.bb || 'min_age' in x)) bad.push('a Bible item is not a verse or carries an age limit');
   if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('Find 2 does not carry the verses for an admin');
   t.go('res');
   const S = t.RES();

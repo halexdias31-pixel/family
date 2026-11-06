@@ -509,12 +509,8 @@ const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}
                 item: null, verses: null, rank: null, hays: null };
 
 /* ---------- WHO IS SHOWN IT § */
-/* A RULE (496, 504): `kjv-admin` — Universal by default now, anyone of age like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
-const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin') && viewerOfAge_(scriptureMinAge_()));
-/* THE AGE LIMIT ON SCRIPTURE (490) -- the Bible, the Quran and the Talmud: the owner, "it needs to have an age limit", 18. */
-const SCRIPTURE_MIN_AGE = 18;
-/* A RULE (496): `scripture-age` — Universal, scripture has no age limit, like every other item. */
-const scriptureMinAge_ = () => (typeof ruleOn_ !== 'function' || ruleOn_('scripture-age')) ? SCRIPTURE_MIN_AGE : 0;
+/* A RULE (496, 504): `kjv-admin` — Universal by default, everyone like the Talmud and the Quran; Exception, an admin only. check-bible reads this line. */
+const bibleFor_ = () => (typeof isAdmin === 'function' && isAdmin()) || (typeof ruleOn_ === 'function' && !ruleOn_('kjv-admin'));
 /* SCRIPTURE IS RELIGIOUS STUDIES, ON THE BOOKS SHELF (494): "quran and talmud should be in religious studies and in books"; `libBook` says which book. */
 const SCRIPTURE_SUBJECT = () => brand('scripture_subject', 'Religious Studies');
 
@@ -527,7 +523,7 @@ function scriptureWait_(items) {
     ['the Quran', typeof QURAN !== 'undefined' ? QURAN : null, typeof quranFor_ === 'function' && quranFor_()],
     ['the Talmud', typeof TALMUD !== 'undefined' ? TALMUD : null, typeof talmudFor_ === 'function' && talmudFor_()],
     ['the Hadith', typeof HADITH !== 'undefined' ? HADITH : null, typeof hadithFor_ === 'function' && hadithFor_()],
-    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, viewerOfAge_(scriptureMinAge_())]]
+    ['the other writings', typeof WORKS !== 'undefined' ? WORKS : null, true]]
     .filter(b => b[1] && b[2]);
   if (books.some(b => b[1].asking)) return loading_();
   const gone = books.filter(b => b[1].failed).map(b => b[0]);
@@ -689,7 +685,7 @@ const bibleV_ = t => '<p class="bb-v">'
 /* ---------- EVERY VERSE, AS AN ITEM § */
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
-  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT(), reg = writingWork_('bible'), age = writingAge_(reg);
+  const list = [], starts = {}, rs = SCRIPTURE_SUBJECT(), reg = writingWork_('bible');
   bibleTrs_(ix).forEach(t => {
     const text = writingText_(writingTextOf_(t.tr));
     const head = 'bible:' + t.tr.toLowerCase() + ':', st = starts[t.tr.toLowerCase()] = [];
@@ -702,8 +698,7 @@ function bibleVerseList_(ix) {
         at.push(list.length);
         for (let v = 1; v <= count; v++) {
           list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
-                      shelf: WRITINGS_SHELF, wSrc: 'bible', topic: reg.topic, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v),
-                      min_age: age });
+                      shelf: WRITINGS_SHELF, wSrc: 'bible', topic: reg.topic, subject: rs, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
         }
       });
     });
@@ -754,7 +749,7 @@ function bibleEnd_(items) {
       <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone, 18+;
+/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone or everyone's (kjv-admin);
    a book's words only when one of its cards is drawn. */
 function bibleItems_() {
   if (!bibleFor_()) return [];

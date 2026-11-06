@@ -35,10 +35,8 @@ const WRITING_WORKS = {
 };
 const writingWork_ = (src, id) => WRITING_WORKS[src + ':' + id] || WRITING_WORKS[src] || {};
 
-/* ONE AGE PER INDEX ENTRY (520), through the scripture rule: a religious work (a tradition) is scripture's age, anything else none. */
-const writingAge_ = entry => (entry && entry.topic ? scriptureMinAge_() : 0);
-/* WHETHER THIS VIEWER MAY HAVE A SOURCE AT ALL, asked before its index is fetched: the same age, read the same way. */
-const writingFor_ = entry => viewerOfAge_(writingAge_(entry));
+/* WHETHER A SOURCE IS FETCHED: always — no age gates on learning (1040); kept as the one hook every source asks. */
+const writingFor_ = () => true;
 
 /* TEXT IS BUILT, NEVER WRITTEN (520): "<language>, <translator> (<year>)" from structured fields, keyed by what each index calls it. */
 const WRITING_LANG = { en: 'English', he: 'Hebrew', hbo: 'Hebrew', grc: 'Greek', ar: 'Arabic', arc: 'Aramaic', la: 'Latin', akk: 'Akkadian' };
@@ -121,7 +119,7 @@ function writingUnit_(src, reg, o) {
   if (!w.source) w.source = writingSourceOf_(w.text, w.collection);
   const subject = reg.topic ? SCRIPTURE_SUBJECT() : (o.subject || SCRIPTURE_SUBJECT());
   return Object.assign({ image: '', row: null, wDate: null }, o, {
-    w: w, wSrc: src, shelf: WRITINGS_SHELF, subject: subject, topic: reg.topic || o.topic || '', min_age: writingAge_(reg),
+    w: w, wSrc: src, shelf: WRITINGS_SHELF, subject: subject, topic: reg.topic || o.topic || '',
   });
 }
 /* THE BIBLE'S VERSES ARE TOO MANY TO EACH CARRY A SET (find.js): the same keys, read off `bb` one at a time. */

@@ -545,13 +545,13 @@ check('Library → a subject offers only shelves that subject has — never Book
   for (let i = 0; i < 160 && !(w.stuffItems().length > 1000 && w.talmudItems_().length && w.stuffItems().some(x => x.kind === 'quran') && w.stuffItems().some(x => x.kind === 'bible')); i++) await wait(50);
   const bad = [];
   if (w.stuffItems().length < 1000) return ['the library did not load, so NOT checked'];
-  /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), every one 18+, and no cover. */
+  /* THE BIBLE IS A CARD A VERSE ON THE EVERYDAY LIST (499), no age limit, and no cover. */
   const bv = w.stuffItems().filter(x => x.kind === 'bible');
   /* ONE A VERSE A TEXT (504): the KJV's 31,102, the WEB's on the same numbering, and each other text over its own books. */
   const bix = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'bible', 'index.json'), 'utf8'));
   const bWant = bix.totals.verses + (bix.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : bix.totals.verses), 0);
   if (bv.length !== bWant) bad.push('the admin\'s list holds ' + bv.length + ' Bible items — wanted ' + bWant + ', one a verse a text');
-  if (bv.some(x => !x.bb || Number(x.min_age) < 18)) bad.push('a Bible item is not a verse, or carries no 18+ limit');
+  if (bv.some(x => !x.bb || 'min_age' in x)) bad.push('a Bible item is not a verse, or carries an age limit');
   const S = t.STUFF();
   const base = [{ field: 'kindLabel', value: 'Library' }];
   S.q = ''; S.filters = base.slice();

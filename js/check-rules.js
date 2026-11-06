@@ -36,7 +36,7 @@ const MARKERS = [
   { re: /in WIDGET_WHOLE\b/, rule: 'whole-widgets' },
   { re: /LAYOUT_KEEP\.indexOf/, rule: 'keep-basket' },
   { re: /'Tell the admin'/, rule: 'tell-admin' },
-  { re: /min_age: (SCRIPTURE_MIN_AGE|18)\b|viewerOfAge_\((SCRIPTURE_MIN_AGE|18)\)/, rule: 'scripture-age', none: true },
+  { re: /min_age: (SCRIPTURE_MIN_AGE|18)\b|viewerOfAge_\((SCRIPTURE_MIN_AGE|18)\)/, rule: 'no-age-gates', none: true },
   { re: /all\.find\(has\) \|\| all\[0\]/, rule: 'library-one-card' },
   { re: /!adminCol_\([a-z]\) \|\| adminCol_\(cardHome0_/, rule: 'admin-cols' },
   { re: /return findSignedOut_\(x\);/, rule: 'finder-members' },
@@ -48,7 +48,7 @@ files.forEach(f => {
   lines.forEach((ln, i) => MARKERS.forEach(m => {
     if (!m.re.test(ln) || (m.file && m.file !== f)) return;
     seen++;
-    if (m.none) return fail.push(f + ':' + (i + 1) + ' a fixed scripture age — ask scriptureMinAge_(), which asks `scripture-age`');
+    if (m.none) return fail.push(f + ':' + (i + 1) + ' an age gate on learning content — there are none (1040)');
     const near = lines.slice(Math.max(0, i - 4), i + 5).join('\n');
     if (near.indexOf("ruleOn_('" + m.rule + "')") === -1 && !/suggestTell_|wholeBars_|basketKept_|adminKeep_|formOwn/.test(near)) fail.push(f + ':' + (i + 1) + ' an exception marker with no rule beside it — register it in RULES and ask ruleOn_(\'' + m.rule + '\')');
   }));

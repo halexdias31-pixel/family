@@ -880,8 +880,7 @@ check('Find and Find 2 draw the same question family, practical, project and con
     const admin = u && u.role === 'admin';
     if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
     if (!admin && !got.every(notBible)) bad.push(what + ' is offered the Bible — it is for admins only');
-    /* GCSE TOPICS ARE 14+ (505): an admin is also offered those; the rest must match. */
-    const aged = new Set(w.stuffItemsRaw_().filter(x => w.gcseAgeOf_(x)).map(x => x.key)), same = k => notBible(k) && !aged.has(k);
+    const same = k => notBible(k);
     const rest = got.filter(same).join('|');
     if (rest !== out0.filter(same).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
   });

@@ -13,10 +13,6 @@ const RULES = [
     uni: 'Several cards, with Add another, like every other list.' },
   { id: 'tell-admin', say: 'Messages and posts say "Tell the admin" instead of "Suggest a change"', where: 'Messages and posts (494)',
     uni: 'They say "Suggest a change" like everything else; the admin is still emailed at once.' },
-  { id: 'scripture-age', say: 'The Bible, Talmud and Quran are for 18 and over only', where: 'Find and Find 2 (490)',
-    uni: 'Open to every age, like every other item.' },
-  { id: 'gcse-sensitive-age', say: 'GCSE-level history, RS, philosophy, psychology and sociology (and drugs, crime, abortion anywhere), and the history database, are for 14 and over', where: 'Find and Find 2 (505)',
-    uni: 'Open to every age, like every other item.' },
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
   { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490, 504)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },

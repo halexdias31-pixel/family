@@ -40,9 +40,9 @@ Object.keys(SCHEMA).forEach(f => {
   T[f].forEach((r, i) => {
     const at = 'data/' + f + '.json row ' + (i + 1) + (r && r.id ? ' (' + r.id + ')' : '');
     if (!r || typeof r !== 'object') return bad.push(at + ' is not an object');
-    /* `min_age` (490, 499) is the one optional column: a whole number of years, the item's age limit. */
-    const miss = s.cols.filter(c => !(c in r)), extra = Object.keys(r).filter(c => s.cols.indexOf(c) < 0 && c !== 'min_age');
-    if ('min_age' in r && !(Number.isInteger(r.min_age) && r.min_age > 0 && r.min_age <= 21)) bad.push(at + ' min_age must be a whole number of years, 1 to 21');
+    const miss = s.cols.filter(c => !(c in r)), extra = Object.keys(r).filter(c => s.cols.indexOf(c) < 0);
+    /* NO AGE GATES ON LEARNING (1040): a row carries no age limit. */
+    if ('min_age' in r) bad.push(at + ' has min_age — learning content has no age gates (1040)');
     if (miss.length) bad.push(at + ' lacks ' + miss.join(', '));
     if (extra.length) bad.push(at + ' has columns the schema does not name: ' + extra.join(', ') + ' (add them to docs/history-db.md and this check)');
     if (!ID.test(String(r.id)) || String(r.id).indexOf(s.prefix) !== 0) bad.push(at + ' id must be ' + s.prefix + ' and four digits');

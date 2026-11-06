@@ -29,7 +29,7 @@ Things the health checker flags that would change what you see, so they wait for
 - Grey lines: owner asked "like what?" — answered: the admin Build card's only line was hidden; plan (a), each lost useful line becomes a tag.
 
 ## Batch D, 6 Nov
-- Manuscript fragments are back in Library › History › Manuscripts, but only for viewers 18+ (your 499 rule on religious rows). Should the fragment drawings be open to everyone (or 14+, like the rest of history)?
+- ~~Manuscript fragments 18+?~~ **Answered:** no age gates on learning content — the manuscripts, scripture, religious works, GCSE history and fight videos are open to every viewer.
 - A person card no longer has link tiles (a figure's Writing / Event tiles); events still link to their figures. Want the links back as tags?
 - The three lesson videos are marked Documentary (thumbnails look like Discovery/Quest). Right type? Their real titles are still unknown.
 - History › People asks Decade first (the one rule picks it). Fine, or Era / Role first?

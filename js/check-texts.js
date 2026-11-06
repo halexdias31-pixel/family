@@ -2,7 +2,7 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-texts.js MORE WRITINGS (513): every text in data/texts/index.json loads, a unit a card, each with a source and a licence. */
 /* Also: every file under 2 MB, Hebrew is Hebrew and Greek is Greek, LICENSE names every folder, the items are built and keyed once,
-   a scripture-like text is held to scriptureMinAge_, and Find is wired. No flags, no port. */
+   no text carries an age limit, and Find is wired. No flags, no port. */
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -55,9 +55,7 @@ if (ix) {
 
 /* THE ITEMS, built by js/texts.js itself: one per unit, keys unique, the age rule on scripture-like texts. */
 if (ix) {
-  const ctx = { window: {}, WRITINGS_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', scriptureMinAge_: () => 18, spellKey_: s => String(s).toLowerCase(), Array, String, Number, Object, Map, Promise };
-  let adult = true;
-  ctx.viewerOfAge_ = () => adult;
+  const ctx = { window: {}, WRITINGS_SHELF: 'Writings', SCRIPTURE_SUBJECT: () => 'Religious Studies', spellKey_: s => String(s).toLowerCase(), Array, String, Number, Object, Map, Promise };
   vm.createContext(ctx);
   try {
     vm.runInContext(src('js/writings.js') + '\n' + src('js/texts.js') + '\n;this.T = TEXTS; this.items = textsItems_;', ctx);
@@ -66,8 +64,8 @@ if (ix) {
     if (all.length !== total) bad.push('textsItems_ makes ' + all.length + ' items for ' + total + ' units');
     const keys = new Set(all.map(x => x.key));
     if (keys.size !== all.length) bad.push((all.length - keys.size) + ' items share a key');
-    /* ONE AGE (520): a religious work, every text here, is scriptureMinAge_ through writingAge_; Find drops it for a viewer under it. */
-    all.forEach(x => { if (x.min_age !== 18) bad.push(x.key + ' is a religious work and not held to scriptureMinAge_'); });
+    /* NO AGE GATES (1040): every viewer is shown every text. */
+    all.forEach(x => { if ('min_age' in x) bad.push(x.key + ' carries an age limit'); });
     if (all.some(x => !x.w || !x.w.work || !x.w.text || x.kind !== 'writ')) bad.push('an item has no Work or no Text tag');
   } catch (e) { bad.push('js/texts.js does not build its items: ' + e.message); }
 }
