@@ -117,3 +117,5 @@ become an owner question showing both; never pick one.
 ## Growth
 - Product first for now. P1 · 6 Nov
 - Later, applications, marketing and family credit are built from existing parts (applications as Profiles cards, marketing as posts/flyers, credit as a basket discount), never a separate system. P5 · 6 Nov
+
+- 6 Nov · Q (open): the one person the site is ultimately for — owner said 'I suppose me, the owner… ask again later'. Students still win trade-offs between groups (P1). Re-ask.

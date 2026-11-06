@@ -13,6 +13,9 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 0. **When nothing decides it, choose the simplest.** Fewest parts, fewest options, least code. Checks: `variety`, `ai-cost`
 0. **Money disputes follow the written terms, leaning to the business.** Within the law; the owner may make goodwill exceptions by hand. Checks: `business`
 0. **Build it in the site.** Every job is built and run inside the site; an outside service is used only where the law or the job truly needs one (e.g. card processing via Stripe), driven from inside the site. Checks: `one-place`
+0. **Our own way.** Designed from this philosophy, not copied from famous apps. Checks: `philosophy`
+0. **New features: asked for, and built from existing parts.** The owner asks for it, and it's made as a kind of card, a tool or a setting — never a new kind of screen. Checks: `variety`
+0. **Ship 80%, then improve.** Ship what works now; the checker lists the rest (fits 'bold'). Checks: `structure`
 0. **Automatic, except what can't be undone.** Only irreversible actions need a human tap: deleting data, approving tutors, publishing policies. Checks: `friction`
 
 ## The principles, ranked
