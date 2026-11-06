@@ -254,3 +254,8 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - Register read: one new note (move Camera and Posts into Find) asked in owner-questions — a visible layout change.
 - Tags asked, by default ("all tags are asked"): logic-health judges each carried facet on its own cards by the usual rules (a long one as the paged list), since the walk stops at grids and its cap. tag-asked 24 to 9: eight hold one value in the fixture (one answer is never a question), and What for is lopsided at the top.
 - returned.js: a picture picker (`-pic`) is not a safe press — it opens the device chooser, which the page cannot see (whiteboard's Picture was a false "nothing changed").
+
+## Sweep 16:36
+- Register read: no new notes since 14:37 (last one, Camera and Posts into Find, already asked).
+- long-fn: `libraryExtras_` (183 lines, `js/library.js`) is now four blocks it calls in the old order — `libExtrasSheets_`, `libExtrasBooks_`, `libExtrasData_`, `libExtrasBoxing_` — each statement moved unchanged (acorn cut; no bare `return` among them). One tombstone comment (the topic tree) dropped. `searchBytes` budget 5,269,284 → 5,269,805 by hand (the four headers).
+- Returned features: word games Next (Got it before Start), flyer preset (the campaign's ticks already match), console Select (no game loaded) are no-ops in the start state, not breaks; check/returned.js now tries up to three safe presses, first that answers wins. Newspaper is a placeholder by design and countdowns a display (no controls): both asked or left. The full returned.js walk ran past 8 minutes and was stopped, so data/returned-health.json is unchanged.

@@ -61,3 +61,7 @@ Things the health checker flags that would change what you see, so they wait for
 
 ## Sweep 14:37 (6 Nov)
 - Camera and Posts: move both into Find (Posts as a kind, Camera as a tool), and drop their column? (y/n)
+
+## Sweep 16:36 (6 Nov)
+- Word games: Got it and Pass show before a round starts and do nothing until Start. Hide them until Start is pressed? (y/n)
+- Newspaper: it is a title only, by your earlier note, until it has something to say. What should it show first — the week's posts, a digest, or leave it off?

@@ -905,7 +905,6 @@
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
   "js/games.js vidPaint_": 82,
-  "js/library.js libraryExtras_": 183,
   "js/mat.js matPaint": 159,
   "js/posts.js camStart_": 97,
   "js/price-rows.js priceCells": 89,
@@ -969,7 +968,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5269284,
+  "searchBytes": 5269805,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,
