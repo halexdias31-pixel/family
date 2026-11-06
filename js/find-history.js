@@ -658,8 +658,7 @@ function bibleEnd_(items) {
       <b>${SWIPE_UP} for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: "each verse should be a widget like quran". An admin's alone or everyone's (kjv-admin);
-   a book's words only when one of its cards is drawn; its index only where paintStuff asks the others: signed out none (503). */
+/* EVERY VERSE A CARD ON THE EVERYDAY LIST (499), as the Quran's: § */
 function bibleItems_() {
   if (!bibleFor_()) return [];
   if (USER || !ruleOn_('finder-members')) bibleIndex_();
