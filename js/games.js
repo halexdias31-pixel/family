@@ -3086,6 +3086,14 @@ on('jam-call', el => {
   jamPaint();
 });
 
+/* GOT IT AND PASS DRAWN FROM THE START (owner, 6 Nov: Taboo, Hot Seat as Articulate): greyed until the round runs, never hidden. */
+function partyPair_(act, yes, live) {
+  return `<div class="btn-row">
+      ${tile_({ form: true, label: yes, act, data: { got: '1' }, off: !live })}
+      ${tile_({ form: true, label: 'Pass', act, data: { got: '0' }, kind: 'quiet', off: !live })}
+    </div>`;
+}
+
 /* ---------- TABOO § */
 function tabPaint() {
   const { card, acts, said } = partyBits_('tab');
@@ -3093,7 +3101,7 @@ function tabPaint() {
   const s = PARTY.tab;
   if (!s) {
     card.innerHTML = `<button class="art-go" data-do="tab-start">Start</button>`;
-    if (acts) acts.innerHTML = '';
+    if (acts) acts.innerHTML = partyPair_('tab-next', 'Correct', false);
     if (said) said.textContent = 'Whoever is watching listens for a word from the list.';
     return;
   }
@@ -3108,7 +3116,7 @@ function tabPaint() {
   if (!s.run) {
     /* THE WORD IS NOT ON A PAUSED CARD: whoever picks the phone up next may be on the other side. */
     card.innerHTML = partyHeld_('tab', 'Paused', s.score + ' correct so far');
-    if (acts) acts.innerHTML = '';
+    if (acts) acts.innerHTML = partyPair_('tab-next', 'Correct', false);
     if (said) said.textContent = '';
     return;
   }
@@ -3119,10 +3127,7 @@ function tabPaint() {
     <ul class="tab-ban">${ban.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
     <p class="party-clock" id="tab-left">${partyClock_(s)}</p>`;
   if (acts) {
-    acts.innerHTML = `<div class="btn-row">
-      ${tile_({ form: true, label: 'Correct', act: 'tab-next', data: { got: '1' } })}
-      ${tile_({ form: true, label: 'Pass', act: 'tab-next', data: { got: '0' }, kind: 'quiet' })}
-    </div>`;
+    acts.innerHTML = partyPair_('tab-next', 'Correct', true);
   }
   if (said) said.textContent = s.score + ' correct so far.';
 }
@@ -3149,7 +3154,7 @@ function hotPaint() {
   const s = PARTY.hot;
   if (!s) {
     card.innerHTML = `<button class="art-go" data-do="hot-start">Start</button>`;
-    if (acts) acts.innerHTML = '';
+    if (acts) acts.innerHTML = partyPair_('hot-next', 'Got it', false);
     if (said) said.textContent = 'Whoever is in the hot seat sits with their back to the screen.';
     return;
   }
@@ -3164,7 +3169,7 @@ function hotPaint() {
   if (!s.run) {
     card.innerHTML = partyHeld_('hot', s.left < 60000 ? 'Paused' : 'Ready',
       'Hold the phone up so only the class can see it.', 'Show the word');
-    if (acts) acts.innerHTML = '';
+    if (acts) acts.innerHTML = partyPair_('hot-next', 'Got it', false);
     if (said) said.textContent = 'The one in the hot seat does not look.';
     return;
   }
@@ -3172,10 +3177,7 @@ function hotPaint() {
     <p class="art-word hot-word">${esc(s.word)}</p>
     <p class="party-clock" id="hot-left">${partyClock_(s)}</p>`;
   if (acts) {
-    acts.innerHTML = `<div class="btn-row">
-      ${tile_({ form: true, label: 'Got it', act: 'hot-next', data: { got: '1' } })}
-      ${tile_({ form: true, label: 'Pass', act: 'hot-next', data: { got: '0' }, kind: 'quiet' })}
-    </div>`;
+    acts.innerHTML = partyPair_('hot-next', 'Got it', true);
   }
   if (said) said.textContent = s.score + ' guessed so far.';
 }

@@ -241,14 +241,16 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
   newspaper: 'Newspaper', calculator: 'Calculator', flyers: 'Make a flyer', mat: 'Cheat sheet maker (maths mat)', timer: 'Timer', docket: 'Docket',
   notepad: 'Notepad', spotify: 'Spotify', speedread: 'Speed reader (one word at a time)', timetable: 'Timetable', typing: 'Touch typing (keyboard practice)',
   cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
-  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards' };
+  rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards', homework: 'Homework' };
+/* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
+const SOON_WIDGET_UNDER = { homework: 'Tools' };
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
   /* A COLUMN WHOSE THINGS ARE FIND ITEMS NOW (batch C: settings, reels) is no Coming soon card. */
   const inFind = c => c.screen === 'reel' || (typeof SETTINGS_HOME !== 'undefined' && !!SETTINGS_HOME[c.screen]);
   const cols = ((DATA && DATA.columnsOff) || []).filter(c => !inFind(c)).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
-    sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id }));
+    sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id, top: SOON_WIDGET_UNDER[id] || '' }));
   /* YOUR SETTINGS (880): off the sign-in column while SETTINGS_OFF; one card each, so the owner sees what is waiting. */
   const set = (typeof SETTINGS_OFF !== 'undefined' && SETTINGS_OFF ? [['picture', 'Picture'], ['figure', 'Your figure'], ['name', 'Name'], ['handle', 'Handle'],
     ['settings', 'Your settings'], ['push', 'Phone notifications'], ['progress', 'Progress'], ['brownie', 'Brownie points'], ['roadmap', 'Roadmap'], ['conduct', 'Code of conduct']] : [])

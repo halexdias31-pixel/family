@@ -9,9 +9,10 @@
     "b": "Informative: keep it, as a tag",
     "c": "Ask each time"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": true
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 2 (6 Nov): nothing lost outranks minimal"
   },
   {
    "id": "philo-stable-new",
@@ -21,9 +22,10 @@
     "b": "The feature, if it is switched off by default",
     "c": "Ask each time"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": true
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 2: every feature stays on, even half-working; sweeps stabilise"
   },
   {
    "id": "philo-menu-next",
@@ -33,9 +35,10 @@
     "b": "First in the facets tab order that passes the rule",
     "c": "Keep both: best split on the front page only"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": true
+   "status": "answered",
+   "answer": "a",
+   "philosophy": true,
+   "note": "Philosophy 7: best split, always"
   },
   {
    "id": "philo-words",
@@ -57,9 +60,10 @@
     "b": "Small look changes too, listed afterwards",
     "c": "Nothing visible without a yes"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": true
+   "status": "answered",
+   "answer": "b",
+   "philosophy": true,
+   "note": "Philosophy 13: sweeps decide visible design when the philosophy points one way"
   },
   {
    "id": "card-editor-cancel",
@@ -150,9 +154,10 @@
     "b": "Drop only “What for” from cards",
     "c": "Keep"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": false
+   "status": "answered",
+   "answer": "a",
+   "philosophy": false,
+   "note": "Philosophy 6: never always-on tags"
   },
   {
    "id": "writing-titles",
@@ -173,9 +178,10 @@
     "a": "Keep",
     "b": "One Read aloud in the foot reading every part"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": false
+   "status": "answered",
+   "answer": "b",
+   "philosophy": false,
+   "note": "Philosophy 5: one read-aloud per card"
   },
   {
    "id": "dont-matter-first",
@@ -185,9 +191,10 @@
     "b": "Switch every menu to best split",
     "c": "Keep (Subject)"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": false
+   "status": "answered",
+   "answer": "b",
+   "philosophy": false,
+   "note": "Philosophy 7: best split, always"
   },
   {
    "id": "accuracy-function",
@@ -321,9 +328,10 @@
     "a": "Yes",
     "b": "No"
    },
-   "status": "open",
-   "answer": "",
-   "philosophy": false
+   "status": "answered",
+   "answer": "a",
+   "philosophy": false,
+   "note": "Owner 6 Nov: a Coming soon card under Find › Tools for now"
   },
   {
    "id": "students-search-card",

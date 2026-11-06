@@ -41,7 +41,7 @@ const oqOf_ = rows => { const o = {}; (Array.isArray(rows) ? rows : []).forEach(
 
 /* ONE LINE PER QUESTION: its words, its answers as form buttons, Something else with its box; nothing appears or moves on a press. */
 function oqItem_(q) {
-  const a = (OQ.answers || {})[q.id] || (q.status === 'answered' ? { choice: q.answer || 'note', note: '' } : null);
+  const a = (OQ.answers || {})[q.id] || (q.status === 'answered' ? { choice: q.answer || 'note', note: q.note || '' } : null);
   const opts = Object.keys(q.options || {}).filter(k => q.options[k]);
   const said = a ? 'Answered: ' + (a.choice === 'note' ? '' : '(' + a.choice + ') ' + ((q.options || {})[a.choice] || '')) + (a.note ? ' “' + a.note + '”' : '') : '';
   return `<div class="oq-item" data-oq="${esc(q.id)}">
@@ -52,11 +52,16 @@ function oqItem_(q) {
     <p class="me-said oq-said">${esc(said) || '&nbsp;'}</p>
   </div>`;
 }
+/* THE INBOX: the five open questions that settle most (philosophy first, then `settles`, then file order); answered fold away. */
+const OQ_SHOWN = 5;
+const oqDone_ = q => q.status === 'answered' || !!(OQ.answers || {})[q.id];
+const oqWeight_ = q => (q.philosophy ? 100 : 0) + (Number(q.settles) || 0);
 function oqInbox_() {
   if (!OQ.list) { oqStart_(); return '<h4>Owner questions</h4>' + (typeof loading_ === 'function' ? loading_() : ''); }
-  const open = OQ.list.filter(q => q.status !== 'answered' && !(OQ.answers || {})[q.id]).length;
-  const order = OQ.list.slice().sort((x, y) => (y.philosophy ? 1 : 0) - (x.philosophy ? 1 : 0));
-  return `<h4>Owner questions · ${open} open</h4>${OQ.error ? `<p class="me-said">${esc(OQ.error)}</p>` : ''}${order.map(oqItem_).join('')}`;
+  const open = OQ.list.filter(q => !oqDone_(q)).map((q, i) => ({ q, i })).sort((x, y) => oqWeight_(y.q) - oqWeight_(x.q) || x.i - y.i).map(x => x.q);
+  const done = OQ.list.filter(oqDone_);
+  return `<h4>Owner questions · ${open.length} open${open.length > OQ_SHOWN ? ', ' + OQ_SHOWN + ' shown' : ''}</h4>${OQ.error ? `<p class="me-said">${esc(OQ.error)}</p>` : ''}${open.slice(0, OQ_SHOWN).map(oqItem_).join('')}
+    ${done.length ? `<details class="oq-done"><summary>Answered · ${done.length}</summary>${done.map(oqItem_).join('')}</details>` : ''}`;
 }
 
 function checksInner_() {

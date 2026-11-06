@@ -6,7 +6,7 @@ Each rule says why, and names the health check ids that enforce it (`node tools/
 `tools/health.js` reads the `Checks:` lines: a principle naming no existing check is a finding (`philosophy`);
 a check tied to no principle is listed, report-only. Edit a rule here, never in code.
 
-1. **The site IS the business.** Everything runs from here, in one place: learning resources, bookings, payments, staff, taxes and accounts, logistics, compliance — as scalable, stable and efficient as possible.
+1. **The site IS the business.** Everything runs from here, in one place: learning resources, bookings, payments, staff, taxes and accounts, logistics, compliance — as scalable, stable and efficient as possible. One place beats light (owner, 6 Nov): when a business function makes the site heavier, keep it fast by good code hygiene — each section isolated in its own protected block, loaded only when opened, so one area can change without touching the others. Students come first when a choice helps one group but slightly hurts another (then parents, tutors, admin).
    Why: one place is cheaper to run, check and hand to ~100 staff than a dozen tools. Checks: `business`, `biz-checker`, `friction`, `one-place`
 2. **Nothing is lost.** Switched off, never deleted; every feature stays on, even half-working, and the sweeps stabilise it; no age gates on learning content. (Owner, 6 Nov: when it clashes with minimal/stability, this wins.)
 
@@ -28,10 +28,10 @@ a check tied to no principle is listed, report-only. Edit a rule here, never in 
    Why: a phone on a bus is the real user, and every edit is paid for in reading. Checks: `size`, `in-sync`, `read-bytes`, `search-bytes`, `big-notes`, `spread`, `comment-ratio`, `update-continuity`
 11. **Frictionless for clients and tutors.** Booking, messaging, paying and homework in the fewest taps, none a dead end.
     Why: every extra step loses a booking. Checks: `friction`, `a11y`, `console`
-12. **Run legally and safely.** Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
+12. **Run legally and safely.** Private things (learners, money, staff records) live only in the owner's Google Sheets, never in the public code. Safeguarding, tax, insurance and data, toward ~100 staff and £100k a year; mostly autonomous.
     Why: one missed obligation can end the business. Checks: `business`, `biz-checker`, `secrets`
     Why: work already paid for should not vanish. Checks: `returned-features`, `no-age-gates`, `dead`
-13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; the sweeps decide visible design themselves when the philosophy points one way, and ask only when it genuinely doesn't (owner, 6 Nov) — any decision can be undone from the inbox; quick checks only, no long waits.
+13. **The owner decides, the system does the rest.** The owner sets philosophy and answers questions; the sweeps decide visible design — and money, law and safeguarding changes too (owner, 6 Nov) — themselves when the philosophy points one way, and ask only when it genuinely doesn't (owner, 6 Nov) — any decision can be undone from the inbox; quick checks only, no long waits.
     Why: the owner's time is the scarcest thing; guesses on looks are the costliest to undo. Checks: `philosophy`, `owner-questions`
 
 ## How the loop works
