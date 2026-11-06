@@ -226,7 +226,6 @@ function inSyncWork() {
     for (const m of src.matchAll(/brand\(\s*'logo_(?:square|circle)'|\.logo_(?:square|circle)\b/g))
       if (!/^function brandLogo_\(/.test(src.slice(src.lastIndexOf('\nfunction ', m.index) + 1))) add(f + ':' + lineOf(src, m.index), `${m[0]} read outside brandLogo_ — a second source for the business's picture`); });
   const fsrc = app.map(read).join('\n'), fnOf = n => (new RegExp('function ' + n + '\\([\\s\\S]*?\\n\\}').exec(fsrc) || [''])[0];
-  if (!/brandLogo_\(/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', 'the tab and home-screen icons do not follow brandLogo_ (applyBrandIcon_)');
   if (!/brandLogo_\(/.test(fnOf('webProfilePages_'))) add('js/me-roles.js', 'the Web profile picture does not read brandLogo_');
   const fw = fnOf('postFaceWho_');
   if (!/brandLogo_\(/.test(fw)) add('js/posts.js', "a business post's face does not read brandLogo_");
@@ -234,11 +233,13 @@ function inSyncWork() {
   if (!/profileOf_\(/.test(fnOf('postCard_'))) add('js/posts.js', "a post's name is the copy sent with the post, not the author's profile (profileOf_)");
   const html = read('index.html');
   ['icon', 'apple-touch-icon'].forEach(r => { if (!new RegExp('<link rel="' + r + '" id="favicon').test(html)) add('index.html', `no <link rel="${r}" id="favicon…"> for applyBrandIcon_ to follow`); });
-  /* THE MANIFEST CANNOT FOLLOW AT RUNTIME: its icons must be the repo's logo_square (brand.json) while that is a file here. */
-  try { const logo = (read('data/settings/brand.json').split('\n').map(l => { try { return JSON.parse(l.replace(/,\s*$/, '')); } catch (e) { return null; } }).find(r => r && r.key === 'logo_square') || {}).value || 'icon.png';
-    const man = JSON.parse(read('manifest.webmanifest'));
-    (man.icons || []).filter(i => i.src !== logo).forEach(i => add('manifest.webmanifest', `icon ${i.src} is not brand logo_square (${logo})`));
-    if (/^https?:/.test(logo)) add('manifest.webmanifest', `logo_square is a URL (${logo.slice(0, 40)}); the manifest's icons stay ${(man.icons || [])[0] && man.icons[0].src}`);
+  /* THE TOP BAR'S CONTROLS NEVER OVERLAP (owner, 6 Nov): the Business dot rides in #topbar-who's own row, and the bar's repaint keeps it there. */
+  if (!/topbar-who/.test(fnOf('bizNeedsPaint_'))) add('js/records.js', "the Business dot is a fixed corner badge over the top bar's Sign out, not a control in #topbar-who's row");
+  if (!/biz-dot/.test(fnOf('topbarPaint_'))) add('js/shell-pages.js', "topbarPaint_ rewrites #topbar-who and drops the Business dot");
+  /* THE ICON FILES ARE THE SOURCE (6 Nov): the manifest names icon.png, and applyBrandIcon_ never swaps the tab for a sheet link. */
+  if (/brandLogo_\(|brand\(\s*'logo/.test(fnOf('applyBrandIcon_'))) add('js/shell-pages.js', "the tab icon follows the sheet's logo, not favicon.png / icon.png");
+  try { const man = JSON.parse(read('manifest.webmanifest'));
+    (man.icons || []).filter(i => i.src !== 'icon.png').forEach(i => add('manifest.webmanifest', `icon ${i.src} is not icon.png`));
     if (man.name !== '@family.' && !html.includes('<title>' + man.name + '</title>')) add('manifest.webmanifest', `the manifest's name "${man.name}" is not the page's title`); } catch (e) { add('manifest.webmanifest', 'cannot read the manifest or brand.json: ' + e.message); }
   /* THE BRAND'S NAME: the top bar paints it from brand('name'), not only the HTML's literal. */
   if (!/brand\(\s*'name'/.test(fnOf('topbarPaint_'))) add('js/shell-pages.js', "the top bar's brand name is index.html's literal, not brand('name')");

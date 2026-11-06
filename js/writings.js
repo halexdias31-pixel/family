@@ -12,7 +12,8 @@ const WRITING_DEUTERO_BOOKS = ['Tobit', 'Judith', 'Additions to Esther', 'Esther
    history and keeps its own subject. Keyed by loader, then by the index's own id. */
 const WRITING_WORKS = {
   bible: { work: 'Bible', topic: 'Christianity' },
-  quran: { work: 'Quran', topic: 'Islam' },
+  /* QURAN OR HADITH FIRST (owner, 6 Nov): two collections, asked before the six books. */
+  quran: { work: 'Quran', topic: 'Islam', collection: 'Quran' },
   hadith: { topic: 'Islam', collection: 'Hadith' },
   talmud: { work: 'Talmud', topic: 'Judaism', collection: 'Rabbinic' },
   'texts:apocrypha': { work: 'Bible', topic: 'Christianity' },

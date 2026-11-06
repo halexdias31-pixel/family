@@ -41,7 +41,8 @@ const LOGIC_SHOWN = false;
 const HEALTH_MORE_ = { bizcheck: () => (typeof bizCheckCard_ === 'function' ? bizCheckCard_() : '') };
 function healthCardOf_(which) {
   if (HEALTH_MORE_[which]) return HEALTH_MORE_[which]();
-  if (which === 'health') { try { return siteHealthCard_(); } catch (e) { oops_(e, 'site health'); return ''; } }
+  /* ONE CARD (owner, 6 Nov): Site health holds What's missing too, how complete Find's resources are, under its score. */
+  if (which === 'health') { try { return healthWithMissing_(siteHealthCard_()); } catch (e) { oops_(e, 'site health'); return ''; } }
   const all = (() => { try { return missingLeadCards_(); } catch (e) { oops_(e, 'health card'); return []; } })();
   const l = LOGIC_SHOWN && logicFor_() ? 1 : 0;
   return (which === 'logic' ? all.slice(0, l) : all.slice(l)).join('') || '<div class="card"><p class="sub">Nothing to show yet.</p></div>';
@@ -268,6 +269,12 @@ function missingBody_() {
   return `<p class="miss-sum">${esc(say)}</p>` + (MISSING.all ? r.quals.map(missingQual_).join('') : '') + tile + unread;
 }
 if (typeof on === 'function') on('miss-all', () => { MISSING.all = !MISSING.all; missingRepaint_(); });
+function healthWithMissing_(card) {
+  if (!missingFor_()) return card;
+  const body = missingBody_(), waits = /class="loading"/.test(body);
+  const part = `<h3 class="miss-head">What’s missing</h3><div id="miss-body"${waits ? ' aria-busy="true"' : ''}>${body}</div>`;
+  return /<\/div>\s*$/.test(card) ? card.replace(/^<div class="card logic-card"/, '<div class="card logic-card miss-card"').replace(/<\/div>\s*$/, part + '</div>') : card + `<div class="card miss-card">${part}</div>`;
+}
 function missingCard_() {
   const body = missingBody_();
   const waits = /class="loading"/.test(body);

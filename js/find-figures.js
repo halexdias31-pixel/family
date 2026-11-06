@@ -341,7 +341,8 @@ function qStemWhole_(x, p) {
 function qBlock_(n, ctx) {
   const own = n.items[0] || null;
   const shut = own && !ctx.open.has(own);
-  const label = n.label ? `<div class="qb-head"><span class="qb-label">${esc(n.depth === 1 ? n.label : '(' + n.label + ')')}</span>${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
+  /* A PART'S LETTER IS A PILL TAG IN ITS OWN TAG ROW (owner, 6 Nov), drawn by the same rule as every other tag. */
+  const label = n.label ? `<div class="qb-head qtags qcard-tags"><span class="qtag qb-label"${tagAttr_(n.depth === 1 ? 'qPart' : 'qSub')} data-f="${n.depth === 1 ? 'qPart' : 'qSub'}">${esc(n.label)}</span>${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
   const stems = n.stems.filter(p => !ctx.carried.has(p) && !ctx.drawn[stemId_(p)])
     .map(p => { ctx.drawn[stemId_(p)] = true; return qStemWhole_(own || ctx.x, p); }).join('');
   const body = own && !shut ? qPartCard_(own, ctx.ans) : '';
@@ -360,8 +361,9 @@ function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
   const ctx = { x: x, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
   const tree = qTree_(list);
-  const tools = tile_([magOpts_(), qLockOpts_(), qMulti_(x) ? null : readAloudOpts_(x), typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null]);
-  const foot = cardTiles_(Object.assign(Object.create(x), { more: (x.more || '') + tools }));
+  const tools = tile_([magOpts_(), qLockOpts_(), qMulti_(x) ? null : readAloudOpts_(x)]);
+  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null);
+  const foot = cardTiles_(Object.assign(Object.create(x), { lead: help, more: (x.more || '') + tools }));
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
     ${qWholeTags_(x, list)}${qBlock_(tree, ctx)}
   </div></div>${foot}`;

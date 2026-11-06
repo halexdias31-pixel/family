@@ -189,7 +189,11 @@ function topbarPaint_() {
   const who = USER ? String(USER.name || USER.handle || '').trim() : '';
   const html = USER ? `<span class="topbar-name">${esc(who)}</span>${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}`
     : AT === 'account' ? '' : tile_({ icon: 'in', label: 'Sign in', act: 'topbar-signin' });
+  /* THE BUSINESS DOT RIDES IN THIS ROW (records.js); lifted out to compare, then put back first. */
+  const dot = $('biz-dot'), had = !!dot && dot.parentElement === bar;
+  if (had) dot.remove();
   if (bar.innerHTML !== html) bar.innerHTML = html;
+  if (had) bar.insertBefore(dot, bar.firstChild);
 }
 
 /* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING § */
@@ -400,19 +404,11 @@ const PAGE_HOME = {
   /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
   reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
 };
-/* ---------- THE ICON, FROM THE SHEET § */
+/* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
-  /* ---------- A DRIVE SHARE LINK IS A PAGE, NOT A PICTURE § */
-  const url = brandLogo_();
-  if (!url) return;
-  [['favicon', 'icon'], ['favicon-ios', 'apple-touch-icon']].forEach(([id, rel]) => {
-    const old = document.getElementById(id);
-    if (old) old.remove();
-    const el = document.createElement('link');
-    /* THE DEFAULT `logo_square` IS `icon.png`, THE SQUARE ONE, so taken as given it would put the square back on the tab the moment the payload lands. § */
-    el.id = id; el.rel = rel;
-    el.href = (rel === 'icon' && url === 'icon.png') ? 'favicon.png' : url;
-    document.head.appendChild(el);
+  [['favicon', 'favicon.png'], ['favicon-ios', 'icon.png']].forEach(([id, file]) => {
+    const el = document.getElementById(id);
+    if (el && el.getAttribute('href') !== file) el.setAttribute('href', file);
   });
 }
 

@@ -53,15 +53,15 @@ function bizNeedsPaint_() {
   if (!dot) {
     dot = document.createElement('button');
     dot.id = 'biz-dot'; dot.type = 'button'; dot.className = 'biz-dot'; dot.setAttribute('data-do', 'biz-dot');
-    document.body.appendChild(dot);
-  }
+  } /* IN THE TOP BAR'S ROW when it shows (owner, 6 Nov: the corner dot sat on Sign out), else the screen's corner. */
+  const bar = document.getElementById('topbar-who'), inBar = !!(bar && bar.offsetParent !== null), home = inBar ? bar : document.body;
+  if (dot.parentElement !== home) home.insertBefore(dot, inBar ? bar.firstChild : null); dot.classList.toggle('in-bar', inBar);
   dot.textContent = String(n);
   dot.setAttribute('aria-label', n + (n === 1 ? ' thing needs you' : ' things need you') + ' in Business and Site');
 }
 on('biz-dot', () => go('biz'));
 /* THE RECORDS DUE ON ONE CARD: soon or overdue, counted only once the sheet has answered. */
 const bizDueCount_ = pg => !BIZ.list ? 0 : pg.items.filter(item => bizState_(item, bizRow_(item.id).due_on)).length;
-
 const recDays_ = iso => {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;

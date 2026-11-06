@@ -109,7 +109,7 @@
    "cap": 10,
    "off": 0.5,
    "where": {
-    "backend/dopost.gs": 4636
+    "backend/dopost.gs": 4635
    }
   },
   {
@@ -127,7 +127,7 @@
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1204,
-    "backend/dopost.gs doPost": 3593,
+    "backend/dopost.gs doPost": 3592,
     "backend/setup.gs dataProblems": 282
    }
   },
@@ -142,7 +142,7 @@
   }
  ],
  "secondary": {
-  "score": 82.1,
+  "score": 82,
   "verdict": "Steady, with duct tape worth paying down.",
   "signals": [
    {
@@ -189,10 +189,10 @@
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 27,
+    "count": 28,
     "weight": 0.02,
     "cap": 10,
-    "off": 0.5,
+    "off": 0.6,
     "where": {
      "lines": 11
     }

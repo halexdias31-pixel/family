@@ -391,11 +391,12 @@ function cardCore_(x) {
     top: () => tile_({ icon: 'up', label: 'Top', act: 'find-top' }) };
   return x.key ? CARD_CORE_.map(k => one[k]()).join('') : '';
 }
+/* A CARD'S `lead` (a question's Help) straight after the core four, the same place for every rank (owner, 6 Nov). */
 function cardExtras_(x) {
   const fn = CARD_EXTRAS_[x.kind] || (window.CARD_EXTRAS_MORE || {})[x.kind];
-  if (typeof fn !== 'function') return '';
+  if (typeof fn !== 'function') return x.lead || '';
   const r = fn(x);
-  return typeof r === 'string' ? r : tile_(r);
+  return (x.lead || '') + (typeof r === 'string' ? r : tile_(r));
 }
 function cardTiles_(x) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
