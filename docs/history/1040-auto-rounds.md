@@ -249,3 +249,8 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - `paperTag_`: a paper's tag is "Paper N" only; its section is the Paper-section tag, also read from a title like "Practice paper 1, Section A" (one attribute per tag).
 - logic-health: a facet askable below the walk's depth counts as asked (tag-asked 56 to 24); answer-words compares the tag the card really draws (`tagSay`/`answerSay_`). 18 menu/card word gaps left as a question.
 - find-figures coupling 89 to 88: `facetTags_` (find-finder) reads a card's tags on one facet.
+
+## Sweep 14:37
+- Register read: one new note (move Camera and Posts into Find) asked in owner-questions — a visible layout change.
+- Tags asked, by default ("all tags are asked"): logic-health judges each carried facet on its own cards by the usual rules (a long one as the paged list), since the walk stops at grids and its cap. tag-asked 24 to 9: eight hold one value in the fixture (one answer is never a question), and What for is lopsided at the top.
+- returned.js: a picture picker (`-pic`) is not a safe press — it opens the device chooser, which the page cannot see (whiteboard's Picture was a false "nothing changed").

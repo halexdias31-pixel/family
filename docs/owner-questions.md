@@ -57,4 +57,7 @@ Things the health checker flags that would change what you see, so they wait for
 ## Sweep 12:37 (6 Nov)
 - Find › Practice › … › GCSE › Higher › 2022 › November › Function verified: you asked "why does it look like this?" with no picture. What looks wrong (a screenshot helps)?
 - Menu vs card words: a menu shortens an answer against its neighbours ("Book 1", "Parchment", "Lambda") while the card's tag keeps the full name ("Book 1 (Clio)", "Parchment (leather)", "Lambda (oxygen) sensor"). One text everywhere — the short one or the full one? (18 places)
-- Tags on cards that no menu ever asks (24 left, e.g. Your result, Needs, 5-a-day level/month/day, Winner, Paper section): should each become a question, or stay detail-only tags?
+- ~~Tags on cards that no menu ever asks~~ — done by default (you said "all tags are asked"): each facet is now judged on the cards that carry it by the usual rules, a long one as the paged list. Only tags with one value in the data stay unasked (one answer is never a question); they ask themselves once a second value exists.
+
+## Sweep 14:37 (6 Nov)
+- Camera and Posts: move both into Find (Posts as a kind, Camera as a tool), and drop their column? (y/n)
