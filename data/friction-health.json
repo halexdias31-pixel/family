@@ -5,7 +5,7 @@
     "taps": 2,
     "screens": 2,
     "fields": 0,
-    "waitMs": 7,
+    "waitMs": 8,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -13,42 +13,32 @@
      "Find › Booking",
      "Booking › Tutors"
     ],
-    "ms": 1816,
+    "ms": 1625,
     "possible": true,
     "score": 94
    },
    "book a session": {
-    "taps": 17,
+    "taps": 3,
     "screens": 1,
-    "fields": 7,
-    "waitMs": 201,
-    "deadEnds": [
-     "the booking form is not in Find under Booking"
-    ],
+    "fields": 0,
+    "waitMs": 314,
+    "deadEnds": [],
     "errors": [],
     "missing": [],
     "steps": [
      "Find › Booking",
-     "the booking form is not in Find under Booking: dead end",
-     "form: how=Instant class",
-     "form: joining=Start a new one",
-     "form: tutor=No preference",
-     "form: n=1",
-     "form: loc=At home",
-     "form: interval=Autumn 1",
-     "form: kids=Someone else",
      "a time",
      "Ask for it"
     ],
-    "ms": 9171,
+    "ms": 4282,
     "possible": true,
-    "score": 28
+    "score": 91
    },
    "pay": {
     "taps": 3,
     "screens": 2,
     "fields": 0,
-    "waitMs": 11,
+    "waitMs": 10,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -57,7 +47,7 @@
      "Booking › Receipts",
      "Pay and confirm"
     ],
-    "ms": 3950,
+    "ms": 3749,
     "possible": true,
     "score": 92
    },
@@ -65,7 +55,7 @@
     "taps": 5,
     "screens": 3,
     "fields": 1,
-    "waitMs": 13,
+    "waitMs": 12,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -76,7 +66,7 @@
      "the message",
      "Send"
     ],
-    "ms": 3296,
+    "ms": 3181,
     "possible": true,
     "score": 84
    }
@@ -86,7 +76,7 @@
     "taps": 2,
     "screens": 2,
     "fields": 0,
-    "waitMs": 7,
+    "waitMs": 6,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -94,28 +84,26 @@
      "Find › Booking",
      "Booking › Receipts"
     ],
-    "ms": 1812,
+    "ms": 1548,
     "possible": true,
     "score": 94
    },
    "message a parent": {
-    "taps": 2,
-    "screens": 2,
-    "fields": 0,
-    "waitMs": 7,
+    "taps": 3,
+    "screens": 1,
+    "fields": 1,
+    "waitMs": 6,
     "deadEnds": [],
     "errors": [],
-    "missing": [
-     "Message the parent"
-    ],
+    "missing": [],
     "steps": [
-     "Find › Booking",
-     "Booking › Receipts",
-     "Message the parent: not found"
+     "Find › Messages",
+     "the message",
+     "Send"
     ],
-    "ms": 1743,
-    "possible": false,
-    "score": 0
+    "ms": 1634,
+    "possible": true,
+    "score": 90
    },
    "set homework": {
     "taps": 2,
@@ -132,7 +120,7 @@
      "Practice › Questions",
      "Set as homework (assign a paper or question to a student): not found"
     ],
-    "ms": 2848,
+    "ms": 2654,
     "possible": false,
     "score": 0
    },
@@ -152,7 +140,7 @@
      "Profiles › Student: not found",
      "a student's answers or marks: not found"
     ],
-    "ms": 887,
+    "ms": 966,
     "possible": false,
     "score": 0
    }
@@ -162,7 +150,7 @@
     "taps": 2,
     "screens": 2,
     "fields": 0,
-    "waitMs": 8,
+    "waitMs": 6,
     "deadEnds": [
      "no homework list: a student finds a paper themselves"
     ],
@@ -172,7 +160,7 @@
      "Find › Practice",
      "Practice › Questions"
     ],
-    "ms": 2757,
+    "ms": 2704,
     "possible": true,
     "score": 79
    },
@@ -180,7 +168,7 @@
     "taps": 3,
     "screens": 2,
     "fields": 1,
-    "waitMs": 17,
+    "waitMs": 9,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -190,7 +178,7 @@
      "the answer box",
      "the answer"
     ],
-    "ms": 3448,
+    "ms": 3354,
     "possible": true,
     "score": 89
    },
@@ -198,7 +186,7 @@
     "taps": 4,
     "screens": 2,
     "fields": 1,
-    "waitMs": 10,
+    "waitMs": 9,
     "deadEnds": [],
     "errors": [],
     "missing": [],
@@ -208,32 +196,22 @@
      "the answer",
      "Check"
     ],
-    "ms": 4441,
+    "ms": 4332,
     "possible": true,
     "score": 87
    }
   }
  },
  "totals": {
-  "taps": 43,
-  "screens": 21,
-  "fields": 10,
-  "waitMs": 289,
-  "deadEnds": 2,
+  "taps": 30,
+  "screens": 20,
+  "fields": 4,
+  "waitMs": 388,
+  "deadEnds": 1,
   "errors": 0,
-  "impossible": 3
+  "impossible": 2
  },
  "work": [
-  {
-   "kind": "friction",
-   "where": "parent: book a session",
-   "say": "dead end — the booking form is not in Find under Booking"
-  },
-  {
-   "kind": "friction",
-   "where": "tutor: message a parent",
-   "say": "cannot be done — no Message the parent"
-  },
   {
    "kind": "friction",
    "where": "tutor: set homework",
@@ -255,6 +233,6 @@
    "say": "dead end — no homework list: a student finds a paper themselves"
   }
  ],
- "score": 59,
- "count": 6
+ "score": 73,
+ "count": 4
 }

@@ -494,10 +494,42 @@ document.addEventListener('change', e => {
    handler was ever registered, so the third of the three lists on this tab was the one that did
    nothing when you pressed it. */
 
+/* ---------- WHAT THE SITE ALREADY KNOWS IS NOT ASKED AGAIN (1040 friction) ---------- */
+/* Once per form: only an EMPTY answer is filled, each still a dropdown to change; nothing here is a price, a payment or a send. */
+let BOOK_PREFILLED = false;
+function bookPrefill_() {
+  if (BOOK_PREFILLED || !USER) return;
+  BOOK_PREFILLED = true;
+  const done = id => { BOOKING.done = uniq((BOOKING.done || []).concat([id])); };
+  const only = st => { try { return (st.options() || []).filter(Boolean); } catch (e) { return []; } };
+  /* THE USUAL CASE FIRST: an instant session, a new one, at home, no extra seats. */
+  if (!BOOKING.how) BOOKING.how = 'Instant class';
+  if (!BOOKING.joining) BOOKING.joining = NEW_LIST;
+  if (!BOOKING.loc) BOOKING.loc = 'At home';
+  const seats = only(bookStep_('n'));
+  if (!BOOKING.n && seats.length) BOOKING.n = seats[0];
+  /* FIND'S CHIPS: a subject or level already picked there is the answer here. */
+  const chip = f => ((typeof STUFF !== 'undefined' && STUFF.filters) || []).filter(x => x && x.field === f && !x.any).map(x => String(x.value))[0] || '';
+  if (!(BOOKING.subjects || []).length && chip('subject')) { BOOKING.subjects = [chip('subject')]; done('subjects'); }
+  if (!BOOKING.level && chip('level')) BOOKING.level = chip('level');
+  if (!BOOKING.tutor && only(bookStep_('tutor'))[0] === 'No preference') BOOKING.tutor = 'No preference';
+  /* THE FIRST TERM ON OFFER (the soonest), and the child when there is only one seat-holder to name. */
+  const terms = only(bookStep_('interval'));
+  if (!(BOOKING.interval || []).length && terms.length) { BOOKING.interval = [terms[0]]; done('interval'); }
+  const kids = only(bookStep_('kids')), named = kids.filter(k => k !== UNNAMED);
+  const kid = named.length === 1 ? named[0] : kids.length === 1 ? kids[0] : '';
+  if (!(BOOKING.kids || []).length && kid) { BOOKING.kids = [kid]; done('kids'); }
+}
+
 /* ---------- BOOKING FROM A CARD § */
-on('book-with', () => {
+on('book-with', el => {
   closeSheet();
-  finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Booking' }] });
+  /* WHAT THE CARD WAS ABOUT ANSWERS ITS ROW ON THE FORM (1040 friction): a tutor, a subject, a level. */
+  const d = (el && el.dataset) || {};
+  if (d.tutor) BOOKING.tutor = d.tutor;
+  if (d.subject && !(BOOKING.subjects || []).length) { BOOKING.subjects = [d.subject]; BOOKING.done = uniq((BOOKING.done || []).concat(['subjects'])); }
+  if (d.level && !BOOKING.level) BOOKING.level = d.level;
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
   go('stuff');
 });
 

@@ -608,7 +608,7 @@ on('job-take-seat', el => {
   BOOKING.done = uniq((BOOKING.done || [])
     .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
   closeSheet();
-  finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Booking' }] });
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
   go('stuff');
   /* ONE PAGE ON FROM THE QUESTION, which is the form. */
   PAGE.stuff = stuffQuestionPage_() + 1;
@@ -630,7 +630,7 @@ on('job-join', el => {
   BOOKING.done = uniq((BOOKING.done || [])
     .concat(['how', 'joining', 'subjects', 'level', 'loc', 'n']));
   closeSheet();
-  finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Booking' }] });
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
   go('stuff');
   PAGE.stuff = stuffQuestionPage_() + 1;
   paintPager('stuff', true);

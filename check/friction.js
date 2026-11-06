@@ -75,7 +75,8 @@ const JOURNEYS = {
     },
     'book a session': async W => {
       await W.tap('Find › Booking', '^\\s*Booking\\s*$', 'facet-pick');
-      if (!(await W.has('#s-stuff [data-do="book-set"]'))) await W.deadEnd('the booking form is not in Find under Booking', () => go('booking'));
+      /* BY REAL TAPS ONLY: the form is Find › Booking's own answer, so a missing form is the journey failing, not a shortcut. */
+      if (!(await W.has('#s-stuff [data-do="book-set"]'))) { W.J.missing.push('the booking form under Find › Booking'); return; }
       for (let n = 0; n < 14 && await pickNext_(W); n++);
       await W.tap('a time', '', 'book-slot');
       if (!(await W.tap('Ask for it', 'Ask for it', 'book-send'))) return;
@@ -105,11 +106,14 @@ const JOURNEYS = {
       if (!(await W.has('.rc'))) W.J.missing.push('a session card');
     },
     'message a parent': async W => {
-      if (await W.tap('Find › Messages', '^\\s*Messages\\s*$', 'facet-pick')) { await W.tap('Messages › a person', 'Pat|Parent', 'facet-pick'); }
+      /* ONE PERSON TO WRITE TO IS NO QUESTION: the funnel goes straight to their card, so that menu is not a step missed. */
+      if (await W.tap('Find › Messages', '^\\s*Messages\\s*$', 'facet-pick')) {
+        if (!(await W.tap('Messages › a person', 'Pat|Parent', 'facet-pick')) && await W.has('#s-stuff .msg-text')) { W.J.missing.pop(); W.J.steps.pop(); } }
       else { W.J.missing.pop(); W.J.steps.pop();
         await W.tap('Find › Booking', '^\\s*Booking\\s*$', 'facet-pick');
         await W.tap('Booking › Receipts', '^\\s*Receipts\\s*$', 'facet-pick'); }
-      if (!(await W.tap('Message the parent', 'Message|Pat', 'msg-open'))) return;
+      /* A CONVERSATION CARD IS ITS OWN COMPOSER; a session card needs its Message tile first. */
+      if (!(await W.has('#s-stuff .msg-text')) && !(await W.tap('Message the parent', 'Message|Pat', 'msg-open'))) return;
       if (!(await W.type('the message', '.msg-text', 'Sam did well today.'))) return;
       await W.tap('Send', '', 'msg-send');
     },
@@ -159,7 +163,7 @@ const JOURNEYS = {
 async function pickNext_(W) {
   const page = W.page;
   W.asked = W.asked || [];
-  const got = await page.evaluate(done => { const s = [...document.querySelectorAll('select[data-do="book-set"]')].find(e => e.getClientRects().length && !e.value && e.options.length > 1 && done.indexOf(e.dataset.step) < 0);
+  const got = await page.evaluate(done => { const s = [...document.querySelectorAll('select[data-do="book-set"]')].find(e => e.getClientRects().length && !e.value && !e.closest('.bk-face.is-set') && e.options.length > 1 && done.indexOf(e.dataset.step) < 0);
     if (!s) return ''; const o = [...s.options].find(x => x.value); s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); return s.dataset.step + '=' + o.value; }, W.asked);
   if (!got) return false;
   W.asked.push(got.split('=')[0]);
@@ -224,6 +228,7 @@ const score = j => j.missing.length ? 0 : Math.max(0, Math.round(100 - j.taps * 
   if (!ONLY && !out.work.some(w => w.where === 'totals')) { BJ.friction = next; fs.writeFileSync(BP, JSON.stringify(BJ, null, 1) + '\n'); }
   if (!ONLY) fs.writeFileSync(OUT, JSON.stringify(out, null, 1) + '\n');
   Object.keys(out.roles).forEach(r => Object.keys(out.roles[r]).forEach(n => { const j = out.roles[r][n];
+    if (ONLY) console.log(j.steps.join(" | "));
     console.log(`${r}: ${n} — ${j.possible ? 'done' : 'IMPOSSIBLE'}, score ${j.score}: ${j.taps} taps, ${j.screens} screens, ${j.fields} fields, ${j.waitMs} ms waiting, ${j.deadEnds.length} dead ends, ${j.errors.length} errors`); }));
   out.work.forEach(w => console.log('friction: ' + w.where + ' — ' + w.say));
   console.log('friction: score ' + out.score + ' over ' + all.length + ' journeys');

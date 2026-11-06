@@ -316,7 +316,7 @@ function venueTiles_(x) { return ''; }
 /* ---------- A SUBJECT § */
 function subjectTiles_(x) {
   return `
-    ${tile_({ icon: 'book', label: 'Book this', act: 'book-with', data: { name: '' } })}
+    ${tile_({ icon: 'book', label: 'Book this', act: 'book-with', data: { name: '', subject: x.name || '' } })}
   `;
 }
 
@@ -328,7 +328,7 @@ function levelTiles_(x) {
     ${tile_({ icon: 'book', label: t.listed === false ? 'Not on the booking form' : 'Book this',
               note: t.listed === false ? 'add it to the options tab' : '',
               off: t.listed === false,
-              act: 'book-with', data: { name: '' } })}
+              act: 'book-with', data: { name: '', level: x.name || '' } })}
   `;
 }
 
@@ -360,11 +360,33 @@ function wearTiles_(x) {
 }
 
 
+/* ---------- WHO MAY WRITE TO WHOM, THE SERVER'S `MESSAGING` (constants.gs) read on the phone, so no Message tile is one it refuses ---------- */
+const MSG_MAY_ = { admin: ['admin', 'staff', 'client', 'student'], staff: ['admin', 'staff', 'client'], client: ['admin', 'staff'], student: ['admin'] };
+const msgRankOf_ = role => /admin/i.test(role) ? 'admin' : /tutor|teacher|staff/i.test(role) ? 'staff' : /student|child|kid/i.test(role) ? 'student' : 'client';
+const msgMay_ = role => !!USER && (MSG_MAY_[rank_()] || []).indexOf(msgRankOf_(String(role || ''))) !== -1;
+const msgTile_ = (name, id) => tile_({ icon: 'chat', label: 'Message ' + String(name).split(' ')[0], note: 'a note to them', act: 'msg-open', data: { to: name, id: id || '' } });
+/* THE PEOPLE ON A SESSION BESIDES YOU: its families and its tutor, each with the role the server judges by (1040 friction). */
+function jobPeople_(j) {
+  if (!j || !USER) return [];
+  const idOf = (list, n) => ((list || []).find(p => p && norm(p.title || p.name) === norm(n)) || {}).personId || '';
+  const out = [], seen = {};
+  const add = (name, role, id) => { const k = norm(name); if (!k || seen[k] || norm(USER.name) === k) return; seen[k] = 1; out.push({ name, role, id }); };
+  (j.slots || []).map(sl => sl && sl.client).concat([j.client]).filter(Boolean)
+    .forEach(n => add(n, 'client', idOf(DATA.clients, n) || idOf(DATA.everyone, n)));
+  [j.tutor].concat((j.tutorSlots || []).map(sl => sl && (sl.tutor || sl.name))).filter(Boolean)
+    .forEach(n => add(n, 'tutor', idOf(DATA.tutors, n)));
+  return out.filter(p => msgMay_(p.role));
+}
+const jobMsgTiles_ = x => jobPeople_(x && x.row).map(p => msgTile_(p.name, p.id)).join('');
+/* A PROFILE'S Message, by the same rule — the tutor card draws its own (`tutorTiles_`). */
+const personTiles_ = x => { const t = (x && x.row) || {}; const name = t.title || t.name || x.name;
+  return name && !isMe_(x) && msgMay_(t.role) ? msgTile_(name, t.personId) : ''; };
+
 /* EVERY CARD'S ROW STARTS WITH THESE (950); health.js's "card tile rows" holds it. */
 const CARD_CORE_ = ['share', 'fav', 'suggest', 'top'];
 /* EACH KIND'S EXTRAS (data, not branches); find, hymns and mechanics add theirs to `window.CARD_EXTRAS_MORE`, which needs no load order (1000). */
 const CARD_EXTRAS_ = { shop: x => (x.wearable ? wearTiles_(x) : shopTiles_(x)), tutor: tutorTiles_, venue: venueTiles_, subject: subjectTiles_,
-  level: levelTiles_, receipt: jobTiles_, talmud: x => talmudTiles_(x) };
+  level: levelTiles_, receipt: x => jobMsgTiles_(x) + jobTiles_(x), person: x => personTiles_(x), talmud: x => talmudTiles_(x) };
 function cardCore_(x) {
   const one = {
     share: () => tile_({ icon: 'share', label: 'Share', act: 'card-share', data: { key: x.key } }),

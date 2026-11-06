@@ -1,6 +1,9 @@
 /* @family. — js/find-doors.js FIND'S FRONT DOORS (batch C): Posts, Messages, Profiles, Settings and Videos as Find items,
    each answering its own menus through the one funnel (FACETS). */
 
+/* THE FRONT DOOR'S FIELD (batch C): Booking, Posts, Practice… are answers to it; `forIs_`, `book-with` and the receipts set and read this, never a literal. */
+const DOOR_FIELD = 'kindLabel';
+
 /* ---------- POSTS: state, then who, then when ---------- */
 const POST_STATES = ['Approved', 'Waiting for approval', 'Deleted'];
 function postState_(p) { return !p ? '' : p.active === false ? 'Deleted' : (p.waiting || p.refused) ? 'Waiting for approval' : 'Approved'; }
@@ -25,11 +28,20 @@ function postDoorItems_() {
 function msgDoorItems_() {
   if (!USER || typeof messageThreads_ !== 'function') return [];
   if (typeof MESSAGES === 'undefined' || !MESSAGES) doorAsk_(typeof loadMessages === 'function' ? loadMessages() : null);
-  return messageThreads_().map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
-    msgWith: t.name, text: t.name }));
+  const threads = messageThreads_(), had = {};
+  threads.forEach(t => { had[norm(t.name)] = 1; });
+  /* AND EVERYONE YOU MAY WRITE TO FROM YOUR SESSIONS, with no conversation yet (1040 friction): the card opens on an empty one. */
+  const people = [];
+  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => (typeof jobPeople_ === 'function' ? jobPeople_(j) : []).forEach(p => {
+    if (!had[norm(p.name)]) { had[norm(p.name)] = 1; people.push(p); } }));
+  return threads.map(t => ({ kind: 'msg', name: t.name, key: 'msg:' + t.id, sub: '', image: '', thread: t.id,
+    msgWith: t.name, text: t.name }))
+    .concat(people.map(p => ({ kind: 'msg', name: p.name, key: 'msg:' + (p.id || p.name), sub: '', image: '', to: p, msgWith: p.name, text: p.name })));
 }
 function msgDoorCard_(x) {
   const t = (typeof messageThreads_ === 'function' ? messageThreads_() : []).find(t2 => t2.id === x.thread);
+  if (!t && x.to) return `<div class="card dm-card"><div class="dm-head"><h3>${esc(x.name)}</h3></div>
+    ${msgForm_(x.to.name, x.to.id)}</div>`;
   if (!t) return `<div class="card"><h3>${esc(x.name)}</h3></div>`;
   try { markRead_(t.msgs); } catch (e) { oops_(e, 'doors:msg'); }
   return `<div class="card dm-card"><div class="dm-head">${typeof dmFace_ === 'function' ? dmFace_(t) : ''}<h3>${esc(t.name)}</h3></div>

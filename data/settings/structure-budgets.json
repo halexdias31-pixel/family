@@ -1,20 +1,20 @@
 {
- "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040); batch D: one people kind and its portraits (1040). Raised 6 Nov, batch E: car and PC parts (coupling mechanics 19, find-boxers 98, find-finder 146; find-finder 819 lines, oneOff 4; mechanics oneOff 4; style.css 7199). Raised 6 Nov, batch G (found over at the start of G, from batches E–F): coupling find-boxers 99, works 20; variety maker 38; owner clutter 379; aiCost bigNotes 10 (1040-auto-rounds.md, appended as asked), spread 22.",
+ "why": "structure ratchet (920): a change may not go over a budget; going under tightens it (node tools/health.js --changed). Never raise one by hand without a docs/history reason. Raised 6 Nov, batch B: owner brought features back (docs/history/1040); batch D: one people kind and its portraits (1040). Raised 6 Nov, batch E: car and PC parts (coupling mechanics 19, find-boxers 98, find-finder 146; find-finder 819 lines, oneOff 4; mechanics oneOff 4; style.css 7199). Raised 6 Nov, batch G (found over at the start of G, from batches E–F): coupling find-boxers 99, works 20; variety maker 38; owner clutter 379; aiCost bigNotes 10 (1040-auto-rounds.md, appended as asked), spread 22. Raised 6 Nov, friction fixes (1040-auto-rounds.md): coupling book 69, cards 45, find-doors 55, find-levels 106, receipt 65, tiles 85 — the booking prefill, Message tiles and Find › Messages contacts link the files they join.",
  "coupling": {
   "js/find.js": 0,
   "js/shell.js": 186,
   "js/me.js": 187,
   "js/posts.js": 117,
   "js/games.js": 106,
-  "js/tiles.js": 83,
+  "js/tiles.js": 85,
   "js/arcade.js": 98,
   "js/layout.js": 76,
   "js/data.js": 86,
   "js/submit.js": 85,
   "js/price-rows.js": 46,
-  "js/book.js": 63,
+  "js/book.js": 69,
   "js/core.js": 55,
-  "js/receipt.js": 64,
+  "js/receipt.js": 65,
   "js/collections.js": 52,
   "js/map.js": 61,
   "js/chess.js": 35,
@@ -35,7 +35,7 @@
   "js/missing.js": 22,
   "js/pdtexts.js": 14,
   "js/resource.js": 36,
-  "js/cards.js": 38,
+  "js/cards.js": 45,
   "js/gtasks.js": 16,
   "js/board.js": 39,
   "js/help.js": 13,
@@ -72,7 +72,7 @@
   "js/find-figures.js": 88,
   "js/find-finder.js": 146,
   "js/find-history.js": 80,
-  "js/find-levels.js": 102,
+  "js/find-levels.js": 106,
   "js/find-loupe.js": 89,
   "js/find-marking.js": 54,
   "js/find-measure.js": 24,
@@ -98,7 +98,7 @@
   "js/keypad-pad.js": 53,
   "js/predicates.js": 21,
   "js/biz-check.js": 28,
-  "js/find-doors.js": 50,
+  "js/find-doors.js": 55,
   "js/find-timelines.js": 19
  },
  "targets": {
@@ -685,7 +685,7 @@
   },
   "js/find-levels.js": {
    "lines": 791,
-   "oneOff": 4,
+   "oneOff": 2,
    "emptyCatch": 1,
    "inlineStyle": 0,
    "rawButton": 0
@@ -969,7 +969,7 @@
   }
  },
  "aiCost": {
-  "searchBytes": 5275740,
+  "searchBytes": 5274165,
   "commentRatio": 0.262,
   "tombstones": 0,
   "claudeLines": 100,
@@ -1019,12 +1019,12 @@
   "menu-order": 0
  },
  "friction": {
-  "taps": 43,
-  "screens": 21,
-  "fields": 10,
+  "taps": 30,
+  "screens": 20,
+  "fields": 4,
   "waitMs": 289,
-  "deadEnds": 2,
+  "deadEnds": 1,
   "errors": 0,
-  "impossible": 3
+  "impossible": 2
  }
 }

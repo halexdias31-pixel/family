@@ -44,3 +44,6 @@ Things the health checker flags that would change what you see, so they wait for
 - History's textbook chapters (32) now answer **Works** under "Manuscripts, people, works, events or timelines" so every History card answers it. Would you rather they had their own answer (e.g. "Textbook chapters")?
 - Old Testament dates follow the traditional early chronology (Exodus c. 1446 BC; many scholars say c. 1250 BC — the date line says so). Keep, or another chronology?
 - The starter timelines are Church history, WWI, WWII, Old Testament, Roman Empire and Space race. Which next (British monarchy, Reformation, Cold War…)? And should a timeline loop at the end rather than stop?
+
+## Friction fixes (6 Nov) — homework
+- **Homework: let a tutor assign a paper/question set to a student; student sees 'Homework' in Find; tutor sees results — build it? (y/n)** Today the friction walk counts three journeys as impossible or a dead end for want of it: a tutor setting homework, a tutor seeing a student's results, a student opening what was set. It would need a new sheet tab (who set what for whom, due when) and a results view; nothing was built until you say.
