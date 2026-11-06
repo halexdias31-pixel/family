@@ -24,6 +24,8 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 0. **The health score is the north star.** Each sweep takes one coherent theme (one area done fully) and moves the score. Checks: `health`
 0. **Data first, one home.** Anything that might change (wording, prices, lists, menus) is data, not code; every fact has exactly one home and everything reads from it — the checker flags copies. Checks: `in-sync`, `payload`
 0. **Breaks are told clearly.** When something fails, the user gets one short plain message saying what failed; the rest keeps working. Undo is by asking (git), no undo button. Checks: `errors`, `resilience`
+0. **Free.** No subscriptions or fixed costs; only pay-when-paid fees (Stripe's small percentage) and near-free usage (AI essay marking) are fine. Checks: `business`
+0. **Built for the 100-tutor future.** Designed to hold at hundreds or thousands of users, even if overkill today; open to schools later. Practice, not full mock exams. Checks: `structure`, `speed`
 0. **Automatic, except what can't be undone.** Only irreversible actions need a human tap: deleting data, approving tutors, publishing policies. Checks: `friction`
 
 ## The principles, ranked
