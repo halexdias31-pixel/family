@@ -1,0 +1,61 @@
+{
+ "at": "2026-11-06T23:54:09.612Z",
+ "site": "local, signed in, doGet held 10000 ms",
+ "net": "150ms 1.6Mbit/s, CPU x4",
+ "coldUsableMs": 8305,
+ "returnUsableMs": 1280,
+ "returnPlaceMs": 2246,
+ "coldTapMs": 20,
+ "returnTapMs": 1174,
+ "visits": [
+  {
+   "label": "first visit",
+   "html": 196,
+   "eagerJs": 7891,
+   "library": 12848,
+   "dcl": 3526,
+   "code": 3285,
+   "screen": 8305,
+   "menu": 8305,
+   "later": 8168,
+   "cached": null,
+   "payload": 10496,
+   "usable": 8305,
+   "place": 10620,
+   "loaded": 10496,
+   "jsKB": 1125,
+   "jsFiles": 96,
+   "tapsFrom": 10481,
+   "tapsMs": [
+    20,
+    9,
+    9
+   ],
+   "errors": []
+  },
+  {
+   "label": "return visit",
+   "html": 12,
+   "eagerJs": 839,
+   "library": 8099,
+   "dcl": 506,
+   "code": 529,
+   "screen": 1280,
+   "menu": 1280,
+   "later": 1280,
+   "cached": 529,
+   "usable": 1280,
+   "place": 2246,
+   "loaded": 1280,
+   "jsKB": 3163,
+   "jsFiles": 96,
+   "tapsFrom": 2117,
+   "tapsMs": [
+    50,
+    1174,
+    28
+   ],
+   "errors": []
+  }
+ ]
+}

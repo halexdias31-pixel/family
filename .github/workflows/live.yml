@@ -54,6 +54,8 @@ jobs:
           node tools/live-load.js | tee -a live.log
           cp data/live-health.json live-shots/ 2>/dev/null || true
           tail -1 live.log >> "$GITHUB_STEP_SUMMARY"
+          node tools/live-load.js --local | head -1 | tee -a live.log >> "$GITHUB_STEP_SUMMARY"
+          cp data/load-health.json live-shots/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -60,7 +60,138 @@ async function visit(ctx, label) {
   return { label, menuMs, dotsMs, doGetAt: doGet ? doGet.at : null, library: got.filter(g => /\/data\//.test(g.url) && g.at <= (menuMs || LIMIT)).map(g => g.url + ' @' + g.at), errors };
 }
 
-(async () => {
+/* ---------- --local: A SIGNED-IN PHONE, doGet HELD (1070) -------------------------------------------------- */
+/* The repo served here, the fixture as doGet after DOGET_DELAY ms (10 s, a cold Apps Script), a signed-in student; first visit, then return. */
+const LOCAL = process.argv.includes('--local');
+const DELAY = Number(process.env.DOGET_DELAY || 10000);
+/* WHAT THE PAGE REACHED AND WHEN, in its own clock: code, later code, library, payload, Find usable, the last place back. */
+function stamps(sel) {
+  const S = window.__stamps = {};
+  const at = (k, ok) => { try { if (S[k] == null && ok()) S[k] = Math.round(performance.now()); } catch (e) { /* not yet declared */ } };
+  /* FIND'S FRONT PAGE: the search box and the menu, and no loader on that page (a later page still waiting is not in the way). */
+  const findFront = () => { const q = document.querySelector('#stuff-q'), pane = q && q.closest('.pane'); return !!pane && !!pane.querySelector(sel) && !pane.querySelector('.loading'); };
+  const tick = () => {
+    at('code', () => typeof go === 'function');
+    at('later', () => LATER_IN);
+    at('library', () => LIBRARY_ROWS !== null);
+    at('cached', () => !!window.PAYLOAD_KEPT);
+    at('payload', () => window.PAYLOAD_IN);
+    /* WHAT THE PHONE SHOWS: no loader on the first screen (a signed-in phone stacks a column above Find), and Find's search and menu drawn. */
+    const shown = () => ![...document.querySelectorAll('.loading')].some(l => { const r = l.getBoundingClientRect(); return r.height && r.top < innerHeight && r.bottom > 0; });
+    at('screen', () => go && shown() && document.querySelector('#screen section:not(.hidden) .pane'));
+    at('menu', () => findFront());
+    at('usable', () => findFront() && shown());
+    at('place', () => (STUFF.filters || []).length > 0);
+    if (S.loaded == null || S.place == null || S.usable == null || S.menu == null) setTimeout(tick, 20);
+    at('loaded', () => LOADED);
+  };
+  tick();
+}
+async function localVisit(ctx, url, label, keep) {
+  const page = await ctx.newPage();
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions', NET);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e.message || e).slice(0, 200)));
+  await page.addInitScript(stamps, MENU);
+  await page.goto(url, { waitUntil: 'commit', timeout: LIMIT });
+  await page.waitForFunction(() => window.__stamps && window.__stamps.menu != null, null, { timeout: LIMIT, polling: 20 }).catch(() => {});
+  /* THE OWNER'S TAPS (1070): from the moment Find is usable, press the first answer of each menu three times; each must show its next answers, not a loader. */
+  const taps = [];
+  if (!keep) {
+    const t0 = await page.evaluate(() => Math.round(performance.now()));
+    for (let i = 0; i < 3; i++) {
+      const at = await page.evaluate(() => {
+        const b = document.querySelector('#s-stuff [data-do="facet-pick"]:not([data-value="*"])');
+        if (!b) return null;
+        b.scrollIntoView(); b.click();
+        return Math.round(performance.now());
+      });
+      if (at == null) break;
+      const done = await page.waitForFunction(() => (() => { const q = document.querySelector('#stuff-q'), pane = q && q.closest('.pane'); return pane && !pane.querySelector('.loading') && pane.querySelector('[data-do="facet-pick"], .q-card, .card'); })()
+        ? Math.round(performance.now()) : false, null, { timeout: 30000, polling: 20 }).then(h => h.jsonValue(), () => null);
+      taps.push(done == null ? null : done - at);
+      await page.waitForTimeout(150);
+    }
+    taps.unshift(t0);
+  }
+  await page.waitForFunction(() => window.__stamps && window.__stamps.loaded != null && window.PAYLOAD_IN, null, { timeout: LIMIT, polling: 100 }).catch(() => {});
+  if (keep) {
+    /* THE PLACE TO COME BACK TO: one chip pressed, kept the way the page keeps it. */
+    await page.click(MENU).catch(() => {});
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => { try { findPlaceKeep_(); } catch (e) { /* no finder: no place */ } });
+    await page.waitForTimeout(500);
+  } else await page.waitForTimeout(1500);
+  const out = await page.evaluate(() => {
+    const r = performance.getEntriesByType('resource');
+    const nav = performance.getEntriesByType('navigation')[0] || {};
+    const end = re => Math.round(Math.max(0, ...r.filter(e => re.test(e.name)).map(e => e.responseEnd)));
+    const S = window.__stamps || {};
+    return { html: Math.round(nav.responseEnd || 0), eagerJs: end(/\/js\/.*\.js/), library: end(/\/data\/.*\.json/), dcl: Math.round(nav.domContentLoadedEventEnd || 0),
+      code: S.code, screen: S.screen, menu: S.menu, later: S.later, libraryIn: S.library, cached: S.cached == null ? null : S.cached, payload: S.payload, usable: S.usable, place: S.place == null ? null : S.place, loaded: S.loaded,
+      jsKB: Math.round(r.filter(e => /\/js\//.test(e.name)).reduce((a, e) => a + (e.encodedBodySize || 0), 0) / 1024),
+      jsFiles: r.filter(e => /\/js\//.test(e.name)).length };
+  });
+  await page.close();
+  return Object.assign({ label }, out, { tapsFrom: taps[0] == null ? null : taps[0], tapsMs: taps.slice(1), errors });
+}
+/* SERVED GZIPPED, as GitHub Pages serves it: glass.serve sends raw bytes, which on a 1.6 Mbit link triples the first visit. */
+function gzipServe() {
+  const http = require('http');
+  return new Promise(ok => {
+    const s = http.createServer((req, res) => {
+      const rel = decodeURIComponent(req.url.split('?')[0]);
+      const p = path.join(ROOT, rel === '/' ? 'index.html' : rel);
+      let body = require('../check/lib-full.js').serve(p);
+      if (body === null) {
+        if (!p.startsWith(ROOT) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
+        body = fs.readFileSync(p);
+      }
+      const ext = path.extname(p);
+      const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webp': 'image/webp' }[ext] || 'application/octet-stream';
+      /* AN ETAG AND NO FRESHNESS: a return hours later, when the browser's own copy has expired and only the service worker's store holds. */
+      const tag = '"' + require('crypto').createHash('md5').update(body).digest('hex').slice(0, 16) + '"';
+      if (req.headers['if-none-match'] === tag) { res.writeHead(304, { ETag: tag }); return res.end(); }
+      const zip = /text|javascript|json|svg/.test(type) && /gzip/.test(req.headers['accept-encoding'] || '');
+      res.writeHead(200, Object.assign({ 'Content-Type': type, ETag: tag, 'Cache-Control': 'no-cache' }, zip ? { 'Content-Encoding': 'gzip' } : {}));
+      res.end(zip ? zlib.gzipSync(body) : body);
+    });
+    s.listen(Number(process.env.LIVE_PORT || 0), () => ok(s));
+  });
+}
+async function local() {
+  const glass = require('../check/glass.js');
+  const server = await gzipServe();
+  const url = `http://localhost:${server.address().port}/index.html`;
+  const browser = await chromium.launch();
+  const student = glass.VIEWERS.find(v => v.as === 'student').user;
+  const out = { at: new Date().toISOString(), site: 'local, signed in, doGet held ' + DELAY + ' ms', net: '150ms 1.6Mbit/s, CPU x' + CPU };
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    await ctx.addInitScript(u => { try { if (!localStorage.getItem('familyUser')) localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) { /* no storage */ } }, student);
+    await ctx.route('**://script.google.com/**', r => setTimeout(() => r.fulfill({ status: 200, contentType: 'application/json', body: glass.FIXTURE_ANON }).catch(() => {}), DELAY));
+    const cold = await localVisit(ctx, url, 'first visit', false);
+    /* A SECOND VISIT FILLS THE SERVICE WORKER'S STORE (it starts after the first page's load) and leaves a place; the third is the return measured. */
+    await localVisit(ctx, url, 'second visit', true);
+    const warm = await localVisit(ctx, url, 'return visit', false);
+    await ctx.close();
+    out.coldUsableMs = cold.usable; out.returnUsableMs = warm.usable; out.returnPlaceMs = warm.place;
+    /* THE SLOWEST OF THE THREE TAPS, each pressed the moment the menu is there. */
+    out.coldTapMs = Math.max(...cold.tapsMs.map(t => (t == null ? 30000 : t)), 0); out.returnTapMs = Math.max(...warm.tapsMs.map(t => (t == null ? 30000 : t)), 0);
+    out.visits = [cold, warm];
+  } finally { await browser.close(); server.close(); }
+  const file = path.join(ROOT, 'data', 'load-health.json');
+  fs.writeFileSync(file, JSON.stringify(out, null, 1) + '\n');
+  const s = v => (v == null ? 'never' : (v / 1000).toFixed(2) + ' s');
+  console.log(`live-load --local: Find usable ${s(out.coldUsableMs)} first visit, ${s(out.returnUsableMs)} return (place back ${s(out.returnPlaceMs)}); slowest of 3 menu taps ${s(out.coldTapMs)} first, ${s(out.returnTapMs)} return; doGet held ${DELAY / 1000} s. Wrote data/load-health.json`);
+  out.visits.forEach(v => console.log(JSON.stringify(v)));
+}
+
+if (LOCAL) local().catch(e => { console.error('live-load: ' + (e && e.stack || e)); process.exit(2); });
+else (async () => {
   const browser = await chromium.launch(proxy ? { proxy: { server: proxy, bypass: 'localhost,127.0.0.1' } } : {});
   const out = { at: new Date().toISOString(), site: SITE, net: '150ms 1.6Mbit/s, CPU x' + CPU };
   try {

@@ -8,8 +8,8 @@ const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'js', 'finder-tags.js');
 const CHECK = process.argv.includes('--check');
-/* HOW MANY ANSWERS DEEP: the start, and each first answer — what a finger can press before the files are in. */
-const DEPTH = 1;
+/* HOW MANY ANSWERS DEEP (1070: 1 → 3): a finger taps three menus in before the library lands, and each must already be the final answer. */
+const DEPTH = 3;
 /* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Library › Religious Studies). */
 const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }]];
 

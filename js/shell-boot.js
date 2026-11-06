@@ -181,8 +181,8 @@ const TABS = [
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
-const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social (392); Spotlight left of the posts (461) */
-                   'stuff', 'res', 'saved',                           /* learning; Tools and Games are Find cards (790); Progress went into Student settings (461) */
+const TAB_ORDER = ['stuff', 'res', 'saved',                           /* FIND FIRST, for everyone (1070): the one front door; Tools and Games are Find cards (790) */
+                   'spotlight', 'feed', 'reel', 'dm',                 /* social (392), below Find; Spotlight left of the posts (461) */
                    'booking', 'shop',                                 /* business */
                    'web', 'tutors', 'students', 'parents', 'apprentices', /* the five profiles (730) */
                    'staff', 'site', 'account', 'family', 'apprentice', 'biz']; /* the six settings, the owner's order (730); site and biz admin-only */
@@ -256,6 +256,8 @@ function applyColumns_() {
   const want = rows.map(r => known[String(r.screen || '').trim()])
                    .filter(Boolean);
   if (!want.length) return;      /* the sheet names nothing this build has — leave it alone */
+  /* FIND STANDS FIRST WHATEVER ORDER A SHEET GIVES (1070): the one front door; the rest keep their order below it. */
+  want.sort((a, b) => (b.id === TAB_HOME) - (a.id === TAB_HOME));
 
   /* THE LABEL AND THE ICON COME FROM THE SHEET TOO, where it gives them. A blank cell means "keep
      what the code says" rather than "make it empty", which is the same rule every other tab in this
@@ -277,8 +279,8 @@ function applyColumns_() {
 }
 
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
-/* ---------- THE FIRST THING ANYBODY SEES IS THE LATEST POST § */
-const TAB_HOME = 'feed';
+/* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
+const TAB_HOME = 'stuff';
 /* A COLUMN THAT WAS DISSOLVED, AND WHERE ITS THINGS WENT: an old link or a remembered place lands there (461). */
 const TAB_GONE = { progress: 'account' };
 
@@ -293,9 +295,7 @@ const SCREENS = {};
 function screen(id, draw) { SCREENS[id] = { draw }; }
 
 /* ---------- WHERE YOU WERE, IF IT IS STILL A PLACE § */
-/* FIRST VISIT LANDS ON THE LATEST POST — see `TAB_HOME` above, which is where that is decided and
-   where the argument it replaced is written down. Find is one swipe away and is remembered there
-   afterwards. */
+/* FIRST VISIT LANDS ON FIND — see `TAB_HOME` above. */
 let AT = TAB_HOME;
 /* ---------- REMEMBERED FOR A RELOAD, NOT FOR TOMORROW § */
 /* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on

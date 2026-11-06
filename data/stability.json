@@ -124,7 +124,7 @@
     "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 161,
     "js/find-parts.js typeset_": 230,
-    "js/shell-api.js loadOnce_": 250,
+    "js/shell-api.js loadOnce_": 257,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1204,
     "backend/dopost.gs doPost": 3592,

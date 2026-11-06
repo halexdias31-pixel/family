@@ -201,6 +201,7 @@ async function filesOnly_() {
 async function bootJson_(res) {
   if (!res || typeof res.text !== 'function') return res.json();
   const body = await res.text();
+  PAYLOAD_TEXT = body;
   try { return JSON.parse(body); }
   catch (e) {
     /* The page's text rather than its title: an Apps Script error page is titled just "Error". */
@@ -410,6 +411,12 @@ function loadRowsClean_(d) {
 async function load(again) {
   const R = RECONNECT;
   if (!again) reconnectStop_();
+  /* THE DEVICE'S COPY FIRST, once a visit (1070): drawn while the network is asked; a newer load's answer makes it stale. */
+  if (!again && !PAYLOAD_KEPT_TRIED) {
+    PAYLOAD_KEPT_TRIED = true;
+    const kept = payloadKept_();
+    if (kept) loadOnce_(false, ++R.seq, kept).catch(() => {});
+  }
   R.asked = Date.now();
   R.flying++;
   try { await loadOnce_(again, ++R.seq); }
@@ -436,6 +443,7 @@ let LIBRARY_FOR = null;
 async function libraryLate_(d) {
   try {
     const rows = await libraryRows_(), extra = await libraryExtraRows_();
+    await libraryQuiet_();
     if (LIBRARY_FOR !== d) return;   /* a newer payload took its place, and merged the library itself */
     libraryInto_(d, rows);
     libraryExtras_(d, extra);
@@ -452,7 +460,7 @@ async function libraryLate_(d) {
 
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
 let FIRST_PAINT_DONE = false;
-async function loadOnce_(again, n) {
+async function loadOnce_(again, n, kept) {
   /* THE REPLY ARRIVED AND WAS DATA — so a throw after this is our own code, not the connection. */
   let reached = false;
   /* AND IT BECAME `DATA` — the one outcome a retry repaints for. */
@@ -467,6 +475,7 @@ async function loadOnce_(again, n) {
     /* ---------- AND THE TOKEN, WHICH IS THE ONLY ONE OF THE THREE THAT PROVES ANYTHING § */
     /* ALL THREE ARE BUILT BY `loadWho_` — `who`, at the top of this function. */
     /* NO CACHE, AND A DIFFERENT URL EVERY TIME. § */
+    let d; if (kept) { d = kept; window.PAYLOAD_KEPT = true; } else {
     const bust = (who ? '&' : '?') + '_=' + Date.now();
     /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
        this is the moment the app begins waiting, and it is the only moment worth timing from. */
@@ -518,11 +527,12 @@ async function loadOnce_(again, n) {
     /* ---------- READ AS TEXT, THEN PARSE, so a web page says what it is § */
     /* THE BODY UNDER A DEADLINE TOO (503): the 60 seconds above covered the headers only. */
     let bodyBell;
-    const d = await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
+    d = await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
       .finally(() => clearTimeout(bodyBell));
     reached = true;
     /* WHAT THE SLOW BOX ASKS (index.html): the backend has answered, so whatever is left is ours and bounded. */
     window.PAYLOAD_IN = true;
+    payloadOwe_(d); }
     /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been signed in over since it went, or older than a payload already § */
     if (loadStale_(n, who)) return;
     if (d && !d.error) {
@@ -548,7 +558,6 @@ async function loadOnce_(again, n) {
       d.questions = d.questions || [];
       d.dropdowns = d.dropdowns || {};
       d.dropdowns.checklists = d.dropdowns.checklists || {};
-
       /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. § */
       if (loadStale_(n, who)) return;
       loadRowsClean_(d);
@@ -559,7 +568,6 @@ async function loadOnce_(again, n) {
       LOAD_FAILED = '';
       got = true;
       RECONNECT.shown = n; RECONNECT.shownFor = who;
-
       /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
       if (typeof dmAdopt_ === 'function') dmAdopt_(d);
       /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
@@ -570,13 +578,12 @@ async function loadOnce_(again, n) {
          are on, and everything painted after it reads `AT`. */
       applyColumns_();
       applyBrandIcon_();
-
       /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE § */
+      if (!kept) {   /* a kept copy says nothing new (1070): banners, messages and settings wait for the network */
       if (LOAD_SLOW) banner('');
       /* AND THE ASKING-AGAIN STOPS — the quiet line goes, and an admin's diagnostic with it. Here, for
          the same reason as the line above: before the checks below write anything of their own. */
       reconnectDone_();
-
       /* WHAT THE BACKEND CAN DO, against what this site needs. § */
       /* A payload that could not write something — the schema check ran and a column is still
          missing. Said on load rather than waiting for somebody to try to save into it. */
@@ -607,7 +614,7 @@ async function loadOnce_(again, n) {
              + ', which cannot ' + missing.join(', ') + '. Either that deployment is old, or '
              + 'this site is pointed at the wrong one — check the id in API against the '
              + 'Deployment ID in Manage deployments.');
-      }
+      } }
     }
     else {
       LOAD_FAILED = String(d.error || 'the server refused the request');
@@ -694,7 +701,7 @@ async function loadOnce_(again, n) {
       paint(id);
       if (!STALE[id]) { PRE_PAYLOAD.delete(id); if (PAGER[id]) paintPager(id, true); }
     });
-    aheadOpen_();
+    aheadOpen_(); if (kept) payloadFind_();
   }
   openSharedPost();     // if the app was opened on a shared link, go to that post
   try { openSharedTutor(); } catch (e) { oops_(e, 'shell:loadOnce_') }   // or on a tutor's own link (400)
