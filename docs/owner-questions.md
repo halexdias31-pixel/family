@@ -65,3 +65,7 @@ Things the health checker flags that would change what you see, so they wait for
 ## Sweep 16:36 (6 Nov)
 - Word games: Got it and Pass show before a round starts and do nothing until Start. Hide them until Start is pressed? (y/n)
 - Newspaper: it is a title only, by your earlier note, until it has something to say. What should it show first — the week's posts, a digest, or leave it off?
+
+## Owner's answers, 6 Nov (evening)
+- Word games: grey out (disable) Got it / Pass until Start — never hide them. **Yes.**
+- Newspaper: leave it switched off as a "Coming soon" card for now.
