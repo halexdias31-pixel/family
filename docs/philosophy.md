@@ -26,6 +26,8 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 0. **Breaks are told clearly.** When something fails, the user gets one short plain message saying what failed; the rest keeps working. Undo is by asking (git), no undo button. Checks: `errors`, `resilience`
 0. **Free.** No subscriptions or fixed costs; only pay-when-paid fees (Stripe's small percentage) and near-free usage (AI essay marking) are fine. Checks: `business`
 0. **Built for the 100-tutor future.** Designed to hold at hundreds or thousands of users, even if overkill today; open to schools later. Practice, not full mock exams. Checks: `structure`, `speed`
+0. **Never done; always optimising.** New features go in straight away, even half-working, and the sweeps improve them over time. The site is an everything-in-one-place home: learning, business and community together. Checks: `health`
+0. **Built to be handed over.** Everything is documented so a new owner could run it from this philosophy alone. Roles are data: as the business grows, ranks like department heads or managers are added as rows, not code. Checks: `ai-cost`, `philosophy`
 0. **Automatic, except what can't be undone.** Only irreversible actions need a human tap: deleting data, approving tutors, publishing policies. Checks: `friction`
 
 ## The principles, ranked
