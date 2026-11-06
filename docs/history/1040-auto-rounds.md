@@ -103,3 +103,14 @@ Checks run 42091828632 (9e37a8f) failed on fast and every flow part and all eigh
 - **Tags first, every kind:** `tagsOnTop_` (find-figures.js), run by stuffCard on every card, moves a tag line drawn under the title/text to the card's top (one rule, no template edited). Before: boxer, practical, project, content, figure, event, timeline drew the title first. card-tags checks the order: ux-health counts `tagsBelow` per kind; health.js runs `tagsOnTop_` on a title-first fixture. Mutation (the move switched off): the static check fires and the walk shows those 7 kinds "TITLE FIRST".
 - **answer-words 29 → 28, Hebrew gone:** not data — `chipShow_` said a chip with `answerSay_`, whose words come from the whole library, so "Chapter 1" took a Talmud chapter's name. A chip now says what its menu said (the tally under the chips before it). The 28 left are the menu's short name against the card's whole name: owner question.
 - Budgets raised, with this reason: `searchBytes` 5,152,098 → 5,153,725 (`brandLogo_`, `profileOf_`, the tag move, the chip's menu words); coupling `js/me-roles.js` 100 → 101 and `js/posts.js` 112 → 117 (`brandLogo_`, one shared reader; posts was already 116 at HEAD).
+
+## Round 11 — "Hi tory": an s lost in the tool, not the site
+
+data/logic-health.json showed answer words like "Hi tory of the Chri tian Church". The site was never wrong:
+tools/logic-health.js sends its walk to jsdom as one template literal, and inside a template `\s` is just `s`, so
+`norm`'s `/\s+/g` became `/s+/g` (every s turned into a space) and the near-duplicate test's `/\d/g` became `/d/g`.
+A 390x844 Chromium load of the real page found no "Hi tory" anywhere; the jsdom walk's own menu words were the mangled ones.
+Fix: `\\s`, `\\d` in the template (spelling findings fell 212 → 102, the rest were the d-bug's false pairs).
+New check `mangled-text` (ideal 0): every menu answer, chip and tag the walk draws must hold, or sit inside, a source
+value of that facet letter for letter. Mutation-proven twice: a built-in self-test on the "Hi tory" text, and putting
+the lost backslash back gave 70 findings ("Coming  oon" vs "Coming soon"); fixed, 0. Routed to health.js like answer-words.

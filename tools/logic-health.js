@@ -29,6 +29,12 @@ const RULES = {
   twins: 'two answers that keep exactly the same cards',
 };
 
+/* MANGLED (1040 r11): a drawn text is mangled when its letters neither hold nor sit inside any source value's letters (a dropped or changed letter). */
+function MANGLED(t, src) { const k = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, ''), a = k(t);
+  return !!a && !src.some(s => { const b = k(s); return b && (a.indexOf(b) !== -1 || b.indexOf(a) !== -1); }); }
+/* MUTATION PROOF: the check must catch an s dropped by a backslash lost in a template (the r11 bug) and pass the true text. */
+if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Church']) || MANGLED('History of the Christian Church, vol. 1: Apostolic', ['History of the Christian Church']))
+  { console.error('logic-health: the mangled-text check fails its own mutation test'); process.exit(2); }
 (async () => {
   let had = null;
   try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) {}
@@ -47,6 +53,7 @@ const RULES = {
   let got = JSON.parse(ev(`(() => {
     USER = Object.assign({ name: 'T', personId: 'P-T' }, { role: 'Admin', roles: ['admin'] });
     stuffForget_();
+    const MANGLED = ${MANGLED.toString()};
     const RAW = /^(?:RS\\d{6,}|[A-Z]{1,3}-[A-Z0-9]+-|[a-z]+_[a-z_]+$|[a-z]+[A-Z][A-Za-z]*$)/;
     const nodes = [], queue = [[]], said = f => f.map(x => x.show || x.value);
     const fn = (F, G, items) => { const to = {}; let any = 0;
@@ -96,7 +103,7 @@ const RULES = {
         const near = (a, b) => { if (a === b) return true; if (Math.abs(a.length - b.length) > 1 || a.length < 5) return false;
           let i = 0; while (i < a.length && a[i] === b[i]) i++; return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i); };
         const ks = values.map(v => String(v.show || v.value).toLowerCase().replace(/[^a-z0-9]/g, '')), dup = [];
-        ks.forEach((a, i) => ks.forEach((b, j) => { if (j > i && near(a, b) && a.replace(/\d/g, '#') !== b.replace(/\d/g, '#')) dup.push((values[i].show || values[i].value) + ' ~ ' + (values[j].show || values[j].value)); }));
+        ks.forEach((a, i) => ks.forEach((b, j) => { if (j > i && near(a, b) && a.replace(/\\d/g, '#') !== b.replace(/\\d/g, '#')) dup.push((values[i].show || values[i].value) + ' ~ ' + (values[j].show || values[j].value)); }));
         const dead = values.filter(v => !v.n).map(v => v.show || v.value);
         /* A THIN MENU (920, owner's 5-a-day screenshot): fewer than two answers that keep a card, Doesn't matter not counted. */
         const real = values.filter(v => v.n > 0 && !v.any && !/^(?:doesn.?t matter|any)$/i.test(String(v.show || v.value).trim()));
@@ -104,13 +111,16 @@ const RULES = {
         /* A COUNT OF 0 DRAWN: the asked facet's whole tally (before chips are taken out) may not hold an answer that keeps nothing. */
         const zero = ((facetTally_(items, f) || {}).values || []).filter(v => !v.n).map(v => v.show || v.value);
         /* ANSWER WORDS (920): what the menu said, the chip says after the pick and the card's tag line says (facetSay_) must be one text. */
-        const norm = t => String(t == null ? '' : t).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-        const words = [], was = STUFF.filters;
+        const norm = t => String(t == null ? '' : t).replace(/<[^>]*>/g, '').replace(/\\s+/g, ' ').trim();
+        const words = [], mangled = [], was = STUFF.filters;
         values.slice(0, 12).forEach(v => { const menu = norm(v.show || v.value);
           STUFF.filters = filters.concat([{ field: f.field, value: v.value }]);
           let chip = '', tag = ''; try { chip = norm(chipText_(STUFF.filters[filters.length], filters.length)); } catch (e) { chip = '?'; }
           try { tag = norm(facetSay_(f, v.value)); } catch (e) { tag = '?'; }
-          if (chip !== menu || tag !== menu) words.push('menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"'); });
+          if (chip !== menu || tag !== menu) words.push('menu "' + menu + '", chip "' + chip + '", tag "' + tag + '"');
+          /* MANGLED TEXT (1040 r11): each drawn text must hold, or sit inside, a source value letter for letter. */
+          const src = [String(v.value)].concat(items.flatMap(x => facetOwn_(f, x)).filter(t => spellKey_(t) === spellKey_(v.value)).map(String));
+          [['menu', menu], ['chip', chip], ['tag', tag]].forEach(([w, t]) => { if (t !== '?' && MANGLED(t, src)) mangled.push(w + ' "' + t + '" vs source "' + src[src.length - 1] + '"'); }); });
         STUFF.filters = was;
         /* MERGED VALUES (920): an answer that holds two other answers of the same menu (or one twice) is two values joined; its source rows. */
         const merged = [], low = values.map(v => String(v.value).toLowerCase());
@@ -121,7 +131,7 @@ const RULES = {
           const twice = low.some((b, j) => j !== i && b.length > 3 && at(a, b).length > 1);
           if (inner.length >= 2 || twice) { const rows = items.filter(x => facetOwn_(f, x).some(t => String(t).toLowerCase() === a)).slice(0, 3).map(x => (x.kind || '?') + ':' + (x.id || x.key || x.name));
             merged.push('"' + values[i].value + '" holds ' + (inner.slice(0, 2).map(b => '"' + b + '"').join(' + ') || 'one answer twice') + ' — rows ' + rows.join(', ')); } });
-        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), merged: merged.slice(0, 3) };
+        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), mangled: mangled.slice(0, 3), merged: merged.slice(0, 3) };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -180,10 +190,11 @@ const RULES = {
     if (nd.thin) menuSense.push({ where: where(nd), kind: 'thin', say: nd.label + ' asked with ' + nd.thin.length + ' real answer(s)' + (nd.thin.length ? ' (' + nd.thin.join(', ') + ')' : '') + ' besides Doesn\'t matter' });
     (nd.zero || []).forEach(d => menuSense.push({ where: where(nd), kind: 'zero-count', say: nd.label + ': ' + d + ' drawn with a count of 0' }));
     (nd.words || []).forEach(d => menuSense.push({ where: where(nd), kind: 'answer-words', say: nd.label + ': ' + d }));
+    (nd.mangled || []).forEach(d => menuSense.push({ where: where(nd), kind: 'mangled-text', say: nd.label + ': ' + d }));
     (nd.merged || []).forEach(d => menuSense.push({ where: where(nd), kind: 'merged-value', say: nd.label + ': ' + d }));
     if (nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
   });
-  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; delete nd.thin; delete nd.zero; delete nd.words; delete nd.merged; });
+  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; delete nd.thin; delete nd.zero; delete nd.words; delete nd.mangled; delete nd.merged; });
   const out = { score, questions: asked.length, healthy: asked.length - sick.length,
     walked: { nodes: got.length, maxNodes: MAX_NODES, maxDepth: MAX_DEPTH, maxChildren: MAX_CHILDREN, sample: SAMPLE },
     rules: Object.keys(RULES).map(k => ({ id: k, label: RULES[k], count: counts[k] })),
