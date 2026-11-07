@@ -516,8 +516,9 @@ function bookPrefill_() {
   /* THE FIRST TERM ON OFFER (the soonest), and the child when there is only one seat-holder to name. */
   const terms = only(bookStep_('interval'));
   if (!(BOOKING.interval || []).length && terms.length) { BOOKING.interval = [terms[0]]; done('interval'); }
-  const kids = only(bookStep_('kids')), named = kids.filter(k => k !== UNNAMED);
-  const kid = named.length === 1 ? named[0] : kids.length === 1 ? kids[0] : '';
+  /* NEVER THE UNNAMED SEAT: it is no child the site knows, and an admin with no client yet kept it ticked beside the real child. */
+  const named = only(bookStep_('kids')).filter(k => k !== UNNAMED);
+  const kid = named.length === 1 ? named[0] : '';
   if (!(BOOKING.kids || []).length && kid) { BOOKING.kids = [kid]; done('kids'); }
 }
 
