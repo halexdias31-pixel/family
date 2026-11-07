@@ -51,8 +51,7 @@ const POPUPS = [
   { re: /sheet-open|\.inert\s*=\s*true|aria-haspopup|aria-modal|role=["']dialog/g, name: 'a page or dialog that takes the screen over', use: 'openSheet() (moved into the card pressed), or sheetHere_(el, swap) first' },
   { re: /\bcontextmenu\b[^\n]*\bpreventDefault\b[^\n]*\bshow|\bcustom-?menu\b|\baction-?sheet\b|\bdropdown-?menu\b/gi, name: 'a menu of our own', use: 'tiles in the row, or a native <select>' },
 ];
-/* THE ONE TOP LAYER THAT IS NOT A MENU: the video player's own full screen, the picture over the glass (`vidFullOn_`). */
-const POPUP_OK = [{ file: 'js/games.js', near: /vidFull/, why: 'the video full screen is the picture, not a menu' }];
+const POPUP_OK = [];
 
 function stripComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))

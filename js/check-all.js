@@ -117,7 +117,6 @@ const SUITE = [
   { file: 'check-hymns.js', what: 'the hymns shelf (517): every hymn in the index has words, a pre-1929 public-domain source and a licence; audio only a Spotify link' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
-  { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
   /* ---------- AND WHAT A PERSON MAY CALL THEMSELVES § */
   { file: 'check-handles.js', what: 'who a name resolves to, and what a person may change' },
   /* ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT § */

@@ -199,7 +199,7 @@ function boot(opts) {
       'isFav: k => isFav(k), TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
       /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: § */
       'paint: (id, f) => paint(id, f), screenDraw: id => (SCREENS[id] ? SCREENS[id].draw() : null),' +
-      'widgetState: () => ({ tt: typeof ttState !== "undefined" ? ttState : null, flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
+      'widgetState: () => ({ flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
       '  vid: typeof VID !== "undefined" ? VID.at : null, party: typeof PARTY !== "undefined" ? PARTY : null }),' +
       'aheadKick: () => aheadKick_(), slotOn: (c, i) => slotOn_(c, i), reelMore: n => reelMore_(document.getElementById("s-reel"), n),' +
       'pageLo: () => PAGE_LO, swipeLive: v => { SWIPE.live = !!v; },' +
@@ -209,7 +209,7 @@ function boot(opts) {
       'aheadSlow: () => [...AHEAD_SLOW], finder: () => FINDER.id, domIndex: (id, i) => domIndex_(id, i), afterIdle: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
-      'TABS, wgChosen: () => wgChosen_(),' +
+      'TABS,' +
       /* WHAT THE LINE UNDER YOUR HANDLE SAYS (`HANDLE_SAID`, me.js) — a `let`, so a function (342). */
       'handleSaid: () => HANDLE_SAID,' +
       /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
@@ -255,7 +255,6 @@ function boot(opts) {
       'screenAt: () => AT,' +
       /* WHICH SESSION'S RECEIPT IS OPEN — a `let` in book.js; the way back from Stripe opens the one it paid for (430). */
       'openJob: () => OPEN_JOB,' +
-      'impStack: (c, wd) => { IMP_PILE.push(impCards_().find(x => x[0] === c && x[1] === wd) || [c, wd, ""]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: c => accountPages_(c),' +
       /* WHERE YOUR OWN CARD'S NAME AND PICTURE ARE EDITED (453): Tutors, Parents or Students, by rank. */
@@ -269,9 +268,6 @@ function boot(opts) {
       + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
-      /* THE TIMETABLE'S KEY, because it is a `const` and only a function declaration reaches the
-         window — and the key is the thing a journey has to clear and has to ask is per person. */
-      + 'tmtKey: typeof tmtKey_ === "function" ? tmtKey_ : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
          and whether the actions are printed on the paper rather than floating under it. */
@@ -370,15 +366,6 @@ function boot(opts) {
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
          favourites the way a press on a star does, without the request. */
       'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
-      /* THE SENTENCE SCRAMBLE AND THE WORD SEARCH, their lists and their state, so a journey can
-         deal a known sentence or puzzle and then press through the real handlers. */
-      'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
-      'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
-      'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
-      /* THE MAZE BEING WALKED, as a getter because `New maze` replaces it — a journey asks
-         whether a repaint kept the same one, which only the object itself can say. */
-      'maze: () => (typeof maze !== "undefined" ? maze : null),' +
-      'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       /* AN EXPRESSION READ INSIDE THE APP'S OWN SCOPE, where its `const`s are — the Console's state for its journey (419). */

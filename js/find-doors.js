@@ -167,36 +167,7 @@ function notifyDoorCard_() {
   return `<div class="card notify-door"><h3>Notifications</h3>${rows.length ? `<ul class="notify-list">${rows.join('')}</ul>` : '<p>Nothing needs you.</p>'}</div>`;
 }
 
-/* ---------- VIDEOS: one Find card a video, a thumbnail and tags; the menus come off the video rows ---------- */
-const ytId_ = u => (String(u || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/) || [])[1] || '';
-/* A VIDEO'S TYPE (owner, 6 Nov): the row's own `type`, else a best guess from its title, tags and kind. */
-const VIDEO_TYPES = [['Music video', /music video|official video|\blyrics?\b/i], ['Documentary', /documentary|\bdocu/i],
-  ['Lesson', /lesson|tutorial|explained|revision|how to/i], ['Movie', /\bfilm\b|movie/i]];
-function videoType_(r) {
-  const s = [r.title, r.tags, r.kind].join(' '), hit = VIDEO_TYPES.find(([, re]) => re.test(s));
-  return hit ? hit[0] : 'Clip';
-}
-function videoDoorItems_() {
-  if (typeof VIDEOS_LIST === 'undefined') return [];
-  if (VIDEOS_LIST === null) { doorAsk_(typeof videosAsk_ === 'function' ? videosAsk_() : null); return []; }
-  const subjects = (typeof subjectRows === 'function' ? subjectRows() : []).map(s => s.name);
-  return VIDEOS_LIST.filter(r => r && r.url && r.title && !(r.active === false || /^false$/i.test(String(r.active))))
-    .filter(r => typeof mediaAgeOk_ !== 'function' || mediaAgeOk_(r.age)).map((r, i) => {
-      const tags = String(r.tags || '').split(/[,;]/).map(t => t.trim()).filter(Boolean);
-      const subj = r.subject || subjects.find(s => tags.some(t => norm(t) === norm(s))) || '';
-      const id = ytId_(r.url);
-      return { kind: 'video', name: String(r.title), key: 'vid:' + (id || i), sub: '', url: String(r.url),
-        image: r.thumb || (id ? 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg' : ''),
-        vidSubject: subj, vidTopic: r.topic || tags.filter(t => norm(t) !== norm(subj)), vidChannel: r.channel || '', vidLevel: r.level || '', vidType: r.type || videoType_(r),
-        text: [r.title, r.tags, r.channel, r.subject].filter(Boolean).join(' ') };
-    });
-}
-function videoDoorCard_(x) {
-  return `<div class="card vid-door">${x.image ? `<img class="vid-thumb" src="${esc(x.image)}" alt="" loading="lazy" decoding="async">` : ''}
-    <h3>${esc(x.name)}</h3><div class="tile-row">${tile_({ icon: 'play', label: 'Watch', href: x.url })}</div></div>`;
-}
-
-/* A LIST THAT COMES LATER (messages, videos) joins Find when it lands: the memo is dropped and Find repainted once. */
+/* A LIST THAT COMES LATER (messages) joins Find when it lands: the memo is dropped and Find repainted once. */
 const DOOR_ASKED = new Set();
 function doorAsk_(p) {
   if (!p || DOOR_ASKED.has(p) || typeof p.then !== 'function') return;
@@ -209,7 +180,7 @@ function doorAsk_(p) {
 
 /* EVERY DOOR'S ITEMS, in the front menu's order; signed out, only Settings (`finder-members`, rules.js). */
 function doorItems_() {
-  return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_(), videoDoorItems_());
+  return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_());
 }
 /* SETTINGS ONLY (owner, 7 Nov): no Venues or Booking on the signed-out front. */
 function findSignedOut_(x) { return kindTop_(x) === 'Settings'; }

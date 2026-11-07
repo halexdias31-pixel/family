@@ -1757,7 +1757,7 @@ screen('reel', () => {
 /* WHAT LEADS THE COLUMN (414): its widgets (kind `reel`, map.js) and an admin's "+", in that order, so the "+" sits next to the reels it adds to and the first reel is where the column opens (`PAGE_HOME.reel`). */
 function reelLead_() {
   const wgts = typeof widgetColumn_ === 'function' ? widgetColumn_('reel') : [];
-  const add = typeof mediaHtml_ === 'function' ? mediaHtml_('reel') : '';
+  const add = window.mediaHtml_ ? window.mediaHtml_('reel') : '';
   return wgts.concat(add ? [add] : []);
 }
 /* A LEAD THAT GREW OR SHRANK (an admin signing in) MOVES THE PAGE WITH IT, so the reel in front stays in front. */
@@ -1802,9 +1802,9 @@ function reelCards_(count) {
     /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
     out.push(`<div class="card is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${feedSlide(it)}` +
+           data-reel="${REEL_SHOWN + REEL_LEAD}" role="button" tabindex="0" data-do="reel-tap">${(window.feedSlide || (() => ''))(it)}` +
       /* HOW OLD YOU HAVE TO BE (406), when it is not everyone. */
-      `${typeof mediaAgeSay_ === 'function' && mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(mediaAgeSay_(it.age))}">${esc(mediaAgeSay_(it.age))}</span>` : ''}` +
+      `${window.mediaAgeSay_ && window.mediaAgeSay_(it.age) ? `<span class="media-age-badge is-reel" aria-label="for ages ${esc(window.mediaAgeSay_(it.age))}">${esc(window.mediaAgeSay_(it.age))}</span>` : ''}` +
       `${reelSoundTile_(false)}</div>
     </div>${typeof suggestTile_ === 'function' && suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')
       ? `<div class="tile-row rep-row">${suggestTile_('reel', String(it.id || it.clip || ''), it.title || '')}</div>` : ''}</div>`);
@@ -1899,7 +1899,7 @@ if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(reelJobs_);
 function reelPlay_(v) {
   if (!v || v.dataset.dead) return;
   if (!v.getAttribute('src')) {
-    const src = clipSrc_(v.dataset.clip);
+    const src = (window.clipSrc_ || (() => ''))(v.dataset.clip);
     if (!src) { v.dataset.dead = '1'; return; }
     /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
        waits for `img.onload`: until then the slide is its own gradient and its subject's initial. */

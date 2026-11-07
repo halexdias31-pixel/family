@@ -168,6 +168,17 @@ const APP_STATUS_LINE = {
   approved: 'Your application to teach was approved.',
   declined: 'Your application to teach was not taken further this time. You can apply again.',
 };
+/* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
+function profileAge_(p) {
+  const q = p || {};
+  const y = Number(q.dob_y), m = Number(q.dob_m) || 1, d = Number(q.dob_d) || 1;
+  if (y > 1900) {
+    const now = new Date();
+    return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
+  }
+  const a = String(q.age == null ? '' : q.age).match(/^\s*(\d{1,3})\s*$/);
+  return a ? Number(a[1]) : null;
+}
 function applyAdult_() {
   const age = profileAge_(USER && USER.profile);
   return age !== null && age >= 18;
@@ -437,13 +448,6 @@ function signedOut_(opts) {
   /* AND THE LIBRARY'S WORDS AND ANSWERS THIS VISIT FETCHED (397) — the next person signs in for their own. */
   try { if (typeof libForget_ === 'function') libForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
-  try {
-    if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
-    if (typeof VID !== 'undefined') VID.q = '';
-    /* AND THE PICTURES THAT FAILED, which are remembered by address — and a Drive film's address is its
-       file id (`VID_BROKEN` in games.js). */
-    if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
-  } catch (e) { /* a list not built yet has nothing to clear */ }
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) { oops_(e, 'me:signedOut_') }
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
