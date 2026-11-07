@@ -290,8 +290,9 @@ function isMe_(x) {
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
-    ${/* ---------- `Book with them` WAS HERE § */
-          ''}
+    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered; never on your own card or a child's. */
+          !isMe_(x) && !childView_() && t.listed !== false ? tile_({ icon: 'book', label: 'Book', tone: 'buy',
+              act: 'book-with', data: { tutor: x.name || '' } }) : ''}
     ${/* SILVER, IN THE ORDINARY ROW. § */
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
