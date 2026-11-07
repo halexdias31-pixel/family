@@ -199,7 +199,7 @@ function histItem_(kind, r) {
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
     sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Works',
+    histKind: kind === 'manuscript' ? 'Manuscripts' : ev ? 'Events' : 'Writings',
     /* A WRITING IS ON THE WRITINGS SHELF WHEREVER IT CAME FROM (600): History › Shelf no longer splits the written works in two. */
     shelf: kind === 'writing' ? WRITINGS_SHELF : 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
@@ -324,15 +324,11 @@ function msFragSvg_(r, ix) {
     <figcaption>A drawing after the original, traced from a public-domain photograph (${esc(L.ref)}); the letters are the ones that survive.</figcaption>
   </figure>`;
 }
-/* THE LINES THE FACTS LINE ALREADY SAYS, left out of the list under it. */
-const MS_SAID = ['Repository', 'City', 'Date'];
-/* THE FACTS UNDER IT, one short line: when and where it was found, when it is dated to, where it is held. */
-function msFacts_(r) {
-  const found = histList_(r.provenance)[0] || '';
-  const held = [r.repository, r.city].filter(Boolean).join(', ');
-  return [found ? 'Found: ' + found : '', r.date_text ? 'Dated: ' + r.date_text : '', held ? 'Held: ' + held : '']
-    .filter(Boolean).map(esc).join(' · ');
-}
+/* THE LINES A MANUSCRIPT'S TAGS ALREADY SAY (owner, 7 Nov: facts as tags), left out of the pages after its card. */
+const MS_SAID = ['Repository', 'Date'];
+/* ITS FACTS AS TAGS: when and where it was found, when it is dated to (`Held at` is the repository's own tag). */
+const msFound_ = x => (isManuscript_(x) && histCol_(x, 'provenance')[0]) || '';
+const msDated_ = x => (isManuscript_(x) && x.row && String(x.row.date_text || '').trim()) || '';
 
 /* REFERENCES (504): the owner's bibliography, word for word and without page numbers, shown only on the cards each one is about. */
 const WRITING_REFS = [
@@ -358,9 +354,9 @@ function histRows_(x) {
   const r = x.row || {};
   return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim())
-    .filter(l => !(isManuscript_(x) && MS_LOOK[r.id] && MS_SAID.indexOf(l[0]) >= 0));
+    .filter(l => !(isManuscript_(x) && MS_SAID.indexOf(l[0]) >= 0));
 }
-const histOnCard_ = x => (isManuscript_(x) && MS_LOOK[(x.row || {}).id] ? 0 : HIST_CARD_ROWS);
+const histOnCard_ = x => (isManuscript_(x) ? 0 : HIST_CARD_ROWS);
 function histPages_(x) {
   const rest = histRows_(x).slice(histOnCard_(x)), out = [];
   for (let i = 0; i * HIST_PAGE_ROWS < rest.length; i++) out.push('facts' + i);
@@ -383,15 +379,8 @@ function histExtras_(x) {
 function histCard_(x) {
   const r = x.row || {};
   const rows = histRows_(x).slice(0, histOnCard_(x));
-  /* A MANUSCRIPT WITH A DRAWING (490): its tags first, then the leaf, then one line of facts; its other columns stay below as before. */
-  const look = isManuscript_(x) ? msFragSvg_(r, x.msSideIx) : '';
-  if (look) {
-    return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">
-    ${tagRow_(x)}
-    ${look}
-    <p class="fc-meta hdb-facts">${msFacts_(r)}</p>
-  </div>`;
-  }
+  /* A MANUSCRIPT IS MINIMAL (owner, 7 Nov): its picture first where drawn, then its facts as tags; no title, no grey line. */
+  if (isManuscript_(x)) return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">${msFragSvg_(r, x.msSideIx)}${tagRow_(x)}</div>`;
   return `<div class="card fc hdb">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}

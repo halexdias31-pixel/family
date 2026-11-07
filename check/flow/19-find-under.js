@@ -82,7 +82,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
   t.RES().filters = [{ field: 'kindLabel', value: 'Library' }]; t.RES().q = 'ali';
   const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
-  t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
   const openOn = x => [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === x.key);
   if (openOn(fight)) bad.push('a fight kept on Saved has an Open tile — Saved draws it whole');
@@ -380,8 +380,8 @@ check('one verse, one text (504): an adult client is offered the Bible under Whi
   return bad;
 });
 
-/* ---------- A MANUSCRIPT AS IT LOOKS (490): tags first, the drawing, then the facts ---------- */
-check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing of the fragment, then one line of when it was found, dated to and held', async () => {
+/* ---------- A MANUSCRIPT AS IT LOOKS (owner, 7 Nov): the drawing first, then its facts as tags, no grey line ---------- */
+check('a manuscript card (owner, 7 Nov): Papyrus 52 leads with a drawing of the fragment, then its tags say when it was found, dated to and where held; no facts line', async () => {
   const b = boot({});
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
@@ -391,7 +391,9 @@ check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing o
   if (!r) return ['data/manuscripts.json has no MS-0001 — NOT checked'];
   const el = d.createElement('div'); el.innerHTML = w.histCard_({ kind: 'manuscript', name: r.name, key: 'hdb:MS-0001', row: r, histKind: 'Manuscripts' });
   const card = el.firstElementChild;
-  if (!card || !card.firstElementChild || !card.firstElementChild.matches('.qcard-tags')) bad.push('the card does not start with its tags');
+  if (!card || !card.firstElementChild || !card.firstElementChild.matches('.hdb-ms')) bad.push('the card does not start with its picture');
+  if (!card || !card.lastElementChild || !card.lastElementChild.matches('.qcard-tags')) bad.push('the card\'s tags do not follow its picture');
+  if (card && card.querySelector('.fc-meta, .hdb-facts, p')) bad.push('the card still has a line of text beside its tags');
   if (card && card.querySelector('h3')) bad.push('the card still has a title');
   const svg = card && card.querySelector('.hdb-ms svg');
   if (!svg || !svg.querySelector('clipPath path') || !svg.querySelectorAll('text').length) bad.push('the card has no drawing of the fragment');
@@ -405,14 +407,14 @@ check('a manuscript card (490): Papyrus 52 leads with its tags, then a drawing o
   else {
     const e2 = d.createElement('div'); e2.innerHTML = w.histCard_(its[1]);
     if (!/Verso/.test((e2.querySelector('.hdb-ms-side figcaption') || {}).textContent || '') || e2.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the back card does not draw the verso alone');
-    if (!/Held: John Rylands/.test((e2.querySelector('.hdb-facts') || {}).textContent || '')) bad.push('the back card has no facts line');
+    if (!e2.querySelector('.qtag[data-f="histRepository"]')) bad.push('the back card has no Held at tag');
     if (!e2.querySelector('.qtag[data-f="histSide"]')) bad.push('the back card carries no Side tag');
   }
   const ca = rows.find(q => q.id === 'MS-0002');
   if (ca && JSON.stringify(w.histItems_('manuscript', ca).map(i => i.msSide)) !== '["Back (verso)"]') bad.push('Codex Alexandrinus fol. 41v is not one Back (verso) card');
   if (svg && svg.querySelectorAll('text').length > 80) bad.push('the recto draws ' + svg.querySelectorAll('text').length + ' letters; about 60 survive');
-  const facts = (card && card.querySelector('.hdb-facts') || {}).textContent || '';
-  if (!/Found: .*1920/.test(facts) || !/Dated: /.test(facts) || !/Held: John Rylands Library/.test(facts)) bad.push('the facts line says "' + facts + '"');
+  const tagOf = f => ((card && card.querySelector('.qtag[data-f="' + f + '"]')) || {}).textContent || '';
+  if (!/1920/.test(tagOf('histFound')) || !tagOf('histDated') || !/John Rylands Library/.test(tagOf('histRepository'))) bad.push('the tags say Found "' + tagOf('histFound') + '", Dated "' + tagOf('histDated') + '", Held at "' + tagOf('histRepository') + '"');
   return bad;
 });
 
@@ -470,9 +472,9 @@ check('the history database: a manuscript and a historical figure are each found
       continue;
     }
     const h3 = el.querySelector('.hdb .fc-head h3');
-    /* A DRAWN MANUSCRIPT (490) leads with its tags and is named by its aria-label instead. */
+    /* A MANUSCRIPT (owner, 7 Nov) is its picture and tags, named by its aria-label instead. */
     const drawn = el.querySelector('.hdb-msc');
-    if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.firstElementChild.matches('.qtags')
+    if (drawn ? drawn.getAttribute('aria-label') !== x.name || !drawn.querySelector('.qtags')
               : (!h3 || h3.textContent.trim() !== x.name)) bad.push(x.name + '\'s card is not headed with its name');
     /* NO CARD TALLER THAN A PHONE (562): the lines a card does not keep are its pages after it, so the card and its pages together have them. */
     const lines = el.querySelectorAll('.hdb-lines dl > div').length
@@ -601,7 +603,7 @@ check('an empty search on either finder says "take a filter off" under a chip th
     if (st().q !== 'Olivares') { bad.push('typing into #' + id + '-q did not reach ' + name + '\'s words — NOT checked'); continue; }
     if (list().indexOf(olivares) < 0) bad.push(name + ' does not find Ruben Olivares by name — both finders hold the boxers');
     /* UNDER A CHIP THAT HIDES HIM: take a filter off — and no tile to the other column. */
-    st().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
+    st().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
     w.paintFinder_(id);
     await wait(60); await woken_();
     if (list().length) bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) for "Olivares" under Projects — the empty answer was NOT checked');

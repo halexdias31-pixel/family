@@ -6021,8 +6021,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms .mfr-band { fill: none; stroke: var(--ms-red); stroke-width: 5; stroke-dasharray: 2 4; }
 .hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
 .hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
-.hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: var(--faint); }
-.hdb-facts { margin: .2rem 0 .5rem; }
+.hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: inherit; }  /* NO GREY TEXT ON A MANUSCRIPT CARD (owner, 7 Nov) */
 
 /* ---------- MERGED CARDS (480): one frame, the parts stacked, the lower titles small subheadings, one tile row at the foot */
 .card.is-merged > .merged-part > .card { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }

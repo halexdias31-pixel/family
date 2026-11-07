@@ -98,7 +98,15 @@ function writingTextOf_(label, lang, year) {
 }
 
 /* ---------- ONE UNIT OF A WRITTEN WORK, whatever loaded it. `o.w` holds the facet set; everything else is the card's own. */
-const WRITING_KEYS = ['work', 'source', 'book', 'chapter', 'section', 'unit', 'text', 'tradition', 'collection', 'author', 'form'];
+const WRITING_KEYS = ['work', 'source', 'book', 'chapter', 'section', 'unit', 'text', 'tradition', 'collection', 'author', 'form', 'primacy'];
+/* PRIMARY OR SECONDARY SOURCE (owner, 7 Nov): an original text is Primary, a later study of it Secondary. */
+/* Every work is Primary but those named here; one too unclear to call carries no tag (docs/history/1120). */
+const WRITING_SECONDARY = ['Schaff, History of the Christian Church, vol. 1: Apostolic Christianity, AD 1–100',
+  'Schaff, History of the Christian Church, vol. 2: Ante-Nicene Christianity, AD 100–325',
+  'Schaff, History of the Christian Church, vol. 3: Nicene and Post-Nicene Christianity, AD 311–600',
+  'Schaff, History of the Christian Church, vol. 4: Mediaeval Christianity, AD 590–1073'];
+const WRITING_UNCLEAR = ['Modern Texts (GCSE)'];
+const writingPrimacy_ = work => (WRITING_UNCLEAR.indexOf(work) >= 0 ? '' : WRITING_SECONDARY.indexOf(work) >= 0 ? 'Secondary' : 'Primary');
 /* ONE SPELLING AN ANSWER (520): values equal but for case or apostrophe are one answer, the first spelling kept; a unit is bare. */
 const writingFold_ = v => String(v).toLowerCase().replace(/[’‘`']/g, '').replace(/\s+/g, ' ').trim();
 const WRITING_SPELT = {};
@@ -117,6 +125,7 @@ function writingUnit_(src, reg, o) {
   WRITING_TITLES.set(spellKey_(w.work), w.work);
   if (!w.collection || (Array.isArray(w.collection) && !w.collection.length)) w.collection = reg.collection || '';
   if (!w.source) w.source = writingSourceOf_(w.text, w.collection);
+  if (!w.primacy) w.primacy = writingPrimacy_(w.work);
   const subject = reg.topic ? SCRIPTURE_SUBJECT() : (o.subject || SCRIPTURE_SUBJECT());
   return Object.assign({ image: '', row: null, wDate: null }, o, {
     w: w, wSrc: src, shelf: WRITINGS_SHELF, subject: subject, topic: reg.topic || o.topic || '',
@@ -127,6 +136,7 @@ function bibleW_(x, k) {
   const bb = x.bb;
   switch (k) {
     case 'work': return 'Bible';
+    case 'primacy': return 'Primary';
     case 'book': return bb.book;
     case 'chapter': return x.ch;
     case 'unit': return x.v;

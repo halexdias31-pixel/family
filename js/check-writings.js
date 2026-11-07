@@ -215,10 +215,10 @@ if (WR && items.length) {
   } catch (e) { bad.push('js/finder-tags.js could not be read: ' + e.message); }
 }
 
-/* R2: histKind NEVER NAMES A SHELF — the history database's own word for a writing is Works. */
+/* R2: histKind NEVER NAMES A SHELF but Writings, the owner's word for a writing since 7 Nov (it was Works). */
 const hk = (find.match(/histKind: kind === 'manuscript' \? [^\n]+/) || [''])[0];
 if (!hk) bad.push('find.js no longer says histKind where this check looks');
-if (/'Writings'|'Texts'/.test(hk)) bad.push('histKind names a shelf: ' + hk.trim());
+if (/'Texts'/.test(hk)) bad.push('histKind names a shelf: ' + hk.trim());
 LOADERS.map(l => l[0] + '.js').concat(['writings.js']).forEach(f => {
   if (/histKind: '/.test(src('js/' + f))) bad.push('js/' + f + ' sets histKind on a card that is not a history-database row');
 });

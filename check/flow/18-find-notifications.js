@@ -503,7 +503,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     return false;
   };
   /* WHAT FOR IS NOT ASKED WHEN WHAT KIND ANSWERS IT (790: Tools and Games are kinds too), so Practice comes first. */
-  if (!(await press('kindLabel', 'Practice')) || !(await press('kindOwn', 'Projects'))) return bad;
+  if (!(await press('kindLabel', 'Library')) || !(await press('kindOwn', 'Projects'))) return bad;
 
   /* THE NEXT QUESTION IS PROJECT OR COURSEWORK, AND ITS TWO ANSWERS ARE THE TWO WORDS. Asked of the
      buttons drawn, not of `nextFacet`, because the claim is what a person sees after pressing
@@ -1060,10 +1060,10 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
   if (!clear) bad.push('Find 2 has no Clear tile beside its box while it holds a chip');
   else {
-    t.STUFF().filters.push({ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' });
+    t.STUFF().filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' });
     A['filter-clear'](clear);
     if (t.RES().filters.length) bad.push('Find 2\'s Clear left ' + JSON.stringify(t.RES().filters));
-    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('Find 2\'s Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('Find 2\'s Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
   }
   return bad;
 });
@@ -1087,7 +1087,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   await wait(150);
   const want = pg_(T).res;
   /* FIND HAS A PLACE OF ITS OWN, which is not in front and so is not the one a reload comes back to. */
-  T.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
+  T.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
   W.paintStuff();
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   W.dispatchEvent(new W.Event('pagehide'));
@@ -1110,7 +1110,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const t2 = two.w;
   t.go('stuff');
   await wait(60);
-  t.STUFF().filters = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }];
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
   t2.paintStuff();
   t2.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   t2.dispatchEvent(new t2.Event('pagehide'));
@@ -1120,14 +1120,14 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const t3 = three.w.__t;
   for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
   if (t3.AT() !== 'stuff') bad.push('the reload from Find opened on ' + t3.AT());
-  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
+  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
   if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Find 2: ' + JSON.stringify(t3.RES().filters));
   /* A PLACE KEPT BEFORE THIS CHANGE, AND CHIPS NOTHING WILL ANSWER (`placeChipDead_`). § */
   const stale = Object.assign({}, kept2);
   const early = { field: 'paperId', value: 'P-NOT-HERE-YET' };
   Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
-    p.f = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Writings' },
+    p.f = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Writings' },
            { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' },
            { field: 'examWave', value: 'Summer 2018' }, { field: 'shelf', value: '@family. textbooks' },
            { field: 'book', value: 'GCSE Statistics' }, early];
@@ -1137,7 +1137,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   if (!four) return bad.concat(['the stale reload did not load — the dead-chip rule was NOT checked']);
   const t4 = four.w.__t;
   for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
-  const want4 = [{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
+  const want4 = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
   if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify(want4)) bad.push('a kept place holding Shelf · Boxing, the Books shelf, Bible chips, a retired question and a paper not here yet came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' (the textbooks\' shelf and a Book chip among them)' + ' — wanted ' + JSON.stringify(want4));
   /* AND A CHIP ON A FIELD NO FACET ASKS, once the facets have arrived — it is a chip that does nothing (`filterHit` reads a facetless chip as matching everything). § */
   const w4 = four.w, D = t4.DATA();
