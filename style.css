@@ -7194,3 +7194,32 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .notify-door .notify-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 .post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }
+
+/* ---------- FIND › BOOKING, FINISHED (owner, 7 Nov): no box, tags on top, cream-pill answers, two columns when nothing is priced ---------- */
+#bookr .rc, .page .rc { background: none; border: 0; border-radius: 0; padding: .2rem 0 .4rem; }
+.rc-head .qtags { margin: 0 0 .35rem; }
+/* AN UNPRICED FORM HAS NO FIGURES, so its three figure columns and their heading give the answer the room. */
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) { grid-template-columns: minmax(6.2em, max-content) minmax(0, 1fr); }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row.is-cols,
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row :is(.bk-m, .bk-r) { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row:not(.rc-total) .bk-t { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-v { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-t { grid-column: 2; }
+/* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
+.rc:not(.is-done) .bk-row { padding-block: .12rem; align-items: center; }
+.rc:not(.is-done) .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
+.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-v > .bk-in, .rc:not(.is-done) .bk-v > .bk-face {
+  background-color: var(--paper); color: var(--paper-ink); border-radius: 999px; padding: .2em 1.4em .2em .8em; }
+.rc:not(.is-done) .bk-v > .bk-in { padding-right: .8em; }
+.rc:not(.is-done) .bk-face > .bk-sel { background-color: transparent; border-radius: 999px; }
+.rc:not(.is-done) .bk-face > .bk-said, .rc:not(.is-done) .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
+.rc:not(.is-done) .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
+.rc:not(.is-done) .bk-face { --sel-arrow: var(--paper-dim);
+  background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%), linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
+  background-position: right calc(.7em + 4px) center, right .7em center; background-size: 4px 4px; background-repeat: no-repeat; }
+.rc:not(.is-done) .bk-sel:disabled, .rc:not(.is-done) .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
+.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-face > .bk-said { text-align: left; text-align-last: left; }
+.rc:not(.is-done) .bk-v > .bk-sel { padding-right: 1.6em; }
+.rc:not(.is-done) .bk-face > .bk-sel { background-image: none; }
+.rc:not(.is-done) .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
+.rc:not(.is-done) .bk-v > .bk-in { text-align: left; }

@@ -189,7 +189,7 @@ function doorItems_() {
 }
 function findSignedOut_(x) { return kindTop_(x) === 'Settings' || kindTop_(x) === 'Venues'; }
 
-/* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), a picture first and the facts as tags ---------- */
+/* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
 /* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */
 const VENUE_PIX = {
   library: ['', '', '.......kk', '......kssk', '.....kssssk', '....kssssssk', '...kkkkkkkkkk', '...kwwwwwwwwk', '...kckcwwckck', '...kckcwwckck', '...kwwwwwwwwk',
@@ -204,12 +204,12 @@ const VENUE_PIX = {
     '....kwwwwwwk', '....kwwtwwwk', '....kwwtwwwk', '..kkkkkkkkkkkk', '..gggggggggggg'],
 };
 function venueShape_(v) {
-  const s = [v.title, v.description, (v.focus || []).join(' ')].join(' ');
+  const s = [v.title, v.description, [].concat(v.focus || []).join(' ')].join(' ');
   return /librar/i.test(s) ? 'library' : /church|chapel|synagogue|mosque|temple/i.test(s) ? 'church'
     : /school|college|academy|universit/i.test(s) ? 'school' : /home|house|flat/i.test(s) ? 'house' : 'hall';
 }
 function venueDoorCard_(x) {
-  return `<div class="card fc person venue-door" aria-label="${esc(x.name)}"><figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>${tagRow_(x)}</div>`;
+  return `<div class="card fc person venue-door" aria-label="${esc(x.name)}">${tagRow_(x)}<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure></div>`;
 }
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */

@@ -487,8 +487,8 @@ const BOOK_STEPS = [
       (DATA.tutors || []).filter(t => t.title).map(t => t.title)),
     label_: v => {
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
-      const r = t && !childView_() ? rateRange_(t) : '';
-      return (r ? v + ' · ' + r : v) + (t && t.listed === false ? ' · not listed' : '');
+      /* NO RATE BESIDE THE NAME (owner, 7 Nov): the price columns already say what the tutor adds. */
+      return v + (t && t.listed === false ? ' · not listed' : '');
     },
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE § */
     fallback: () => isWaiting_() ? 'No preference' : '',
@@ -607,25 +607,17 @@ const BOOK_STEPS = [
     options: () => {
       if (isWaiting_()) return [];
       const forWhom = BOOKING.client || (USER && USER.name) || '';
-      if (USER && norm(forWhom) !== norm(USER.name)) {
-        const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
-        return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
-      }
-      return (USER && (USER.children || USER.kids) || []).filter(Boolean).concat([UNNAMED]);
+      /* THE CHOSEN CLIENT'S OWN ROW FIRST, yourself included (owner, 7 Nov: another client's children were offered); your own list only when you have no row. */
+      const c = (DATA.clients || []).find(x => norm(x.name) === norm(forWhom));
+      if (c || !USER || norm(forWhom) !== norm(USER.name)) return ((c && c.children) || []).filter(Boolean).concat([UNNAMED]);
+      return (USER.children || USER.kids || []).filter(Boolean).concat([UNNAMED]);
     },
     /* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED § */
 
     /* Once you have ticked as many as you paid for, the rest say why. Still there, still readable,
        and tickable the moment you untick one — which is how you change your mind about which two
        of three are coming. */
-    why: v => {
-      const seats = Number(BOOKING.n) || 0;
-      const on = (BOOKING.kids || []).length;
-      /* THE UNNAMED SEAT IS NEVER THE ONE THAT IS FULL. § */
-      if (v === UNNAMED) return '';
-      return (seats && on >= seats && (BOOKING.kids || []).indexOf(v) === -1)
-        ? 'that is ' + seats + ' seat' + (seats === 1 ? '' : 's') + ' already' : '';
-    },
+    /* NO "that is N seats already" (owner, 7 Nov): the seats follow the children picked — see `bookToggle_`. */
   },
 
 
@@ -964,6 +956,8 @@ function bookToggle_(step, v) {
       list.sort((a, b) => at_(a) - at_(b));
     } catch (err) {}
     BOOKING[step.id] = list;
+    /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
+    if (step.id === 'kids' && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length);
   }
   /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. § */
   BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
@@ -1157,8 +1151,8 @@ function breakdownRows(L) {
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND § */
   /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS § */
   const dates = (L.sessionDates || []).map(d => fmtDate(d));
-  push('Dates', dates.length ? dates.join(', ') : '—',
-       dates.length > 1 ? '× ' + dates.length : '', '', '', { free: true, dates: true });
+  /* NO "× sessions" HERE (owner, 7 Nov): Term's weeks × the week's hours is the one period multiplier the sum uses. */
+  push('Dates', dates.length ? dates.join(', ') : '—', '', '', '', { free: true, dates: true });
 
   /* ---------- WHERE THIS ONE IS, TOO § */
   stageRows_(null).forEach(r => rows.push(r));
@@ -1303,13 +1297,13 @@ function slotHead_(hours) {
 function weekRows_(days, cell, opts) {
   const o = opts || {};
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
-  /* THE WEEK'S HOURS, ONCE, on its last row: four boxes ticked over two days is × 4, the hours a week
+  /* THE WEEK'S HOURS, ONCE, on its first row (the grid's own, owner 7 Nov): four boxes ticked over two days is × 4, the hours a week
      `priceFrom` multiplies by, never × 2 twice (docs/history/525). */
   const week = days.reduce((n, d) => n + (Number(d.mul) || 0), 0);
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
-    mul: (i === days.length - 1 && week) ? '\u00d7 ' + week : '', rate: '', total: '',
+    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '', total: '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
@@ -1542,6 +1536,8 @@ function stageRows_(j) {
 
 const SPINE_EXTRA = [
   { after: 'Subject', row: 'Extra subj.' },
+  /* THE ROOM UNDER ITS VENUE (owner, 7 Nov), on the form and the booking alike. */
+  { after: 'Venue',   row: 'Room' },
   { after: 'When',    row: 'Per session', only: 'wait' },
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
      form asks the question as `Split` and names the answer there. */
@@ -1697,6 +1693,8 @@ function bookBreakdown(L, foot) {
   const body = [];
   steps.forEach(r => {
     body.push(r);
+    /* THE ROOM IS OURS TO SET (owner, 7 Nov), so the unpriced form says so under Venue as the priced one does. */
+    if (r.id === 'loc' && !priced.some(p => p.k === 'Room')) body.push({ n: '', k: 'Room', v: 'set by us', mul: '', rate: '', total: '', step: '', free: true });
     leftover.forEach(p => {
       if (placed[p.key] || AFTER[p.key] !== r.id) return;
       placed[p.key] = true;
@@ -1797,7 +1795,7 @@ function spineHead_(r) {
     <span class="bk-v">A</span>
     <span class="bk-m">×</span>
     <span class="bk-r">+/h</span>
-    <span class="bk-t">+</span>
+    <span class="bk-t">=</span>
   </div>`;
 }
 
@@ -1813,7 +1811,7 @@ function receiptHtml(r) {
       ${/* THE THREE LINES ON ONE LINE. § */
            ''}
       ${(r.lines || []).filter(Boolean).length
-        ? `<p>${(r.lines || []).filter(Boolean).map(esc).join(' · ')}</p>` : ''}
+        ? `<div class="qtags qcard-tags">${(r.lines || []).map((l, i) => l ? `<span class="qtag" data-tag="${[6, 9, 4][i] || 0}">${esc(l)}</span>` : '').join('')}</div>` : ''}
     </div>
     ${/* `r.photos` WAS HERE. Nothing passes photos to a receipt any more — see `bookBreakdown`. */''}
     ${/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN § */
