@@ -5,7 +5,7 @@
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
-                       'settings/spotlight', 'settings/widgets-in-find'];
+                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -140,5 +140,11 @@ function settingsInto_(d, extra) {
     d.widgetsInFind = inFind.filter(r => libS(r.widget).trim()).map(r => ({ widget: libS(r.widget).trim(), find: libOn(r.find) }));
   }
 
+  /* ---------- EACH SETTING'S ACCOUNT TYPES (owner, 7 Nov): `for` is a comma list, so one item is found under every type it belongs to ---------- */
+  const setFor = extra['settings/setting-for'];
+  if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
+    .map(r => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim() }]));
+
   return d;
 }
+

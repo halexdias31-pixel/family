@@ -537,7 +537,7 @@ check('business: signing in as an admin adds Find › Settings › Admin (the Bu
   const t = w.__t, d = w.document;
   if (!t) return ['the app did not finish loading'];
   const bad = [];
-  const admin = () => w.stuffItemsBuild_().filter(x => x && x.kind === 'setting' && (x.settingFor === 'Business' || x.settingFor === 'Site'));
+  const admin = () => w.stuffItemsBuild_().filter(x => x && x.kind === 'setting' && [].concat(x.settingFor).some(t => t === 'Business' || t === 'Site'));
   if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
   if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked'];
   if (admin().length) return ['signed out, Find already holds Admin settings — the sign-in was NOT checked'];
@@ -561,8 +561,8 @@ check('business: signing in as an admin adds Find › Settings › Admin (the Bu
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
   if (d.documentElement !== doc) bad.push('the page was reloaded');
   if (t.AT() !== away) bad.push('signing in moved the admin from ' + away + ' to ' + t.AT());
-  if (!admin().some(x => x.setCol === 'biz')) bad.push('signed in as an admin, Find › Settings › Admin holds no Business card: ' + JSON.stringify(admin().map(x => x.name)));
-  if (!admin().some(x => x.notify)) bad.push('signed in as an admin, Find › Settings › Admin has no Notifications');
+  if (!admin().some(x => (x.parts || []).some(p => p.col === 'biz'))) bad.push('signed in as an admin, Find › Settings › Admin holds no Business card: ' + JSON.stringify(admin().map(x => x.name)));
+  if (!admin().some(x => (x.parts || []).some(p => p.notify))) bad.push('signed in as an admin, Find › Settings › Admin has no Notifications');
   if (t.TABS.some(x => x.id === 'biz') || d.getElementById('s-biz')) bad.push('signed in, a Business column came back (batch C: its cards are Find items)');
   if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
 

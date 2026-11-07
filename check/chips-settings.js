@@ -48,6 +48,20 @@ function newValue(el) {
   return 'Test ' + k.replace(/_/g, ' ');
 }
 
+/* A COLUMN'S SETTINGS, where they are drawn now: its own screen while it is on, else every Find › Settings item from it, drawn on the page as Find draws it. */
+async function colSettings(col) {
+  const old = document.getElementById('cs-host'); if (old) old.remove();
+  try { go(col); } catch (e) { /* a column switched off lives in Find */ }
+  await new Promise(r => setTimeout(r, 2500));
+  const s = document.getElementById('s-' + col);
+  if (s && s.offsetParent !== null && s.querySelector('.me-form')) return s;
+  /* EACH PART INTO THE PAGE AS IT IS BUILT, as Find paints: a form not yet in the page can lose the copy it was drawn from (`cardDrawn_`). */
+  const h = document.createElement('div'); h.id = 'cs-host'; document.body.prepend(h);
+  try { inFinder_(FINDER, () => settingDoorItems_().forEach(x => (x.parts || []).filter(p => p.col === col).forEach(p => h.insertAdjacentHTML('beforeend', settingPart_(p))))); } catch (e) { /* none drawn reads as no settings */ }
+  if (!h.children.length) { h.remove(); return null; }
+  return h;
+}
+
 (async () => {
   const server = await glass.serve('CS_PORT'), port = server.address().port;
   const { chromium } = require('playwright');
@@ -95,11 +109,9 @@ function newValue(el) {
     /* EVERY SETTINGS BOX: changed, then each form's own Save pressed once. */
     const changed = {};
     for (const col of COLS) {
-      const r = await page.evaluate(async ({ col, nv }) => {
+      const r = await page.evaluate(async ({ col, nv, cs }) => {
         const newValue = (0, eval)('(' + nv + ')');
-        try { go(col); } catch (e) { return { col, none: 'no column' }; }
-        await new Promise(r => setTimeout(r, 2500));
-        const s = document.getElementById('s-' + col); if (!s) return { col, none: 'no screen for this account' };
+        const s = await (0, eval)('(' + cs + ')')(col); if (!s) return { col, none: 'no settings for this account' };
         const out = {}, forms = new Set();
         [...s.querySelectorAll('.me-form [data-me]')].filter(i => i.offsetParent !== null && !i.disabled).forEach(i => {
           const v = newValue(i); if (v === null) return;
@@ -111,7 +123,7 @@ function newValue(el) {
           if (b) b.click(); else out['(no Save on a form)'] = '?'; });
         await new Promise(r => setTimeout(r, 2000));
         return { col, out };
-      }, { col, nv: newValue.toString() });
+      }, { col, nv: newValue.toString(), cs: colSettings.toString() });
       if (r.none) continue;
       Object.assign(changed, Object.fromEntries(Object.entries(r.out).map(([k, v]) => [k, { col, v }])));
     }
@@ -120,9 +132,8 @@ function newValue(el) {
     await load();
     const after = {};
     for (const col of COLS) {
-      const got = await page.evaluate(async col => { try { go(col); } catch (e) { return {}; } await new Promise(r => setTimeout(r, 2500));
-        const s = document.getElementById('s-' + col), o = {}; if (!s) return o;
-        s.querySelectorAll('.me-form [data-me]').forEach(i => { o[i.dataset.me] = i.type === 'checkbox' ? (i.checked ? 'TRUE' : 'FALSE') : String(i.value || '').trim(); }); return o; }, col);
+      const got = await page.evaluate(async ({ col, cs }) => { const s = await (0, eval)('(' + cs + ')')(col), o = {}; if (!s) return o;
+        s.querySelectorAll('.me-form [data-me]').forEach(i => { o[i.dataset.me] = i.type === 'checkbox' ? (i.checked ? 'TRUE' : 'FALSE') : String(i.value || '').trim(); }); return o; }, { col, cs: colSettings.toString() });
       Object.assign(after, got);
     }
     const posted = Object.assign({}, ...sent);

@@ -43,13 +43,6 @@
    {
     "as": "admin",
     "col": "staff",
-    "field": "favourite_colour",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
     "field": "age_min",
     "pass": true,
     "why": []
@@ -58,6 +51,13 @@
     "as": "admin",
     "col": "staff",
     "field": "age_max",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "admin",
+    "col": "staff",
+    "field": "favourite_colour",
     "pass": true,
     "why": []
    },
@@ -840,5 +840,11 @@
    }
   ]
  },
- "work": []
+ "work": [
+  {
+   "kind": "chip-size",
+   "where": "Find",
+   "say": "no \"Past paper\" answer to press on the way to the GCSE card"
+  }
+ ]
 }

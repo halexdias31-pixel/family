@@ -91,13 +91,15 @@ function profileDoorCard_(x) {
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
 /* Which column's cards answer which type, and who may see that type; the builders are the old columns' own. */
 const SETTING_TYPES = [
-  ['Student', 'account', () => !!USER],
-  ['Parent', 'family', () => rankAtLeast_('client')],
-  ['Staff', 'staff', () => rankAtLeast_('staff')],
-  ['Apprentice', 'apprentice', () => rankAtLeast_('admin') || hasRole('apprentice')],
+  ['Student', 'account', () => !!USER, true],
+  ['Parent', 'family', () => rankAtLeast_('client'), true],
+  ['Staff', 'staff', () => rankAtLeast_('staff'), true],
+  ['Apprentice', 'apprentice', () => rankAtLeast_('admin') || hasRole('apprentice'), true],
   ['Business', 'biz', () => rankAtLeast_('admin')],
   ['Site', 'site', () => rankAtLeast_('admin')],
 ];
+/* THE MENU'S ORDER OF ACCOUNT TYPES; Admin has no column, only the data's tags. */
+const SETTING_ORDER = ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'];
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
 const plain_ = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 /* ONE COLUMN'S CARDS, grouped as the layout groups them (a card of several pages is one item). */
@@ -110,29 +112,51 @@ function settingGroups_(col) {
   try { raw = (typeof CARD_BUILD !== 'undefined' && CARD_BUILD[col] ? CARD_BUILD[col]() || [] : []).filter(Boolean); } catch (e) { oops_(e, 'doors:' + col); raw = []; } finally { SETTING_BUILDING = false; }
   return typeof cardGroups_ === 'function' ? cardGroups_(raw) : raw.map(h => ({ id: '', pages: [h] }));
 }
+/* A SETTING'S NAME: its title, else what the data or the card's label calls it; never "Student setting 3". */
+function settingName_(html, id, row) {
+  const reg = id && typeof cardReg_ === 'function' ? cardReg_(id) : null;
+  return (row && row.name) || plain_(cardTitle_(html)) || plain_((String(html).match(/^\s*<div\b[^>]*\saria-label="([^"]+)"/) || [])[1])
+    || (reg && reg.label) || '';
+}
+/* A COLUMN'S PADLOCK, "NOTHING HERE" LINE OR A TITLE-ONLY PLACEHOLDER IS NOT A SETTING. */
+const settingNone_ = h => /^\s*<div class="card (?:rank-off|set-none|own-lock)\b/.test(h);
+/* EVERY SETTING ONCE (owner, 7 Nov): data/settings/setting-for.json tags it with each account type; one of the same name joins it. */
+/* A type you do not hold still shows its cards, shut (`lockedAs_`); Business and Site hold the business's own data, so stay an admin's. */
 function settingDoorItems_() {
   if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, text: 'sign in join make an account pin' }];
-  const out = [];
-  SETTING_TYPES.forEach(([type, col, may]) => {
+  const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
+  const add = (name, id, part, type, mine) => {
+    const row = tags[id], fr = (row && row.for && row.for.length) ? row.for : [type];
+    const x = byName[norm(name)];
+    if (x) { x.parts.push(part); fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
+    const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice() };
+    byName[norm(name)] = it; out.push(it);
+  };
+  SETTING_TYPES.forEach(([type, col, may, peek]) => {
     let ok = false;
     try { ok = may(); } catch (e) { ok = false; }
-    if (!ok) return;
+    if (!ok && !peek) return;
     settingGroups_(col).forEach((g, i) => {
       const html = g.pages.join('');
-      const name = plain_(cardTitle_(html)) || type + ' setting ' + (i + 1);
-      out.push({ kind: 'setting', name: name, key: 'set:' + col + ':' + (g.id || i), sub: '', image: '', setCol: col, setAt: i, setId: g.id || '',
-        settingFor: type, text: name + ' ' + type + ' settings' });
+      if (settingNone_(html) || (g.id && seen[g.id])) return;
+      if (g.id) seen[g.id] = 1;
+      const name = settingName_(html, g.id, tags[g.id]);
+      if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, ok && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
-  if (rankAtLeast_('admin')) out.push({ kind: 'setting', name: 'Notifications', key: 'set:notify', sub: '', image: '', notify: true,
-    settingFor: 'Business', text: 'notifications business due approvals waiting' });
+  if (rankAtLeast_('admin')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
   return out;
+}
+function settingPart_(p) {
+  if (p.notify) return notifyDoorCard_();
+  const gs = settingGroups_(p.col), g = (p.id && gs.find(k => k.id === p.id)) || gs[p.at];
+  return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }
 function settingDoorCard_(x) {
   if (x.signIn) { if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn(); return typeof signInCard_ === 'function' ? signInCard_() : ''; }
   if (x.notify) return notifyDoorCard_();
-  const gs = settingGroups_(x.setCol), g = (x.setId && gs.find(k => k.id === x.setId)) || gs[x.setAt];
-  return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
+  return (x.parts || [{ col: x.setCol, at: x.setAt, id: x.setId }]).map(settingPart_).join('');
 }
 /* WHAT THE TOP BAR'S RED DOT USED TO SAY (owner, 6 Nov): each Business or Site card that needs you, by name, with a way there. */
 function notifyDoorCard_() {
