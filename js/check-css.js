@@ -287,7 +287,6 @@ const DIM_OK = [
   [/\.msg-flag$/, 'a flag icon beside a message; full strength on hover and focus'],
   [/\.qsheet span\.box$/, 'the empty box a paper leaves for an answer — an outline, no words'],
   [/\.slot-hours$/, 'the hour cells of a week that cannot be answered: disabled buttons with no text'],
-  [/\.vid-th > :is\(img, \.vid-poster\)$/, 'a film not in the Drive: its picture and play icon fade, its duration badge keeps full ink'],
   [/^\.hr\.shut$/, 'an hour nobody can book: a disabled button with no text'],
 ];
 const dimSeen = new Set();

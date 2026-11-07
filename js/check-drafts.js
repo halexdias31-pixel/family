@@ -67,12 +67,6 @@ const KEPT = [
   { file: 'mat.js', has: 'mat-tick',
     why: 'a cheat sheet maker\'s topic tick — kept in `matChoice` as it changes',
     proof: [['mat.js', /function matRemember\(/]] },
-  { file: 'games.js', fn: 'tmtRow_', has: 'tmt-in', count: 3,
-    why: 'a timetable box — kept by `tmtKeep_` on every keystroke, on the account signed in and the device signed out',
-    proof: [['games.js', /document\.addEventListener\('input', tmtKeep_\)/], ['games.js', /keepDue_\('timetable', send\)/]] },
-  { file: 'games.js', fn: 'tmtHtml_', has: 'tmt-weekend',
-    why: 'the timetable\'s weekend tick — kept as it changes, like the rest of the timetable',
-    proof: [['games.js', /tmt-weekend/]] },
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
@@ -104,9 +98,6 @@ const EXEMPT = [
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
-  /* AN ADMIN'S REEL OR VIDEO FORM (404): kept in `MEDIA_FORM` as typed, and one link pasted and saved there and then. */
-  { file: 'games.js', fn: 'box', has: 'data-mf="${k}"', why: 'an admin adding a reel or video — kept in `MEDIA_FORM` as typed, a paste and a Save, not work left on a device' },
-  { file: 'games.js', fn: 'mediaFormHtml_', has: 'data-mf="url"', why: 'one pasted YouTube link, looked up and saved there and then' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
@@ -117,11 +108,9 @@ const EXEMPT = [
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
   { file: 'posts.js', has: 'id="pe-pin"', why: 'one tick, pinning a post that is already up' },
-  { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'receipt.js', fn: 'askHow_', has: 'id="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the same sheet' },
   { file: 'find.js', has: 'id="room-name"', why: 'a room name, a few words, prefilled and sent by the same sheet' },
-  { file: 'games.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
 ];
 
 /* ---------- THE BOXES ------------------------------------------------------------------------------------ */

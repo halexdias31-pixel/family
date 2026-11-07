@@ -58,16 +58,16 @@ function paintBoard_(id, field) {
 /* ---------- `draw` AND `pure`: WHAT THE BUILDER MAY DO WITH A WIDGET BEFORE ANYBODY ARRIVES § */
 const WIDGETS = [
   /* CONSOLE (389, 391, 441): game files (jsnes, EmulatorJS), Flabby Pird and the Colliers Wood racer behind one picker — `CONSOLE_GAMES`, games.js. */
-  { id: 'console', kind: 'game', name: 'Console', start: () => initConsole?.(),
-    draw: () => consoleStill_?.(),
-    stop: () => { if (typeof consoleStop_ === 'function') consoleStop_(); },
+  { id: 'console', kind: 'game', name: 'Console', start: () => window.initConsole?.(),
+    draw: () => window.consoleStill_?.(),
+    stop: () => { window.consoleStop_?.(); },
     into: 'cs-slot', what: 'The console',
     get html() {
       return `<div class="card">
     <h3>Console</h3>
     <label class="mat-sel ws-top"><select id="cs-pick" data-do="cs-pick"
-      aria-label="Which game">${typeof csOptions_ === 'function' ? csOptions_() : ''}</select></label>
-    <div id="cs-slot">${typeof csSlot_ === 'function' ? csSlot_() : ''}</div>
+      aria-label="Which game">${window.csOptions_ ? window.csOptions_() : ''}</select></label>
+    <div id="cs-slot">${window.csSlot_ ? window.csSlot_() : ''}</div>
   </div>`;
     } },
   /* THE BOARD, NOT THE DRAWING. § */
@@ -76,37 +76,37 @@ const WIDGETS = [
 
   /* `chess`, `tables` and `maze` WERE CARDS HERE (461): Chess and Maze are Board games now, the sprint a Word & number game. */
   /* ---------- BOARD GAMES (414, 461): Connect 4, Othello, Scrabble, Chess and Maze in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
-  { id: 'boardgames', kind: 'game', name: 'Board games', start: () => initBoardGames?.(),
+  { id: 'boardgames', kind: 'game', name: 'Board games', start: () => window.initBoardGames?.(),
     pure: true,
-    draw: () => bgPaint_?.(),
-    stop: () => { if (typeof boardGamesStop_ === 'function') boardGamesStop_(); },
+    draw: () => window.bgPaint_?.(),
+    stop: () => { window.boardGamesStop_?.(); },
     into: 'bg-slot', what: 'The board',
     /* A GETTER, so the chosen game's board is in the markup `paint` puts down (238's reason). */
     get html() {
       return `<div class="card">
     <h3>Board games</h3>
     <label class="mat-sel ws-top"><select id="bg-pick" data-do="bg-pick"
-      aria-label="Which game">${typeof bgOptions_ === 'function' ? bgOptions_() : ''}</select></label>
-    <div id="bg-slot">${typeof bgSlot_ === 'function' ? bgSlot_() : ''}</div>
+      aria-label="Which game">${window.bgOptions_ ? window.bgOptions_() : ''}</select></label>
+    <div id="bg-slot">${window.bgSlot_ ? window.bgSlot_() : ''}</div>
   </div>`;
     } },
 
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a maze that read them would fight the pager on the one screen it § */
   /* ---------- WORD GAMES — EIGHT GAMES, ONE WIDGET § */
-  { id: 'wordgames', kind: 'game', name: 'Word & number games', start: () => initWordGames?.(),
+  { id: 'wordgames', kind: 'game', name: 'Word & number games', start: () => window.initWordGames?.(),
     pure: true,
     /* DRAWN AHEAD AS MARKUP ONLY: the picker and the chosen game's card (`wgPaint_`, games.js). Its start
        drives `PARTY`, which is shared by the four classroom games, and must run for somebody looking. */
-    draw: () => wgPaint_?.(),
-    stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
+    draw: () => window.wgPaint_?.(),
+    stop: () => { window.wordGamesStop_?.(); },
     into: 'wg-slot', what: 'The game',
     /* A GETTER, SO THE CHOSEN GAME IS IN THE MARKUP `paint` PUTS DOWN. § */
     get html() {
       return `<div class="card">
     <h3>Word &amp; number games</h3>
     <label class="mat-sel ws-top"><select id="wg-pick" data-do="wg-pick"
-      aria-label="Which game">${typeof wgOptions_ === 'function' ? wgOptions_() : ''}</select></label>
-    <div id="wg-slot">${typeof wgSlot_ === 'function' ? wgSlot_() : ''}</div>
+      aria-label="Which game">${window.wgOptions_ ? window.wgOptions_() : ''}</select></label>
+    <div id="wg-slot">${window.wgSlot_ ? window.wgSlot_() : ''}</div>
   </div>`;
     } },
 
@@ -129,11 +129,11 @@ const WIDGETS = [
   </div>` },
 
   /* ---------- VIDEOS — TYPE, TAP, WATCH § */
-  { id: 'videos', kind: 'reel', name: 'Videos', start: () => initVideos?.(),
+  { id: 'videos', kind: 'reel', name: 'Videos', start: () => window.initVideos?.(),
     /* DRAWN AHEAD FROM WHAT IS ALREADY HERE (`vidPaint_`): `initVideos` asks the network for the list and,
        for an admin, the films' sync. */
-    draw: () => vidPaint_?.(),
-    stop: () => videosStop_?.(),
+    draw: () => window.vidPaint_?.(),
+    stop: () => window.videosStop_?.(),
     into: 'vid-box', what: 'The videos',
     html: `<h3>Videos</h3>
     <div id="vid-box" class="vid-box"></div>` },
@@ -186,7 +186,7 @@ const WIDGETS = [
     <h3>Cheat sheet maker</h3>
     <div id="mat-box"></div>
   </div>` },
-  { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => initTimer?.(),
+  { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => window.initTimer?.(),
     pure: true,
     into: 'timer-display', what: 'The timer',
     html: `<div class="card">
@@ -247,7 +247,7 @@ const WIDGETS = [
 
   /* ---------- THE TIMETABLE, THE ONE WEEK VIEW § */
   /* NOT `pure`, though it was until the review of 12 Oct: § */
-  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => initTimetable?.(),
+  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => window.initTimetable?.(),
     into: 'tmt-box', what: 'Your timetable',
     /* NO `.card` OF ITS OWN. § */
     html: `<h3>Timetable</h3>
@@ -255,7 +255,7 @@ const WIDGETS = [
 
   /* ---------- TOUCH TYPING § */
   { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
-    start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
+    start: () => window.initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },
 
@@ -272,7 +272,7 @@ const WIDGETS = [
     html: `<h3>Search the shop</h3>
     <div id="shop-find-box" class="shop-find"></div>` },
 
-  { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => initCalendar?.(),
+  { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => window.initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">
     <div class="cal-head">

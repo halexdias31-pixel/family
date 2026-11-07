@@ -59,7 +59,7 @@
 
   /* ---------- AND THEN THE 230KB WAS A MEGABYTE § */
   /* THE FILES' OWN HASH (750), written by tools/build-stamp.js and held to them by its --check: it moves when a served file changes and never by the clock. */
-  var BUILD_STAMP = '1abf35465223';
+  var BUILD_STAMP = 'e72d3e1f11f9';
   LOAD = /(?:^|[?&])dev(?:[=&]|$)/.test(location.search)
     ? String(Date.now())                        /* the publisher: nothing may be held */
     : BUILD_STAMP || String(Math.floor(LOAD_AT / 300000));     /* everybody else: the hash; the old rounded build time only if the line was emptied */
@@ -75,10 +75,10 @@
   /* ---------- ONE LIST, AND IT IS THIS ONE § */
   window.FILES = ['core', 'predicates', 'finder-tags', 'price-rows', 'chess', 'data', 'library', 'qtypes', 'settings', 'shell-boot', 'shell-layout', 'shell-pages', 'shell-click', 'shell-api', 'shell-hold', 'rules', 'cards', 'me-account', 'me-messages', 'me-roles', 'me-shelves', 'me-settings', 'me-card', 'me-people', 'posts',
     'links', 'find-finder', 'find-facets', 'find-history', 'find-timelines', 'find-boxers', 'find-parts', 'find-marking', 'find-cells', 'find-pen', 'find-pad', 'find-loupe', 'find-figures', 'find-aloud', 'find-doors', 'find-levels', 'find-bundles', 'find-pages', 'find-measure',
-    'keypad-keys', 'keypad-pad', 'keypad-edit', 'answers', 'submit', 'working', 'qtools', 'resource', 'arcade', 'map', 'book', 'receipt', 'records', 'biz-check', 'one-place', 'mat', 'games', 'racer',
+    'keypad-keys', 'keypad-pad', 'keypad-edit', 'answers', 'submit', 'working', 'qtools', 'resource', 'arcade', 'map', 'book', 'receipt', 'records', 'biz-check', 'one-place', 'mat', 'calc',
     'overworld', 'select', 'collections', 'tiles', 'reader', 'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'staff', 'help', 'layout', 'words', 'gtasks', 'push', 'inbox', 'missing', 'resume', 'boot'];
   /* NOT BEFORE THE FIRST SCREEN (670): these run after boot.js, asked for by `laterFiles_` (data.js) once the first column is drawn, in this order; `load()` waits for them before it paints the payload. */
-  window.LATER = ['games', 'racer', 'mat', 'chess', 'keypad-keys', 'keypad-pad', 'keypad-edit', 'answers', 'submit', 'qtools', 'working', 'receipt', 'records', 'biz-check', 'one-place', 'staff', 'inbox', 'gtasks', 'push', 'reader', 'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'layout', 'words', 'help', 'map', 'book', 'collections', 'find-finder', 'find-facets', 'find-history', 'find-boxers', 'find-parts', 'find-marking', 'find-cells', 'find-pen', 'find-pad', 'find-loupe', 'find-figures', 'find-aloud', 'find-doors', 'find-timelines', 'find-levels', 'find-bundles', 'find-pages', 'find-measure'];
+  window.LATER = ['calc', 'mat', 'chess', 'keypad-keys', 'keypad-pad', 'keypad-edit', 'answers', 'submit', 'qtools', 'working', 'receipt', 'records', 'biz-check', 'one-place', 'staff', 'inbox', 'gtasks', 'push', 'reader', 'writings', 'talmud', 'quran', 'hadith', 'works', 'texts', 'pdtexts', 'orthodox', 'hymns', 'mechanics', 'chemistry', 'layout', 'words', 'help', 'map', 'book', 'collections', 'find-finder', 'find-facets', 'find-history', 'find-boxers', 'find-parts', 'find-marking', 'find-cells', 'find-pen', 'find-pad', 'find-loupe', 'find-figures', 'find-aloud', 'find-doors', 'find-timelines', 'find-levels', 'find-bundles', 'find-pages', 'find-measure'];
   /* LAZY (1080): the LATER files only widgets use, fetched by `lazyFiles_` (data.js) when one of those widgets first starts, never at boot. Written by tools/tiers.js. */
   window.LAZY = [];
   /* OFF (860): files whose every widget data/settings/tiers.json turns off — kept in FILES and the repo, never fetched. Written by tools/tiers.js. */

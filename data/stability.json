@@ -1,20 +1,20 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.4,
+ "score": 77,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
    "id": "exceptions",
    "label": "Written exceptions in the checks",
-   "count": 59,
+   "count": 57,
    "weight": 0.1,
    "cap": 20,
-   "off": 5.9,
+   "off": 5.7,
    "where": {
     "js/check-answerable.js ACCEPTED": 6,
     "js/check-answers.js ACCEPTED": 1,
-    "js/check-css.js DIM_OK": 10,
+    "js/check-css.js DIM_OK": 9,
     "js/check-dropdowns.js PICKER_OK": 1,
     "js/check-library.js KNOWN_F": 1,
     "js/check-loading.js PHRASE_OK": 8,
@@ -22,10 +22,21 @@
     "js/check-payload.js ACCEPTED": 1,
     "js/check-settings.js ACCEPTED_GONE": 3,
     "js/check-strings.js ROLE_OK": 1,
-    "js/check-surfaces.js POPUP_OK": 2,
+    "js/check-surfaces.js POPUP_OK": 1,
     "check/diagrams.js ACCEPTED": 4,
     "check/motion.js ACCEPTED": 18,
     "check/types.js ACCEPTED": 2
+   }
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 17,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 5.1,
+   "where": {
+    "check-dead": "mondayOf_ (book.js), nextBookStep (book.js), dropOnFront_ (book.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), paintBoard_ (map.js), paintTimer (overworld.js), newGame (price-rows.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
    }
   },
   {
@@ -36,17 +47,6 @@
    "cap": 15,
    "off": 4.6,
    "where": {}
-  },
-  {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 15,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 4.5,
-   "where": {
-    "check-dead": "mondayOf_ (book.js), nextBookStep (book.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
-   }
   },
   {
    "id": "special",
@@ -142,21 +142,18 @@
   }
  ],
  "secondary": {
-  "score": 81.9,
-  "verdict": "Steady, with duct tape worth paying down.",
+  "score": 88.2,
+  "verdict": "Solid: little is held together by exceptions.",
   "signals": [
    {
     "id": "exceptions",
     "label": "Written exceptions in the checks",
-    "count": 139,
+    "count": 90,
     "weight": 0.1,
     "cap": 20,
-    "off": 13.9,
+    "off": 9,
     "where": {
-     "js/check-reels.js VIDEO_OK": 6,
-     "js/check-widgets.js ACCEPTED_ENGINE": 13,
-     "js/check-widgets.js CAT_WORD_OK": 9,
-     "js/check-widgets.js NEAR_OK": 22,
+     "js/check-widgets.js ACCEPTED_ENGINE": 1,
      "js/check-widgets.js ACCEPTED_IMPURE": 5,
      "check/cascade.js ACCEPTED": 28,
      "check/press-twice.js ACCEPTED": 2,
@@ -168,20 +165,18 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 57,
+    "count": 43,
     "weight": 0.05,
     "cap": 10,
-    "off": 2.9,
+    "off": 2.2,
     "where": {
      "js/arcade.js": 7,
      "js/collections.js": 7,
-     "js/games.js": 11,
      "js/layout.js": 1,
      "js/mat.js": 3,
      "js/mechanics.js": 1,
      "js/orthodox.js": 2,
      "js/posts.js": 7,
-     "js/racer.js": 3,
      "js/reader.js": 11,
      "js/records.js": 1,
      "js/writings.js": 3
@@ -190,36 +185,23 @@
    {
     "id": "duplicates",
     "label": "Repeated long lines",
-    "count": 29,
+    "count": 25,
     "weight": 0.02,
-    "cap": 10,
-    "off": 0.6,
-    "where": {
-     "lines": 11
-    }
-   },
-   {
-    "id": "longfiles",
-    "label": "Files over 3000 lines",
-    "count": 1,
-    "weight": 0.5,
     "cap": 10,
     "off": 0.5,
     "where": {
-     "js/games.js": 6446
+     "lines": 9
     }
    },
    {
     "id": "longfns",
     "label": "Functions over 150 lines",
-    "count": 3,
+    "count": 1,
     "weight": 0.05,
     "cap": 10,
-    "off": 0.2,
+    "off": 0.1,
     "where": {
-     "js/mat.js matPaint": 158,
-     "js/racer.js raceMesh_": 151,
-     "js/receipt.js flappyStill_": 304
+     "js/mat.js matPaint": 158
     }
    },
    {
@@ -245,6 +227,15 @@
     "label": "Code nothing calls",
     "count": 0,
     "weight": 0.3,
+    "cap": 10,
+    "off": 0,
+    "where": {}
+   },
+   {
+    "id": "longfiles",
+    "label": "Files over 3000 lines",
+    "count": 0,
+    "weight": 0.5,
     "cap": 10,
     "off": 0,
     "where": {}

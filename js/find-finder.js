@@ -199,7 +199,7 @@ const KINDS = {
   /* COMING SOON (880): a switched-off column or widget, its name, one line, Coming soon and Suggest; nothing on it works. */
   soon: { group: 'Coming soon', label: 'Coming soon', card: x => soonCard_(x) },
   /* PEOPLE (owner, 4 Nov): everybody an admin may see, one card each, drawn like the people columns drew them. */
-  person: { group: 'Profiles', label: 'Profiles', card: x => profileDoorCard_(x) }, video: { group: 'Videos', label: 'Videos', card: x => videoDoorCard_(x) },
+  person: { group: 'Profiles', label: 'Profiles', card: x => profileDoorCard_(x) },
   /* SETTINGS (owner, 4 Nov): their own answer in Find; each card Coming soon until it is turned back on. */
   setting: { group: 'Settings', label: 'Settings', card: x => (x.soon ? soonCard_(x) : settingDoorCard_(x)) },
   /* MESSAGES (owner, 4 Nov): its own answer; Coming soon while the DM column is off. */

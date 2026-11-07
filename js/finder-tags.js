@@ -1,7 +1,7 @@
 /* @family. — js/finder-tags.js WRITTEN BY tools/finder-tags.js, NEVER BY HAND (546): the finder's first questions and answers, counted at build time. */
 const FINDER_TAGS = {
 "same": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Venues"],["Shop"],["Settings"],["Tools"]]],
+  "": ["kindLabel",[["Practice"],["Library"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Venues"],["Shop"],["Settings"],["Tools"]]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["examMonth",[["June"],["November"]]],

@@ -59,7 +59,7 @@ function drawFeed() {
   FEED_AT = Math.max(0, FEED_AT);
   const it = feedItem(FEED_AT);
   if (!it) return;
-  host.innerHTML = feedSlide(it);
+  host.innerHTML = (window.feedSlide || (() => ''))(it);
 
   /* The photograph arrives afterwards and fades in over the drawing. § */
   /* A CLIP PLAYS HERE TOO, AND IT HAS TO BE ASKED. § */
@@ -94,7 +94,7 @@ function feedPaint_() {
   if (FEED_AT === null) FEED_AT = 0;
   const it = feedItem(Math.max(0, FEED_AT));
   if (!it) return false;
-  const html = feedSlide(it);
+  const html = (window.feedSlide || (() => ''))(it);
   if (/<video\b/i.test(html)) return false;
   host.innerHTML = html;
   return true;
@@ -135,11 +135,6 @@ let flappyState = null;
 
 /* Started when their screen appears, and only then — a canvas loop running behind a screen nobody
    is looking at is a flat battery for nothing. */
-
-/* `on('chess-new')` and `on('chess-undo')` are in games.js beside the board they act on — they went
-   when the board played a computer, and came back when it became two players round one phone. */
-on('tt-start',   () => startTimesTables?.());
-on('tt-stop',    () => endTimesTables?.());
 
 /* SWIPING BETWEEN TABS. § */
 
