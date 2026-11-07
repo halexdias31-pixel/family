@@ -45,6 +45,12 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 11. **Frictionless.** Booking, messaging, paying and homework in the fewest taps, no dead ends. Checks: `friction`, `a11y`, `console`
 12. **The owner decides, the system does the rest.** Sweeps decide when the rules point one way, ask only when they don't. Checks: `philosophy`, `owner-questions`
 
+## How we work (owner, 7 Nov)
+
+Fast and efficient, measured in weeks, not months. Quality first: each change done properly once. Freeze whatever slows the
+core (now: Find, Library, Questions, Settings, Bookings). Decide by these rules and log it; ask only on contradictions or
+irreversible steps. Report only results and "safe to merge". Usage heavy (parallel jobs) until the owner says otherwise.
+
 ## How the loop works
 
 Each sweep (the scheduled prompt) does, in order:
