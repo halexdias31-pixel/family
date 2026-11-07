@@ -498,8 +498,9 @@ function verifyTags_(x) {
 const qId_ = x => (isQ_(x) && x.qNumber != null && String(x.qNumber) !== ''
   ? paperIdOf_(x.row) + '|' + x.qNumber : '');
 const WHOLE_MEMO = new WeakMap();
+/* EVERY PART, NOT THE FUNNEL'S (`stuffItemsAll_`): signed out the funnel is Sign in alone, and a shared question drew one part */
 function questionParts_() {
-  const all = stuffSorted_(stuffItems());
+  const all = stuffSorted_(stuffItemsAll_());
   let by = WHOLE_MEMO.get(all);
   if (by) return by;
   by = {};
