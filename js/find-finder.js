@@ -106,8 +106,8 @@ const KINDS = {
                         ? meCard()
                         : findCard({ kind: x.kind, row: x.row }) },
   /* ---------- A VENUE IS A BOOKING THING AGAIN, AND THAT IS WHAT TAKES IT OFF FIND § */
-  venue:   { group: 'Booking', label: 'Venues',
-             card: x => findCard({ kind: x.kind, row: x.row }) },
+  /* FIND › VENUES (owner, 7 Nov): its own public answer, an 8-bit picture and tags (venueDoorCard_). */
+  venue:   { group: 'Venues', label: 'Venues', card: x => venueDoorCard_(x) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on — and it was the one you could not look at. § */
   level:   { group: 'Booking', label: 'Levels',   card: x => findCard({ kind: x.kind, row: x.row }) },
@@ -443,7 +443,7 @@ const FACETS = [
   /* SUBJECT STRAIGHT AFTER WHAT KIND (494), as the facets tab orders it: "the library should go subject first". */
   /* THE FRONT DOORS' OWN MENUS (batch C, find-doors.js): each item answers only its own. */
   ...[['postState', 'Which posts'], ['postBy', 'Who posted'], ['postWhen', 'When'], ['msgWith', 'Who with'], ['profileType', 'Who'], ['settingFor', 'Account type'],
-    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level'], ['vidType', 'Type']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
+    ['vidSubject', 'Subject'], ['vidTopic', 'Topic'], ['vidChannel', 'Channel'], ['vidLevel', 'Level'], ['vidType', 'Type'], ['venueArea', 'Area'], ['venueFor', 'Good for'], ['venueSize', 'Holds']].map(([f, l]) => ({ field: f, label: l, of: x => x[f] || '' })),
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },

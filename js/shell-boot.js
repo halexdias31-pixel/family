@@ -336,7 +336,7 @@ let PREV_AT = '';
 function go(id, remember, instant) {
   /* A SCREEN CHANGE IS A SAFE MOMENT FOR A WAITING BUILD (610). */
   if (BUILD_WAITING) buildQuietly_();
-  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
+  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return; if (typeof bookingGone_ === 'function' && bookingGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];

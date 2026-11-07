@@ -111,5 +111,8 @@
 {"field": "vidTopic", "label": "Topic", "sort_order": 20.67, "note": "a video (batch C): its tags", "active": true},
 {"field": "vidChannel", "label": "Channel", "sort_order": 20.68, "note": "a video (batch C): its channel", "active": true},
 {"field": "vidLevel", "label": "Level", "sort_order": 20.69, "note": "a video (batch C): its level", "active": true},
+{"field": "venueArea", "label": "Area", "sort_order": 20.696, "note": "a venue (Find › Venues): its borough, else its city", "active": true},
+{"field": "venueFor", "label": "Good for", "sort_order": 20.697, "note": "a venue: its focus list off the venues tab", "active": true},
+{"field": "venueSize", "label": "Holds", "sort_order": 20.698, "note": "a venue: up to how many students, and how many rooms", "active": true},
 {"field": "vidType", "label": "Type", "sort_order": 20.695, "note": "a video (batch D): Movie, Lesson, Documentary, Music video, Clip; the row's type, else guessed from its title", "active": true}
 ]

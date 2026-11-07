@@ -60,9 +60,9 @@
   "screen": "booking",
   "label": "Book",
   "icon": "📅",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 9,
-  "notes": "the form and the receipts. The basket is on the Shop column."
+  "notes": "off (owner, 7 Nov 2026): booking is Find › Booking, a Book tile over the booking cards; go('booking') lands there (bookingGone_)."
  },
  {
   "screen": "shop",

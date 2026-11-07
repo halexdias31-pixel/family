@@ -585,7 +585,8 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
-    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
+    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
+    + (j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name))) ? tile_({ icon: 'edit', label: 'Set the room', act: 'job-room', data: { id: String(j.id), room: j.room || '' } }) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')
@@ -607,7 +608,39 @@ function bookingPages_(o) {
   /* ---------- NOT BEFORE THE PAYLOAD § */
   if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
-  return form;
+  if (o && o.column) return form;
+  /* FIND › BOOKING (owner, 7 Nov): a Book tile on top opens the form in place; the bookings are the cards under it. */
+  const top = tileRow_(tile_({ icon: BOOK_OPEN ? 'close' : 'book', label: BOOK_OPEN ? 'Close the form' : 'Book', act: 'book-open', cls: 'primary' }), 'book-top');
+  return [top + (BOOK_OPEN || !USER ? (form[0] || '') : '')].concat(form.slice(1));
+}
+let BOOK_OPEN = false;
+on('job-room', el => {
+  openSheet('The room', `
+    <p class="sub">Which room in the venue. The family sees it on their booking.</p>
+    <input id="room-name" class="search" value="${esc(el.dataset.room || '')}" autocomplete="off">
+    ${tileRow_(tile_({ form: true, label: 'Save the room', act: 'job-room-go', data: { id: el.dataset.id }, cls: 'primary' }))}
+    <p class="faint" id="room-said"></p>`);
+});
+on('job-room-go', el => {
+  const room = (($('room-name') || {}).value || '').trim();
+  el.disabled = true;
+  api({ action: 'setRoom', jobId: el.dataset.id, room, name: USER.name, personId: USER.personId })
+    .then(d => {
+      if (!d || d.error) { const s = $('room-said'); if (s) s.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
+      const j = (DATA.liveJobs || DATA.jobs || []).find(x => String(x.id) === String(el.dataset.id));
+      if (j) j.room = room;
+      closeSheet(); toast('Room saved'); repaint();
+    })
+    .catch(() => { el.disabled = false; toast('Not saved'); });
+});
+on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
+/* THE BOOKING COLUMN IS FIND › BOOKING when columns.json switches it off: every go('booking') lands there. */
+function bookingGone_(id) {
+  if (id !== 'booking' || TABS.some(t => t.id === id)) return false;
+  if (OPEN_JOB) BOOK_OPEN = false;
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
+  go('stuff');
+  return true;
 }
 
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */

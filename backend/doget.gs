@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-11-07-refund-kept-1061";
+const DOGET_VERSION = "2026-11-07-room-booking-1091";
 
 
 function doGet(e) {
@@ -281,7 +281,7 @@ function doGet(e) {
                  'joinWaitlist',
                  /* The site checks this before offering the button, so an older deployment says so
                     rather than answering "that action is not recognised" on a payment. */
-                 'markPaid',
+                 'markPaid', 'setRoom',
                  /* The site checks this before it draws "Mark with AI", so a phone ahead of the
                     deployment shows no button rather than one answering "not recognised". */
                  'aiMark',
@@ -1124,6 +1124,7 @@ function doGet(e) {
         subtitle: (S(j.weekday) || 'TBD') + ' @ ' + (fmtTime(j.start_time) || 'TBD'),
         day: S(j.weekday), time: fmtTime(j.start_time),
         location: S(j.venue) || 'Online',
+        room: S(j.room),
         /* WHAT A SEAT COSTS. A class row carried no price at all — so the card read `j.price`, found nothing, and printed "Your seat £0.00" on a list that is priced § */
         price: tutorOnly ? '' : N(j.price_total),
         tutorPay: (viewerIsAdmin || iTeach) && S(j.tutor_pay) !== '' ? N(j.tutor_pay) : '',
