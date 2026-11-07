@@ -243,7 +243,15 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
   cart: 'Basket', shopfind: 'Search the shop', calendar: 'Calendar', termdates: 'Term dates', countdowns: 'Countdowns', favlinks: 'Favourite links',
   rewrite: 'Rewrite coach', poster: 'Poster planner', pixel: 'Pixel editor', verse: 'E-ink screen', whiteboard: 'Whiteboard', libcards: 'Library cards', homework: 'Homework' };
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
-const SOON_WIDGET_UNDER = { homework: 'Tools' };
+const SOON_WIDGET_UNDER = { videos: 'Videos', console: 'Games', boardgames: 'Games', wordgames: 'Games', reels: 'Tools', flyers: 'Tools', poster: 'Tools', verse: 'Tools', homework: 'Tools' };
+/* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
+function frontSoonOnly_(value) {
+  if (value === 'Coming soon') return false;
+  try {
+    const all = stuffItems().filter(x => kindTop_(x) === value);
+    return !all.length ? soonItems_().some(x => x.top === value) : all.every(x => x.soon);
+  } catch (e) { return false; }
+}
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
   /* A COLUMN WHOSE THINGS ARE FIND ITEMS NOW (batch C: settings, reels) is no Coming soon card. */
