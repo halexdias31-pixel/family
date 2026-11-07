@@ -12,6 +12,9 @@ const PORT = Number(process.env.LATER_PORT || 8171);
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const LATER = [...(/window\.LATER\s*=\s*\[([\s\S]*?)\]/.exec(html) || [, ''])[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+/* THE LAZY FILES (1080) are asked for only when a widget of theirs starts, so they are not held or waited for here. */
+const LAZY = [...(/window\.LAZY\s*=\s*\[([\s\S]*?)\]/.exec(html) || [, ''])[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+LAZY.forEach(f => { const i = LATER.indexOf(f); if (i !== -1) LATER.splice(i, 1); });
 if (!LATER.length) { console.log('FAIL — check/later.js cannot read window.LATER out of index.html, so NOTHING was checked'); process.exit(1); }
 
 /* ONE NAME EACH LATER FILE DECLARES, to ask whether it is in yet. */

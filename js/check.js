@@ -21,7 +21,11 @@ function loadOrder_() {
   const later = l ? [...l[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
   const bad = later.filter(f => all.indexOf(f) === -1);
   if (bad.length) { console.error('window.LATER names files window.FILES does not: ' + bad.join(', ')); process.exit(1); }
-  return all.filter(f => later.indexOf(f) === -1).concat(all.filter(f => later.indexOf(f) !== -1));
+  /* AND THE LAZY ONES (1080) after all of LATER, the batch they really run in. */
+  const z = /window\.LAZY\s*=\s*\[([\s\S]*?)\]/.exec(html);
+  const lazy = z ? [...z[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
+  const inLater = f => later.indexOf(f) !== -1;
+  return all.filter(f => !inLater(f)).concat(all.filter(f => inLater(f) && lazy.indexOf(f) === -1), all.filter(f => inLater(f) && lazy.indexOf(f) !== -1));
 }
 const ORDER = loadOrder_();
 

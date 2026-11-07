@@ -57,24 +57,32 @@ function jsonp(url) {
 let LATER_ASK = null, LATER_IN = false;
 function laterFiles_() {
   if (LATER_ASK) return LATER_ASK;
-  const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER : [];
-  /* IN window.FILES' ORDER, whatever order LATER is written in: that list is the load order. */
-  const off = Array.isArray(window.OFF) ? window.OFF : [];
-  const list = (Array.isArray(window.FILES) ? window.FILES : later).filter(f => later.indexOf(f) !== -1 && off.indexOf(f) === -1);
+  const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
+  const later = (typeof window !== 'undefined' && Array.isArray(window.LATER)) ? window.LATER.filter(f => lazy.indexOf(f) === -1) : [];
   /* ALL AT ONCE (720): fetched side by side, then run in one task, so no screen ever sees one LATER file without the rest (`WIDGETS` was read between find.js and map.js). */
-  LATER_ASK = !list.length || typeof document === 'undefined' || typeof fetch !== 'function' ? Promise.resolve() : Promise.all(list.map(f =>
-    fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))
-    .then(texts => {
-      texts.forEach((src, i) => {
-        if (src === null) { try { window.__missing(list[i]); } catch (e) { /* no list to name it in */ } return; }
-        const s = document.createElement('script');
-        s.text = src + '\n//# sourceURL=js/' + list[i] + '.js';
-        document.head.appendChild(s);
-      });
-      LATER_IN = true;
-    });
-  LATER_ASK = LATER_ASK.then(() => { LATER_IN = true; });
+  LATER_ASK = batchFiles_(later).then(() => { LATER_IN = true; });
   return LATER_ASK;
+}
+/* THE SECOND BATCH (1080): index.html's `LAZY`, widget-only files, asked for when one of their cards first starts — after LATER, one task, same rule. `lazyFiles_.in` once run. */
+let LAZY_ASK = null;
+function lazyFiles_() {
+  if (LAZY_ASK) return LAZY_ASK;
+  const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
+  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy)).then(() => { lazyFiles_.in = true; });
+  return LAZY_ASK;
+}
+/* IN window.FILES' ORDER, whatever order the list is written in: that list is the load order. Never rejects. */
+function batchFiles_(want) {
+  const off = Array.isArray(window.OFF) ? window.OFF : [];
+  const list = (Array.isArray(window.FILES) ? window.FILES : want).filter(f => want.indexOf(f) !== -1 && off.indexOf(f) === -1);
+  if (!list.length || typeof document === 'undefined' || typeof fetch !== 'function') return Promise.resolve();
+  return Promise.all(list.map(f => fetch('js/' + f + '.js' + deployStamp_()).then(r => (r.ok ? r.text() : null)).catch(() => null)))
+    .then(texts => texts.forEach((src, i) => {
+      if (src === null) { try { window.__missing(list[i]); } catch (e) { /* no list to name it in */ } return; }
+      const s = document.createElement('script');
+      s.text = src + '\n//# sourceURL=js/' + list[i] + '.js';
+      document.head.appendChild(s);
+    }));
 }
 
 /* THE KEYS THE SITE ASKS FOR AND THE BACKEND DOES NOT SEND. § */

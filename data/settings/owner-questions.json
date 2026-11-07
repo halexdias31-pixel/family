@@ -387,6 +387,18 @@
    "status": "open",
    "answer": "",
    "philosophy": false
+  },
+  {
+   "id": "front-pills",
+   "question": "Front menu: only Practice, Library, Videos, Coming soon, Posts, Messages, Profiles, Booking, Shop, Settings, Tools, Games. Where do Reels, Flyers, Posters and Verse go?",
+   "options": {
+    "a": "Reels under Videos; Flyers, Posters and Verse under Tools",
+    "b": "Reels under Videos; Flyers and Posters under Posts; Verse under Library",
+    "c": "Something else (say where)"
+   },
+   "status": "open",
+   "answer": "",
+   "philosophy": false
   }
  ]
 }

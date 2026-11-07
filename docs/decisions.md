@@ -56,6 +56,7 @@ become an owner question showing both; never pick one.
 - Controls you can't use are greyed, never hidden; never move, appear or disappear on tap; grouped in one row; respond instantly. P8 · 6 Nov
 - Any tap responds within 1 second (the checker flags over 1s). P10 · 6 Nov
 - Opening the site on a phone must feel instant — the owner's most repeated complaint. P10 · 6 Nov
+- Widget-only secondary files load on their card's first start, in one second batch after LATER (tiers.json `lazy`, history 1080). P10 · 7 Nov
 - Phone first, but it must work on a computer or any device. P10 · 6 Nov
 - Recently opened things keep working offline; answers sync when back online. P10, P11 · 6 Nov
 - Data from one source (in sync); seamless updates that never interrupt. P10 · 6 Nov
@@ -120,3 +121,4 @@ become an owner question showing both; never pick one.
 
 - 6 Nov · Q (open): the one person the site is ultimately for — owner said 'I suppose me, the owner… ask again later'. Students still win trade-offs between groups (P1). Re-ask.
 - 6 Nov · P1/P5 (future): department leads. A lead (e.g. a boxing coach friend) is a tutor with a lead role row; no management duties (the site runs admin). Incentive = a small "lead share" of sessions taught by coaches he recruits, taken from the business's share; paid automatically. Avoid a formal partnership (joint liability) — self-employed with revenue share; check with an accountant. Same pattern for every department. Lead-share % to be set by the owner (suggested 5–10%).
+- 7 Nov · P7 (applied, Sweep 04:36): the next menu is the best split (`facetBits_`, the menu-rule check's score), up to 2 bits (a split that good is good enough and sort_order decides, so Part never jumps ahead of Subject); a coarser question still comes before its finer one; a kind question and the front's What kind still come first (660, 4 Nov). Menu-rule findings 97 → 22.

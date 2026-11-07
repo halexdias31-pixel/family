@@ -285,3 +285,33 @@ Run 42315012684 (7bd3337) failed fast, flow 2/8 and 8/8, browser 2/8, 4/8 and 8/
 - browser 4/8: check/firstpaint.js skips Find 2, off in columns.json (as kp-centred does).
 - browser 8/8: check/centred.js under FLOW_LAYOUT holds the card in front to its place at rest instead of the old glass's middle; Find 2 skipped while off.
 Left: coupling over budget in data.js, shell-api.js, me-account.js, find-pages.js, finder-tags.js and search-bytes over, all from 1070, none a CI job.
+
+## Sweep 02:36
+
+- Theme: the dup in js/finder-tags.js (115 lines repeated across the two views). tools/finder-tags.js now writes the questions every view asks alike once (`same`) and merges them into each view at load; 252 → 135 lines, every view's content proven identical. Consumers unchanged.
+- owner_answers / claude_notes: not read (no ledger id at hand this sweep).
+Left: best-split menu order (a), lazy-load secondary files (c), coupling budgets in data.js, shell-api.js, me-account.js, find-pages.js.
+
+## Sweep 04:36
+
+- Theme: menus always ask the best split (rule 7, owner 6 Nov). `nextFacet` now picks, of the questions the one rule lets through, the highest `facetBits_` (bits, capped at 2 so a many-answer Part cannot beat Subject), sort_order breaking ties; a coarser question (`facetInside_`, memoised per list) still comes before its finer one; kind questions and the front stay first. logic-health uses the same score; check-funnel tests the new rule.
+- Menu-rule 97 → 22, logic-health 84.2% → 90.9%. Menu journeys (70) pass with LIB_PRIVATE=absent. Screenshots: front, Practice › Questions (asks Subject), Library › Art and Design.
+- claude_notes: 3 new (front-pills asked; inFinder_ error already fixed; Any-kind menu addressed). No owner_answers tab in the ledger.
+
+## Sweep 06:36
+
+- Theme: fast and light (rule 10). A second lazy batch (`window.LAZY`, history 1080): eight widget-only files (whiteboard/ink, flyer, poster, pixel, spotify, rewrite, favlinks) load, all at once, when one of their widgets first starts.
+- live-load --local: return 0.90 → 0.83 s, cold 8.18 → 7.88 s, boot files 96 → 88. Flow (widget/whiteboard/flyer/spotify journeys) and check/later.js pass with LIB_PRIVATE=absent.
+- claude_notes: 5 load-feel notes logged against this. No owner_answers tab in the ledger.
+Left: `games` (327 KB) into the batch once its readers are guarded.
+
+## CI after 1080
+
+- flow 8/8: the Mechanics journey saw mMake asked before "A specific model, or any?". Cause: d747459's best-split `nextFacet` scored mScope low (a part carries both answers). Fix: a `choose` facet leads its list like a kind question (`js/find-facets.js`); `js/finder-tags.js` regenerated.
+- fast: green locally after the fix with LIB_PRIVATE=absent (finder-tags regenerated, build stamp renewed).
+
+### CI after be32d73
+
+- fast: `tools/finder-tags.js --check` hit the 300 s per-check limit on the runner (about 250 s here): since 1070 (depth 3) and the best-split nextFacet it walks the whole funnel three menus deep. It now writes `tools/finder-tags.stamp` on every full run: a sha256 of every file the app reads (js/ but the checks, data/ but the health reports, index.html with BUILD_STAMP blanked, the fixture, jsdom-app, the tool itself) plus one of its own output. `--check` passes in 0.3 s when the stamp matches and re-walks otherwise; `--full` forces the walk. A full re-run gave a byte-identical js/finder-tags.js.
+- browser 2/8: data/logic-health.json was stale after the mScope `choose` change; regenerated.
+- `node tools/health.js --changed` now warns when data/logic-health.json is older than a changed funnel input, or js/finder-tags.js is not stamped for the current inputs.

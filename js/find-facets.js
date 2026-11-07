@@ -336,14 +336,56 @@ function facetEcho_(items, facet) {
   return '';
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing: the first in the tab's order that the one rule lets through. */
+/* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is
+   good enough and the tab's order decides, so Part (twenty-odd answers) never jumps in front of Subject. */
+const FACET_BITS_ENOUGH = 2;
+function facetBits_(items, facet) {
+  const vs = facetValues(items, facet), t = vs.reduce((a, v) => a + v.n, 0);
+  const bits = t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0;
+  return Math.min(FACET_BITS_ENOUGH, Math.round(bits * 100) / 100);
+}
+
+/* THE NEXT QUESTION WORTH ASKING, or nothing (rule 7, owner 6 Nov): of those the one rule lets through, the best split;
+   the tab's sort_order only breaks ties. A kind question still comes first (660, front 4 Nov). */
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
+  const ok = [];
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
-    if (!facetWhy_(items, facet)) return facet;
+    if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
+    const vals = facetValues(items, facet);
+    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question (mScope, owner 6 Nov) leads its list. */
+    if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
+    ok.push({ facet, bits: facetBits_(items, facet) });
   }
-  return null;
+  const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);
+  let best = pick(ok);
+  /* A finer question splits more, but its coarser one comes first (the subtype rule): Subject before Topic. */
+  for (let hop = 0; best && hop < 4; hop++) {
+    const up = pick(ok.filter(c => c !== best && facetInside_(best.facet, c.facet, items) && !facetInside_(c.facet, best.facet, items)));
+    if (!up) break;
+    best = up;
+  }
+  return best ? best.facet : null;
+}
+
+/* EVERY ANSWER OF F SITS INSIDE ONE ANSWER OF G, and G has two answers at least: F is G asked finer. */
+/* One walk per list and pair, kept as FACET_TALLY keeps its tallies: a tap never re-walks the library. */
+const INSIDE_MEMO_ = new WeakMap();
+function facetInside_(F, G, items) {
+  let m = INSIDE_MEMO_.get(items);
+  if (!m) INSIDE_MEMO_.set(items, m = {});
+  const key = F.field + '>' + G.field;
+  if (key in m) return m[key];
+  const to = {};
+  let any = 0;
+  for (const x of items) {
+    const a = facetOwn_(F, x), b = facetOwn_(G, x);
+    if (!a.length || !b.length) continue;
+    if (b.length !== 1) return (m[key] = false);
+    const kb = spellKey_(b[0]);
+    for (const v of a) { const k = spellKey_(v); if (to[k] && to[k] !== kb) return (m[key] = false); to[k] = kb; any++; }
+  }
+  return (m[key] = any > 0 && new Set(Object.values(to)).size > 1);
 }
 
 /* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: of those held back only for having
