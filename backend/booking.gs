@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-06-one-system-1060";
+const BOOKING_VERSION = "2026-11-07-refund-kept-1061";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -184,7 +184,7 @@ function participantsOf(jobId) {
       }
       return;
     }
-    if (act === ACT.DECLINE)  { if (target) delete state[target]; return; }  // removes THEM
+    if (act === ACT.DECLINE)  { if (target && !(state[target] && state[target].refundDue)) delete state[target]; return; }  // a refund owed stays
     const cur = state[who] || { name: who, role: norm(e.role) === 'tutor' ? 'tutor' : 'client' };
 
     /* ---------- A REFUND OWED CANNOT BE ERASED BY A LATER EVENT § */
@@ -209,7 +209,7 @@ function participantsOf(jobId) {
     if (act === 'Confirm')   cur.status = BM.BOOKED;   // written by the payment return leg only
     state[who] = cur;
     // Accepting someone puts THEM at Accepted too — the agreement is mutual by definition.
-    if (act === ACT.ACCEPT && target && state[target]) state[target].status = BM.AGREED;
+    if (act === ACT.ACCEPT && target && state[target] && state[target].status !== 'Withdrawn') state[target].status = BM.AGREED;
   });
   return Object.keys(state).map(k => state[k]);
 }
