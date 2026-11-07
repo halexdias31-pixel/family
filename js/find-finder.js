@@ -273,12 +273,12 @@ function thingCard_(x, credits) {
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
     const price = !isShop_(x) ? ''
       : x.level > 0
-        ? `<span class="price ${myLevel >= x.level ? 'can' : ''}">${
-            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span>`
+        ? `<span class="qtags"><span class="qtag price ${myLevel >= x.level ? 'can' : ''}">${
+            myLevel >= x.level ? 'Level ' + x.level + ' — yours' : 'Level ' + x.level}</span></span>`
       : x.cost === undefined
         ? ''   /* "Not priced yet" is its Price tag now (499) */
-      : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span>`;
+      : `<span class="qtags"><span class="qtag price ${free ? 'free' : afford ? 'can' : ''}">${
+          free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span></span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */

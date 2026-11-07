@@ -117,7 +117,7 @@ function bcItem_(item, s) {
   /* THE TICK ON THE LEFT, THE THING IN WORDS BESIDE IT — one line, as a checklist reads (`.kid-row` lays out a tile and its caption). */
   const line = `<div class="kid-row bc-line"><div class="tile-row">${tile_({ icon: s.sorted ? 'tick' : s.expired || (s.auto && s.auto.ok === false) ? 'flag' : 'plus', label: item.title,
     note: bcStatus_(s), tone: s.sorted ? 'buy' : (s.expired || s.soon) ? 'admin' : '', on: BC.open === item.id, act: 'bc-open', data: { id: item.id } })}</div>
-    <p class="biz-cap">${esc(item.title)} <span class="biz-when">· ${esc(bcStatus_(s))}</span></p></div>`;
+    <p class="biz-cap">${esc(item.title)} <span class="qtags biz-when"><span class="qtag">${esc(bcStatus_(s))}</span></span></p></div>`;
   if (BC.open !== item.id) return `<div class="bc-item" data-bc="${esc(item.id)}">${line}</div>`;
   const t = s.tick || {};
   return `<div class="bc-item is-open" data-bc="${esc(item.id)}">${line}

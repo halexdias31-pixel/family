@@ -64,7 +64,7 @@ const bizState_ = (item, iso) => {
 };
 const bizRow_ = id => (BIZ.list || []).find(r => r.id === id) || {};
 
-const bizCap_ = (item, st) => `${esc(item.title)} <span class="biz-when">· ${esc(item.due.toLowerCase())}</span>${
+const bizCap_ = (item, st) => `${esc(item.title)} <span class="qtags biz-when"><span class="qtag">${esc(item.due.toLowerCase())}</span></span>${
   st ? ` <b class="biz-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b>` : ''}`;
 /* THE CARD'S OWN LINE SAYS ONLY A REFUSAL NOW. § */
 const bizSaid_ = () => BIZ.error || '';
@@ -133,7 +133,7 @@ function postsWaitCard_() {
   const wait = typeof awaiting_ === 'function' && awaiting_();
   const n = wait ? 0 : list.length;
   const item = p => `<div class="biz-item post-wait-item" data-id="${esc(p.id)}">
-      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="biz-when">· ${esc(p.when || '')}</span></p>
+      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="qtags biz-when"><span class="qtag">${esc(p.when || '')}</span></span></p>
       ${p.caption ? `<p class="app-line">${esc(p.caption)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'on the feed', act: 'post-open', data: { id: p.id } })}${
         tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: p.id, on: '1' } })}${
@@ -162,7 +162,7 @@ function appsInner_(wait) {
   const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
-      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="biz-when">· ${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></p>
+      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
       ${line('Teaches', a.subjects)}${line('Qualifications', a.qualifications)}
       ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued '))}
       ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
@@ -264,7 +264,7 @@ function reportsInner_(wait) {
   const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
   const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="biz-when">· ${esc(r.kind)}</span></p>
+      <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
       ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
       ${r.body ? `<p class="faint rep-who">${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}: “${esc(r.body)}”</p>` : ''}
       <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', r.rank, when(r.at)].filter(Boolean).join(' · '))}</p>
@@ -274,7 +274,7 @@ function reportsInner_(wait) {
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
   const msgs = REPS.msgs || [];
   const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
-      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="biz-when">· ${esc(when(r.at))}</span></p>
+      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="qtags biz-when"><span class="qtag">${esc(when(r.at))}</span></span></p>
       <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
       ${r.body ? `<p class="faint rep-who">“${esc(r.body)}”</p>` : ''}${r.files ? `<p class="faint rep-who">${r.files} attachment${r.files === 1 ? '' : 's'} — in the messages tab</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, decision: 'dismiss', kind: 'message' } })}</div>
