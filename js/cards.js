@@ -121,7 +121,7 @@ function profQuals_(t) {
     chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
   }
   return chips.length
-    ? `<div class="prof-cap">Qualifications</div><div class="prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+    ? `<div class="prof-cap">Qualifications</div><div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
 }
 
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
@@ -176,7 +176,7 @@ function profHeat_(names) {
   const pts = names.map(n => byName[norm(n)])
     .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
   const online = names.some(n => /^online$/i.test(String(n).trim()));
-  const tail = online ? `<div class="prof-tags prof-teach"><span class="prof-tag">Online</span></div>` : '';
+  const tail = online ? `<div class="qtags prof-tags prof-teach"><span class="prof-tag">Online</span></div>` : '';
   if (!pts.length) return online ? `<div class="prof-cap">Tutors at</div>${tail}` : '';
   let z = 12;
   for (; z > 9; z--) {
@@ -355,7 +355,7 @@ function findCard(x) {
       ${/* ---------- EXPERIENCE, GROUP SIZE AND SESSION LENGTH, AS CHIPS § */
             ''}
       ${profFacts_(t).length
-        ? `<div class="prof-cap">At a glance</div><div class="prof-tags prof-teach prof-facts">${profFacts_(t)
+        ? `<div class="qtags prof-tags prof-teach prof-facts">${profFacts_(t)
              .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* ---------- THE ROWS, AND EVERY ONE OF THEM IS DROPPED WHEN IT IS EMPTY § */
             ''}
@@ -369,9 +369,9 @@ function findCard(x) {
             ''}
       ${(() => {
         const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-        return (main.length ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${
+        return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
                   teachGroups_(main).map(g => teachChip_(g, true)).join('')}</div>` : '')
-             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${
+             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
                   teachGroups_(also).map(g => teachChip_(g, false)).join('')}</div>` : '');
       })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS § */
@@ -397,7 +397,6 @@ function findCard(x) {
       ${(t.rooms || []).length
         ? (t.rooms || []).slice(0, 4).map(r => roomRow(r.name || 'Room', r.max, r.rate)).join('')
         : roomRow('The room', t.maxCapacity, t.bestRate)}
-      ${row('Notice', t.minNoticeDays ? t.minNoticeDays + ' days' : 'Book any time')}
     </div>`;
   }
 
@@ -516,8 +515,9 @@ function bookPrefill_() {
   /* THE FIRST TERM ON OFFER (the soonest), and the child when there is only one seat-holder to name. */
   const terms = only(bookStep_('interval'));
   if (!(BOOKING.interval || []).length && terms.length) { BOOKING.interval = [terms[0]]; done('interval'); }
-  const kids = only(bookStep_('kids')), named = kids.filter(k => k !== UNNAMED);
-  const kid = named.length === 1 ? named[0] : kids.length === 1 ? kids[0] : '';
+  /* NEVER THE UNNAMED SEAT: it is no child the site knows, and an admin with no client yet kept it ticked beside the real child. */
+  const named = only(bookStep_('kids')).filter(k => k !== UNNAMED);
+  const kid = named.length === 1 ? named[0] : '';
   if (!(BOOKING.kids || []).length && kid) { BOOKING.kids = [kid]; done('kids'); }
 }
 
@@ -529,6 +529,7 @@ on('book-with', el => {
   if (d.tutor) BOOKING.tutor = d.tutor;
   if (d.subject && !(BOOKING.subjects || []).length) { BOOKING.subjects = [d.subject]; BOOKING.done = uniq((BOOKING.done || []).concat(['subjects'])); }
   if (d.level && !BOOKING.level) BOOKING.level = d.level;
+  BOOK_OPEN = true;
   finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
   go('stuff');
 });

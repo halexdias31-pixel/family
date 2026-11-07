@@ -59,14 +59,15 @@ const PRICE_ROWS = [
   { key: 'venue',   label: 'Venue',    kind: 'rate-add',  group: 'rate',
     control: 'l-location',
     value: L => L.loc || '',
-    perHour: L => L.venueRate || 0,
+    /* NET OF THE SPACE (owner, 7 Nov): "+ £1/h" then "− £1/h" cancelled out on two rows, so Venue says the net. */
+    perHour: L => (L.hosting ? 0 : L.venueRate) || 0,
     atCost: true },
 
   { key: 'host',    label: 'Host',     kind: 'rate-add',  group: 'rate',
     control: 'host-toggle',
     perHour: L => (L.hosting && L.venueRate) ? -L.venueRate : 0,
     atCost: true,
-    show:  L => !!L.venueRate },
+    show:  L => false },
 
   { key: 'split',  label: 'Split with', kind: 'total-mult', group: 'shape',
     /* The count comes from the addresses. § */
@@ -165,6 +166,14 @@ function priceCells(row, L, fmt) {
     /* A DASH, not a sentence. "no change" is three words where the column holds numbers, and it
        is the only entry in it that has to be read rather than scanned. A dash says the same thing
        and keeps the column a column. */
+    /* WITH NO TUTOR CHOSEN THE LEVEL LINE CARRIES THE BASE RATE (owner, 7 Nov): the level is what the open rate follows. */
+    if (row.key === 'level' && (!L.tutor || /^no preference$/i.test(L.tutor)) && L.level) {
+      const at = row.of(L) * (m || 1);
+      out.mul = m && m !== 1 ? '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0) : '';
+      out.rate = fmt.money(at) + '/h';
+      Object.assign(out, running());
+      return out;
+    }
     if (!m || m === 1) { out.mul = row.value && row.value(L) ? '—' : ''; return out; }
     const base = row.of(L);
     const perHour = base * (m - 1);
@@ -187,7 +196,8 @@ function priceCells(row, L, fmt) {
   /* The base rate is itself a multiplier on nothing — the chain starts here — so it shows in the
      × column too. Without it the column began at "× 1.01" with no statement of what was being
      multiplied. */
-  out.mul   = row.isBase ? '× ' + Number(perHour).toFixed(Number(perHour) % 1 ? 2 : 0) : '';
+  /* NO "× 30" BESIDE "£30.00/h" (owner, 7 Nov): the same figure twice read as a multiplier nobody could explain. */
+  out.mul   = '';
   out.rate  = row.isBase ? money(perHour) + '/h' : signed(perHour, '/h');
   Object.assign(out, running());
   return out;

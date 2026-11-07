@@ -381,7 +381,7 @@ function staffInner_(wait) {
   const list = STAFF.list || [];
   const n = list.filter(s => !staffAgreed_(s)).length;
   const item = s => `<div class="biz-item staff-item" data-id="${esc(s.personId)}">
-      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="biz-when">· ${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span>
+      <p class="biz-cap"><b>${esc(s.name)}</b> <span class="qtags biz-when"><span class="qtag">${esc(s.rank === 'admin' ? 'admin' : 'staff')}</span></span>
         ${staffAgreed_(s) ? '' : `<b class="biz-flag">${s.termsVersion ? 'Old terms' : 'Not agreed'}</b>`}</p>
       <p class="faint staff-terms">${staffAgreed_(s) ? 'Agreed to the terms on ' + esc(s.termsAt) : s.termsVersion
         ? 'Agreed to version ' + esc(s.termsVersion) + ', not the current ' + esc(termsVersion_()) : 'Has not agreed to the tutor terms'}</p>

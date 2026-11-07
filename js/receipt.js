@@ -266,6 +266,8 @@ function bookerCard() {
 }
 
 function drawBooker_() {
+  /* A CHILD THE CHOSEN CLIENT DOES NOT HAVE IS NEVER ON THE FORM, however BOOKING got it (a draft, a card, a payload that changed). */
+  if (typeof bookKidsFor_ === 'function' && !(typeof awaiting_ === 'function' && awaiting_())) bookKidsFor_();
   /* ---------- THERE IS NO SECOND THING TO DRAW § */
   const L = bookPrice();
 

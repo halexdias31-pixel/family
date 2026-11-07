@@ -1512,9 +1512,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 
 /* The price. Always shown, even when it is nothing — "0 credits" tells somebody it is free, and a
    blank space tells them the app forgot. */
-.price { font-size: .8rem; color: var(--dim); }
-.price.free { color: var(--green); }
-.price.can  { color: var(--gold); }
+.qtags:has(> .price) { display: inline-flex; }
+.qtag.price.free { --tag: var(--green); }
+.qtag.price.can  { --tag: var(--gold); }
 /* NOBODY HAS PRICED IT. § */
 
 /* Something an admin has switched off — a tutor, a resource, a post. § */
@@ -4990,7 +4990,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   transition: color var(--quick) ease, background var(--quick) ease,
               border-color var(--quick) ease, transform var(--quick) ease;
 }
-.tile:is(:active, .is-pressed) { background: var(--press-wash); border-color: var(--line); transform: scale(var(--press-small)); }
+.tile:is(:active, .is-pressed):not(.kp-key) { background: var(--press-wash); border-color: var(--line); transform: scale(var(--press-small)); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
 .tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
@@ -5972,22 +5972,19 @@ button.scr-sq { cursor: pointer; }
 }
 @media (min-width: 700px) { .qp-essay { --sheet-lines: 12; } }
 .qp-sheet {
-  display: block; margin: 0; padding: 12px 16px; box-sizing: border-box; cursor: text;
-  background: var(--paper); color: var(--paper-ink); border-radius: var(--r);
+  display: block; margin: 0; padding: 14px 18px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper); border-radius: var(--pill-r);
 }
 /* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
    on the card, where each reads at about 11:1. */
 .qp-sheet:focus-within { box-shadow: 0 0 0 3px var(--gold); }
 .qp-mark.is-right > .qp-sheet { box-shadow: 0 0 0 3px var(--good); }
 .qp-mark.is-near > .qp-sheet { box-shadow: 0 0 0 3px var(--warn); }
-/* THE DRAWING IS THE SHEET'S WRITING AREA: § */
+/* THE WRITING AREA, ON THE CREAM PILL (1030): no ruled lines, as no other answer box has them. */
 .qp-sheet > .kp-field.kp-essay > .kp-show {
   padding: 0; font: 400 16px/var(--sheet-line) var(--font);
   min-height: min(calc(var(--sheet-line) * var(--sheet-lines)), var(--sheet-room));
   max-height: var(--sheet-room);
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-line) - 1px),
-    var(--paper-rule) calc(var(--sheet-line) - 1px), var(--paper-rule) var(--sheet-line));
-  background-attachment: local;
   overscroll-behavior: contain;
 }
 .qp-sheet > .kp-field.kp-essay .kp-caret { height: 1.2em; }
@@ -6123,7 +6120,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
    pixel of it for the box above the pad; a tablet held by a child has room for a key a thumb cannot
    miss. */
 .kp-key {
-  min-height: 48px; min-width: 0; padding: 0;
+  width: auto; height: auto; min-height: 48px; min-width: 0; padding: 0;
   background: var(--kp-face); color: var(--kp-ink);
   border: 0; border-radius: var(--r);
   font: 600 1.3rem/1 var(--font); cursor: pointer;
@@ -6537,8 +6534,9 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 
 /* ---------- BUSINESS RECORDS: ADMIN PAGES OF THE SETTINGS COLUMN — see js/records.js § */
 .biz-item + .biz-item { margin-top: .45rem; }
-.biz-cap { font-size: .74rem; color: var(--dim); margin: 0 0 .2rem; line-height: 1.3; }
-.biz-when { color: var(--faint); }
+.biz-cap { font-size: .74rem; color: var(--ink); margin: 0 0 .2rem; line-height: 1.3; }
+/* THE STATUS IS A TAG, NOT A GREY TAIL (owner: tags, not clutter), inline after the title. */
+.biz-cap .qtags { display: inline-flex; vertical-align: middle; margin-left: .3rem; }
 .biz-flag { font-weight: 700; margin-left: .2rem; }
 .biz-item.is-soon .biz-flag { color: var(--warn); }
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
@@ -6962,7 +6960,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qr-en { margin: 0 0 .4rem; font-size: .95rem; line-height: 1.5; }
 .qr-credit { margin: .3rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
 /* THE BIBLE IN TWO TRANSLATIONS, AND A WRITING'S OWN WORDS (499). */
-.bb-tr { margin: .5rem 0 .1rem; font: 600 .6rem/1.2 var(--mono); color: var(--faint); letter-spacing: .05em; }
+.bb-tr { margin: .5rem 0 .1rem; }
 .bb-credit, .wt-credit { margin: .4rem 0 0; font: 400 .6rem/1.4 var(--mono); color: var(--faint); }
 .wt-text { margin: 0; font-size: .95rem; line-height: 1.55; }
 
@@ -7196,3 +7194,32 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .notify-door .notify-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 .post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }
+
+/* ---------- FIND › BOOKING, FINISHED (owner, 7 Nov): no box, tags on top, cream-pill answers, two columns when nothing is priced ---------- */
+#bookr .rc, .page .rc { background: none; border: 0; border-radius: 0; padding: .2rem 0 .4rem; }
+.rc-head .qtags { margin: 0 0 .35rem; }
+/* AN UNPRICED FORM HAS NO FIGURES, so its three figure columns and their heading give the answer the room. */
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) { grid-template-columns: minmax(6.2em, max-content) minmax(0, 1fr); }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row.is-cols,
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row :is(.bk-m, .bk-r) { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row:not(.rc-total) .bk-t { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-v { display: none; }
+.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-t { grid-column: 2; }
+/* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
+.rc:not(.is-done) .bk-row { padding-block: .12rem; align-items: center; }
+.rc:not(.is-done) .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
+.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-v > .bk-in, .rc:not(.is-done) .bk-v > .bk-face {
+  background-color: var(--paper); color: var(--paper-ink); border-radius: 999px; padding: .2em 1.4em .2em .8em; }
+.rc:not(.is-done) .bk-v > .bk-in { padding-right: .8em; }
+.rc:not(.is-done) .bk-face > .bk-sel { background-color: transparent; border-radius: 999px; }
+.rc:not(.is-done) .bk-face > .bk-said, .rc:not(.is-done) .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
+.rc:not(.is-done) .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
+.rc:not(.is-done) .bk-face { --sel-arrow: var(--paper-dim);
+  background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%), linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
+  background-position: right calc(.7em + 4px) center, right .7em center; background-size: 4px 4px; background-repeat: no-repeat; }
+.rc:not(.is-done) .bk-sel:disabled, .rc:not(.is-done) .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
+.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-face > .bk-said { text-align: left; text-align-last: left; }
+.rc:not(.is-done) .bk-v > .bk-sel { padding-right: 1.6em; }
+.rc:not(.is-done) .bk-face > .bk-sel { background-image: none; }
+.rc:not(.is-done) .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
+.rc:not(.is-done) .bk-v > .bk-in { text-align: left; }

@@ -25,9 +25,8 @@ jobs:
   check:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    # The browser groups report but do not block (owner, 4 Nov: Find first; 870 routes core browser checks back to blocking).
-    continue-on-error: ${{ startsWith(matrix.name, 'browser') }}
+    timeout-minutes: 20
+    # REQUIRED = fast + core journeys only (owner, 7 Nov, 1090): Find, library, questions, settings, bookings; ~10 min.
     strategy:
       fail-fast: false
       matrix:
@@ -41,21 +40,6 @@ jobs:
           - { name: 'flow 6/8', cmd: 'FLOW_PART=6/8 node --max-old-space-size=3000 js/check-flow.js' }
           - { name: 'flow 7/8', cmd: 'FLOW_PART=7/8 node --max-old-space-size=3000 js/check-flow.js' }
           - { name: 'flow 8/8', cmd: 'FLOW_PART=8/8 node --max-old-space-size=3000 js/check-flow.js' }
-          - { name: 'browser 1/8', cmd: 'node js/check-all.js --slow=1/8 -v', browser: true }
-          - { name: 'browser 2/8', cmd: 'node js/check-all.js --slow=2/8 -v', browser: true }
-          - { name: 'browser 3/8', cmd: 'node js/check-all.js --slow=3/8 -v', browser: true }
-          - { name: 'browser 4/8', cmd: 'node js/check-all.js --slow=4/8 -v', browser: true }
-          - { name: 'browser 5/8', cmd: 'node js/check-all.js --slow=5/8 -v', browser: true }
-          - { name: 'browser 6/8', cmd: 'node js/check-all.js --slow=6/8 -v', browser: true }
-          - { name: 'browser 7/8', cmd: 'node js/check-all.js --slow=7/8 -v', browser: true }
-          - { name: 'browser 8/8', cmd: 'node js/check-all.js --slow=8/8 -v', browser: true }
-          # THE SIX THAT EACH NEAR THE 900 s LIMIT ON THIS RUNNER (840): one a job, nothing beside it, CHECK_LIMIT_S below.
-          - { name: 'heavy 1/6', cmd: 'node js/check-all.js --heavy=1/6 -v', browser: true }
-          - { name: 'heavy 2/6', cmd: 'node js/check-all.js --heavy=2/6 -v', browser: true }
-          - { name: 'heavy 3/6', cmd: 'node js/check-all.js --heavy=3/6 -v', browser: true }
-          - { name: 'heavy 4/6', cmd: 'node js/check-all.js --heavy=4/6 -v', browser: true }
-          - { name: 'heavy 5/6', cmd: 'node js/check-all.js --heavy=5/6 -v', browser: true }
-          - { name: 'heavy 6/6', cmd: 'node js/check-all.js --heavy=6/6 -v', browser: true }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -128,6 +112,21 @@ jobs:
           - { name: 'checks', cmd: 'node js/check-all.js --tier=secondary -v' }
           - { name: 'journeys 1/2', cmd: 'FLOW_TIER=secondary FLOW_PART=1/2 node --max-old-space-size=3000 js/check-flow.js' }
           - { name: 'journeys 2/2', cmd: 'FLOW_TIER=secondary FLOW_PART=2/2 node --max-old-space-size=3000 js/check-flow.js' }
+          # The slow browser and heavy groups (840): report-only since the core freeze (1090), so they never hold up a commit.
+          - { name: 'browser 1/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=1/8 -v' }
+          - { name: 'browser 2/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=2/8 -v' }
+          - { name: 'browser 3/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=3/8 -v' }
+          - { name: 'browser 4/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=4/8 -v' }
+          - { name: 'browser 5/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=5/8 -v' }
+          - { name: 'browser 6/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=6/8 -v' }
+          - { name: 'browser 7/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=7/8 -v' }
+          - { name: 'browser 8/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=8/8 -v' }
+          - { name: 'heavy 1/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=1/6 -v' }
+          - { name: 'heavy 2/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=2/6 -v' }
+          - { name: 'heavy 3/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=3/6 -v' }
+          - { name: 'heavy 4/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=4/6 -v' }
+          - { name: 'heavy 5/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=5/6 -v' }
+          - { name: 'heavy 6/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=6/6 -v' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

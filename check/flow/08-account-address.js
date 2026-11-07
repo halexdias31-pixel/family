@@ -107,6 +107,10 @@ check('every several-answer question on the booking card is the same dropdown as
   B.how = 'Instant class'; B.n = '3';
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
+  /* THE FORM PREFILLS THE SOONEST TERM (1040 friction); this journey picks from an empty question. */
+  B.interval = []; B.done = (B.done || []).filter(x => x !== 'interval');
+  try { w.__t.go('booking', false, true); } catch (e) {}
+  await wait(60);
   const bad = [];
   const shape = html => {
     const box = d.createElement('div'); box.innerHTML = html;
@@ -227,6 +231,30 @@ check('changing the client on a booking leaves only that client\'s children on i
   if (row && /Amy|Abe/.test(row.textContent)) bad.push('the Child row still shows Ann\'s children under Bob: ' + JSON.stringify(row.textContent.replace(/\s+/g, ' ').trim()));
   set('kids', 'Ben Client');
   if ((B.kids || []).join() !== 'Ben Client') bad.push('Bob\'s child is not the one on the booking: ' + JSON.stringify(B.kids));
+  return bad;
+});
+
+/* ---------- AND ON EVERY OTHER WAY IN (owner, 7 Nov: two of four children offered were another client's) ----------
+   The admin's own client row, not a stale `USER.children`, and a child set straight into BOOKING never drawn. */
+check('the Child list holds only the chosen client\'s children, the admin booking for themselves included', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'], children: ['Ann Kid', 'Bob Kid'] });
+  const D = w.__t.DATA();
+  D.clients = [{ name: 'Test Admin', children: ['Ann Kid'] }, { name: 'Bob Client', children: ['Bob Kid'] }];
+  const B = w.__t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  Object.assign(B, { how: 'Instant class', n: '3', client: 'Test Admin', kids: ['Ann Kid', 'Bob Kid'] });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const bad = [];
+  const ks = d.querySelector('#bookr select[data-step="kids"]');
+  if (!ks) return ['the booking form draws no Child list — NOTHING was checked'];
+  const offered = [...ks.options].map(o => o.value);
+  if (offered.indexOf('Bob Kid') !== -1) bad.push('Bob\'s child is offered to Test Admin: ' + JSON.stringify(offered));
+  if (offered.indexOf('Ann Kid') === -1) bad.push('Test Admin\'s own child is not offered: ' + JSON.stringify(offered));
+  if ((B.kids || []).indexOf('Bob Kid') !== -1) bad.push('Bob\'s child stayed on Test Admin\'s booking: ' + JSON.stringify(B.kids));
   return bad;
 });
 

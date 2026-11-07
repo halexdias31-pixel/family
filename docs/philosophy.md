@@ -45,6 +45,19 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 11. **Frictionless.** Booking, messaging, paying and homework in the fewest taps, no dead ends. Checks: `friction`, `a11y`, `console`
 12. **The owner decides, the system does the rest.** Sweeps decide when the rules point one way, ask only when they don't. Checks: `philosophy`, `owner-questions`
 
+## How we work (owner, 7 Nov)
+
+Fast and efficient, measured in weeks, not months. Quality first: each change done properly once. Freeze whatever slows the
+core (now: Find, Library, Questions, Settings, Bookings). Decide by these rules and log it; ask only on contradictions or
+irreversible steps. Report only results and "safe to merge". Usage heavy (parallel jobs) until the owner says otherwise.
+Stable = the core works on a phone with no errors and CI is green 3 runs in a row. Claude merges its own work into main once
+CI is green (the Apps Script deploy stays the owner's). Frozen features return one at a time after stable, most-used first.
+Unused code is deleted, not kept switched off: git history is the attic.
+Priority: Questions first among the core; bugs always before anything new; perfect the papers we have before adding more.
+Asking: Claude writes its guess before each question; when guesses match the owner's answers ~9/10 in an area, it stops
+asking there and decides. Ask only when unsure AND a wrong guess is costly (money, law, deletion, students).
+Guess tally (7 Nov): 3 right of 3 answered.
+
 ## How the loop works
 
 Each sweep (the scheduled prompt) does, in order:

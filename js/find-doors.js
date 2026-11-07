@@ -187,7 +187,31 @@ function doorAsk_(p) {
 function doorItems_() {
   return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_(), videoDoorItems_());
 }
+/* SETTINGS ONLY (owner, 7 Nov): no Venues or Booking on the signed-out front. */
 function findSignedOut_(x) { return kindTop_(x) === 'Settings'; }
+
+/* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
+/* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */
+const VENUE_PIX = {
+  library: ['', '', '.......kk', '......kssk', '.....kssssk', '....kssssssk', '...kkkkkkkkkk', '...kwwwwwwwwk', '...kckcwwckck', '...kckcwwckck', '...kwwwwwwwwk',
+    '...kckckkckck', '...kckctnckck', '...kwwwtnwwwk', '.kkkkkkkkkkkkkk', '.ssssssssssssss'],
+  church: ['', '.......y', '......kyk', '......kwk', '......kwk', '.....kkwkk', '.....kwwwk', '..kkkkwcwkkkk', '..kwwwwcwwwwk', '..kwckwwwkcwk', '..kwckwwwkcwk',
+    '..kwwwwwwwwwk', '..kwwwktkwwwk', '..kwwwktkwwwk', '.kkkkkkkkkkkkkk', '.ggggggggggggggg'],
+  school: ['', '', '.......rr', '.......kr', '.......k', '..kkkkkkkkkkk', '..krrrrrrrrrk', '..kwwwwwwwwwk', '..kckckwkckck', '..kckckwkckck', '..kwwwwwwwwwk',
+    '..kckckkkckck', '..kwwwktkwwwk', '..kwwwktkwwwk', '.kkkkkkkkkkkkkk', '.ggggggggggggggg'],
+  hall: ['', '', '', '', '...kkkkkkkkkk', '..kttttttttttk', '.kttttttttttttk', '.kwwwwwwwwwwwwk', '.kwckwckwckwckk', '.kwckwckwckwckk', '.kwwwwwwwwwwwwk',
+    '.kwwwwwkkwwwwwk', '.kwwwwwknwwwwwk', '.kwwwwwknwwwwwk', 'kkkkkkkkkkkkkkkk', 'gggggggggggggggg'],
+  house: ['', '', '', '.......kk', '......krrk', '.....krrrrk', '....krrrrrrk', '...krrrrrrrrk', '....kwwwwwwk', '....kckwwckk', '....kckwwckk',
+    '....kwwwwwwk', '....kwwtwwwk', '....kwwtwwwk', '..kkkkkkkkkkkk', '..gggggggggggg'],
+};
+function venueShape_(v) {
+  const s = [v.title, v.description, [].concat(v.focus || []).join(' ')].join(' ');
+  return /librar/i.test(s) ? 'library' : /church|chapel|synagogue|mosque|temple/i.test(s) ? 'church'
+    : /school|college|academy|universit/i.test(s) ? 'school' : /home|house|flat/i.test(s) ? 'house' : 'hall';
+}
+function venueDoorCard_(x) {
+  return `<div class="card fc person venue-door" aria-label="${esc(x.name)}">${tagRow_(x)}<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure></div>`;
+}
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
 const SETTINGS_HOME = { account: 'Student', family: 'Parent', staff: 'Staff', apprentice: 'Apprentice', biz: 'Business', site: 'Site' };

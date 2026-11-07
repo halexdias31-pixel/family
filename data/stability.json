@@ -94,12 +94,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 50,
+   "count": 52,
    "weight": 0.02,
    "cap": 10,
    "off": 1,
    "where": {
-    "lines": 18
+    "lines": 19
    }
   },
   {
@@ -110,7 +110,7 @@
    "cap": 10,
    "off": 0.5,
    "where": {
-    "backend/dopost.gs": 4635
+    "backend/dopost.gs": 4655
    }
   },
   {
@@ -122,12 +122,12 @@
    "off": 0.4,
    "where": {
     "js/core.js priceFrom": 251,
-    "js/find-aloud.js stuffItemsRaw_": 161,
+    "js/find-aloud.js stuffItemsRaw_": 163,
     "js/find-parts.js typeset_": 230,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
-    "backend/doget.gs doGet": 1204,
-    "backend/dopost.gs doPost": 3592,
+    "backend/doget.gs doGet": 1205,
+    "backend/dopost.gs doPost": 3612,
     "backend/setup.gs dataProblems": 282
    }
   },
@@ -142,7 +142,7 @@
   }
  ],
  "secondary": {
-  "score": 80.9,
+  "score": 81.9,
   "verdict": "Steady, with duct tape worth paying down.",
   "signals": [
    {
@@ -168,13 +168,12 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 77,
+    "count": 57,
     "weight": 0.05,
     "cap": 10,
-    "off": 3.9,
+    "off": 2.9,
     "where": {
      "js/arcade.js": 7,
-     "js/board.js": 20,
      "js/collections.js": 7,
      "js/games.js": 11,
      "js/layout.js": 1,
