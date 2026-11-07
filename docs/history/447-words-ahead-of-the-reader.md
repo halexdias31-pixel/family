@@ -67,3 +67,13 @@ Second visit with the device copy: no call for anything kept, first cards whole 
 Front end by push. Backend (`libGen` in doGet, `gen` on `libItems`): versions `2026-10-25-lib-prefetch`, the
 usual Deploy → New version. Until then the phone has no generation and keeps nothing on the device: prefetch
 still works.
+
+## Later: the first ask never went (with the private data)
+
+- **Cancelled by the other finder.** The question page's first ask waits 700 ms on one shared timer (`LIB.ahead`); the
+  second finder filling its own pages cleared it, so nothing was asked until the reader turned a page. Now one timer per finder.
+- **Counted in parts.** A waiting question is one page per part, so "the first 10 cards" were one question's parts.
+  `libAheadCards_` now counts by question.
+- **Chunks one after another.** Over 60 ids the second chunk went only after the first landed, a round trip late. `libPump_`
+  sends every chunk at once (`libSend_`).
+- The journeys use KS2 2024 P3: AQA 8462 2F has ten questions, so once whole it is ten cards, under the journey's N + 4.

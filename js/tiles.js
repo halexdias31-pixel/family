@@ -290,8 +290,9 @@ function isMe_(x) {
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
-    ${/* ---------- `Book with them` WAS HERE § */
-          ''}
+    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered; never on your own card or a child's. */
+          !isMe_(x) && !childView_() && t.listed !== false ? tile_({ icon: 'book', label: 'Book', tone: 'buy',
+              act: 'book-with', data: { tutor: x.name || '' } }) : ''}
     ${/* SILVER, IN THE ORDINARY ROW. § */
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
@@ -411,7 +412,7 @@ function cardTiles_(x) {
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
   const mine = cardCore_(x) + cardExtras_(x)
-    + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
+    + tile_(hear || (typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');

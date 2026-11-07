@@ -485,7 +485,8 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
   if (!x) return ['the real ' + ID + ' did not come through the loader — NOT checked'];
   const parts = JSON.stringify(w.pageParts_(x));
-  if (parts !== '["pre0",null,"ans"]') bad.push(ID + ' has pages ' + parts + ', wanted ["pre0",null,"ans"]');
+  /* ONE CARD PER QUESTION NUMBER (960): a question is the one page 'q' */
+  if (parts !== '["q"]') bad.push(ID + ' has pages ' + parts + ', wanted ["q"] (960)');
   const host = d.createElement('div');
   d.body.appendChild(host);
   host.innerHTML = w.questionCard_(x) + '';

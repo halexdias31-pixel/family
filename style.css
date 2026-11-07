@@ -941,8 +941,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   position: relative;
   transition: rotate var(--chess-turn) var(--chess-ease);
 }
-/* The promotion row sits OUTSIDE the board, so it needs the board's palette on the card too. */
-.chess-game { --chess-light: #d9c9a3; --chess-white: #fbf8f0; --chess-black: #15120f; }
+
 .chess .lt { background: var(--chess-light); }
 .chess .dk { background: var(--chess-dark); }
 
@@ -1015,19 +1014,6 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   .chess, .chess .pc, .widget-full:has(.chess) .chess { transition: none; }
   .chess .chk.is-new::before { animation: none; }
 }
-
-/* WHOSE MOVE, above the board, in words — the board turns only if asked (429), so this line is what
-   always says it. Big enough to read at arm's length from the other side of a table. */
-.chess-say { text-align: center; margin: .2rem 0 .35rem; font: 600 1rem/1.3 var(--font); color: var(--gold); }
-.chess-say.is-note { color: var(--dim); font-weight: 400; }
-.chess-ctl, .chess-promo { margin-top: .1rem; justify-content: center; }
-/* The promotion choices are the pieces themselves, drawn in their own side's fill and outline on a
-   light square so a black knight is as legible as a white one. 44px, in px, like every tap target. */
-.chess-promo .chess-pro { min-height: 44px; font-size: 1.7rem; line-height: 1; padding: 0;
-  background: var(--chess-light); }
-.chess-promo .chess-pro { font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-variant-emoji: text; }
-.chess-promo .chess-pro.wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill; }
-.chess-promo .chess-pro.bp { color: var(--chess-black); }
 
 /* ---------- ANCHORS § */
 a { color: inherit; text-decoration: none; }
@@ -1189,10 +1175,6 @@ a { color: inherit; text-decoration: none; }
              cursor: pointer; color: var(--gold); font-size: 1.2rem;
              background: none; border: 0; padding: 0; font-family: inherit; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .15rem; text-align: center; }
-.cal .cal-h { font-size: .68rem; color: var(--faint); padding: .3rem 0; }
-/* The padding is set once, below, where the room for the dots under a date is decided. */
-.cal .cal-d { font-size: .85rem; border-radius: 6px; }
-.cal .cal-d.cal-today { background: var(--gold); color: var(--on-gold); font-weight: 700; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
@@ -1211,174 +1193,47 @@ a { color: inherit; text-decoration: none; }
   background: var(--nes-body); border-radius: var(--nes-r); padding: var(--nes-pt) var(--nes-px) 0; box-sizing: border-box; }
 .nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
 .nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
-.nes-wrap.nes-has-pad { --nes-room: calc(17rem + var(--nes-pt) + var(--nes-pad-h)); }
-/* WITH THE KEY LIST SHOWN, room for it and the tiles under it too: on a laptop the whole console is on the screen at once. */
-.nes-wrap.nes-has-legend { --nes-room: calc(26rem + var(--nes-pt) + var(--nes-deco-h)); }
-.nes-wrap.nes-has-legend.nes-has-pad { --nes-room: calc(26rem + var(--nes-pt) + var(--nes-pad-h)); }
-/* `svh`, not `dvh`: the smallest screen height, so the stage does not change size as a phone's address bar comes and goes. */
-/* `min-height: 0` lets the system's own shape win over the 256x240 canvas inside it. */
-.nes-stage { position: relative; max-width: 48rem; aspect-ratio: 256 / 240; flex: none; touch-action: none; min-height: 0;
-  margin: calc(var(--nes-bz) + .4rem) 0 calc(var(--nes-bz) + .5rem);
-  width: min(100% - 2 * var(--nes-bz) - 2 * var(--nes-flank), calc((100svh - var(--nes-room)) * var(--nes-ar, 1.0667))); min-width: min(100% - 2 * var(--nes-bz), 160px);
-  container-type: inline-size; }
-.nes-wrap.nes-has-deco .nes-stage { margin-bottom: calc(var(--nes-bz) + .5rem + var(--nes-deco-k)); }
-/* THE DRAWN CONTROLLER GROWS WITH A WIDE CARD (446): on an iPad with a controller it was a thin strip of tiny buttons under a big screen. */
-.nes-wrap .nes-stage, .nes-wrap .nes-deco { --nes-deco-k: max(var(--nes-deco-h), 13cqw); }
-/* THE SCREEN'S SURROUND, behind the picture: the glass, and on a home console the casing's rim round it. */
-.nes-stage::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--nes-bz)); background: var(--nes-bezel);
-  border: var(--nes-rim-w) solid var(--nes-rim); border-radius: var(--nes-bz-r); box-sizing: border-box; box-shadow: 0 2px 0 var(--nes-hi), inset 0 2px 4px var(--nes-lo); }
+
 .nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated; border-radius: 2px; }
-.nes-hinge { position: absolute; left: 0; right: 0; height: 0; z-index: 2; pointer-events: none; }
-.nes-wrap[data-sys="nds"] .nes-hinge { left: -50vw; right: -50vw; }
+
 /* TOO NARROW A CARD for buttons beside the screen (a 320px phone on keys): the screen keeps its width and the picture of them goes. */
 .nes-wrap { container: nes-body / inline-size; }
 @container nes-body (max-width: 18rem) {
-  .nes-wrap[data-sys="nds"].nes-has-deco .nes-stage, .nes-wrap[data-sys="gba"].nes-has-deco .nes-stage { --nes-flank: 0px; }
-  .nes-wrap[data-sys="nds"] .nes-deco > :not(.nes-shoulders), .nes-wrap[data-sys="gba"] .nes-deco > :not(.nes-shoulders) { display: none; }
+
 }
-.nes-file { display: none; }
-/* A FIXED HEIGHT PER SYSTEM, the same before and after a game starts: nothing under it moves (419). */
-/* EVERY SYSTEM IN THE SAME THREE ROWS — shoulders, D-pad and face buttons, Select and Start — so the widest row fits a phone's card at 44px keys. */
-.nes-pad { display: none; width: 100%; align-items: center; align-content: center; justify-content: space-between; gap: var(--k-gap);
-  flex-wrap: wrap; padding: 8px 6px; touch-action: none; box-sizing: border-box; height: var(--nes-pad-h); flex: none; overscroll-behavior: contain; }
-.nes-pad .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
-.nes-pad.on { display: flex; }
-/* THE SAME BUTTONS DRAWN SMALL beside the screen while keys or a controller play (437): a picture, lit by what is held, never pressed. */
-.nes-deco { display: none; position: absolute; left: 0; right: 0; top: calc(100% + var(--nes-bz) + .3rem); height: calc(var(--nes-deco-k) - .3rem);
-  align-items: center; justify-content: space-between; gap: var(--k-gap); padding: .25rem .5rem; box-sizing: border-box; pointer-events: none;
-  --k-dpad: 2.6em; --k-btn: 1.35em; --k-cell: .95em; --k-h: 1em; --k-gap: .35em; --k-font: .62em; --k-small: .5em; font-size: max(min(1rem, 5.4cqw), 2.9cqw); }
-.nes-wrap.nes-has-deco .nes-deco { display: flex; }
-.nes-deco .nes-key { min-width: 0; padding: 0 .3em; }
-.nes-deco .nes-small { min-width: 2.1em; }
-.nes-deco .nes-mid { flex-direction: row; }
-/* HELD IS A COLOUR, never a size: a key that grew or shrank under a thumb would move its neighbours. */
-.nes-key.is-down { background: var(--gold); color: var(--bg); }
-.nes-dpad.is-down { --nes-dp: var(--gold); --nes-knob: var(--gold); }
-/* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold — on a dark plate, whatever the console's colour. */
-.nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .5rem; padding: .35rem .4rem;
-  box-sizing: border-box; border-radius: 6px; background: var(--bg); font: .72rem/1.3 var(--mono); color: var(--dim); }
-.nes-legend[hidden] { display: none; }
-.nes-lg { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
-.nes-lg-k { display: inline-flex; gap: .2rem; }
-.nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: 4px; padding: .05rem .3rem; background: var(--sunk); }
-.nes-lg-v { color: var(--ink); }
-/* WHILE A GAME PLAYS EVERY LOOPING ANIMATION ELSEWHERE IN THE APP HOLDS STILL (`nesQuiet_`, games.js): the parked columns
-   are still drawn, and a slow laptop needs those frames for the game. */
-body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
-body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running !important; }
-/* AND NO BLUR on the neighbouring cards while it plays (481): a filter is a layer redrawn whenever anything under it changes, a cost a Chromebook pays in game frames. */
-body.nes-on .page.soft > .pane { filter: none !important; }
-/* A CROSS on a shallow well; N64's is a stick (`.nes-stick`), the same four directions. */
-.nes-dpad { width: var(--k-dpad); height: var(--k-dpad); border-radius: 50%; flex: none; touch-action: none;
-  background: radial-gradient(circle, var(--nes-dp-hi) 0 8%, transparent 9%),
-    linear-gradient(var(--nes-dp), var(--nes-dp)) center / 36% 100% no-repeat,
-    linear-gradient(var(--nes-dp), var(--nes-dp)) center / 100% 36% no-repeat, var(--nes-well); }
-.nes-stick { background: radial-gradient(circle, var(--nes-knob) 0 24%, var(--nes-knob-lo) 25% 29%, transparent 30%),
-  radial-gradient(circle, var(--nes-dp) 0 58%, transparent 59%), var(--nes-well); }
-.nes-mid { display: flex; gap: var(--k-gap); }
-.nes-ab { display: flex; gap: 12px; flex: none; align-items: center; }
-.nes-key { min-width: var(--k-h); min-height: var(--k-h); border: 0; background: var(--nes-key); color: var(--nes-ink);
-  font: 700 var(--k-font) var(--font); touch-action: none; box-shadow: inset 0 -2px 0 var(--nes-lo), 0 1px 0 var(--nes-hi); }
-.nes-round { width: var(--k-btn); height: var(--k-btn); border-radius: 50%; font-size: calc(var(--k-font) * 1.15); padding: 0; }
-.nes-small { border-radius: 22px; padding: 0 12px; font-size: var(--k-small); background: var(--nes-mid); color: var(--nes-mid-ink); }
-.nes-a { background: var(--nes-a); } .nes-b { background: var(--nes-b); } .nes-x { background: var(--nes-x); } .nes-y { background: var(--nes-y); }
-.nes-c1 { background: var(--nes-c); color: var(--nes-c-ink); }
-.nes-shoulders .nes-key { background: var(--nes-sh); color: var(--nes-sh-ink); }
-.nes-wrap .nes-key.is-down { background: var(--gold); color: var(--bg); }
-/* THE OTHER SYSTEMS (391): EmulatorJS draws into its own canvas; every piece of its own UI is hidden so the Console's tiles drive it. */
-.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: 2px; }
-.emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
-.emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
-.emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
-.nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: var(--k-gap); }
-.nes-shoulders .nes-key { min-width: calc(var(--k-h) * 1.45); }
-.nes-face { display: grid; grid-template: repeat(3, var(--k-cell)) / repeat(3, var(--k-cell)); flex: none; }
-.nes-face .nes-round { width: var(--k-cell); height: var(--k-cell); font-size: var(--k-font); }
-.nes-c1 { width: var(--k-cell); height: var(--k-cell); border-radius: 50%; font-size: calc(var(--k-font) * .75); padding: 0; }
-.nes-n { grid-area: 1 / 2; } .nes-w { grid-area: 2 / 1; } .nes-e { grid-area: 2 / 3; } .nes-s { grid-area: 3 / 2; }
-.nes-right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
-.nes-deco .nes-shoulders { position: absolute; left: 0; right: 0; top: -.45em; order: 0; }
-.nes-deco .nes-right { flex-direction: row; gap: .3em; }
-/* A HOME CONSOLE'S CONTROLLER is drawn as its own object under the screen (`.nes-ctl::before`, its outline); a handheld's buttons sit on its body. */
-.nes-wrap[data-sys="nes"] .nes-ctl, .nes-wrap[data-sys="snes"] .nes-ctl, .nes-wrap[data-sys="n64"] .nes-ctl { position: relative; isolation: isolate; }
-.nes-wrap[data-sys="nes"] .nes-deco, .nes-wrap[data-sys="snes"] .nes-deco, .nes-wrap[data-sys="n64"] .nes-deco { position: absolute; }
-.nes-ctl::before { content: none; position: absolute; z-index: -1; inset: var(--nes-ctl-top, 0px) 0 0; background: var(--nes-ctl); border-radius: var(--nes-ctl-r, 8px);
-  box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -3px 0 var(--nes-lo); }
-.nes-wrap[data-sys="nes"] .nes-ctl::before, .nes-wrap[data-sys="snes"] .nes-ctl::before, .nes-wrap[data-sys="n64"] .nes-ctl::before { content: ''; }
 
 /* NES: a grey box round the picture, and the oblong grey-and-black controller — D-pad, Select and Start on grey stripes, B and A red on a pale plate. */
 .nes-wrap[data-sys="nes"] { --nes-rim: #c6c6c1; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #121212; --nes-ctl: #1c1c1c; --nes-ctl-edge: #c6c6c1;
   --nes-dp: #0b0b0b; --nes-dp-hi: #262626; --nes-mid: #222; --nes-mid-ink: #e8e8e8; --nes-a: #c8102e; --nes-b: #c8102e; --nes-plate: #d9d9d3;
   --nes-stripe: #8e8e8a; --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
-.nes-wrap[data-sys="nes"] .nes-ctl::before { border: 7px solid var(--nes-ctl-edge); border-radius: 7px; box-sizing: border-box; }
-.nes-wrap[data-sys="nes"] .nes-pad { padding: 12px 10px; }
-.nes-wrap[data-sys="nes"] .nes-mid { background: repeating-linear-gradient(var(--nes-stripe) 0 5px, transparent 5px 9px); border-radius: 5px; padding: 6px 10px; }
-.nes-wrap[data-sys="nes"] .nes-pad .nes-mid { flex: 0 0 auto; margin: 0 auto; }
-.nes-wrap[data-sys="nes"] .nes-ab { background: var(--nes-plate); border-radius: 6px; padding: 6px; gap: 8px; }
-.nes-wrap[data-sys="nes"] .nes-deco { padding: .55em .75em; }
-.nes-wrap[data-sys="nes"] .nes-deco .nes-ctl, .nes-wrap[data-sys="nes"] .nes-deco .nes-ab { padding: .2em; gap: .25em; }
-.nes-wrap[data-sys="nes"] .nes-deco .nes-mid { padding: .2em .35em; }
 
 /* SNES: the rounded grey controller, shoulders on its top edge, the D-pad dark, A red, B yellow, X blue and Y green in a diamond. */
 .nes-wrap[data-sys="snes"] { --nes-rim: #c5c6cc; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #1d1d21; --nes-ctl: #cfd0d6; --nes-ctl-top: 24px; --nes-ctl-r: 999px / 50%;
   --nes-dp: #2b2b31; --nes-dp-hi: #4a4a52; --nes-well: transparent; --nes-mid: #65656e; --nes-mid-ink: #f0f0f0; --nes-sh: #b3b4bc; --nes-sh-ink: #3a3a40;
   --nes-a: #d1312c; --nes-b: #e3b20b; --nes-x: #2b5fc4; --nes-y: #2a984b; --k-dpad: 112px; --nes-deco-h: 4.6rem; }
-.nes-wrap[data-sys="snes"] .nes-pad { padding: 4px 6px 10px; }
-.nes-wrap[data-sys="snes"] .nes-shoulders .nes-key { border-radius: 22px 22px 8px 8px; }
-.nes-wrap[data-sys="snes"] .nes-mid .nes-key { transform: rotate(-24deg); }
-.nes-wrap[data-sys="snes"] .nes-deco { --nes-ctl-top: .45em; padding: .7em 1em .4em; }
 
 /* N64: the three-pronged grey pad, simplified — stick on the left prong, Start red in the middle, A blue, B green and yellow C buttons on the right; L, Z and R along the top. */
 .nes-wrap[data-sys="n64"] { --nes-rim: #34343a; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #141417; --nes-ctl: #a7a8ae; --nes-ctl-top: 22px; --nes-ctl-r: 0;
   --nes-dp: #8b8c93; --nes-well: transparent; --nes-knob: #cbccd2; --nes-knob-lo: #707177; --nes-mid: #c8102e; --nes-mid-ink: #fff;
   --nes-sh: #8b8c93; --nes-sh-ink: #f4f4f4; --nes-a: #2357c0; --nes-b: #28923f; --nes-c: #e9b300; --nes-c-ink: #2a2a2a; --k-dpad: 112px; --nes-deco-h: 4.8rem; }
-.nes-wrap[data-sys="n64"] .nes-ctl::before { -webkit-mask: var(--nes-n64-shape) 0 0 / 100% 100% no-repeat; mask: var(--nes-n64-shape) 0 0 / 100% 100% no-repeat;
-  --nes-n64-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg%3E%3Crect width='100' height='56' rx='16' ry='12'/%3E%3Crect y='28' width='47' height='66' rx='22' ry='12'/%3E%3Crect x='51' y='28' width='49' height='66' rx='22' ry='12'/%3E%3Crect x='34' y='28' width='32' height='72' rx='15' ry='9'/%3E%3C/g%3E%3C/svg%3E"); }
-.nes-wrap[data-sys="n64"] .nes-pad { padding: 2px 8px 12px; }
-.nes-wrap[data-sys="n64"] .nes-shoulders .nes-key { border-radius: 22px 22px 8px 8px; }
-.nes-wrap[data-sys="n64"] .nes-deco { --nes-ctl-top: .5em; padding: .8em .6em .7em; }
 
 /* HANDHELDS: the body is the console — the screen set in its glass, the buttons on the casing. */
 .nes-wrap[data-sys="gb"], .nes-wrap[data-sys="gbc"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-px: 12px; --nes-pt: 10px; padding-bottom: 6px;
   box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -4px 0 var(--nes-lo); }
-.nes-wrap[data-sys="gb"] .nes-pad, .nes-wrap[data-sys="gbc"] .nes-pad, .nes-wrap[data-sys="gba"] .nes-pad, .nes-wrap[data-sys="nds"] .nes-pad {
-  width: calc(100% + 2 * var(--nes-px) - 4px); margin: 0 calc(2px - var(--nes-px)); padding: 8px 2px; --k-dpad: 112px; }
+
 /* GAME BOY: off-white, portrait, the glass grey-blue with its one round corner bottom right; D-pad, then B and A on a slant in deep pink; Select and Start under. */
 .nes-wrap[data-sys="gb"] { --nes-body: #cac7bd; --nes-r: .7rem .7rem 3.2rem .7rem; --nes-bezel: #5c5e70; --nes-bz: 14px; --nes-bz-r: .45rem .45rem 2rem .45rem;
   --nes-dp: #1c1c1e; --nes-dp-hi: #3c3c40; --nes-a: #9c1d4c; --nes-b: #9c1d4c; --nes-mid: #8e8d96; --nes-mid-ink: #2a2a33; --nes-deco-h: 3.6rem; }
 /* GAME BOY COLOR: the same, in grape, the glass black and the buttons dark. */
 .nes-wrap[data-sys="gbc"] { --nes-body: #5a3c9c; --nes-r: 1rem 1rem 3.2rem 1rem; --nes-bezel: #242429; --nes-bz: 14px; --nes-bz-r: .6rem .6rem 1.8rem .6rem;
   --nes-dp: #1e1e22; --nes-dp-hi: #3e3e44; --nes-a: #34343b; --nes-b: #34343b; --nes-mid: #34343b; --nes-mid-ink: #e8e8f0; --nes-deco-h: 3.6rem; }
-.nes-wrap[data-sys="gb"] .nes-ab, .nes-wrap[data-sys="gbc"] .nes-ab { transform: rotate(-24deg); }
-.nes-wrap[data-sys="gba"] .nes-pad .nes-ab { transform: rotate(-16deg); }
-.nes-wrap[data-sys="gb"] .nes-mid .nes-key, .nes-wrap[data-sys="gbc"] .nes-mid .nes-key { transform: rotate(-24deg); }
+
 /* GAME BOY ADVANCE: landscape in indigo, wide round ends, the screen between the D-pad and A/B while keys play; L and R on its top corners. */
 .nes-wrap[data-sys="gba"] { --nes-body: #4a3e97; --nes-r: 3rem / 2.4rem; --nes-bezel: #222228; --nes-bz: 12px; --nes-bz-r: .5rem;
   --nes-dp: #1f1f26; --nes-dp-hi: #45454f; --nes-a: #c9c5e2; --nes-b: #c9c5e2; --nes-ink: #2b2560; --nes-mid: #2e2a66; --nes-mid-ink: #e4e2f6;
   --nes-sh: #6a5fc0; --nes-sh-ink: #f2f0ff; --nes-pt: 18px; }
 /* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
 .nes-wrap[data-sys="nds"] { --nes-pt: 18px; }
-.nes-wrap[data-sys="nds"] .nes-deco { --nes-key: #a8a9b2; --nes-dp: #a8a9b2; --nes-mid: #a8a9b2; --nes-sh: #b4b5bd; }
-/* L AND R ON THE BODY'S TOP CORNERS (DS, GBA), out of the pad's rows: still the pad's own buttons, so each finger is still the pad's. */
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders .nes-key { border-radius: 0 0 14px 14px; height: 44px; }
-.nes-wrap[data-sys="nds"].nes-has-pad, .nes-wrap[data-sys="gba"].nes-has-pad { --nes-pt: 52px; }
-.nes-wrap[data-sys="gba"].nes-has-pad { --nes-pad-h: 200px; }
-/* WHILE KEYS PLAY, the DS and GBA hold their buttons either side of the screen, as the real ones do; the screen gives up the width for them. */
-.nes-wrap[data-sys="nds"].nes-has-deco, .nes-wrap[data-sys="gba"].nes-has-deco { --nes-flank: 2.4rem; --nes-px: 8px; }
-.nes-wrap[data-sys="nds"] .nes-deco, .nes-wrap[data-sys="gba"] .nes-deco { inset: 0; height: auto; padding: 0; --k-dpad: 2rem; --k-cell: .72rem; --k-btn: .95rem; --k-font: .5rem; --k-small: .42rem; --k-h: .8rem; }
-.nes-wrap[data-sys="nds"] .nes-deco > *, .nes-wrap[data-sys="gba"] .nes-deco > * { position: absolute; }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-dpad, .nes-wrap[data-sys="gba"] .nes-deco .nes-dpad { right: calc(100% + var(--nes-bz) + .25rem); top: 50%; transform: translateY(-50%); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-face, .nes-wrap[data-sys="gba"] .nes-deco .nes-ab { left: calc(100% + var(--nes-bz) + .2rem); top: 50%; transform: translateY(-50%); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-dpad, .nes-wrap[data-sys="nds"] .nes-deco .nes-face { top: 72%; }
-.nes-wrap[data-sys="gba"] .nes-deco .nes-ab { gap: .15rem; transform: translateY(-50%) rotate(-28deg); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-mid, .nes-wrap[data-sys="gba"] .nes-deco .nes-mid { flex-direction: column; gap: .25rem; top: auto; bottom: .3rem; }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-mid { left: calc(100% + var(--nes-bz) + .3rem); }
-.nes-wrap[data-sys="gba"] .nes-deco .nes-mid { right: calc(100% + var(--nes-bz) + .3rem); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-small, .nes-wrap[data-sys="gba"] .nes-deco .nes-small { min-width: 1.6rem; padding: 0 .15rem; }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
-  left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
-.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 8px 8px; font-size: .5rem; }
 
 /* A DS LITE (481): two halves of one width, each a rounded slab, joined by a hinge barrel; speakers either side of the top screen, D-pad left and A/B/X/Y right of the touch screen. */
 /* EVERY SIZE IS A SHARE OF THE BODY'S WIDTH (`cqw` of the nes-body container), so a narrow card shows the same DS smaller instead of rearranging it. */
@@ -1394,63 +1249,7 @@ body.nes-on .page.soft > .pane { filter: none !important; }
   width: min(100%, (100svh - 12rem) * 100 / var(--ds-h)); }
 /* THE BODY'S HEIGHT, as padding (a share of the width); the key list, when asked for, comes under it. */
 .nes-wrap[data-sys="nds"]::before { content: ''; display: block; padding-top: calc(var(--ds-h) * 1%); }
-.ds-part { display: none; }
-.nes-wrap[data-sys="nds"] .ds-part { display: block; position: absolute; pointer-events: none; }
-.nes-wrap[data-sys="nds"] .ds-lid, .nes-wrap[data-sys="nds"] .ds-base { left: 0; width: 100cqw; height: calc(var(--ds-lid) * 1cqw); border-radius: 4.5cqw;
-  background: var(--nes-body); box-shadow: inset 0 .5cqw 0 rgba(255, 255, 255, .8), inset 0 -.8cqw 0 rgba(0, 0, 0, .1), 0 0 0 1px var(--nes-edge); }
-.nes-wrap[data-sys="nds"] .ds-lid { top: 0; }
-.nes-wrap[data-sys="nds"] .ds-base { top: calc((var(--ds-lid) + var(--ds-hh)) * 1cqw); }
-/* THE GLASS round each screen, on its own half. */
-.nes-wrap[data-sys="nds"] .ds-lid::before, .nes-wrap[data-sys="nds"] .ds-base::before { content: ''; position: absolute; background: var(--nes-bezel);
-  left: calc((50 - var(--ds-s) / 2 - var(--ds-bz)) * 1cqw); width: calc((var(--ds-s) + 2 * var(--ds-bz)) * 1cqw);
-  height: calc((var(--ds-sh) + 2 * var(--ds-bz)) * 1cqw); border-radius: 1.4cqw; box-shadow: 0 .3cqw 0 rgba(255, 255, 255, .7); }
-.nes-wrap[data-sys="nds"] .ds-lid::before { top: calc((var(--ds-t) - var(--ds-bz)) * 1cqw); }
-.nes-wrap[data-sys="nds"] .ds-base::before { top: calc((var(--ds-mb) - var(--ds-bz)) * 1cqw); }
-/* SPEAKERS: a slot of holes either side of the top screen. */
-.nes-wrap[data-sys="nds"] .ds-grille { position: absolute; top: calc((var(--ds-t) + var(--ds-sh) / 2 - 6) * 1cqw); width: 9cqw; height: 12cqw; left: 8cqw;
-  background: radial-gradient(circle, var(--ds-grille) 0 32%, transparent 38%) 0 0 / 3cqw 3cqw; }
-.nes-wrap[data-sys="nds"] .ds-grille-r { left: auto; right: 8cqw; }
-/* POWER on the base's right edge, a small slider. */
-.nes-wrap[data-sys="nds"] .ds-power { position: absolute; right: -.5cqw; top: 22%; width: 1.4cqw; height: 7cqw; border-radius: .7cqw; background: #c9ccd3; }
-/* THE STRIPS between each screen's glass and the hinge, over the picture's black gap rows, so each half is its own slab. */
-.nes-wrap[data-sys="nds"] .ds-cover { z-index: 2; left: calc((50 - var(--ds-s) / 2 - var(--ds-bz) - 1) * 1cqw); width: calc((var(--ds-s) + 2 * var(--ds-bz) + 2) * 1cqw);
-  height: calc((var(--ds-mb) - var(--ds-bz)) * 1cqw); background: var(--nes-body); }
-.nes-wrap[data-sys="nds"] .ds-cover-a { top: calc((var(--ds-t) + var(--ds-sh) + var(--ds-bz)) * 1cqw); box-shadow: inset 0 -.8cqw 0 rgba(0, 0, 0, .1); }
-.nes-wrap[data-sys="nds"] .ds-cover-b { top: calc((var(--ds-lid) + var(--ds-hh)) * 1cqw); box-shadow: inset 0 .5cqw 0 rgba(255, 255, 255, .8); }
-/* THE HINGE: a barrel shorter than the halves, so the gap shows at both ends; three knuckles, the middle one longest. */
-.nes-wrap[data-sys="nds"] .ds-hinge { z-index: 2; top: calc(var(--ds-lid) * 1cqw - 1px); height: calc(var(--ds-hh) * 1cqw + 2px); left: 5cqw; right: 5cqw;
-  border-radius: 1.2cqw; background:
-    linear-gradient(90deg, transparent 0 18%, rgba(0, 0, 0, .28) 18% 18.6%, transparent 18.6% 81.4%, rgba(0, 0, 0, .28) 81.4% 82%, transparent 82%),
-    linear-gradient(var(--nes-hinge-lo), var(--nes-hinge-hi) 30%, var(--nes-hinge) 60%, var(--nes-hinge-lo)); }
-.nes-wrap[data-sys="nds"] .nes-stage { position: absolute; z-index: 1; margin: 0; min-width: 0; max-width: none;
-  left: calc((50 - var(--ds-s) / 2) * 1cqw); top: calc(var(--ds-t) * 1cqw); width: calc(var(--ds-s) * 1cqw); }
-.nes-wrap[data-sys="nds"] .nes-stage::before { display: none; }
-.nes-wrap[data-sys="nds"] .nes-hinge { display: none; }
-.nes-wrap[data-sys="nds"] .nes-legend { margin: .5rem 0 0; }
-.nes-wrap[data-sys="nds"] .nes-deco { display: none !important; }
-/* THE BUTTONS on the base, beside the touch screen. Each is drawn to the DS's size and given an unseen ring to 44px when that is smaller. */
-.nes-wrap[data-sys="nds"] .nes-pad, .nes-wrap[data-sys="nds"] .nes-pad.on { display: block; position: absolute; inset: 0; z-index: 3; width: auto; height: auto;
-  margin: 0; padding: 0; border: 0; pointer-events: none; --k-cell: 6.4cqw; --k-font: max(.55rem, 2.6cqw); }
-.nes-wrap[data-sys="nds"] .nes-pad > * { position: absolute; pointer-events: auto; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-key, .nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { position: relative; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-key::before { content: ''; position: absolute; inset: min(0px, (100% - 44px) / 2); border-radius: 50%; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { position: absolute; --k-dpad: max(17cqw, 44px); left: calc(11.5cqw - var(--k-dpad) / 2);
-  top: calc(var(--ds-mid) * 1cqw - var(--k-dpad) / 2); }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-face { left: calc(88.8cqw - 1.5 * var(--k-cell)); top: calc(var(--ds-mid) * 1cqw - 1.5 * var(--k-cell) - 2cqw); }
-.nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 1px); height: calc(var(--k-cell) - 1px); min-width: 0; min-height: 0; justify-self: center; align-self: center;
-  color: var(--nes-ink); font-size: var(--k-font); box-shadow: inset 0 -.4cqw 0 rgba(0, 0, 0, .14), 0 0 0 1px var(--nes-edge); }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-mid { flex-direction: column; gap: 2.4cqw; left: auto; right: 4.5cqw;
-  top: calc((var(--ds-mid) + var(--ds-sh) / 2 - 7.4) * 1cqw); }
-.nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-width: 0; min-height: 0; width: 3.6cqw; height: 3.6cqw; padding: 0; border-radius: 50%; font-size: 0; }
-.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 50%; right: calc(100% + 1.2cqw); transform: translateY(-50%);
-  font: 600 max(.45rem, 1.9cqw) var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--nes-mid-ink); }
-/* L AND R on the base's top corners, tucked behind its edge at the hinge. */
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { inset: auto 2cqw auto 2cqw; top: calc((var(--ds-lid) + var(--ds-hh) - 1.6) * 1cqw); height: 0; padding: 0; display: block; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { position: absolute; top: 0; height: 2.6cqw; min-height: 0; min-width: 0; width: 17cqw; padding: 0;
-  border-radius: 1.6cqw 1.6cqw 0 0; font-size: max(.45rem, 1.9cqw); line-height: 2.6cqw; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-l { left: 0; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-r { right: 0; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key::before { inset: min(0px, (100% - 44px) / 2) 0; border-radius: 0; }
+
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; }
@@ -1850,44 +1649,10 @@ button.text-drop { color: var(--bad); }
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
 .dock-new .btn.tiny { font-size: 1.1rem; }
 
-/* ---------- THE TIMETABLE § */
-.tmt { --tmt-0: #5b9bd5; --tmt-1: #6cc08a; --tmt-2: #d9822b; --tmt-3: #c46bd1; --tmt-4: #e06c75;
-        --tmt-5: #4fc1c1; --tmt-6: #c7b84a; --tmt-7: #8f8fe0; --tmt-8: #a3d65c; --tmt-9: #e8a0bf; }
-.tmt-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: .2rem 0 .55rem; }
 /* AND AT 320 THAT DOES NOT FIT, MEASURED: § */
 @media (max-width: 22rem) {
   .card.is-widget:has(.tmt-box) { padding-left: .4rem; padding-right: .4rem; }
 }
-.tmt-days.n7 { grid-template-columns: repeat(4, 1fr); }
-.tmt-day { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
-          background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
-          border-radius: var(--r-sm); font: 600 .78rem/1 var(--font); }
-.tmt-day.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
-/* A DOT ON A DAY THAT HAS SOMETHING ON IT, so the week reads at a glance without opening each day. */
-.tmt-day.has::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
-                     margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
-.tmt-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: .5rem; }
-.tmt-none { margin: 0; padding: .4rem 0; }
-.tmt-row { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 44px;
-          padding: .35rem .6rem; text-align: left; cursor: pointer; color: var(--ink);
-          background: var(--sunk); border: 1px solid var(--line);
-          border-left: 4px solid var(--tmt-c, var(--line)); border-radius: var(--r-sm); font: inherit; }
-.tmt-at { flex: 0 0 auto; font: 600 .8rem/1 var(--mono); color: var(--dim); }
-/* A SESSION BOOKED HERE, LOCKED AMONG YOUR OWN LESSONS. § */
-.tmt-what { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: .1rem; }
-.tmt-sub { font-size: .88rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
-.tmt-note { font-size: .74rem; line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; }
-.tmt-ed { display: flex; flex-direction: column; gap: .4rem; padding: .45rem;
-         border: 1px solid var(--line); border-left: 4px solid var(--tmt-c, var(--line));
-         border-radius: var(--r-sm); }
-/* 7.8rem HOLDS "11:15 AM", which is what a 12-hour phone shows; 7rem cut the AM off at 320. */
-.tmt-ed-top { display: grid; grid-template-columns: 7.8rem minmax(0, 1fr); gap: .4rem; }
-.tmt-ed input { min-width: 0; }
-/* NO CLOCK BUTTON IN THE TIME BOX. § */
-.tmt-time::-webkit-calendar-picker-indicator { display: none; }
-.tmt-foot { display: flex; align-items: center; gap: .6rem; }
-.tmt-foot .btn { width: auto; flex: 1; }
-.tmt-wkend { flex: 0 0 auto; padding: 0; gap: .45rem; font-size: .82rem; color: var(--dim); }
 
 /* ---------- TOUCH TYPING § */
 /* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS § */
@@ -1900,7 +1665,7 @@ button.text-drop { color: var(--bad); }
 
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`, and the `<label>` round both hands a tap on it to the box. § */
 .search-pill { position: relative; display: block; }
-.vid-search { margin: 0 0 .5rem; }
+
 .search-pill .tile-i { width: 18px; height: 18px; position: absolute; left: .75rem; top: 0; bottom: 0; margin: auto 0;
                       color: var(--dim); pointer-events: none; }
 .search-pill:focus-within .tile-i { color: var(--gold); }
@@ -1911,23 +1676,10 @@ button.text-drop { color: var(--bad); }
   background: var(--dim);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat; }
-.vid-search:focus-within .vid-q::-webkit-search-cancel-button { background: var(--gold); }
 
 /* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS — and in place of the results, not over them (note 321). § */
 .vid-watch { display: none; margin: 0 0 .6rem; }
 .vid-watch.on { display: block; }
-.vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--letterbox);
-             border-radius: var(--vid-r); overflow: hidden; }
-.vid-stage .vid-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-                         background: var(--letterbox); object-fit: contain; }
-.vid-under { display: flex; align-items: flex-start; gap: .5rem; }
-.vid-now { flex: 1 1 0; min-width: 0; padding: .5rem .1rem 0; }
-.vid-now-t { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.3; color: var(--ink);
-             overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical;
-             -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-.vid-now-k { margin: .2rem 0 0; font-size: .74rem; line-height: 1.35; color: var(--dim); }
-/* `.vid-under` AND NOT `.vid-acts` ALONE: § */
-.vid-under .vid-acts { flex: none; margin: .4rem 0 0; flex-wrap: nowrap; }
 
 /* ---------- THE APP'S OWN FULL SCREEN: THE PLAYER OVER THE WHOLE GLASS, BLACK ROUND IT § */
 .vid-watch.on.is-fs {
@@ -1938,141 +1690,31 @@ button.text-drop { color: var(--bad); }
   background: var(--letterbox); color: var(--ink);
 }
 .vid-watch.is-fs::backdrop { background: var(--letterbox); }
-.vid-watch.is-fs .vid-stage {
-  flex: none; border-radius: 0;
-  width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 44px - 1.5rem) * 16 / 9));
-}
-.vid-watch.is-fs .vid-under { flex: none; align-self: stretch; justify-content: flex-end; padding: 0 .5rem; }
-.vid-watch.is-fs .vid-now { display: none; }
-.vid-watch.is-fs .vid-under .vid-acts { margin: 0; }
-/* EXIT IS 44px IN FULL SCREEN (321): the one way out of a film over the whole glass, a fingertip's size like a Check. */
-.vid-watch.is-fs .vid-acts .tile { width: var(--tile-send); height: var(--tile-send); }
+
 @media (orientation: landscape) {
   .vid-watch.on.is-fs { flex-direction: row; }
-  .vid-watch.is-fs .vid-stage {
-    width: min(calc(100% - 44px - 1.5rem), calc((100dvh - var(--safe-top) - var(--safe-bottom)) * 16 / 9));
-  }
-  .vid-watch.is-fs .vid-under { align-self: center; padding: 0; }
+
 }
 /* THE ONE THING THE TOP LAYER DOES NOT SHED IS `zoom`. § */
 .pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
-/* ---------- THE ROW: A PICTURE, A TITLE, A LINE § */
-.vid-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.vid-list li { margin: 0; padding: 0; min-width: 0; }
-.vid-row { display: flex; align-items: flex-start; gap: .6rem; width: 100%; min-height: 44px; margin: 0;
-           padding: .25rem 0; text-align: left; text-decoration: none; background: none; border: 0;
-           border-radius: var(--vid-r); color: var(--ink); font: inherit; cursor: pointer; }
 .vid-th { order: -1; position: relative; flex: 0 0 min(42%, 7rem); aspect-ratio: 16 / 9;
           border-radius: var(--vid-r); overflow: hidden; background: var(--vid-frame); }
 /* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: § */
 .vid-poster { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
               padding-bottom: 12%; background: var(--vid-frame); color: var(--vid-mark); }
 .vid-poster .tile-i { width: 20px; height: 20px; }
-.vid-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
-/* A PICTURE THAT FAILED, taken away by the listener in games.js, so the poster under it is what shows.
-   Not left to the browser: Safari draws its broken-picture mark even with `alt=""`. */
-.vid-img.is-gone { display: none; }
-/* THE BADGE, IN YOUTUBE'S DURATION SPOT: § */
-.vid-badge { position: absolute; right: .3rem; bottom: .3rem; display: inline-flex; align-items: center;
-             gap: .2rem; padding: .08rem .3rem; border-radius: 4px; background: var(--vid-scrim);
-             color: var(--ink); font-size: .68rem; font-weight: 600; line-height: 1.35; }
-.vid-out { display: inline-flex; }
-.vid-badge .tile-i { width: 11px; height: 11px; }
-.vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
-/* TWO LINES OF TITLE AT MOST, then an ellipsis — YouTube's clamp, and the reason a long title no longer makes one row three times the height of the rest. § */
-.vid-row .vid-t { font-size: .86rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
-                  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-                  line-clamp: 2; overflow: hidden; }
-/* AND ONE LINE OF META, clipped with an ellipsis, as YouTube's is. Two lines of title and one of this
-   are shorter than the picture at every width measured, so every row is the picture's height and the
-   list keeps one pitch. */
-.vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim);
-                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
-   `prefers-reduced-motion` to take away. */
-.vid-row:is(:active, .is-pressed) .vid-th { opacity: .82; }
-.vid-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.vid-none { padding: .45rem 0; font-size: .85rem; }
-/* "4 MORE — KEEP TYPING TO NARROW": one faint line under the four, a count rather than a silence (note
-   321). Smaller than "Nothing matches that." — that line is the answer; this one is a footnote to it. */
-.vid-more { margin: .15rem 0 0; padding: .3rem 0 0; font-size: .78rem; }
-/* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
-   still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
-.vid-row.is-off { cursor: default; }
-.vid-row.is-off .vid-th > :is(img, .vid-poster) { opacity: .5; }
-.vid-row.is-off .vid-t { color: var(--dim); }
-
-/* THE ADMIN'S SYNC ROW: § */
-.vid-admin .tile-row { margin: .6rem 0 0; }
-.vid-synced { flex: 1 1 0; min-width: 0; font-size: .72rem; line-height: 1.3; color: var(--dim);
-              overflow-wrap: anywhere; }
 
 .kt-box { position: relative;
           --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #e8a0bf;
           --kt-4: #e8a0bf; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
-/* THE BOX THAT TAKES THE KEYS, out of sight and out of the way of a finger. § */
-.kt-box .kt-in { position: absolute; left: 0; top: 0; width: 1px; height: 1px; min-height: 0;
-                 padding: 0; border: 0; opacity: 0; pointer-events: none; font-size: 16px; }
-.kt-rungs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: .2rem 0 0; }
+
 /* AT 320 FIVE 44px RUNGS AND THEIR GAPS ARE 228px IN A 218px SLOT — the timetable's measurement, and
    its answer: the card gives up some of its own inside edge on a narrow phone rather than a rung
    going under 44. */
 @media (max-width: 22rem) {
   .card.is-widget:has(.kt-box) { padding-left: .4rem; padding-right: .4rem; }
 }
-.kt-rung { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
-           background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
-           border-radius: var(--r-sm); font: 600 .85rem/1 var(--mono); }
-.kt-rung.on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
-/* A DOT ON A RUNG THAT HAS HELD, the timetable's dot on a day with something in it. */
-.kt-rung.held::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
-                       margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
-.kt-lesson { margin: .45rem 0 .35rem; font-size: .82rem; line-height: 1.35; }
-/* THE LINE. Mono, so the letter lit is always the letter under the eye, and wrapped wherever it has to be — it is forty characters and a 320 card holds about § */
-.kt-line { display: block; width: 100%; min-height: 44px; padding: .55rem .65rem; text-align: left;
-           cursor: text; background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-           border-radius: var(--r-sm); font: 500 1.02rem/1.6 var(--mono);
-           white-space: pre-wrap; overflow-wrap: anywhere; }
-.kt-box.typing .kt-line { border-color: var(--gold); }
-.kt-done { color: color-mix(in srgb, var(--good) 75%, var(--bg)); }
-.kt-cur { border-bottom: 2px solid var(--gold); }
-.kt-box.typing .kt-cur { background: var(--gold); color: var(--on-gold); border-bottom-color: transparent; }
-.kt-box.typing .kt-cur.miss { background: var(--bad); }
-.kt-hint { margin: .3rem 0 0; font-size: .74rem; color: var(--dim); }
-.kt-hint .kt-on, .kt-box.typing .kt-hint .kt-go { display: none; }
-.kt-box.typing .kt-hint .kt-on { display: inline; }
-.kt-stats { display: flex; flex-wrap: wrap; gap: .3rem .9rem; margin: .35rem 0 .55rem;
-            font-size: .8rem; color: var(--dim); }
-.kt-stats b { color: var(--ink); font-family: var(--mono); }
-/* A GRID OF QUARTER-KEYS, fifty to a row, so the rows stagger as a real keyboard's do: the top row
-   half a key in, the home row three-quarters, the shifts a key and a quarter each. */
-.kt-kb { display: flex; flex-direction: column; gap: 3px; user-select: none; -webkit-user-select: none; }
-.kt-r { display: grid; grid-template-columns: repeat(50, minmax(0, 1fr)); }
-.kt-k { grid-column: span 4; position: relative; display: flex; align-items: center; justify-content: center;
-        min-width: 0; height: 1.65rem; margin: 0 1.5px; overflow: hidden;
-        font: 600 .7rem/1 var(--mono); color: var(--ink);
-        background: color-mix(in srgb, var(--kt-c) 20%, var(--sunk));
-        border: 1px solid color-mix(in srgb, var(--kt-c) 45%, var(--line)); border-radius: var(--r-sm); }
-.kt-k.f0 { --kt-c: var(--kt-0); } .kt-k.f1 { --kt-c: var(--kt-1); } .kt-k.f2 { --kt-c: var(--kt-2); }
-.kt-k.f3 { --kt-c: var(--kt-3); } .kt-k.f4 { --kt-c: var(--kt-4); } .kt-k.f5 { --kt-c: var(--kt-5); }
-.kt-k.f6 { --kt-c: var(--kt-6); } .kt-k.f7 { --kt-c: var(--kt-7); } .kt-k.f8 { --kt-c: var(--kt-8); }
-.kt-r1 .kt-k:first-child { grid-column: 3 / span 4; }
-.kt-r2 .kt-k:first-child { grid-column: 4 / span 4; }
-.kt-k.kt-sh { grid-column: span 5; }
-.kt-k.kt-sp { grid-column: 14 / span 24; font-size: .62rem; color: var(--dim); }
-/* THE HOME ROW, MARKED: a heavier foot on the eight keys the fingers rest on, and the ridge on F and
-   J that a real keyboard has so a finger finds home without looking. */
-.kt-k.home { border-bottom-width: 3px; }
-.kt-k.bump::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 7px; height: 2px;
-                    margin-left: -3.5px; border-radius: 1px; background: currentColor; opacity: .8; }
-/* THE KEY WANTED NEXT, in its finger's full colour with the app's gold round it — the one thing on
-   the card the eye is meant to go to. And a wrong key, for the moment it was pressed. */
-.kt-k.next { background: var(--kt-c); color: #000; border-color: var(--gold);
-             box-shadow: 0 0 0 2px var(--gold); z-index: 1; }
-.kt-k.miss:not(.next) { background: var(--bad); color: #000; border-color: var(--bad); }
-.kt-said { min-height: 1.3em; margin: .5rem 0 0; }
-.kt-real { margin: .3rem 0 0; font-size: .72rem; line-height: 1.35; }
 
 /* ---------- FILTER CHIPS § */
 /* ---------- REPORTED AS "the tags don't need to be as big" § */
@@ -2130,8 +1772,6 @@ button.text-drop { color: var(--bad); }
 /* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET § */
 .btn.tiny { min-height: 44px; min-width: 44px; padding: 0 .5rem; font-size: .8rem; }
 
-/* ---------- A PLAIN CALENDAR (466): the days and today, nothing laid on them ---------- */
-.cal .cal-d { padding: .45rem 0 .55rem; }
 .dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
 .row .dot { margin-right: .35rem; vertical-align: middle; }
 
@@ -2146,22 +1786,9 @@ button.text-drop { color: var(--bad); }
              transition: opacity var(--dur-enter) var(--ease-out); }
 .feed-art.has-photo .feed-mark { opacity: 0; }
 
-/* WORDS OVER A PHOTOGRAPH NEED A FLOOR. § */
-/* ---------- AND ONLY WHERE THERE ARE WORDS: IT WAS THE GREY ON EVERY REEL § */
-.feed-art.has-photo:has(> .feed-text)::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(to top, rgba(0,0,0,.92) 12%, rgba(0,0,0,.55) 45%, transparent 78%);
-}
-.feed-text { position: relative; z-index: 1; }
-.feed-subject { font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
-                color: var(--c); }
-.feed-art.has-photo .feed-subject { color: color-mix(in srgb, var(--over-ink) 80%, transparent); }
 /* A FACT ABOUT THE LONGEST WORD IN THE DICTIONARY CONTAINS IT, which is the one thing a slide's own text can do that its box cannot survive: § */
 .feed-head { margin: .3rem 0 .45rem; font-size: var(--fs-xl); line-height: var(--lh-tight); font-weight: 700;
              overflow-wrap: anywhere; }
-.feed-body { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--dim);
-             overflow-wrap: anywhere; }
-.feed-art.has-photo .feed-body { color: rgba(255,255,255,.86); }
 
 /* WHOSE PICTURE IT IS. Small, top-left, and only there when there is one — Commons images carry
    a licence that expects the photographer to be named, and a credit that appears before the
@@ -2856,8 +2483,6 @@ label.bk-k { cursor: pointer; }
    of empty space under a squashed grid. */
 .widget-full .cal { flex: 1 1 auto; min-height: 0; grid-auto-rows: minmax(2rem, 1fr);
                     align-content: stretch; }
-.widget-full .cal .cal-d, .widget-full .cal .cal-h { display: flex; flex-direction: column;
-                                                     align-items: center; justify-content: center; }
 
 /* SQUARE, and centred in whatever is left — a board that stretched would be a board where a knight moves further sideways than forwards. § */
 .widget-full .chess { flex: 0 0 auto; margin: auto; width: min(100%, 70vh); aspect-ratio: 1; }
@@ -3369,7 +2994,8 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
 /* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. § */
-.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: .6rem; }
+/* A wide column keeps them phone-sized squares, not a wall of 9rem pictures. */
+.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 6.5rem)); gap: 4px; margin-top: .6rem; }
 .prof-shot {
   display: block; border-radius: var(--r-sm); overflow: hidden;
   aspect-ratio: 1 / 1; background: var(--sunk);
@@ -3514,16 +3140,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 @media (hover: hover) { .add-card:hover { border-color: var(--gold); color: var(--ink); } }
 .add-card .add-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
   border: 1px solid var(--gold); color: var(--gold); flex: none; }
-/* AN ADMIN'S REELS AND VIDEOS (404): the "+" card, its form, and the list of what can be changed. */
-.media-add { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .8rem; }
-.media-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.media-row { display: grid; grid-template-columns: 4rem 1fr; gap: .3rem .6rem; align-items: center; }
-.media-row .tile-row { grid-column: 1 / -1; }
-.media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; background: var(--line); }
-.media-name { min-width: 0; overflow-wrap: anywhere; }
-.media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: 6px; }
-/* HOW OLD YOU HAVE TO BE (406): the form's one picker row, and the badge on a reel or a video's picture. */
-.media-age { display: block; margin-bottom: .75rem; }
+
 .media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
   background: var(--over-wash); color: var(--over-ink); font-size: .68rem; font-weight: 700; line-height: 1.35;
   pointer-events: none; }
@@ -5063,11 +4680,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
-/* ---------- A YOUTUBE SHORT § */
-.feed-poster {
-  position: absolute; inset: 0; z-index: 0;
-  width: 100%; height: 100%; object-fit: cover;
-}
 .feed-yt { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; }
 .feed-yt-frame {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -5081,17 +4693,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   .feed-yt-frame { width: max(100cqw, 100cqh * 9 / 16); height: max(100cqh, 100cqw * 16 / 9); }
 }
 .feed-yt.is-live .feed-yt-frame { opacity: 1; }
-.feed-yt-veil { position: absolute; inset: 0; z-index: 1; }
 
-/* ---------- AND WHEN IT CANNOT PLAY: THE POSTER, AND ONE WAY OUT § */
-.feed-yt-out { display: none; }
-.feed-art.is-dead .feed-yt-out {
-  position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 44px; padding: 0 16px; border-radius: 22px;
-  background: var(--over-wash); border: 1px solid var(--over-edge);
-  color: var(--over-ink); font-size: .82rem; white-space: nowrap; text-decoration: none;
-}
 /* A SOUND TILE ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
 .reel:has(.feed-art.is-dead) .reel-sound { display: none; }
 
@@ -5232,7 +4834,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ONE PLACE FOR A WIDGET'S TILES (472): after its content, one row — star, padlock, then the admin's group; check/tiles.js holds every widget to it. */
 .card.is-widget { --wgt-pad: .7rem; }
 .card.is-widget > .wgt-foot { margin: .5rem 0 0; }
-.cs-one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .card.is-widget > .wgt-foot > .tile-group { display: contents; }
 .card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
@@ -5389,46 +4991,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* AND AN EMPTY STATUS LINE TAKES NO ROOM. § */
 #cam-said:empty { margin: 0; }
 
-/* CONNECT 4, OTHELLO AND HERD MENTALITY THE BOARDS ARE GRIDS OF REAL BUTTONS. § */
-/* ---------- THE ASPECT-RATIO GOES ON THE BOARD, NOT ON THE SQUARES § */
-.c4, .oth {
-  display: grid; gap: 3px; margin: .6rem auto 0;
-  width: 100%; background: var(--line); padding: 3px; border-radius: var(--r-sm);
-}
-/* ---------- A BOARD SQUARE CANNOT BE 44px AND THE ARITHMETIC IS THE WHOLE REASON § */
-/* ---------- AND THIS RULE WAS DELETED, WHICH IS WHY THE BOARD WAS A BLACK STRIPE § */
-.c4 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr);
-      aspect-ratio: 7 / 6; max-width: 22rem; }
-.oth { grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
-       aspect-ratio: 1; max-width: 24rem; }
-
-.c4-cell, .oth-cell {
-  min-width: 0; min-height: 0; width: 100%; height: 100%; padding: 0;
-  border: 0; border-radius: 50%; background: var(--sunk);
-  cursor: pointer; transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out);
-}
-/* A CELL THAT CANNOT BE PLAYED IS NOT GREYED OUT. § */
-.c4-cell[disabled], .oth-cell[disabled] { cursor: default; }
-.c4-cell:not([disabled]):is(:active, .is-pressed), .oth-cell:not([disabled]):is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-
-/* TWO PLAYERS MEANS TWO EQUAL COLOURS, AND THAT IS WHY GOLD LEFT BOTH BOARDS § */
-/* AND ON THE TURN DISC under the board, which is outside `.c4` and so would not inherit them —
-   it is the same component's colour, named in the same place. */
-.c4, .c4-turn { --c4-a: #c4392f; --c4-b: #e0b23c; }
-
-/* ---------- THE COUNTER IS A DISC IN A HOLE, NOT THE HOLE'S OWN COLOUR § */
-.c4-cell { position: relative; }
-.c4-cell.p1::after, .c4-cell.p2::after {
-  content: ''; position: absolute; inset: 0; border-radius: 50%;
-}
-.c4-cell.p1::after { background: var(--c4-a); }
-.c4-cell.p2::after { background: var(--c4-b); }
-
-/* ---------- THE DROP § */
-.c4 { overflow: hidden; }
-.c4-cell.c4-new::after {
-  animation: c4-drop calc(140ms + var(--c4-fall, 1) * 50ms) both;
-}
 @keyframes c4-drop {
   0%   { transform: translateY(calc((100% + 3px) * var(--c4-fall, 1) * -1));
          animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
@@ -5436,120 +4998,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   85%  { transform: translateY(-14%); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
   100% { transform: translateY(0); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .c4-cell.c4-new::after { animation: none; }
-}
-
-/* THE FOUR THAT WON, RINGED in the app's ink rather than its gold: § */
-.c4-cell.c4-win::after { box-shadow: inset 0 0 0 3px var(--ink), 0 0 0 2px var(--ink); }
-
-/* WHOSE GO IT IS, as a disc beside the sentence. In `em`, because it sits in a line of text and is
-   that line's size at every width; not a control, so not 44px. */
-.c4-turn {
-  display: inline-block; width: .85em; height: .85em; border-radius: 50%;
-  margin-right: .45em; vertical-align: -.08em;
-}
-.c4-turn.p1 { background: var(--c4-a); }
-.c4-turn.p2 { background: var(--c4-b); }
-
-.oth { border-radius: var(--r-sm); --oth-a: #c4392f; --oth-b: #3f7fd0; }
-.oth-cell { border-radius: 12%; }
-.oth-cell.p1 { background: var(--oth-a); }
-.oth-cell.p2 { background: var(--oth-b); }
-/* ---------- AND THE LEGAL-MOVE RINGS ARE GONE § */
-
-/* ---------- MAZE § */
-.mz {
-  --mz-wall: #4d4d4d;
-  --mz-trail: #2a2113;
-  display: grid; gap: 0; margin: .6rem auto 0;
-  grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(11, 1fr);
-  aspect-ratio: 1; width: 100%; max-width: 24rem;
-  background: var(--sunk); border-radius: var(--r-sm); overflow: hidden;
-}
-.mz-cell { display: block; min-width: 0; min-height: 0; }
-/* `mz-` ON THE WALLS, BECAUSE `.ws` IS THE WORD SEARCH'S GRID. § */
-.mz-cell.mz-n { border-top: 2px solid var(--mz-wall); }
-.mz-cell.mz-e { border-right: 2px solid var(--mz-wall); }
-.mz-cell.mz-s { border-bottom: 2px solid var(--mz-wall); }
-.mz-cell.mz-w { border-left: 2px solid var(--mz-wall); }
-/* WHERE YOU HAVE BEEN, which is the whole playability on a card this size: without it a dead end
-   looks exactly like a corridor you have not tried yet. Faint, because it is a memory rather than
-   part of the maze. */
-.mz-cell.been { background: var(--mz-trail); }
-/* THE WAY OUT IS A RING AND YOU ARE A FILL, so the two are never confused when you are standing on
-   it. Same device as `.oth-cell.can`, and for the same reason. */
-.mz-cell.out { box-shadow: inset 0 0 0 2px var(--gold); }
-.mz-cell.you { background: var(--gold); }
-
-/* ---------- THE FOUR KEYS § */
-.mz-pad {
-  display: grid; gap: .4rem; justify-content: center; margin: .6rem 0 0;
-  grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px);
-}
-.mz-key {
-  min-width: 44px; min-height: 44px; padding: 0;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 600 1rem/1 var(--font); cursor: pointer;
-  transition: transform var(--dur-quick) var(--ease-out), background var(--dur-quick) var(--ease-out);
-}
-.mz-key:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-.mz-key.up    { grid-column: 2; grid-row: 1; }
-.mz-key.left  { grid-column: 1; grid-row: 2; }
-.mz-key.down  { grid-column: 2; grid-row: 2; }
-.mz-key.right { grid-column: 3; grid-row: 2; }
-
-/* ---------- THE CONSOLE'S OWN BODIES FOR ITS TWO BUILT-IN GAMES (441): a handheld round the bird, a wide dark bezel round the street. */
-.cs-body { --cs-shell: #2a2a30; --cs-edge: #45454d; box-sizing: border-box; margin: .55rem auto 0; background: var(--cs-shell);
-  border: 1px solid var(--cs-edge); }
-.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 16px 16px 42px 16px; }
-.cs-wide { padding: .6rem .6rem .7rem; border-radius: 18px; }
-.lk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 22rem; margin: .5rem auto; }
-.lk-sq { min-height: 44px; font-size: 1.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
-.lk-sq.on { outline: 3px solid var(--gold); }
-.lk-sq:disabled { border-color: transparent; }
-.gs-q { font-size: 1.1rem; margin: .6rem 0; }
-.cs-wide .race-stage { margin-top: 0; }
-
-/* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
-.race-stage {
-  --race-sky: rgb(158, 199, 230);
-  position: relative; width: 100%; aspect-ratio: 4 / 3; margin: .55rem 0 0; overflow: hidden;
-  background: var(--race-sky); border-radius: var(--r-sm); touch-action: none; user-select: none;
-  -webkit-user-select: none; -webkit-touch-callout: none;   /* Safari: a held pedal is not a text selection or a callout (464) */
-}
-@media (min-width: 700px) { .race-stage { aspect-ratio: 16 / 10; } }
-.race-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
-.race-mini {
-  position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border-radius: 50%;
-  background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--line); pointer-events: none;
-}
-.race-hud, .race-lap {
-  position: absolute; left: 8px; display: flex; flex-direction: column; gap: .1rem; max-width: calc(100% - 120px);
-  padding: .3rem .5rem; border-radius: var(--r-sm); pointer-events: none;
-  background: color-mix(in srgb, var(--bg) 62%, transparent); color: var(--ink); font: .78rem/1.25 var(--mono);
-}
-.race-hud { top: 8px; }
-.race-hud b { color: var(--gold); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-.race-hud span, .race-lap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.race-lap { bottom: 8px; }
-/* THE PEDALS, phone only: a fixed row, px because a thumb does not scale with the root font. */
-.race-pads { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)) 12px repeat(2, minmax(0, 1fr)); gap: 8px; height: 64px; margin: .55rem 0 0; }
-.race-pad {
-  height: 64px; min-width: 0; padding: 0; border-radius: 12px; touch-action: none; user-select: none;
-  -webkit-user-select: none; -webkit-touch-callout: none;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); font: 600 1rem/1 var(--font);
-}
-.race-pad.is-go { color: var(--gold); }
-.race-pad.on { background: var(--line); border-color: var(--gold); }
-.race-keys { margin: .4rem 0 0; text-align: center; }
-@media (hover: none) and (pointer: coarse) {
-  .race-pads { display: grid; }
-  .race-keys { display: none; }
-}
-.race-nogl { position: absolute; left: 0; right: 0; top: 45%; margin: 0; text-align: center; color: var(--bg); }
-.race-attr { margin: .35rem 0 0; font-size: .72rem; }
-.race-attr a { color: inherit; }
 
 /* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD § */
 .ws-top { margin: .5rem 0 0; }
@@ -5560,45 +5008,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   grid-template-columns: repeat(var(--ws-n, 10), 1fr);
   width: 100%; max-width: 24rem;
 }
-.ws-c {
-  aspect-ratio: 1; min-width: 0; min-height: 0; padding: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--sunk); color: var(--ink); border: 0; border-radius: 4px;
-  font: 600 clamp(.72rem, 3.6vw, .95rem)/1 var(--mono); cursor: pointer;
-}
-/* FOUND IS A FILL AND THE START IS A RING, so a found letter that is also the start of the next try
-   still reads as both — the device `.mz-cell.out` and `.oth-cell.can` use. */
-.ws-c.got { background: color-mix(in srgb, var(--gold) 34%, var(--sunk)); }
-.ws-c.sel { box-shadow: inset 0 0 0 2px var(--gold); color: var(--gold); }
-.ws-c:disabled { cursor: default; }
-.ws-list {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem .9rem;
-  margin: .55rem 0 0; padding: 0; list-style: none;
-  font: 500 .8rem/1.35 var(--font); color: var(--ink);
-}
-.ws-list li.got { color: var(--dim); }
-
-/* ---------- SENTENCE SCRAMBLE § */
-.ss-built {
-  min-height: 2.9em; margin: .55rem 0 0; padding: .45rem .6rem;
-  border: 1px dashed var(--line); border-radius: var(--r-sm);
-  font: 500 .95rem/1.4 var(--font); color: var(--ink);
-}
-.ss-built.is-right { border: 1px solid var(--gold); }
-.ss-built.is-wrong { border-color: var(--warn); }
-.ss-empty { color: var(--faint); }
-.ss-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .55rem 0 0; }
-.ss-chip {
-  min-height: 44px; min-width: 44px; padding: 0 .6rem;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 500 .9rem/1 var(--font); cursor: pointer;
-}
-.ss-chip.used { color: var(--faint); border-style: dashed; }
-.ss-chip:disabled { cursor: default; }
-/* CHECK AND NEW SENTENCE SIDE BY SIDE, the correction `.btn-row .btn` already makes to `.btn`'s
-   full width. */
-.ss-acts { display: flex; gap: .5rem; margin: .55rem 0 0; }
-.ss-acts .btn { width: auto; flex: 1 1 0; padding: 0 .6rem; }
 
 /* SCRABBLE ITS FOUR PREMIUM COLOURS AND ITS CREAM BOARD ARE DECLARED ON THE COMPONENT, which is the rule the house style states with the chess board's cream and § */
 .scr {
@@ -5615,93 +5024,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   aspect-ratio: 1; width: 100%; max-width: 24rem;
   background: var(--scr-line); border: 1px solid var(--scr-line);
   border-radius: var(--r-sm); overflow: hidden;
-}
-.scr-sq {
-  display: flex; align-items: center; justify-content: center;
-  min-width: 0; min-height: 0; padding: 0;
-  background: var(--scr-paper); color: var(--scr-ink);
-  border: 0; border-radius: 0;
-  font: 700 clamp(7px, 2.1vw, 12px)/1 var(--font);
-  position: relative;
-}
-/* THE POINTER ONLY WHERE THERE IS SOMETHING TO PRESS. § */
-button.scr-sq { cursor: pointer; }
-/* ---------- A TILE COVERS WHATEVER IS UNDER IT, AND SAYS SO IN THE SELECTOR § */
-.scr-sq.dl:not(.has) { background: var(--scr-dl); }
-.scr-sq.tl:not(.has) { background: var(--scr-tl); }
-.scr-sq.dw:not(.has) { background: var(--scr-dw); }
-.scr-sq.tw:not(.has) { background: var(--scr-tw); }
-/* THE STAR. It is a double word and it is also where the first move has to go, so it is marked differently from the other double words rather than the same § */
-/* `:not(.has)` RATHER THAN LETTING THE LATER RULE WIN. § */
-/* AND IT SETS ONLY THE RING. § */
-.scr-sq.mid:not(.has) { box-shadow: inset 0 0 0 2px var(--scr-tw); }
-/* A TILE COVERS WHATEVER IS UNDER IT, exactly as it does on the table — the premium is spent and
-   the colour going with it is what says so. */
-.scr-sq.has { background: var(--scr-tile); }
-.scr-sq.has:not(.new) { box-shadow: inset 0 0 0 1px #00000022; }
-/* AND THE ONES YOU HAVE JUST PUT DOWN are the only ones you may take back, so they say so. Gold,
-   because gold is what this app means by yours. */
-.scr-sq.new { box-shadow: inset 0 0 0 2px var(--gold); }
-/* THE VALUE, in the corner where the tile prints it. Hidden under about eleven pixels a square,
-   because a digit that cannot be read is a smudge on the letter beside it. */
-.scr-sq i {
-  position: absolute; right: 1px; bottom: 0;
-  font-size: .5em; font-style: normal; opacity: .75;
-}
-@media (max-width: 22rem) { .scr-sq i { display: none; } }
-
-/* ---------- WHOSE TURN, AND WHAT EVERYBODY HAS -------------------------------------------------- */
-.scr-who {
-  display: flex; flex-wrap: wrap; gap: .1rem .7rem; justify-content: center;
-  margin: .2rem 0 0; font-size: .74rem; color: var(--dim);
-}
-.scr-p b { color: var(--ink); font-weight: 650; }
-.scr-p.on { color: var(--gold); }
-.scr-p.on b { color: var(--gold); }
-
-.scr-box { margin: .5rem 0 0; }
-.scr-hand, .scr-say { margin: .2rem 0 .4rem; text-align: center; font-size: .82rem; color: var(--dim); }
-
-/* ---------- THE RACK -------------------------------------------------------------------------- */
-.scr-rack { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: center; }
-.scr-tile {
-  position: relative;
-  min-width: 44px; min-height: 44px; padding: 0;
-  background: var(--scr-tile, #e3c98f); color: #2b2417;
-  border: 1px solid #00000033; border-radius: var(--r-sm);
-  font: 700 1.05rem/1 var(--font); cursor: pointer;
-  transition: transform var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out);
-}
-.scr-tile i { position: absolute; right: 3px; bottom: 1px; font-size: .55rem; font-style: normal; opacity: .75; }
-.scr-tile.on { box-shadow: 0 0 0 2px var(--gold); transform: translateY(-3px); }
-/* MARKED FOR SWAPPING IS NOT THE SAME AS PICKED UP, so it is not the same mark — one is a tile on
-   its way to the board and the other is a tile on its way back to the bag. */
-.scr-tile.mark { opacity: .55; box-shadow: inset 0 0 0 2px var(--scr-tw, #cf5a4a); }
-/* A TILE THAT IS ON THE BOARD LEAVES ITS PLACE ON THE RACK, exactly as it does on the table — the
-   gap is what says which one went, and the rack keeping its positions is what makes putting it back
-   land where you expect. */
-.scr-tile.used { background: none; border-style: dashed; border-color: var(--line); color: transparent; }
-.scr-tile.used i { display: none; }
-.scr-tile:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-
-/* ---------- WHAT THE BLANK STANDS FOR § */
-
-/* ---------- THE FOUR ACTIONS ------------------------------------------------------------------- */
-/* NOT `.btn`, WHICH IS `width: 100%` — right for the one action on a card and wrong for a row of
-   four. `.reel-sound`, `.mz-key` and `.btn-row .btn` all record the same correction. */
-.scr-acts { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; margin: .5rem 0 0; }
-.scr-act {
-  flex: 1 1 auto; min-width: 5rem; min-height: 44px; padding: 0 .6rem;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 600 .82rem/1 var(--font); cursor: pointer;
-}
-.scr-acts .scr-act:first-child { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
-
-/* ---------- HERD MENTALITY § */
-.herd-card .herd-q {
-  margin: 1.1rem 0 .6rem; min-height: 4.5rem;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  font: 600 1.15rem/1.35 var(--font); color: var(--ink);
 }
 
 /* ---------- WRITING ON THE PAPER § */
@@ -6208,83 +5530,12 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--art-face); text-align: center;
 }
-/* ---------- ONE BUTTON, NOT SIX § */
-.art-go {
-  min-height: 52px; padding: 0 2rem;
-  border: 1px solid var(--gold); border-radius: 999px;
-  background: var(--gold); color: var(--on-gold);
-  font: 700 1rem/1 var(--font); cursor: pointer;
-}
-.art-go:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
-.art-cat-of { margin: 0; font: 600 .7rem/1 var(--font); letter-spacing: .09em;
-              text-transform: uppercase; color: var(--gold); }
-/* `clamp` RATHER THAN A BREAKPOINT, because the longest word here is "skimming a stone" and the
-   shortest is "zip": the type has to fit the word, not the phone. */
-.art-word { margin: 0; font: 700 clamp(1.4rem, 7vw, 2.1rem)/1.15 var(--font); color: var(--ink); }
-.art-over { margin: 0; font: 600 .75rem/1 var(--font); letter-spacing: .1em;
-            text-transform: uppercase; color: var(--dim); }
-.art-score { margin: 0; font: 700 1.8rem/1.1 var(--font); color: var(--gold); }
-.art-row { display: flex; gap: .5rem; margin-top: .6rem; }
-.art-meta { text-align: center; margin: .5rem 0 0; }
 
 /* ---------- IMPOSTER § */
 .imp-count { display: flex; align-items: center; gap: 1rem; }
-.imp-step {
-  width: 44px; height: 44px; border-radius: 999px;
-  border: 1px solid var(--line); background: transparent; color: var(--ink);
-  font: 600 1.3rem/1 var(--font); cursor: pointer;
-}
-/* `.imp-pass` IS THE PARTY GAMES' SENTENCE NOW AND NOT IMPOSTER'S. § */
-.imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
-/* ---------- THE BIG LINE AND THE BUTTON STAY WHERE THEY ARE § */
-.imp-lab { min-height: .7rem; }
-.imp-big { min-height: 2.3em; display: flex; align-items: center; justify-content: center; }
-/* THE PICTURE OVER THE WORD — an emoji, big enough to be the card for a child who cannot read the word under it, and drawn on the reveal over the word as well. § */
-/* AND A HAIRLINE OF `--ink` ROUND EVERY PICTURE, because some of them are drawn in black and this card is nearly black. § */
-.imp-sym { margin: 0; height: 1.2em; display: flex; align-items: center; justify-content: center;
-  position: relative;
-  font: 400 3.6rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  filter: drop-shadow(0 0 .02em var(--ink)) drop-shadow(0 0 .02em var(--ink)); }
-/* THE IMPOSTER'S "?" — see `impFrame_`: § */
-.imp-sym.is-imp { padding: 0 1.3rem; }
-.imp-sym.is-imp::after {
-  content: '?'; position: absolute; right: .3rem; top: 2.2rem;
-  width: 1.6rem; height: 1.6rem; border-radius: 50%;
-  background: var(--gold); color: var(--on-gold);
-  font: 700 1.15rem/1.6rem var(--font); text-align: center;
-}
-/* SHOW AND HIDE CARRY A MARK, an open eye and a shut one from `TILE_ICONS`, for the children who know the button by picture. § */
-.imp-go { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 148px; }
-.imp-go .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
+
 /* LISTEN IS THE BIGGEST THING A CHILD PRESSES HERE, and round, the speaker every phone puts on its volume. § */
 .tile.is-listen { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
-/* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px and its own 20px over it,
-   empty, so the card is one height with Listen or without. See `impFrame_`. */
-.imp-foot { display: block; width: 64px; height: 64px; margin-top: 20px; }
-/* ---------- THE READ ALOUD SWITCH IS A TILE, AND HAS NO RULE HERE § */
-
-/* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS § */
-.party-clock { margin: 0; font: 700 1.5rem/1 var(--mono); color: var(--gold); }
-.party-acts { margin-top: .6rem; }
-.party-acts .btn-row + .btn { margin-top: .5rem; }
-.party-sum { margin: 0; font: 400 .85rem/1.35 var(--font); color: var(--dim); }
-.party-of { font-size: .55em; color: var(--dim); }
-/* THREE TALLIES ACROSS A 320px CARD is about 80px each, and "Repetition" at a button's own size is wider than that — so the name is small and the count under it § */
-.btn.party-call {
-  flex-direction: column; gap: .25rem; min-height: 52px; padding: .35rem .25rem;
-  font: 600 .66rem/1 var(--font); letter-spacing: .02em;
-}
-.btn.party-call b { font: 700 1.15rem/1 var(--mono); }
-/* TABOO'S FORBIDDEN WORDS ARE QUIETER THAN THE WORD and wrap as a set, because they are read second
-   and the describer has to take all five in at a glance. */
-.tab-ban { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap;
-           justify-content: center; gap: .3rem .35rem; max-width: 18rem; }
-/* EACH ONE IN ITS OWN OUTLINE, because five words wrapped across two lines with only a space between them read as a sentence § */
-.tab-ban li { font: 600 .95rem/1.3 var(--font); color: var(--dim);
-              padding: .05rem .5rem; border: 1px solid var(--line); border-radius: 999px; }
-/* HOT SEAT'S WORD IS READ FROM ACROSS A ROOM, so it is bigger than Articulate's, which is read by
-   the person holding the phone. */
-.art-word.hot-word { font-size: clamp(1.8rem, 9vw, 2.6rem); }
 
 /* SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER. § */
 .rc.rc-snap .rc-tiles,
@@ -6845,6 +6096,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
 /* THE PICTURE'S CARD STANDS IN THE SITE CARD'S OWN SLOT, at its width; its margin is the column's, not the picture's. */
 .tpng-host > .card { margin: 0; }
+/* FLAT AS IN THE PANE (690), so the picture is the card exactly as seen: no box, no inset. */
+.tpng-host > .card.is-widget { background: none; border: 0; border-radius: 0; padding-inline: 0; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }
@@ -6921,7 +6174,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 #s-stuff .vid-search, #s-stuff .sp-search { display: none; }
 /* PICTURE FIRST (batch C): a profile card and a video card lead with the picture, the name under it; the facts are the tags above. */
 .prof-door .prof-big { display: block; width: 100%; max-width: 20rem; height: auto; aspect-ratio: 1; margin: 0 auto .6rem; border-radius: 16px; object-fit: cover; }
-.vid-door .vid-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; margin-bottom: .6rem; background: var(--line); }
 .notify-door .notify-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 /* A POST IN FIND (batch C): its state is the tag above it, so the line saying so is not drawn twice. */
 .post-door .post-pending { display: none; } .post-door > .post { border: 0; padding: 0; }

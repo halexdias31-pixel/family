@@ -350,13 +350,13 @@ function clipDealt_(list) {
   return list.slice().sort((a, b) => key(a) - key(b));
 }
 function clipsNow_() {
-  const ok = f => f && f.clip && (typeof clipPlayable_ !== 'function' || clipPlayable_(f.clip));
+  const ok = f => f && f.clip && (typeof window.clipPlayable_ !== 'function' || window.clipPlayable_(f.clip));
   const said = sheetFacts_().filter(ok);
   /* AND AN ADMIN'S OWN REELS OVER THEM, from the `media` tab (404). */
   const base = said.length ? said : factsBuilt_().filter(ok);
-  const all = typeof mediaReelsOver_ === 'function' ? mediaReelsOver_(base) : base;
+  const all = window.mediaReelsOver_ ? window.mediaReelsOver_(base) : base;
   /* AND ONLY WHAT THIS VIEWER IS OLD ENOUGH FOR (406). */
-  return clipDealt_(typeof mediaAgeOk_ === 'function' ? all.filter(f => mediaAgeOk_(f.age)) : all);
+  return clipDealt_(window.mediaAgeOk_ ? all.filter(f => window.mediaAgeOk_(f.age)) : all);
 }
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. § */

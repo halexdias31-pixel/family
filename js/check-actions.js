@@ -9,6 +9,17 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 
 /* ---------- A HANDLER NO CODE CALLS, KEPT ON PURPOSE. One sentence each: who reaches it, and why it stays. */
 const REASONS = {
+  consoleLoad: 'its front end (the Console, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  consoleSave: 'its front end (the Console, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  filmsSync: 'its front end (the films list, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  mediaDelete: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  mediaHide: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  mediaSave: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  mediaUpload: 'its front end (the reels and videos admin, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  raceBuild: 'its front end (the racer, games.js/racer.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  saveScore: 'its front end (the Flabby Pird game, receipt.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  saveTimetable: 'its front end (the Timetable widget, games.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
+  saveTtHighscore: 'its front end (the times-tables sprint, games.js) was frozen and deleted (1110); the handler stays until the backend is next redeployed. Restore from cfc19fa.',
   favLinksSave: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
   rewriteIdeas: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
   rewriteCheck: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',

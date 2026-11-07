@@ -514,22 +514,6 @@ top level, before `isMe_`
    beside a second one rather than inside it. */
 ```
 
-### ---------- `Book with them` WAS HERE
-
-in `tutorTiles_`
-
-```
-/* ---------- `Book with them` WAS HERE -----------------------------------------------------
-          YOU DO NOT BOOK FROM A PERSON. A pass is who somebody is — their subjects, their rate,
-          whether they are cleared — and it is read while deciding, not while arranging. The form
-          asks twelve questions and a tutor is one of them; a button that jumps there from one answer
-          skips the other eleven and lands somebody in a half-filled form they did not open.
-
-          THE FORM IS ONE ANSWER AWAY. `What for · Booking` is the first question in the funnel and
-          the form is the page behind it, which is a shorter route than most cards offer to anything.
-          Nothing has been made harder to reach; a second entrance has been closed. */
-```
-
 ### SILVER, IN THE ORDINARY ROW.
 
 in `tutorTiles_`
