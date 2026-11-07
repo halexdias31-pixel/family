@@ -180,14 +180,14 @@ check('a part\'s tool row is the owner\'s nine in order with one padlock, the dr
   const row = host.querySelector('.qt-row');
   const names = row ? [...row.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* NOTHING TO DRAW ON, NO PEN (owner, 29 Oct: "a button which opens the working paper … remove that") */
-  /* THE MAGNIFIER, PADLOCK AND A ONE-PART QUESTION'S READ ALOUD ARE THE CARD FOOT'S ONLY (1040 r12, `QT_CARD_LEVEL`): one of each per card. */
-  if (names.join(' | ') !== 'Photo of working | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
+  /* THE SAME ROW ON EVERY PART (owner, 7 Nov, over 1040 r12): magnifier, Read aloud and padlock are each part's. */
+  if (names.join(' | ') !== 'Photo of working | Magnifier | Read aloud | Lock | Check') bad.push('a part with no figure: the tool row reads ' + names.join(' | '));
   const x3 = item('GR-3');
   host.innerHTML = x3 ? w.questionCard_(x3, 0) : '';
   const row3 = host.querySelector('.qt-row');
   const names3 = row3 ? [...row3.querySelectorAll('.tile')].filter(b => !b.classList.contains('qt-fold')).map(b => (b.getAttribute('aria-label') || '').split(' · ')[0]) : [];
   /* UNDO AND CLEAR ARE THE PAD'S, IN THIS ONE ROW FROM THE START (1020): a tap never adds or moves a control. */
-  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
+  if (names3.join(' | ') !== 'Pen | Straight line | Ruler | Protractor | Compass | Photo of working | Magnifier | Read aloud | Lock | Undo | Clear | Check') bad.push('a part with a named grid: the tool row reads ' + names3.join(' | '));
   if (d.querySelectorAll('[data-do="qt-grid"], [data-do="qt-panel"], .qcalc, .qt-table, .qt-formula').length) bad.push('a Grid, Table, Calculator or Formula sheet is still drawn on the part');
   const whole = d.createElement('div'); whole.innerHTML = x3 ? w.questionWhole_(x3, [x3], null, true) : '';
   const locks = whole.querySelectorAll('[data-do="q-lock"], [data-do="game-lock"]').length;

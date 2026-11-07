@@ -47,7 +47,7 @@ const shown = (page, key) => page.evaluate(k => { const s = [...document.querySe
     for (const step of ['Library', 'History']) { if (!(await pick(page, step))) add('Find', 'no "' + step + '" answer (asked: ' + (await asked(page)).slice(0, 8).join(', ') + ')'); await wait(1500); }
     const kinds = await asked(page);
     firstAsk = kinds.join(', ');
-    ['Manuscripts', 'People', 'Works', 'Events', 'Timelines'].forEach(k => { if (kinds.indexOf(k) < 0) add('Library › History', 'does not ask "' + k + '" first (asked: ' + kinds.slice(0, 8).join(', ') + ')'); });
+    ['Manuscripts', 'People', 'Writings', 'Events', 'Timelines'].forEach(k => { if (kinds.indexOf(k) < 0) add('Library › History', 'does not ask "' + k + '" first (asked: ' + kinds.slice(0, 8).join(', ') + ')'); });
     await pick(page, 'Timelines'); await wait(1500);
     for (let n = 0; n < 4 && !(await page.$('.tl-anim')); n++) { await pick(page, "Doesn't matter"); await wait(1200); }
     const keys = await page.evaluate(() => histTimelines_().map(x => x.key));

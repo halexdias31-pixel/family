@@ -501,13 +501,13 @@ check('an admin\'s diagnostic written over the newer-version banner does not rel
   return bad;
 });
 
-/* ---------- THE FIRST TOUCH DRAWS (368): no lock, no door on the picture, and a finger on any pen's figure inks at once */
-check('a drawing question\'s figure takes the first touch: no lock, a tap is a dot, a stroke a line, and another figure takes the pen', async () => {
+/* ---------- THE PEN IS OFF UNTIL PICKED (owner, 7 Nov, over 368): a finger on an unpicked figure scrolls and never inks; the Pen tile arms it */
+check('a drawing question\'s figure draws only once its pen is picked: an untouched figure ignores a finger, a picked one takes a dot and a line', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
   if (typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof t.padNow !== 'function' || typeof w.padDrop_ !== 'function') {
-    return ['padWrap_, PAD_ON or padDrop_ is not reachable, so the first touch was NOT checked — not a pass'];
+    return ['padWrap_, PAD_ON or padDrop_ is not reachable, so the pen was NOT checked — not a pass'];
   }
   const bad = [];
   const x = { key: 'q:Q-PEN', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
@@ -528,17 +528,25 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
   });
   const stored = k => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
   const fire = (p, type, px, py, ts) => penEv_(w, p.querySelector('.qpad-ink'), type, { id: 7, x: px, y: py, t: ts, prim: true });
-  /* ---------- A FINGER'S TAP ON THE UNARMED FIGURE: a dot ------------------------------------------ */
+  /* ---------- A FINGER'S STROKE ON THE UNPICKED FIGURE: nothing inked, the pen stays down (a scroll) ---------- */
+  fire(pads[0], 'pointerdown', 60, 60, 500);
+  for (let i = 1; i <= 8; i++) fire(pads[0], 'pointermove', 60, 60 + 20 * i, 500 + 16 * i);
+  fire(pads[0], 'pointerup', 60, 220, 700);
+  if (t.padNow()) bad.push('a finger on an unpicked figure gave it the pen (PAD_ON is "' + t.padNow() + '") -- scrolling would draw');
+  if (stored(kx).length) bad.push('a finger scrolling over an unpicked figure inked ' + JSON.stringify(stored(kx)).slice(0, 80));
+  /* ---------- THE PEN PICKED, THEN A TAP: a dot ------------------------------------------------------ */
+  w.padToolPick_(pads[0], 'pen');
   fire(pads[0], 'pointerdown', 190, 190, 1000);
-  if (t.padNow() !== kx) bad.push('a finger landing on the figure did not give it the pen (PAD_ON is "' + t.padNow() + '")');
+  if (t.padNow() !== kx) bad.push('picking the pen did not give the figure the pen (PAD_ON is "' + t.padNow() + '")');
   if (!pads[0].classList.contains('is-drawing')) bad.push('the touched pad is not marked as the one drawing');
   fire(pads[0], 'pointerup', 190, 190, 1060);
   if (stored(kx).length !== 1 || stored(kx)[0].length !== 2) bad.push('a first tap on the figure stored ' + JSON.stringify(stored(kx)) + ', wanted one dot');
-  /* ---------- A STROKE ON THE OTHER FIGURE: it takes the pen and inks a line ------------------------- */
+  /* ---------- THE OTHER FIGURE'S PEN PICKED, A STROKE: it takes the pen and inks a line --------------- */
+  w.padToolPick_(pads[1], 'pen');
   fire(pads[1], 'pointerdown', 60, 460, 2000);
   for (let i = 1; i <= 12; i++) fire(pads[1], 'pointermove', 60 + 15 * i, 460 + 5 * i, 2000 + 16 * i);
   fire(pads[1], 'pointerup', 240, 520, 2250);
-  if (t.padNow() !== ky) bad.push('a finger on the second figure did not move the pen to it');
+  if (t.padNow() !== ky) bad.push('picking the second figure\'s pen did not move the pen to it');
   if (pads[0].classList.contains('is-drawing')) bad.push('the first pad still says it is the one drawing');
   if (stored(ky).length !== 1 || stored(ky)[0].length < 4) bad.push('a first stroke on the second figure stored ' + JSON.stringify(stored(ky)).slice(0, 120) + ', wanted one line');
   if (stored(kx).length !== 1) bad.push('the stroke on the second figure changed the first one\'s marks');
@@ -717,6 +725,8 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   host.innerHTML = t.padCard(plain, '<svg viewBox="0 0 340 170"></svg>', '');
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  /* the pad armed with the stale choice still in PAD_TOOL: the pen is off until picked (owner, 7 Nov) */
+  t.padOn(pk); w.padArm_(pad, true);
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
   if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad drew with a protractor held as its drawing tool: ' + JSON.stringify(ps).slice(0, 80));

@@ -393,7 +393,8 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   /* ONE SORT FOR EVERY FACET (396): answers that are all kinds go in the kinds tab's order — data, not a table in What kind. */
   const all = ['Answers', 'Library', 'Projects', 'Practicals', 'Questions'];
   const got = all.slice().sort(w.answerCmp_(all)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Library') bad.push('What kind orders its answers "' + got + '"');
+  /* PROJECTS ARE UNDER LIBRARY (owner, 7 Nov), so they follow it. */
+  if (got !== 'Questions Answers Practicals Library Projects') bad.push('What kind orders its answers "' + got + '"');
   if (Object.keys(kind).some(k => ['orderOf', 'cmp', 'bucketOf'].indexOf(k) >= 0)) bad.push('What kind carries an order of its own again: ' + Object.keys(kind).join(', '));
   const labels = Object.values(w.kindMap_()).map(k => k.label);
   if (labels.indexOf('Films') >= 0 || labels.indexOf('Bundles') >= 0) bad.push('the kinds name ' + labels.filter(l => /Films|Bundles/.test(l)).join(', ') + ' — neither is a kind in Find');
@@ -618,8 +619,10 @@ const ansCards_ = (w, tag) => {
 };
 const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
 const ansStroke_ = (w, c, pts) => {
-  /* NO LOCK TO PRESS FIRST (368): the pointerdown on the ink gives the pad the pen. */
-  const ink = c.pad().querySelector('.qpad-ink');
+  /* THE PEN PICKED FIRST (owner, 7 Nov): an unpicked figure never inks; picked already, it stays picked. */
+  const pd = c.pad(), k = pd.getAttribute('data-k');
+  if (w.__t.padNow() !== k || (w.__t.padTool().get(k) || 'pen') !== 'pen') w.padToolPick_(pd, 'pen');
+  const ink = pd.querySelector('.qpad-ink');
   ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
   const Ev = w.PointerEvent || w.MouseEvent;
   const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));

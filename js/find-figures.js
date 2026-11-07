@@ -290,23 +290,24 @@ function questionCard_(x, was) {
 }
 
 /* ---------- ONE CARD PER QUESTION NUMBER, AS THE PAPER PRINTS IT (960) § */
-/* EVERY ATTRIBUTE IS A TAG IN THE TOP LINE (1030): a lone part keeps its whole row; several parts say each part's marks as "a 2 marks". */
+/* EVERY ATTRIBUTE IS A TAG (1030); with several parts, each part's own (marks, result, function) is in that part's row (owner, 7 Nov). */
 const Q_PART_FACETS = { qPart: 1, qSub: 1, qPage: 1, qPages: 1, marks: 1, myResult: 1, accuracy: 1, function: 1 };
 const Q_TAG_RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>([\s\S]*?)<\/span>/g;
 function qWholeTags_(x, list) {
   const row = String(tagRow_(x) || '');
   if (!list || list.length < 2) return row;
-  const seen = {}, more = [];
-  list.forEach(p => {
-    const sp = qSplitOf_(p) || {}, lab = String(sp.part || p.qPart || '').replace(/^\./, '') + (sp.sub ? '(' + sp.sub + ')' : '');
-    String(tagRow_(p) || '').replace(Q_TAG_RE, (m, f, t) => {
-      if (!Q_PART_FACETS[f] || /^q(Part|Sub|Page|Pages)$/.test(f)) return m;
-      const html = f === 'marks' && lab ? m.replace('>' + t + '<', '>' + esc(lab) + ' ' + t + '<') : m;
-      if (!seen[html]) { seen[html] = 1; more.push(html); }
+  return row.replace(Q_TAG_RE, (m, f) => (Q_PART_FACETS[f] ? '' : m));
+}
+/* A PART'S OWN TAGS, from `tagRow_`, so what is already chosen is left out here as on the top line */
+function qPartTags_(p) {
+  const out = [];
+  try {
+    String(tagRow_(p) || '').replace(Q_TAG_RE, (m, f) => {
+      if (Q_PART_FACETS[f] && !/^q(Part|Sub|Page|Pages)$/.test(f) && out.indexOf(m) === -1) out.push(m);
       return m;
     });
-  });
-  return row.replace(Q_TAG_RE, (m, f) => (Q_PART_FACETS[f] ? '' : m)).replace(/<\/div>$/, more.join('') + '</div>');
+  } catch (e) { return ''; }
+  return out.join('');
 }
 /* THE TREE: the question, its letters, their numerals; a stem stands at the deepest level every part under it shares. */
 function qTree_(parts) {
@@ -363,7 +364,7 @@ function qBlock_(n, ctx) {
   const own = n.items[0] || null;
   const shut = own && !ctx.open.has(own);
   /* A PART'S LETTER IS A PILL TAG IN ITS OWN TAG ROW (owner, 6 Nov), drawn by the same rule as every other tag. */
-  const label = n.label ? `<div class="qb-head qtags qcard-tags"><span class="qtag qb-label"${tagAttr_(n.depth === 1 ? 'qPart' : 'qSub')} data-f="${n.depth === 1 ? 'qPart' : 'qSub'}">${esc(n.label)}</span>${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
+  const label = n.label ? `<div class="qb-head qtags qcard-tags"><span class="qtag qb-label"${tagAttr_(n.depth === 1 ? 'qPart' : 'qSub')} data-f="${n.depth === 1 ? 'qPart' : 'qSub'}">${esc(n.label)}</span>${own && !shut && ctx.list.length > 1 ? qPartTags_(own) : ''}${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
   const stems = n.stems.filter(p => !ctx.carried.has(p) && !ctx.drawn[stemId_(p)])
     .map(p => { ctx.drawn[stemId_(p)] = true; return qStemWhole_(own || ctx.x, p); }).join('');
   const body = own && !shut ? qPartCard_(own, ctx.ans) : '';
@@ -380,12 +381,11 @@ function qPartCard_(x, ans) {
 /* THE CARD: tags once, the blocks, then ONE tile row (`cardTiles_` with the page tools and Help folded in). */
 function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
-  const ctx = { x: x, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
+  const ctx = { x: x, list: list, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
   const tree = qTree_(list);
-  /* READ ALOUD IS `cardTiles_`'s, one per card, reading every part (owner, read-aloud-parts b) */
-  const tools = tile_([magOpts_(), qLockOpts_()]);
+  /* READ ALOUD, MAGNIFIER AND PADLOCK ARE EVERY PART'S OWN (`qtRow_`, owner 7 Nov); the foot keeps Help and the rest */
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null);
-  const foot = cardTiles_(Object.assign(Object.create(x), { lead: help, more: (x.more || '') + tools }));
+  const foot = cardTiles_(Object.assign(Object.create(x), { lead: help }));
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
     ${qWholeTags_(x, list)}${qBlock_(tree, ctx)}
   </div></div>${foot}`;
@@ -783,7 +783,7 @@ function magPaint_() {
   if (document.body) document.body.classList.toggle('mag-on', !!MAG.on);
 }
 on('q-mag', () => { MAG.on = MAG.on ? '' : qLockHere_(); if (!MAG.on) magHide_(); magPaint_(); });
-/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's is in its card foot (`questionWhole_`) */
+/* AND ON EVERY THING FIND HOLDS (502): a library card or a verse is words and figures too; a question's is in each part's row (`qtRow_`) */
 const MAG_ITEM_KINDS = { content: 1, practical: 1, project: 1, bible: 1, quran: 1, talmud: 1, hadith: 1, paper: 1, document: 1 };
 function magCardOpts_(x) {
   if (!x || !x.key || isQ_(x) || isMeCard_(x)) return null;

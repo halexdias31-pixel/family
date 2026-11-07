@@ -19,3 +19,10 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1793581619944-96786 | 7 Nov 2026 | everything loading on arrival | as above |
 | N-1793717072309-72111 | 7 Nov 2026 | tags slow to load / taps not registering | Sweep 06:36: early taps measured ≤ 0.06 s; less code at boot |
 | N-1793705163005-40023 | 7 Nov 2026 | load still feels rough; move widgets | load part: Sweep 06:36; moving widgets left open |
+| N-1794042339581-848 | 7 Nov 2026 | pen draws while scrolling; full buttons on every part; part tags | pen off until picked; full row on every part; part tags follow the first part's rule |
+| N-1794042387481-57933 | 7 Nov 2026 | projects into library | Projects now under Library |
+| N-1794045566287-50680 | 7 Nov 2026 | manuscript cards minimal, grey text | picture then tags; facts line gone (pixel pictures not yet drawn) |
+| N-1794045843240-64505 | 7 Nov 2026 | primary/secondary source; Writings not Works | Works renamed Writings; source tag on every writing (one flagged for the owner) |
+| N-1794045917606-80291 | 7 Nov 2026 | mechanics first menu car or part | first menu is Car or car part |
+| N-1794046031810-28828 | 7 Nov 2026 | statistics = GCSE Statistics | already only the GCSE Statistics book; board and spec added |
+| N-1794046108103-76754 | 7 Nov 2026 | PE: no History, boxing only | History shelf gone; Boxing only |

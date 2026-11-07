@@ -5364,9 +5364,9 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;
 }
-/* A PEN'S INK TAKES THE FIRST TOUCH (368): no lock, so a swipe between cards starts off the figure. A copy with no pen (`.qseen`) stays inert. */
-.qpad .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair;
-  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+/* THE INK TAKES A TOUCH ONLY ONCE A TOOL IS PICKED (owner, 7 Nov): until then a finger on the figure scrolls. A copy with no pen (`.qseen`) stays inert. */
+.qpad .qpad-ink { pointer-events: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.qpad.is-drawing .qpad-ink { touch-action: none; cursor: crosshair; }
 /* ---------- A FINGER HELD ON THE ARMED CARD SELECTS NOTHING § */
 .pane:has(.qpad.is-drawing), .qpad.is-drawing {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -6021,8 +6021,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms .mfr-band { fill: none; stroke: var(--ms-red); stroke-width: 5; stroke-dasharray: 2 4; }
 .hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
 .hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
-.hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: var(--faint); }
-.hdb-facts { margin: .2rem 0 .5rem; }
+.hdb-ms figcaption { margin-top: .3rem; font: 400 .62rem/1.4 var(--mono); color: inherit; }  /* NO GREY TEXT ON A MANUSCRIPT CARD (owner, 7 Nov) */
 
 /* ---------- MERGED CARDS (480): one frame, the parts stacked, the lower titles small subheadings, one tile row at the foot */
 .card.is-merged > .merged-part > .card { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
