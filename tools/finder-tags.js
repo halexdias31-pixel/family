@@ -53,6 +53,8 @@ if (require.main === module) (async () => {
   if (CHECK && !FULL) {
     let st = ''; try { st = fs.readFileSync(STAMP, 'utf8').trim(); } catch (e) { st = ''; }
     if (st === IN + ' ' + outHash(had)) { console.log('finder-tags: js/finder-tags.js is current (inputs unchanged since the last full run; --full to re-walk)'); process.exit(0); }
+    /* A STALE STAMP FAILS AT ONCE (round 3): a walk passed here in 4 minutes and timed out in CI at 5; run the tool after every merge. */
+    console.error('finder-tags: its inputs changed since the last full run. Run: node tools/finder-tags.js (or --check --full to walk)'); process.exit(1);
   }
   if (had === null || !/const FINDER_TAGS = /.test(had)) fs.writeFileSync(OUT, HEAD + 'const FINDER_TAGS = null;\n');
   const { app, tick } = require('../check/jsdom-app.js');
