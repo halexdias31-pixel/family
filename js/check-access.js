@@ -23,7 +23,9 @@ const front = fs.readdirSync(path.join(__dirname, '..', 'js'))
   .map(f => read('js/' + f)).join('\n');
 
 /* every action the backend answers to */
-const handlers = [...new Set([...post.matchAll(/action === '(\w+)'/g)].map(m => m[1]))];
+/* the gate's own tests and the handler table (1130) */
+const PA = require('../tools/post-actions.js');
+const handlers = PA.postActionNames(post + '\n' + (() => { try { return PA.postSrc(); } catch (e) { return ''; } })());
 
 /* and everything named in the gate */
 const tbl = consts.slice(consts.indexOf('const ACTION_ACCESS = {'));

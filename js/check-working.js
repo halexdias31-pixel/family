@@ -10,7 +10,8 @@ const bad = [];
 /* ---------- NO HUMAN-MARKING PATH, IN THE WORDS OR THE ACTIONS ---------- */
 const front = fs.readFileSync(path.join(REPO, 'js/working.js'), 'utf8');
 const post = fs.readFileSync(path.join(REPO, 'backend/dopost.gs'), 'utf8');
-const blk = (post.match(/if \(action === 'markWorking'\)[\s\S]*?\n {4}\}\n/) || [''])[0];
+const PA = require('../tools/post-actions.js'), psrc = PA.postSrc(REPO);
+const blk = PA.postHandler(psrc, 'markWorking');
 if (!blk) bad.push('dopost.gs has no markWorking handler to check');
 const HAND = /tutor to mark|mark(ed|ing)? by hand|hand[- ]?mark|for (a|your) tutor|send to my tutor|awaiting marking|waiting to be marked|queued? for/i;
 [['js/working.js', front], ['markWorking in dopost.gs', blk]].forEach(([n, t]) => {
@@ -18,7 +19,7 @@ const HAND = /tutor to mark|mark(ed|ing)? by hand|hand[- ]?mark|for (a|your) tut
   if (m) bad.push(n + ' says "' + m[0] + '" — only the AI marks a photo of the working');
 });
 if (/verdict:\s*'sent'/.test(blk)) bad.push('markWorking writes a `sent` verdict — a row waiting for a person to mark it');
-if (/action === '(markByHand|tutorMark|handMark|gradeWorking|markSubmission)'/.test(post)) bad.push('dopost.gs has an action for a person to mark work');
+if (PA.postActionNames(psrc).some(a => /^(markByHand|tutorMark|handMark|gradeWorking|markSubmission)$/.test(a))) bad.push('dopost.gs has an action for a person to mark work');
 
 /* NOT TUTORS (owner, 28 Oct): the working photos are the student's, their parents' and the admin's only. */
 { const may = (/function workingMaySee_[\s\S]*?\n\}/.exec(post) || [''])[0];

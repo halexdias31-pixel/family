@@ -284,7 +284,8 @@ function run() {
   box.setRows(OTHERS.concat([ME]));
 
   /* ---------- AND THE TYPED PATH IS GONE, AND THE DOOR THAT REPLACED IT IS THE ASKER'S OWN § */
-  const post = fs.readFileSync(path.join(ROOT, 'backend', 'dopost.gs'), 'utf8');
+  /* dopost.gs and its handlers in post-*.gs (1130) */
+  const PA = require('../tools/post-actions.js'), post = PA.postSrc(ROOT);
   const code = src => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
   const stillTyped = [];
   fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).forEach(f => {
@@ -299,10 +300,7 @@ function run() {
     why: 'the owner: "no more randomisation feature"', said: 'still in constants.gs or dopost.gs' });
 
   /* ---------- AND `register`, WHICH IS THE WRITER EVERY ACCOUNT GOES THROUGH ONCE § */
-  const reg = post.indexOf("action === 'register'");
-  /* ---------- TO THE NEXT HANDLER, NOT FOR 4000 CHARACTERS § */
-  const rEnd = reg < 0 ? -1 : post.indexOf("if (action ===", reg + 20);
-  const rblock = reg < 0 ? '' : post.slice(reg, rEnd > reg ? rEnd : undefined);
+  const rblock = PA.postHandler(post, 'register');
   if (!rblock) {
     console.log('FAILED — could not find the register handler in dopost.gs to check.');
     process.exit(1);
@@ -565,9 +563,8 @@ function run() {
     why: 'the business\'s cut is an admin\'s and must not start the tutor\'s month', said: JSON.stringify(box.fields) });
 
   /* ---------- `SIGNIN` — AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE § */
-  const vlAt = post.indexOf("if (action === 'verifyLogin')");
-  const vlEnd = vlAt < 0 ? -1 : post.indexOf("if (action === '", vlAt + 10);
-  if (vlAt < 0 || vlEnd < 0) {
+  const vlSrc = PA.postHandler(post, 'verifyLogin');
+  if (!vlSrc) {
     console.log('FAILED — could not find the verifyLogin block in dopost.gs to check.');
     process.exit(1);
   }
@@ -657,7 +654,9 @@ function run() {
       moved: extra && extra.handleMoved ? extra.handleMoved.was + '>' + extra.handleMoved.now : '' });
     const action = 'verifyLogin';
     ` + helperSrc + `
-    ` + post.slice(vlAt, vlEnd) + `
+    ` + vlSrc + `
+    const vlOut = postVerifyLogin_(body, action);
+    if (vlOut !== undefined) return vlOut;
     return { fellThrough: true };`);
   const SIGNIN = [
     { body: { email: '  ADA@example.COM ', pin: '0000' }, want: 'P1', why: 'case and spaces must not matter' },
