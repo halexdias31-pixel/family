@@ -534,6 +534,8 @@ function stuffItemsRaw_() {
     ...(DATA.venues || []).filter(v => v.title).map(v => ({
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
+      venueArea: v.borough || v.city || '', venueFor: v.focus || [],
+      venueSize: [Number(v.maxCapacity) ? 'Up to ' + v.maxCapacity : '', (v.rooms || []).length ? (v.rooms || []).length + ' room' + ((v.rooms || []).length === 1 ? '' : 's') : ''].filter(Boolean),
     })),
     /* The widgets, findable like everything else. § */
     /* ---------- THE WIDGETS ARE IN THE FUNNEL AGAIN (790): each one data/settings/widgets-in-find.json names is a card, its kind's group (Tools, Games) its first answer. */

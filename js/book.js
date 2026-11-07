@@ -1146,6 +1146,8 @@ function breakdownRows(L) {
         /* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL § */
         /* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE § */
         { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel });
+      /* THE ROOM IS NOT THE FAMILY'S TO PICK (owner, 7 Nov): staff set it after booking (`setRoom`). */
+      if (r.key === 'venue') push('Room', 'set by us after booking', '', '', '', { free: true });
     });
   });
 
@@ -1931,6 +1933,7 @@ function jobRows(j) {
   /* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED § */
   push('Students', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
+  push('Room', j.room || 'set by us before the first session');
   push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));

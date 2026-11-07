@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-07-refund-kept-1061";
+const DOPOST_VERSION = "2026-11-07-room-booking-1091";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2326,6 +2326,21 @@ function doPost(e) {
     }
 
     /* MARKING A SESSION PAID, BY HAND ------------------------------------------------------- PEOPLE PAY IN CASH. § */
+    /* THE ROOM IN THE VENUE, written by staff after booking; the family never picks it. */
+    if (action === 'setRoom') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const t = read(TAB.jobs);
+      const j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
+      if (!j) return jsonOut({ error: 'No session with that id.' });
+      const teaches = participantsOf(S(j.job_id)).some(p2 => p2.role === 'tutor' && key(p2.name) === key(S(me.name)));
+      if (!rankAtLeast_(me, 'admin') && !teaches) return jsonOut({ error: 'Only an admin or the tutor can set the room.' });
+      if (!setCell(t, j, 'room', S(body.room).slice(0, 80))) return jsonOut({ error: 'The jobs tab has no room column yet: open the /exec address with ?setup=1 once.' });
+      logEvent({ jobId: S(j.job_id), actor: S(me.name), action: 'room', message: S(body.room).slice(0, 80) });
+      clearCache();
+      return jsonOut({ success: true });
+    }
+
     if (action === 'markPaid') {
       const t = read(TAB.jobs);
       const j = t.rows.find(x => S(x.job_id) === S(body.jobId)
