@@ -19,7 +19,7 @@
   "screen": "saved",
   "label": "Saved",
   "icon": "★",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 4,
   "notes": "what you starred — widgets first, then anything else."
  },
@@ -27,7 +27,7 @@
   "screen": "spotlight",
   "label": "Spotlight",
   "icon": "✦",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 5,
   "cards": "TRUE",
   "notes": "what the business has put in the window — one list, the same on every phone, and only an admin can change it. With the other things you read and scroll since 21 Oct (docs/history/392). LEFT OF FEED since 26 Oct (docs/history/461, the owner: \"spotlight should be to the left of the posts column\"); feed stays TAB_HOME. A card column since 730: the window moves whole, and other units may stand on it."
@@ -36,7 +36,7 @@
   "screen": "feed",
   "label": "Feed",
   "icon": "🏠",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 6,
   "notes": "what has been posted, with the camera as the page directly above the newest post. The `make` column that held the camera is gone. TAB_HOME — where the app opens."
  },
@@ -52,7 +52,7 @@
   "screen": "dm",
   "label": "DMs",
   "icon": "✉",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 8,
   "notes": "one conversation per page."
  },
@@ -68,7 +68,7 @@
   "screen": "shop",
   "label": "Shop",
   "icon": "🛒",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 10,
   "notes": "the shop: the basket on top, then the things for sale grouped by kind. RIGHT OF BOOKING, the other column you pay on. Find no longer has a Shop door."
  },
@@ -76,7 +76,7 @@
   "screen": "web",
   "label": "Web profile",
   "icon": "🌍",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 11,
   "cards": "TRUE",
   "notes": "@family.'s own public business card, read from the brand tab with a fallback for every line (docs/history/730). First of the five profiles."
@@ -112,7 +112,7 @@
   "screen": "apprentices",
   "label": "Apprentice profile",
   "icon": "🧰",
-  "active": "TRUE",
+  "active": "FALSE",
   "sort_order": 15,
   "cards": "TRUE",
   "notes": "a card per apprentice an admin is sent; none yet says so in a line from brand() (docs/history/730)."

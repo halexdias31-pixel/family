@@ -2,7 +2,7 @@
 const FINDER_TAGS = {
 "views": {
 "admin+bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Flyers"],["Posters"],["Verse"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
+  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]]],
@@ -120,14 +120,14 @@ const FINDER_TAGS = {
   "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]]],
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]]],
   "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"]]],
-  "kindLabel=Shop": ["shopKind",[["Basket"],["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
+  "kindLabel=Shop": ["shopKind",[["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
   "kindLabel=Shop&shopKind=Consumable": ["shopHow",[["Buy"],["Earn with ticks"],["Given out"]]],
   "kindLabel=Shop&shopKind=Equipment": ["shopHow",[["Borrow"],["Buy"]]],
   "kindLabel=Shop&shopKind=Equipment&shopHow=Buy": ["shopPrice",[["£5 to £20"],["Over £20"]]],
   "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Business"],["Site"]]]
 },
 "bible": {
-  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Reels"],["Posters"],["Verse"],["Coming soon"],["Posts"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"],["Games"]]],
+  "": ["kindLabel",[["Practice"],["Library"],["Videos"],["Coming soon"],["Posts"],["Messages"],["Profiles"],["Booking"],["Shop"],["Settings"],["Tools"]]],
   "kindLabel=Practice": ["kindOwn",[["Questions"],["Answers"],["Practicals"],["Projects"]]],
   "kindLabel=Practice&kindOwn=Questions": ["subject",[["Biology"],["Business"],["Chemistry"],["Combined Science"],["Driving Theory"],["Economics"],["English Language"],["English Literature"],["Geography"],["Greek"],["History"],["Maths"],["Physical Education"],["Physics"],["Politics"],["Psychology"],["Religious Studies"],["Sociology"],["Statistics"]]],
   "kindLabel=Practice&kindOwn=Questions&subject=Biology": ["level",[["A-Level"],["GCSE"]]],
@@ -244,7 +244,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Statistics": ["topic",[["Averages from a Table"],["Averages from Grouped Data"],["Bar Charts & Pictograms"],["Basic Probability"],["Box Plots & Quartiles"],["Comparing Distributions"],["Conditional Probability"],["Cumulative Frequency"],["Frequency Polygons"],["Histograms"],["Line Graphs & Time Series"],["Listing Outcomes & Sample Space"],["Mean"],["Median"],["Mode"],["Percentage Increase & Decrease"],["Pie Charts"],["Probability"],["Range"],["Relative Frequency & Expectation"],["Sampling"],["Scatter Graphs & Correlation"],["Stem & Leaf Diagrams"],["Tree Diagrams"],["Venn Diagrams & Set Notation"]]],
   "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]]],
   "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"]]],
-  "kindLabel=Shop": ["shopKind",[["Basket"],["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
+  "kindLabel=Shop": ["shopKind",[["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
   "kindLabel=Shop&shopKind=Consumable": ["shopHow",[["Buy"],["Earn with ticks"],["Given out"]]],
   "kindLabel=Shop&shopKind=Equipment": ["shopHow",[["Borrow"],["Buy"]]],
   "kindLabel=Shop&shopKind=Equipment&shopHow=Buy": ["shopPrice",[["£5 to £20"],["Over £20"]]]
