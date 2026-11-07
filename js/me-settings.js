@@ -467,6 +467,8 @@ on('me-save', el => { meSave_(el); });
 /* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT § */
 function meSave_(el) {
   return new Promise(resolve => {
+  /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
+  if (!USER) { toast('Sign in first.'); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
   const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
            || document.body;
@@ -689,6 +691,9 @@ function profileRefresh_(loud, onOld) {
 on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
+  /* SIGNED OUT, OR A BLANK NEW PIN, SENDS NOTHING — a blank pair "matches" and would post an empty PIN. */
+  if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
+  if (!v('pin-now') || !v('pin-new')) { if (said) said.textContent = 'Type your PIN now and the new one.'; return; }
   /* Typed twice, checked here before the server sees it — a PIN you cannot see and typed once is
      a PIN you get locked out by. */
   if (v('pin-new') !== v('pin-again')) { if (said) said.textContent = 'The two new PINs do not match.'; return; }
