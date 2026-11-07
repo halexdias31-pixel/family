@@ -55,12 +55,17 @@ const walk = (node, up, fn) => {
   });
 };
 /* WHERE A CALL IS: the nearest named function, and inside `doPost` the action whose `if` it is in. */
+const POST_FN = {};
+require('../tools/post-actions.js').postTable(require('../tools/post-actions.js').postSrc(REPO))
+  .forEach(t => { if (!POST_FN[t.fn]) POST_FN[t.fn] = t.action; });
 const placeOf = up => {
   let fnName = '';
   for (let i = up.length - 1; i >= 0; i--) {
     const n = up[i];
     if (n.type === 'FunctionDeclaration' && n.id) { fnName = n.id.name; break; }
   }
+  /* A HANDLER IN post-*.gs (1130) IS STILL ITS ACTION: `postApplyTeach_` is `doPost:applyTeach`. */
+  if (POST_FN[fnName]) return 'doPost:' + POST_FN[fnName];
   if (fnName !== 'doPost') return fnName;
   for (let i = up.length - 1; i >= 0; i--) {
     const t = up[i].type === 'IfStatement' && up[i].test;

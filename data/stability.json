@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77,
+ "score": 77.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -103,23 +103,12 @@
    }
   },
   {
-   "id": "longfiles",
-   "label": "Files over 3000 lines",
-   "count": 1,
-   "weight": 0.5,
-   "cap": 10,
-   "off": 0.5,
-   "where": {
-    "backend/dopost.gs": 4655
-   }
-  },
-  {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 8,
+   "count": 10,
    "weight": 0.05,
    "cap": 10,
-   "off": 0.4,
+   "off": 0.5,
    "where": {
     "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 163,
@@ -127,9 +116,20 @@
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1205,
-    "backend/dopost.gs doPost": 3612,
+    "backend/post-account.gs postUpdateProfile_": 227,
+    "backend/post-booking.gs postMove_": 180,
+    "backend/post-booking.gs postCreateJob_": 170,
     "backend/setup.gs dataProblems": 282
    }
+  },
+  {
+   "id": "longfiles",
+   "label": "Files over 3000 lines",
+   "count": 0,
+   "weight": 0.5,
+   "cap": 10,
+   "off": 0,
+   "where": {}
   },
   {
    "id": "markers",

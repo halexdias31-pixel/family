@@ -44,7 +44,7 @@ if (!gs.length || !consts.includes('const ACTION_ACCESS = {')) {
   process.exit(1);
 }
 
-const handlers = new Set([...strip(backend).matchAll(/action === '(\w+)'/g)].map(m => m[1]));
+const handlers = new Set(require('../tools/post-actions.js').postActionNames(strip(backend)));
 const tbl = consts.slice(consts.indexOf('const ACTION_ACCESS = {'));
 const gate = new Set([...strip(tbl.slice(0, tbl.indexOf('\n};'))).matchAll(/(\w+)\s*:\s*'/g)].map(m => m[1]));
 

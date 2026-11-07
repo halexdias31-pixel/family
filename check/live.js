@@ -148,7 +148,7 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox;
 
-const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doget', 'dopost'];
+const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doget', 'post-account', 'post-family', 'post-content', 'post-learning', 'post-booking', 'post-admin', 'dopost'];
 const src = ORDER.map(n => fs.readFileSync(path.join(repo, 'backend', n + '.gs'), 'utf8')).join('\n;\n');
 
 const ctx = vm.createContext(sandbox);

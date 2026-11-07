@@ -60,11 +60,13 @@ const reach = start => {
   }
   return seen;
 };
-const acts = [...post.matchAll(/action === '(\w+)'/g)];
+/* each action and the handler it runs (1130: a table in dopost.gs, the bodies in post-*.gs) */
+const PA = require('../tools/post-actions.js'), psrc = PA.postSrc(root);
+const acts = PA.postTable(psrc).map(t => [t.action, PA.postHandler(psrc, t.action)]);
 if (Object.keys(FN).length < 200 || acts.length < 50) { console.error('check-api-deadline: read ' + Object.keys(FN).length + ' functions and ' + acts.length + ' actions — too few to trust'); process.exit(1); }
 const LONGEST = Object.create(null);
-acts.forEach((m, i) => {
-  const body = post.slice(m.index, i + 1 < acts.length ? acts[i + 1].index : m.index + 3000);
+acts.forEach(([act, body]) => {
+  const m = [null, act];
   const calls = [...body.matchAll(/\b(\w+)\s*\(/g)].map(x => x[1]).filter(x => FN[x] && x !== 'doPost');
   for (const f of reach(calls)) {
     const b = BUDGET[f];
@@ -80,7 +82,7 @@ for (const a of Object.keys(LONGEST)) {
   else if (got > 6 * 60000) bad.push(a + ': API_LONG_ waits ' + Math.round(got / 1000) + ' s, past Apps Script\'s six minutes');
 }
 for (const a of Object.keys(LONG)) {
-  if (!acts.some(m => m[1] === a)) bad.push('API_LONG_ names ' + a + ', which doPost does not handle');
+  if (!acts.some(m => m[0] === a)) bad.push('API_LONG_ names ' + a + ', which doPost does not handle');
   else if (!LONGEST[a]) bad.push('API_LONG_ names ' + a + ', but no backend budget over ' + Math.round(DEADLINE / 1000) + ' s was found for it — take it out');
 }
 
