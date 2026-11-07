@@ -170,6 +170,15 @@ function uxWork() {
     if (over(L.coldMenuMs, 6000)) W.push({ kind: 'ux', where: 'live: Find, first visit', say: `${L.coldMenuMs == null ? 'never' : L.coldMenuMs + ' ms'} to Find's first screen on the live site (budget 6000)` });
     if (L.payloadGzipKB > 100) W.push({ kind: 'ux', where: 'live: doGet', say: `${L.payloadGzipKB} KB gzip payload (budget 100)` });
   }
+  /* A SIGNED-IN PHONE, doGet HELD 10 s (1070): data/load-health.json, `tools/live-load.js --local`. Return visit to usable Find 1 s, cold 3 s, each of three menu taps 1 s. */
+  let LH = null; try { LH = JSON.parse(read('data/load-health.json')); } catch (e) { LH = null; }
+  if (LH) {
+    const over = (v, b) => v == null || v > b, ms = v => (v == null ? 'never' : v + ' ms');
+    if (over(LH.returnUsableMs, 1000)) W.push({ kind: 'ux', where: 'signed-in return visit: usable Find', say: `${ms(LH.returnUsableMs)} with doGet held 10 s (budget 1000)` });
+    if (over(LH.coldUsableMs, 3000)) W.push({ kind: 'ux', where: 'cold first visit: usable Find', say: `${ms(LH.coldUsableMs)} with doGet held 10 s (budget 3000)` });
+    if (over(LH.returnTapMs, 1000)) W.push({ kind: 'ux', where: 'return visit: menu taps', say: `${ms(LH.returnTapMs)} for the slowest of three early menu taps (budget 1000)` });
+    if (over(LH.coldTapMs, 1000)) W.push({ kind: 'ux', where: 'first visit: menu taps', say: `${ms(LH.coldTapMs)} for the slowest of three early menu taps (budget 1000)` });
+  }
   /* CARD TAGS (920): per kind, cards with no tag line and facet values missing from it, at the kind's drawing function; and a kind whose drawer had tagRow_ at 389d843 and has it no more. */
   const fnAt = name => { if (!name) return ''; for (const f of git(['ls-files', 'js/*.js']).split('\n')) { const i = read(f).search(new RegExp('function ' + name + '\\b')); if (i >= 0) return f + ':' + lineOf(read(f), i); } return ''; };
   const bodyHas = (src, name) => { const i = src.search(new RegExp('function ' + name + '\\b')); if (i < 0) return null; const e = src.indexOf('\n}', i); return /tagRow_\(/.test(src.slice(i, e)); };

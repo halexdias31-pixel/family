@@ -395,6 +395,7 @@ function signedOut_(opts) {
   try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) { oops_(e, 'me:signedOut_') }
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch (e) { /* storage can be blocked; the app runs without it */ }
+  payloadForget_();   /* the device's copy of their payload goes with them (1070) */
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM § */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()

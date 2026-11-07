@@ -47,13 +47,13 @@ const PAGE = path.join(ROOT, 'index.html');
 const BOOKS = path.join(ROOT, 'data', 'textbooks.json');
 const BOOK_LINE = '{"book_id":"TB-GCSE-MATHS","chapter":1,"title":"Number, factors and primes"';
 const postsWas = fs.readFileSync(POSTS);
-const pageWas = fs.statSync(PAGE);
+const pageWas = fs.statSync(PAGE), pageText = fs.readFileSync(PAGE, 'utf8');
 const booksWas = fs.readFileSync(BOOKS);
 /* BETWEEN THE TWO BASE PATHS THE COPY IS PUT BACK AS IT WAS; AT EXIT IT IS THROWN AWAY. */
 const reset = () => {
   try { fs.writeFileSync(POSTS, postsWas); } catch (err) { /* nothing better to do */ }
   try { fs.writeFileSync(BOOKS, booksWas); } catch (err) { /* same */ }
-  try { fs.utimesSync(PAGE, pageWas.atime, pageWas.mtime); } catch (err) { /* same */ }
+  try { fs.writeFileSync(PAGE, pageText); fs.utimesSync(PAGE, pageWas.atime, pageWas.mtime); } catch (err) { /* same */ }
 };
 const restore = () => {
   try { fs.rmSync(ROOT, { recursive: true, force: true }); } catch (err) { /* nothing better to do */ }
@@ -100,6 +100,9 @@ function deploy(marker, hours) {
   if (books.indexOf(PY) < 0) throw new Error('the Pythagoras row has no `' + PY + '` — the animation half was NOT deployed');
   fs.writeFileSync(BOOKS, books.replace(BOOK_LINE, BOOK_LINE.slice(0, -1) + ' ' + marker + '"')
     .replace(PY, PY + ' .py-say b.' + marker.toLowerCase().replace(/_/g, '') + ' { color: inherit; }'));
+  /* A DEPLOY MOVES BUILD_STAMP (750): tools/build-stamp.js runs before every push and CI holds it with --check, so this one does too. */
+  const stamp = require('crypto').createHash('sha256').update(marker).digest('hex').slice(0, 12);
+  fs.writeFileSync(PAGE, pageText.replace(/var BUILD_STAMP = '[0-9a-f]*';/, "var BUILD_STAMP = '" + stamp + "';"));
   const when = new Date(Date.now() + hours * 3600e3);
   fs.utimesSync(PAGE, when, when);
 }

@@ -274,3 +274,14 @@ Reproduced each required job locally (LIB_PRIVATE=absent, the job's own command)
 - Ranks: `tile_` greys any admin-tone tile for a non-admin (`aria-disabled`); `adminTiles_` and Listed drawn for everyone. card-health's rank check now compares every control, admin group included: 0 differences.
 - Taboo / Hot Seat: Correct|Got it / Pass drawn from the start, disabled until the round runs (`partyPair_`).
 - Budgets raised by hand (structure-budgets why line). Left for next: f. best split always (menu order, sort_order out, finder-tags regenerate); drop the always-on "Learning" tag (learning-tag answered a); odd-tags composite work titles.
+
+## CI after 1070
+
+Run 42315012684 (7bd3337) failed fast, flow 2/8 and 8/8, browser 2/8, 4/8 and 8/8. Each reproduced locally with LIB_PRIVATE=absent and green after:
+- fast: data/stability.json stale; regenerated (`node tools/stability.js`).
+- flow 2/8: the timed-out-payload journey looked for the payload's post on the home column; Find is home now, so it reaches Feed before looking. Real bug found while checking the kept payload: `payloadOwe_` ran before `loadStale_`, and the write a second later was filed under whoever was signed in then, so a sign-out in that second left the account's payload under the visitor. Now owed only after the stale check, filed under who it landed for, dropped if someone else is in, and `payloadForget_` cancels a pending write. New journey: no token kept, another account is not offered it, gone on sign-out, never written after sign-out (fails without the fix).
+- flow 8/8: the Mechanics journey wanted chosen chips repeated as card tags; tags omit chips (owner, 6 Nov). Attributes are checked on a card drawn with no chips, and the chosen ones checked gone.
+- browser 2/8: logic-health.json stale (regenerated); check/deploy.js deployed without moving BUILD_STAMP, which every real deploy does since 750, so the second deploy was an exact cache hit; it now writes a new stamp per deploy. check/slide.js checks the one scrolling page (900): a sideways flick moves nothing and nothing scrolls sideways.
+- browser 4/8: check/firstpaint.js skips Find 2, off in columns.json (as kp-centred does).
+- browser 8/8: check/centred.js under FLOW_LAYOUT holds the card in front to its place at rest instead of the old glass's middle; Find 2 skipped while off.
+Left: coupling over budget in data.js, shell-api.js, me-account.js, find-pages.js, finder-tags.js and search-bytes over, all from 1070, none a CI job.

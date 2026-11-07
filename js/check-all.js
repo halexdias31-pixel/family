@@ -194,6 +194,7 @@ const SUITE = [
   /* LOGIC HEALTH (770): data/logic-health.json is what tools/logic-health.js measures over the funnel now. */
   { file: 'tools/logic-health.js --check', what: 'the Logic health card\'s figures are the funnel as it is now', slow: true },
   { file: 'check-cache.js', what: 'every fetch of our own files carries the deploy\'s stamp' },
+  { file: 'check/find-first.js', what: 'Find\'s search box is the first thing under the top bar for every viewer on a phone (1070)', slow: true },
   { file: 'check/firstpaint.js', what: 'the finder\'s first answers are drawn once and never change on a cold phone load (546)', slow: true },
   { file: 'check/arrival.js', what: 'a phone\'s first eleven seconds: no layout shift, nothing empty or waiting in view once the payload lands, cold and warm (630)', slow: true },
   /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. § */

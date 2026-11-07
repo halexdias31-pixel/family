@@ -521,6 +521,8 @@ function finderWake_(id) {
 const finderSettled_ = () => {
   try {
     if (typeof awaiting_ === 'function' && awaiting_()) return false;
+    /* A KEPT PAYLOAD DRAWS BEFORE THE LIBRARY (1070): the build's answers stand until the cards are in. */
+    if (typeof LIBRARY_LATE !== 'undefined' && LIBRARY_LATE) return false;
     if (typeof LIBRARY_ASK !== 'undefined' && (LIBRARY_ASK || LIBRARY_EXTRA_ASK)) return false;
     return !writingAsking_();
   } catch (e) { return true; }

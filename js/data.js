@@ -132,7 +132,7 @@ function keepPut_(k, v, quiet) {
   const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
   if (!waits) {
     try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) { /* storage refused: tried again below, then held for the visit */ }
-    try { if (v !== null && typeof splashForget_ === 'function' && splashForget_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) { /* still refused: held for the visit and said */ }
+    try { if (v !== null && ((typeof splashForget_ === 'function' && splashForget_()) || payloadForget_())) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) { /* still refused: held for the visit and said */ }
   }
   KEEP_UNKEPT.add(k);
   if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {
@@ -540,4 +540,56 @@ function ago(value) {
 
   /* Past two months, "nine weeks ago" is arithmetic and "16 August 2026" is an answer. */
   return fullDate(d);
+}
+
+/* THE LAST GOOD PAYLOAD, KEPT ON THE DEVICE (1070): the next visit draws from it at once and the network's answer replaces it silently. */
+const PAYLOAD_KEY = 'payload:kept';
+let PAYLOAD_TEXT = null, PAYLOAD_KEPT_TRIED = false, PAYLOAD_OWED = null;
+/* WRITTEN A MOMENT AFTER IT LANDS, off the paint, or as the page goes if that is sooner. */
+/* FILED UNDER WHO IT WAS FOR when it landed, and dropped if someone else is signed in by the time it is written. */
+function payloadOwed_() { const o = PAYLOAD_OWED; PAYLOAD_OWED = null; if (o && o.f.who === payloadFor_().who) payloadKeep_(o.t, o.f); }
+function payloadOwe_(d) { if (PAYLOAD_TEXT && d && !d.error) { PAYLOAD_OWED = { t: PAYLOAD_TEXT, f: payloadFor_() }; setTimeout(payloadOwed_, 1000); } PAYLOAD_TEXT = null; }
+/* FIND IS DRAWN WITH THE KEPT COPY, even below the fold: the next tap into a menu must not meet a loader. */
+function payloadFind_() {
+  try { if (typeof FINDER !== 'undefined' && STALE[FINDER.id]) { paint(FINDER.id); PRE_PAYLOAD.delete(FINDER.id); } } catch (e) { oops_(e, 'shell:keptFind'); }
+}
+addEventListener('pagehide', payloadOwed_);
+/* NEVER A SECRET: a sign-in token, PIN or password field is dropped at any depth before the copy is written. */
+const PAYLOAD_SECRET = /^(token|tokens|pin|pins|pin_?hash|pinhash|password|secret|session_?key|api_?key)$/i;
+const payloadFor_ = () => { try { return { who: USER && USER.personId ? String(USER.personId) : '', build: String(window.BUILD_STAMP || '') }; } catch (e) { return { who: '', build: '' }; } };
+function payloadKeep_(text, f) {
+  try {
+    const d = JSON.parse(text);
+    if (!d || d.error) return;
+    f = f || payloadFor_();
+    localStorage.setItem(PAYLOAD_KEY, JSON.stringify({ who: f.who, build: f.build, at: Date.now(), d }, (k, v) => (PAYLOAD_SECRET.test(k) ? undefined : v)));
+  } catch (e) { payloadForget_(); }
+}
+/* THE KEPT COPY FOR THIS ACCOUNT AND THIS BUILD, or null: anything else, or anything unreadable, is a normal load. */
+function payloadKept_() {
+  try {
+    const k = JSON.parse(localStorage.getItem(PAYLOAD_KEY) || 'null'), f = payloadFor_();
+    if (!k || !k.d || typeof k.d !== 'object' || k.who !== f.who || k.build !== f.build) return null;
+    return k.d;
+  } catch (e) { payloadForget_(); return null; }
+}
+/* GONE ON SIGN-OUT, and first to give way when the store is full (`keepPut_`). True when there was one. */
+function payloadForget_() {
+  PAYLOAD_OWED = null; PAYLOAD_TEXT = null;
+  try { const had = localStorage.getItem(PAYLOAD_KEY) !== null; localStorage.removeItem(PAYLOAD_KEY); return had; } catch (e) { return false; }
+}
+
+/* NOT MERGED UNDER A FINGER (1070): while the build answers Find's menu and a tap came in the last 1.5 s, the library waits (10 s at most). */
+let TAP_AT = 0;
+['pointerdown', 'click'].forEach(t => addEventListener(t, () => { TAP_AT = Date.now(); }, true));
+function libraryQuiet_() {
+  const t0 = Date.now();
+  return new Promise(ok => {
+    const k = () => {
+      let built = false;
+      try { built = typeof FINDER !== 'undefined' && AT === FINDER.id && !!finderTagsAt_(); } catch (e) { built = false; }
+      if (!built || Date.now() - TAP_AT > 1500 || Date.now() - t0 > 10000) ok(); else setTimeout(k, 300);
+    };
+    k();
+  });
 }

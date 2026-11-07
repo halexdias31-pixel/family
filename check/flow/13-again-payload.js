@@ -14,7 +14,9 @@ check('a payload that timed out is asked for again at once, under a quiet line, 
   if (!b.arrived()) bad.push('the retry answered and the payload is not in DATA');
   if (b.line()) bad.push('the retry succeeded and the quiet line still says "' + b.line() + '"');
   if (b.bannerUp()) bad.push('the retry succeeded and a banner is up: ' + b.bannerText().slice(0, 120));
-  /* DRAWN, not only held: a post only the payload knows is on a column after the retry. */
+  /* DRAWN, not only held: a post only the payload knows is on Feed once it is reached — Find is home (1070), so Feed is drawn on arrival there. */
+  try { b.w.__t.go('feed'); } catch (e) { bad.push('Feed could not be reached: ' + e.message); }
+  await wait(300);
   const after = b.w.document.body.innerHTML.indexOf('Drawn from the payload') !== -1;
   if (before) bad.push('a post only the payload sends was on the page before it arrived — pick another witness');
   else if (!after) bad.push('the payload arrived and nothing it carries was drawn — the success path did not repaint');
@@ -1134,3 +1136,33 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   return bad;
 });
 
+
+/* THE KEPT PAYLOAD (1070) IS ONE ACCOUNT'S AND NOBODY ELSE'S: no secret in it, gone on sign-out, never written for whoever is here after a sign-out, never read for another account. */
+check('the payload kept on the device is this account\'s alone: no token in it, gone on sign-out, never filed under the next person', async () => {
+  const b = flaky_([{ body: RC_PAYLOAD_() }], RC_ADMIN_);
+  const bad = [], w = b.w, ls = w.localStorage;
+  const kept = () => { try { return JSON.parse(ls.getItem('payload:kept') || 'null'); } catch (e) { return 'unreadable'; } };
+  await wait(1700);
+  const k = kept();
+  if (!k || !k.d) return ['a landed payload was never kept on the device — nothing to check'];
+  if (k.who !== 'P001') bad.push('the kept payload is filed under "' + k.who + '", not the admin who asked for it');
+  if (/"(token|pin|password)"\s*:/i.test(JSON.stringify(k.d))) bad.push('the kept payload carries a token, PIN or password');
+  /* ANOTHER ACCOUNT, SAME DEVICE: the copy is not theirs to draw. */
+  w.__t.USER({ name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'] });
+  if (w.payloadKept_()) bad.push('another account on the same device was handed the admin\'s kept payload');
+  w.__t.USER({ ...RC_ADMIN_ });
+  if (!w.payloadKept_()) bad.push('the admin\'s own kept payload was not offered back to the admin');
+  w.signedOut_();
+  if (kept() !== null) bad.push('sign-out left the kept payload on the device');
+  if (w.payloadKept_()) bad.push('after sign-out a visitor was offered a kept payload');
+  /* A LANDING STILL OWED AT SIGN-OUT (written a second after it lands) is never written under the visitor who is left. */
+  const c = flaky_([{ body: RC_PAYLOAD_() }], RC_ADMIN_);
+  for (let i = 0; i < 60 && !c.arrived(); i++) await wait(20);
+  if (!c.arrived()) bad.push('the second load never landed — the owed write was NOT checked');
+  else {
+    c.w.signedOut_();
+    await wait(1500);
+    if (c.w.localStorage.getItem('payload:kept') !== null) bad.push('a payload owed at sign-out was written after it, for whoever is here now');
+  }
+  return bad;
+});

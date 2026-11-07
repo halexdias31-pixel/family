@@ -54,19 +54,23 @@ function where(id) {
     await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
     await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 30000 }).catch(() => {});
-    for (const id of ['stuff', 'res']) {
+    /* ONE SCROLLING PAGE (900): no glass to centre in, so the card in front must hold the place it had at rest (Find first under the top bar, 1070); a column switched off (columns.json) is skipped. */
+    const flow = await page.evaluate(() => typeof FLOW_LAYOUT !== 'undefined' && FLOW_LAYOUT);
+    const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
+    for (const id of ['stuff', 'res'].filter(on)) {
       await page.evaluate(i => { try { go(i); } catch (e) {} }, id);
       await page.waitForTimeout(900);
       const sel = `#s-${id} .page.on input[type="search"], #s-${id} .page.on input.search, #s-${id} .page.on .search-pill input`;
       const box = page.locator(sel).first();
       if (!(await box.count())) { bad.push(`${id}: no search box on the card in front — the check cannot see its subject`); continue; }
       /* A CARD THAT GREW UNDER A FINGER IS HELD WHERE IT WAS (`HOLD_AT`); only a card at rest or one that shrank must be centred. */
-      let was = null;
+      let was = null, rest = null;
       const look = async (when, grows) => {
         await page.waitForTimeout(900);
         const w = await page.evaluate(where, id);
         looked++;
         if (!w) { bad.push(`${id} ${when}: no card in front`); return; }
+        if (flow) { if (rest === null) rest = w.top; w.want = rest; }
         const grew = was && w.h > was.h + 1;
         was = w;
         if (grows && grew) return;
