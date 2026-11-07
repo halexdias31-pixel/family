@@ -23,6 +23,7 @@ const ACCEPTED = [
 ];
 const accepted = (id, inv) => ACCEPTED.find(a => a[1] === inv && a[0].test(id));
 
+const { MEMBER_, signedInAs_ } = require('../check/flow-shared.js');
 function order_() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(html);
@@ -57,8 +58,10 @@ function boot(lib) {
     w.HTMLMediaElement.prototype.load = function () {};
   } catch (e) {}
   w.__aheadHold = true;
+  /* THE FINDER IS FOR MEMBERS (400): signed out it holds only Sign in, so `questionParts_` had no siblings and a whole card one part */
+  signedInAs_(MEMBER_)(w);
   const src = order_().map(n => fs.readFileSync(path.join(DIR, n + '.js'), 'utf8')).join('\n');
-  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN };');
+  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN, qtHere: qtHere_, padReady: padReady_ };');
   return w;
 }
 
@@ -75,7 +78,9 @@ const twiceOn = root => {
   const seen = {};
   [...root.querySelectorAll('.tile[data-do]')].forEach(t => {
     const act = t.getAttribute('data-do');
-    const k = (SAME_AS[act] || act) + (t.getAttribute('data-tool') ? ' ' + t.getAttribute('data-tool') : '');
+    /* THE SAME ACT WITH THE SAME data-* ON ONE PART (1040 dup-controls): Help's data-pg and each part's own Check differ */
+    const k = [SAME_AS[act] || act].concat([...t.attributes].filter(a => /^data-(?!do$)/.test(a.name)).map(a => a.name + '=' + a.value))
+      .concat(t.closest('.qb-part[data-of]') ? ['part=' + t.closest('.qb-part[data-of]').getAttribute('data-of')] : []).join(' ');
     seen[k] = (seen[k] || 0) + 1;
   });
   return Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' x' + seen[k]);
@@ -191,8 +196,6 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     const said = sheet ? S(sheet.textContent.replace(/\s+/g, ' ')) : '';
     if (!sheet || has('.qsheet p.empty') || (!said && !sheet.querySelector('svg, img, table'))) bad('words', x, 'the page has no words, figure or table');
     if (!figs()) bad('figures', x, 'a drawing with no size or a picture with no source');
-    if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'no Magnifier tile in its row');
-    if (!has('[data-do="q-lock"]')) bad('magnifier', x, 'no padlock in its row');
     if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
     if (has('.qsheet figure')) count.zoomed++;
     /* ---------- AN ANSWER CONTROL THAT FITS ITS TYPE ---------- */
@@ -214,8 +217,12 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     else {
       const got = toolsOf(rows[0]);
       /* THE DRAWING TOOLS WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank working paper (owner, 29 Oct) */
-      const wantRow = w.padHasArt_(x) ? TOOL_ORDER : TOOL_ORDER.filter(t => !DRAWING_TOOLS.has(t));
-      if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (w.padHasArt_(x) ? '' : ' — nothing to draw on, so no drawing tools'));
+      /* THE MAGNIFIER AND PADLOCK ARE THE CARD FOOT'S, Read aloud a part's only on a question with parts (`qtHere_`, 1040 r12) */
+      /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */
+      const ready = A.padReady(x);
+      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && (t === 'check' || A.qtHere(t, x)));
+      if (ready) wantRow.splice(wantRow.length - 1, 0, 'pad-undo', 'pad-clear');
+      if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (ready ? '' : ' — nothing to draw on, so no drawing tools'));
       const box = rows[0].closest('.qp-mark');
       if (!box || !box.querySelector('.qp-verdict')) bad('tools', x, 'its row is not in the box\'s mark with a verdict line under it');
       /* ---------- ITS MARKER (markerOf_), NEVER A PERSON: the Check is that marker's, and the line under it says how ---------- */
@@ -321,6 +328,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       host.innerHTML = w.questionWhole_(x, w.questionParts_()[A.qId(x)] || [x], null, true);
       count.pages++;
       if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'its card has no Magnifier');
+      if (!has('[data-do="q-lock"]')) bad('magnifier', x, 'its card has no padlock');
       if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
       if ((x.stems || []).length && !figs()) bad('figures', x, 'its card has a drawing with no size');
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
