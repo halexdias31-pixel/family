@@ -145,11 +145,14 @@ function settingDoorItems_() {
     });
   });
   if (rankAtLeast_('admin')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  /* APPLY TO TEACH (owner, 7 Nov): a non-tutor sees tutor settings shut, so the way in is its own setting, open and first among Staff. */
+  if (!rankAtLeast_('staff') && typeof applyTile_ === 'function' && applyTile_()) add('Apply to teach', 'set:apply', { apply: true }, 'Staff', true);
   out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
   return out;
 }
 function settingPart_(p) {
   if (p.notify) return notifyDoorCard_();
+  if (p.apply) return `<div class="card apply-door"><h3>Apply to teach</h3>${typeof applyTile_ === 'function' ? applyTile_() : ''}</div>`;
   const gs = settingGroups_(p.col), g = (p.id && gs.find(k => k.id === p.id)) || gs[p.at];
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }
