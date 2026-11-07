@@ -161,9 +161,9 @@ const FINDER_TAGS = {
 "views": {
 "admin+bible": {
   "kindLabel=Profiles": ["profileType",[["Parent"],["Student"],["Tutor"]]],
-  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Business"],["Site"]]]
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"],["Business"],["Site"]]]
 },
 "bible": {
-
+  "kindLabel=Settings": ["settingFor",[["Student"],["Parent"],["Staff"],["Apprentice"],["Admin"]]]
 }
 }};

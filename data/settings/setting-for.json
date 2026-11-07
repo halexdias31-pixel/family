@@ -1,0 +1,15 @@
+[
+{"card": "acct:signed-in", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "every account signs in and out the same way: one item, found under each account type (owner, 7 Nov)."},
+{"card": "own:account:picture", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "everybody's picture."},
+{"card": "own:account:figure", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "Your figure", "notes": "the figure drawn for you; its card has no title of its own."},
+{"card": "own:account:name", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "first and last name, one item for every account type."},
+{"card": "own:account:handle", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "Handle", "notes": "the @handle; its card has no title of its own."},
+{"card": "set:account:contact-address", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "email, phone and address are everybody's."},
+{"card": "acct:pin", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "every account has a PIN."},
+{"card": "acct:roles", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "which roles this account holds."},
+{"card": "acct:notify", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "Notifications", "notes": "which emails you get; one Notifications item with the phone's (acct:push), same name merges."},
+{"card": "acct:push", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "Notifications", "notes": "phone notifications, merged by name with acct:notify."},
+{"card": "set:notify", "for": "Admin, Business", "name": "Notifications", "notes": "what needs an admin, merged by name into the one Notifications item."},
+{"card": "acct:voice", "for": "Student, Parent, Staff, Apprentice, Admin", "name": "", "notes": "reading aloud is a setting of this device, whoever holds it."},
+{"card": "appr:blurb", "for": "Apprentice", "name": "Work experience", "notes": "the apprentice placeholder; its card has no title of its own."}
+]

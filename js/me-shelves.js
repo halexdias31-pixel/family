@@ -293,13 +293,7 @@ const FIELD_ROWS = [
   { fields: ['first_name', 'last_name'] },
   { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in three words',
     ph: ['word 1', 'word 2', 'word 3'] },
-  { fields: ['years_experience', 'favourite_colour'] },
-  { fields: ['photo', 'video'] },
-  { fields: ['city', 'town'] },
-  { fields: ['borough', 'postcode'] },
-  /* A STUDENT'S TWO EXAMS SIDE BY SIDE, now they share About you with a name and a photo: two date
-     pickers are one row, which is what let them join that page rather than cost a card of their own. */
-  { fields: ['exam_small_date', 'exam_big_date'] },
+  /* ONE LINE PER THING IN A FORM (owner): two different answers (city and town, the two exams) each get their own line. */
   /* "max and min number of students could more efficiently be written as '[] - []'."* One row, one caption, a dash between — and MIN FIRST although the backend § */
   { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
   /* THE AGES A TUTOR TEACHES, THE SAME `[ ] – [ ]` SHAPE AS THE STUDENTS ABOVE, so the two ranges a tutor states read alike although they live on different pages. § */
