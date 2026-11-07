@@ -206,7 +206,7 @@ if (WR && items.length) {
   try {
     const T = vm.runInNewContext(src('js/finder-tags.js') + ';FINDER_TAGS');
     const at = Object.keys(T.views)
-      .map(v => [v, T.views[v]['kindLabel=Library&subject=Religious Studies']]).filter(p => p[1]);
+      .map(v => [v, Object.assign({}, T.same || {}, T.views[v])['kindLabel=Library&subject=Religious Studies']]).filter(p => p[1]);
     if (!at.length) bad.push('js/finder-tags.js holds no Library › Religious Studies, so "Religion is asked there" proves nothing');
     at.forEach(([v, q]) => { if (q[0] !== 'wReligion') bad.push('Library › Religious Studies asks ' + q[0] + ', not Religion, for the view ' + v); });
     said.push('Library › Religious Studies asks ' + at.map(p => p[0] + ' ' + p[1][0] + ' (' + p[1][1].map(a => a[0]).join(', ') + ')').join('; '));

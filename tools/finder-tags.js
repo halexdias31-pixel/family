@@ -15,9 +15,14 @@ const NAMED = [[{ field: 'kindLabel', value: 'Library' }, { field: 'subject', va
 
 const HEAD = '/* @family. — js/finder-tags.js WRITTEN BY tools/finder-tags.js, NEVER BY HAND (546): the finder\'s first questions and answers, counted at build time. */\n';
 /* ONE QUESTION A LINE, so a change to the library shows in a diff as the questions it changed. */
-const render = T => HEAD + 'const FINDER_TAGS = {\n"views": {\n'
-  + Object.keys(T.views).map(v => JSON.stringify(v) + ': {\n' + Object.keys(T.views[v]).map(k => '  ' + JSON.stringify(k) + ': '
-    + JSON.stringify(T.views[v][k])).join(',\n') + '\n}').join(',\n') + '\n}};\n';
+/* SHARED ONCE (dup): a question every view asks alike is written in `same` and merged into each view by finderTagsView_. */
+const render = T => {
+  const vs = Object.keys(T.views), line = (o, k) => '  ' + JSON.stringify(k) + ': ' + JSON.stringify(o[k]);
+  const same = Object.keys(T.views[vs[0]] || {}).filter(k => vs.every(v => JSON.stringify(T.views[v][k]) === JSON.stringify(T.views[vs[0]][k])));
+  const own = v => Object.keys(T.views[v]).filter(k => !same.includes(k));
+  return HEAD + 'const FINDER_TAGS = {\n"same": {\n' + same.map(k => line(T.views[vs[0]], k)).join(',\n') + '\n},\n"views": {\n'
+    + vs.map(v => JSON.stringify(v) + ': {\n' + own(v).map(k => line(T.views[v], k)).join(',\n') + '\n}').join(',\n') + '\n}};\n';
+};
 
 (async () => {
   /* THE APP LOADS THIS FILE TOO: a first run, or one after a bad merge, starts from an empty one. */

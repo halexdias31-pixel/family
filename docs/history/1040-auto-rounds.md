@@ -285,3 +285,9 @@ Run 42315012684 (7bd3337) failed fast, flow 2/8 and 8/8, browser 2/8, 4/8 and 8/
 - browser 4/8: check/firstpaint.js skips Find 2, off in columns.json (as kp-centred does).
 - browser 8/8: check/centred.js under FLOW_LAYOUT holds the card in front to its place at rest instead of the old glass's middle; Find 2 skipped while off.
 Left: coupling over budget in data.js, shell-api.js, me-account.js, find-pages.js, finder-tags.js and search-bytes over, all from 1070, none a CI job.
+
+## Sweep 02:36
+
+- Theme: the dup in js/finder-tags.js (115 lines repeated across the two views). tools/finder-tags.js now writes the questions every view asks alike once (`same`) and merges them into each view at load; 252 → 135 lines, every view's content proven identical. Consumers unchanged.
+- owner_answers / claude_notes: not read (no ledger id at hand this sweep).
+Left: best-split menu order (a), lazy-load secondary files (c), coupling budgets in data.js, shell-api.js, me-account.js, find-pages.js.

@@ -534,7 +534,8 @@ function finderTagsView_() {
   /* AN ADMIN SEES People and Settings: a view of its own. */
   let adm = false;
   try { adm = typeof isAdmin === 'function' && isAdmin(); } catch (e) { adm = false; }
-  return T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')] || null;
+  const v = T.views[(adm ? 'admin+' : '') + (typeof bibleFor_ === 'function' && bibleFor_() ? 'bible' : '')];
+  return v ? Object.assign({}, T.same || {}, v) : null;
 }
 /* WHERE THE FINDER STANDS, as the build writes it: each chip in the order pressed, `field=value` or `field=*` for Doesn't matter; words have no key. */
 const finderStateKey_ = () => (String(STUFF.q || '').trim() ? null
