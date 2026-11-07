@@ -53,6 +53,10 @@ irreversible steps. Report only results and "safe to merge". Usage heavy (parall
 Stable = the core works on a phone with no errors and CI is green 3 runs in a row. Claude merges its own work into main once
 CI is green (the Apps Script deploy stays the owner's). Frozen features return one at a time after stable, most-used first.
 Unused code is deleted, not kept switched off: git history is the attic.
+Priority: Questions first among the core; bugs always before anything new; perfect the papers we have before adding more.
+Asking: Claude writes its guess before each question; when guesses match the owner's answers ~9/10 in an area, it stops
+asking there and decides. Ask only when unsure AND a wrong guess is costly (money, law, deletion, students).
+Guess tally (7 Nov): 3 right of 3 answered.
 
 ## How the loop works
 
