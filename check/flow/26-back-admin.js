@@ -170,7 +170,8 @@ check('a reading insert is Content in Find (no Insert tile on its question), ask
 });
 
 /* WORDS AHEAD OF THE READER (447): a slow Ledger, a list shown, then scrolled a page at a time — the cards are whole before they are reached. */
-const LIB_AHEAD_PID = 'P-AQA-8462-2406-2F';
+/* A paper of over twelve questions: a question is one card once whole (960), so a ten-question paper cannot show N + 4. */
+const LIB_AHEAD_PID = 'P-STA-KS2-2024-P3';
 async function libScrollRun_(o) {
   const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_AHEAD_PID);
   const slim = libSlimRows_(full);
