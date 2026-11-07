@@ -7,7 +7,27 @@
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'js', 'finder-tags.js');
-const CHECK = process.argv.includes('--check');
+const CHECK = process.argv.includes('--check'), FULL = process.argv.includes('--full');
+/* THE INPUTS' FINGERPRINT (CI after be32d73): the walk takes minutes, so --check trusts a stamp of every file the app reads, made by the last full run. */
+const STAMP = path.join(ROOT, 'tools', 'finder-tags.stamp');
+/* NOT INPUTS: the checks, the health reports and index.html's BUILD_STAMP are written after this tool and never steer the finder. */
+const SKIP = f => f === 'js/finder-tags.js' || /^js\/check[-.]/.test(f) || /^data\/(health|health-trend|[\w-]+-health)\.json$/.test(f);
+const inputsHash = () => {
+  const crypto = require('crypto'), h = crypto.createHash('sha256');
+  const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)
+    .flatMap(e => e.isDirectory() ? walk(d + '/' + e.name) : [d + '/' + e.name]);
+  const list = walk('js').concat(walk('data'), ['index.html', 'check/jsdom-app.js', 'check/fixture.json', 'tools/finder-tags.js']).filter(f => !SKIP(f));
+  list.forEach(f => {
+    let b = fs.readFileSync(path.join(ROOT, f));
+    if (f === 'index.html') b = Buffer.from(b.toString('utf8').replace(/BUILD_STAMP\s*=\s*['"][^'"]*['"]/, 'BUILD_STAMP=""'));
+    h.update(f + '\0' + b.length + '\0'); h.update(b);
+  });
+  return h.digest('hex');
+};
+const outHash = t => require('crypto').createHash('sha256').update(t).digest('hex');
+/* FRESH WITHOUT A WALK: what health.js --changed asks before it warns that this file wants re-running. */
+const fresh = () => { try { return fs.readFileSync(STAMP, 'utf8').trim() === inputsHash() + ' ' + outHash(fs.readFileSync(OUT, 'utf8')); } catch (e) { return false; } };
+module.exports = { fresh };
 /* HOW MANY ANSWERS DEEP (1070: 1 → 3): a finger taps three menus in before the library lands, and each must already be the final answer. */
 const DEPTH = 3;
 /* AND THE PLACES A CHECK HOLDS THE FUNNEL TO (check-writings: Religion is asked first in Library › Religious Studies). */
@@ -24,11 +44,16 @@ const render = T => {
     + vs.map(v => JSON.stringify(v) + ': {\n' + own(v).map(k => line(T.views[v], k)).join(',\n') + '\n}').join(',\n') + '\n}};\n';
 };
 
-(async () => {
+if (require.main === module) (async () => {
   /* THE APP LOADS THIS FILE TOO: a first run, or one after a bad merge, starts from an empty one. */
   let had = null;
-  try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) {}
+  try { had = fs.readFileSync(OUT, 'utf8'); } catch (e) { had = null; }
   if (CHECK && had === null) { console.error('finder-tags: js/finder-tags.js is missing. Run: node tools/finder-tags.js'); process.exit(1); }
+  const IN = inputsHash();
+  if (CHECK && !FULL) {
+    let st = ''; try { st = fs.readFileSync(STAMP, 'utf8').trim(); } catch (e) { st = ''; }
+    if (st === IN + ' ' + outHash(had)) { console.log('finder-tags: js/finder-tags.js is current (inputs unchanged since the last full run; --full to re-walk)'); process.exit(0); }
+  }
   if (had === null || !/const FINDER_TAGS = /.test(had)) fs.writeFileSync(OUT, HEAD + 'const FINDER_TAGS = null;\n');
   const { app, tick } = require('../check/jsdom-app.js');
   const payload = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
@@ -88,6 +113,7 @@ const render = T => {
     process.exit(1);
   }
   fs.writeFileSync(OUT, text);
+  fs.writeFileSync(STAMP, IN + ' ' + outHash(text) + '\n');
   console.log('finder-tags: wrote js/finder-tags.js — ' + Object.keys(views).length + ' views, ' + Object.values(views).reduce((n, o) => n + Object.keys(o).length, 0) + ' questions');
   process.exit(0);
 })().catch(e => { console.error('finder-tags: ' + (e && e.stack || e)); process.exit(2); });

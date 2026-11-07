@@ -1,7 +1,7 @@
 {
  "score": 90.9,
- "questions": 220,
- "healthy": 200,
+ "questions": 219,
+ "healthy": 199,
  "walked": {
   "nodes": 300,
   "maxNodes": 300,
@@ -380,12 +380,28 @@
    "cards": 522
   },
   {
+   "where": "Find › Library › Mechanics",
+   "asks": "mScope",
+   "bits": 1,
+   "best": "mMake",
+   "bestBits": 2,
+   "cards": 76
+  },
+  {
    "where": "Find › Library › Physical Education › February",
    "asks": "division",
    "bits": 1.69,
    "best": "decade",
    "bestBits": 2,
    "cards": 10
+  },
+  {
+   "where": "Find › Library › Physical Education › February › Middleweight",
+   "asks": "boutRound",
+   "bits": 1,
+   "best": "boutYear",
+   "bestBits": 1.58,
+   "cards": 3
   }
  ],
  "tagAsked": [

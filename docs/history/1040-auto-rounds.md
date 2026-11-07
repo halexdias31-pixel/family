@@ -309,3 +309,9 @@ Left: `games` (327 KB) into the batch once its readers are guarded.
 
 - flow 8/8: the Mechanics journey saw mMake asked before "A specific model, or any?". Cause: d747459's best-split `nextFacet` scored mScope low (a part carries both answers). Fix: a `choose` facet leads its list like a kind question (`js/find-facets.js`); `js/finder-tags.js` regenerated.
 - fast: green locally after the fix with LIB_PRIVATE=absent (finder-tags regenerated, build stamp renewed).
+
+### CI after be32d73
+
+- fast: `tools/finder-tags.js --check` hit the 300 s per-check limit on the runner (about 250 s here): since 1070 (depth 3) and the best-split nextFacet it walks the whole funnel three menus deep. It now writes `tools/finder-tags.stamp` on every full run: a sha256 of every file the app reads (js/ but the checks, data/ but the health reports, index.html with BUILD_STAMP blanked, the fixture, jsdom-app, the tool itself) plus one of its own output. `--check` passes in 0.3 s when the stamp matches and re-walks otherwise; `--full` forces the walk. A full re-run gave a byte-identical js/finder-tags.js.
+- browser 2/8: data/logic-health.json was stale after the mScope `choose` change; regenerated.
+- `node tools/health.js --changed` now warns when data/logic-health.json is older than a changed funnel input, or js/finder-tags.js is not stamped for the current inputs.

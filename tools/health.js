@@ -692,6 +692,10 @@ function changed() {
   /* A STALE FACET REPORT (940): the library or the funnel changed and tools/facet-data.js was not re-run, so its findings are old. */
   const fAt = mtime('data/facet-health.json'), fNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > fAt);
   if (fNew.length && !files.has('data/facet-health.json')) console.log('note: data/facet-health.json is older than ' + fNew.join(', ') + ' — run node tools/facet-data.js');
+  /* THE FUNNEL'S TWO WRITTEN FILES (CI after be32d73): a funnel change that forgets either is red in CI, so say so here first. */
+  const lNew = LOGIC_INPUTS.filter(f => files.has(f) && mtime(f) > mtime('data/logic-health.json'));
+  if (lNew.length && !dirty.has('data/logic-health.json')) console.log('warning: data/logic-health.json is older than ' + lNew.join(', ') + ' — run node tools/logic-health.js');
+  if (!require('./finder-tags.js').fresh()) console.log('warning: js/finder-tags.js is not stamped for these inputs — run node tools/finder-tags.js');
   if ([...FIND_FILES, ...SHELL_FILES, 'data/logic-health.json', 'data/facet-health.json'].some(f => files.has(f))) {
     let base = []; try { base = JSON.parse(git(['show', 'HEAD:data/health.json'])).work || []; } catch (e) { base = []; }
     const had = {}; base.forEach(w => { had[sig(w)] = (had[sig(w)] || 0) + 1; });
