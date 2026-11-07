@@ -69,7 +69,8 @@ if (!gsPath) {
   console.log('FAILED — doget.gs not found, so NOTHING was checked. Looked in:\n  ' + WHERE.join('\n  '));
   process.exit(1);
 }
-const gs = decomment(fs.readFileSync(gsPath, 'utf8'));
+/* AND EVERY get-*.gs, where doGet's sections are since 1140 (`tools/get-src.js`). */
+const gs = decomment(require('../tools/get-src.js').getFiles(path.join(path.dirname(gsPath), '..')).map(f => fs.readFileSync(f, 'utf8')).join('\n'));
 
 const sent = new Set();
 

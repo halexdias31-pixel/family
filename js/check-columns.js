@@ -32,7 +32,8 @@ const sch = con.slice(con.indexOf('const SCHEMA = {'), con.indexOf('\n};', con.i
 const cols = new Set([...sch.matchAll(/"([a-z_0-9]+)"/g)].map(m => m[1]));
 const cfg  = new Set([...con.matchAll(/\['([a-z_0-9]+)',/g)].map(m => m[1]));
 
-const gs = strip(GS_PATHS.map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
+/* AND doGet's sections in get-*.gs (1140), which used to be inside doget.gs. */
+const gs = strip(GS_PATHS.concat(require('../tools/get-src.js').getFiles(path.join(path.dirname(GS_PATHS[0]), '..')).slice(1)).map(p2 => fs.readFileSync(p2, 'utf8')).join('\n'));
 
 /* WRITES. `setCell(t, row, 'field', v)` and the keys of an `addRow` object — both go through the
    headers, and both are dropped in silence when the header is not there. */

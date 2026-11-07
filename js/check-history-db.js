@@ -134,7 +134,7 @@ TLS.forEach(t => {
 /* THE APP STILL READS ALL THREE: loaded by library.js, made items and cards by find.js, declared by doGet. */
 const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
 const find = require('../tools/find-src.js').findSrc();
-const doget = fs.readFileSync(path.join(ROOT, 'backend', 'doget.gs'), 'utf8');
+const doget = require('../tools/get-src.js').getSrc(ROOT); // doget.gs plus get-*.gs (1140)
 Object.keys(SCHEMA).forEach(f => {
   if (!new RegExp("file: '" + f + "'").test(lib) || !new RegExp("'" + f + "'").test(lib.slice(lib.indexOf('const LIB_EXTRA'), lib.indexOf('const LIB_EXTRA') + 400))) bad.push('js/library.js does not load ' + f + ' (LIB_EXTRA and HIST_DB)');
   if (!new RegExp('\\b' + f + ': \\[\\]').test(doget)) bad.push('backend/doget.gs does not declare ' + f + ': [] — check-payload would call it read-and-never-sent');

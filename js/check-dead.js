@@ -31,8 +31,8 @@ const gsF=['constants','core','people','booking','content','setup','doGet','doPo
     const hit=[O+'backend/',O].flatMap(d=>tries.map(x=>d+x+'.gs')).find(p2=>fs.existsSync(p2));
     return hit?{f:path.basename(hit),p:hit}:null;
   }).filter(Boolean);
-/* doPost's handlers, split out of it into post-*.gs (1130). */
-if(fs.existsSync(O+'backend/'))gsF.push(...files(O+'backend/',f=>/^post-.*\.gs$/.test(f)));
+/* doPost's handlers, split out of it into post-*.gs (1130), and doGet's sections into get-*.gs (1140). */
+if(fs.existsSync(O+'backend/'))gsF.push(...files(O+'backend/',f=>/^(post|get)-.*\.gs$/.test(f)));
 const scan=(set,label)=>{
   const code=strip(set.map(x=>fs.readFileSync(x.p,'utf8')).join('\n'));
   const d=[...code.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map(m=>m[1]);
