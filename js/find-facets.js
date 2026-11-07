@@ -353,8 +353,8 @@ function nextFacet(items) {
   for (const facet of facetList()) {
     if (asked.indexOf(facet.field) !== -1 || facetWhy_(items, facet)) continue;
     const vals = facetValues(items, facet);
-    /* What a card IS is asked first (660), and the front's answers are FRONT_ORDER's (4 Nov). */
-    if (kindNamed_(vals) || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
+    /* What a card IS is asked first (660), the front's answers are FRONT_ORDER's (4 Nov), and a choose question (mScope, owner 6 Nov) leads its list. */
+    if (kindNamed_(vals) || facet.choose || (!asked.length && vals.every(v => FRONT_ORDER.indexOf(v.value) !== -1))) return facet;
     ok.push({ facet, bits: facetBits_(items, facet) });
   }
   const pick = list => list.reduce((b, c) => (!b || c.bits > b.bits ? c : b), null);

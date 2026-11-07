@@ -304,3 +304,8 @@ Left: best-split menu order (a), lazy-load secondary files (c), coupling budgets
 - live-load --local: return 0.90 → 0.83 s, cold 8.18 → 7.88 s, boot files 96 → 88. Flow (widget/whiteboard/flyer/spotify journeys) and check/later.js pass with LIB_PRIVATE=absent.
 - claude_notes: 5 load-feel notes logged against this. No owner_answers tab in the ledger.
 Left: `games` (327 KB) into the batch once its readers are guarded.
+
+## CI after 1080
+
+- flow 8/8: the Mechanics journey saw mMake asked before "A specific model, or any?". Cause: d747459's best-split `nextFacet` scored mScope low (a part carries both answers). Fix: a `choose` facet leads its list like a kind question (`js/find-facets.js`); `js/finder-tags.js` regenerated.
+- fast: green locally after the fix with LIB_PRIVATE=absent (finder-tags regenerated, build stamp renewed).
