@@ -9,15 +9,20 @@ const of = (sec, t) => Object.keys(T[sec] || {}).filter(k => T[sec][k] === t);
 const offFiles = Object.keys(T.widgetFiles || {}).filter(f => [].concat(T.widgetFiles[f]).every(w => (T.widgets || {})[w] === 'off'));
 const q = a => a.map(x => `'${x}'`).join(', ');
 const later = (T.later || []).filter(f => offFiles.indexOf(f) === -1);
+/* LAZY (1080): LATER files fetched when one of their widgets first starts; their widgets wait in tierLazy_ (shell-boot.js). */
+const lazy = (T.lazy || []).filter(f => later.indexOf(f) !== -1);
+const lazyWidgets = [...new Set([].concat(...lazy.map(f => [].concat((T.widgetFiles || {})[f] || []))))];
 const want = {
   /* shell.js was cut into shell-*.js (1040); the three lists sit in the piece that holds the first. */
   [require('./piece-src.js').pieceFiles('shell').find(f => /const TIER_CORE_WIDGETS = /.test(fs.readFileSync(path.join(ROOT, f), 'utf8')))]: [
     [/const TIER_CORE_WIDGETS = \[[^\]]*\];/, `const TIER_CORE_WIDGETS = [${q(of('widgets', 'core'))}];`],
+    [/const TIER_LAZY_WIDGETS = \[[^\]]*\];/, `const TIER_LAZY_WIDGETS = [${q(lazyWidgets)}];`],
     [/const TIER_OFF_WIDGETS = \[[^\]]*\];/, `const TIER_OFF_WIDGETS = [${q(of('widgets', 'off'))}];`],
     [/const TIER_CORE_KINDS = \[[^\]]*\];/, `const TIER_CORE_KINDS = [${q(of('kinds', 'core'))}];`],
   ],
   'index.html': [
     [/window\.LATER = \[[^\]]*\];/, `window.LATER = [${q(later)}];`],
+    [/window\.LAZY = \[[^\]]*\];/, `window.LAZY = [${q(lazy)}];`],
     [/window\.OFF = \[[^\]]*\];/, `window.OFF = [${q(offFiles)}];`],
   ],
 };

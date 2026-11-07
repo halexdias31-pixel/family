@@ -76,6 +76,7 @@ function oopsTry_(where, fn, host) {
 }
 /* TWO TIERS (860): data/settings/tiers.json. What is not core runs through tierRun_, so its throw is reported and never reaches boot, the pager or Find. check-tiers holds these lists to the file. */
 const TIER_CORE_WIDGETS = [];
+const TIER_LAZY_WIDGETS = ['whiteboard', 'flyers', 'poster', 'pixel', 'spotify', 'rewrite', 'favlinks'];
 const TIER_OFF_WIDGETS = ['newspaper', 'homework'];
 const TIER_CORE_KINDS = ['question', 'content', 'insert', 'practical', 'project', 'level'];
 const tierCore_ = (what, id) => (what === 'kind' ? TIER_CORE_KINDS : TIER_CORE_WIDGETS).indexOf(String(id)) !== -1;
@@ -124,6 +125,7 @@ function tierGuardWidgets_(list) {
       const f = w[k];
       if (typeof f === 'function') w[k] = function () { return tierRun_(where, f, this, arguments, k === 'draw' ? false : undefined, k === 'start' ? slot : null); };
     });
+    if (TIER_LAZY_WIDGETS.indexOf(String(w.id)) !== -1) tierLazy_(w, slot);
     const d = Object.getOwnPropertyDescriptor(w, 'html');
     if (d && typeof d.get === 'function') {
       Object.defineProperty(w, 'html', { configurable: true, enumerable: d.enumerable, get() { return tierRun_(where, d.get, this, [], oopsHtml_); } });
@@ -131,6 +133,21 @@ function tierGuardWidgets_(list) {
     try { Object.defineProperty(w, '__tier', { value: 'secondary' }); } catch (e) { /* a frozen widget is still guarded */ }
   });
   return list;
+}
+
+/* ITS FILE IS IN THE SECOND BATCH (1080): the first start shows the wait and fetches LAZY, then starts it if its slot is still there; draw and stop wait too. */
+function tierLazy_(w, slot) {
+  const ready = () => typeof lazyFiles_ !== 'function' || !!lazyFiles_.in;
+  const g = { start: w.start, draw: w.draw, stop: w.stop };
+  if (g.draw) w.draw = function () { return ready() ? g.draw.apply(this, arguments) : false; };
+  if (g.stop) w.stop = function () { return ready() ? g.stop.apply(this, arguments) : undefined; };
+  if (g.start) w.start = function () {
+    if (ready()) return g.start.apply(this, arguments);
+    const self = this, a = arguments, el = slot();
+    if (el && !el.firstChild) el.innerHTML = loading_();
+    lazyFiles_().then(() => { const s = slot(); if (s && s.isConnected) g.start.apply(self, a); });
+    return undefined;
+  };
 }
 
 /* ONE SCROLLING PAGE (900): sections in normal flow, scrolled by the browser. false brings back the sideways columns, the pager and the glass. */

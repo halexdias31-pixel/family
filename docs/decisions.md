@@ -56,6 +56,7 @@ become an owner question showing both; never pick one.
 - Controls you can't use are greyed, never hidden; never move, appear or disappear on tap; grouped in one row; respond instantly. P8 · 6 Nov
 - Any tap responds within 1 second (the checker flags over 1s). P10 · 6 Nov
 - Opening the site on a phone must feel instant — the owner's most repeated complaint. P10 · 6 Nov
+- Widget-only secondary files load on their card's first start, in one second batch after LATER (tiers.json `lazy`, history 1080). P10 · 7 Nov
 - Phone first, but it must work on a computer or any device. P10 · 6 Nov
 - Recently opened things keep working offline; answers sync when back online. P10, P11 · 6 Nov
 - Data from one source (in sync); seamless updates that never interrupt. P10 · 6 Nov

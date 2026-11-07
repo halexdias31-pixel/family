@@ -409,6 +409,16 @@
     "find-pages",
     "find-measure"
   ],
+  "lazy": [
+    "ink",
+    "board",
+    "flyer",
+    "poster",
+    "pixel",
+    "spotify",
+    "rewrite",
+    "favlinks"
+  ],
   "widgetFiles": {
     "board": [
       "whiteboard"

@@ -297,3 +297,10 @@ Left: best-split menu order (a), lazy-load secondary files (c), coupling budgets
 - Theme: menus always ask the best split (rule 7, owner 6 Nov). `nextFacet` now picks, of the questions the one rule lets through, the highest `facetBits_` (bits, capped at 2 so a many-answer Part cannot beat Subject), sort_order breaking ties; a coarser question (`facetInside_`, memoised per list) still comes before its finer one; kind questions and the front stay first. logic-health uses the same score; check-funnel tests the new rule.
 - Menu-rule 97 → 22, logic-health 84.2% → 90.9%. Menu journeys (70) pass with LIB_PRIVATE=absent. Screenshots: front, Practice › Questions (asks Subject), Library › Art and Design.
 - claude_notes: 3 new (front-pills asked; inFinder_ error already fixed; Any-kind menu addressed). No owner_answers tab in the ledger.
+
+## Sweep 06:36
+
+- Theme: fast and light (rule 10). A second lazy batch (`window.LAZY`, history 1080): eight widget-only files (whiteboard/ink, flyer, poster, pixel, spotify, rewrite, favlinks) load, all at once, when one of their widgets first starts.
+- live-load --local: return 0.90 → 0.83 s, cold 8.18 → 7.88 s, boot files 96 → 88. Flow (widget/whiteboard/flyer/spotify journeys) and check/later.js pass with LIB_PRIVATE=absent.
+- claude_notes: 5 load-feel notes logged against this. No owner_answers tab in the ledger.
+Left: `games` (327 KB) into the batch once its readers are guarded.
