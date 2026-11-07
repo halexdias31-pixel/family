@@ -142,7 +142,7 @@
   }
  ],
  "secondary": {
-  "score": 80.9,
+  "score": 81.9,
   "verdict": "Steady, with duct tape worth paying down.",
   "signals": [
    {
@@ -168,13 +168,12 @@
    {
     "id": "special",
     "label": "Per-facet and per-kind special cases",
-    "count": 77,
+    "count": 57,
     "weight": 0.05,
     "cap": 10,
-    "off": 3.9,
+    "off": 2.9,
     "where": {
      "js/arcade.js": 7,
-     "js/board.js": 20,
      "js/collections.js": 7,
      "js/games.js": 11,
      "js/layout.js": 1,

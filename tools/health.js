@@ -379,10 +379,14 @@ const STRUCT = { 'one-off': [0.05, 20], 'long-fn': [0.01, 10], 'big-file': [0.00
 const REPLACED = new Set(['special', 'longfiles', 'longfns', 'duplicates']);
 const W_ = '(?:kind|facet|field|col|screen|tab|id|type|which|mode|key)';
 const ONE_OFF = new RegExp(`(?:\\b(?:[\\w$]+\\.)*${W_}\\s*[!=]==?\\s*'[^']+'|'[^']+'\\s*[!=]==?\\s*(?:[\\w$]+\\.)*${W_}\\b|^\\s*case\\s+'[^']+'\\s*:)`);
+/* FROZEN (1090): tiers.json `frozen.files` are left out of the score and the worklist, so the list names only what the owner uses now. */
+function frozenFiles() { try { return new Set(((JSON.parse(read('data/settings/tiers.json')).frozen || {}).files || []).map(f => 'js/' + f + '.js')); } catch (e) { return new Set(); } }
+const notFrozen_ = w => !frozenFiles().has(String(w.file || w.where || '').replace(/:\d+$/, ''));
 function coreFiles() {
   const T = (() => { try { return JSON.parse(read('data/settings/tiers.json')).files || {}; } catch (e) { return {}; } })();
+  const Z = frozenFiles();
   const ls = d => { try { return fs.readdirSync(path.join(ROOT, d)).sort(); } catch (e) { return []; } };
-  return ls('js').filter(f => f.endsWith('.js') && !f.startsWith('check') && (T[f.slice(0, -3)] || 'core') === 'core').map(f => 'js/' + f)
+  return ls('js').filter(f => f.endsWith('.js') && !f.startsWith('check') && (T[f.slice(0, -3)] || 'core') === 'core' && !Z.has('js/' + f)).map(f => 'js/' + f)
     .concat(ls('backend').filter(f => f.endsWith('.gs')).map(f => 'backend/' + f));
 }
 /* A FILE SCANNED ONCE: per line, the code with comments removed (strings kept, for the literal tests), and the brace depth at its end —
@@ -664,7 +668,7 @@ function health() {
     parts: { code: codeX, logic: lscore, ui: uiX, cost: C.score, business: B.score }, areas, philosophy: { principles: cov.principles, findings: cov.work.length, untied: cov.untied }, ownerQuestions: { open: oq.open, of: oq.of }, onePlace: Ph.onePlace(), aiCost: { avgRead: C.avgRead, commentRatio: C.commentRatio, tombstones: C.tombstones.length, claudeLines: C.claudeLines, searchBytes: C.searchBytes, effort: (({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes, spread }) => ({ commits, medianLines, worstLines, medianFiles, worstFiles, testBytes, testBiggest, historyBytes, historyBiggest, bigNotes: bigNotes.length, spread }))(C.effort), top: C.top.slice(0, 5) }, next, variety: VARIETY_LAST, qengine: (() => { const Q = jread('data/qengine-health.json'); return Q ? { moved: Q.moved, of: Q.of, proofs: Object.fromEntries(Object.keys(Q.proofs).map(k => [k, Q.proofs[k].pass + '/' + Q.proofs[k].cases])) } : null; })(), skipped: X.skipped, firstDownloadKB: Math.round(X.sizes.total / 1024),
     logicStale: L.stale, logicWalk: walk, find: fpen, ui: U.signals, structure: S.totals, counts,
     top: off.slice(0, 5), all: off,
-    worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))),
+    worklist: S.findings, work: work.concat(U.work, X.work.map(w => ({ kind: w.kind, where: w.where, say: w.say }))).filter(notFrozen_),
   };
 }
 /* TREND (920): each full run's score in data/health-trend.json; the card draws the last thirty and names the commit of the worst drop. */
@@ -813,7 +817,7 @@ else if (require.main === module) {
   if (at >= 0) {
     const n = Number(process.argv[at + 1]) || 20, ki = process.argv.indexOf('--kind'), kind = ki >= 0 ? process.argv[ki + 1] : '';
     const W = structure().findings.concat(findWork(logic()).concat(ui().work, extraWork(require('./stability.js').stability()).work).map(w => ({ file: w.where.replace(/:\d+$/, ''), line: (/:(\d+)$/.exec(w.where) || [])[1] || '-', kind: w.kind, text: w.say })))
-      .filter(f => !kind || f.kind === kind);
+      .filter(f => (!kind || f.kind === kind) && notFrozen_(f));
     W.slice(0, n).forEach(f => console.log(`${f.file}:${f.line}  ${f.kind}  ${f.text}`));
     console.log(`(${Math.min(n, W.length)} of ${W.length}${kind ? ' ' + kind : ''} findings, dearest first)`);
     process.exit(0);
