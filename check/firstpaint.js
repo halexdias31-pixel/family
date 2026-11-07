@@ -63,7 +63,10 @@ const VIEWERS = [
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const bad = [];
   let read = 0;
-  for (const V of VIEWERS) for (const col of ['stuff', 'res']) {
+  /* A COLUMN SWITCHED OFF (columns.json, 880) is not opened on: Find 2 is off, so only a switched-on finder is measured. */
+  const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
+  for (const c of ['stuff', 'res']) if (!on(c)) console.log(`   ${c}: off in columns.json, skipped`);
+  for (const V of VIEWERS) for (const col of ['stuff', 'res'].filter(on)) {
     const where = `${V.who}, opening on ${col === 'stuff' ? 'Find' : 'Find 2'}`;
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     try {
@@ -126,5 +129,5 @@ const VIEWERS = [
     console.log('\nTHE FINDER\'S FIRST PAINT IS NOT ITS LAST:\n' + bad.map(b => '   ' + b).join('\n'));
     process.exit(1);
   }
-  console.log(`OK — the finder's first answers were drawn once and never changed, ${read} cold loads (an admin and a child, Find and Find 2, 390px, 4x CPU)`);
+  console.log(`OK — the finder's first answers were drawn once and never changed, ${read} cold loads (an admin and a child, each switched-on finder, 390px, 4x CPU)`);
 })().catch(e => { console.error('firstpaint: ' + (e && e.stack || e)); process.exit(2); });

@@ -479,13 +479,18 @@ check('Mechanics (batch E): Library → Mechanics asks a specific model or any; 
   const dci = w.stuffFiltered();
   if (!dci.some(x => x.mKind === 'Car') || dci.filter(x => x.mKind === 'Part').length >= clio) bad.push('Renault → K9K did not narrow to the car and its parts');
   if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
-  const car = dci.find(x => x.mKind === 'Car'), chtml = car ? w.stuffCard(car, 0) : '';
+  /* A TAG OMITS WHAT A CHIP ALREADY SAYS (owner, 6 Nov): every attribute is checked on cards drawn with no chips, and the chosen ones are checked gone. */
+  const chosen = S.filters.slice(), car = dci.find(x => x.mKind === 'Car'), picked = car ? w.stuffCard(car, 0) : '';
+  ['Renault', 'K9K'].forEach(v => { if (picked.indexOf('>' + v + '<') >= 0) bad.push('the car card repeats the chosen chip "' + v + '" as a tag'); });
+  S.filters = [];
+  const chtml = car ? w.stuffCard(car, 0) : '';
   ['Renault', 'Clio', 'III', 'Phase 2', 'UK', '1.5', '8V', 'K9K'].forEach(v => { if (chtml.indexOf('>' + v + '<') < 0) bad.push('the car card has no tag "' + v + '"'); });
   /* THE REPORT TILE'S `data-rl` NAMES IT FOR THE REPORT, never drawn: only what is drawn is held to "no title". */
   if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/(aria-label|data-rl)="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
   if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
+  S.filters = chosen;
   const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
-  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || !/>K9K</.test(html)) bad.push('a part card is not tags, one drawing, its one line and the chosen engine');
+  if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || />K9K</.test(html)) bad.push('a part card is not tags, one drawing and its one line, with the chosen engine left to its chip');
   S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Computer Science' }, { field: 'shelf', value: 'PC parts' }];
   ['CPU', 'Motherboard', 'RAM', 'GPU', 'Storage', 'PSU'].forEach(k => { if (vals('pcType').indexOf(k) < 0) bad.push('PC parts → Part type lacks ' + k); });
   return bad;

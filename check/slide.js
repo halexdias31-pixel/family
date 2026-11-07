@@ -199,6 +199,23 @@ function settleFrames(frames, at) {
 
   const env = await boot(browser, false);
   const { page, cdp } = env;
+  /* ONE SCROLLING PAGE (900, owner): with FLOW_LAYOUT there is no sideways slide, so a sideways flick must move nothing and the page never scroll sideways. */
+  if (await page.evaluate(() => typeof FLOW_LAYOUT !== 'undefined' && FLOW_LAYOUT)) {
+    const was = await page.evaluate(() => AT);
+    for (const dx of [-90, 90]) {
+      await finger(cdp, Object.assign({ x0: W / 2, y0: H / 2 }, G.flick(dx, 0, 100)));
+      await sleep(600);
+      const r = await page.evaluate(() => ({ at: AT, x: scrollX, wide: document.documentElement.scrollWidth }));
+      asked++;
+      note(`flow layout: flick ${dx}px → on ${r.at}, scrollX ${r.x}, page ${r.wide}px wide`);
+      if (r.at !== was) fail('FLOW', `flick ${dx}px`, `a sideways flick changed the column to ${r.at} — the one scrolling page has no slide`);
+      if (r.x !== 0 || r.wide > W + 1) fail('FLOW', `flick ${dx}px`, `the page scrolled sideways (scrollX ${r.x}, ${r.wide}px wide at ${W}px)`);
+    }
+    await browser.close(); server.close();
+    if (found.length) { found.forEach(f => console.log(`  FAIL [${f.rule}] ${f.where}: ${f.msg}`)); console.log(`FAILED — ${found.length} of ${asked} flow question(s) at ${W}px`); process.exit(1); }
+    console.log(`OK — one scrolling page (900): a sideways flick moves nothing at ${W}px (${asked} questions)`);
+    process.exit(0);
+  }
   const tabs = await page.evaluate(() => TABS.map(t => t.id));
   const nx = (id, k = 1) => tabs[tabs.indexOf(id) + k];
   const step = await page.evaluate(() => stepX_());

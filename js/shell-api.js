@@ -531,10 +531,11 @@ async function loadOnce_(again, n, kept) {
       .finally(() => clearTimeout(bodyBell));
     reached = true;
     /* WHAT THE SLOW BOX ASKS (index.html): the backend has answered, so whatever is left is ours and bounded. */
-    window.PAYLOAD_IN = true;
-    payloadOwe_(d); }
+    window.PAYLOAD_IN = true; }
     /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been signed in over since it went, or older than a payload already § */
     if (loadStale_(n, who)) return;
+    /* KEPT ONLY ONCE IT IS STILL THIS PERSON'S (1070): a stale answer for someone who signed out must never be filed under whoever is here now. */
+    if (!kept) payloadOwe_(d);
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT. § */
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
