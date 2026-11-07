@@ -10,8 +10,8 @@ const OUT = path.join(ROOT, 'js', 'finder-tags.js');
 const CHECK = process.argv.includes('--check'), FULL = process.argv.includes('--full');
 /* THE INPUTS' FINGERPRINT (CI after be32d73): the walk takes minutes, so --check trusts a stamp of every file the app reads, made by the last full run. */
 const STAMP = path.join(ROOT, 'tools', 'finder-tags.stamp');
-/* NOT INPUTS: the checks, the health reports and index.html's BUILD_STAMP are written after this tool and never steer the finder. */
-const SKIP = f => f === 'js/finder-tags.js' || /^js\/check[-.]/.test(f) || /^data\/(health|health-trend|[\w-]+-health)\.json$/.test(f);
+/* NOT INPUTS: the checks, the health and stability reports and index.html's BUILD_STAMP are written after this tool and never steer the finder. */
+const SKIP = f => f === 'js/finder-tags.js' || /^js\/check[-.]/.test(f) || /^data\/(health|health-trend|stability|[\w-]+-health)\.json$/.test(f);
 const inputsHash = () => {
   const crypto = require('crypto'), h = crypto.createHash('sha256');
   const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)
