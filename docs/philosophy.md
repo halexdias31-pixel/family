@@ -50,6 +50,9 @@ traced to a rule here, live in `docs/decisions.md`. Edit a rule here, never in c
 Fast and efficient, measured in weeks, not months. Quality first: each change done properly once. Freeze whatever slows the
 core (now: Find, Library, Questions, Settings, Bookings). Decide by these rules and log it; ask only on contradictions or
 irreversible steps. Report only results and "safe to merge". Usage heavy (parallel jobs) until the owner says otherwise.
+Stable = the core works on a phone with no errors and CI is green 3 runs in a row. Claude merges its own work into main once
+CI is green (the Apps Script deploy stays the owner's). Frozen features return one at a time after stable, most-used first.
+Unused code is deleted, not kept switched off: git history is the attic.
 
 ## How the loop works
 
