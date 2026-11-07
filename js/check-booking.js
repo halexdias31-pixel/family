@@ -103,7 +103,8 @@ try {
 }
 
 /* AND THE TERM LIST, WHICH PUT A BOOKING IN TWO ACADEMIC YEARS AT ONCE. § */
-const doget = backendFile(['doget.gs', '20_doget.gs']);
+/* doGet's text across doget.gs and get-*.gs (1140, `tools/get-src.js`); the term block is in get-shop.gs. */
+const doget = (() => { try { return require('../tools/get-src.js').getSrc(); } catch (e) { return null; } })();
 let termList;
 try {
   if (!doget) throw new Error('doget.gs could not be found');

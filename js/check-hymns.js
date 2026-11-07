@@ -48,6 +48,6 @@ if (!/hymn: \{ group: 'Learning'/.test(find)) bad.push('the hymn kind has no car
 if (!/'hymns'/.test(src('index.html'))) bad.push('index.html does not load js/hymns.js');
 if (!/open\.spotify\.com\/search\//.test(js) || !/Listen on Spotify/.test(js)) bad.push('js/hymns.js has no "Listen on Spotify" search tile');
 if (/<audio|\.mp3/.test(js)) bad.push('js/hymns.js plays audio itself — it must only link to Spotify');
-if (/data\/hymns/.test(src('backend/doget.gs'))) bad.push('the backend sends the hymns — they are static files, never boot payload');
+if (/data\/hymns/.test(require('../tools/get-src.js').getSrc(ROOT))) bad.push('the backend sends the hymns — they are static files, never boot payload');
 if (bad.length) { console.log('check-hymns: ' + bad.length + ' FAILED'); bad.slice(0, 40).forEach(b => console.log('  ' + b)); process.exit(1); }
 console.log('check-hymns: ' + words + ' hymns load with words, ' + Object.keys(by).map(k => by[k] + ' ' + k).join(', ') + ' (' + (bytes / 1e6).toFixed(2) + ' MB)');

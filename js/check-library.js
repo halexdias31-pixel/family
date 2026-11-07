@@ -432,11 +432,8 @@ const flagged = rows.filter(r => r && r.examiner_note);
 /* THE OTHER THREE LIBRARY FILES, WHICH ARE MID-MIGRATION. § */
 const EXTRA_FILES = ['boxers', 'fights', 'cheatsheet'];
 const DOGET_SRC = (() => {
-  for (const rel of ['backend/doget.gs', 'doget.gs']) {
-    try { return fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'); } catch (e) {}
-  }
-  try { return fs.readFileSync(path.join(__dirname, 'doget.gs'), 'utf8'); } catch (e) {}
-  return null;
+  /* doget.gs and its get-*.gs sections (1140). */
+  try { return require('../tools/get-src.js').getSrc(); } catch (e) { return null; }
 })();
 
 EXTRA_FILES.forEach(name => {

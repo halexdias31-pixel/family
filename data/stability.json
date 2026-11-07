@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.4,
+ "score": 77.3,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -105,17 +105,19 @@
   {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 10,
+   "count": 12,
    "weight": 0.05,
    "cap": 10,
-   "off": 0.5,
+   "off": 0.6,
    "where": {
     "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 163,
     "js/find-parts.js typeset_": 230,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
-    "backend/doget.gs doGet": 1205,
+    "backend/doget.gs doGet": 175,
+    "backend/get-posts.gs getPosts_": 162,
+    "backend/get-start.gs getPayloadInit_": 190,
     "backend/post-account.gs postUpdateProfile_": 227,
     "backend/post-booking.gs postMove_": 180,
     "backend/post-booking.gs postCreateJob_": 170,

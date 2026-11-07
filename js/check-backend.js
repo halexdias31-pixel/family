@@ -100,8 +100,8 @@ say('A SHEET CHANGED WITHOUT `delRow`, so the stored payload keeps the deleted r
 /* ---------- AND A NAME IS NOT PROOF OF WHO IS ASKING § */
 const CLAIMS = /\bp\.(name|person)\b/;
 const claims = [];
-(function () {
-  const f = 'doget.gs';
+/* doGet's files (1140): its sections live in get-*.gs, and `?run=`'s admin check is `getRun_`. */
+require('../tools/get-src.js').getFiles(path.join(dir, '..')).map(x => path.basename(x)).forEach(function (f) {
   let src;
   try { src = fs.readFileSync(path.join(dir, f), 'utf8').split('\n'); } catch (e) { src = null; }
   /* A FILE THAT CANNOT BE READ IS A FAILURE, NOT AN EMPTY PASS. "I did not manage to look" printed
@@ -114,12 +114,12 @@ const claims = [];
     else if (inComment && line.includes('*/')) inComment = false;
     if (before || inComment) return;
     if (/^\s*\/\//.test(line)) return;
-    if (/^\s*if \(p\.run\) \{/.test(line)) inRun = true;
-    else if (inRun && /^    \}$/.test(line)) inRun = false;
+    if (/^function getRun_\(/.test(line)) inRun = true;
+    else if (inRun && /^\}$/.test(line)) inRun = false;
     if (inRun) return;
     if (CLAIMS.test(line)) claims.push([f + ':' + (i + 1), line.trim().slice(0, 78)]);
   });
-})();
+});
 say('WHO IS ASKING TAKEN FROM A NAME OR AN ID IN THE URL, which anybody can type', claims,
   'resolve the session token instead — authWhoIs_(p.token), as accessDenied already does for POST.');
 
