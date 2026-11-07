@@ -187,7 +187,8 @@ function doorAsk_(p) {
 function doorItems_() {
   return [].concat(postDoorItems_(), msgDoorItems_(), profileDoorItems_(), settingDoorItems_(), videoDoorItems_());
 }
-function findSignedOut_(x) { return kindTop_(x) === 'Settings' || kindTop_(x) === 'Venues'; }
+/* SETTINGS ONLY (owner, 7 Nov): no Venues or Booking on the signed-out front. */
+function findSignedOut_(x) { return kindTop_(x) === 'Settings'; }
 
 /* ---------- VENUES: every building the booking form offers (items: stuffItemsRaw_), the facts as tags on top, as on a person card, then the picture ---------- */
 /* 8-BIT BUILDINGS, drawn by pixSvg_ (find-boxers.js): a shape per kind of building, picked off the venue's name. */

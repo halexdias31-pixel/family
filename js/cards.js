@@ -397,7 +397,6 @@ function findCard(x) {
       ${(t.rooms || []).length
         ? (t.rooms || []).slice(0, 4).map(r => roomRow(r.name || 'Room', r.max, r.rate)).join('')
         : roomRow('The room', t.maxCapacity, t.bestRate)}
-      ${row('Notice', t.minNoticeDays ? t.minNoticeDays + ' days' : 'Book any time')}
     </div>`;
   }
 

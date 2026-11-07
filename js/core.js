@@ -209,6 +209,11 @@ function atClientHome_(loc) {
   return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(String(loc || ''));
 }
 
+/* AN ONLINE SESSION, by name: a place like the house, holding the same 4. */
+function isOnline_(loc) {
+  return /\bonline\b/i.test(String(loc || ''));
+}
+
 function isHome(loc) {
   const name = String(loc || '');
   if (/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(name)) return true;
@@ -225,20 +230,23 @@ function isHome(loc) {
 function seatLimits(space, tutor, loc) {
   const v = (DATA.constants || {}).vars || {};
   const houseMax = Number(v.max_students_per_job) || 0;
-  /* A CELL WITH A CODE FALLBACK, which is this app's pattern for every editorial number — the `brand(k, or)` argument. § */
-  const homeMin = Number(v.min_seats_at_home) || 4;
+  /* ONLINE AND THE CLIENT'S HOUSE ARE PLACES HOLDING 4 (owner, 7 Nov); a cell can change it, code keeps the fallback. */
+  const placeSeats = Number(v.seats_online_or_home) || 4;
 
   let max = 99, min = 1;
   const why = { max: '', min: '' };
   const capMax = (n, reason) => { if (n > 0 && n < max) { max = n; why.max = reason; } };
   const capMin = (n, reason) => { if (n > 0 && n > min) { min = n; why.min = reason; } };
 
-  if (space)  { capMax(Number(space.max), space.label || 'this venue');
-                capMin(Number(space.min), space.label || 'this venue'); }
-  if (tutor)  { capMax(Number(tutor.maxStudents), tutor.title);
+  if (loc && (atClientHome_(loc) || isOnline_(loc))) capMax(placeSeats, atClientHome_(loc) ? 'a home session' : 'an online session');
+  else if (space) { capMax(Number(space.max), space.label || 'this venue');
+                    capMin(Number(space.min), space.label || 'this venue'); }
+  /* MAX SEATS = THE SMALLER OF TUTOR AND PLACE (owner, 7 Nov); "No preference" has no tutor row, so the place alone. */
+  /* A TUTOR WITH NO CAPACITY SET HOLDS 1 SEAT (owner, 7 Nov). */
+  if (tutor)  { capMax(Number(tutor.maxStudents) || 1, tutor.title);
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
-  if (loc && atClientHome_(loc)) capMin(homeMin, 'a session at your own home');
+  if (min > max) min = max;
 
   return { max, min, why };
 }

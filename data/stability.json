@@ -94,12 +94,12 @@
   {
    "id": "duplicates",
    "label": "Repeated long lines",
-   "count": 50,
+   "count": 52,
    "weight": 0.02,
    "cap": 10,
    "off": 1,
    "where": {
-    "lines": 18
+    "lines": 19
    }
   },
   {
@@ -110,7 +110,7 @@
    "cap": 10,
    "off": 0.5,
    "where": {
-    "backend/dopost.gs": 4650
+    "backend/dopost.gs": 4655
    }
   },
   {
@@ -127,7 +127,7 @@
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 1205,
-    "backend/dopost.gs doPost": 3607,
+    "backend/dopost.gs doPost": 3612,
     "backend/setup.gs dataProblems": 282
    }
   },

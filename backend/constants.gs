@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-07-room-booking-1091";
+const BACKEND_VERSION = "2026-11-07-seat-cap-1092";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -652,7 +652,7 @@ const CONFIG_DEFAULTS = [
   ['h', 2, 'hours per session'],
   ['max_students_per_job', 4, 'seat cap when neither the tutor nor the venue sets one'],
   /* ---------- A VISIT TO SOMEBODY'S HOUSE HAS A FLOOR, AND IT IS EDITORIAL § */
-  ['min_seats_at_home', 4, 'chairs a session at the client\'s own home must be booked for, yours included'],
+  ['seats_online_or_home', 4, 'most seats an online session or one at the client\'s own house holds; the tutor\'s own cap can be lower'],
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
 
   /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN § */

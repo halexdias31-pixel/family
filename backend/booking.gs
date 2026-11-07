@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-07-room-booking-1091";
+const BOOKING_VERSION = "2026-11-07-seat-cap-1092";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -316,6 +316,18 @@ function capacityFor(kind, name) {
   }
   const p = findPerson(name);
   return p ? N(p.max_students) : 0;
+}
+
+/* THE SEAT CAP A NEW BOOKING MEETS (owner, 7 Nov): the smaller of the tutor's and the place's; online and the client's house hold 4. Same rule as `seatLimits` on the phone. */
+function seatCapFor_(location, tutorName) {
+  const at = S(location);
+  const place = /\b(online|home|house|client\s*(house|home|place)|your venue)\b/i.test(at)
+    ? (N(config().seats_online_or_home) || 4)
+    : capacityFor('venue', at);
+  /* A NAMED TUTOR WITH NO CAPACITY SET HOLDS 1 SEAT (owner, 7 Nov). */
+  const tutorCap = S(tutorName) && findPerson(S(tutorName)) ? (capacityFor('person', tutorName) || 1) : 0;
+  const caps = [place, tutorCap].filter(x => x > 0);
+  return caps.length ? Math.min.apply(null, caps) : 0;
 }
 
 /* ---------- A TUTOR'S MONTH, SESSION BY SESSION (405) ----------

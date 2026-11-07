@@ -580,13 +580,16 @@ function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
+  const own = typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '';
+  /* ONE CART TILE (owner, 7 Nov): an admin on their own booking already has Pay and confirm, so no Mark as paid beside it. */
+  const pays = own.indexOf('job-pay') !== -1;
   const tiles = (typeof jobMsgTiles_ === 'function' ? jobMsgTiles_({ row: j }) : '')
-    + (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+    + own
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
     + (j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name))) ? tile_({ icon: 'edit', label: 'Set the room', act: 'job-room', data: { id: String(j.id), room: j.room || '' } }) : '')
-    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
+    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes && !pays) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')

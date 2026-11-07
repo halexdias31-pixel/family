@@ -1055,7 +1055,10 @@ check('an admin\'s booking form ends on Discount, one percentage, and Client pay
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   seed();
   const p = doc(w.__t.paper());
-  if (p.querySelector('.rc-disc, .rc-pays, .rc-money, .rc-money-say')) bad.push('a parent is shown the discount or the admin\'s Client pays line');
+  if (p.querySelector('.rc-pays, .rc-money, .rc-money-say')) bad.push('a parent is shown the admin\'s Client pays line');
+  /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): the parent sees the line greyed and empty. */
+  const pBox = p.querySelector('.rc-disc input[data-field="discValue"]');
+  if (pBox && (!pBox.disabled || pBox.value)) bad.push('a parent can type a discount, or sees the admin\'s: ' + pBox.value);
   const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
   if (pCost.length !== 1 || /\u2212/.test(pCost[0]) || pCost[0] === gbp(off)) bad.push('a parent\'s COST is ' + JSON.stringify(pCost) + ', which carries the admin\'s discount');
   try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('sending threw: ' + e.message); }

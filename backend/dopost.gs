@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-07-room-booking-1091";
+const DOPOST_VERSION = "2026-11-07-seat-cap-1092";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2680,6 +2680,11 @@ function doPost(e) {
       const namedRow = named ? findPerson(S(body.requestedTutor)) : null;
       if (namedRow && tutorPending_(namedRow)) {
         return jsonOut({ error: 'That tutor is not taking bookings yet.' });
+      }
+      /* THE SEAT CAP, ASKED HERE TOO so a hand-built request cannot book past what the place or the tutor holds. */
+      const seatCap = seatCapFor_(body.location, named ? S(body.requestedTutor) : '');
+      if (seatCap > 0 && (N(body.n) || 1) > seatCap) {
+        return jsonOut({ error: 'That is more seats than ' + seatCap + ' — the most this place and tutor hold. Nothing has been booked.' });
       }
       /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
       const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;

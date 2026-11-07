@@ -473,7 +473,8 @@ const BOOK_STEPS = [
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
     options: () => (subjectRows() || []).map(x => x.name) },
 
-  { id: 'level', label: 'What level?', short: 'Level',
+  /* MIXED LEVELS IN ONE BOOKING (owner, 7 Nov): one answer, the highest qualification, and the price follows it. */
+  { id: 'level', label: 'What level? (the highest among the children)', short: 'Level',
     options: () => ((DATA.dropdowns || {}).levels || []) },
 
   /* ONE SEAT EACH. The price is the room and the teaching divided by the seats, so a family
@@ -508,9 +509,13 @@ const BOOK_STEPS = [
     options: () => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       const out = [];
-      const top = Math.max(lim.min, Math.min(lim.min + 3, lim.max));
-      for (let i = lim.min; i <= top; i++) out.push(String(i));
+      /* ALWAYS FOUR CHOICES, so the control stays put; a number past the cap is greyed by `off`, never hidden (owner, 7 Nov). */
+      for (let i = lim.min; i <= lim.min + 3; i++) out.push(String(i));
       return out;
+    },
+    off: v => {
+      const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
+      return Number(v) > lim.max ? (lim.why.max || 'the place') + ' holds ' + lim.max : '';
     },
     /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
        sit beside this — what each number means, one sentence per option — is gone with the other
@@ -1732,7 +1737,7 @@ function bookBreakdown(L, foot) {
     noTotal: kid || !!pays,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE § */
     total: (L && L.total > 0) ? money(L.total) : '—',
-    /* AN ADMIN'S DISCOUNT LINE, then what the client pays — `discountRow_`, `payRow_`; nothing for anybody else. */
+    /* THE DISCOUNT LINE (an admin's to set, greyed for others), then what the client pays — `discountRow_`, `payRow_`. */
     before: discountRow_(L) + pays,
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
@@ -2080,12 +2085,14 @@ function bookMoneySend_(L) {
 
 /* ---------- AN ADMIN'S DISCOUNT IS ONE LINE, A PERCENTAGE § */
 function discountRow_(L) {
-  if (!(typeof isAdmin === 'function' && isAdmin()) || isWaiting_() || !L || !L.earn) return '';
-  const e = L.earn;
+  if (isWaiting_() || !L) return '';
+  /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): everybody sees the line, greyed for the rest; the server refuses theirs (`discountRefusal_`). */
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const e = L.earn || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     total: e.discount > 0 ? '− ' + money(e.discount / (L.splitShares || 1)) : '—',
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
-      inputmode="decimal" min="0" max="100" step="1" value="${esc(BOOKING.discValue)}" placeholder="% off"
+      inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
       aria-label="Discount, per cent off">` });
 }
 /* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. § */

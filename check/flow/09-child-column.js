@@ -680,59 +680,38 @@ check('one ticked term prices one term', async () => {
   return bad;
 });
 
-check('a session at the client\'s own home cannot be booked for one', async () => {
-  /* ---------- ASKED FOR AS A FLOOR AND AS AN OPTION THAT MUST NOT EXIST § */
+check('booking seat cap: the smaller of tutor and place, home and online hold 4, a tutor with none set holds 1, past the cap greyed not hidden', async () => {
+  /* OWNER'S RULE (7 Nov): max seats = min(tutor, place); online and the client's house hold 4. */
   const { w } = boot();
   await wait(300);
-  if (!w.__t.seatLimits || !w.__t.STEPS) return ['seatLimits is not exported — cannot check the floor'];
+  if (!w.__t.seatLimits || !w.__t.STEPS) return ['seatLimits is not exported — cannot check the cap'];
   const bad = [];
-  const B = w.__t.BOOKING;
+  const B = w.__t.BOOKING, lim = w.__t.seatLimits;
   const st = w.__t.STEPS.filter(x => x.id === 'n')[0];
   if (!st) return ['the form has no seats step called `n`'];
-
-  /* THE FLOOR ITSELF, asked of the one function that decides it. */
-  if (w.__t.seatLimits(null, null, 'At home').min < 4) {
-    bad.push('a session at home has a seat floor of '
-             + w.__t.seatLimits(null, null, 'At home').min + ', not 4');
-  }
-  if (w.__t.seatLimits(null, null, '').min !== 1) {
-    bad.push('an unanswered venue imposes a floor of ' + w.__t.seatLimits(null, null, '').min);
-  }
-  /* A FREE ROOM IS NOT A HOUSE. § */
-  const V = w.__t.DATA().venues = (w.__t.DATA().venues || []).concat([
-    { title: 'Online', bestRate: 0 }, { title: 'Sutton Library', bestRate: 0 },
-    { title: 'Client House', bestRate: 0 }]);
-  ['Online', 'Sutton Library'].forEach(n => {
-    if (w.__t.seatLimits(null, null, n).min !== 1) {
-      bad.push('a session at "' + n + '", which costs nothing and is not anybody\'s house, has a seat floor of '
-               + w.__t.seatLimits(null, null, n).min);
-    }
-  });
-  if (w.__t.seatLimits(null, null, 'Client House').min < 4) {
-    bad.push('a venue called "Client House" is not given the home floor');
-  }
-  V.splice(-3, 3);
-
-  B.loc = 'At home';
+  if (lim(null, null, 'At home').max !== 4) bad.push('home holds ' + lim(null, null, 'At home').max + ', not 4');
+  if (lim(null, null, 'Online').max !== 4) bad.push('online holds ' + lim(null, null, 'Online').max + ', not 4');
+  if (lim(null, null, 'At home').min !== 1) bad.push('home still has a floor of ' + lim(null, null, 'At home').min);
+  if (lim(null, { title: 'T', maxStudents: 2 }, 'At home').max !== 2) bad.push('a tutor holding 2 at home is not capped at 2');
+  if (lim(null, { title: 'T', maxStudents: 9 }, 'At home').max !== 4) bad.push('a tutor holding 9 at home is not capped at the 4 the house holds');
+  if (lim(null, { title: 'T' }, 'At home').max !== 1) bad.push('a tutor with no capacity set does not hold 1');
+  if (lim({ label: 'Big room', max: 10 }, { title: 'T', maxStudents: 6 }, 'Big room').max !== 6) bad.push('a venue of 10 with a tutor of 6 is not capped at 6');
+  if (lim({ label: 'Small', max: 3 }, null, 'Small').max !== 3) bad.push('No preference at a room of 3 is not capped by the room');
+  B.tutor = 'No preference'; B.loc = 'At home';
   const home = st.options();
-  if (home.indexOf('1') !== -1 || home.indexOf('2') !== -1 || home.indexOf('3') !== -1) {
-    bad.push('at home the seats list still offers ' + JSON.stringify(home));
+  if (home.length !== 4) bad.push('the seats list is not four choices at home: ' + JSON.stringify(home));
+  if (!st.off) bad.push('the seats step cannot grey a choice');
+  else {
+    if (st.off('4')) bad.push('4 seats at home is greyed: ' + st.off('4'));
+    const D = w.__t.DATA(); D.tutors = (D.tutors || []).concat([{ title: 'Cap Two', maxStudents: 2 }]);
+    B.tutor = 'Cap Two';
+    const two = st.options();
+    if (two.length !== 4) bad.push('a tutor holding 2 hides choices instead of greying: ' + JSON.stringify(two));
+    if (!st.off('3')) bad.push('3 seats with a tutor holding 2 is not greyed');
+    if (st.off('2')) bad.push('2 seats with a tutor holding 2 is greyed');
+    D.tutors.pop();
   }
-  if (!home.length) bad.push('at home the seats list is empty, which greys the row');
-  /* THE REFUSAL SPEAKS EXTRAS. `1` is one chair, which is nought extra. */
-  const why = String(st.why('1') || '');
-  if (!why) bad.push('one seat at home is not refused at all');
-  else if (/\b4\b/.test(why) || why.indexOf('extra seat') === -1) {
-    bad.push('the refusal reads ' + JSON.stringify(why) + ' — a total where the row draws extras');
-  }
-
-  B.loc = '';
-  const away = st.options();
-  if (away.indexOf('1') === -1) {
-    bad.push('with no venue chosen the seats list is ' + JSON.stringify(away)
-             + ' — the floor has leaked onto every booking');
-  }
-  if (st.why('1')) bad.push('one seat with no venue chosen is refused: ' + st.why('1'));
+  B.loc = ''; B.tutor = '';
   return bad;
 });
 
