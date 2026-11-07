@@ -181,7 +181,8 @@ function tile_(o) {
   const attrs = ` title="${esc(name)}" aria-label="${esc(name)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
      has not been given one falls back to the word — visibly wrong, rather than invisible. */
-  const body = tileIcon_(o.icon) || `<span class="tile-k">${esc(o.label)}</span>`;
+  /* `face` IS A KEYPAD KEY'S OWN DRAWN FACE (a fraction, a power), trusted markup from keypad-keys.js, never data. */
+  const body = o.face || tileIcon_(o.icon) || `<span class="tile-k">${esc(o.label)}</span>`;
 
   /* ---------- A TILE MAY LEAVE, BUT ONLY FOR SOMEWHERE ELSE § */
   if (o.href && /^https?:\/\//i.test(String(o.href))) {
@@ -194,7 +195,8 @@ function tile_(o) {
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
   /* SAME TILES FOR EVERY RANK (owner, 6 Nov): an admin's tile is drawn for everyone in its place, greyed for those without the right. */
   const barred = o.tone === 'admin' && typeof isAdmin === 'function' && !isAdmin() ? ' aria-disabled="true"' : '';
-  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${barred}${o.off ? ' disabled' : ''}
+  const style = o.style ? ` style="${esc(o.style)}"` : '';
+  return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
@@ -406,9 +408,10 @@ function cardExtras_(x) {
 }
 function cardTiles_(x) {
   /* THEN WHAT ANY KIND MAY ADD: Read aloud, Hear it, speed, magnifier, Open, a column's `more`, the padlock. */
+  /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
+  const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
   const mine = cardCore_(x) + cardExtras_(x)
-    + tile_([typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null,
-      typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null])
+    + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');

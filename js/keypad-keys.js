@@ -147,11 +147,10 @@ const KP_SITE_KEYS = [
 const KP_PLAIN = { '!frac': { t: '/', a: 'slash', c: ' kp-op' }, '!pow': { t: '^', a: 'caret', c: ' kp-op' }, '!sqrt': { t: '\u221a', a: 'root sign', c: ' kp-op' } };
 const kpPlainKey_ = k => KP_PLAIN[k.v] || k;
 
-/* A KEY IS A BUTTON AND NOT A TILE, the one place on a question's pages the owner's *"it should all be tiles"* does not reach, and on purpose: § */
-const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="kp-key"
-  data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}${
-  k.span ? ` style="grid-column:${k.at ? k.at + ' / ' : ''}span ${k.span}"` : ''}>${
-  k.icon ? tileIcon_(k.icon) : k.t}</button>`;
+/* A KEY IS A TILE (owner's look rule: every control is a tile), drawn by `tile_` with the key's own face; `.kp-key` gives it the pad's shape. */
+const kpKey_ = k => tile_({ act: 'kp-key', cls: 'kp-key' + (k.c || ''), label: k.a || String(k.t || ''),
+  data: { v: k.v != null ? k.v : k.t }, icon: k.icon, face: k.icon ? '' : String(k.t || ''),
+  style: k.span ? 'grid-column:' + (k.at ? k.at + ' / ' : '') + 'span ' + k.span : '' });
 /* THE PAD'S KEYS FOR A LAYOUT AND A BOX. § */
 /* AND ON THE LETTERS TOO, beside the vector, so a power is never a face away: seven keys over the letters' sixty columns */
 const KP_ABC_TOP_SPAN = [8, 9, 9, 9, 9, 8, 8];
@@ -422,7 +421,9 @@ function kpNextPaint_(pad, inp) {
   if (d.classList.contains('is-next') === nx) return;
   d.classList.toggle('is-next', nx);
   d.setAttribute('aria-label', nx ? 'next box' : 'done');
-  d.innerHTML = nx ? 'next' : tileIcon_('send');
+  /* THE SEND MARK FROM A KEY DRAWN THE ONE WAY (`kpKey_`), so the pad keeps a single maker for its faces. */
+  const t = document.createElement('i'); t.innerHTML = kpKey_({ icon: 'send' });
+  d.innerHTML = nx ? 'next' : t.firstElementChild.innerHTML;
 }
 /* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
 function kpLayer_(name, inp) {
