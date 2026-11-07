@@ -3369,7 +3369,8 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
 /* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. § */
-.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: .6rem; }
+/* A wide column keeps them phone-sized squares, not a wall of 9rem pictures. */
+.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 6.5rem)); gap: 4px; margin-top: .6rem; }
 .prof-shot {
   display: block; border-radius: var(--r-sm); overflow: hidden;
   aspect-ratio: 1 / 1; background: var(--sunk);
@@ -6845,6 +6846,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
 /* THE PICTURE'S CARD STANDS IN THE SITE CARD'S OWN SLOT, at its width; its margin is the column's, not the picture's. */
 .tpng-host > .card { margin: 0; }
+/* FLAT AS IN THE PANE (690), so the picture is the card exactly as seen: no box, no inset. */
+.tpng-host > .card.is-widget { background: none; border: 0; border-radius: 0; padding-inline: 0; }
 
 /* SPOTIFY (510, spotify.js): now playing, one line per playlist, a search pill. */
 .sp-now { display: flex; gap: .75rem; align-items: center; margin: .25rem 0 .5rem; }
