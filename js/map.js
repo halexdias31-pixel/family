@@ -170,7 +170,7 @@ const WIDGETS = [
   /* THE CHEAT SHEET MAKER. § */
   /* THE FLYER MAKER, WHICH IS A TOOL AND NOT A PIECE OF THE CHEAT SHEET. § */
   { id: 'flyers', kind: 'tool', name: 'Make a flyer', solid: true, admin: true,
-    start: () => initFlyer?.(),
+    start: () => window.initFlyer?.(),
     into: 'fm-wrap', what: 'The flyer',
     html: `<div class="card">
     <h3>Make a flyer</h3>
@@ -337,7 +337,7 @@ const WIDGETS = [
 
 
   /* ---------- THE WHITEBOARD § */
-  { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => initBoard_?.(),
+  { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => window.initBoard_?.(),
     into: 'nb-box', what: 'The whiteboard',
     html: `<h3>Whiteboard</h3>
     <div id="nb-box" class="nb-box"></div>` },

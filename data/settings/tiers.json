@@ -133,8 +133,6 @@
     "keypad-pad": "core",
     "keypad-edit": "core",
     "answers": "core",
-    "ink": "off",
-    "board": "off",
     "submit": "core",
     "working": "core",
     "qtools": "core",
@@ -143,7 +141,6 @@
     "map": "core",
     "book": "core",
     "receipt": "secondary",
-    "flyer": "off",
     "records": "secondary",
     "biz-check": "secondary",
     "one-place": "secondary",
@@ -175,12 +172,7 @@
     "inbox": "secondary",
     "missing": "secondary",
     "resume": "core",
-    "boot": "core",
-    "spotify": "off",
-    "favlinks": "off",
-    "rewrite": "off",
-    "poster": "off",
-    "pixel": "off"
+    "boot": "core"
   },
   "eagerSecondary": {
     "posts": "the Feed is TAB_HOME, the column drawn at first paint (670); its draw runs inside drawOne's guard",
@@ -352,22 +344,15 @@
     "keypad-keys",
     "keypad-pad",
     "keypad-edit",
-    "ink",
-    "board",
     "answers",
     "submit",
     "qtools",
     "working",
     "receipt",
-    "flyer",
     "records",
-    "rewrite",
     "biz-check",
     "one-place",
     "staff",
-    "poster",
-    "pixel",
-    "spotify",
     "inbox",
     "gtasks",
     "push",
@@ -386,7 +371,6 @@
     "layout",
     "words",
     "help",
-    "favlinks",
     "map",
     "book",
     "collections",
@@ -409,42 +393,8 @@
     "find-pages",
     "find-measure"
   ],
-  "lazy": [
-    "ink",
-    "board",
-    "flyer",
-    "poster",
-    "pixel",
-    "spotify",
-    "rewrite",
-    "favlinks"
-  ],
-  "widgetFiles": {
-    "board": [
-      "whiteboard"
-    ],
-    "ink": [
-      "whiteboard"
-    ],
-    "flyer": [
-      "flyers"
-    ],
-    "poster": [
-      "poster"
-    ],
-    "pixel": [
-      "pixel"
-    ],
-    "spotify": [
-      "spotify"
-    ],
-    "rewrite": [
-      "rewrite"
-    ],
-    "favlinks": [
-      "favlinks"
-    ]
-  },
+  "lazy": [],
+  "widgetFiles": {},
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",
     "files": [
@@ -464,14 +414,6 @@
       "inbox",
       "push",
       "gtasks",
-      "spotify",
-      "poster",
-      "pixel",
-      "rewrite",
-      "favlinks",
-      "flyer",
-      "board",
-      "ink",
       "mat",
       "collections",
       "reader",

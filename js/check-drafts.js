@@ -30,9 +30,6 @@ const KEPT = [
   { file: 'me.js', fn: 'qualSlot_', has: "f('_board')",
     why: 'a qualification\'s board — the shelf saves each answer on its `change` (`qualCommit_`)',
     proof: [['me.js', /qualCommit_\(slot\);/]] },
-  { file: 'board.js', fn: 'nbPicAsk_', has: 'createElement(input)',
-    why: 'the whiteboard\'s picture picker (402) — a file chosen, never typed; the picture is saved on the board the moment it lands (`nbPicAdd_` → `nbDo_`)',
-    proof: [['board.js', /function nbPicAdd_[\s\S]{0,600}?nbDo_\(/]] },
   { file: 'me.js', has: 'createElement(input)',
     why: 'the qualification shelf\'s "Something else…" box — saved on its own `change` like the select it replaces',
     proof: [['me.js', /sel\.replaceWith\(box\)/], ['me.js', /qualCommit_\(slot\);/]] },
@@ -76,12 +73,6 @@ const KEPT = [
   { file: 'games.js', fn: 'tmtHtml_', has: 'tmt-weekend',
     why: 'the timetable\'s weekend tick — kept as it changes, like the rest of the timetable',
     proof: [['games.js', /tmt-weekend/]] },
-  { file: 'poster.js', fn: 'pstHtml_', has: 'data-pst-label=',
-    why: 'a poster box\'s label (547) — kept in `posterPlan` on this device at every keystroke (`pstKeep_`), never sent',
-    proof: [['poster.js', /closest\('\[data-pst-label\]'\)[\s\S]{0,300}?b\.label = [\s\S]{0,60}?pstKeep_\(\);/]] },
-  { file: 'pixel.js', fn: 'pxeHtml_', has: 'data-pxe-set="colour"',
-    why: 'the pixel editor\'s colour (547) -- kept in `pixelArt` on this device as it is picked (`pxeKeep_`), never sent',
-    proof: [['pixel.js', /pxeSet === 'colour'[\s\S]{0,80}?PXE\.colour = [\s\S]{0,60}?pxeKeep_\(\);/]] },
   { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
     why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
@@ -89,12 +80,6 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
-  { file: 'spotify.js', fn: 'spCard_', has: 'id="sp-q"', why: 'a Spotify search (510) — a few words, run at once and shown as results; a reload starts a new search' },
-  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="title"', why: 'a favourite link\'s title (509) — a few words typed and Added in one press; a redraw keeps it, a reload draws the saved list' },
-  { file: 'favlinks.js', fn: 'favDraw_', has: 'data-fav="url"', why: 'a favourite link\'s address (509) — pasted and Added in one press; a redraw keeps it, a reload draws the saved list' },
-  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="src"', why: 'the Rewrite coach\'s pasted text (509) — kept in memory only on purpose: the owner\'s rule is that nothing pasted or written outlives the session' },
-  { file: 'rewrite.js', fn: 'rwOneHtml_', has: 'data-rw="mine"', why: 'the Rewrite coach\'s own-words box, one fact at a time (509, 519) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
-  { file: 'rewrite.js', fn: 'rwDraw_', has: 'data-rw="free"', why: 'the Rewrite coach\'s own-version box (509) — in memory only on purpose, nothing a student writes there is kept (privacy)' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="done_on"', why: 'the Business checker\'s done-on date (1050) — picked and Marked done in one press; a reload draws the saved tick\'s date' },
   { file: 'one-place.js', fn: 'oqItem_', has: 'data-oq-note', why: 'the owner\'s "Something else" (1060) — typed and sent at once; a reload draws the saved note from owner_answers' },
   { file: 'biz-check.js', fn: 'bcItem_', has: 'data-bc-k="note"', why: 'the Business checker\'s one-line proof (1050) — a policy number typed and Marked done at once; a reload draws the saved note' },
@@ -136,8 +121,6 @@ const EXEMPT = [
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'receipt.js', fn: 'askHow_', has: 'id="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the same sheet' },
   { file: 'find.js', has: 'id="room-name"', why: 'a room name, a few words, prefilled and sent by the same sheet' },
-  { file: 'flyer.js', fn: 'flyControls', has: 'type="checkbox"', why: 'the admin\'s flyer maker — picks, re-made in a tap; nothing is written' },
-  { file: 'flyer.js', fn: 'flyControls', has: 'type="color"', count: 3, why: 'the admin\'s flyer maker — colours, re-picked in a tap' },
   { file: 'games.js', fn: 'ktPaint_', has: 'kt-in', why: 'touch typing — the line being typed IS the drill; the progress is kept (`kt`)' },
 ];
 

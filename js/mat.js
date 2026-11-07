@@ -183,7 +183,7 @@ function matLevels() {
 }
 
 /* THE BRAND, READ THE WAY THE FLYER READS IT. § */
-const matBrand = () => (typeof flyBrand === 'function' ? flyBrand() : {
+const matBrand = () => ({
   name:  brand('name', '@family.'),
   area:  brand('area', 'Merton & Wandsworth'),
   site:  brand('site', 'halexdias31-pixel.github.io/family/'),
