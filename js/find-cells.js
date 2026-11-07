@@ -577,7 +577,8 @@ function padSource_(x) {
   const opened = !!x.key && typeof PEN_OPEN !== 'undefined' && (PEN_OPEN.has(x.key) || padHasInk_(x));
   if (said === 'text' && !opened) return null;
   /* A FIGURE IS ITS PAD FROM THE START (1020): opening the pen on a tap redrew the card, moving the stem and adding tiles */
-  const fig = !!x.diagram || padStemFirst_(x);
+  /* BUT NOT A PART ANSWERED IN CELLS (523): the diagram is never the answer box, so its figure stays a picture. */
+  const fig = !cellsOf_(x).some(c => c.ways) && (!!x.diagram || padStemFirst_(x));
   if (!padDrawn_(x) && !surf && !opened && !fig) return null;
   if (said === 'text') return { svg: surfaceSvg_('grid'), from: 'surface', surface: 'grid' };
   if (x.diagram) return { svg: x.diagram, from: 'part' };

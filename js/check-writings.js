@@ -151,7 +151,9 @@ if (items.length) {
 
 /* R7: facets.json AND FACETS LIST THE SAME FIELDS; R8: NO TWO FACETS SHARE A LABEL. */
 const block = find.slice(find.indexOf('const FACETS = ['), find.indexOf('\n];', find.indexOf('const FACETS = [')));
-const code = [...block.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)].map(m => ({ field: m[1], label: m[2] }));
+const code = [...block.matchAll(/\{ field: '(\w+)',\s*label: '([^']+)'/g)].map(m => ({ field: m[1], label: m[2] }))
+/* COMPACT ROWS COUNT TOO: the front doors' menus are written as ['field', 'Label'] pairs mapped into facets. */
+code.push(...[...block.matchAll(/\['(\w+)', '([^']+)'\]/g)].map(m => ({ field: m[1], label: m[2] })));
 if (code.length < 20) bad.push('FACETS could not be read out of js/find.js (' + code.length + ' fields)');
 const sheet = json('data/settings/facets.json');
 const sheetFields = new Set(sheet.map(f => f.field)), codeFields = new Set(code.map(f => f.field));

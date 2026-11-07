@@ -376,16 +376,22 @@ function facetInside_(F, G, items) {
   if (!m) INSIDE_MEMO_.set(items, m = {});
   const key = F.field + '>' + G.field;
   if (key in m) return m[key];
+  /* A CARD MAY HOLD TWO OF G (the Masoretic Text is Christianity and Judaism, 660): each F answer keeps the G answers all its cards share. */
   const to = {};
   let any = 0;
   for (const x of items) {
     const a = facetOwn_(F, x), b = facetOwn_(G, x);
     if (!a.length || !b.length) continue;
-    if (b.length !== 1) return (m[key] = false);
-    const kb = spellKey_(b[0]);
-    for (const v of a) { const k = spellKey_(v); if (to[k] && to[k] !== kb) return (m[key] = false); to[k] = kb; any++; }
+    const kb = new Set(b.map(spellKey_));
+    for (const v of a) {
+      const k = spellKey_(v);
+      to[k] = to[k] ? to[k].filter(g => kb.has(g)) : [...kb];
+      if (!to[k].length) return (m[key] = false);
+      any++;
+    }
   }
-  return (m[key] = any > 0 && new Set(Object.values(to)).size > 1);
+  /* G's two answers are the list's, not only F's cards': Religion sits inside Subject though every religious card is Religious Studies. */
+  return (m[key] = any > 0 && facetValues(items, G).length > 1);
 }
 
 /* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: of those held back only for having
