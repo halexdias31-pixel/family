@@ -887,6 +887,9 @@ check('Find 2: a column immediately right of Find, called Find 2 with Find\'s ic
   if (!(t.DATA().columns || []).length) bad.push('data/settings/columns.json never reached DATA.columns — the file\'s order was NOT checked');
   const ids = t.TABS.map(x => x.id);
   const i = ids.indexOf('stuff'), j = ids.indexOf('res');
+  /* ONLY ONE FINDER FOR NOW (owner, 880): while columns.json has Find 2 off, the phone must not offer it */
+  const resRow = file.find(r => r && r.screen === 'res');
+  if (resRow && String(resRow.active).toUpperCase() === 'FALSE') return j < 0 ? bad : bad.concat(['Find 2 is off in columns.json (880) and still a column: ' + ids.join(' ')]);
   if (j < 0) return bad.concat(['there is no `res` column on the phone: ' + ids.join(' ')]);
   if (j !== i + 1) bad.push('Find 2 is column ' + j + ' and Find ' + i + ' — wanted immediately right of Find: ' + ids.join(' '));
   /* CALLED WHAT IT IS — "finder 2", "an identical second finder" — WITH FIND'S OWN ICON, on the phone

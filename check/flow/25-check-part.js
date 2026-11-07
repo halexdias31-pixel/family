@@ -644,7 +644,8 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   if (lines.some(l => /mark/i.test(l))) bad.push('the marks are read out: ' + JSON.stringify(lines));
   /* LEAVING THE COLUMN STOPS IT. */
   said.length = 0;
-  t.go('stuff', false, true);
+  /* ANOTHER COLUMN THAN THE ONE IT BEGAN ON: since the freeze (1090) the app may open on Find itself */
+  t.go(t.TABS.map(c => c.id).find(id => id !== t.AT()) || 'stuff', false, true);
   for (let i = 0; i < 20 && !said.some(u => u.cancel); i++) await wait(20);
   if (!said.some(u => u.cancel)) bad.push('going to another column did not stop the reading');
   tile = host.querySelector('[data-do="read-aloud"]');
@@ -1059,10 +1060,11 @@ check('a question whose words are in the Ledger: drawn waiting, asked for with i
   held.splice(0).forEach(f => f());
   await wait(400);
   const pages = W.stuffPages_().filter(pg => pg.x === x).map(pg => pg.part || 'card');
-  if (pages.join() !== 'stem0,card,ans') bad.push('Q1(a)\'s pages once its words came are ' + pages.join() + ' — wanted stem0,card,ans');
+  /* ONE CARD PER QUESTION NUMBER (960): Q1 is the one page 'q', its stem drawn once at the top */
+  if (pages.join() !== 'q') bad.push('Q1(a)\'s pages once its words came are ' + pages.join() + ' — wanted q (960)');
   const now = libFront_(W);
   const at = W.stuffPages_()[(pg_(W.__t).stuff || 0) - W.stuffFirstResult_()];
-  if (!at || at.x !== x || at.part !== 'stem0') bad.push('the column did not land on Q1(a)\'s first page, its stem (on ' + (at ? (at.x.name + ' ' + at.part) : 'nothing') + ')');
+  if (!at || at.x !== x || at.part !== 'q') bad.push('the column did not land on Q1\'s card (on ' + (at ? (at.x.name + ' ' + at.part) : 'nothing') + ')');
   if (!now || !/George throws a ball/.test(now.textContent) || now.querySelector('.lib-wait')) bad.push('the page in front does not show the stem\'s words: ' + (now ? now.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
   const row = full.find(r => r.row_id === 'Q-9MA031-2206-1a');
   if (x.accept !== row.accept || x.answer !== row.answer || x.html !== row.html) bad.push('the item was not given its words, answer and marking rules in place');
@@ -1077,21 +1079,21 @@ check('a question whose words are in the Ledger: drawn waiting, asked for with i
   return bad;
 });
 
-check('signed out, a question whose words are in the Ledger shows its tags and how to see it, and nothing is asked for', async () => {
+check('signed out, a question whose words are in the Ledger is not on Find at all, and nothing is asked for', async () => {
+  /* SIGNED OUT, FIND OFFERS ONLY SETTINGS (owner, 7 Nov, decisions.md; `findSignedOut_`): no question card, waiting or whole */
   const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
   const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined) });
   const W = one.w, bad = [];
-  const x = await libFindAt_(W, 'Q-9MA031-2206-2a');
-  if (!x) return ['Q-9MA031-2206-2a did not come into Find — nothing was checked'];
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.paper_id === LIB_PID)); i++) await wait(50);
+  if (!W.stuffItemsAll_().some(x => x.row && x.row.paper_id === LIB_PID)) return ['the paper ' + LIB_PID + ' did not load — nothing was checked'];
+  if (W.__t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
+  W.__t.STUFF().filters = [{ field: 'paperId', value: LIB_PID }];
+  W.paintStuff();
   await wait(300);
-  const front = libFront_(W);
-  const wait_ = front && front.querySelector('.lib-wait');
-  if (!wait_) bad.push('the card in front is not the waiting card');
-  else {
-    if (!/Sign in to see this/.test(wait_.textContent)) bad.push('it does not say how to see it: ' + wait_.textContent.replace(/\s+/g, ' ').slice(0, 120));
-    if (wait_.querySelector('.loading')) bad.push('it shows the loader to somebody who will never be sent anything');
-    if (!wait_.querySelector('.tag, [data-tag]')) bad.push('it does not show the question\'s tags');
-  }
+  const shown = W.stuffPages_().filter(pg => pg.x && pg.x.kind === 'question');
+  if (shown.length) bad.push('signed out, Find still draws ' + shown.length + ' question page(s)');
+  const host = W.document.getElementById('s-stuff');
+  if (host && host.querySelector('.lib-wait, .qwhole')) bad.push('signed out, a question card is on Find');
   if (one.sent.some(b => b.action === 'libItems')) bad.push('a signed-out phone asked for libItems');
   return bad;
 });
