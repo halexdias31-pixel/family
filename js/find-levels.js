@@ -585,8 +585,8 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
-    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
-    + (j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name))) ? tile_({ icon: 'edit', label: 'Set the room', act: 'job-room', data: { id: String(j.id), room: j.room || '' } }) : '');
+    + (j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name))) ? tile_({ icon: 'edit', label: 'Set the room', act: 'job-room', data: { id: String(j.id), room: j.room || '' } }) : '')
+    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')

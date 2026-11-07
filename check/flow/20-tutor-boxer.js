@@ -691,7 +691,7 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
 });
 
 /* ---------- A TUTOR'S RATE IS SHOWN AS A RANGE, ONE SEAT TO A FULL CLASS (549) ---------- */
-check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile card, the shared picture and booking\'s tutor choice; one seat is one rate', async () => {
+check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile card and the shared picture, and booking\'s tutor choice is the name alone', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
@@ -712,8 +712,8 @@ check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile 
   D.tutors = [rows.four, rows.one].concat(D.tutors || []);
   const st = t.STEPS.find(s => s.id === 'tutor');
   const said = st && st.label_ ? st.label_('Range Four') : '';
-  if (said.indexOf('£10–19/hour') === -1) bad.push('booking\'s tutor choice says "' + said + '", wanted the range');
-  if (st && st.label_('Range One').indexOf('£10/hour') === -1) bad.push('booking\'s one-seat tutor says "' + st.label_('Range One') + '"');
+  /* THE BOOKING'S TUTOR CHOICE IS THE NAME ALONE (owner, 7 Nov): the price columns say what a tutor adds. */
+  if (said !== 'Range Four') bad.push('booking\'s tutor choice says "' + said + '", wanted the name alone');
   return bad;
 });
 

@@ -310,10 +310,9 @@ function runningAfter(key, L) {
     if (k !== 'base') p *= Number(step[k]) || 1;
     if (k === key) return p;
   }
-  /* The venue always ADDS its rate and hosting TAKES IT BACK on the row below. § */
-  p += (L.venueRate || 0);
+  /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
+  p += L.hosting ? 0 : (L.venueRate || 0);
   if (key === 'venue') return p;
-  if (L.hosting) p -= (L.venueRate || 0);
   if (key === 'host') return p;
   p *= (L.hoursPerWeek || 0) || 1;
   if (key === 'hoursweek') return p;
