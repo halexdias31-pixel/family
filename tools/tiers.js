@@ -20,6 +20,10 @@ const want = {
     [/const TIER_OFF_WIDGETS = \[[^\]]*\];/, `const TIER_OFF_WIDGETS = [${q(of('widgets', 'off'))}];`],
     [/const TIER_CORE_KINDS = \[[^\]]*\];/, `const TIER_CORE_KINDS = [${q(of('kinds', 'core'))}];`],
   ],
+  /* WHERE EACH OFF WIDGET'S COMING SOON CARD WAITS (`soonUnder`): a front answer, greyed while all it holds is Coming soon. */
+  'js/find-finder.js': [
+    [/const SOON_WIDGET_UNDER = \{[^}]*\};/, `const SOON_WIDGET_UNDER = { ${Object.keys(T.soonUnder || {}).filter(k => k !== 'notes').map(k => k + ": '" + T.soonUnder[k] + "'").join(', ')} };`],
+  ],
   'index.html': [
     [/window\.LATER = \[[^\]]*\];/, `window.LATER = [${q(later)}];`],
     [/window\.LAZY = \[[^\]]*\];/, `window.LAZY = [${q(lazy)}];`],

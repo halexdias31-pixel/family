@@ -4653,6 +4653,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- A NUMBERED RUN IS A GRID, NOT A PARAGRAPH OF PILLS § */
 /* owner 5 Nov: a numbered run reads "Year 4" like every chip, so it wraps as ordinary chips, never a squeezed grid */
 .answers.is-grid { display: flex; flex-wrap: wrap; }
+/* A FRONT ANSWER THAT HOLDS ONLY COMING SOON (frontSoonOnly_): greyed in colour, still pressable. */
+.answers > .row.tap.counted.is-off { --ink: var(--dim); --gold: var(--dim); --chip-line: var(--dim); color: var(--dim); border-color: var(--dim); border-style: dashed; }
+.answers > .row.tap.counted.is-off .k { color: var(--dim); }
 /* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; }
