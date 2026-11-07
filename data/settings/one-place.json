@@ -12,7 +12,7 @@
   { "id": "messaging", "name": "Messaging", "evidence": [["backend/dopost.gs", "'sendMessage'"], ["js/me-messages.js", "sendMessage"]] },
   { "id": "homework", "name": "Homework (set, do, see results)", "evidence": [["backend/dopost.gs", "setHomework"], ["backend/constants.gs", "homework:"]] },
   { "id": "logistics", "name": "Logistics (venues, rooms)", "evidence": [["backend/constants.gs", "rooms:"], ["js/find-aloud.js", "DATA.venues"]] },
-  { "id": "marketing", "name": "Marketing (flyers, posters)", "evidence": [["js/flyer.js", "flyer"], ["backend/dopost.gs", "marketing"]] },
+  { "id": "marketing", "name": "Marketing (flyers, posters)", "evidence": [["backend/dopost.gs", "marketing"]] },
   { "id": "learning", "name": "Learning resources", "evidence": [["data/questions.json", "\"q"], ["js/find-finder.js", "FINDERS"]] }
  ]
 }

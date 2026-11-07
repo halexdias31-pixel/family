@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.1,
+ "score": 77.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -29,17 +29,6 @@
    }
   },
   {
-   "id": "dead",
-   "label": "Code nothing calls",
-   "count": 16,
-   "weight": 0.3,
-   "cap": 10,
-   "off": 4.8,
-   "where": {
-    "check-dead": "nbShape_ (board.js), mondayOf_ (book.js), nextBookStep (book.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
-   }
-  },
-  {
    "id": "catches",
    "label": "Empty catches allowed (check-catches ceiling)",
    "count": 228,
@@ -47,6 +36,17 @@
    "cap": 15,
    "off": 4.6,
    "where": {}
+  },
+  {
+   "id": "dead",
+   "label": "Code nothing calls",
+   "count": 15,
+   "weight": 0.3,
+   "cap": 10,
+   "off": 4.5,
+   "where": {
+    "check-dead": "mondayOf_ (book.js), nextBookStep (book.js), boxerPic_ (find-boxers.js), insertsFor_ (find-history.js), initWhiteboard (find-loupe.js), ktLessonCount_ (games.js), mediaAgeBoxHtml_ (games.js), cardSeen_ (layout.js), cardStartAt_ (layout.js), mergedNow_ (layout.js), qtFigureOf_ (qtypes.js), workShrink_ (working.js), workPics_ (working.js), writingOf_ (writings.js), none"
+   }
   },
   {
    "id": "special",

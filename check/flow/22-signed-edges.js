@@ -526,63 +526,6 @@ check('edges: a pad the store refused is still that person\'s — opening it doe
   return bad;
 });
 
-check('edges: the whiteboard drawn signed out after the server ended a session is that person\'s — not the next child\'s board, back on theirs, and never sent (P5)', async () => {
-  /* CAL HAS A BOARD ON THIS DEVICE ALREADY, for the last step. */
-  const b = edgeBoot_(win => { signedInAs_(ANS_ADA)(win); try { win.localStorage.setItem('board:u:P9:whiteboard', '[[5,5,9,9]]'); } catch (e) {} });
-  const { w, sent } = b;
-  await wait(300);
-  const need = edgeNeed_(w).concat(typeof w.initBoard_ === 'function' ? [] : ['initBoard_']);
-  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
-  const bad = [];
-  /* THE REAL BOARD, as Tools draws it (`nbEdge_`): drawn again for whoever is signed in (`boardWhoChanged_`, from `signedOut_` and `signedIn_`). */
-  const board = nbEdge_(w);
-  const strokes = board.strokes, keyNow = board.key;
-  board.draw([[20, 250], [120, 250]]);
-  if (keyNow() !== 'board:u:P7:whiteboard' || strokes() !== 1) return ['setup: Ada\'s board is ' + keyNow() + ' with ' + strokes() + ' stroke(s) — NOT checked'];
-  if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
-  if (keyNow() !== 'board:whiteboard' || strokes()) bad.push('signed out by the server, the board is ' + keyNow() + ' with ' + strokes() + ' stroke(s), wanted the signed-out board, empty');
-  /* ADA, STILL AT THE COMPUTER, DRAWS ON THE SIGNED-OUT BOARD — with the store refusing the record of whose it is, at first: § */
-  const S = w.Storage.prototype, realSet = S.setItem;
-  S.setItem = function (k, v) { if (k === 'familyGoneKeys') throw edgeQuota_(); return realSet.call(this, k, v); };
-  try {
-    board.draw([[30, 30], [200, 200]]);
-    if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('the store refused the mark and the board drawn signed out was written without it — anybody\'s after a reload');
-    if (strokes() !== 1) bad.push('the board waiting on its mark draws ' + strokes() + ' stroke(s), wanted the one held for the visit');
-  } finally { S.setItem = realSet; }
-  /* ROOM AGAIN AS THE PAGE GOES: the mark, then the board. */
-  w.dispatchEvent(new w.Event('pagehide'));
-  const drawn = w.localStorage.getItem('board:whiteboard');
-  if (!drawn) return bad.concat(['setup: the stroke drawn signed out did not land under board:whiteboard — NOT checked']);
-  const m = w.ansGoneOf_('board:whiteboard');
-  if (!m || m.who !== 'u:P7') bad.push('the board drawn signed out after Ada\'s session ended is not marked as hers: ' + JSON.stringify(m));
-  /* BEN SIGNS IN FROM NOBODY: the board is drawn under him, and drawing it is opening it (`padAdopt_`). */
-  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
-  await wait(300);
-  if (keyNow() !== 'board:u:P8:whiteboard') bad.push('Ben signed in and the board is ' + keyNow());
-  if (strokes()) bad.push('Ben signed in and his board draws ' + strokes() + ' stroke(s) — Ada\'s, drawn signed out after her session ended');
-  if (w.localStorage.getItem('board:u:P8:whiteboard') !== null) bad.push('Ada\'s board was moved under Ben\'s key');
-  if (w.localStorage.getItem('board:whiteboard') !== drawn) bad.push('Ada\'s board left the signed-out key when Ben signed in: ' + JSON.stringify(w.localStorage.getItem('board:whiteboard')));
-  /* ADA AGAIN, FROM NOBODY, ON A NEW SESSION: hers, after the stroke she had — and still the device's alone. */
-  w.signedOut_();
-  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
-  await wait(300);
-  if (keyNow() !== 'board:u:P7:whiteboard' || strokes() !== 2) bad.push('Ada signed in again and her board (' + keyNow() + ') draws ' + strokes() + ' stroke(s), wanted the one she had and the one she drew signed out');
-  if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('Ada signed in again and her signed-out board is still under the signed-out key, for every visitor after her');
-  if (w.ansGoneOf_('board:whiteboard')) bad.push('a mark is left for a board that has gone');
-  const went = ansCarried_(sent, 0).filter(it => /board|whiteboard/.test(String(it.key)));
-  if (went.length) bad.push('the board went to an account: ' + JSON.stringify(went).slice(0, 160));
-  if ([...w.ansDirtySet_('u:P7'), ...w.ansDirtySet_('u:P8')].some(x => /^board:/.test(x))) bad.push('the board is due to go up to an account');
-  /* AND A BOARD WITH NO ENDED SESSION BEHIND IT IS STILL THE DEVICE'S (note 310), moved only into an EMPTY board, by opening it: § */
-  w.signedOut_();
-  board.draw([[50, 50], [60, 90]]);
-  const visitor = w.localStorage.getItem('board:whiteboard');
-  if (!visitor) return bad.concat(['setup: the visitor\'s board is not under board:whiteboard — the last step was NOT checked']);
-  w.signedIn_(Object.assign({}, ANS_BEN, { name: 'Cal Pupil', personId: 'P9', token: 'tok-P9', handle: 'cal_calm9', answers: {} }));
-  if (w.localStorage.getItem('board:u:P9:whiteboard') !== '[[5,5,9,9]]') bad.push('Cal signed in from nobody and his board became ' + w.localStorage.getItem('board:u:P9:whiteboard') + ' — the signed-out visitor\'s, claimed over his');
-  if (w.localStorage.getItem('board:whiteboard') !== visitor) bad.push('the visitor\'s board left the device\'s key when Cal signed in, though his board was not empty');
-  return bad;
-});
-
 check('edges: a later visitor who writes over the whole of an answer marked as somebody else\'s takes the mark off; an edit that keeps their words keeps it (P7)', async () => {
   const b = edgeBoot_(signedInAs_(ANS_ADA));
   const { w } = b;
@@ -798,36 +741,13 @@ check('edges: what the store refused while signed out is claimed at sign-in like
     w.dispatchEvent(new w.Event('pagehide'));
     if (w.localStorage.getItem(bareW) !== null) bad.push('room came back and Ada\'s claimed words were written back under the signed-out key');
   }
-  /* THREE — THE WHITEBOARD, NO SESSION ENDED. A board drawn signed out is the device's and goes to whoever
-     first opens the board (`padAdopt_`, note 310): the one the store refused, as well as one it kept. */
-  {
-    const b = edgeBoot_();
-    const { w } = b;
-    await wait(300);
-    if (typeof w.initBoard_ !== 'function') return bad.concat(['initBoard_ not reachable — the board was NOT checked']);
-    const board = nbEdge_(w);
-    const strokes = board.strokes;
-    const S = w.Storage.prototype, realSet = S.setItem;
-    S.setItem = function (k, v) { if (k === 'board:whiteboard') throw edgeQuota_(); return realSet.call(this, k, v); };
-    try {
-      board.draw([[30, 30], [200, 200]]);
-      if (!w.ansValue_('board:whiteboard') || w.localStorage.getItem('board:whiteboard') !== null) return bad.concat(['setup: the board drawn signed out is not held by the visit alone — NOT checked']);
-      w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
-      if (strokes() !== 1 || w.ansValue_('board:u:P8:whiteboard') === null) bad.push('Ben signed in, the board opened under him, and it draws ' + strokes() + ' stroke(s) — the signed-out board the store refused did not move to him as a stored one does');
-      if (w.ansValue_('board:whiteboard') !== null) bad.push('Ben opened the board and the visit still holds the signed-out one: ' + w.ansValue_('board:whiteboard'));
-      w.signedOut_();
-      if (strokes()) bad.push('Ben signed out and the signed-out board draws ' + strokes() + ' stroke(s) — the visit\'s copy, left for whoever sits down next');
-    } finally { S.setItem = realSet; }
-    w.dispatchEvent(new w.Event('pagehide'));
-    if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('room came back and the board Ben took was written back under the signed-out key');
-  }
   return bad;
 });
 
 /* ---------- AND THREE MORE, FOUND BY THE VERIFIER OF THE SIX (317, "Undo, the booking form, a switch") § */
 const edgeKey_ = (w, el, key, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: key, bubbles: true, cancelable: true }, o || {})));
 
-check('edges: Undo puts back whose it was — Clear then Undo on a pad and on the whiteboard, Ctrl+Z after Backspace or after one letter over all of it — and the keypad\'s history goes with the person who made it', async () => {
+check('edges: Undo puts back whose it was — Clear then Undo on a pad, Ctrl+Z after Backspace or after one letter over all of it — and the keypad\'s history goes with the person who made it', async () => {
   const bad = [];
   const mine = (w, k) => { const m = w.ansGoneOf_(k); return m ? m.who : null; };
   /* ONE — A QUESTION'S PAD (U1). § */
@@ -936,27 +856,7 @@ check('edges: Undo puts back whose it was — Clear then Undo on a pad and on th
     await w.answersPush_(true);
     if (/Ada typed this/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached BEN\'S ACCOUNT after the hour');
   }
-  /* FOUR — THE WHITEBOARD, after the hour (U4): Clear, Undo, and Ben signs in from nobody. */
-  {
-    const b = edgeBoot_(signedInAs_(ANS_ADA));
-    const { w } = b;
-    await wait(300);
-    if (typeof w.initBoard_ !== 'function') return bad.concat(['initBoard_ not reachable — the board was NOT checked']);
-    const A = w.__t.ACTIONS;
-    const board = nbEdge_(w);
-    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
-    board.draw([[30, 30], [200, 200]]);
-    const ada = w.ansValue_('board:whiteboard');
-    if (!ada || mine(w, 'board:whiteboard') !== 'u:P7') return bad.concat(['setup: the board drawn signed out is not marked as Ada\'s — the board was NOT checked']);
-    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
-    A['nb-clear'](board.host.querySelector('.nb-clear'));
-    nbTapN_(w, board.host, 2);
-    if (w.ansValue_('board:whiteboard') !== ada) return bad.concat(['setup: Undo after Clear put the board back as ' + JSON.stringify(w.ansValue_('board:whiteboard')) + ' — NOT checked']);
-    if (mine(w, 'board:whiteboard') !== 'u:P7') bad.push('Clear then Undo put Ada\'s board back marked ' + JSON.stringify(w.ansGoneOf_('board:whiteboard')));
-    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
-    if (w.ansValue_('board:u:P8:whiteboard') !== null || board.strokes()) bad.push('Ben signed in from nobody and Ada\'s board is on HIS board: ' + JSON.stringify(w.ansValue_('board:u:P8:whiteboard')));
-  }
-  /* FIVE — THE KEYPAD'S HISTORY OUTLIVED ITS PERSON. Sam types signed out and signs in from nobody: the words
+  /* FOUR — THE KEYPAD'S HISTORY OUTLIVED ITS PERSON. Sam types signed out and signs in from nobody: the words
      are his (318). He signs out, and the next visitor presses Ctrl+Z on the empty signed-out box. */
   {
     const b = edgeBoot_();
@@ -1069,20 +969,18 @@ check('edges: signing in again, the booking form typed signed out after the sess
   return bad;
 });
 
-check('edges: signed in over somebody else, opening a card or the board hands the arriving child nothing another visitor made signed out — after a reload too; signed in from nobody, it is theirs (318)', async () => {
+check('edges: signed in over somebody else, opening a card hands the arriving child nothing another visitor made signed out — after a reload too; signed in from nobody, it is theirs (318)', async () => {
   const b = edgeBoot_(signedInAs_(ANS_BEN));
   const { w } = b;
   await wait(300);
-  const need = edgeNeed_(w).concat(typeof w.initBoard_ === 'function' ? [] : ['initBoard_']);
+  const need = edgeNeed_(w);
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
   const bad = [];
   const c = ansCards_(w, 'S1');
-  const wb = win => nbEdge_(win).strokes;
-  const boardStrokes = wb(w);
   const bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
-  const OTHER = [[bareM, '(9)/(10)'], [bareP, '[[1,1,300,300]]'], [bareR, '["0.1"]'], ['board:whiteboard', '[[40,40,90,90]]']];
-  /* BEN IS SIGNED IN. ANOTHER TAB OF THE SITE, SIGNED OUT THERE AND NEVER RELOADED, ANSWERS, DRAWS, RINGS AND
-     SCRIBBLES ON THE BOARD: nobody's session ended, so all of it is 'later' — whoever signs in next from
+  const OTHER = [[bareM, '(9)/(10)'], [bareP, '[[1,1,300,300]]'], [bareR, '["0.1"]']];
+  /* BEN IS SIGNED IN. ANOTHER TAB OF THE SITE, SIGNED OUT THERE AND NEVER RELOADED, ANSWERS, DRAWS, AND RINGS:
+     nobody's session ended, so all of it is 'later' — whoever signs in next from
      nobody (318). */
   OTHER.forEach(([k, v]) => {
     w.localStorage.setItem(k, v);
@@ -1098,7 +996,6 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   if (c.kp().value) bad.push('Ada signed in over Ben, opened the card, and her empty maths box was given the other tab\'s signed-out answer ' + JSON.stringify(c.kp().value) + ' (`ansRead_`)');
   if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ada signed in over Ben and her pad draws the other tab\'s stroke (`padAdopt_`)');
   if (rings.length) bad.push('Ada signed in over Ben and the passage rings the other tab\'s word ' + JSON.stringify(rings) + ' (`circOf_`)');
-  if (boardStrokes() || w.localStorage.getItem('board:u:P7:whiteboard') !== null) bad.push('Ada signed in over Ben and her board holds the other tab\'s scribble (`padAdopt_`, from `initBoard_`)');
   if (left(w).length) bad.push('Ada signed in over Ben and the other tab\'s work left the signed-out keys: ' + left(w).join(', '));
   if (Object.keys(b.of('P7')).length) bad.push('the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b.of('P7')).slice(0, 160));
   /* A RELOAD, STILL ADA: the same arrival. */
@@ -1109,10 +1006,9 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   await wait(300);
   if (!w2.__t.whoami() || String(w2.__t.whoami().personId) !== 'P7') return bad.concat(['setup: the reload is not signed in as Ada — the reload was NOT checked']);
   const c2 = ansCards_(w2, 'S1');
-  const boardStrokes2 = wb(w2);
   w2.circOf_({ key: c2.pen.key, surface: 'text' });
   await w2.answersPush_(true);
-  if (c2.kp().value || c2.pad().querySelectorAll('.qpad-g path').length || boardStrokes2()) bad.push('reloaded as Ada, signed in over Ben, and the card or the board took the other tab\'s work: ' + JSON.stringify([c2.kp().value, c2.pad().querySelectorAll('.qpad-g path').length, boardStrokes2()]));
+  if (c2.kp().value || c2.pad().querySelectorAll('.qpad-g path').length) bad.push('reloaded as Ada, signed in over Ben, and the card took the other tab\'s work: ' + JSON.stringify([c2.kp().value, c2.pad().querySelectorAll('.qpad-g path').length]));
   if (left(w2).length) bad.push('reloaded as Ada and the other tab\'s work left the signed-out keys: ' + left(w2).join(', '));
   if (Object.keys(b2.of('P7')).length) bad.push('reloaded, and the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b2.of('P7')).slice(0, 160));
   /* SHE SIGNS OUT AND IN AGAIN, FROM NOBODY: now she is the one who signs in next — 318's seat — and it is hers. */
@@ -1120,7 +1016,6 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   w2.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
   c2.draw();
   if (c2.kp().value !== '(9)/(10)') bad.push('Ada signed out and in again from nobody and her maths box holds ' + JSON.stringify(c2.kp().value) + ' — the seat\'s answer was not hers (the switch outlived the sign-out)');
-  if (boardStrokes2() !== 1) bad.push('Ada signed in again from nobody and her board draws ' + boardStrokes2() + ' stroke(s), wanted the signed-out board (note 310)');
   return bad;
 });
 

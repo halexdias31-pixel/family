@@ -92,7 +92,6 @@
   /* How wide the app is ever allowed to be. A phone, and on a desktop still a phone. */
   --app: 26.5rem;
 
-
   /* ---------- THE POLISH TOKENS (531): one scale each for motion, press, type, spacing, radius and edge. Defined
      here first and adopted package by package, so nothing below changes look until it moves onto them. */
   /* MOTION. js/shell.js reads these into `MOTION_`; a press lands at once and only its release eases. */
@@ -262,7 +261,6 @@ html.wide body { max-width: none; box-shadow: none; }
 /* And inside a full-width bar, the row stays the width of the app. So the tabs sit under the
    content they belong to rather than stretching across a screen. */
 
-
 #banner {
   top: calc(var(--top) + var(--safe-top)); z-index: 29;
   padding: .62rem var(--pad);
@@ -347,7 +345,6 @@ html.wide body { max-width: none; box-shadow: none; }
 
 /* Out of the compositor once it is well off the screen. § */
 .far { visibility: hidden; }
-
 
 /* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS § */
 .page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
@@ -869,7 +866,6 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
 #sheet-body { flex: 1 1 auto; padding: .6rem 0 .4rem; }
 
-
 /* ---------- THE TOAST § */
 /* A STACK, NEWEST AT THE FOOT (537): each message keeps its own time; an older one is lifted by `translate` (shell.js `toastStack_`), so nothing is laid out again. */
 #toasts {
@@ -910,7 +906,6 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* ---------- THE LIBRARY WALL'S `.tile` WAS STILL HERE, AND IT WAS WINNING § */
 
 /* The `.shape` rules lived here — a cart, a card, a circle, a square, each filled with a colour worked out from the link's name. § */
-
 
 /* ---------- CHESS § */
 .chess { container-type: inline-size;
@@ -1043,8 +1038,6 @@ a { color: inherit; text-decoration: none; }
 /* THE SHAPE OF A REEL, not of a thumbnail. § */
 .feed { position: relative; aspect-ratio: 9/16; border-radius: var(--r-sm); overflow: hidden;
         background: var(--sunk); cursor: pointer; }
-
-
 
 /* ---------- THE FINDING CONTROLS § */
 /* The search box had no rule of its own, so it sat flush against the row of selects and the four
@@ -1830,9 +1823,7 @@ button.text-drop { color: var(--bad); }
 /* ON, AND SAYING SO IN THE COLOUR THE APP USES FOR "this is chosen". */
 .lam-on { color: var(--gold); }
 
-
 /* THE THINGS THAT WERE BUILT AFTER THE SCREENS. § */
-
 
 /* ---------- THE DOCKET § */
 .dock-row { display: flex; align-items: center; gap: .7rem; cursor: pointer;
@@ -2207,7 +2198,6 @@ html.flow .qcard-tags .qtag { color: var(--tag, var(--dim)); border: 1px solid v
 /* A RESULT NOT YET DRAWN takes no room; it is drawn as the scroll comes near (`flowMore_`, find.js). */
 html.flow .page.is-res:not([data-filled]) { display: none; }
 html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column holds a screen till the payload lands, or a short feed landing above Find pushes it down (CLS, 1040) */
-
 
 /* ---------- ONE DIAL, AND THE FRONT OF IT § */
 /* No rule under the last card: a page is one thing, and a hairline across the bottom of a screen
@@ -2846,7 +2836,6 @@ label.bk-k { cursor: pointer; }
 .widget-full > .card > h3, .widget-full > .card > .sub,
 .widget-full > .card > .cal-head, .widget-full > .card > .btn-row { flex: none; }
 
-
 /* The clock takes the middle of the screen, which is where you look while waiting for a number to
    change. */
 /* The layout of the clock is set ONCE, in the LED block near the foot of this file — it is a grid there, so that the lit numerals and the dead segments behind § */
@@ -3270,7 +3259,6 @@ label.bk-k { cursor: pointer; }
 /* ---------- A TEXTAREA IS NOT A DIV, AND `touch-action` IS THE ONLY THING THAT SETTLES IT § */
 textarea { touch-action: none; }
 
-
 /* ---------- NO SCROLLBAR ANYWHERE, ON ANYTHING § */
 * { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
@@ -3313,7 +3301,6 @@ textarea { touch-action: none; }
 /* ---------- A ROW THAT ENDS IN A NUMBER HAS NO ROOM FOR ONE § */
 .row.tap.counted::after { content: none; }
 
-
 /* ---------- THE ONES INSIDE A LINE OF TEXT § */
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile with everything else you can do to a post. § */
 /* `.qw` IS NOT UNDERLINED EITHER: § */
@@ -3343,8 +3330,6 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
-
-
 
 /* ---------- A PERSON, AS A WIDGET § */
 
@@ -3600,14 +3585,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* AND THE ONE LINE THAT SAYS WHAT THE MARK MEANS. § */
 .prof-hid { color: var(--prof-warn); font-style: normal; }
 
-
-
 /* ---------- AND THE ASK, which is not under the receipt any more ---------------------------------- */
 /* `.join` AND `.join-say` STOOD HERE — the block a stranger saw under somebody else's session, with the seats, the price, the list's tally and a gold button. § */
 /* `.live-row`, `.live-what` AND `.live-stage` STOOD HERE — the line above each roster saying what the session is, when, and where it has got to. § */
 
 /* `.money-note` STOOD HERE — the business's arithmetic floating under the paper. § */
-
 
 /* THE GAP BETWEEN THEM, once the glass is gone. § */
 /* `.pane:has(.pass) .pass + .pass` WENT WITH THE PASS. Two profiles in one pane are two
@@ -3618,7 +3600,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 
 /* `#install-bar` AND `.ib-*` WERE HERE — the "Keep @family. on your phone" bar. Removed at the owner's
    word (6 Oct); see me.js. */
-
 
 /* THE SIGNATURE UNDER A BOOK'S DRAWING ON THE SPLASH. § */
 .sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
@@ -3649,7 +3630,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .in-or::before, .in-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .in-or span { font-size: .72rem; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
 #g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
-
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS § */
 /* THE SAME TWO COLUMNS AS EVERY OTHER ROW, so a card of mixed rows lines up down its left edge. § */
@@ -3750,167 +3730,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- THE FAVOURITE STAR § */
 .favwrap { position: relative; }
 
-/* THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed. § */
-/* ---------- THE CONTROLS, PACKED § */
-/* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR § */
-/* ONE LINE PER THING (421, 472): each answer is a label/value row — the label left, the control filling the rest. */
-.fm-bar { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .4rem; }
-.fm-bar label, .fm-bar .fm-row { display: flex; align-items: center; gap: .6rem; min-width: 0;
-                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
-.fm-bar label select { flex: 1 1 auto; min-width: 0; width: 100%; }
-/* AS THE CHEAT SHEET MAKER (498): no label column; each select says what it is, its label kept for a screen reader. */
-/* THE SHORT ANSWERS TWO TO A LINE (498): hours and seats, size and how many; the long ones keep a line each. */
-.fm-pairs { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; }
-.fm-pairs > label:nth-child(-n+2) { grid-column: 1 / -1; }
-.fm-k { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.fm-bar select { font-size: min(16px, 4.6vw); }
-/* A NATIVE COLOUR INPUT is a real picker on every platform; three of them, one line. */
-.fm-inks span { margin-right: auto; }
-.fm-bar input[type=color] { width: 44px; height: 44px; min-height: 44px; padding: 0; cursor: pointer;
-                            background: none; border: 1px solid var(--line); border-radius: var(--r); }
-
-.fm-adds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 .5rem; align-items: center;
-           font-size: .68rem; color: var(--dim); margin-bottom: .3rem; }
-.fm-adds label { display: flex; gap: .25rem; align-items: center; cursor: pointer; }
-/* ---------- A TICKBOX HAS TO BE VISIBLE ON A BLACK SCREEN § */
-/* DRAWN, NOT STYLED. Giving a native checkbox a background is what killed it: § */
-.fm-adds input {
-  appearance: none; -webkit-appearance: none;
-  /* `min-height: max(44px, 2.9rem)` IS SET ON EVERY INPUT in this stylesheet — the touch-target rule, and right for a field somebody types in. § */
-  width: 1.05rem; height: 1.05rem; min-height: 0; padding: 0; margin: 0;
-  position: relative; flex: none; align-self: center;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px; cursor: pointer;
-}
-/* ---------- 2rem IS 27px ON A PHONE, AND THIS IS THE THIRD TIME § */
-.fm-adds label { min-height: 44px; min-width: 44px; }
-.fm-adds input:checked { background: var(--gold); border-color: var(--gold); }
-.fm-adds input:checked::after {
-  content: ""; position: absolute; left: 5px; top: 1px;
-  width: 4px; height: 8px; border: solid var(--bg);
-  border-width: 0 2px 2px 0; transform: rotate(43deg);
-}
-.fm-sep { display: none; }
-/* PRESETS ONLY TICK BOXES, and you watch it happen — one that hid what it did would be a mode. */
-/* THE THREE SHAPES A FLYER CAN BE — and they are buttons, which means a finger has to land on them. § */
-.fm-pre { font: inherit; font-size: .66rem; background: var(--sunk); color: var(--dim);
-          min-height: 44px; min-width: 44px;
-          border: 1px solid var(--line); border-radius: var(--r); padding: .2rem .45rem;
-          cursor: pointer; }
 .fm-pre:is(:active, .is-pressed) { color: var(--gold); border-color: var(--gold); }
-
-/* ---------- THE PAPER § */
-/* THE PAPER SITS DIRECTLY UNDER THE PRINT BUTTON, close enough that a change is visible without
-   scrolling — which is the whole reason for drawing it here rather than in a second file. */
-/* ---------- HIDDEN, AND NOTHING IS HIDDEN BY IT § */
-/* ---------- AND NOW THERE IS NO PREVIEW AT ALL § */
-.fm-out { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
-.fm-said { margin: .6rem 0 .5rem; font: 400 .78rem/1.45 var(--mono); color: var(--dim); }
-.fm-said b { color: var(--ink); font-weight: 600; }
-.fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
-            transform-origin: 0 0; overflow: hidden; }
-.fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
-.fm-z-a6 { grid-template: 148.5mm 148.5mm / 105mm 105mm; }
-.fm-z-sq { grid-template: repeat(3, 99mm) / repeat(3, 70mm); }
-
-/* ---------- THE ONE PLACE A BACKGROUND MUST SURVIVE THE PRINTER § */
-.fm-fly { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.fm-fly { padding: 16mm; display: flex; flex-direction: column; position: relative;
-          overflow: hidden; background: var(--fly-ground); color: var(--fly-ink);
-          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-          border-right: 1px dashed rgb(0 0 0 / .18); border-bottom: 1px dashed rgb(0 0 0 / .18); }
-.fm-code { font: 400 7.5pt/1 var(--mono); letter-spacing: .16em; opacity: .55; }
-.fm-mark { font-style: normal; font-weight: 700; font-size: 16pt; line-height: 1; letter-spacing: -.01em; }
-.fm-head { margin: 9mm 0 0; letter-spacing: -.028em; max-width: 150mm; }
-.fm-say { margin: 5mm 0 0; font-style: normal; font-weight: 400; font-size: 10pt; line-height: 1.5; max-width: 108mm; opacity: .82; }
-.fm-slogan { margin: 4mm 0 0; font-weight: 400; font-size: 11pt; line-height: 1.35; font-style: italic;
-             color: var(--fly-accent); }
-.fm-facts { margin-top: auto; padding-top: 5mm; border-top: .8pt solid currentColor; }
-.fm-facts div { font: 400 8.5pt/1.7 var(--mono); }
-.fm-facts b { color: var(--fly-accent); }
-.fm-foot { margin-top: 5mm; display: flex; justify-content: space-between; align-items: baseline;
-           font: 400 7.5pt/1 var(--mono); letter-spacing: .05em; opacity: .6; }
-.fm-foot b { opacity: 1; }
-
-/* ---------- THE FOUR STYLES § */
-.fm-s-minimal .fm-head { font-style: normal; font-weight: 700; font-size: 34pt; line-height: 1.03; }
-
-/* ELEGANT — a serif and wider leading, for campaigns about a decision rather than a deadline. */
-.fm-s-elegant { font-family: Georgia, "Times New Roman", serif; padding: 18mm 18mm 13mm; }
-.fm-s-elegant .fm-head { font: 400 33pt/1.14 Georgia, "Times New Roman", serif;
-                         letter-spacing: -.012em; }
-.fm-s-elegant .fm-say { font: 400 10.5pt/1.62 Georgia, "Times New Roman", serif; max-width: 100mm; }
-.fm-s-elegant .fm-code, .fm-s-elegant .fm-facts div, .fm-s-elegant .fm-foot {
-  font-family: var(--mono); }
-.fm-rule { width: 22mm; height: 1.4pt; background: var(--fly-accent); margin: 6mm 0 0; }
-
-/* DETAILED — for a noticeboard, where somebody stands and takes a decision without asking. */
-.fm-s-detailed .fm-head { font-style: normal; font-weight: 700; font-size: 25pt; line-height: 1.06; }
-.fm-s-detailed .fm-say { font-size: 9.5pt; max-width: 96mm; }
-.fm-spec { margin: 5mm 0 0; display: flex; gap: 6mm; flex-wrap: wrap; }
-.fm-spec div { font: 400 8pt/1.5 var(--mono); }
-.fm-spec span { display: block; font-size: 6.5pt; letter-spacing: .1em; text-transform: uppercase;
-                opacity: .55; }
-.fm-spec b { color: var(--fly-accent); font-size: 10pt; }
-
-/* LOUD — the cheap advert. § */
-.fm-s-loud { padding: 10mm 12mm; border-top: 4mm solid var(--fly-ink);
-             border-bottom: 4mm solid var(--fly-ink); }
-.fm-s-loud .fm-head { font-weight: 900; font-size: 33pt; line-height: .98; letter-spacing: -.035em; font-style: italic;
-                      text-transform: uppercase; margin: 5mm 0 0; }
-.fm-s-loud .fm-say { font-weight: 700; font-size: 9.5pt; opacity: 1; margin-top: 3mm; }
-.fm-s-loud .fm-slogan { font-weight: 900; font-size: 13pt; line-height: 1.1; font-style: italic; text-transform: uppercase;
-                        color: var(--fly-ink); }
-.fm-ring { margin: 4mm 0 0; text-align: center; }
-.fm-ring span { display: block; font-style: normal; font-weight: 700; font-size: 8pt; line-height: 1; letter-spacing: .18em;
-                text-transform: uppercase; margin-bottom: 1.5mm; }
-.fm-ring b { display: block; font-weight: 900; font-size: 30pt; line-height: 1; letter-spacing: -.03em; font-style: italic; }
-.fm-s-loud .fm-facts { border-top-width: 1.4pt; }
-.fm-s-loud .fm-facts div { font-weight: 700; }
-
-/* ---------- SMALLER SIZES ARE NOT THE SAME FLYER SHRUNK § */
-.fm-z-a6 .fm-fly { padding: 9mm; }
-.fm-z-a6 .fm-head { font-size: 19pt; }
-.fm-z-a6 .fm-say { font-size: 8pt; max-width: none; }
-.fm-z-a6 .fm-facts div { font-size: 7pt; line-height: 1.55; }
-.fm-z-a6 .fm-slogan { font-size: 8.5pt; }
-.fm-z-a6 .fm-ring b { font-size: 19pt; }
-
-.fm-z-sq .fm-fly { padding: 7mm; }
-.fm-z-sq .fm-head { font-size: 15pt; line-height: 1.05; }
-.fm-z-sq .fm-say { font-size: 7pt; max-width: none; }
-.fm-z-sq .fm-facts { padding-top: 3mm; }
-.fm-z-sq .fm-facts div { font-size: 6.2pt; line-height: 1.5; }
-.fm-z-sq .fm-slogan { font-size: 7.5pt; margin-top: 2mm; }
-.fm-z-sq .fm-code, .fm-z-sq .fm-foot { font-size: 5.6pt; }
-.fm-z-sq .fm-spec { display: none; }
-/* A 70MM SQUARE CANNOT HOLD A SHOUT. Shrinking the loud one until it fits gives a quiet advert in a
-   loud style, which is the worst of both — so the paragraph goes and the rest is cut down. */
-.fm-z-sq .fm-s-loud { padding: 6mm 7mm; border-top-width: 2.5mm; border-bottom-width: 2.5mm; }
-.fm-z-sq .fm-s-loud .fm-head { font-size: 13pt; margin-top: 3mm; }
-.fm-z-sq .fm-s-loud .fm-say { display: none; }
-.fm-z-sq .fm-s-loud .fm-ring b { font-size: 14pt; }
-.fm-z-sq .fm-s-loud .fm-ring span { font-size: 5.6pt; margin-bottom: .8mm; }
-
-/* ---------- THE QR, AND WHAT HAPPENS WITH NO SIGNAL § */
-.fm-qr { position: absolute; right: 16mm; bottom: 12mm; width: 22mm; height: 22mm;
-         background: #fff; padding: 1.2mm; }
-.fm-qr img { width: 100%; height: 100%; display: block; }
-.fm-fly.has-qr .fm-facts, .fm-fly.has-qr .fm-foot { padding-right: 26mm; }
-.fm-fly.qr-off .fm-qr { display: none; }
-.fm-fly.qr-off .fm-facts, .fm-fly.qr-off .fm-foot { padding-right: 0; }
-.fm-z-sq .fm-qr { right: 7mm; bottom: 7mm; width: 15mm; height: 15mm; }
-.fm-z-sq .fm-fly.has-qr .fm-facts, .fm-z-sq .fm-fly.has-qr .fm-foot { padding-right: 17mm; }
-
-/* ---------- WITH ALMOST NOTHING ON IT, IT CENTRES § */
-.fm-fly.bare { align-items: center; justify-content: center; text-align: center; }
-.fm-fly.bare .fm-mark { font-size: 21pt; margin-bottom: 4mm; }
-.fm-fly.bare .fm-facts { margin-top: 3mm; border-top: 0; padding-top: 0; }
-/* SIDE BY SIDE THE ADDRESS NEEDS A WIDTH A STICKER HAS NOT GOT — both halves wrapped and read as
-   four lines of nothing. Stacked, they are two lines that mean something. */
-.fm-fly.bare .fm-foot { flex-direction: column; align-items: center; gap: .8mm; }
-.fm-fly.bare .fm-qr { position: static; margin: 0 auto 3mm; }
-.fm-fly.bare.has-qr .fm-facts, .fm-fly.bare.has-qr .fm-foot { padding-right: 0; }
-.fm-z-sq .fm-fly.bare .fm-mark { font-size: 14pt; }
 
 /* PRINTING FROM INSIDE THE APP. § */
 @media print {
@@ -3918,16 +3738,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   body.printing-fly { max-width: none !important; margin: 0 !important; padding: 0 !important;
     overflow: visible !important; }
   body.printing-fly * { visibility: hidden !important; }
-  body.printing-fly .fm-out,
-  body.printing-fly .fm-out * { visibility: visible !important; }
-  body.printing-fly .fm-out {
-    position: absolute; left: 0; top: 0; margin: 0; padding: 0; width: 210mm;
-    /* THE SCALED HEIGHT IS SET IN JAVASCRIPT AND MUST BE UNDONE, or the page prints into a box the
-       size of a phone screen and the second flyer is cut off. */
-    height: auto !important; overflow: visible !important;
-  }
-  body.printing-fly .fm-sheet { transform: none !important; box-shadow: none; }
-  body.printing-fly .fm-fly { border: 0; }
   @page { size: A4 portrait; margin: 0; }
 }
 
@@ -4313,7 +4123,6 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* BREATHING, RAIN ON GLASS AND A PENDULUM WAVE WERE HERE — "four that teach nothing", the calm
    loading splashes, gone on 10 Oct with every rule and keyframe of theirs (docs/history/322). */
 
-
 /* ---------- "OR THE 212 PAPERS THESE ARE IN" § */
 /* `.stuff-coll` WAS HERE — the "or the 227 papers these are in" line above the funnel's answers.
    The collection went; a paper is an answer to an ordinary question now. */
@@ -4509,7 +4318,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
 /* THE HOME EXPERIMENTS. § */
 
-
 /* ---------- THE TWO HALVES OF THE CANDIDATE TABLE § */
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
 @media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
@@ -4598,7 +4406,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-hint { display: block; margin: .15rem 0 .35rem; font-size: .72rem; line-height: 1.45;
            color: var(--faint); }
 
-
 /* ---------- A BOX PER SECTION, AND THE FLOOR IS A FINGERTIP § */
 .gd-box { margin: .35rem 0 0; }
 .gd-box .kp-field {
@@ -4622,7 +4429,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-mark > .tile { grid-column: 2; flex: none; }
 .gd-mark > .qp-verdict { grid-column: 1 / -1; min-height: 1.3em; margin-top: 4px; }
 .gd-mark > .qp-saved { grid-column: 1 / -1; }
-
 
 /* ---------- A QUESTION CARD'S CHOICES § */
 .qp-opts { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 0; }
@@ -4931,9 +4737,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .fight-credit { margin: .35rem 0 0;
                 font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
 
-
 /* THE TWO NAMES WERE THE TITLE (`.fight-line`, `.fight-who`) until 490: the fighters and the winner are tags now. */
-
 
 .btn-note { display: block; font: 400 .68rem/1 var(--mono); font-style: normal;
             color: var(--faint); margin-top: .2rem; }
@@ -4946,7 +4750,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- GIVEN IN THE EXAM, SAID ON THE FEW ROWS IT IS TRUE OF § */
 .mat-list label.given .mat-face { color: var(--dim); }
-
 
 /* A COMPONENT'S OWN NOTE. Quiet, under the name, because it is a detail about that one row rather
    than an instruction — read when the eye is already there and invisible when it is not. */
@@ -5031,8 +4834,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 @media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
-
-
 /* ---------- WHAT THE CARDS NEEDED ONCE THEY STOPPED OPENING PANELS § */
 
 /* A TOOL OPENS INSIDE ITS OWN CARD. Empty until the row is pressed, so a list of forty widgets is
@@ -5045,7 +4846,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    there is no card and no `.qsheet` wrapper now — the questions are read on the paper's own page,
    where `.qp-part` does this job. */
 
-
 /* ---------- FILLED MEANS DONE § */
 /* IN THE BASKET IS NOT AN OFFER ANY MORE, so it stops being gold and goes quiet — the same
    "done, and no longer asking" the label used to say in words. */
@@ -5055,7 +4855,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile.on .tile-i-star,
 .tile.on .tile-i-wear,
 .tile.on .tile-i-spot { fill: currentColor; }
-
 
 /* ---------- SECOND PASS, FROM LOOKING AT IT § */
 /* ---------- SILVER, AND SMALLER § */
@@ -5079,9 +4878,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* `.bookr-x` WAS THE CLOSE BUTTON. The booker is the first card on Book and is always drawn, so
    there is nothing to close and no state to return to. */
-
-
-
 
 /* ---------- WHAT YOU DO WITH THE BOOKING, PRINTED ON IT § */
 /* `.rc-do` WAS THE FULL-WIDTH GOLD BAR. § */
@@ -5109,7 +4905,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   line-height: 1.4;
   color: var(--faint);
 }
-
 
 /* THE ✕ ON A BASKET LINE. `.text-drop` is sized for a settings row; on a receipt line it has to sit
    with the title rather than beside it, and stay pressable at 44px without making the line taller
@@ -5244,7 +5039,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE SAME CHIP AS EVERY OTHER ANSWER (660): "why is it rectangular?" — a grid places the chips, it does not square them. */
 .answers.is-grid > .row.tap.counted:not(.is-skip) .k { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .answers.is-grid > .row.tap.counted.is-skip { grid-column: 1 / -1; justify-self: start; }
-
 
 /* REELS — one reel per widget, one widget per page § */
 .reel {
@@ -5567,7 +5361,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .cam-rec.is-rec::after { opacity: 1; transform: none; }
 
 .cam-card #cam-said:empty { display: none; }
-
 
 /* `hidden` HAS TO ACTUALLY HIDE. § */
 [hidden] { display: none !important; }
@@ -6208,8 +6001,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .work-seen-row + .work-seen-row { margin-top: .6rem; }
 .work-seen-say { margin: 0 0 .3rem; }
 
-
-
 /* THE ANSWER, WAITING -- FOR EVERYBODY. § */
 .qans-tiles { margin-top: .9rem; }
 /* `.qfig-tiles` WAS HERE -- the drawing page's row, which held only `To the answer`. Both went on
@@ -6359,22 +6150,10 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   height: calc(100dvh - var(--bar) - var(--safe-bottom) - var(--nb-chrome)); min-height: 24rem;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-.nb-book, .nb-pad {
-  position: relative; overflow: hidden; touch-action: none;
-  background: var(--paper); border: 1px solid var(--paper-rule); border-radius: var(--r-sm);
-}
-/* HALF AND HALF: the page shows enough lines to see the working, the pad is tall enough for a finger's letters. */
-.nb-book { flex: 1 1 0; min-height: 8rem; }
-.nb-pad { flex: 1 1 0; min-height: 10rem; cursor: crosshair; }
+
 .nb canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.nb-pad .nb-line { position: absolute; right: 6px; bottom: 6px; z-index: 1;
-  background: var(--paper); border-color: var(--paper-rule); color: var(--paper-dim); }
-.nb-bar { justify-content: center; margin: 0; flex: none; }
 /* SIX TOOLS DO NOT FIT THE WHITEBOARD'S 272px AT A PHONE'S WIDTH; two even rows of three rather than five and an orphan (414, check/ui.js). */
-@media (max-width: 430px) and (orientation: portrait) {
-  .nb-bar { display: grid; grid-template-columns: repeat(3, 44px); justify-content: center; }
-}
-.nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
+
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
 @media (orientation: landscape) and (max-height: 500px) {
   .card.is-widget:has(.nb) {
@@ -6385,11 +6164,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   .card.is-widget:has(.nb) .widget-slot, .card.is-widget:has(.nb) .nb-box, .card.is-widget:has(.nb) .nb { display: contents; }
   .card.is-widget:has(.nb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
   .card.is-widget:has(.nb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
-  .card.is-widget:has(.nb) .nb-book, .card.is-widget:has(.nb) .nb-pad { min-height: 0; height: var(--nb-half); }
-  .card.is-widget:has(.nb) .nb-book { grid-area: 1 / 1 / 3 / 2; }
-  .card.is-widget:has(.nb) .nb-pad { grid-area: 3 / 1 / 5 / 2; margin-top: .45rem; }
-  .card.is-widget:has(.nb) .nb-bar { grid-area: 3 / 2; justify-content: flex-start; max-width: calc(3 * (44px + .5rem)); margin-top: .5rem; }
-  .card.is-widget:has(.nb) .nb-note { grid-area: 4 / 2; text-align: left; max-width: calc(3 * (44px + .5rem)); }
 }
 
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
@@ -6530,7 +6304,6 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
-
 
 /* ---------- BUSINESS RECORDS: ADMIN PAGES OF THE SETTINGS COLUMN — see js/records.js § */
 .biz-item + .biz-item { margin-top: .45rem; }
@@ -7068,31 +6841,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .ib-subj, .ib-snip { grid-column: 2 / 4; }
 .ib-snip { font-size: .85rem; color: var(--faint); }
 
-/* ---------- THE POSTER PLANNER (547, poster.js): the page is paper, boxes are outlines; the page takes the drag, so it never scrolls the column. */
-.pst-line { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
-.pst-line > span { color: var(--dim); }
-.pst-line select, .pst-line input { min-height: 44px; min-width: 0; max-width: 60%; }
-.pst-line input { flex: 1; }
-.pst-say, .pst-mm { margin: .35rem 0; }
-.pst-page { position: relative; width: 100%; margin: .5rem auto; background: var(--paper); border: 1px solid var(--line);
-  touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; cursor: crosshair; }
-.pst-box { position: absolute; box-sizing: border-box; border: 2px solid var(--paper-ink); color: var(--paper-ink); padding: .2rem .3rem;
-  overflow: hidden; cursor: move; display: flex; flex-direction: column; gap: .1rem; font-size: .7rem; line-height: 1.15; }
-.pst-box.on { border-style: dashed; background: var(--paper-strip); }
-.pst-kind { text-transform: uppercase; letter-spacing: .04em; color: var(--paper-dim); font-size: .6rem; }
-.pst-label { font-weight: 700; overflow-wrap: anywhere; }
-.pst-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, var(--paper-ink) 50%); }
-
-/* ---------- THE PIXEL EDITOR (547, pixel.js): square cells on a checker of the paper tokens so see-through reads as see-through; the grid takes the drag. */
-.pxe-line { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; }
-.pxe-line > span { color: var(--dim); }
-.pxe-line select, .pxe-line input { min-height: 44px; min-width: 44px; max-width: 60%; }
-.pxe-grid { display: grid; width: 100%; max-width: 70vh; aspect-ratio: 1; margin: .5rem auto; border: 1px solid var(--line);
-  background: repeating-conic-gradient(var(--paper) 0 25%, var(--paper-strip) 0 50%) 0 0 / 16px 16px;
-  touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
-.pxe-c { box-shadow: inset 0 0 0 .5px var(--paper-rule); }
-
 /* ---------- A PROFILE SHARED AS A PICTURE (412, 547): the card itself, drawn off the screen at a phone column's width for the snapshot (`tutorPng_`). */
 .tpng-host { position: absolute; left: -10000px; top: 0; width: 24rem; pointer-events: none; }
 /* THE PICTURE'S CARD STANDS IN THE SITE CARD'S OWN SLOT, at its width; its margin is the column's, not the picture's. */
@@ -7107,26 +6855,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .spot-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-search { display: flex; gap: .5rem; align-items: center; margin: .6rem 0; }
 .sp-q { flex: 1; min-width: 0; min-height: 44px; border-radius: 999px; padding: 0 1rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-/* ---------- FAVOURITE LINKS (509): one line per link, its tiles on the same line ---------- */
-/* A GRID OF THE SITES (720): icon over name; the letter sits under the icon and shows when the site has none. */
-.fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: .6rem .4rem; margin: .2rem 0 .6rem; }
-.fav-cell { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-width: 0; min-height: 44px; padding: .35rem .1rem;
-  border-radius: 10px; color: var(--ink); text-decoration: none; }
-.fav-ico { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--bg); overflow: hidden; --fav-plate: #fff; }
-/* A SITE'S OWN ICON IS DRAWN FOR A WHITE PAGE, so it sits on a white plate; the letter alone keeps the screen's own colours. */
-.fav-ico:has(.fav-img) { background: var(--fav-plate); }
-.fav-letter { font-weight: 700; font-size: 1.1rem; color: var(--dim); }
-.fav-img { position: absolute; inset: 9px; width: 26px; height: 26px; object-fit: contain; background: var(--fav-plate); }
-.fav-name { max-width: 100%; font-size: .72rem; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fav-row { display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--line); }
-.fav-a { flex: 1; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fav-host { margin-left: .4rem; color: var(--faint); font-size: .72rem; }
-.fav-row .tile-row { flex: 0 0 auto; margin: 0; }
-.fav-new { margin-top: .6rem; }
+
 .fav-line, .rw-line { display: flex; flex-direction: column; gap: .2rem; margin: .35rem 0; }
 .fav-line > span, .rw-line > span { font-size: .8rem; color: var(--dim); }
-.fav-line input { width: 100%; }
 
 /* ---------- THE REWRITE COACH (509) ---------- */
 .rw-line textarea { width: 100%; min-height: 4rem; }

@@ -9,6 +9,9 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$
 
 /* ---------- A HANDLER NO CODE CALLS, KEPT ON PURPOSE. One sentence each: who reaches it, and why it stays. */
 const REASONS = {
+  favLinksSave: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
+  rewriteIdeas: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
+  rewriteCheck: 'its front end was frozen and deleted (1100); the handler stays until the backend is next redeployed. Restore from c9b8d2f.',
   makeChild: 'kept only to refuse an old page plainly: a child makes their own account and a parent claims it (461, the owner: "making a child\'s account shouldn\'t be a thing").',
   reportQuestion: 'kept for a phone loaded before 486: it is routed into the one `suggest` action (check-suggest proves it).',
   report: 'kept for a phone loaded before 494: it is routed into the one `suggest` action (check-suggest proves it).',

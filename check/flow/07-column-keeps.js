@@ -831,39 +831,6 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   return bad;
 });
 
-/* ---------- THE FLYER MAKER IS AN ADMIN'S, AT EVERY DOOR § */
-check("the flyer maker is an admin's and nobody else's", async () => {
-  const { w } = boot();
-  await wait(300);
-  const t = w.__t;
-  if (!t.widgetFor || !t.allWidgets || !t.widgetsOf || !t.savedWidgets || !t.star) {
-    return ['who may open a widget is not exported'];
-  }
-  const fly = t.allWidgets().find(x => x.id === 'flyers');
-  if (!fly) return ['there is no flyer maker in the roster'];
-  const bad = [];
-  t.star('w:flyers');
-  const visitors = [
-    ['somebody signed out', null],
-    ['a parent', { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] }],
-    ['a student', { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] }],
-    ['a tutor', { name: 'Ada Tutor', personId: 'P-@ada', role: 'tutor', roles: ['tutor'] }],
-  ];
-  visitors.forEach(([say, u]) => {
-    t.USER(u);
-    if (t.widgetFor(fly)) bad.push(say + ' may open the flyer maker');
-    if (t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column offers ' + say + ' the flyer maker');
-    if (t.savedWidgets().some(x => x.id === 'flyers')) {
-      bad.push('a flyer maker starred on this phone comes back on the Saved column of ' + say);
-    }
-  });
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
-  if (!t.widgetFor(fly)) bad.push('an admin may not open the flyer maker');
-  if (!t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column does not offer an admin the flyer maker');
-  if (!t.savedWidgets().some(x => x.id === 'flyers')) bad.push('an admin who starred the flyer maker does not find it on Saved');
-  return bad;
-});
-
 /* ---------- VENUES ARE OFF FIND, AND A STARRED VENUE IS STILL ON SAVED § */
 check('venues are off Find, and a starred venue is still on Saved', async () => {
   const { w } = boot();
