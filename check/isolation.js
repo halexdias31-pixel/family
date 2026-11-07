@@ -70,6 +70,9 @@ function serve() {
     /* 2. THE BAD WIDGET RUNS: found in Find, its page drawn, started and stopped. */
     const ran = await page.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
+      /* SIGNED IN (dd5c20d): signed out, Find holds Settings alone, so nothing would narrow or open a question. */
+      USER = { name: 'T', personId: 'P-T', role: 'Student', roles: ['student'], profile: {} };
+      stuffForget_();
       go('stuff', true);
       await wait(400);
       finderSet_(FINDERS.stuff, { q: 'Boom isolation' });
