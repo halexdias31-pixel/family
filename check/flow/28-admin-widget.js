@@ -357,7 +357,7 @@ check('the Rules card (496): the admin flips "Tell the admin" to Universal on Si
 
 /* ---------- AFTER LIBRARY → A SUBJECT, ONLY THAT SUBJECT'S SHELVES (499) § */
 /* ---------- MECHANICS (548): THE PATH Library → Mechanics → Card type → System → Make → Model → Engine, ON THE REAL FILES ---------- */
-check('Mechanics (batch E): Library → Mechanics asks a specific model or any; specific → Brand → Engine narrows to one car\'s parts; Any asks no brand; a card is tags, one drawing and a part\'s one line; every car attribute its own tag; Computer Science → PC parts by type', async () => {
+check('Mechanics (batch E): Library → Mechanics asks Car or Car part (owner, 7 Nov); Car → Brand → Engine narrows to one car, Car part → the same to its parts; a card is tags, one drawing and a part\'s one line; every car attribute its own tag; Computer Science → PC parts by type', async () => {
   const serveAll = url => {
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
@@ -378,20 +378,26 @@ check('Mechanics (batch E): Library → Mechanics asks a specific model or any; 
   if (vals('subject').indexOf('Mechanics') < 0) bad.push('Library offers no Mechanics subject');
   S.filters.push({ field: 'subject', value: 'Mechanics' });
   const base = S.filters.slice();
-  if (next() !== 'mScope') bad.push('Mechanics asks ' + next() + ' first, not "a specific model, or any?"');
-  S.filters = base.concat({ field: 'mScope', value: 'Any model' });
-  if (['mMake', 'mModel', 'mEngine'].indexOf(next()) >= 0) bad.push('Any model still asks ' + next());
-  if (w.stuffFiltered().some(x => x.mKind !== 'Part')) bad.push('Any model lists something that is not a part');
-  S.filters = base.concat({ field: 'mScope', value: 'A specific model' });
+  if (next() !== 'mScope') bad.push('Mechanics asks ' + next() + ' first, not "Car or car part?"');
+  if (vals('mScope').sort().join() !== 'Car,Car part') bad.push('Mechanics\' first menu offers ' + vals('mScope').join(', ') + ', not Car and Car part');
+  S.filters = base.concat({ field: 'mScope', value: 'Car part' });
+  if (w.stuffFiltered().some(x => x.mKind !== 'Part')) bad.push('Car part lists something that is not a part');
+  S.filters = base.concat({ field: 'mScope', value: 'Car' });
+  if (w.stuffFiltered().some(x => x.mKind !== 'Car')) bad.push('Car lists something that is not a car');
   if (vals('mMake').sort().join() !== 'Ford,Renault,Vauxhall,Volkswagen') bad.push('Brand offers ' + vals('mMake').join());
   S.filters.push({ field: 'mMake', value: 'Renault' });
   if (vals('mEngine').length !== 4) bad.push('the Clio offers ' + vals('mEngine').length + ' engines, wanted 4: ' + vals('mEngine').join(', '));
-  const clio = w.stuffFiltered().filter(x => x.mKind === 'Part').length;
   S.filters.push({ field: 'mEngine', value: 'K9K' });
-  const dci = w.stuffFiltered();
-  if (!dci.some(x => x.mKind === 'Car') || dci.filter(x => x.mKind === 'Part').length >= clio) bad.push('Renault → K9K did not narrow to the car and its parts');
-  if (dci.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
+  const dciCar = w.stuffFiltered();
+  /* A CAR'S PARTS: Car part, then the same car, narrows the parts to those that fit it. */
+  S.filters = base.concat({ field: 'mScope', value: 'Car part' }, { field: 'mMake', value: 'Renault' });
+  const clio = w.stuffFiltered().length;
+  S.filters.push({ field: 'mEngine', value: 'K9K' });
+  const dciParts = w.stuffFiltered(), dci = dciCar.concat(dciParts);
+  if (!dciCar.some(x => x.mKind === 'Car') || !dciParts.length || dciParts.length >= clio) bad.push('Renault → K9K did not narrow to the car and to its parts');
+  if (dciParts.some(x => x.name === 'Spark plugs')) bad.push('the diesel is offered spark plugs');
   /* A TAG OMITS WHAT A CHIP ALREADY SAYS (owner, 6 Nov): every attribute is checked on cards drawn with no chips, and the chosen ones are checked gone. */
+  S.filters = base.concat({ field: 'mScope', value: 'Car' }, { field: 'mMake', value: 'Renault' }, { field: 'mEngine', value: 'K9K' });
   const chosen = S.filters.slice(), car = dci.find(x => x.mKind === 'Car'), picked = car ? w.stuffCard(car, 0) : '';
   ['Renault', 'K9K'].forEach(v => { if (picked.indexOf('>' + v + '<') >= 0) bad.push('the car card repeats the chosen chip "' + v + '" as a tag'); });
   S.filters = [];
@@ -400,7 +406,7 @@ check('Mechanics (batch E): Library → Mechanics asks a specific model or any; 
   /* THE REPORT TILE'S `data-rl` NAMES IT FOR THE REPORT, never drawn: only what is drawn is held to "no title". */
   if (/<h3|Renault Clio III 1\.5/.test(chtml.replace(/(aria-label|data-rl)="[^"]*"/g, ''))) bad.push('the car card draws its whole name as a title or line');
   if (!/data-do="mech-parts"[^>]*data-engine="K9K"/.test(chtml)) bad.push('a car card offers no Parts tile');
-  S.filters = chosen;
+  S.filters = base.concat({ field: 'mScope', value: 'Car part' }, { field: 'mMake', value: 'Renault' }, { field: 'mEngine', value: 'K9K' });
   const part = dci.find(x => x.mKind === 'Part'), html = part ? w.stuffCard(part, 0) : '';
   if ((html.match(/<svg class="pp/g) || []).length !== 1 || (html.match(/class="mech-does"/g) || []).length !== 1 || />K9K</.test(html)) bad.push('a part card is not tags, one drawing and its one line, with the chosen engine left to its chip');
   S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Computer Science' }, { field: 'shelf', value: 'PC parts' }];
@@ -478,7 +484,7 @@ check('Library → a subject offers only shelves that subject has — never Book
     const shelf = w.facetList().find(f => f.field === 'shelf');
     w.facetValues(list, shelf).forEach(v => {
       shelvesSeen++;
-      /* A SHELF MAY BE A LIST (batch D): a boxer is on Boxing and History. */
+      /* A SHELF MAY BE A LIST (batch D), so a card counts on each shelf it names. */
       const n = list.filter(x => [].concat(x.shelf || '').map(String).indexOf(String(v.value)) >= 0).length;
       if (!n) bad.push('Library → ' + sub + ' offers the shelf ' + v.value + ' with no item of that subject on it');
     });
@@ -487,6 +493,8 @@ check('Library → a subject offers only shelves that subject has — never Book
   if (subjects.indexOf('Boxing') >= 0) bad.push('Boxing is still a subject — boxers and bouts are Physical Education (499)');
   S.filters = base.concat([{ field: 'subject', value: 'Physical Education' }]);
   if (!w.stuffFiltered().some(x => x.kind === 'people' && x.boxKind === 'Fighters')) bad.push('Library → Physical Education holds no boxer');
+  /* BOXING ONLY (owner, 7 Nov): Physical Education has no History shelf. */
+  if (w.stuffFiltered().some(x => [].concat(x.shelf || '').indexOf('History') >= 0)) bad.push('Library → Physical Education still has a History shelf');
   /* ANY SUBJECT, AND SHELF IS SUBJECT AGAIN UNDER OTHER NAMES: it is not asked (facetEcho_). */
   S.filters = base.concat([{ field: 'subject', any: true }]);
   const nx = w.nextFacet(w.stuffFiltered());

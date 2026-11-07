@@ -11,7 +11,7 @@ const MECH_FILE_SHELF = { pc: 'PC parts' };
 /* A CAR'S ATTRIBUTES, a facet each; a part answers them through the cars it fits. */
 const MECH_CAR = { mMake: 'make', mModel: 'model', mGen: 'gen', mEngine: 'code', mPhase: 'phase', mMarket: 'market', mYears: 'years',
   mSize: 'size', mValves: 'valves', mBadge: 'badge', mFuel: 'fuel' };
-const MECH_ANY = 'Any model', MECH_ONE = 'A specific model';
+const MECH_PART = 'Car part', MECH_ONE = 'Car';
 
 function mechIndex_() {
   if (MECH.data) return MECH.data;
@@ -62,13 +62,12 @@ function mechChosen_() {
   });
   return out;
 }
-const mechAny_ = () => ((typeof STUFF !== 'undefined' && STUFF && STUFF.filters) || []).some(f => f && f.field === 'mScope' && !f.any && f.value === MECH_ANY);
-/* A CAR ATTRIBUTE OF A CARD: a car's own; a part's, every car it fits that the chosen answers leave — none once "Any model" is chosen. */
+/* A CAR ATTRIBUTE OF A CARD: a car's own; a part's, every car it fits that the chosen answers leave. */
 function mechFit_(x, field) {
   if (!x || x.kind !== 'mech') return '';
   const k = MECH_CAR[field], r = x.mech || {};
   if (x.mFile === 'models') return r[k] || '';
-  if (x.mFile !== 'parts' || mechAny_()) return '';
+  if (x.mFile !== 'parts') return '';
   const chosen = mechChosen_(), out = [];
   (r.fits || []).forEach(code => {
     const c = MECH.cars && MECH.cars.get(code);
@@ -78,8 +77,8 @@ function mechFit_(x, field) {
 }
 /* ON A PART'S CARD a car's tags are said only for the car chosen: thirty fitments would bury what the part is. */
 function mechFitTag_(x, field) { return x && x.mFile === 'parts' && !mechChosen_().length ? '' : mechFit_(x, field); }
-/* THE FIRST MECHANICS QUESTION (owner, 6 Nov): one exact car's every part, or parts in general. A car is a specific model. */
-function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? '' : x.mFile === 'models' ? MECH_ONE : [MECH_ONE, MECH_ANY]; }
+/* THE FIRST MECHANICS QUESTION (owner, 7 Nov): Car or Car part; a part still answers the cars it fits after. */
+function mechScope_(x) { return !x || x.kind !== 'mech' || x.mFile === 'pc' ? '' : x.mFile === 'models' ? MECH_ONE : MECH_PART; }
 const mechOwn_ = (x, file, k) => (x && x.kind === 'mech' && x.mFile === file && x.mech[k]) || '';
 
 /* A CARD IS ITS TAGS AND ITS DRAWING; a part adds one line of what it does. No title: the name is a tag. */
@@ -89,13 +88,13 @@ function mechCard_(x) {
   return `<div class="card fc mech" data-key="${esc(x.key)}" aria-label="${esc(x.name)}">${tagRow_(x)}${mechPic_(x)}${
     r.does ? `<p class="mech-does">${esc(r.does)}</p>` : ''}</div>`;
 }
-/* A CAR'S PARTS ARE A FIND (650): its every part, the car chosen as a specific model (`CARD_EXTRAS_`). */
+/* A CAR'S PARTS ARE A FIND (650): its every part, Car part chosen and the car's make, model and engine (`CARD_EXTRAS_`). */
 function mechExtras_(x) { const r = x.mech || {}; return x.mFile === 'models' && r.code ? { icon: 'search', label: 'Parts', note: 'every part for this car', act: 'mech-parts', data: { engine: r.code } } : null; }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { mech: mechExtras_ });
 
 on('mech-parts', el => {
   const c = (MECH.cars && MECH.cars.get(el.dataset.engine)) || {};
   finderSet_(finderAt_(el), { filters: [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: MECH_SUBJECT },
-    { field: 'mScope', value: MECH_ONE }, { field: 'mMake', value: c.make || '' }, { field: 'mModel', value: c.model || '' },
+    { field: 'mScope', value: MECH_PART }, { field: 'mMake', value: c.make || '' }, { field: 'mModel', value: c.model || '' },
     { field: 'mEngine', value: el.dataset.engine }, { field: 'mKind', value: 'Part' }].filter(f => f.value) });
 });

@@ -393,7 +393,8 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   /* ONE SORT FOR EVERY FACET (396): answers that are all kinds go in the kinds tab's order — data, not a table in What kind. */
   const all = ['Answers', 'Library', 'Projects', 'Practicals', 'Questions'];
   const got = all.slice().sort(w.answerCmp_(all)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Library') bad.push('What kind orders its answers "' + got + '"');
+  /* PROJECTS ARE UNDER LIBRARY (owner, 7 Nov), so they follow it. */
+  if (got !== 'Questions Answers Practicals Library Projects') bad.push('What kind orders its answers "' + got + '"');
   if (Object.keys(kind).some(k => ['orderOf', 'cmp', 'bucketOf'].indexOf(k) >= 0)) bad.push('What kind carries an order of its own again: ' + Object.keys(kind).join(', '));
   const labels = Object.values(w.kindMap_()).map(k => k.label);
   if (labels.indexOf('Films') >= 0 || labels.indexOf('Bundles') >= 0) bad.push('the kinds name ' + labels.filter(l => /Films|Bundles/.test(l)).join(', ') + ' — neither is a kind in Find');

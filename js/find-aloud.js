@@ -605,7 +605,7 @@ function stuffItemsRaw_() {
       born: personYear_(b.dob), died: personYear_(b.dod), from: b.country || '', roles: ['Boxer'], histKind: 'People',
       /* ---------- A DIVISION IS NOT A SUBJECT § */
       /* WHICH OF THE TWO, asked before the weight. § */
-      boxKind: 'Fighters', shelf: ['Boxing', 'History'],
+      boxKind: 'Fighters', shelf: 'Boxing',
       subject: 'Physical Education', division: divisionOf_(b.bestDivision), row: b,
     })),
 

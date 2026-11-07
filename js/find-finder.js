@@ -466,9 +466,10 @@ const FACETS = [
   { field: 'wUnit',      label: 'Unit',       of: x => writingAt_(x, 'unit') },
   { field: 'wAuthor',    label: 'Author',     of: x => writingAt_(x, 'author') },
   { field: 'wForm',      label: 'Kind of writing', of: x => writingAt_(x, 'form') },
+  { field: 'wPrimacy',   label: 'Primary or secondary source', of: x => writingAt_(x, 'primacy') },
   /* MECHANICS (548): a car's facts as tags, read off the row; a row answers only what it has. */
   /* BATCH E: one exact car or any first (`choose`: asked however lopsided), then each car attribute its own question and tag. */
-  { field: 'mScope',    label: 'A specific model, or any?', of: x => mechScope_(x), tagOf: () => '', choose: true },
+  { field: 'mScope',    label: 'Car or car part?', of: x => mechScope_(x), tagOf: () => '', choose: true },
   { field: 'mMake',     label: 'Brand',       of: x => mechFit_(x, 'mMake'), tagOf: x => mechFitTag_(x, 'mMake') },
   { field: 'mModel',    label: 'Model',       of: x => mechFit_(x, 'mModel'), tagOf: x => mechFitTag_(x, 'mModel') },
   { field: 'mGen',      label: 'Generation',  of: x => mechFit_(x, 'mGen'), tagOf: x => mechFitTag_(x, 'mGen') },
@@ -509,7 +510,7 @@ const FACETS = [
   { field: 'boutWinner', label: 'Winner',     of: x => boutWinner_(x) },
   { field: 'boutEvent', label: 'Event',       of: x => (isFight_(x) && x.row && String(x.row.event || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, people, works, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Works' : '') },
+  { field: 'histKind',  label: 'Manuscripts, people, writings, events or timelines', of: x => x.histKind || (/^(pdtext|worktext|writ|writing|content)$/.test(x.kind) && [].concat(x.subject || []).indexOf('History') >= 0 ? 'Writings' : '') },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
   { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
@@ -519,6 +520,8 @@ const FACETS = [
   { field: 'personFrom', label: 'From',       of: x => (isPerson_(x) && x.from) || '' },
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
+  { field: 'histFound', label: 'Found',      of: x => msFound_(x) },
+  { field: 'histDated', label: 'Dated',      of: x => msDated_(x) },
   /* ONE SIDE A CARD (507): the owner, "make front a tag and back a tag, so each widget displays one side". */
   { field: 'histSide',  label: 'Side',        of: x => x.msSide || '' },
   { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
