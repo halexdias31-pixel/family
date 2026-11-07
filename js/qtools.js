@@ -22,8 +22,8 @@ const QT_ORDER = QT_TOOLS.map(t => t.id);
 const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
-/* ONE OF EACH CONTROL A CARD (1040 r12): the magnifier, padlock and Read aloud are the card foot's; one Read aloud reads every part (owner, read-aloud-parts b). */
-const QT_CARD_LEVEL = { mag: 1, lock: 1, read: 1 };
+/* THE SAME ROW ON EVERY PART (owner, 7 Nov): magnifier, padlock and Read aloud included; Read aloud reads its own part. */
+const QT_CARD_LEVEL = {};
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
 const qtHere_ = id => !QT_CARD_LEVEL[id];
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
@@ -117,10 +117,11 @@ const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the s
 function qtToolTile_(t, x) {
   const key = (x && x.key) || '';
   if (t.id === 'mag') return typeof magOpts_ === 'function' ? tile_(magOpts_()) : '';
-  /* THE PADLOCK IS THE CARD FOOT'S (1040 r12, `qtHere_`); this tile is drawn only if a caller asks for it by id */
   if (t.id === 'lock') return typeof qLockOpts_ === 'function' ? tile_(qLockOpts_()) : '';
   if (t.id === 'read') {
-    const live = typeof readAloudOpts_ === 'function' ? tile_(readAloudOpts_(x)) : '';
+    const o = typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null;
+    if (o) o.data = Object.assign({}, o.data, { part: 1 });
+    const live = o ? tile_(o) : '';
     return live || tile_({ icon: t.icon, label: t.label, note: 'not on this device', act: 'read-aloud', cls: 'read-aloud', off: true, data: { key } });
   }
   if (t.id === 'photo') {

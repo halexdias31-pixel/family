@@ -618,8 +618,10 @@ const ansCards_ = (w, tag) => {
 };
 const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
 const ansStroke_ = (w, c, pts) => {
-  /* NO LOCK TO PRESS FIRST (368): the pointerdown on the ink gives the pad the pen. */
-  const ink = c.pad().querySelector('.qpad-ink');
+  /* THE PEN PICKED FIRST (owner, 7 Nov): an unpicked figure never inks; picked already, it stays picked. */
+  const pd = c.pad(), k = pd.getAttribute('data-k');
+  if (w.__t.padNow() !== k || (w.__t.padTool().get(k) || 'pen') !== 'pen') w.padToolPick_(pd, 'pen');
+  const ink = pd.querySelector('.qpad-ink');
   ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
   const Ev = w.PointerEvent || w.MouseEvent;
   const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));

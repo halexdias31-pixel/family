@@ -412,7 +412,8 @@ function cardTiles_(x) {
   /* ONE READ-ALOUD PER CARD (owner's look rule): a language card's Hear it stands in for Read aloud, never beside it. */
   const hear = typeof hearItOpts_ === 'function' ? hearItOpts_(x) : null;
   const mine = cardCore_(x) + cardExtras_(x)
-    + tile_(hear || (typeof readAloudOpts_ === 'function' ? readAloudOpts_(x) : null))
+    /* a question's Read aloud is each part's (`qtRow_`) */
+    + tile_(hear || (typeof readAloudOpts_ === 'function' && !isQ_(x) ? readAloudOpts_(x) : null))
     + tile_([typeof speedOpts_ === 'function' ? speedOpts_(x) : null, typeof magCardOpts_ === 'function' ? magCardOpts_(x) : null, finderOpenOpts_(x)]) + (x.more || '')
     /* a question's padlock is its tool row's (`qtRow_`), so it has one, not two */
     + (x.key && !isMeCard_(x) && !isQ_(x) && typeof gameLockTile_ === 'function' ? gameLockTile_('c:' + x.key) : '');

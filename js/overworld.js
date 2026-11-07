@@ -210,13 +210,18 @@ function pageHold_(on) {
   (on ? addEventListener : removeEventListener)('keydown', padStop_);
 }
 
+/* A PEN'S INK KEEPS THE DRAG ONLY WHILE ITS PEN IS PICKED (owner, 7 Nov): an unarmed figure scrolls like the page */
+function noSwipe_(t) {
+  const n = t && t.closest ? t.closest('[data-noswipe]') : null;
+  return !!n && !(n.classList && n.classList.contains('qpad-ink') && !n.closest('.qpad.is-drawing'));
+}
 /* DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER? § */
 function axisFree(target, axis, dir) {
   /* ---------- THE SHEET NO LONGER BLOCKS EVERYTHING, ONLY THE GRID § */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is the page (420)
   if (padlocked_()) return false;
   /* ---------- A SELECT IS NOT NAMED, AND A TEXTAREA IS MEASURED § */
-  if (target.closest?.('[data-noswipe]')) return false;
+  if (noSwipe_(target)) return false;
   /* A cell is not a scroll container any more, so the walk below stops at anything genuinely inside one — the docket's list, the notepad — and hands everything § */
 
   return !scrollHost_(target, axis, dir);
@@ -364,7 +369,7 @@ addEventListener('pointermove', e => {
       if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
         /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT § */
         const host = axis === 'y' && $('sheet').classList.contains('hidden')
-          && !SWIPE.target.closest?.('[data-noswipe]')
+          && !noSwipe_(SWIPE.target)
           ? scrollHost_(SWIPE.target, axis, dir) : null;
         if (!host) { swipeDrop_(); return; }
         SWIPE.scroll = host;
@@ -670,7 +675,7 @@ addEventListener('pointerdown', e => {
   if (!e.isPrimary || typeof sheetStep !== 'function' || !sheetStep) return;
   if ($('sheet').classList.contains('hidden')) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-  if (e.target.closest?.('input, textarea, select, button, a, [data-noswipe]')) return;
+  if (e.target.closest?.('input, textarea, select, button, a') || noSwipe_(e.target)) return;
   SHEET_FLICK.live = true; SHEET_FLICK.id = e.pointerId;
   SHEET_FLICK.x = e.clientX; SHEET_FLICK.y = e.clientY; SHEET_FLICK.at = Date.now();
 }, { passive: true });

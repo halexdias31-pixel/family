@@ -381,8 +381,7 @@ document.addEventListener('pointerdown', e => {
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   const pad = ink && ink.closest('.qpad');
   const k = pad ? pad.getAttribute('data-k') || '' : '';
-  /* THE FIRST TOUCH DRAWS (368): a contact on a pad's ink with nothing else down takes the pen to that pad; there is no lock. */
-  if (pad && k && k !== PAD_ON && !PAD_TOUCH.size && !PAD_GO && !PAD_TWO.size) padTake_(pad, k);
+  /* THE PEN IS OFF UNTIL PICKED (owner, 7 Nov): only the pad whose tool was chosen (`padToolPick_`) draws, so scrolling never inks */
   if (!pad || !PAD_ON || k !== PAD_ON) {
     if (PAD_ON && e.pointerType === 'touch') padLand_(e, null, '');
     return;

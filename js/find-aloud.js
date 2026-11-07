@@ -169,8 +169,8 @@ on('read-aloud', el => {
   if (!k || was === k) return;
   let x = null;
   try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
-  /* EVERY PART, ONCE (owner, read-aloud-parts b): a stem shared by the parts is said the first time only */
-  const parts = x && isQ_(x) && qMulti_(x) ? questionParts_()[qId_(x)] : [x];
+  /* A PART'S OWN TILE READS THAT PART (owner, 7 Nov); otherwise every part, a shared stem said once */
+  const parts = x && el.hasAttribute('data-part') ? [x] : x && isQ_(x) && qMulti_(x) ? questionParts_()[qId_(x)] : [x];
   const lines = [...new Set([].concat(...parts.map(readAloudLines_)))];
   if (!lines.length || !canSay_()) return;
   const me = READ_NOW = { key: k, at: AT, page: PAGE[AT] || 0 };
