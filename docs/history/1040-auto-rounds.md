@@ -291,3 +291,9 @@ Left: coupling over budget in data.js, shell-api.js, me-account.js, find-pages.j
 - Theme: the dup in js/finder-tags.js (115 lines repeated across the two views). tools/finder-tags.js now writes the questions every view asks alike once (`same`) and merges them into each view at load; 252 → 135 lines, every view's content proven identical. Consumers unchanged.
 - owner_answers / claude_notes: not read (no ledger id at hand this sweep).
 Left: best-split menu order (a), lazy-load secondary files (c), coupling budgets in data.js, shell-api.js, me-account.js, find-pages.js.
+
+## Sweep 04:36
+
+- Theme: menus always ask the best split (rule 7, owner 6 Nov). `nextFacet` now picks, of the questions the one rule lets through, the highest `facetBits_` (bits, capped at 2 so a many-answer Part cannot beat Subject), sort_order breaking ties; a coarser question (`facetInside_`, memoised per list) still comes before its finer one; kind questions and the front stay first. logic-health uses the same score; check-funnel tests the new rule.
+- Menu-rule 97 → 22, logic-health 84.2% → 90.9%. Menu journeys (70) pass with LIB_PRIVATE=absent. Screenshots: front, Practice › Questions (asks Subject), Library › Art and Design.
+- claude_notes: 3 new (front-pills asked; inFinder_ error already fixed; Any-kind menu addressed). No owner_answers tab in the ledger.

@@ -11,3 +11,6 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1793741725668-21268 | 6 Nov 2026 | past paper reads "Paper thirty-something"; add Section A/B | done Sweep 12:37 — "Paper 3", Section its own tag (all papers) |
 | N-1793906270269-55655 | 6 Nov 2026 | "why does it look like this" on a Practice path, no picture | asked in owner-questions (Sweep 12:37) |
 | N-1793974302439-30750 | 6 Nov 2026 | move Camera and Posts into Find, Camera as a tool | asked in owner-questions (Sweep 14:37) — a visible layout change |
+| N-1794015625834-43331 | 7 Nov 2026 | front menu: only twelve pills, the rest inside one of them | asked in owner-questions (`front-pills`, Sweep 04:36) — where Reels, Flyers, Posters, Verse go |
+| N-1794015953454-11243 | 7 Nov 2026 | error report: inFinder_ undefined (stuff) | already fixed — declared in find-finder.js, loaded before its readers; `check.js` clean |
+| N-1794016059636-38932 | 7 Nov 2026 | after Any what kind only Subject is offered — rule looks inconsistent | Sweep 04:36: the next menu is now the best split for every menu, not the tab's order; re-check |

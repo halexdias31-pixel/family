@@ -428,7 +428,7 @@ const spellKey_ = v => {
    said by `facetSay_`, coloured by `tagOf_`. */
 /* Two optional readers, both about the value: `tagOf` is what one PAGE carries (the answer page says Answers), `showOf`
    the name of a value that is an id (a paper). */
-/* The order here is only the fallback for a facet the facets tab does not place; the tab's sort_order is the order. */
+/* The order here is only the fallback for a facet the facets tab does not place; the tab's sort_order is the order, and the tie-break between equal splits. */
 const FACETS = [
   { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
   /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */

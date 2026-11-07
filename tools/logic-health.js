@@ -96,9 +96,10 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
         sig.forEach((h, i) => sig.forEach((g, j) => { if (j > i && g === h && values[i].n > 1) tw.push((values[i].show || values[i].value) + ' = ' + (values[j].show || values[j].value)); }));
         if (tw.length) bad.twins = tw.slice(0, 3);
         const askable = facetList().filter(G => asked.indexOf(G.field) === -1 && !facetWhy_(S, G)).map(G => G.field);
-        /* MENU RULE (920): how well each askable question splits the sample, in bits; the asked one is judged on the same sample. */
-        const bits = G => { const vs = facetValues(S, G), t = vs.reduce((a, v) => a + v.n, 0); return t ? vs.reduce((a, v) => v.n ? a - v.n / t * Math.log2(v.n / t) : a, 0) : 0; };
-        const split = {}; askable.concat([f.field]).forEach(k => { const G = facetBy(k); if (G) split[k] = Math.round(bits(G) * 100) / 100; });
+        /* MENU RULE (920): how well each askable question splits the sample, in bits up to enough (facetBits_); the asked one is judged on the same sample. */
+        const split = {}; askable.concat([f.field]).forEach(k => { const G = facetBy(k); if (G) split[k] = facetBits_(S, G); });
+        /* A finer question asked after its coarser one is the subtype rule, not a menu-rule miss (nextFacet does the same). */
+        askable.forEach(k => { const G = facetBy(k); if (G && k !== f.field && fn(G, f, S) && !fn(f, G, S)) delete split[k]; });
         /* MENU SENSE (920): two answers one letter or an s apart, and an answer that keeps no card. */
         const near = (a, b) => { if (a === b) return true; if (Math.abs(a.length - b.length) > 1 || a.length < 5) return false;
           let i = 0; while (i < a.length && a[i] === b[i]) i++; return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i); };
@@ -132,7 +133,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
           const twice = low.some((b, j) => j !== i && b.length > 3 && at(a, b).length > 1);
           if (inner.length >= 2 || twice) { const rows = items.filter(x => facetOwn_(f, x).some(t => String(t).toLowerCase() === a)).slice(0, 3).map(x => (x.kind || '?') + ':' + (x.id || x.key || x.name));
             merged.push('"' + values[i].value + '" holds ' + (inner.slice(0, 2).map(b => '"' + b + '"').join(' + ') || 'one answer twice') + ' — rows ' + rows.join(', ')); } });
-        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), mangled: mangled.slice(0, 3), merged: merged.slice(0, 3) };
+        return { n: items.length, field: f.field, label: f.label, answers: values.map(v => [v.value, v.show || v.value, v.n]), bad, askable, split, kind: kindNamed_(values), dup: dup.slice(0, 3), dead: dead.slice(0, 3), thin, zero: zero.slice(0, 3), words: words.slice(0, 3), mangled: mangled.slice(0, 3), merged: merged.slice(0, 3) };
       });
       if (!r) continue;
       nodes.push(Object.assign({ path: filters.map(g => [g.field, g.value]), ms: Date.now() - t1 }, r));
@@ -179,8 +180,8 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
   const top = sick.slice().sort((a, b) => Object.keys(b.bad).length - Object.keys(a.bad).length || b.n - a.n || (where(a) < where(b) ? -1 : 1))
     .slice(0, 25).map(nd => ({ where: where(nd), asks: nd.label, cards: nd.n,
       why: Object.keys(nd.bad).map(k => RULES[k] + ': ' + nd.bad[k].join('; ')) }));
-  /* MENU RULE (920): a node whose asked question splits worse than the best askable one by over a tenth of a bit. */
-  const menuRule = asked.filter(nd => nd.split).map(nd => { let b = nd.field;
+  /* MENU RULE (920): a node whose asked question splits worse than the best askable one by over a tenth of a bit; the front is the owner's (4 Nov). */
+  const menuRule = asked.filter(nd => nd.split && where(nd) !== 'Find' && !nd.kind).map(nd => { let b = nd.field;
     Object.keys(nd.split).forEach(k => { if (nd.split[k] > nd.split[b]) b = k; });
     return { where: where(nd), asks: nd.field, bits: nd.split[nd.field], best: b, bestBits: nd.split[b], cards: nd.n }; })
     .filter(m => m.bestBits - m.bits > 0.1).sort((a, b) => (b.bestBits - b.bits) * b.cards - (a.bestBits - a.bits) * a.cards);
@@ -199,7 +200,7 @@ if (!MANGLED('Hi tory of the Chri tian Church', ['History of the Christian Churc
     (nd.merged || []).forEach(d => menuSense.push({ where: where(nd), kind: 'merged-value', say: nd.label + ': ' + d }));
     if (nd.bad.single) menuSense.push({ where: where(nd), kind: 'single', say: nd.label + ' asked with one answer' });
   });
-  got.forEach(nd => { delete nd.split; delete nd.dup; delete nd.dead; delete nd.thin; delete nd.zero; delete nd.words; delete nd.mangled; delete nd.merged; });
+  got.forEach(nd => { delete nd.kind; delete nd.split; delete nd.dup; delete nd.dead; delete nd.thin; delete nd.zero; delete nd.words; delete nd.mangled; delete nd.merged; });
   const out = { score, questions: asked.length, healthy: asked.length - sick.length,
     walked: { nodes: got.length, maxNodes: MAX_NODES, maxDepth: MAX_DEPTH, maxChildren: MAX_CHILDREN, sample: SAMPLE },
     rules: Object.keys(RULES).map(k => ({ id: k, label: RULES[k], count: counts[k] })),

@@ -51,7 +51,7 @@ function boot(cb) {
   const src = loadOrder_().map(n => fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
-      ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
+      ' facetSplit_, facetBits_, facetInside_, kindNamed_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, STUFF, stuffHay_, norm,' +
       ' stuffNarrow_, stuffWords_, tagOf_, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
       ' answerCmp_, placeChipDead_, NEED_WORDS,' +
@@ -159,9 +159,17 @@ boot(f => {
       if (facets[i].at < facets[i - 1].at) { bad.push('the live facets are not in the tab\'s sort_order: `' + facets[i - 1].field + '` (' + facets[i - 1].at + ') before `' + facets[i].field + '` (' + facets[i].at + ')'); break; }
     }
   }
-  /* AND ASKED BY THE ONE TEST: the first facet in the tab's order that `facetWhy_` passes, whatever it is. */
-  if (f.facetWhy_) {
-    const first = facets.find(x => !f.facetWhy_(items, x));
+  /* AND ASKED BY THE ONE TEST (rule 7): of the facets `facetWhy_` passes, the best split; the tab's order breaks ties; the front stays What kind. */
+  if (f.facetWhy_ && f.facetBits_ && f.facetInside_) {
+    const ok = facets.filter(x => !f.facetWhy_(items, x)), score = x => Math.round(f.facetBits_(items, x) * 100) / 100;
+    const front = (!(f.STUFF && f.STUFF.filters && f.STUFF.filters.length) && ok.find(x => x.field === 'kindLabel')) || (f.kindNamed_ && ok.find(x => f.kindNamed_(f.facetValues(items, x))));
+    const top = list => list.reduce((b, x) => (!b || score(x) > score(b) ? x : b), null);
+    let first = front || top(ok);
+    for (let hop = 0; !front && first && hop < 4; hop++) {
+      const up = top(ok.filter(x => x !== first && f.facetInside_(first, x, items) && !f.facetInside_(x, first, items)));
+      if (!up) break;
+      first = up;
+    }
     const asked = f.nextFacet(items);
     if ((first && first.field) !== (asked && asked.field)) bad.push('nextFacet asks `' + (asked && asked.field) + '` where the one rule picks `' + (first && first.field) + '`');
   }
