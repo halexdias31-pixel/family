@@ -712,10 +712,16 @@ function libPagesFresh_() {
 /* WORDS AHEAD OF THE READER (447): fewer than LIB_AHEAD cards ahead whole or on their way asks the next LIB_AHEAD_BATCH
    in one call; on the question page, the first screenful once typing stops. */
 function libAheadCards_(pages, from, n) {
-  const out = [];
-  for (let i = Math.max(0, from); i < pages.length && out.length < n; i++) {
+  /* Counted by question: a waiting question's parts are a card each, but one card once its words land. */
+  const out = [], seen = new Set();
+  for (let i = Math.max(0, from); i < pages.length; i++) {
     const x = pages[i] && pages[i].x;
-    if (x && out.indexOf(x) === -1) out.push(x);
+    if (!x || out.indexOf(x) !== -1) continue;
+    let k = x;
+    try { if (isQ_(x)) k = 'q:' + (qId_(x) || x.key); } catch (e) { k = x; }
+    if (!seen.has(k) && seen.size >= n) break;
+    seen.add(k);
+    out.push(x);
   }
   return out;
 }
@@ -730,10 +736,12 @@ function libAhead_() {
   try { pages = stuffPages_(); at = (PAGE[F.id] || 0) - stuffFirstResult_(); } catch (e) { return; }
   if (!pages.length) return;
   if (at < 0) {
-    clearTimeout(LIB.ahead);
+    /* ONE WAIT PER FINDER: the other finder filling must not cancel this one's first ask. */
+    const T = LIB.ahead = (LIB.ahead && typeof LIB.ahead === 'object') ? LIB.ahead : {};
+    clearTimeout(T[F.id]);
     const first = libAheadCards_(pages, 0, LIB_AHEAD);
     if (first.some(libSlim_)) {
-      LIB.ahead = setTimeout(() => inFinder_(F, () => { const p = stuffPages_(); if (p[0] && p[0].x === first[0]) libAheadAsk_(libAheadCards_(p, 0, LIB_AHEAD)); }), 700);
+      T[F.id] = setTimeout(() => inFinder_(F, () => { const p = stuffPages_(); if (p[0] && p[0].x === first[0]) libAheadAsk_(libAheadCards_(p, 0, LIB_AHEAD)); }), 700);
     }
     return;
   }

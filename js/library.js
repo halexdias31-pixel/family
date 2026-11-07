@@ -489,7 +489,7 @@ function libraryInto_(d, rows) {
 /* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
    `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */
 const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), refused: new Set(), failed: '',
-              timer: 0, filled: new Set(), gen: 0, ahead: 0, disk: null, diskP: null, ledger: '' };
+              timer: 0, filled: new Set(), gen: 0, ahead: {}, disk: null, diskP: null, ledger: '' };
 /* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
 const LIB_PER_ASK = 60;
 /* WORDS AHEAD OF THE READER (447): when fewer than LIB_AHEAD cards past the one in front are whole or on their way,
@@ -545,7 +545,10 @@ function libPump_() {
   }
   libFromDisk_();
   if (!LIB.pending.size) return;
-  const ids = [...LIB.pending].slice(0, LIB_PER_ASK);
+  /* EVERY CHUNK AT ONCE: one after another, a batch over the cap reached the reader a whole round trip late. */
+  while (LIB.pending.size) libSend_([...LIB.pending].slice(0, LIB_PER_ASK));
+}
+function libSend_(ids) {
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = USER.token;
   send({ action: 'libItems', personId: USER.personId || '', ids: ids })
