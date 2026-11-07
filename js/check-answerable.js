@@ -137,9 +137,9 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     byId = new Map(w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row).map(x => [x.row.row_id, x]));
   };
   await fresh();
-  const need = ['stuffItemsAll_', 'stuffCard', 'questionWhole_', 'qId_', 'markAnswer_', 'markWords_', 'markCells_',
+  const need = ['stuffItemsAll_', 'stuffCard', 'questionWhole_', 'markAnswer_', 'markWords_', 'markCells_',
     'cellsOf_', 'qType_', 'drawFig_', 'questionParts_', 'insertsFor_', 'stemChunks_', 'partChunks_', 'markOrder_', 'orderWays_', 'qtRow_', 'qtPenSet_', 'markerOf_', 'padSource_', 'padHasArt_'];
-  const missing = need.filter(n => typeof w[n] !== 'function');
+  const missing = need.filter(n => typeof w[n] !== 'function').concat(A && typeof A.qId === 'function' ? [] : ['qId_']);
   if (!missing.length && A && !(Array.isArray(A.QT_ORDER) && A.QT_ORDER.join(' ') === TOOL_ORDER.join(' '))) missing.push('QT_ORDER in the owner\'s order (' + TOOL_ORDER.join(' ') + ')');
   if (missing.length || !A || !A.DM) { console.log('FAILED — not reachable in the app: ' + missing.concat(A && A.DM ? [] : ['DRAW_MARK']).join(', ') + ' — NOTHING was checked'); process.exit(1); }
   if (process.env.HEAP) fs.writeSync(2, 'booted ' + Math.round(process.memoryUsage().heapUsed / 1e6) + 'MB\n');
@@ -318,7 +318,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     /* ---------- EVERY PAGE OF IT, AND WHAT IT READS ---------- */
     try {
       /* ONE CARD PER QUESTION NUMBER (960): its openings and every part on it. */
-      host.innerHTML = w.questionWhole_(x, w.questionParts_()[w.qId_(x)] || [x], null, true);
+      host.innerHTML = w.questionWhole_(x, w.questionParts_()[A.qId(x)] || [x], null, true);
       count.pages++;
       if (!has('[data-do="q-mag"]')) bad('magnifier', x, 'its card has no Magnifier');
       if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
