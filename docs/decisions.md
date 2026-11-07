@@ -127,3 +127,4 @@ become an owner question showing both; never pick one.
 - 7 Nov · L (how we work): report only results and "safe to merge" (or when the owner is needed); silence otherwise.
 - 7 Nov · L (how we work): a question that comes up mid-work is decided by the philosophy and logged here; the owner can overrule later. Ask only on contradictions or irreversible steps.
 - 7 Nov · L (how we work): usage — heavy by default for now (parallel workflows); the owner will say if it runs out too fast.
+- 7 Nov · P8/P3 (booking form): the form IS the booking record — the same lines always; statuses are its 6 tick lines (Requested … Completed), greyed until ticked; a line that doesn't apply shows a greyed "—". Keep the 3 price columns (×, +/h, running total), each filled where it applies, no lines that cancel out, one period multiplier. Keep the weekday grid. No tutor rate beside the tutor's name. Guess tally: 3 of 4 right.
