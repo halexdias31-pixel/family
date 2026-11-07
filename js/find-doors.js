@@ -85,7 +85,8 @@ function profileDoorCard_(x) {
   const t = x.row || {};
   return `<div class="card is-prof prof-door">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${typeof peopleTiles_ === 'function' ? tileRow_(peopleTiles_(t), 'person-tiles') : ''}</div>`;
+    ${tileRow_((x.profileType.indexOf('Tutor') !== -1 && typeof bookTile_ === 'function' ? bookTile_(x) : '')
+      + (typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}</div>`;
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */
@@ -141,18 +142,15 @@ function settingDoorItems_() {
       if (settingNone_(html) || (g.id && seen[g.id])) return;
       if (g.id) seen[g.id] = 1;
       const name = settingName_(html, g.id, tags[g.id]);
-      if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, ok && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
+      if (name) add(name, g.id, { col: col, at: i, id: g.id || '' }, type, (ok || /^\s*<div\b[^>]*\bdata-yours="1"/.test(html)) && !/^\s*<div\b[^>]*\bis-locked\b/.test(html));
     });
   });
   if (rankAtLeast_('admin')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
-  /* APPLY TO TEACH (owner, 7 Nov): a non-tutor sees tutor settings shut, so the way in is its own setting, open and first among Staff. */
-  if (!rankAtLeast_('staff') && typeof applyTile_ === 'function' && applyTile_()) add('Apply to teach', 'set:apply', { apply: true }, 'Staff', true);
   out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
   return out;
 }
 function settingPart_(p) {
   if (p.notify) return notifyDoorCard_();
-  if (p.apply) return `<div class="card apply-door"><h3>Apply to teach</h3>${typeof applyTile_ === 'function' ? applyTile_() : ''}</div>`;
   const gs = settingGroups_(p.col), g = (p.id && gs.find(k => k.id === p.id)) || gs[p.at];
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }

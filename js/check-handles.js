@@ -75,6 +75,7 @@ const SRC = [
   grab(consts, /const RATE_MAX[^;]*;/, 'RATE_MAX'),
   grab(consts, /const SEAT_RATE_MAX[^;]*;/, 'SEAT_RATE_MAX'),
   grab(people, /function pricingMoved_\([\s\S]*?\n\}/, 'pricingMoved_'),
+  grab(people, /function pricingChanged_\([\s\S]*?\n\}/, 'pricingChanged_'),
   grab(people, /function pricingRefusal_\([\s\S]*?\n\}/, 'pricingRefusal_'),
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) § */
   grab(consts, /const SEAT_CUT_FIELD[^;]*;/, 'SEAT_CUT_FIELD'),
@@ -486,6 +487,7 @@ function run() {
        'down is a change too — a rate that falls strands sessions already agreed at the old one'],
     ['yes', PRIold, { rate_per_hour: 40, max_students: 6 }, false, 'last moved two hundred days ago'],
     ['yes', PRI,    { rate_per_hour: 40 }, false, 'never moved — no cell, so no cooldown'],
+    ['yes', Object.assign({}, PRInew, { max_students: '' }), { max_students: 3 }, false, 'a blank class size filled after the rate is setting up, not a change (1150)'],
     ['yes', PRInew, { rate_per_hour: 40 }, true,
        'an admin fixing a rate is the remedy, not the thing being braked'],
     /* THE SHAPES THE PRICE CANNOT USE, refused for an admin too — see `pricingRefusal_`. */

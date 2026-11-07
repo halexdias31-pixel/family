@@ -287,12 +287,16 @@ function isMe_(x) {
   return norm(x.name) === norm(USER.name);
 }
 
+/* BOOK THIS TUTOR: never on your own card or a child's; the tutor card and Find › Profiles share it (1150). */
+function bookTile_(x) {
+  const t = (x && x.row) || {};
+  return !isMe_(x) && !childView_() && t.listed !== false ? tile_({ icon: 'book', label: 'Book', tone: 'buy',
+    act: 'book-with', data: { tutor: x.name || '' } }) : '';
+}
 function tutorTiles_(x) {
   const t = x.row || {};
   return `
-    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered; never on your own card or a child's. */
-          !isMe_(x) && !childView_() && t.listed !== false ? tile_({ icon: 'book', label: 'Book', tone: 'buy',
-              act: 'book-with', data: { tutor: x.name || '' } }) : ''}
+    ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookTile_(x)}
     ${/* SILVER, IN THE ORDINARY ROW. § */
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */

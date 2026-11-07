@@ -154,7 +154,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       const wantLocks = (col === 'staff' ? ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
       if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
-    if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
+    if (rank === 'client' && !q('#s-staff .apply-card [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
     if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor settings has no Staff hub');
     /* THE PEOPLE COLUMNS: your own card first where you belong, a person drawn in each category they hold. */
     const home = { student: 's-students', client: 's-parents', staff: 's-tutors', admin: 's-tutors' }[rank];
