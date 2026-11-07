@@ -382,7 +382,8 @@ function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
   const ctx = { x: x, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
   const tree = qTree_(list);
-  const tools = tile_([magOpts_(), qLockOpts_(), qMulti_(x) ? null : readAloudOpts_(x)]);
+  /* READ ALOUD IS `cardTiles_`'s, one per card, reading every part (owner, read-aloud-parts b) */
+  const tools = tile_([magOpts_(), qLockOpts_()]);
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null);
   const foot = cardTiles_(Object.assign(Object.create(x), { lead: help, more: (x.more || '') + tools }));
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">

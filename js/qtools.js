@@ -22,10 +22,10 @@ const QT_ORDER = QT_TOOLS.map(t => t.id);
 const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
-/* ONE OF EACH CONTROL A CARD (1040 r12): the magnifier and padlock hold the page, so they are the card foot's; a part reads itself aloud only where the card has more parts. */
-const QT_CARD_LEVEL = { mag: 1, lock: 1 };
+/* ONE OF EACH CONTROL A CARD (1040 r12): the magnifier, padlock and Read aloud are the card foot's; one Read aloud reads every part (owner, read-aloud-parts b). */
+const QT_CARD_LEVEL = { mag: 1, lock: 1, read: 1 };
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
-const qtHere_ = (id, x) => !QT_CARD_LEVEL[id] && (id !== 'read' || qMulti_(x));
+const qtHere_ = id => !QT_CARD_LEVEL[id];
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */

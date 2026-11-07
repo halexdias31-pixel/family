@@ -169,7 +169,9 @@ on('read-aloud', el => {
   if (!k || was === k) return;
   let x = null;
   try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
-  const lines = readAloudLines_(x);
+  /* EVERY PART, ONCE (owner, read-aloud-parts b): a stem shared by the parts is said the first time only */
+  const parts = x && isQ_(x) && qMulti_(x) ? questionParts_()[qId_(x)] : [x];
+  const lines = [...new Set([].concat(...parts.map(readAloudLines_)))];
   if (!lines.length || !canSay_()) return;
   const me = READ_NOW = { key: k, at: AT, page: PAGE[AT] || 0 };
   readAloudPaint_(k);

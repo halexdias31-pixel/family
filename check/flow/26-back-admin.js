@@ -27,9 +27,11 @@ check('a part with an answer box, its words landed from the Ledger, shows them o
     ['1a', '1b', '1c'].forEach(p => {
       const row = full.find(r => r.row_id === 'Q-1MA1-2211-2H-' + p);
       const want = strip(W.document.createRange().createContextualFragment('<div>' + row.html + '</div>').firstChild).slice(0, 30);
-      const k = W.stuffPages_().findIndex(pg => pg.x.row && pg.x.row.row_id === row.row_id && pg.part === null);
-      const page = k >= 0 ? cards[W.__t.domIndex('stuff', W.stuffFirstResult_() + k)] : null;
-      if (!page) { bad.push('Q' + p + ' has no card page once its words came'); return; }
+      /* ONE CARD PER QUESTION NUMBER (960): each part is its own block (`.qb-part`) on Q1's one page */
+      const k = W.stuffPages_().findIndex(pg => pg.part === 'q' && (pg.parts || [pg.x]).some(y => y.row && y.row.row_id === row.row_id));
+      const card = k >= 0 ? cards[W.__t.domIndex('stuff', W.stuffFirstResult_() + k)] : null;
+      const page = card ? card.querySelector('.qb-part[data-of="' + row.row_id + '"]') : null;
+      if (!page) { bad.push('Q' + p + ' has no block on its card once its words came'); return; }
       const sheet = page.querySelector('.qsheet');
       if (!page.querySelector('.qp-area, textarea, input')) bad.push('Q' + p + '\'s card has no answer box — not the card in the screenshot');
       if (!sheet || strip(sheet).indexOf(want) === -1) bad.push('Q' + p + '\'s card shows tags and a box but not its words ("' + want + '"): ' + strip(sheet).slice(0, 100));
@@ -697,28 +699,31 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   };
   Object.keys(pick).forEach(k => { if (!pick[k]) bad.push('no ' + k + ' part in the library to hold the toolkit against'); });
   if (bad.length) return bad;
+  /* THE WHOLE CARD (960): the Magnifier and padlock are its foot's since 1040 r12, not a lone part's */
+  const whole = x => w.questionWhole_(x, [x]);
   const host = d.createElement('div');
   d.body.appendChild(host);
   for (const k of Object.keys(pick)) {
     const x = pick[k];
-    host.innerHTML = w.stuffCard(x);
+    host.innerHTML = whole(x);
     const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'rep-box'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
     const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
     if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');
   }
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
-  host.innerHTML = w.stuffCard(pick.drawn);
+  host.innerHTML = whole(pick.drawn);
   const tools = [...host.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(e => e.getAttribute('data-tool'));
   if (tools.join() !== 'pen,line,ruler,protractor,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, straight line, ruler, protractor, compass');
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
-  host.innerHTML = w.stuffCard(pick.typed);
+  host.innerHTML = whole(pick.typed);
   const meas = [...host.querySelectorAll('.q-meast')].map(e => e.getAttribute('data-tool'));
   if (meas.join() !== 'ruler,protractor') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
   /* THE MAGNIFIER (463): on, a mouse over the page carries a 2.5x copy of it, figure and all; a held finger brings it up above the finger and lifting puts it away */
   const ptr = (type, o) => { const e = new w.Event(type, { bubbles: true, cancelable: true }); Object.keys(o).forEach(k => Object.defineProperty(e, k, { value: o[k] })); return e; };
   host.className = 'page';
-  const fig = host.querySelector('.qsheet figure');
+  /* A PART WITH ITS OWN FIGURE IS A PAD FROM THE START (1020): the figure is the pad's art */
+  const fig = host.querySelector('.qsheet figure, .qsheet .qpad-art');
   A['q-mag'](host.querySelector('[data-do="q-mag"]'));
   if (host.querySelector('[data-do="q-mag"]').getAttribute('aria-pressed') !== 'true') bad.push('the Magnifier tile does not say it is on');
   (fig || host).dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 40, clientY: 30 }));
@@ -726,7 +731,7 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   if (!glass) bad.push('a mouse over the page, Magnifier on, brought up no glass');
   else {
     if (!/scale\(2\.5\)/.test(glass.style.transform)) bad.push('the glass is not 2.5 times: ' + glass.style.transform);
-    if (!glass.querySelector('figure svg')) bad.push('the glass has no copy of the figure');
+    if (!glass.querySelector('figure svg, .qpad-art svg')) bad.push('the glass has no copy of the figure');
     if (glass.querySelector('[id]')) bad.push('the copy under the glass keeps ids');
   }
   d.body.dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 5, clientY: 5 }));
@@ -746,11 +751,12 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   const stemmed = all.find(x => (x.stems || []).some(p => p && p.diagram));
   if (!stemmed) bad.push('no part with a stem figure to try a stem page on');
   else {
-    host.innerHTML = w.questionStemCard_(stemmed, (stemmed.stems || []).findIndex(p => p && p.diagram), 0);
+    /* NO STEM PAGE SINCE 960: the stem is drawn once above its parts, on the one card */
+    host.innerHTML = whole(stemmed);
     if (!host.querySelector('[data-do="q-mag"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Magnifier or no padlock');
   }
   /* THE PADLOCK: pressed, the column will not swipe; pressed again, it will; left by a tab, it lets go */
-  host.innerHTML = w.stuffCard(pick.chosen);
+  host.innerHTML = whole(pick.chosen);
   const lock = host.querySelector('[data-do="q-lock"]');
   A['q-lock'](lock);
   if (!t.padlock().q) bad.push('the padlock did not lock');
@@ -855,11 +861,13 @@ check('a twin only: a question whose words came without its drawing shows its PN
     delete x.row.diagram;
     x.diagram = w.libQuestion_(x.row).diagram;
     const src = 'data/diagrams/' + x.row.diagram_twin + '.png';
-    host.innerHTML = w.stuffCard(x);
+    /* THE WHOLE CARD (960): its foot holds the Magnifier since 1040 r12 */
+    host.innerHTML = w.questionWhole_(x, [x]);
     const img = host.querySelector('svg.qtwin image');
     if (!img || img.getAttribute('href') !== src) bad.push(x.row.row_id + ': the card shows no ' + src);
     if (i === 0) {
-      const fig = host.querySelector('.qsheet figure');
+      /* A PART WITH ITS OWN FIGURE IS A PAD FROM THE START (1020): the twin is the pad's art */
+      const fig = host.querySelector('.qsheet figure, .qsheet .qpad-art');
       if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in the figure box');
       if (!host.querySelector('[data-do="q-mag"]')) bad.push(x.row.row_id + ': the page has no Magnifier to see the twin bigger');
     } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="qt-pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
