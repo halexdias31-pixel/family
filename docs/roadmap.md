@@ -76,6 +76,7 @@ something switched off on purpose (data/settings/tiers.json, history 860) and wa
 - **Instant return visits** — keep the last screen on the device (owner said yes): no secrets, tied to the account and
   build, cleared on sign-out, writes wait for fresh data.
 - **Feed moves as one unit** by its top post.
+- **Lego completeness check** (owner idea, 7 Nov, future): photos of the pieces tell what % of a set is there; flat single layer beats a jar; weight gives the % cheaply.
 - **Saved, shop items, readable texts into Find** (cut list "move into Find").
 
 ## Switched off ("Coming soon") — the 23, each to revisit
