@@ -221,6 +221,7 @@ function fieldHtml(name, value, o) {
              ${ro ? 'disabled' : ''} ${o.extra || ''}${da}></label>`;
   }
 
+  /* A WHOLE-NUMBER FIELD (years teaching, pages, students…) takes digits only (owner, 8 Nov): a number box, never letters. */
   /* NO SUGGESTION LIST (383): the owner wants no field offering past entries, so `o.suggest` is ignored. */
   const pad = FIELD_IS_DECIMAL.test(name) ? 'decimal'
             : FIELD_IS_NUMERIC.test(name) ? 'numeric' : '';
@@ -232,7 +233,7 @@ function fieldHtml(name, value, o) {
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${pad ? `inputmode="${pad}"` : ''}${da}>
+           ${pad ? `inputmode="${pad}"` : ''}${pad === 'numeric' && !/\btype=/.test(o.extra || '') ? ' type="number" min="0" step="1"' : ''}${da}>
     </label>`;
 }
 
