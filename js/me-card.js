@@ -231,19 +231,21 @@ function cardEditCards_(t, e, secs, setCol) {
   const base = cardBaseNow_(e);
   if (!base && !e.err) setTimeout(() => cardFetch_(e), 0);
   return secs.map(s => {
-    /* NO TITLE WHERE THE FIRST LINE SAYS IT (491, the owner: "does it need a title at the top? I don't think so"). */
-    const h = OWN_SEC_UNTITLED_.indexOf(s.id) !== -1 ? '' : `<h3>${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}</h3>`;
-    const open = `<div class="card is-prof card-ed own-sec" data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}">${h}`;
-    if (!base) return `${open}${e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_()}${cardEditTiles_(pid, true)}</div>`;
+    /* EVERY CARD TITLED, ONE SHAPE (8 Nov, the owner: "title, one line per field, one Save at the bottom") — `setCard_`. */
+    const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
+    const card = { title, cls: 'is-prof card-ed own-sec',
+      attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_(), save: cardEditTiles_(pid, true, true) }));
     const { vals, held } = cardValues_(e, base, s.id);
-    return `${open}<div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals, [s])}
-      <p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>${cardEditTiles_(pid, false)}</div>`;
+    return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
+      save: cardEditTiles_(pid, false, true), foot: `<p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
   });
 }
-function cardEditTiles_(pid, saveOff) {
-  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
-    off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
-    data: { pid } })}</div>`;
+/* `bare`: the tiles alone, for `setCard_`'s own foot row. */
+function cardEditTiles_(pid, saveOff, bare) {
+  const t = tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
+    off: !!saveOff, data: { pid } }) + tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+  return bare ? t : `<div class="tile-row ce-tiles">${t}</div>`;
 }
 /* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
 /* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */

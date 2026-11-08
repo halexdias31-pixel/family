@@ -107,7 +107,7 @@ function libraryShelf_(list, value) {
      filled, else the first; no Add another, and a new card is written over it. */
   /* A RULE (496): `library-one-card` — Universal, every slot with Add another, like any shelf. */
   const nums = !(typeof ruleOn_ !== 'function' || ruleOn_('library-one-card')) ? all : all.length ? [all.find(has) || all[0]] : [];
-  return `<div class="lib-shelf">${shelfSlots_(nums,
+  return `<div class="lib-shelf" data-noun="library card">${shelfSlots_(nums,
     has,
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
@@ -121,7 +121,7 @@ function libraryShelf_(list, value) {
         <div class="lib-no">${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
           { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' })}</div>
       </div>
-    </div>`)}</div>`;
+    </div>`, 'library card')}</div>`;
 }
 
 /* ---------- THE BARCODE IS A PICTURE OF ONE, AND NOT ONE § */
@@ -182,16 +182,16 @@ const isPhotos_ = list => (list || []).some(isPhotoField_);
 /* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). § */
 function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
-  return `<div class="lib-shelf ph-shelf">${shelfSlots_(nums,
+  return `<div class="lib-shelf ph-shelf" data-noun="photo">${shelfSlots_(nums,
     i => shelfFilled_(value, ['photos_' + i]),
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
         <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
-          extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
+          extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}${shelfDrop_('photo')}
       </div>`;
-    })}</div>`;
+    }, 'photo')}</div>`;
 }
 /* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
    listener for the document, which is how every other input here is heard. */
@@ -389,7 +389,7 @@ function availCodes_() {
 /* ---------- AND WHAT A GROUP HEADING IS DEPENDS ON THE SURFACE, SO THE SURFACE SAYS § */
 function fieldsHtml(groups, o) {
   o = o || {};
-  const head = o.head || 'h2';
+  const head = o.head === false ? '' : o.head || 'h2';
   const value = o.value || (() => '');
   const plain = (f, extra) => fieldHtml(f, value(f), Object.assign({
     attr: o.attr,
@@ -427,7 +427,7 @@ function fieldsHtml(groups, o) {
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
       + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
-    return `<${head}><span>${esc(g)}</span></${head}>` + body;
+    return (head ? `<${head}><span>${esc(g)}</span></${head}>` : '') + body;
   }).join('');
 }
 
@@ -776,10 +776,8 @@ function ownCardSections_(col) {
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
-/* A card whose first line is its own label (a fold's, or a field's) carries no title over it (491). */
-const OWN_SEC_UNTITLED_ = ['headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'figure', 'handle'];
 const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
-  photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
+  photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
   staff: ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
@@ -797,10 +795,9 @@ function jobShelf_(list, value, o) {
   nums.forEach((n, i) => { if (shelfFilled_(value, ['job_' + n + '_role', 'job_' + n + '_where'])) last = i + 1; });
   const box = (n, k) => fieldHtml('job_' + n + '_' + k, String(value('job_' + n + '_' + k) || ''), { label: ' ', placeholder: JOB_PH_[k],
     draft: (o || {}).draft, extra: 'autocomplete="off" maxlength="80"' });
-  return `<div class="lib-shelf job-shelf">${nums.map((n, i) => `<div class="lib-card job-slot"${i >= last ? ' hidden' : ''}>
-      ${box(n, 'role')}${box(n, 'where')}<span class="job-when">${box(n, 'from')}<span class="job-dash">–</span>${box(n, 'to')}</span>
-    </div>`).join('')}${last < nums.length
-      ? `<div class="tile-row job-adds">${tile_({ icon: 'plus', label: 'Add a job', act: 'shelf-more', cls: 'shelf-more' })}</div>` : ''}</div>`;
+  return `<div class="lib-shelf job-shelf" data-noun="job">${nums.map((n, i) => `<div class="lib-card job-slot"${i >= last ? ' hidden' : ''}>
+      ${box(n, 'role')}${box(n, 'where')}<span class="job-when">${box(n, 'from')}<span class="job-dash">–</span>${box(n, 'to')}</span>${shelfDrop_('job')}
+    </div>`).join('')}${last < nums.length ? shelfAdd_('job') : ''}</div>`;
 }
 /* HOW MANY JOBS, for the fold's line. */
 const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;

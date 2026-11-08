@@ -703,7 +703,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* `.lib-shelf .lib-row > label.field` WENT WITH THE ROW. § */
 /* ---------- A SHELF'S `Add another` § */
 /* ON A LIBRARY SHELF IT IS AS WIDE AS THE CARDS OVER IT, and centred under them: § */
-.lib-shelf .shelf-more { margin: .1rem 0 .6rem; width: min(100%, var(--lib-w, 100%)); align-self: center; }
+.lib-shelf .btn.shelf-more { margin: .1rem 0 .6rem; width: min(100%, var(--lib-w, 100%)); align-self: center; }
 /* ---------- A LIBRARY CARD, DRAWN AS ONE — `libraryShelf_` in me.js; docs/history/332 § */
 .lib-shelf .lib-face {
   display: grid; min-width: 0; aspect-ratio: 85.6 / 54; container-type: inline-size;
@@ -753,7 +753,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .lib-bars { grid-area: bars; display: block; width: 100%; height: clamp(1.9rem, 15cqw, 4rem); color: var(--paper-ink); }
 .lib-bars.is-blank { color: var(--paper-rule); }
 /* THE PHOTOGRAPH SHELF — `photoShelf_` in me.js. § */
-.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: .5rem; align-items: start; }
+.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: .5rem; align-items: start; }
 .ph-thumb {
   width: 44px; height: 44px; border-radius: var(--r-sm); overflow: hidden;
   background: var(--sunk); border: 1px solid var(--line);
@@ -3036,6 +3036,11 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .job-slot { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .job-slot > * { flex: 1 1 8rem; min-width: 0; }
 .job-slot > .job-when { display: flex; align-items: center; gap: .3rem; flex: 1 1 10rem; }
+.job-slot > .set-drop { flex: 0 0 auto; }
+/* ONE SETTINGS-CARD SHAPE (8 Nov, `setCard_`): one box a line, the Save row at the foot, every list's Add tile alike. */
+.set-shape > .field, .set-shape > .me-form > .field { display: block; margin-bottom: .5rem; }
+.set-shape .tile-row.set-save { margin-top: .6rem; }
+.set-shape .tile-row.set-adds { margin: .3rem 0 .5rem; }
 .job-dash { flex: 0 0 auto; }
 /* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
 .vid-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: .5rem 0; border-radius: var(--r); overflow: hidden; background: var(--bg); }
