@@ -1,7 +1,7 @@
 {
  "v": 2,
  "tier": "core",
- "score": 77.3,
+ "score": 77.4,
  "verdict": "Steady, with duct tape worth paying down.",
  "signals": [
   {
@@ -105,12 +105,11 @@
   {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 11,
+   "count": 10,
    "weight": 0.05,
    "cap": 10,
-   "off": 0.6,
+   "off": 0.5,
    "where": {
-    "js/core.js priceFrom": 251,
     "js/find-aloud.js stuffItemsRaw_": 163,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
