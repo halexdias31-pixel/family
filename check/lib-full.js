@@ -31,9 +31,21 @@ if (ABSENT) process.on('exit', code => {
   console.log('skipped ' + n + ' library file read(s) in ' + me() + ': no private words (LIB_PRIVATE=absent)');
   skipLog([me() + '\t' + n + ' library file read(s) not checked' + (code ? ' (and the check failed)' : '')]);
 });
-/* THE WHOLE CHECK NEEDS THE WORDS: say so, count it, exit 0. Locally (words here) it returns and the check runs. */
-function needWords(what) {
+/* CI'S STAND-IN (check/fixtures/lib): a few invented rows, public, so a words check still runs something with no words here. */
+const FIXTURE_DIR = path.join(ROOT, 'check', 'fixtures', 'lib');
+const fixturePath = name => path.join(FIXTURE_DIR, name + '.json');
+let FIXTURE = false;
+/* THE WHOLE CHECK NEEDS THE WORDS: say so, count it, exit 0 — or, given `fixture` names, run on the public fixture. */
+function needWords(what, opts) {
   if (!ABSENT) return;
+  const fx = (opts && opts.fixture) || [];
+  if (fx.length && fx.every(n => fs.existsSync(fixturePath(n)))) {
+    FIXTURE = true;
+    skipDeclared = true;
+    console.log('ran ' + me() + ' on the public fixture (' + fx.join(', ') + '), not the library: no private words (LIB_PRIVATE=absent)');
+    skipLog([me() + '\tran on the public fixture only']);
+    return;
+  }
   skipDeclared = true;
   console.log('skipped 1 library check (' + me() + (what ? ': ' + what : '') + '): no private words (LIB_PRIVATE=absent)');
   skipLog([me() + '\twhole check' + (what ? ': ' + what : '')]);
@@ -135,7 +147,10 @@ const pending = r => /^true$/i.test(String((r && r.lib_pending) || '').trim());
 const MEMO = {};
 function stamp(p) { try { const s = fs.statSync(p); return s.mtimeMs + ':' + s.size; } catch (e) { return '-'; } }
 function text(name) {
-  if (ABSENT && defs().files[name]) throw absentError(name);
+  if (ABSENT && defs().files[name]) {
+    if (FIXTURE && fs.existsSync(fixturePath(name))) return fs.readFileSync(fixturePath(name), 'utf8');
+    throw absentError(name);
+  }
   const def = defs().files[name];
   const file = path.join(ROOT, def.file);
   const key = stamp(file) + '|' + stamp(privatePath(name));
@@ -198,5 +213,5 @@ function pendingTwins(rows, nameOf) {
   const mine = new Set(rows.filter(r => pending(r) && typeof r.diagram === 'string' && /^\s*<svg\b/i.test(r.diagram)).map(r => nameOf(r.diagram)));
   return { blind, listed: new Set(Array.isArray(listed) ? listed : []), mine, file: TWIN_LIST };
 }
-module.exports = { ABSENT, needWords, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
+module.exports = { ABSENT, needWords, fixture: () => FIXTURE, skipParts, isAbsent, behind, waits, pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };

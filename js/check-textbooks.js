@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-textbooks.js THE @family. § */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
+require('../check/lib-full.js').needWords('', { fixture: ['textbooks', 'questions'] }); // LIB_PRIVATE=absent (CI): the public fixture, not a skip
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');

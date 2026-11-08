@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-answers.js IS THE ANSWER A PERSON SEES SHORT. § */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
+require('../check/lib-full.js').needWords('', { fixture: ['questions'] }); // LIB_PRIVATE=absent (CI): the public fixture, not a skip
 const fs = require('fs');
 const path = require('path');
 const { cutFrom } = require('./check-marks-load.js');
@@ -136,7 +136,9 @@ answered.map(r => ({ id: r.row_id, h: seen(answerParts_(r.answer).head) }))
 over.filter(o => !ACCEPTED[o.id]).forEach(o => fail.push(
   `${o.id} draws a ${o.n}-character result — put it in "result — why" form (tools/answer-brief.py), `
   + 'or name it in ACCEPTED with a reason'));
-Object.keys(ACCEPTED).filter(id => !over.some(o => o.id === id)).forEach(id => fail.push(
+/* On the public fixture (CI) an accepted row it has not got is out of sight, not stale. */
+const onFixture = require('../check/lib-full.js').fixture();
+Object.keys(ACCEPTED).filter(id => !over.some(o => o.id === id) && (!onFixture || rows.some(r => r && r.row_id === id))).forEach(id => fail.push(
   `${id} is on ACCEPTED and its result is no longer over ${LIMIT} — take the line off`));
 lost.forEach(l => fail.push('the split lost maths: ' + l));
 coded.forEach(c => fail.push('a mark-scheme code is drawn in the result: ' + c));
