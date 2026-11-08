@@ -526,7 +526,8 @@ function stuffItemsBuild_() {
   });
 }
 
-function stuffItemsRaw_() {
+/* Find's people, places, widgets, doors and subjects: the first part of stuffItemsRaw_. */
+function findPeopleItems_() {
   return [
     /* ---------- PEOPLE, PLACES AND SUBJECTS § */
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
@@ -556,6 +557,11 @@ function stuffItemsRaw_() {
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,
     })),
+  ];
+}
+/* Your sessions, the levels and the shop, in stuffItemsRaw_'s order. */
+function findMineItems_() {
+  return [
     /* ---------- LEVELS § */
     /* ---------- YOU, ONE ROW, ONLY WHEN SIGNED IN --------------------------------------------
        Everything on it is already on this device because it is yours — see the note on the `me`
@@ -594,6 +600,11 @@ function stuffItemsRaw_() {
       /* ITS TAGS (499): "these need to have all the tags instead ... way more helpful ... more automatable" — read off the row's own fields. */
       ...shopTags_(x),
     })),
+  ];
+}
+/* Fighters and bouts, which answer the funnel with PE as the subject. */
+function findBoxingItems_() {
+  return [
     /* A resource costs nothing, and the zero is written here rather than left undefined — so
        every sort, filter and label downstream sees a number and not a hole. */
     /* ---------- QUESTIONS, AS PARTS § */
@@ -621,7 +632,11 @@ function stuffItemsRaw_() {
       subject: 'Physical Education', division: divisionOf_(f.division), row: f,
       year: (f.date || '').slice(0, 4),
     })),
-
+  ];
+}
+/* Practicals, projects, textbook chapters and exam inserts. */
+function findStudyItems_() {
+  return [
     /* ---------- THE QUESTIONS, AND NOT THE DOCUMENTS THEY CAME OUT OF § */
     /* ---------- THE PRACTICALS § */
     ...(DATA.practicals || []).map(p => ({
@@ -663,6 +678,14 @@ function stuffItemsRaw_() {
 
     /* ---------- THE EXAM INSERTS (455) */
     ...(DATA.inserts || []).map(insertItem_),
+  ];
+}
+function stuffItemsRaw_() {
+  return [
+    ...findPeopleItems_(),
+    ...findMineItems_(),
+    ...findBoxingItems_(),
+    ...findStudyItems_(),
 
     /* ---------- THE HISTORY DATABASE (459) */
     ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).flatMap(r => histItems_(t.kind, r))),

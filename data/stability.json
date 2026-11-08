@@ -105,12 +105,11 @@
   {
    "id": "longfns",
    "label": "Functions over 150 lines",
-   "count": 10,
+   "count": 9,
    "weight": 0.05,
    "cap": 10,
    "off": 0.5,
    "where": {
-    "js/find-aloud.js stuffItemsRaw_": 163,
     "js/shell-api.js loadOnce_": 250,
     "js/shell-layout.js placeGrid": 164,
     "backend/doget.gs doGet": 175,
