@@ -111,10 +111,10 @@ ask('W-PA2', { forceItemId: 'WJD' });
 r = as('W-ADM', { action: 'move', jobId: 'WJD', move: 'Decline', role: 'client', adminName: nameOf('W-ADM'), requestId: 'wd-1' });
 rule(r && r.success && status('WJD', 'W-PA2') === '', 'the admin declining did not clear the booking — ' + show(r));
 
-/* ---------- 8. NO REFUND INSIDE A PAID BLOCK; a single lesson left days ahead is refunded. */
+/* ---------- 8. NO REFUND INSIDE A PAID BLOCK; a single lesson a week ahead is refunded (the next Monday can be under 24h away on a Sunday). */
 const owed = (dates, at) => b.ev('refundOwedPure_(' + JSON.stringify(dates) + ', "16:00", new Date(' + at + '))');
 rule(owed(mondays, Date.now()) === false, 'leaving a paid block of four was owed a refund');
-rule(owed(mondays.slice(0, 1), Date.now()) === true, 'a single lesson left days ahead was not owed a refund');
+rule(owed(mondays.slice(1, 2), Date.now()) === true, 'a single lesson left days ahead was not owed a refund');
 
 if (bad.length) {
   console.log('A BOOKING DOES NOT WALK END TO END  (' + bad.length + ' of ' + asked + ')');
