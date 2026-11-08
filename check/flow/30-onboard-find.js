@@ -17,11 +17,9 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   if (p.err) return [p.err];
   await findSet_(p, 'Parent');
   onboardShot_(p, 'apply-tile');
-  const open = inFind(p, '[data-do="apply-open"]:not([disabled])');
-  if (!open) return ['Find › Settings › Parent has no Apply to teach: ' + JSON.stringify(p.w.settingDoorItems_().filter(x => /Apply/.test(x.name))) + ' F=' + JSON.stringify(p.t.STUFF().filters) + ' list=' + p.w.stuffFiltered().map(x => x.name).join(',') + ' drawn=' + [...p.d.querySelectorAll('#s-stuff h3')].map(x => x.textContent).join(',')];
-  p.A('apply-open', open); await wait(100);
-  const f = p.d.querySelector('#sheet .app-form');
-  if (!f) return ['"Apply to teach" opened no form'];
+  /* NO SHEET (owner, 8 Nov): the form is in the card from the start. */
+  const f = inFind(p, '.apply-card .app-form');
+  if (!f) return ['Find › Settings › Parent has no Apply to teach: ' + JSON.stringify(p.w.settingDoorItems_().filter(x => /Apply/.test(x.name))) + ' F=' + JSON.stringify(p.t.STUFF().filters) + ' list=' + p.w.stuffFiltered().map(x => x.name).join(',') + ' drawn=' + [...p.d.querySelectorAll('#s-stuff h3')].map(x => x.textContent).join(',')];
   const set = (sel, v) => { const el = f.querySelector(sel); if (!el) { bad.push('the form has no ' + sel); return; }
     if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
   set('[data-app-subj="0"]', 'Maths'); set('[data-app-level="0"]', 'GCSE');

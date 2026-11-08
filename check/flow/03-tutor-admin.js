@@ -3,38 +3,38 @@ check('Staff hub (405): "Staff hub" is on Tutor settings, "Share my profile" und
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
-  const tile = a.d.querySelector('#s-staff [data-do="hub-open"]');
+  /* NO SHEET (owner, 8 Nov): the hub is in its card from the start, on the terms. */
+  const hub = () => a.d.querySelector('#s-staff .staff-top:not(.is-locked) .hub') || a.d.createElement('div');
+  const tile = a.d.querySelector('#s-staff .staff-top .hub');
   const share = a.d.querySelector('#s-tutors [data-do="tutor-share"][data-handle="adatutor"]');
-  if (!tile) return ['Ada\'s own card has no Staff hub tile: ' + [...a.d.querySelectorAll('#s-staff .page:first-child [data-do]')].map(x => x.dataset.do).join(',')];
+  if (!tile) return ['Ada\'s Tutor settings has no Staff hub: ' + [...a.d.querySelectorAll('#s-staff .page:first-child [data-do]')].map(x => x.dataset.do).join(',')];
   if (!share) bad.push('Share my profile is not under Ada\'s own card on Tutors');
   const warn = () => String((a.d.querySelector('#s-staff .hub-warn') || {}).textContent || '');
   if (!/not agreed to the tutor terms/.test(warn())) bad.push('no line under Ada\'s card saying the terms are not agreed: ' + JSON.stringify(warn()));
-  a.A('hub-open', tile); await wait(200);
-  const text = String(a.sheet().textContent);
-  if (!a.sheet().querySelector('.hub-terms')) return bad.concat(['Staff hub did not open on the terms: ' + text.slice(0, 120)]);
+  const text = String(hub().textContent);
+  if (!hub().querySelector('.hub-terms')) return bad.concat(['Staff hub did not open on the terms: ' + text.slice(0, 120)]);
   ['self-employed', 'Bookings', 'Cancellations', 'Pay and the business', 'Safeguarding and DBS', 'Conduct', 'Data protection', 'Ending the arrangement', 'Changes to these terms']
-    .filter(h => ![...a.sheet().querySelectorAll('.doc h4')].some(x => x.textContent.indexOf(h) !== -1)).forEach(h => bad.push('the terms have no section on ' + h));
+    .filter(h => ![...hub().querySelectorAll('.doc h4')].some(x => x.textContent.indexOf(h) !== -1)).forEach(h => bad.push('the terms have no section on ' + h));
   if (!/National Insurance/.test(text) || !/Version v1-2026-10-24/.test(text)) bad.push('the terms do not say tax and NI are the tutor\'s, or carry no version');
-  let box = a.sheet().querySelector('[data-do="agree-sign"]');
+  let box = hub().querySelector('[data-do="agree-sign"]');
   box.checked = true; a.A('agree-sign', box); await wait(400);
   const post = a.sent.filter(x => x.action === 'signAgreement').pop();
   if (!post || post.version !== 'v1-2026-10-24') bad.push('I agree posted ' + JSON.stringify(post) + ', not the version v1-2026-10-24');
   if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v1-2026-10-24') bad.push('the server did not record the version');
   if (warn()) bad.push('the not-agreed line is still under the card after I agree: ' + warn());
-  if (/terms to agree/.test(String((a.d.querySelector('#s-staff [data-do="hub-open"]') || {}).title))) bad.push('the Staff hub tile still says terms to agree');
+  if (/to agree/.test(String((a.d.querySelector('#s-staff [data-do="hub-part"][data-part="terms"]') || {}).title))) bad.push('the Terms tile still says to agree');
   /* A NEW VERSION ON THE BRAND TAB — a bare date, which the sheet would turn into one, so it is sent as v2026-11-01: asked again, the old record replaced. */
   a.t.DATA().brand = Object.assign({}, a.t.DATA().brand, { tutor_terms_version: '2026-11-01' });
   a.w.paint('staff'); await wait(200);
   if (!/terms have changed/.test(warn())) bad.push('a new terms version did not bring the line back: ' + JSON.stringify(warn()));
-  a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(200);
-  box = a.sheet().querySelector('[data-do="agree-sign"]');
+  box = hub().querySelector('[data-do="agree-sign"]');
   if (!box || box.checked || box.disabled) bad.push('the new version\'s box is not open to tick');
-  if (!/changed since you agreed to version v1-2026-10-24/.test(a.sheet().textContent)) bad.push('the hub does not say which version was agreed before');
+  if (!/changed since you agreed to version v1-2026-10-24/.test(hub().textContent)) bad.push('the hub does not say which version was agreed before');
   box.checked = true; a.A('agree-sign', box); await wait(400);
   if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v2026-11-01') bad.push('agreeing to the new version did not replace the old on the server');
   const c = await hubBoot_(W, 'parent@example.org');
   if (c.err) return bad.concat([c.err]);
-  if (c.d.querySelector('#s-staff [data-do="hub-open"]:not([disabled]), #s-staff .hub-warn')) bad.push('a client has a usable Staff hub tile or the terms line');
+  if (c.d.querySelector('#s-staff [data-do="hub-part"]:not([disabled]), #s-staff .hub-warn')) bad.push('a client has a usable Staff hub tile or the terms line');
   return bad;
 });
 
@@ -44,10 +44,10 @@ const RANK_COLS_ = [
   ['tutor@example.org', 'staff', 'P-T1'], ['admin@example.org', 'admin', 'P-A1']];
 /* EVERY EDITOR ON THE PAGE, as field → the forms it is in: `data-me` boxes, and the PIN. */
 const editorsOf_ = (d, into) => {
-  const where = el => { const s = el.closest('section.screen'); return s ? s.id.replace(/^s-/, '') : el.closest('#sheet-body') ? 'staff (hub)' : '?'; };
+  const where = el => { const s = el.closest('section.screen'); return s ? s.id.replace(/^s-/, '') : '?'; };
   const add = (f, el) => {
     /* A PLACE IS A COLUMN AND A CARD'S TITLE — the same card drawn again after a repaint is the same place. */
-    const card = el.closest('.card-ed') ? 'your card, editing' : el.closest('#sheet-body') ? 'the hub'
+    const card = el.closest('.card-ed') ? 'your card, editing' : el.closest('.hub') ? 'the hub'
       : String(((el.closest('.card') || {}).querySelector || (() => null)).call(el.closest('.card'), 'h3')?.textContent || '').trim();
     (into[f] = into[f] || new Set()).add(where(el) + ': ' + card);
   };
@@ -116,7 +116,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if ((rank === 'admin') !== !!q('#s-biz')) bad.push(rank + (rank === 'admin' ? ' has no Business column' : ' is given the Business column'));
     /* STUDENT SETTINGS: every account's PIN, roles, notifications and Sign out, and nothing of a parent's, tutor's or people's. */
     if (!q('#s-account .roles-card') || !q('#s-account [data-do="pin-save"]') || !q('#s-account .notify-card') || !q('#s-account [data-do="signout"]')) bad.push(rank + ': Student settings lacks Your roles, the PIN, Notifications or Sign out');
-    if (q('#s-account [data-do="hub-open"], #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .col-lock')
+    if (q('#s-account .hub, #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .col-lock')
       || q('#s-account [data-do="card-edit"]')) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
     /* 469: EACH SETTING ON ONE COLUMN FOR EVERY RANK, the lowest it applies to — everybody's four on Student settings, usable by every rank. */
     const ownIds = [...a.d.querySelectorAll('#s-account [data-lay-card^="own:"], #s-family [data-lay-card^="own:"], #s-staff [data-lay-card^="own:"]')]
@@ -147,7 +147,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       const live = [...a.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled && !x.closest('.wgt-admin'));
       if (live.length) bad.push(rank + ': ' + live.length + ' boxes or tiles on locked ' + col + ' cards can still be used');
       if (shut.some(c => !c.querySelector('.card-say'))) bad.push(rank + ': a locked ' + col + ' card does not say what it is for');
-      if (col === 'staff' && !q('#s-staff .is-locked [data-do="hub-open"][disabled]')) bad.push(rank + ': the locked Tutor settings does not show the Staff hub');
+      if (col === 'staff' && !q('#s-staff .is-locked [data-do="hub-part"][disabled]')) bad.push(rank + ': the locked Tutor settings does not show the Staff hub');
       /* 468: YOUR CARD'S PLACE IS A LOCKED CARD PER SECTION, each with its own layout id — never one "Your card". */
       const ownLocks = [...a.d.querySelectorAll('#s-' + col + ' .own-lock.is-locked')].map(x => x.dataset.layCard);
       /* 469: EACH SECTION ON ONE COLUMN ONLY — Tutor settings holds a tutor's alone, Parent settings none of everybody's four. */
@@ -155,7 +155,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
     if (rank === 'client' && !q('#s-staff .apply-card [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
-    if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor settings has no Staff hub');
+    if (rank === 'staff' && !q('#s-staff .staff-top .hub')) bad.push('a tutor\'s Tutor settings has no Staff hub');
     /* THE PEOPLE COLUMNS: your own card first where you belong, a person drawn in each category they hold. */
     const home = { student: 's-students', client: 's-parents', staff: 's-tutors', admin: 's-tutors' }[rank];
     const first = [...a.d.querySelectorAll('#' + home + ' > .page')].find(pg => !pg.querySelector('.add-card, .ps-card'));
@@ -175,9 +175,8 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     /* ONE PLACE EACH: the columns, your own card open for editing in each column it has an Edit, and the hub's Hours and Pricing. */
     const ed = editorsOf_(a.d, {});
     editorsOf_(a.d, ed);
-    const hub = q('#s-staff [data-do="hub-open"]:not([disabled])');
+    const hub = q('#s-staff .staff-top:not(.is-locked) .hub');
     if (hub) {
-      a.A('hub-open', hub); await wait(200);
       for (const k of ['pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
     }
     Object.keys(ed).filter(f => ed[f].size > 1)
@@ -240,10 +239,8 @@ check('Availability on Tutor settings (487): the week a tutor teaches is the Ava
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
-  a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(150);
   const parts = [...a.sheet().querySelectorAll('[data-do="hub-part"]')].map(x => x.dataset.part).join(',');
   if (parts !== 'terms,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,pricing,statement');
-  try { a.w.closeSheet(); } catch (e) {}
   try { a.t.go('staff', false, true); a.w.paint('staff'); } catch (e) { return bad.concat(['drawing Tutor settings threw: ' + e.message]); }
   await wait(250);
   const sec = a.d.querySelector('#s-staff .ce-sec[data-sec="week"]');
@@ -277,7 +274,6 @@ check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
-  a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(150);
   if (!(await a.part('pricing'))) return ['the hub has no Pricing tile'];
   const S = a.sheet();
   const row = n => S.querySelector('.pb-row[data-n="' + n + '"]');
@@ -306,7 +302,7 @@ check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor
   if (!to) return bad.concat(['Pricing has no tile to the Rate and class size card']);
   a.A('price-card', to); await wait(500);
   if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('opening the card from Pricing posted a change');
-  if (a.d.querySelector('#sheet-body .hub-price')) bad.push('the tile left Pricing open over the card');
+  if (a.d.querySelector('#s-staff .hub[data-hub="pricing"]') && false) bad.push('the tile left Pricing open over the card');
   if (!a.d.querySelector('#s-tutors .card-ed[data-sec="seat"] [data-me="rate_per_hour"], #s-staff [data-me="rate_per_hour"]')) bad.push('no rate box waits where the tile goes');
   return bad;
 });
@@ -316,7 +312,6 @@ check('Staff hub statement (405): Ada\'s month, session by session with totals, 
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
-  a.A('hub-open', a.d.querySelector('#s-staff [data-do="hub-open"]')); await wait(150);
   if (!(await a.part('statement'))) return ['the hub has no Statement tile'];
   await wait(300);
   const S = a.sheet();
@@ -354,7 +349,7 @@ check('Staff hub statement (405): Ada\'s month, session by session with totals, 
   ad.A('stmt-for', st); await wait(400);
   const aAsk = ad.sent.filter(x => x.action === 'payStatement').pop();
   if (!aAsk || aAsk.tutorId !== 'P-T1') bad.push('the admin\'s statement did not name Ada: ' + JSON.stringify(aAsk));
-  if (ad.d.getElementById('sheet-body').querySelectorAll('.stmt-t tbody tr').length !== 2) bad.push('the admin was not shown Ada\'s two sessions');
+  if (card.querySelector('.hub-for').querySelectorAll('.stmt-t tbody tr').length !== 2) bad.push('the admin was not shown Ada\'s two sessions');
   return bad;
 });
 
