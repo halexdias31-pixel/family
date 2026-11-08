@@ -408,36 +408,8 @@ function postGetProfile_(body, action, began) {
 }
 
 /* --- profile writes ---------------------------------------------------------------------- */
-function postUpdateProfile_(body, action, began) {
-  const asker = S(body.name);
-  /* The target must be stated. § */
-  const target = S(body.targetId) || S(body.target);
-  if (!target) return jsonOut({ error: 'No profile named for that change.' });
-  // If a NAME was used and more than one row answers to it, refuse rather than guess.
-  if (!S(body.targetId) && peopleNamed(target).length > 1) {
-    return jsonOut({ error: 'More than one account answers to "' + target +
-      '". Nothing was changed — give them different names, or reload so the site can use ids.' });
-  }
-  const t = read(TAB.people);
-  const r = findPerson(target);
-  if (!r) return jsonOut({ error: 'Profile not found.' });
-  /* ---------- WHO IS EDITING WHOM IS A QUESTION ABOUT TWO ROWS, ANSWERED BY THEIR IDS § */
-  const me = findPerson('', S(body.personId));
-  const iAmAdmin = !!me && rankAtLeast_(me, 'admin');
-  const adminEditing = !me || S(r.person_id) !== S(me.person_id);
-  if (adminEditing && !iAmAdmin) {
-    return jsonOut({ error: 'Not authorised to edit that profile.' });
-  }
-  const fields = body.fields || {};
-  // An admin may additionally set the admin-only flags — that's what makes them admin-only
-  // rather than merely hidden.
-  const allowed = adminEditing ? PROFILE_EDITABLE.concat(PROFILE_READONLY) : PROFILE_EDITABLE;
-  const has = f => t.headers.indexOf(f) !== -1;
-  const sent = re => Object.keys(fields).some(f => re.test(f));
-  const HOUR = /^(m|tu|w|th|f|sa|su)\d\d$/;
-
-  /* 1. EVERY REFUSAL, BEFORE A SINGLE CELL IS TOUCHED. § */
-  /* THE FORM NAMES ARE NOT THE CELLS. § */
+/* WHICH PACKED AND OWN-TAB GROUPS THE FORM SENT, each only when this editor may write it. */
+function profileSent_(fields, allowed, sent, HOUR) {
   const availSent = sent(HOUR);
   const libSent   = sent(LIBRARY_FIELD) && LIBRARY_FIELDS.some(f => allowed.indexOf(f) !== -1);
   const qualsSent = sent(QUAL_FIELD) && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
@@ -447,38 +419,49 @@ function postUpdateProfile_(body, action, began) {
   const jobsSent = sent(JOB_FIELD) && JOB_FIELDS.some(f => allowed.indexOf(f) !== -1);
   /* THE VENUES ARE ON ANOTHER TAB — `venuesWrites_` in core.gs says why there is no column here. */
   const venuesSent = fields.venues_ok !== undefined && allowed.indexOf('venues_ok') !== -1;
-  const venueTab = venuesSent ? read(TAB.venues) : null;
+  return { availSent, libSent, qualsSent, phoneSent, dobSent, photosSent, jobsSent, venuesSent };
+}
+
+/* THE ROW AND WHO IS EDITING IT, or `fail` in words. */
+function profileWho_(body, target) {
+  const t = read(TAB.people);
+  const r = findPerson(target);
+  if (!r) return { fail: 'Profile not found.' };
+  /* ---------- WHO IS EDITING WHOM IS A QUESTION ABOUT TWO ROWS, ANSWERED BY THEIR IDS § */
+  const me = findPerson('', S(body.personId));
+  const iAmAdmin = !!me && rankAtLeast_(me, 'admin');
+  const adminEditing = !me || S(r.person_id) !== S(me.person_id);
+  if (adminEditing && !iAmAdmin) {
+    return { fail: 'Not authorised to edit that profile.' };
+  }
+  return { t: t, r: r, me: me, iAmAdmin: iAmAdmin, adminEditing: adminEditing };
+}
+
+/* A PACKED COLUMN OR AN OWN TAB THE SENT FIELDS NEED AND THE SHEET LACKS, in words, or "". */
+function profileColumnsNo_(has, venueTab, availSent, phoneSent, dobSent, photosSent, jobsSent, qualsSent, libSent) {
   if (venueTab && venueTab.headers.indexOf('tutors_happy_here') === -1) {
-    return jsonOut({ error: 'The venues tab has no column for: tutors_happy_here. '
-      + 'Open the site once as an admin to add it — nothing was saved.' });
+    return ('The venues tab has no column for: tutors_happy_here. '
+      + 'Open the site once as an admin to add it — nothing was saved.');
   }
   const packedMissing = [availSent && 'availability', phoneSent && 'phone',
                          dobSent && 'date_of_birth', photosSent && 'photos', jobsSent && 'jobs']
     .filter(c => c && !has(c));
   if (packedMissing.length) {
-    return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
-      + '. Open the site once as an admin to add it — nothing was saved.' });
+    return ('The sheet has no column for: ' + packedMissing.join(', ')
+      + '. Open the site once as an admin to add it — nothing was saved.');
   }
   /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so the question is whether the TAB is there — a tab `ensureSchema` § */
   const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
                       libSent && !read(TAB.library_cards).sheet && 'library_cards'].filter(Boolean);
   if (tabMissing.length) {
-    return jsonOut({ error: 'The spreadsheet has no tab called: ' + tabMissing.join(', ')
-      + '. Open the site once as an admin to make it — nothing was saved.' });
+    return ('The spreadsheet has no tab called: ' + tabMissing.join(', ')
+      + '. Open the site once as an admin to make it — nothing was saved.');
   }
-  const valueNo = profileValueRefusal_(fields, allowed, dobSent, photosSent);
-  if (valueNo) return jsonOut({ error: valueNo });
-  const wanted = Object.keys(fields)
-    .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
-              && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)
-              && f !== 'venues_ok' && allowed.indexOf(f) !== -1);
-  /* A field with no column vanishes silently: § */
-  const noColumn = wanted.filter(f => !has(f));
-  if (noColumn.length) {
-    return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
-      + '. Open the site once as an admin to add it — nothing was saved.' });
-  }
-  /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
+  return '';
+}
+
+/* THE WANTED-ONLY VALUES AND THE REFUSED GROUPS; a refused group is spliced out of `wanted`. */
+function profileRefused_(r, wanted, fields, iAmAdmin) {
   const priceAsked = {};
   wanted.forEach(f => { priceAsked[f] = fields[f]; });
   /* A REFUSED GROUP IS LEFT OUT AND NAMED, AND THE REST IS SAVED (620): the business's cut once kept a tutor's class size off the sheet. */
@@ -492,37 +475,37 @@ function postUpdateProfile_(body, action, began) {
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) § */
   const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
   if (cutNo) leaveOut([SEAT_CUT_FIELD], cutNo);
-  const elseSent = availSent || photosSent || jobsSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
-  if (refused.length && !wanted.length && !elseSent) {
-    return jsonOut({ error: refused.map(p => p[1]).join(' ') + ' Nothing was saved.' });
-  }
+  return { priceAsked: priceAsked, refused: refused };
+}
+
+/* THE REFUSALS THAT READ THE ROW AS IT STANDS: the stamp column, ages, hours, the address. Words, or "". */
+function profileRowNo_(r, has, wanted, fields, priceAsked) {
   const priceMoved = pricingMoved_(r, priceAsked).length > 0;
   /* THE STAMP'S COLUMN IS CHECKED HERE NOW. § */
   if (priceMoved && !has('pricing_changed_at')) {
-    return jsonOut({ error: 'The sheet has no column for: pricing_changed_at. '
-      + 'Open the site once as an admin to add it — nothing was saved.' });
+    return ('The sheet has no column for: pricing_changed_at. '
+      + 'Open the site once as an admin to add it — nothing was saved.');
   }
   /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK § */
   const ageNo = ageRefusal_(r, priceAsked);
-  if (ageNo) return jsonOut({ error: ageNo });
+  if (ageNo) return (ageNo);
   /* AND HOW LONG A SESSION IS — writable since docs/history/330, under the same two rules as the ages
      (`hoursRefusal_` in people.gs), asked of the same wanted-only object before anything is written. */
   const hoursNo = hoursRefusal_(r, priceAsked);
-  if (hoursNo) return jsonOut({ error: hoursNo });
+  if (hoursNo) return (hoursNo);
   /* ---------- AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT § */
   if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
     if (!norm(fields.email) && norm(r.email)) {
-      return jsonOut({ error: 'Your email address is what you sign in with, so it cannot be left empty.' });
+      return ('Your email address is what you sign in with, so it cannot be left empty.');
     }
     const mailNo = emailRefusal_(fields.email, r);
-    if (mailNo) return jsonOut({ error: mailNo });
+    if (mailNo) return (mailNo);
   }
-  /* ---------- AND A NEW ADDRESS IS PROVED BEFORE IT IS TRUSTED § */
-  const mail = profileMailPlan_(r, wanted, fields);
-  if (mail.fail) return mail.fail;
-  const mailPlan = mail.plan, mailKey = mail.key;
+  return '';
+}
 
-  /* 2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL. § */
+/* EVERY CELL THE ROW TAKES, and the full name when it was renamed. */
+function profilePut_(r, t, fields, wanted, priceAsked, mailPlan, mailKey, availSent, photosSent, jobsSent, phoneSent, dobSent) {
   const put = {};
   if (availSent) put.availability = availGridIn(fields);
   if (photosSent) put.photos = photosIn(fields);
@@ -546,11 +529,11 @@ function postUpdateProfile_(body, action, began) {
       put.name_was = nameWasWith_(r.name_was, before);
     }
   }
+  return { put: put, renamed: renamed, full: full };
+}
 
-  /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
-  const wrote = setCells(t, r, put);
-  /* AND WHAT WAITS BESIDE THE ROW. § */
-  profileMailAfter_(r, mail);
+/* THE OWN-TAB ROWS AND THE VENUE CELLS; venue cells go onto `wrote`, own rows are counted. */
+function profileBeside_(r, fields, wrote, venueTab, qualsSent, libSent) {
   let rowsMoved = 0;
   if (qualsSent) rowsMoved += writeOwnRows_(TAB.qualifications, S(r.person_id), qualsIn(fields), QUAL_COLS).changed;
   if (libSent) rowsMoved += writeOwnRows_(TAB.library_cards, S(r.person_id), libCardsIn(fields), LIB_COLS).changed;
@@ -561,6 +544,71 @@ function postUpdateProfile_(body, action, began) {
       wrote.push.apply(wrote, setCells(venueTab, w.row, { tutors_happy_here: w.cell }));
     });
   }
+  return rowsMoved;
+}
+
+function postUpdateProfile_(body, action, began) {
+  const asker = S(body.name);
+  /* The target must be stated. § */
+  const target = S(body.targetId) || S(body.target);
+  if (!target) return jsonOut({ error: 'No profile named for that change.' });
+  // If a NAME was used and more than one row answers to it, refuse rather than guess.
+  if (!S(body.targetId) && peopleNamed(target).length > 1) {
+    return jsonOut({ error: 'More than one account answers to "' + target +
+      '". Nothing was changed — give them different names, or reload so the site can use ids.' });
+  }
+  const who = profileWho_(body, target);
+  if (who.fail) return jsonOut({ error: who.fail });
+  const t = who.t, r = who.r, iAmAdmin = who.iAmAdmin, adminEditing = who.adminEditing;
+  const fields = body.fields || {};
+  // An admin may additionally set the admin-only flags — that's what makes them admin-only
+  // rather than merely hidden.
+  const allowed = adminEditing ? PROFILE_EDITABLE.concat(PROFILE_READONLY) : PROFILE_EDITABLE;
+  const has = f => t.headers.indexOf(f) !== -1;
+  const sent = re => Object.keys(fields).some(f => re.test(f));
+  const HOUR = /^(m|tu|w|th|f|sa|su)\d\d$/;
+
+  /* 1. EVERY REFUSAL, BEFORE A SINGLE CELL IS TOUCHED. § */
+  /* THE FORM NAMES ARE NOT THE CELLS. § */
+  const { availSent, libSent, qualsSent, phoneSent, dobSent, photosSent, jobsSent, venuesSent } = profileSent_(fields, allowed, sent, HOUR);
+  const venueTab = venuesSent ? read(TAB.venues) : null;
+  const columnsNo = profileColumnsNo_(has, venueTab, availSent, phoneSent, dobSent, photosSent, jobsSent, qualsSent, libSent);
+  if (columnsNo) return jsonOut({ error: columnsNo });
+  const valueNo = profileValueRefusal_(fields, allowed, dobSent, photosSent);
+  if (valueNo) return jsonOut({ error: valueNo });
+  const wanted = Object.keys(fields)
+    .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
+              && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)
+              && f !== 'venues_ok' && allowed.indexOf(f) !== -1);
+  /* A field with no column vanishes silently: § */
+  const noColumn = wanted.filter(f => !has(f));
+  if (noColumn.length) {
+    return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
+      + '. Open the site once as an admin to add it — nothing was saved.' });
+  }
+  /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
+  const asked = profileRefused_(r, wanted, fields, iAmAdmin);
+  const priceAsked = asked.priceAsked, refused = asked.refused;
+  const elseSent = availSent || photosSent || jobsSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
+  if (refused.length && !wanted.length && !elseSent) {
+    return jsonOut({ error: refused.map(p => p[1]).join(' ') + ' Nothing was saved.' });
+  }
+  const rowNo = profileRowNo_(r, has, wanted, fields, priceAsked);
+  if (rowNo) return jsonOut({ error: rowNo });
+  /* ---------- AND A NEW ADDRESS IS PROVED BEFORE IT IS TRUSTED § */
+  const mail = profileMailPlan_(r, wanted, fields);
+  if (mail.fail) return mail.fail;
+  const mailPlan = mail.plan, mailKey = mail.key;
+
+  /* 2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL. § */
+  const cells = profilePut_(r, t, fields, wanted, priceAsked, mailPlan, mailKey, availSent, photosSent, jobsSent, phoneSent, dobSent);
+  const put = cells.put, renamed = cells.renamed, full = cells.full;
+
+  /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
+  const wrote = setCells(t, r, put);
+  /* AND WHAT WAITS BESIDE THE ROW. § */
+  profileMailAfter_(r, mail);
+  const rowsMoved = profileBeside_(r, fields, wrote, venueTab, qualsSent, libSent);
   /* ---------- AND THE FORM'S OWN VALUES COME BACK WITH THE ANSWER § */
   /* `changed` IS HOW MANY CELLS MOVED, so the phone can skip fetching a payload nothing altered. */
   const out = { success: true, changed: wrote.length + rowsMoved, profile: adminEditing ? null : profileOf_(r) };
