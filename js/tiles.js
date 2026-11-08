@@ -178,7 +178,7 @@ function tile_(o) {
      appearance is this renderer's alone, which is the point of having one. */
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '') + (o.cls ? ' ' + o.cls : '');
   const name = o.label + (o.note ? ' · ' + o.note : '');
-  /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a worded row (a booking's) prints under the mark; `word` overrides the label's first. */
+  /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a long press shows (`tileWordShow_`); `word` overrides the label's first. */
   const word = String(o.word || o.label || '').split(' ')[0];
   const attrs = ` title="${esc(name)}" aria-label="${esc(name)}" data-w="${esc(word)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
@@ -202,6 +202,45 @@ function tile_(o) {
     >${body}</button>`;
 }
 
+
+/* ---------- A LONG PRESS SAYS THE WORD (owner, 8 Nov, 4c) ---------- */
+/* One handler for every tile: hold ~500ms (touch or mouse) and its word floats above it; the press that follows is not a tap. */
+const TILE_HOLD = { t: 0, el: null, shown: false };
+function tileWordShow_(el) {
+  const word = el.getAttribute('data-w') || el.getAttribute('aria-label') || '';
+  if (!word) return;
+  const r = el.getBoundingClientRect();
+  let tip = document.querySelector('.tile-word');
+  if (!tip) { tip = document.createElement('span'); tip.className = 'tile-word'; tip.setAttribute('aria-hidden', 'true'); document.body.appendChild(tip); }
+  tip.textContent = word;
+  tip.style.left = (r.left + r.width / 2) + 'px';
+  tip.style.top = r.top + 'px';
+  TILE_HOLD.shown = true;
+}
+function tileWordHide_() {
+  clearTimeout(TILE_HOLD.t); TILE_HOLD.el = null;
+  const tip = typeof document !== 'undefined' && document.querySelector('.tile-word');
+  if (tip) tip.remove();
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('pointerdown', e => {
+    const el = e.target && e.target.closest && e.target.closest('.tile');
+    tileWordHide_(); TILE_HOLD.shown = false;
+    if (!el) return;
+    TILE_HOLD.el = el;
+    TILE_HOLD.t = setTimeout(() => { if (TILE_HOLD.el === el) tileWordShow_(el); }, 500);
+  }, { passive: true });
+  ['pointerup', 'pointercancel', 'scroll'].forEach(k => document.addEventListener(k, () => {
+    clearTimeout(TILE_HOLD.t);
+    if (TILE_HOLD.shown) setTimeout(tileWordHide_, 900);
+  }, { passive: true, capture: true }));
+  /* A HOLD THAT SHOWED THE WORD IS NOT ALSO A PRESS. */
+  document.addEventListener('click', e => {
+    if (!TILE_HOLD.shown || !(e.target && e.target.closest && e.target.closest('.tile'))) return;
+    TILE_HOLD.shown = false; e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener('contextmenu', e => { if (e.target && e.target.closest && e.target.closest('.tile')) e.preventDefault(); });
+}
 
 /* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
 function empty_(text) {

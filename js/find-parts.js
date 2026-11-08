@@ -714,7 +714,7 @@ function libSay_(x) {
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return empty_(x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'Not in the library yet.');
   if (LIB.failed) {
     return `${empty_('Couldn’t load this.')}
-      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }), 'worded')}`;
+      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }))}`;
   }
   return loading_();
 }

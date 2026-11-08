@@ -555,7 +555,7 @@ function stuffQuestion() {
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
     return `${empty_('No friends yet.')}
-      ${tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'worded')}`;
+      ${tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }))}`;
   }
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */
   /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
@@ -565,7 +565,7 @@ function stuffQuestion() {
   /* THE FRONT MENU IS ALWAYS ASKED (C+): one front answer (Settings, signed out) is still a menu, so every first screen is the same shape. */
   const facet = nextFacet(items) || overFacet_(items) || (!STUFF.filters.length && !String(STUFF.q || '').trim() ? facetBy('kindLabel') : null);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
-    ? tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'worded find-end') : '';
+    ? tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'find-end') : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN § */
     const n = items.length === 1 ? 'one' : items.length;

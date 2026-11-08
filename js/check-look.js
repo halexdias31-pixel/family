@@ -69,5 +69,10 @@ files.forEach(({ n, src }) => {
   }
 });
 
+/* ---------- 4c. TILES ARE ICON-ONLY; A LONG PRESS SAYS THE WORD ---------- */
+if (/attr\(data-w\)/.test(css)) bad.push('4c a tile prints its word on the page (attr(data-w)) — tiles are icon-only; the word is a long press');
+const tilesSrc = (files.find(f => f.n === 'tiles') || {}).src || '';
+if (!/function tileWordShow_/.test(tilesSrc) || !/'pointerdown'/.test(tilesSrc)) bad.push('4c the one long-press handler (tileWordShow_ in tiles.js) is missing');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

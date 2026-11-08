@@ -639,7 +639,7 @@ const messagesHtml_ = ms => {
              { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
              m.why === 'files' && words && (m.queue || []).length
                ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
-             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'worded msg-acts')}`
+             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'msg-acts')}`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
