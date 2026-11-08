@@ -405,7 +405,7 @@ check('488: a tutor with no hours can be chosen and asked at any hour; a named t
   B.tutor = 'Nia Nohours';
   const g = w.slotGrid();
   if (!g.anyOpen) bad.push('with Nia chosen the grid shuts, saying "' + g.why + '"');
-  if (!/hasn.t set usual hours/.test(g.guide || '')) bad.push('with Nia chosen the guide reads "' + g.guide + '"');
+  if (g.guide !== undefined) bad.push('the grid still carries a guide sentence: "' + g.guide + '"');
   /* ADA, ASKED AT AN HOUR OUTSIDE HER WEEK: open, and sent with the hour as `slots`. */
   B.tutor = 'Ada Hours';
   B.slots = ['sa10'];
@@ -507,7 +507,7 @@ check('with Client House chosen the week grid is open every hour — the house k
   const all = g.rows.flatMap(r => r.hours), shut = all.filter(h => !h.open).map(h => h.code);
   const bad = [];
   if (shut.length) bad.push('at Client House these hours are shut: [' + shut.slice(0, 8).join(',') + '] — "' + g.why + '"');
-  if (!/Mon 16–18; Sat 10–11/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '"');
+  if (g.why) bad.push('an open grid explains itself: "' + g.why + '"');
   return bad;
 });
 

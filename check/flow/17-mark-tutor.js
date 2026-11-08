@@ -698,7 +698,7 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
 });
 
 /* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THE BOOKING FORM § */
-check('488: the booking week shows all seven days whoever is named; a tutor\'s hours are a guide, said under it, and only a venue shuts a day', async () => {
+check('488: the booking week shows all seven days whoever is named; a tutor\'s hours are a guide, unsaid, and only a venue shuts a day', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
@@ -725,9 +725,9 @@ check('488: the booking week shows all seven days whoever is named; a tutor\'s h
   if (week().some(x => x.shut)) bad.push('a day is drawn shut with Tia named and no venue — her week must not lock a day');
   const g = w.slotGrid();
   if (!g.rows.every(r => r.hours.every(h => h.open))) bad.push('an hour outside Tia\'s week, or one she already teaches, is shut');
-  if (!/usually free Tue 10–12; Thu 16–17/.test(g.guide || '')) bad.push('the guide reads "' + g.guide + '", wanted "…usually free Tue 10–12; Thu 16–17…"');
+  /* NO GUIDE SENTENCE (owner, 8 Nov): the grey cells say it. */
   const said = [...doc().querySelectorAll('.bk-say')].map(p => p.textContent).join(' ');
-  if (!/usually free/.test(said)) bad.push('the guide sentence is not drawn under the week');
+  if (/usually free|accept or decline/.test(said)) bad.push('a guide sentence is drawn under an open week: "' + said + '"');
   /* A VENUE STILL SHUTS A DAY: that is the room, not the tutor. */
   const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
                  avail: Object.assign({}, blank) };

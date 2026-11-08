@@ -341,24 +341,7 @@ function slotGrid() {
   const days = rows;
 
   const why = anyOpen ? '' : 'That venue has no free hours.';
-  /* THE GUIDE, SAID (488): "Ada is usually free Mon 16–18" — and that any other hour may still be asked. */
-  const guide = !t ? '' : (haveT
-    ? t.title + ' is usually free ' + usualSaid_(tAvail) + '. Any other hour can be asked; they accept or decline.'
-    : t.title + ' hasn\u2019t set usual hours. Ask for any hour; they accept or decline.');
-  return { rows, days, why, anyOpen, guide };
-}
-
-/* A TUTOR'S USUAL WEEK IN WORDS — `Mon 16–18, Sat 11–12` — from their `m16` codes (488). */
-function usualSaid_(have) {
-  const out = [];
-  SLOT_DAYS.forEach(([p, label]) => {
-    const hs = Object.keys(have).filter(c => c.replace(/\d+$/, '') === p)
-      .map(c => Number(c.slice(p.length))).sort((a, b) => a - b);
-    const runs = [];
-    hs.forEach(h => { const r = runs[runs.length - 1]; if (r && r[1] === h) r[1] = h + 1; else runs.push([h, h + 1]); });
-    if (runs.length) out.push(label.slice(0, 3) + ' ' + runs.map(r => r[0] + '\u2013' + r[1]).join(', '));
-  });
-  return out.join('; ') || 'at no set hours';
+  return { rows, days, why, anyOpen };
 }
 
 /* THE TICKED HOURS, GROUPED INTO SESSIONS. § */
@@ -1308,7 +1291,8 @@ function weekRows_(days, cell, opts) {
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
-    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '', total: '',
+    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '',
+    total: (i === 0 && week && o.total) ? o.total : '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
@@ -1400,7 +1384,19 @@ function stepWeekRows_(st) {
       data-do="book-slot" data-code="${esc(h.code)}"></button>`,
     { id: st.id, off: off, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN § */
-      say: g.anyOpen ? g.guide : g.why });
+      /* NO SENTENCE WHILE ANY HOUR IS OPEN (owner, 8 Nov): the grey cells say it; only an empty grid needs words. */
+      say: g.why,
+      /* THE WEEK'S RUNNING TOTAL, in the last column like every priced line (owner, 8 Nov). */
+      total: weekTotal_() });
+}
+
+/* RATE × HOURS A WEEK, bare like every running total (a unit overflowed the column at 390px); blank until there is a rate and an hour to multiply. */
+function weekTotal_() {
+  try {
+    const L = bookPrice();
+    if (!L || !L.hoursPerWeek || !L.chargeRate || childView_()) return '';
+    return money(runningAfter('hoursweek', L));
+  } catch (e) { return ''; }
 }
 
 /* Which steps open something under their row rather than answering in it. */
@@ -1677,7 +1673,7 @@ function bookBreakdown(L, foot) {
     const p = byStep[r.id];
     if (!p) return;
     /* A ROW'S OWN FIGURE STAYS when its priced line has none: the week's `× 4` was wiped by its day lines' blank (525). */
-    r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = p.total;
+    r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = S_(p.total) ? p.total : (r.total || '');
     p.used = true;
     const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
     if (k) merged[k] = true;
