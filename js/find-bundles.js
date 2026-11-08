@@ -449,8 +449,20 @@ function stuffCard(x, credits) {
   /* A SECONDARY KIND'S CARD (860) is guarded: its throw is a card saying so, never the Find column. */
   const card = kindOf_(x).card || thingCard_;
   const html = tagsAreTitle_(x, tagsOnTop_(x, tierCore_('kind', x.kind) ? card(x, credits) : tierRun_('card:' + x.kind, card, null, [x, credits], oopsHtml_)));
-  if (!x.key) return html;
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
+  const shown = withPic_(x, html);
+  if (!x.key) return shown;
+  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${shown}</div>${cardTiles_(x)}`;
+}
+
+/* EVERY FIND CARD HAS A PICTURE (owner 8 Nov, 25a): one with no photo or drawing gets its kind's 8-bit sign, one helper for every kind. */
+function picFor_(x) {
+  const pix = (typeof LIB_PIX === 'object' && LIB_PIX) || {};
+  const rows = pix[x && x.kind] || pix.content;
+  return rows ? `<figure class="lib-pic">${pixSvg_(rows, (x && x.name) || '')}</figure>` : '';
+}
+function withPic_(x, html) {
+  if (typeof html !== 'string' || /<(img|svg|canvas|video|figure)\b/.test(html)) return html;
+  try { return html.replace(/^(\s*<div class="[^"]*\bcard\b[^"]*"[^>]*>)/, m => m + picFor_(x)); } catch (e) { return html; }
 }
 
 /* WHAT A CHIP READS: the words its button said, in the menu it was picked from (the chips before it), else `answerSay_`. */
