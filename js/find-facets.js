@@ -538,7 +538,7 @@ function practicalCard_(x) {
   /* ---------- AGE, HAZARD AND COST JOIN THE STRIP, AND ONLY WHERE THEY WERE ANSWERED § */
   const money = p.costPerRun == null ? ''
     : p.costPerRun === 0 ? 'free to run'
-    : '£' + p.costPerRun.toFixed(2) + ' a run';
+    : money_(p.costPerRun) + ' a run';
   const strip = [p.minutes ? p.minutes + ' min' : '',
                  p.ageMin ? p.ageMin + '+' : '',
                  p.groupSize > 1 ? p.groupSize + ' students' : '',
@@ -612,7 +612,7 @@ function practicalPart_(x, part) {
     inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.equipment)}</section></div>
       ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
-      ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
+      ${p.setupCost ? `<p class="prac-cost">About ${money_(p.setupCost)} of kit to set up,
         and it is bought once.</p>` : ''}`;
   } else if (part === 'steps') {
     inner = `${head('Steps')}<div class="gd"><section class="prac-steps">

@@ -262,13 +262,13 @@ function profAvail_(t) {
   if (!days.length) {
     return `<div class="prof-cap">Available</div>
       <p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
-          ? ' Every hour they have ticked is outside ' + hours[0] + ':00–' + hours[hours.length - 1]
-            + ':00, the hours a session can be booked at.' : ''}</p>`;
+          ? ' Every hour they have ticked is outside ' + hours_(hours[0], hours[hours.length - 1])
+            + ', the hours a session can be booked at.' : ''}</p>`;
   }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS § */
   const hoursOn = which => days.map(d => {
-    const hs = d.hours.filter(which).map(c => c.h + ':00');
-    return hs.length ? d.label + ' ' + hs.join(', ') : '';
+    const hs = d.hours.filter(which).map(c => time_(c.h + ':00'));
+    return hs.length ? day_(d.label) + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
   const said = hoursOn(c => c.lit);
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
@@ -280,7 +280,7 @@ function profAvail_(t) {
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
     const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
-    return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(say)}</span>` : '';
+    return spans.length ? `<span class="prof-day">${esc(day_(d.label))} ${esc(say)}</span>` : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-cap">Available</div>
@@ -289,10 +289,8 @@ function profAvail_(t) {
         + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
         ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
 }
-/* AN HOUR SPAN AS A PERSON SAYS IT: 4–7pm, 10am–1pm, 12–1pm. */
-const profHr_ = h => (h % 12 || 12) + '';
-const profAm_ = h => (h % 24 < 12 ? 'am' : 'pm');
-const profSpan_ = ([a, b]) => profHr_(a) + (profAm_(a) === profAm_(b) ? '' : profAm_(a)) + '–' + profHr_(b) + profAm_(b);
+/* AN HOUR SPAN, 24-hour (owner, 8 Nov): 16:00–19:00. */
+const profSpan_ = ([a, b]) => hours_(a, b);
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so clients can know extra cost for the extra seat"*. § */
 function profSeat_(t) {
@@ -305,7 +303,7 @@ function profSeat_(t) {
 function rateRange_(t) {
   const r = Number(t && t.rate);
   if (!(r > 0)) return '';
-  const say = n => '£' + (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+  const say = money_;
   const max = Math.round(Number(t.maxStudents)) || 1, seat = profSeat_(t);
   return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
 }
@@ -420,7 +418,7 @@ function tutorCard_(t) {
 function venueCard_(t) {
     /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
     const kid = childView_();
-    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free']
+    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money_(rate) + '/h' : 'free']
       .filter(Boolean).join(' · ');
     const roomRow = (label, max, rate) => say(max, rate) ? row(label, say(max, rate)) : '';
     return `

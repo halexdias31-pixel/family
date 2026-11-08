@@ -705,12 +705,12 @@ check('a tutor\'s rate shows as £first-seat–£full-class/hour on the profile 
   const mk = (title, more) => Object.assign({}, base, { title, personId: 'P-' + title.replace(/\W/g, ''), listed: true, rate: 10, extraSeat: 0.2, extraSeatCut: 0.1, maxStudents: 4 }, more);
   const rows = { four: mk('Range Four', {}), one: mk('Range One', { maxStudents: 1 }), none: mk('Range None', { maxStudents: '' }), free: mk('Range Free', { rate: '' }) };
   const bad = [];
-  const WANT = { four: '£10–19/hour', one: '£10/hour', none: '£10/hour', free: '' };
+  const WANT = { four: '£10.00–19.00/hour', one: '£10.00/hour', none: '£10.00/hour', free: '' };
   Object.keys(WANT).forEach(k => { const g = w.rateRange_(rows[k]); if (g !== WANT[k]) bad.push(k + ': rateRange_ says "' + g + '", wanted "' + WANT[k] + '"'); });
   const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row: rows.four });
   const card = ((box.querySelector('.prof-rate') || {}).textContent || '').trim();
-  if (card !== '£10–19/hour') bad.push('the profile card draws "' + card + '", wanted "£10–19/hour"');
-  if (typeof w.tpngRate_ === 'function' && w.tpngRate_(rows.four) !== '£10–19/hour') bad.push('the shared picture says "' + w.tpngRate_(rows.four) + '"');
+  if (card !== '£10.00–19.00/hour') bad.push('the profile card draws "' + card + '", wanted "£10–19/hour"');
+  if (typeof w.tpngRate_ === 'function' && w.tpngRate_(rows.four) !== '£10.00–19.00/hour') bad.push('the shared picture says "' + w.tpngRate_(rows.four) + '"');
   D.tutors = [rows.four, rows.one].concat(D.tutors || []);
   const st = t.STEPS.find(s => s.id === 'tutor');
   const said = st && st.label_ ? st.label_('Range Four') : '';

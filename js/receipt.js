@@ -406,7 +406,7 @@ on('book-send', el => {
     requestedTutor: spec.tutor,
     /* THE SEAT TOTAL, so the server can hold a home booking to the tutor's whole capacity. */
     n: String(spec.n || 1),
-    dates: (L && L.sessionDates || []).map(d => fmtDate(d)).join(', '),
+    dates: (L && L.sessionDates || []).map(d => date_(d)).join(', '),
     price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
        sent — so the sheet's profit column stayed empty on every booking made through the app. */

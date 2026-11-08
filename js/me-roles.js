@@ -712,5 +712,5 @@ function availGrid_(codes, p, readonly, mine) {
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
              ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}>
-    </label>`, { chars: 3 })}</div>`;
+    </label>`)}</div>`;
 }

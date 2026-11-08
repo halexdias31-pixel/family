@@ -30,6 +30,8 @@ const SUITE = [
   { file: 'check-const.js',   what: 'nothing declared const is assigned to' },
   /* A comment says WHY in a line or two; the story is in docs/history, a § comment's full text in docs/notes. */
   { file: 'check-comments.js', what: 'no comment over 240 characters' },
+  /* ONE FORMATTER EACH (owner, 8 Nov): money_, date_, time_, day_ — a hand-formatted value fails. */
+  { file: 'check-format.js', what: 'money £12.00, dates 08/11/26, times 16:00, days Mon — one helper each' },
   /* backend/files.json must name every backend file — sync.gs pulls by that list, and a name
      missing from it is a file DELETED from the live project on the next pull. */
   { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },

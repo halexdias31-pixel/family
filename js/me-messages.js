@@ -546,14 +546,11 @@ function msgDay_(ms) {
   const gap = Math.round((day(now) - day(d)) / 864e5);
   if (gap === 0) return 'Today';
   if (gap === 1) return 'Yesterday';
-  const opt = { weekday: 'short', day: 'numeric', month: 'short' };
-  if (d.getFullYear() !== now.getFullYear()) opt.year = 'numeric';
-  try { return d.toLocaleDateString('en-GB', opt); } catch (e) { return d.toDateString(); }
+  return day_(d) + ' ' + date_(d);
 }
 function msgClock_(ms, raw) {
   if (!ms) return String(raw || '');
-  const d = new Date(ms);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return time_(ms);
 }
 
 /* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE § */

@@ -380,8 +380,8 @@ function cardSeatShare_(f, typed, rate, was) {
 const cardSeatTop_ = f => f === 'extra_seat_cut' ? 2 : STAFF_SEAT_MAX;
 const cardSeatOff_ = (f, v) => { const x = num(v); return !isNaN(x) && (x < 0 || x > cardSeatTop_(f)); };
 const cardSeatOffSay_ = (rate, f) => f === 'extra_seat_cut'
-  ? "@family.'s part is £0 to " + money(pounds2_(rate * 2)) + '/h — twice the rate.'
-  : 'An extra seat adds £0 to ' + money(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
+  ? "@family.'s part is £0 to " + money_(pounds2_(rate * 2)) + '/h — twice the rate.'
+  : 'An extra seat adds £0 to ' + money_(pounds2_(rate * STAFF_SEAT_MAX)) + '/h — at most what the first student pays.';
 /* ---------- THREE CARDS, ONE PRICE (620): n students pay x + k·x·(n−1) + g·x·(n−1) an hour — x the rate, k the tutor's share, g @family.'s ---------- */
 /* THE PARTS AS PRICED, through `seatShare_` (the booking's own reader): a blank is the config's usual. */
 function cardSeatParts_(rate, seat, cut) {
@@ -395,27 +395,27 @@ function cardSeatSay_(rate, seat) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
   if (cardSeatOff_('extra_seat_rate', seat)) return esc(cardSeatOffSay_(rate, 'extra_seat_rate'));
   const p = cardSeatParts_(rate, seat, '');
-  return `<span class="prof-seat">+${esc(money(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
+  return `<span class="prof-seat">+${esc(money_(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
 }
 /* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
 function cardShareBar_(rate, seat, cut) {
   if (!(rate > 0)) return '';
   const p = cardSeatParts_(rate, seat, cut), blocks = [['shb-first', rate, 'first seat'], ['shb-seat', p.kx, 'another seat'], ['shb-fam', p.gx, '@family.']];
   const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
-  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money(v))}</b><small>${esc(say)}</small></span>`).join('');
+  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money_(v))}</b><small>${esc(say)}</small></span>`).join('');
 }
 /* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
 function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
   if (cardSeatOff_('extra_seat_cut', cut)) return esc(cardSeatOffSay_(rate, 'extra_seat_cut'));
   const p = cardSeatParts_(rate, '', cut);
-  return `<span class="prof-seat">+${esc(money(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
+  return `<span class="prof-seat">+${esc(money_(p.gx))}/h</span> a seat${p.gOwn ? '' : ', usual'}`;
 }
 /* THE CLASS SIZE CARD'S LINE: one student and a full class, by the formula. */
 function cardSizeSay_(rate, seat, cut, lo, hi) {
   if (!(rate > 0)) return 'Set a rate and the class prices show here.';
   const top = Math.max(1, Math.round(num(hi)) || 1), bottom = Math.max(1, Math.round(num(lo)) || 1);
-  const at = n => n + ': ' + money(cardGroupTotal_(rate, seat, cut, n));
+  const at = n => n + ': ' + money_(cardGroupTotal_(rate, seat, cut, n));
   return esc([...new Set([bottom, top])].sort((x, y) => x - y).map(at).join(' · ') + '/h');
 }
 /* ---------- THE RATE AND THE TUTOR'S EXTRA SEAT, ONE CARD (620): the seat in pounds beside the rate, kept as the share k ---------- */
@@ -434,8 +434,8 @@ function cardRateHtml_(L, val, box, e) {
   return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
       `${pound}<input type="hidden" data-me="extra_seat_rate" value="${esc(String(val('extra_seat_rate')))}">
-       <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money(u.extra_seat_rate) : '')
-         + '; at most ' + (live ? money(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
+       <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money_(u.extra_seat_rate) : '')
+         + '; at most ' + (live ? money_(pounds2_(rate * STAFF_SEAT_MAX)) : 'the rate') + ' — a seat never costs more than the first student.')}</p>`)
     + fieldRows_(L.filter(f => f !== 'rate_per_hour' && f !== 'extra_seat_rate'), box);
 }
 /* ---------- @FAMILY.'S SHARE OF AN EXTRA SEAT, ITS OWN CARD (620): a box for an admin (`seatCutRefusal_`'s rule), words for anybody else ---------- */
@@ -449,8 +449,8 @@ function cardCutHtml_(L, val, box) {
     ? fieldHtml('extra_seat_cut', cardSeatShown_('extra_seat_cut', rate, val('extra_seat_cut')), { attr: 'data-pound', label: "@family.'s, £/h",
         readonly: !live, draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01" inputmode="decimal" placeholder="${esc(cardSeatPh_(rate))}"` })
       + `<input type="hidden" data-me="extra_seat_cut" value="${esc(String(val('extra_seat_cut')))}">`
-      + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
-    : `<p class="faint ce-note ce-cut-note">${esc((live ? money(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
+      + `<p class="faint ce-note ce-cut-note">${esc('Blank is the usual' + (u ? ' ' + money_(u.extra_seat_cut) : '') + ', £0 is no cut.')}</p>`
+    : `<p class="faint ce-note ce-cut-note">${esc((live ? money_(p.gx) + '/h of each extra student is @family.\'s' + (p.gOwn ? '' : ', the usual') : "@family.'s part is set by @family.")
         + ' — only @family. sets that.')}</p>`;
   return `<span class="ce-rate" hidden data-rate="${esc(String(rate || 0))}"></span>`
     + ceFold_('cut', "@family.'s share", `<span class="ce-cut" aria-live="polite">${cardCutSay_(rate, val('extra_seat_cut'))}</span>`, body)

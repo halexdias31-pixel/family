@@ -195,8 +195,8 @@ function bundlePriceLine_(b) {
   const cash = priced.reduce((n, p) => n + printPrice(p.pages), 0);
   const left = b.printable.length - priced.length;
   if (!priced.length) return 'Priced when it is sent — no page counts yet';
-  if (!left) return pages + ' pages · ' + money(cash);
-  return money(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
+  if (!left) return pages + ' pages · ' + money_(cash);
+  return money_(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
 }
 
 /* WHAT IS ON THE LIST AND NOT IN THE BUNDLE, in one sentence — see the note above `BUNDLE_MIN`. § */

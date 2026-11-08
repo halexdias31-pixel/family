@@ -159,7 +159,7 @@ function appsCard_() {
 }
 function appsInner_(wait) {
   const list = (APPS.list || []).filter(a => a.status === 'new' || a.status === 'interview');
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
   const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
       <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="qtags biz-when"><span class="qtag">${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></span></p>
@@ -219,7 +219,7 @@ function errsCard_() {
 }
 function errsInner_(wait) {
   const list = ERRS.list || [];
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const item = r => `<div class="biz-item err-item" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>${esc(r.message)}</b></p>
       <p class="faint">${esc([r.where, r.screen ? 'on ' + r.screen : '', r.version].filter(Boolean).join(' · '))}</p>
@@ -261,7 +261,7 @@ function reportsCard_() {
 const REP_FINDS_ = ['question', 'content', 'practical', 'project', 'talmud', 'quran', 'bible'];
 function reportsInner_(wait) {
   const list = REPS.list || [];
-  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const when = ms => { try { return ms ? date_(ms) : ''; } catch (e) { return ''; } };
   const st = (r, decision, icon, label, note) => tile_({ icon, label, note, act: 'rep-status', data: { id: r.id, decision } });
   const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
       <p class="biz-cap"><b>${esc(r.label || r.itemId)}</b> <span class="qtags biz-when"><span class="qtag">${esc(r.kind)}</span></span></p>
@@ -355,7 +355,7 @@ function libImpSaid_(r) {
 /* THE HOURLY RUN (443): when it last found files, and what it imported. */
 function libImpAuto_(a) {
   if (!a || !a.at) return '<p class="faint libimp-auto">Imports itself every hour; it has not found a file yet.</p>';
-  const when = new Date(a.at), said = isNaN(when) ? String(a.at) : when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Date(a.at), said = isNaN(when) ? String(a.at) : date_(when) + ' ' + time_(when);
   const n = Number(a.imported) || 0, f = Number(a.failed) || 0;
   return `<p class="faint libimp-auto">Last automatic import ${esc(said)}: ${n} ${n === 1 ? 'file' : 'files'} imported${f ? ', ' + f + ' not' : ''}.</p>${libImpSaid_(a)}`;
 }
@@ -433,9 +433,9 @@ const einkList_ = () => (einkMode_() === 'icon' ? EINK.icons : einkMode_() === '
 function einkToday_(at) {
   const d = at || new Date();
   return { date: true, wd: d.getDay(), d: d.getDate(), mo: d.getMonth(), y: d.getFullYear(),
-           text: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) };
+           text: day_(d) + ' ' + date_(d) };
 }
-const EINK_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const EINK_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const EINK_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /* THE SCREEN'S OWN PIXELS (482): verse.cpp's layout, line for line, with its three Adafruit GFX fonts (data/eink-fonts.json),
    into a 200x200 1-bit page — what the widget shows is what the screen draws. */
@@ -815,9 +815,8 @@ function profitSum_(x, period) {
   return { N, revenue, tutor, room, fees, other, profit: revenue - tutor - room - fees - other };
 }
 
-const profitMoney_ = x => (x < 0 ? '−' : '') + '£' + Math.abs(x).toLocaleString('en-GB', { maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2, minimumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2 });
-const profitShort_ = x => { const a = Math.abs(x), s = x < 0 ? '−' : '';
-  return s + '£' + (a >= 1e4 ? Math.round(a / 1000) + 'k' : a >= 1000 ? (a / 1000).toFixed(1) + 'k' : Math.round(a)); };
+const profitMoney_ = money_;
+const profitShort_ = money_;
 
 /* THE BARS: revenue up, each cost down from where the last left off, profit what is left. */
 function profitBars_(r) {
@@ -857,7 +856,7 @@ function profitLine_(x, period) {
   const X = t => L + (t - p.min) / ((p.max - p.min) || 1) * (W - L - R), Y = y => top + (hi - y) / span * (base - top);
   const d = pts.map((q, i) => (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1)).join('');
   const cx = X(Math.min(p.max, Math.max(p.min, x[p.k]))), cy = Y(cur);
-  const fmt = t => p.cash ? '£' + t : p.pct ? t + '%' : String(t);
+  const fmt = t => p.cash ? money_(t) : p.pct ? t + '%' : String(t);
   return `<svg class="pf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('Profit against ' + p.label + '; now ' + profitMoney_(cur) + ' at ' + fmt(x[p.k]))}">
     <line class="pf-zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
     <text class="pf-axis" x="${L - 4}" y="${(top + 4).toFixed(1)}" text-anchor="end">${esc(profitShort_(hi))}</text>

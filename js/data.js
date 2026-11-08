@@ -499,7 +499,6 @@ function mark(text) {
 
   return out.replace(/\u0000(\d+)\u0000/g, (all, i) => parked[i]);
 }
-const money = n => '£' + (Number(n) || 0).toFixed(2);
 
 /* ---------- WHEN SOMETHING HAPPENED § */
 const MONTH_NAMES = ['January','February','March','April','May','June',
@@ -527,8 +526,6 @@ function parseWhen(v) {
   return isNaN(d) ? null : d;
 }
 
-/** 16 August 2026. No leading zero, the month written out, the year in full. */
-const fullDate = d => `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 
 /* The ladder. Singulars are words rather than numbers — "a minute ago", not "1 minute ago", because nobody counts to one — and "yesterday" for the same reason. § */
 function ago(value) {
@@ -536,7 +533,7 @@ function ago(value) {
   if (!d) return String(value ?? '');        // unparseable: show it as written, not as nothing
 
   const secs = (Date.now() - d.getTime()) / 1000;
-  if (secs < 0) return fullDate(d);
+  if (secs < 0) return date_(d);
   if (secs < 45) return 'just now';
 
   const mins = Math.floor(secs / 60);
@@ -552,8 +549,8 @@ function ago(value) {
   if (days < 28) return Math.floor(days / 7) + ' weeks ago';
   if (days < 60) return 'a month ago';
 
-  /* Past two months, "nine weeks ago" is arithmetic and "16 August 2026" is an answer. */
-  return fullDate(d);
+  /* Past two months, "nine weeks ago" is arithmetic and a date is an answer. */
+  return date_(d);
 }
 
 /* THE LAST GOOD PAYLOAD, KEPT ON THE DEVICE (1070): the next visit draws from it at once and the network's answer replaces it silently. */

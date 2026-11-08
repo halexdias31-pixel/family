@@ -639,9 +639,9 @@ check('a tutor\'s ticked hours are on their card as lines (467), taught ones sai
   if (!caps.includes('Available')) bad.push('a tutor with hours ticked has no "Available" caption on their card');
   /* LINES, NOT A GRID (467): each day its hours merged, the taught ones said after. */
   const line = ((box.querySelector('.prof-week .prof-hour-line') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-  if (line !== 'Mon 4–5pm, Sat 10–11am, Sun 6–7pm') bad.push('the card\'s hours read "' + line + '", wanted "Mon 4–5pm, Sat 10–11am, Sun 6–7pm"');
+  if (line !== 'Mon 16:00–17:00, Sat 10:00–11:00, Sun 18:00–19:00') bad.push('the card\'s hours read "' + line + '", wanted "Mon 16:00–17:00, Sat 10:00–11:00, Sun 18:00–19:00"');
   const key = ((box.querySelector('.prof-week .prof-key') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-  if (key !== 'Already teaching Mon 5–6pm') bad.push('the taught hour reads "' + key + '", wanted "Already teaching Mon 5–6pm"');
+  if (key !== 'Already teaching Mon 17:00–18:00') bad.push('the taught hour reads "' + key + '", wanted "Already teaching Mon 17:00–18:00"');
   if (box.querySelector('.prof-week .hr, .prof-week .slot-row')) bad.push('the card still draws a grid of hours');
   if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('the card\'s hours hold a control, so they can be pressed and are counted as a tap target');
   if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
@@ -681,9 +681,9 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
   /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
   const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
   if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
-  if (((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() !== 'Tue 10am–12pm, Thu 4–5pm') bad.push('two hours in a row are not merged: "' + ((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() + '"');
+  if (((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() !== 'Tue 10:00–12:00, Thu 16:00–17:00') bad.push('two hours in a row are not merged: "' + ((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() + '"');
   const key = taught.querySelector('.prof-week .prof-key');
-  if (!key || key.textContent.replace(/\s+/g, ' ').trim() !== 'Already teaching Thu 4–5pm') bad.push('a week with a taught hour does not say it: ' + (key ? '"' + key.textContent.trim() + '"' : 'no line'));
+  if (!key || key.textContent.replace(/\s+/g, ' ').trim() !== 'Already teaching Thu 16:00–17:00') bad.push('a week with a taught hour does not say it: ' + (key ? '"' + key.textContent.trim() + '"' : 'no line'));
   if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
   const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
   if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {

@@ -349,13 +349,13 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   w.__t.DATA().submissions = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
   if (typeof w.subsLine_ !== 'function') bad.push('subsLine_ is not reachable — the admin’s line was NOT checked');
   else {
-    if (w.subsLine_('P7') !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + w.subsLine_('P7') + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
-    if (w.subsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.subsLine_('P9') + '"');
+    if (w.subsLine_('P7') !== '12 questions · last 04/10/01') bad.push('an admin reads "' + w.subsLine_('P7') + '" under a learner, wanted "12 questions · last 04/10/01"');
+    if (w.subsLine_('P9') !== '1 question · last 04/10/01') bad.push('one question reads "' + w.subsLine_('P9') + '"');
     if (w.subsLine_('P5') !== '') bad.push('a person who sent nothing reads "' + w.subsLine_('P5') + '"');
     const host = w.document.createElement('div');
     host.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: w.subsLine_('P7') } });
     const act = host.querySelector('.prof-who .prof-act');
-    if (!act || act.textContent !== '12 questions · last 4 Oct 2001') bad.push('the person card does not draw the line under the name');
+    if (!act || act.textContent !== '12 questions · last 04/10/01') bad.push('the person card does not draw the line under the name');
     w.__t.USER(Object.assign({}, ANS_BEN));
     if (w.subsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone');
   }

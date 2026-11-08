@@ -481,7 +481,7 @@ function jobTiles_(x) {
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
   return jobChooseTiles_(j, id) + `
     ${owed && !childView_() ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
-                     note: typeof money === 'function' ? money(j.price || 0) : '',
+                     note: typeof money_ === 'function' ? money_(j.price || 0) : '',
                      act: 'job-pay', data: { id: id } }) : ''}
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}

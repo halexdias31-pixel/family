@@ -293,8 +293,8 @@ function waitBreakdownRows_(rows, push) {
   if (!w) return rows;
   /* WHAT KIND OF THING THIS IS, FIRST. § */
   push('Kind', 'Waiting list class', '', '', '', { free: true });
-  push('A seat', esc(BOOKING.loc || 'no venue'), '', money(w.chargePerHour) + '/h',
-    money(w.perSeatSession), { end: true, step: 'loc' });
+  push('A seat', esc(BOOKING.loc || 'no venue'), '', money_(w.chargePerHour) + '/h',
+    money_(w.perSeatSession), { end: true, step: 'loc' });
   push('Shared by', familiesSay_(w.seats), '', '', '', { free: true });
   push('Per session', esc(w.hours) + ' hours', '', '', '', { free: true });
 
@@ -303,8 +303,8 @@ function waitBreakdownRows_(rows, push) {
     /* ---------- `Running`, `Weeks left` AND A `For` HOLDING THE TERM WERE ALL HERE § */
     /* ---------- AND WHAT THE TERM WOULD COME TO § */
     if (term.weeks) {
-      push('About', esc(term.weeks) + ' × ' + money(w.perSeatSession),
-        '', '', money(w.perSeatSession * term.weeks), { est: true });
+      push('About', esc(term.weeks) + ' × ' + money_(w.perSeatSession),
+        '', '', money_(w.perSeatSession * term.weeks), { est: true });
     }
   }
 
@@ -314,7 +314,7 @@ function waitBreakdownRows_(rows, push) {
 }
 
 function breakdownRows(L) {
-  const fmt = { money, esc, pct: x => x };
+  const fmt = { esc, pct: x => x };
   const rows = [];
   let line = 0;
   const push = (k, v, mul, rate, total, opts) => rows.push(Object.assign({
@@ -336,7 +336,7 @@ function breakdownRows(L) {
 
     if (group === 'shape') {
       bookRuns().forEach(r => {
-        push(r.dayName, r.hour + ':00–' + (r.hour + r.hours) + ':00', '', '', '',
+        push(day_(r.dayName), hours_(r.hour, r.hour + r.hours), '', '', '',
           { day: true, step: 'slots', hours: r });
       });
       /* ---------- `Hours a week` WAS THE THIRD ROW TO SAY THE SAME THING § */
@@ -370,7 +370,7 @@ function breakdownRows(L) {
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND § */
   /* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS § */
-  const dates = (L.sessionDates || []).map(d => fmtDate(d));
+  const dates = (L.sessionDates || []).map(d => date_(d));
   /* NO "× sessions" HERE (owner, 7 Nov): Term's weeks × the week's hours is the one period multiplier the sum uses. */
   push('Dates', dates.length ? dates.join(', ') : '—', '', '', '', { free: true, dates: true });
 
@@ -524,7 +524,7 @@ function weekRows_(days, cell, opts) {
   /* ON THE LAST TICKED DAY (owner, 8 Nov): × 4 on an empty Monday read as Monday's; it closes the week's ticks instead. */
   const last = days.reduce((at, d, i) => (Number(d.mul) > 0 ? i : at), 0);
   return days.map((d, i) => ({
-    n: '', k: String(d.label), v: '',
+    n: '', k: day_(d.label), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
     mul: (i === last && week) ? '\u00d7 ' + week : '', rate: '',
     total: (i === last && week && o.total) ? o.total : '',
@@ -548,21 +548,15 @@ function weekRows_(days, cell, opts) {
   }));
 }
 
-/* `o.chars` IS HOW MUCH OF A DAY'S NAME TO PRINT — two by default, for the reason under it. The
-   settings card has the room for three (`Mon`, `Tue`) and reads better with them; see `availGrid_`. */
-function weekGrid_(days, cell, o) {
-  o = o || {};
-  const chars = o.chars || 2;
+/* A DAY IS ITS SHORT NAME, Mon to Sun, everywhere (owner, 8 Nov). */
+function weekGrid_(days, cell) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
   return `<div class="slot-grid">
     ${slotHead_(cols)}
     ${/* ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE § */
           ''}
     ${days.map(d => `<div class="slot-row">
-      ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell’s width — and Mo/Tu/
-            We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
-            T and S are each two days. */''}
-      <span class="slot-day">${esc(String(d.label).slice(0, chars))}</span>
+      <span class="slot-day">${esc(day_(d.label))}</span>
       <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
     </div>`).join('')}
   </div>`;
@@ -630,7 +624,7 @@ function weekTotal_() {
   try {
     const L = bookPrice();
     if (!L || !L.hoursPerWeek || !L.chargeRate || childView_()) return '';
-    return money(runningAfter('hoursweek', L));
+    return money_(runningAfter('hoursweek', L));
   } catch (e) { return ''; }
 }
 
@@ -677,7 +671,7 @@ function stepRows_() {
         ? blockSay_(v)
         : st.grid
         /* ---------- THE WHOLE RUN, NOT ITS START § */
-        ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00–' + (r.hour + r.hours) + ':00')
+        ? bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours))
             .join(', ')
         /* A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP. § */
         : st.multi ? ((v || []).join(', ') || (st.fallback ? st.fallback() : ''))

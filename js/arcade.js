@@ -1165,7 +1165,7 @@ function termDatesRows_(today) {
   const i = all.findIndex(x => x.from <= t && t <= x.to);
   return all.slice(Math.max(0, i), Math.max(0, i) + 4).map((x, k) => Object.assign(x, { now: k === 0 && i >= 0 }));
 }
-const tdDay_ = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const tdDay_ = d => day_(d) + ' ' + date_(d);
 /* A TERM SAYS ITS FIRST AND LAST DAY OF TERM; A BREAK SAYS WHEN IT STARTS AND THE FIRST DAY BACK — never "ends" on a Sunday. */
 function tdLine_(x) {
   const back = new Date(x.to.getFullYear(), x.to.getMonth(), x.to.getDate() + 1);
@@ -1460,7 +1460,7 @@ function progressSessions_() {
 }
 function progressSessionsCard_(ss) {
   if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
-  const when = s => s.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + (s.j.time ? ' · ' + s.j.time : '');
+  const when = s => day_(s.d) + ' ' + date_(s.d) + (s.j.time ? ' · ' + time_(s.j.time) : '');
   const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
   return `<div class="card prog-sessions">
     <h3>Sessions</h3>

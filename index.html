@@ -66,8 +66,8 @@
 
   /* WHAT THE FOOTER SHOWS, from the same instant — so the version on screen is a MEASUREMENT of what is running rather than a second thing to remember to type. § */
   /* LOCAL TIME, NOT UTC. § */
-  window.SITE_STAMP = new Date(LOAD_AT).toLocaleString('en-GB',
-    { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '')
+  window.SITE_STAMP = ((d, p) => p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2)
+    + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()))(new Date(LOAD_AT), n => String(n).padStart(2, '0'))
     /* NO MODE TO REPORT ANY MORE — there is only one. The stamp still says when the site was built,
        which is the thing worth reading in a footer. */;
   /* The stylesheet is beside index.html, not in `js/` — so no folder here, deliberately. */

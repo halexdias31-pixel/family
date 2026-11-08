@@ -116,7 +116,7 @@ function versionSaid_() {
 function setupWhen_(iso) {
   const d = new Date(String(iso || ''));
   if (isNaN(d)) return String(iso || '');
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return date_(d) + ' ' + time_(d);
 }
 /* A JOB'S LINK — the tidy's backup copy (379) — only when it is an https address, opened beside the app. */
 function setupJobLink_(j) {

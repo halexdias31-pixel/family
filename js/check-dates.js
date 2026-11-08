@@ -38,7 +38,7 @@ function run() {
   catch (err) { console.log('COULD NOT RUN — no data.js beside this checker'); process.exitCode = 1; return; }
 
   const from = src.indexOf('function parseWhen');
-  const to = src.indexOf('const fullDate');
+  const to = src.indexOf('function ago');
   if (from < 0 || to < 0 || to < from) {
     /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO. § */
     console.log('COULD NOT RUN — parseWhen not found in data.js');
