@@ -6251,7 +6251,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
 .tcard .prof-top { gap: .55rem; align-items: center; }
 .tcard .prof-pic { width: 2.75rem; height: 2.75rem; }
-.tcard .prof-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: .5rem; }
+.tcard .prof-line { display: flex; flex-wrap: nowrap; align-items: baseline; justify-content: space-between; column-gap: .5rem; }
 .tcard .prof-line .prof-price { margin: 0; }
 .tcard .prof-tags { gap: .2rem; margin-top: .3rem; }
 .tcard .prof-cap { margin: .4rem 0 .1rem; }
@@ -6268,6 +6268,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-photos .prof-more { display: grid; place-items: center; border-radius: 6px; }
 .tcard .prof-name { min-width: 0; }
 .tcard .prof-line .prof-price { margin-left: auto; }
+/* EXTREMES STAY ONE SCREEN (8 Nov): name and rate on one line (a long name cut), a long handle, words and a long pill one line each, cut with an ellipsis. */
+.tcard .prof-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.tcard .prof-line .prof-price { flex: none; }
+.tcard .prof-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tcard .prof-say { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tcard .prof-quals .prof-tag, .tcard .prof-jobs .prof-tag, .tcard .prof-places .prof-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tcard h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- BOOKING CARD AT 390px (owner 7 Nov: no grey text; read like the tutor card) ---------- */
 /* Words in ink: greyed is kept only for unticked ticks and a "—" that does not apply. */
