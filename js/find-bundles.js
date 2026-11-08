@@ -460,6 +460,8 @@ function picFor_(x) {
   const rows = pix[x && x.kind] || pix.content;
   return rows ? `<figure class="lib-pic">${pixSvg_(rows, (x && x.name) || '')}</figure>` : '';
 }
+/* LONG CARD TEXT IS CUT TO TWO LINES (owner 8 Nov, 29a); a tap on it shows the rest, a second tap cuts it again. */
+on('cut-open', el => { if (el && el.classList) el.classList.toggle('is-open'); });
 function withPic_(x, html) {
   if (typeof html !== 'string' || /<(img|svg|canvas|video|figure)\b/.test(html)) return html;
   try { return html.replace(/^(\s*<div class="[^"]*\bcard\b[^"]*"[^>]*>)/, m => m + picFor_(x)); } catch (e) { return html; }

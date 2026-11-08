@@ -387,7 +387,7 @@ function tutorCard_(t) {
       ${/* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already wraps it in quotation marks, so it
             is printed as said rather than as a field with a label — which is the difference between
             a profile and a form. */''}
-      ${t.description ? `<p class="prof-say">${esc(t.description)}</p>` : ''}
+      ${t.description ? `<p class="prof-say cut2" data-do="cut-open">${esc(t.description)}</p>` : ''}
       ${/* ---------- THEIR OTHER PHOTOGRAPHS, AS SMALL SQUARES § */
             ''}
       ${Array.isArray(t.photos) && t.photos.length
