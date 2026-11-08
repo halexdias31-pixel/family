@@ -245,6 +245,8 @@ function tagRow_(x, page) {
 /* TAGS AT THE TOP OF EVERY CARD (1030, 1040 r10): a card with no tag line gets one, and one drawn under its title moves above it. */
 function tagsOnTop_(x, html) {
   if (!x || typeof html !== 'string' || !html) return html;
+  /* ONE CARD SHAPE (card-fields.json) already places its tags under its title. */
+  if (/^\s*<div class="card fc kc\b/.test(html)) return html;
   const top = /^(\s*<div\b[^>]*>)/, had = /<div class="qtags qcard-tags">[\s\S]*?<\/div>/.exec(html);
   if (had) { const h = html.search(/<h3\b|<p\b/); return h < 0 || had.index < h ? html : html.replace(had[0], '').replace(top, '$1' + had[0]); }
   if (/class="qtags\b/.test(html)) return html;

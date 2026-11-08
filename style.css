@@ -6266,6 +6266,15 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-photos .prof-more { display: grid; place-items: center; border-radius: 6px; }
 .tcard .prof-name { min-width: 0; }
 .tcard .prof-line .prof-price { margin-left: auto; }
+/* ONE CARD SHAPE (owner, 8 Nov): picture, title, tags, lines; an empty part takes no room. */
+.card.kc > :empty { display: none; }
+.card.kc > .kc-pic { display: flex; justify-content: center; }
+.card.kc-tutor { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: center; }
+.card.kc-tutor > * { grid-column: 1 / -1; }
+.card.kc-tutor > .kc-pic { grid-column: 1; }
+.card.kc-tutor > .kc-head { grid-column: 2; }
+.card.kc-tutor > .kc-head h3 { margin: 0; }
+.card.kc .kc-who { margin: .3rem 0 0; }
 /* EXTREMES STAY ONE SCREEN (8 Nov): name and rate on one line (a long name cut), a long handle, words and a long pill one line each, cut with an ellipsis. */
 .tcard .prof-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 .tcard .prof-line .prof-price { flex: none; }

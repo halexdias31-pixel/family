@@ -381,18 +381,6 @@ function histExtras_(x) {
   return [read ? { icon: 'book', label: 'Read it', note: 'a page a chapter', act: 'find-open', data: { key: read } } : null]
     .concat(histLinks_(r).slice(0, HIST_TILE_LINKS).map(l => ({ icon: icon(l), label: l.label, note: histName_(l.row), act: 'find-open', data: { key: l.row.key || 'hdb:' + l.id } })),
       histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
-function histCard_(x) {
-  const r = x.row || {};
-  /* A MANUSCRIPT IS MINIMAL (owner, 7 Nov): its picture first where drawn, then its facts as tags; no title, no grey line. */
-  if (isManuscript_(x)) return `<div class="card fc hdb hdb-msc lib-c" aria-label="${esc(x.name)}">${msFragSvg_(r, x.msSideIx) || libPic_('manuscript', x.name)}${tagRow_(x)}</div>`;
-  /* EVERY LIBRARY CARD LOOKS ONE WAY (owner's look rule): its picture, its facts as tags, its name; the long lines are its pages. */
-  return `<div class="card fc hdb lib-c">
-    ${libPic_(x.kind, x.name)}
-    ${tagRow_(x)}
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
-    ${writingRefs_(r.id)}
-  </div>`;
-}
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible';

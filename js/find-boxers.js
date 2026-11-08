@@ -495,9 +495,6 @@ function pixSvg_(rows, name, flip, cls) {
   return `<svg class="pp${cls || ''}" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="${esc(name || '')}">${
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
-function personCard_(x) {
-  return `<div class="card fc person lib-c" aria-label="${esc(x.name)}"><figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>${tagRow_(x)}</div>`;
-}
 
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
 function vecHtml_(html) {
