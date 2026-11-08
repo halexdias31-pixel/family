@@ -161,7 +161,8 @@ function setFor_(d, extra) {
   const setFor = extra['settings/setting-for'];
   /* THE ROWS' ORDER IS THE ITEMS' ORDER (identity, contact, sign-in, roles, notifications, reading, role-specific); `rank` overrides it. */
   if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
-    .map((r, i) => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: libN(r.rank) || i }]));
+    .map((r, i) => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: libN(r.rank) || i,
+      minRank: libS(r.min_rank).trim(), role: libS(r.role).trim() }]));
 }
 
 function settingsInto_(d, extra) {

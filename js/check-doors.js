@@ -176,6 +176,17 @@ try {
   files.forEach(({ n, src }) => { if (/\b(TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
 } catch (e) { movedDiffer = ['(SCREEN_MOVED could not be read: ' + e.message + ')']; }
 
+/* ONE ADMIN CHECK (batch D): Find's doors ask `rankAtLeast_`, and who sees an admin's setting is setting-for.json's `min_rank`. */
+const rankOff = [];
+try {
+  const sf = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'setting-for.json'), 'utf8'));
+  ['type:Apprentice', 'type:Business', 'type:Site', 'door:notify', 'door:checks'].forEach(k => { const r = sf.find(x => x && x.card === k);
+    if (!r || !r.min_rank) rankOff.push('setting-for.json: no `min_rank` on ' + k); });
+  ['find-doors', 'find-aloud'].forEach(n => { const f = files.find(x => x.n === n); if (!f) return;
+    strip(f.src).split('\n').forEach((l, i) => { if (/\bisAdmin\(\)|rankAtLeast_\('admin'\)\s*\?\s*\[\{\s*kind/.test(l) || (/\/admin\/i\.test\((?!role\))/.test(l)))
+      rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way'); }); });
+} catch (e) { rankOff.push('(setting-for.json could not be read: ' + e.message + ')'); }
+
 /* NOTHING UNMOVABLE WITHOUT A REASON (730): each column is a card column, a widget column (LAYOUT_COL) or in LAYOUT_FIXED with its sentence. */
 let unhosted = [];
 try {
@@ -231,6 +242,7 @@ say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDER
 say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards: true` and the row\'s `cards` part', cardsDiffer,
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
+say('AN ADMIN TEST THAT IS NOT rankAtLeast_ OR setting-for.json\'s min_rank', rankOff, t => '');
 say('WHERE A SCREEN MOVED IS SAID TWICE — SCREEN_MOVED (shell-boot.js) and columns.json\'s moved/was part', movedDiffer, t => '');
 
 say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
