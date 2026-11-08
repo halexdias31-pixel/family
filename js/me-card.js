@@ -231,19 +231,21 @@ function cardEditCards_(t, e, secs, setCol) {
   const base = cardBaseNow_(e);
   if (!base && !e.err) setTimeout(() => cardFetch_(e), 0);
   return secs.map(s => {
-    /* NO TITLE WHERE THE FIRST LINE SAYS IT (491, the owner: "does it need a title at the top? I don't think so"). */
-    const h = OWN_SEC_UNTITLED_.indexOf(s.id) !== -1 ? '' : `<h3>${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}</h3>`;
-    const open = `<div class="card is-prof card-ed own-sec" data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(OWN_SEC_TITLE_[s.id] || s.cap || s.id)}">${h}`;
-    if (!base) return `${open}${e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_()}${cardEditTiles_(pid, true)}</div>`;
+    /* EVERY CARD TITLED, ONE SHAPE (8 Nov, the owner: "title, one line per field, one Save at the bottom") — `setCard_`. */
+    const title = OWN_SEC_TITLE_[s.id] || s.cap || s.id;
+    const card = { title, cls: 'is-prof card-ed own-sec',
+      attrs: ` data-pid="${esc(pid)}" data-sec="${esc(s.id)}" data-lay-card="own:${esc(setCol)}:${esc(s.id)}" aria-label="${esc(title)}"` };
+    if (!base) return setCard_(Object.assign(card, { body: e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_(), save: cardEditTiles_(pid, true, true) }));
     const { vals, held } = cardValues_(e, base, s.id);
-    return `${open}<div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals, [s])}
-      <p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>${cardEditTiles_(pid, false)}</div>`;
+    return setCard_(Object.assign(card, { form: cardEditForm_(t, e, vals, [s]), formAttrs: ` data-draw="${cardDrawn_(base)}"`,
+      save: cardEditTiles_(pid, false, true), foot: `<p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p>` }));
   });
 }
-function cardEditTiles_(pid, saveOff) {
-  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
-    off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
-    data: { pid } })}</div>`;
+/* `bare`: the tiles alone, for `setCard_`'s own foot row. */
+function cardEditTiles_(pid, saveOff, bare) {
+  const t = tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
+    off: !!saveOff, data: { pid } }) + tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel', data: { pid } });
+  return bare ? t : `<div class="tile-row ce-tiles">${t}</div>`;
 }
 /* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
 /* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
@@ -272,7 +274,9 @@ function ceSums_(form) {
   const sec = id => form.querySelector('.ce-sec[data-sec="' + id + '"]');
   const ph = sec('photos'), v = ph && ph.querySelector('details[data-fold="photos"] > summary .ce-v');
   if (v) v.textContent = cePhotoSay_([...ph.querySelectorAll('.ph-slot input')].filter(i => String(i.value).trim()).length,
-    String((ph.querySelector('[data-me="video"]') || {}).value || '').trim());
+    String((ph.querySelector('.vid-pick') || { dataset: {} }).dataset.file || '').trim());
+  const jb = sec('jobs'), jv = jb && jb.querySelector('details[data-fold="jobs"] > summary .ce-v');
+  if (jv) jv.textContent = ceCount_(jobCount_(f => (jb.querySelector('[data-me="' + f + '"]') || {}).value), 'job', 'jobs');
   const q = sec('quals'), qv = q && q.querySelector('details[data-fold="quals"] > summary .ce-v');
   const gl = sec('glance'), gv = gl && gl.querySelector('details[data-fold="glance"] > summary .ce-v');
   if (gv) gv.textContent = ceGlanceSay_(f => (gl.querySelector('[data-me="' + f + '"]') || {}).value);
@@ -312,8 +316,9 @@ function cardEditForm_(t, e, vals, only) {
          `wardrobeBody_` — so the fold's inside carries that class, and the picture above follows. */
       : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
       : s.id === 'handle' ? cardHandleHtml_()
-      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video')).trim())),
-          fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video_file')).trim())),
+          (e.own ? videoPicker_(val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'jobs' ? ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(val), 'job', 'jobs')), jobShelf_(L, val, { draft: false }))
       : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
       : s.id === 'seat' ? cardRateHtml_(L, val, box, e)
@@ -522,6 +527,11 @@ function cardPatchRow_(pid, all, sent) {
   if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
   if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
   if (has('video')) row.mediaUrl = txt(all.video);
+  /* THE JOBS, AS `jobsList_` SENDS THEM, so the card shows the new pills before the payload comes back. */
+  if (Object.keys(sent).some(isJobField_)) {
+    row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
+      from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
+  }
   if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
     row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
   }

@@ -124,6 +124,13 @@ function profQuals_(t) {
     ? `<div class="prof-cap">Qualifications</div><div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
 }
 
+/* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
+const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
+function profJobs_(t) {
+  const chips = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean).map(v => `<span class="prof-tag">${esc(v)}</span>`);
+  return chips.length ? `<div class="prof-cap">Jobs</div><div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
+}
+
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` § */
 function profRange_(lo, hi, one, many) {
   const a = Number(lo) || 0, b = Number(hi) || 0;
@@ -377,6 +384,7 @@ function findCard(x) {
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS § */
             ''}
       ${profQuals_(t)}
+      ${profJobs_(t)}
       ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
             ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
       ${profHeat_(profList_(t.venues))}

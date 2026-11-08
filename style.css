@@ -47,6 +47,8 @@
   /* AND THE REST, SO EVERY FACET HAS A COLOUR (396): what it is, a claim about it, and any facet the sheet invents. */
   --tag-kind:    #e2cfa6;
   --tag-check:   #9ec5e8;
+  /* A TUTOR'S JOBS (8 Nov), warm beside the qualifications' blue. */
+  --tag-job:     #ffb454;
   --tag-other:   #bdbdbd;
   /* YOUR RESULT (463): attempted, correct and so on, yours alone. */
   --tag-mine:    #ffcf70;
@@ -701,7 +703,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* `.lib-shelf .lib-row > label.field` WENT WITH THE ROW. § */
 /* ---------- A SHELF'S `Add another` § */
 /* ON A LIBRARY SHELF IT IS AS WIDE AS THE CARDS OVER IT, and centred under them: § */
-.lib-shelf .shelf-more { margin: .1rem 0 .6rem; width: min(100%, var(--lib-w, 100%)); align-self: center; }
+.lib-shelf .btn.shelf-more { margin: .1rem 0 .6rem; width: min(100%, var(--lib-w, 100%)); align-self: center; }
 /* ---------- A LIBRARY CARD, DRAWN AS ONE — `libraryShelf_` in me.js; docs/history/332 § */
 .lib-shelf .lib-face {
   display: grid; min-width: 0; aspect-ratio: 85.6 / 54; container-type: inline-size;
@@ -751,7 +753,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .lib-bars { grid-area: bars; display: block; width: 100%; height: clamp(1.9rem, 15cqw, 4rem); color: var(--paper-ink); }
 .lib-bars.is-blank { color: var(--paper-rule); }
 /* THE PHOTOGRAPH SHELF — `photoShelf_` in me.js. § */
-.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: .5rem; align-items: start; }
+.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: .5rem; align-items: start; }
 .ph-thumb {
   width: 44px; height: 44px; border-radius: var(--r-sm); overflow: hidden;
   background: var(--sunk); border: 1px solid var(--line);
@@ -3029,6 +3031,20 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-facts { --tag: var(--tag-kind); }
 .prof-teach:not(.prof-facts, .prof-quals, .prof-places) { --tag: var(--green); }
 .prof-quals { --tag: var(--tag-check); }
+.prof-teach.prof-jobs { --tag: var(--tag-job); }
+/* ONE LINE A JOB (8 Nov): role, where, then from–to side by side. */
+.job-slot { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.job-slot > * { flex: 1 1 8rem; min-width: 0; }
+.job-slot > .job-when { display: flex; align-items: center; gap: .3rem; flex: 1 1 10rem; }
+.job-slot > .set-drop { flex: 0 0 auto; }
+/* ONE SETTINGS-CARD SHAPE (8 Nov, `setCard_`): one box a line, the Save row at the foot, every list's Add tile alike. */
+.set-shape > .field, .set-shape > .me-form > .field { display: block; margin-bottom: .5rem; }
+.set-shape .tile-row.set-save { margin-top: .6rem; }
+.set-shape .tile-row.set-adds { margin: .3rem 0 .5rem; }
+.job-dash { flex: 0 0 auto; }
+/* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
+.vid-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: .5rem 0; border-radius: var(--r); overflow: hidden; background: var(--bg); }
+.vid-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .prof-places { --tag: var(--tag-board); }
 .prof-tags .prof-lv { color: inherit; }
 .prof-hours .prof-busy { color: var(--gold); }

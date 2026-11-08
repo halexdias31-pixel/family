@@ -444,6 +444,7 @@ function postUpdateProfile_(body, action, began) {
   const phoneSent = sent(PHONE_FIELD) && allowed.indexOf('phone') !== -1;
   const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
   const photosSent = sent(PHOTO_FIELD) && PHOTO_FIELDS.some(f => allowed.indexOf(f) !== -1);
+  const jobsSent = sent(JOB_FIELD) && JOB_FIELDS.some(f => allowed.indexOf(f) !== -1);
   /* THE VENUES ARE ON ANOTHER TAB — `venuesWrites_` in core.gs says why there is no column here. */
   const venuesSent = fields.venues_ok !== undefined && allowed.indexOf('venues_ok') !== -1;
   const venueTab = venuesSent ? read(TAB.venues) : null;
@@ -452,7 +453,7 @@ function postUpdateProfile_(body, action, began) {
       + 'Open the site once as an admin to add it — nothing was saved.' });
   }
   const packedMissing = [availSent && 'availability', phoneSent && 'phone',
-                         dobSent && 'date_of_birth', photosSent && 'photos']
+                         dobSent && 'date_of_birth', photosSent && 'photos', jobsSent && 'jobs']
     .filter(c => c && !has(c));
   if (packedMissing.length) {
     return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
@@ -487,7 +488,7 @@ function postUpdateProfile_(body, action, began) {
   if (badDate) return jsonOut({ error: badDate });
   const wanted = Object.keys(fields)
     .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
-              && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f)
+              && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)
               && f !== 'venues_ok' && allowed.indexOf(f) !== -1);
   /* A field with no column vanishes silently: § */
   const noColumn = wanted.filter(f => !has(f));
@@ -509,7 +510,7 @@ function postUpdateProfile_(body, action, began) {
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) § */
   const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
   if (cutNo) leaveOut([SEAT_CUT_FIELD], cutNo);
-  const elseSent = availSent || photosSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
+  const elseSent = availSent || photosSent || jobsSent || phoneSent || dobSent || qualsSent || libSent || !!venueTab;
   if (refused.length && !wanted.length && !elseSent) {
     return jsonOut({ error: refused.map(p => p[1]).join(' ') + ' Nothing was saved.' });
   }
@@ -562,6 +563,7 @@ function postUpdateProfile_(body, action, began) {
   const put = {};
   if (availSent) put.availability = availGridIn(fields);
   if (photosSent) put.photos = photosIn(fields);
+  if (jobsSent) put.jobs = jobsIn(fields);
   if (phoneSent) put.phone = phoneIn(fields);
   if (dobSent) put.date_of_birth = dobIn(fields);
   wanted.forEach(f => { put[f] = fields[f]; });
@@ -992,6 +994,65 @@ function postSavePhoto_(body, action, began) {
   }
   setCell(t, r, 'photo', url);
   return jsonOut({ success: true, photo: url });
+}
+
+/* ---------- A TUTOR'S INTRO VIDEO, IN 4 MB PARTS (8 Nov): Apps Script cannot hold 100 MB, so each part goes on to a Drive resumable upload. */
+/* The last part shares the file view-by-link and writes its id on the row; 4 MB is a multiple of Drive's 256 KB step. */
+function videoFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = S(props.getProperty(VIDEO_FOLDER_PROP));
+  if (id) { try { const f = DriveApp.getFolderById(id); if (f && !(f.isTrashed && f.isTrashed())) return f; } catch (err) { /* made again below */ } }
+  const f = DriveApp.createFolder(VIDEO_FOLDER_NAME);
+  props.setProperty(VIDEO_FOLDER_PROP, f.getId());
+  return f;
+}
+function postVideoPart_(body, action, began) {
+  const t = read(TAB.people);
+  const r = findPerson(S(body.name), S(body.personId));
+  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (t.headers.indexOf('video_file') < 0) {
+    return jsonOut({ error: 'The people tab has no `video_file` column. Open the site once as an admin — nothing was saved.' });
+  }
+  if (!(hasRole(r, 'tutor') || hasRole(r, 'admin'))) return jsonOut({ error: 'Only a tutor has an intro video.' });
+  const old = S(r.video_file);
+  const drop = () => { if (old) { try { DriveApp.getFileById(old).setTrashed(true); } catch (err) { /* already gone */ } } };
+  if (body.remove === true || norm(body.remove) === 'true') { drop(); setCell(t, r, 'video_file', ''); return jsonOut({ success: true, videoFile: '' }); }
+  const size = Math.floor(N(body.size)), part = Math.floor(N(body.part)), parts = Math.floor(N(body.parts));
+  const mime = S(body.mime) || 'video/mp4';
+  if (!/^video\//i.test(mime)) return jsonOut({ error: 'That is not a video. Choose a video from your phone.' });
+  if (!(size > 0) || size > VIDEO_MAX_BYTES) return jsonOut({ error: 'A video can be 100 MB at most — trim it to about a minute.' });
+  const cache = CacheService.getScriptCache(), ck = 'vid:' + S(r.person_id) + ':' + S(body.upload).slice(0, 40);
+  const token = ScriptApp.getOAuthToken();
+  let st = null;
+  try { st = JSON.parse(cache.get(ck) || 'null'); } catch (err) { st = null; }
+  try {
+    if (part === 0) {
+      const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+        method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
+        headers: { Authorization: 'Bearer ' + token, 'X-Upload-Content-Type': mime, 'X-Upload-Content-Length': String(size) },
+        payload: JSON.stringify({ name: 'intro-' + (S(r.person_id) || 'tutor') + '-' + Date.now(), parents: [videoFolder_().getId()] }) });
+      const loc = (res.getAllHeaders() || {}).Location || (res.getAllHeaders() || {}).location;
+      if (!loc) return jsonOut({ error: 'Drive would not start the upload (' + res.getResponseCode() + '). Try again.' });
+      st = { url: String(loc), at: 0 };
+    }
+    if (!st || !st.url) return jsonOut({ error: 'That upload was lost — choose the video again.' });
+    const bytes = Utilities.base64Decode(S(body.data));
+    const end = st.at + bytes.length - 1;
+    const res = UrlFetchApp.fetch(st.url, { method: 'put', muteHttpExceptions: true, payload: bytes,
+      contentType: mime, headers: { 'Content-Range': 'bytes ' + st.at + '-' + end + '/' + size } });
+    const code = res.getResponseCode();
+    if (code === 308) { st.at = end + 1; cache.put(ck, JSON.stringify(st), 21600); return jsonOut({ success: true, part, parts, at: st.at }); }
+    if (code !== 200 && code !== 201) return jsonOut({ error: 'Drive refused part ' + (part + 1) + ' of ' + parts + ' (' + code + '). Try again.' });
+    cache.remove(ck);
+    const id = S(JSON.parse(res.getContentText() || '{}').id);
+    if (!id) return jsonOut({ error: 'Drive kept the video but sent no id back. Try again.' });
+    DriveApp.getFileById(id).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    drop();
+    setCell(t, r, 'video_file', id);
+    return jsonOut({ success: true, done: true, videoFile: id });
+  } catch (err) {
+    return jsonOut({ error: 'Could not save the video. ' + driveTrouble_(err, hasRole(r, 'admin')) });
+  }
 }
 
 /* a person says which of the three they are ------------------------------------------------- ASKED FOR AS § */

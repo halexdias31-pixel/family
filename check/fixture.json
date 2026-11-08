@@ -113,6 +113,8 @@
    "image": "pfp:avatar",
    "avatar": "skin:2|hairColour:3|shirt:2|hair:long|faceware:glasses",
    "mediaUrl": "",
+   "videoFile": "",
+   "jobs": [{ "role": "Maths teacher", "where": "A secondary school", "from": "2019", "to": "now" }],
    "tags": [
     "Patient",
     "Clear",
