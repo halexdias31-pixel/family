@@ -61,6 +61,8 @@ function askedBlock_() {
   const jobs = (DATA && (DATA.liveJobs || DATA.jobs)) || [];
   const j = jobs.find(x => String((x && (x.id || x.jobId)) || '') === String(ASKED_JOB));
   if (!j) return '';
+  /* WITH ITS TILES: the bare receipt left the booking just sent with no Accept, Apply or pick (owner, 8 Nov). */
+  if (typeof jobPage_ === 'function') return jobPage_(j);
   return typeof jobReceipt === 'function' ? jobReceipt(j) : '';
 }
 
@@ -341,24 +343,7 @@ function slotGrid() {
   const days = rows;
 
   const why = anyOpen ? '' : 'That venue has no free hours.';
-  /* THE GUIDE, SAID (488): "Ada is usually free Mon 16–18" — and that any other hour may still be asked. */
-  const guide = !t ? '' : (haveT
-    ? t.title + ' is usually free ' + usualSaid_(tAvail) + '. Any other hour can be asked; they accept or decline.'
-    : t.title + ' hasn\u2019t set usual hours. Ask for any hour; they accept or decline.');
-  return { rows, days, why, anyOpen, guide };
-}
-
-/* A TUTOR'S USUAL WEEK IN WORDS — `Mon 16–18, Sat 11–12` — from their `m16` codes (488). */
-function usualSaid_(have) {
-  const out = [];
-  SLOT_DAYS.forEach(([p, label]) => {
-    const hs = Object.keys(have).filter(c => c.replace(/\d+$/, '') === p)
-      .map(c => Number(c.slice(p.length))).sort((a, b) => a - b);
-    const runs = [];
-    hs.forEach(h => { const r = runs[runs.length - 1]; if (r && r[1] === h) r[1] = h + 1; else runs.push([h, h + 1]); });
-    if (runs.length) out.push(label.slice(0, 3) + ' ' + runs.map(r => r[0] + '\u2013' + r[1]).join(', '));
-  });
-  return out.join('; ') || 'at no set hours';
+  return { rows, days, why, anyOpen };
 }
 
 /* THE TICKED HOURS, GROUPED INTO SESSIONS. § */
@@ -1308,7 +1293,8 @@ function weekRows_(days, cell, opts) {
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
-    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '', total: '',
+    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '',
+    total: (i === 0 && week && o.total) ? o.total : '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
@@ -1400,7 +1386,19 @@ function stepWeekRows_(st) {
       data-do="book-slot" data-code="${esc(h.code)}"></button>`,
     { id: st.id, off: off, ruler: true,
       /* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN § */
-      say: g.anyOpen ? g.guide : g.why });
+      /* NO SENTENCE WHILE ANY HOUR IS OPEN (owner, 8 Nov): the grey cells say it; only an empty grid needs words. */
+      say: g.why,
+      /* THE WEEK'S RUNNING TOTAL, in the last column like every priced line (owner, 8 Nov). */
+      total: weekTotal_() });
+}
+
+/* RATE × HOURS A WEEK, bare like every running total (a unit overflowed the column at 390px); blank until there is a rate and an hour to multiply. */
+function weekTotal_() {
+  try {
+    const L = bookPrice();
+    if (!L || !L.hoursPerWeek || !L.chargeRate || childView_()) return '';
+    return money(runningAfter('hoursweek', L));
+  } catch (e) { return ''; }
 }
 
 /* Which steps open something under their row rather than answering in it. */
@@ -1677,7 +1675,7 @@ function bookBreakdown(L, foot) {
     const p = byStep[r.id];
     if (!p) return;
     /* A ROW'S OWN FIGURE STAYS when its priced line has none: the week's `× 4` was wiped by its day lines' blank (525). */
-    r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = p.total;
+    r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = S_(p.total) ? p.total : (r.total || '');
     p.used = true;
     const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
     if (k) merged[k] = true;
@@ -1996,10 +1994,24 @@ function jobRows(j) {
 /* ---------- THE WEEK, ON A RECEIPT, WITH THE BOOKED HOURS LIT § */
 /* ---------- THE SAME SEVEN ROWS ON THE RECEIPT § */
 function jobWeekRows_(j) {
-  const days = String((j && j.weekday) || '').split(',').map(norm).filter(Boolean);
+  /* THE PAYLOAD SENDS `day` AND `slotCodes`; reading only `weekday` drew every saved booking's grid empty (owner, 8 Nov). */
+  const days = String((j && (j.weekday || j.day)) || '').split(',').map(norm).filter(Boolean);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
+  const codes = String((j && j.slotCodes) || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (codes.length) {
+    return weekRows_(
+      SLOT_DAYS.map(([c, label]) => {
+        const lit = hours.filter(h => codes.indexOf(c + h) !== -1);
+        return { label: label, hours: hours, on: lit.length > 0, lit: lit, mul: lit.length };
+      }),
+      (h, d) => {
+        const on = d.lit.indexOf(h) !== -1;
+        return `<button class="hr${on ? ' on' : ' shut'}" disabled title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
+      },
+      { off: true, ruler: true });
+  }
   return weekRows_(
     SLOT_DAYS.map(([, label]) => {
       const runs = days.indexOf(norm(label)) !== -1;
@@ -2051,9 +2063,13 @@ function jobMoney_(j) {
   if (typeof isAdmin === 'function' && isAdmin()) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
+    /* ADMIN EARNS IS WHAT IS LEFT, so the three lines always add up; a stored figure counted before the discount once said tutor £600 on a £302.40 booking. */
+    const fees = has(j.feesKept) ? Number(j.feesKept) : 0;
+    const left = has(j.price) && has(j.tutorPay) ? Number(j.price) - Number(j.tutorPay) - fees : j.adminKeeps;
     return { label: seat ? 'Each seat pays' : 'Client pays', total: say(j.price),
-             more: [{ k: 'Tutor earns', t: say(j.tutorPay) },
-                    { k: 'Admin earns', t: say(j.adminKeeps) }] };
+             more: [{ k: 'Tutor earns', t: say(j.tutorPay) }]
+               .concat(fees ? [{ k: 'Room and fees', t: say(fees) }] : [])
+               .concat([{ k: 'Admin earns', t: seat ? say(j.adminKeeps) : say(left) }]) };
   }
   /* A CHILD'S SESSION HAS NO FIGURE ON IT (398) — `jobReceipt` draws no total row. */
   if (childView_()) return { label: null, total: '', more: [], none: true };

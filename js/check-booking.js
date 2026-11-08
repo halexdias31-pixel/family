@@ -472,7 +472,7 @@ try {
   if (!coreJs) throw new Error('js/core.js could not be read');
   const m = {};
   new Function('module', 'let DATA = {}; let USER = null; const $ = () => null;' + coreJs
-    + ';module.priceFrom = priceFrom; module.setData = d => { DATA = d; };')(m);
+    + ';module.priceFrom = priceFrom; module.bookShares_ = bookShares_; module.setData = d => { DATA = d; };')(m);
   const b = { exports: {} };
   new Function('module', PRELUDE
     + 'const TRUE_ = v => /^(true|yes|1|✓)$/i.test(S(v)); const ON_ = v => S(v) === \'\' || TRUE_(v);'
@@ -523,6 +523,25 @@ if (money_) {
       if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
         bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');
       }
+      return bad;
+    },
+  });
+  RULES.push({
+    what: 'the three figures a booking keeps always add up: client pays = tutor earns + admin earns + room and fees, discounted, split or not',
+    check: () => {
+      const bad = [];
+      const cases = [
+        ['1 child', {}], ['4 seats', { n: 4 }], ['4 seats, 33% off', { n: 4, discount: { type: '%', value: 33, by: 'Business' } }],
+        ['2 seats, room, 30% off', { n: 2, loc: 'Somewhere', discount: { type: '%', value: 30 } }],
+        ['split with one other family, 10% off', { n: 3, splitOthers: 1, discount: { type: '%', value: 10 } }],
+      ];
+      cases.forEach(([what, spec]) => {
+        const L = quote(Object.assign({ n: 1, hours: 2, hoursPerWeek: 2 }, spec), { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
+        const sh = money_.bookShares_(L);
+        if (!sh) { bad.push(what + ': no figures'); return; }
+        if (r2(sh.tutor + sh.admin + sh.fees) !== sh.pays) bad.push(what + ': ' + JSON.stringify(sh) + ' does not add up');
+        if (sh.pays !== r2(L.total)) bad.push(what + ': client pays ' + sh.pays + ' but COST reads ' + r2(L.total));
+      });
       return bad;
     },
   });
