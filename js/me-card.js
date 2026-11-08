@@ -320,6 +320,30 @@ document.addEventListener('change', e => {
   if (v) v.textContent = ceCount_(profList_(hid.value).length, 'venue', 'venues');
 });
 const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
+/* ONE TABLE OF SECTIONS: each id's body, and for the money parts (`rate`) the line redrawn as the rate is typed (`cardSeatSync_`). */
+/* An id not here is its fields' rows. `c` is the form's own: t, e, val, vals, ro, box, filled. */
+const CARD_SECTION = {
+  picture: (L, c) => c.e.own ? photoPicker_(c.val, '', { fold: true }) : cardFaceOnly_(c.t),
+  /* THE WARDROBE, saved a pick at a time (`avatarSave`), redraws every `.av-card` from `wardrobeBody_`, so the fold's inside carries that class. */
+  figure: () => ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`),
+  handle: () => cardHandleHtml_(),
+  photos: (L, c) => ceFold_('photos', 'Photos', esc(cePhotoSay_(c.filled(/^photos_\d+$/), String(c.val('video_file')).trim())),
+    (c.e.own ? videoPicker_(c.val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f) && !(c.e.own && f === 'video')), c.box) + (isPhotos_(L) ? photoShelf_(L, c.val, { draft: false }) : '')),
+  jobs: (L, c) => ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(c.val), 'job', 'jobs')), jobShelf_(L, c.val, { draft: false })),
+  quals: (L, c) => ceFold_('quals', 'Qualifications', esc(ceCount_(c.filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, c.val)),
+  week: (L, c) => availGrid_(L, c.vals, c.ro, false),
+  seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
+  cut: (L, c) => cardCutHtml_(L, c.val, c.box),
+  size: (L, c) => cardSizeHtml_(L, c.val, c.box),
+  glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)),
+  where: (L, c) => ceWhere_(L, c.val, c.box),
+};
+/* THE MONEY SECTIONS, redrawn as the rate is typed: the line each one says, and how it says it. */
+const CARD_RATE_SECTION = {
+  seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
+  cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) },
+  size: { sizeLine: true },
+};
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
 function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);
@@ -331,22 +355,8 @@ function cardEditForm_(t, e, vals, only) {
   return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
     const L = s.list;
     const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
-    const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
-      /* THE WARDROBE, saved a pick at a time (`avatarSave`), which redraws every `.av-card` from
-         `wardrobeBody_` — so the fold's inside carries that class, and the picture above follows. */
-      : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
-      : s.id === 'handle' ? cardHandleHtml_()
-      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video_file')).trim())),
-          (e.own ? videoPicker_(val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f) && !(e.own && f === 'video')), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
-      : s.id === 'jobs' ? ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(val), 'job', 'jobs')), jobShelf_(L, val, { draft: false }))
-      : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
-      : s.id === 'week' ? availGrid_(L, vals, ro, false)
-      : s.id === 'seat' ? cardRateHtml_(L, val, box, e)
-      : s.id === 'cut' ? cardCutHtml_(L, val, box)
-      : s.id === 'size' ? cardSizeHtml_(L, val, box)
-      : s.id === 'glance' ? ceFold_('glance', 'At a glance', esc(ceGlanceSay_(val)), fieldRows_(L, box))
-      : s.id === 'where' ? ceWhere_(L, val, box)
-      : fieldRows_(L, box);
+    const draw = Object.prototype.hasOwnProperty.call(CARD_SECTION, s.id) ? CARD_SECTION[s.id] : null;
+    const body = draw ? draw(L, { t, e, val, vals, ro, box, filled }) : fieldRows_(L, box);
     /* NO CAPTION OVER A SECTION: every line names itself, and the week's days and hours name it (425). */
     return `<div class="ce-sec" data-sec="${esc(s.id)}">${body}</div>`;
   }).join('');
@@ -465,13 +475,13 @@ function cardSizeHtml_(L, val, box) {
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, EACH CARD'S LINE REDRAWN § */
 function cardSeatSync_(form, t, ev) {
-  const sec = t && t.closest && t.closest('.ce-sec[data-sec="seat"], .ce-sec[data-sec="cut"], .ce-sec[data-sec="size"]');
+  const sec = t && t.closest && t.closest(Object.keys(CARD_RATE_SECTION).map(k => '.ce-sec[data-sec="' + k + '"]').join(', '));
   if (!sec || !form.contains(sec)) return;
   const id = sec.dataset.sec;
   const rateBox = sec.querySelector('[data-me="rate_per_hour"]');
   const mark = sec.querySelector('.ce-rate');
   const rate = num(rateBox ? rateBox.value : (mark ? mark.dataset.rate : ''));
-  if (id === 'size') {
+  if (CARD_RATE_SECTION[id] && CARD_RATE_SECTION[id].sizeLine) {
     const v = f => (sec.querySelector('[data-me="' + f + '"]') || {}).value;
     const line = sec.querySelector('.ce-size');
     if (line && mark) line.innerHTML = cardSizeSay_(rate, mark.dataset.seat, mark.dataset.cut, v('min_students'), v('max_students'));
@@ -501,8 +511,8 @@ function cardSeatSync_(form, t, ev) {
   const seat = hid('extra_seat_rate'), cut = hid('extra_seat_cut');
   const bar = sec.querySelector('.share-bar');
   if (bar) bar.innerHTML = cardShareBar_(rate, seat ? seat.value : '', cut ? cut.value : bar.dataset.cut);
-  const line = sec.querySelector(id === 'seat' ? '.ce-seat' : '.ce-cut');
-  if (line) line.innerHTML = id === 'seat' ? cardSeatSay_(rate, seat ? seat.value : '') : cardCutSay_(rate, cut ? cut.value : '');
+  const how = CARD_RATE_SECTION[id] || {}, line = how.line && sec.querySelector(how.line);
+  if (line) line.innerHTML = how.say(rate, seat ? seat.value : '', cut ? cut.value : '');
 }
 /* ---------- AND SAVE LEAVES OUT A PART PAST ITS TOP, IN POUNDS, AND SAYS SO — the rest of the card is still saved (620) § */
 function cardSeatRefusal_(form, fields) {

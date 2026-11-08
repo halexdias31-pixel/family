@@ -187,6 +187,9 @@ try {
       rankOff.push(n + '.js:' + (i + 1) + ' asks admin another way'); }); });
 } catch (e) { rankOff.push('(setting-for.json could not be read: ' + e.message + ')'); }
 
+/* A CARD'S SECTIONS ARE ONE TABLE (`CARD_SECTION`, me-card.js), never a chain of `s.id === '…'` branches. */
+const sectionChain = files.filter(({ src }) => (strip(src).match(/\bs\.id === '/g) || []).length >= 3).map(({ n }) => n + '.js');
+
 /* NOTHING UNMOVABLE WITHOUT A REASON (730): each column is a card column, a widget column (LAYOUT_COL) or in LAYOUT_FIXED with its sentence. */
 let unhosted = [];
 try {
@@ -243,6 +246,7 @@ say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards:
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
 say('AN ADMIN TEST THAT IS NOT rankAtLeast_ OR setting-for.json\'s min_rank', rankOff, t => '');
+say('A CARD\'S SECTIONS CHOSEN BY A CHAIN OF s.id === BRANCHES — put them in CARD_SECTION', sectionChain, t => '');
 say('WHERE A SCREEN MOVED IS SAID TWICE — SCREEN_MOVED (shell-boot.js) and columns.json\'s moved/was part', movedDiffer, t => '');
 
 say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
