@@ -36,5 +36,22 @@ files.forEach(({ n, src }) => {
   if (/(?<![-\w])color:\s*var\(--(dim|faint)\)/.test(src)) bad.push(`2 grey text: inline in ${n}.js`);
 });
 
+/* ---------- 3. SAME LOOK EVERYWHERE: COLOUR IS A TOKEN ---------- */
+/* A literal lives only in a :root block; everything else names a token, so one palette changes the whole site. */
+const LIT = /(?<![\w&-])#[0-9a-fA-F]{3,8}\b(?![\w-])|\brgba?\(/;
+const noComments = css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '));
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/^\s*:root\s*$/.test(m[1]) || !LIT.test(m[2])) continue;
+  bad.push(`3 colour literal in "${m[1].trim().slice(0, 80)}" — use a token from :root`);
+}
+/* The one exception: the pH scale (mat.js) IS a set of colours, the content itself, not the site's look. */
+const LIT_OK = new Set(['mat']);
+files.forEach(({ n, src }) => {
+  if (LIT_OK.has(n)) return;
+  for (const m of src.matchAll(/style="([^"]*)"/g)) {
+    if (/(?<![\w&-])#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(m[1])) bad.push(`3 inline colour literal in ${n}.js: ${m[1].slice(0, 60)}`);
+  }
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

@@ -25,6 +25,8 @@
   --pink:      #ff8fc4;
   /* A TUTOR, and a paper tag. § */
   --coral:     #ff7b72;
+  --white:  #ffffff;   /* plain white and black, for shadows and highlights mixed from tokens */
+  --black:  #000000;
   --gold:      #ffffff;   /* the one action: white on black since 466 (the name stays) */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
   --admin:     #f2d24b;   /* only you can see this — see `.tile.is-admin` */
@@ -281,7 +283,7 @@ html.wide body { max-width: none; box-shadow: none; }
      the glass has nothing to be glass ABOUT — a blurred pane over nothing looks like a flat one. */
   background:
     radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 60%),
-    radial-gradient(110% 80% at 90% 100%, rgb(90 140 220 / .10), transparent 60%);
+    radial-gradient(110% 80% at 90% 100%, color-mix(in srgb, var(--hue-1) 10%, transparent), transparent 60%);
   /* No perspective. There is nothing to see in three dimensions any more — a cell slides, and that
      is all it does. */
 }
@@ -449,7 +451,7 @@ html.wide body { max-width: none; box-shadow: none; }
    which is the thing this exists to show. */
 @media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
 /* A TILE WAITING IS THE SAME RING IN PLACE OF ITS MARK. § */
-.tile:is(.is-busy, [aria-busy="true"]) { opacity: 1; background: rgb(255 255 255 / .03);
+.tile:is(.is-busy, [aria-busy="true"]) { opacity: 1; background: color-mix(in srgb, var(--white) 3%, transparent);
   border-color: var(--line-soft); cursor: progress; }
 .tile:is(.is-busy, [aria-busy="true"]) svg { display: none; }
 .tile:is(.is-busy, [aria-busy="true"])::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: var(--tile-r);
@@ -458,7 +460,7 @@ html.wide body { max-width: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
-.btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
+.btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--paper-ink); }
 /* A BUSY BUTTON IS WAITING, NOT REFUSING: its ring says so, so it is not dimmed as well. */
 .btn.is-busy:is([disabled], [aria-disabled="true"]) { opacity: 1; cursor: progress; }
 
@@ -795,16 +797,16 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
      gives the whole row a 44px reach without a 44px square, which would look absurd. */
   flex: none; width: max(22px, 1.5rem); height: max(22px, 1.5rem); border-radius: 2px;
   /* THE EDGE AND THE GROUND ARE THE ARGUMENT, not the values. § */
-  border: 1.5px solid rgb(255 255 255 / .14);
-  background: rgb(255 255 255 / .04);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
+  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
+  background: color-mix(in srgb, var(--white) 4%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
   display: flex; align-items: center; justify-content: center;
   font-size: .82rem; color: var(--on-gold);
   transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out),
               box-shadow var(--dur-quick) var(--ease-out);
 }
 /* The ghost of the mark, so an empty box says what would go in it. */
-.check .box::after { content: '✓'; font-weight: 700; color: rgb(255 255 255 / .16); }
+.check .box::after { content: '✓'; font-weight: 700; color: color-mix(in srgb, var(--white) 16%, transparent); }
 .check:is(:active, .is-pressed) .box { border-color: var(--gold); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
 .check input:checked + .box::after { color: var(--on-gold); }
@@ -877,7 +879,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--ink); }
   padding: .62rem 1rem; border-radius: 2px;
   background: var(--toast-bg); color: var(--bg);
   font-size: .88rem; font-weight: 550; text-align: center;
-  box-shadow: 0 .35rem 1.4rem rgba(0,0,0,.45);
+  box-shadow: 0 .35rem 1.4rem color-mix(in srgb, var(--black) 45%, transparent);
   transition: translate var(--dur-move) var(--ease-spring);
 }
 
@@ -910,7 +912,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--ink); }
 .chess { container-type: inline-size;
          display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
          aspect-ratio: 1; width: min(100%, 70vh); margin: .35rem auto .6rem;
-         border: 2px solid #2a2119; border-radius: 4px; overflow: hidden; }
+         border: 2px solid var(--paper-ink); border-radius: 4px; overflow: hidden; }
 .chess .sq { display: flex; align-items: center; justify-content: center;
              /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
              font-size: 10cqw; line-height: 1; cursor: pointer;
@@ -924,16 +926,16 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--ink); }
 /* ---------- A CHESS BOARD HAS ITS OWN PALETTE, AND IT HAD NO NAMES § */
 .chess {
   /* A MUTED CLASSIC PAIR, flat (448): warm enough to sit with the gold, far enough apart to read as a board. */
-  --chess-light: #d9c9a3;
-  --chess-dark:  #8a6c48;
-  --chess-white: #fbf8f0;
-  --chess-black: #15120f;
-  --chess-frame: #1b1815;
-  --chess-last:  rgb(214 180 60 / .38);
-  --chess-check: rgb(214 52 40 / .85);
+  --chess-light: var(--hue-11);
+  --chess-dark:  var(--paper-dim);
+  --chess-white: var(--paper);
+  --chess-black: var(--line-soft);
+  --chess-frame: var(--line-soft);
+  --chess-last:  color-mix(in srgb, var(--admin) 38%, transparent);
+  --chess-check: color-mix(in srgb, var(--alert) 85%, transparent);
   /* The shadow a piece casts, and the dark of the ending. */
-  --chess-drop:  rgb(0 0 0 / .5);
-  --chess-dim:   rgb(6 5 4 / .74);
+  --chess-drop:  color-mix(in srgb, var(--black) 50%, transparent);
+  --chess-dim:   color-mix(in srgb, var(--sunk) 74%, transparent);
   --chess-turn:  .7s;
   --press-wash: var(--press-wash-paper);
   --chess-ease:  cubic-bezier(.65, 0, .35, 1);
@@ -955,7 +957,7 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--ink); }
    is the same fault the pieces had. */
 .chess .can::after { content: ''; position: absolute; width: 26%; height: 26%;
                      border-radius: 50%; background: var(--gold); opacity: .75; }
-.chess .take { box-shadow: inset 0 0 0 3px rgba(190,60,50,.8); }
+.chess .take { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--alert) 80%, transparent); }
 /* THE LAST MOVE, both ends of it. § */
 .chess .last { background-image: linear-gradient(var(--chess-last), var(--chess-last)); }
 /* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
@@ -987,11 +989,11 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--ink); }
 
 /* ---------- THE ENDING: the board goes dark, the beaten king falls, and the word comes up out of the dark ---------- */
 /* AT REST, the ending as it stands — what a redraw, reduced motion or a second look shows. `is-fresh` plays it, once. */
-.chess.is-over::after { background: radial-gradient(circle at 50% 50%, rgb(0 0 0 / .42) 0, var(--chess-dim) 100%); }
+.chess.is-over::after { background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--black) 42%, transparent) 0, var(--chess-dim) 100%); }
 .chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
   font: 700 10cqw/1 var(--font); letter-spacing: .06em; text-transform: uppercase;
-  color: var(--gold); text-shadow: 0 .04em .4em rgb(0 0 0 / .9), 0 0 .12em rgb(0 0 0 / .8); }
+  color: var(--gold); text-shadow: 0 .04em .4em color-mix(in srgb, var(--black) 90%, transparent), 0 0 .12em color-mix(in srgb, var(--black) 80%, transparent); }
 .chess.is-over:not(.is-mate)::before { color: var(--ink); font-size: 8cqw; }
 /* THE BEATEN KING lies above the dark, so the fall is the thing you see. */
 .chess .sq.fell { z-index: 6; }
@@ -1052,24 +1054,24 @@ a { color: inherit; text-decoration: none; }
           vertical-align: middle; line-height: .95em; }
 .mc-box .mc-caret { height: .9em; }
 /* THE fx-83GT CW, DRAWN: a device, so its colours are its own, defined here and nowhere else (docs/history/447, 453). */
-.calc { --calc-body: #2a2b2e; --calc-edge: #141517; --calc-bezel: #1d1e20; --calc-lcd: #cddbd3; --calc-lcd-ink: #17201b;
-        --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
-        --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
+.calc { --calc-body: var(--paper-ink); --calc-edge: var(--line-soft); --calc-bezel: var(--line); --calc-lcd: var(--paper-strip); --calc-lcd-ink: var(--line-soft);
+        --calc-key: var(--paper-strip); --calc-key-ink: var(--line-soft); --calc-key-dark: var(--line); --calc-pad: var(--line-soft);
+        --calc-shift: var(--paper-faint); --calc-legend: var(--hue-1); --calc-print: var(--ink); --calc-gut: .45rem;
         /* ONE KEY ROW'S HEIGHT, set from the pane by `calcFit_` (games.js) so the device fits at full size (533, D4); nine rows of it. */
         --calc-row: 44px;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
         max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
         border-radius: 26px 26px 35px 35px;
-        background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
-        box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
+        background: linear-gradient(180deg, var(--paper-ink), var(--calc-body) 30%, var(--line)); color: var(--calc-print);
+        box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px var(--paper-ink), 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent); }
 .calc-bezel { background: var(--calc-bezel); border-radius: 11px; padding: .55rem .6rem .3rem; margin-bottom: .5rem;
-              box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
-.calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
-  box-shadow: inset 0 2px 6px rgb(0 0 0 / .25); padding: .3rem .6rem .45rem;
+              box-shadow: inset 0 1px 3px color-mix(in srgb, var(--black) 70%, transparent); }
+.calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid var(--raised);
+  box-shadow: inset 0 2px 6px color-mix(in srgb, var(--black) 25%, transparent); padding: .3rem .6rem .45rem;
   /* the dot matrix, faint: the LCD's pixels show through as on the glass */
-  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px),
-                    repeating-linear-gradient(90deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px);
-  text-shadow: .5px .5px 0 rgb(23 32 27 / .18); }
+  background-image: repeating-linear-gradient(0deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px),
+                    repeating-linear-gradient(90deg, color-mix(in srgb, var(--black) 4%, transparent) 0 1px, transparent 1px 3px);
+  text-shadow: .5px .5px 0 color-mix(in srgb, var(--line-soft) 18%, transparent); }
 .calc .mc-caret { background: var(--calc-lcd-ink); }
 /* ONE SHAPE, WHATEVER IS ON THE GLASS (472): every line of the LCD has a fixed height and clips, so a fraction, a long sum or an error never grows the device and `paneReach_` never re-zooms it under a thumb. */
 .calc .mc-display { height: 6.6rem; min-height: 0; overflow: hidden; box-sizing: border-box; }
@@ -1080,7 +1082,7 @@ a { color: inherit; text-decoration: none; }
 .calc .mc-out .mc-note { white-space: nowrap; line-height: 2.8rem; }
 /* The LCD's status line: every indicator has its place, lit or ghosted, as the segments are on the glass. */
 .mc-stat { display: flex; gap: .7em; font: 700 .58rem/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
-           padding-bottom: .25rem; border-bottom: 1px solid rgb(23 32 27 / .12); }
+           padding-bottom: .25rem; border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 12%, transparent); }
 .mc-stat b::before { content: attr(data-i); }
 .mc-stat b { opacity: .13; } .mc-stat b.on { opacity: .85; }
 .calc .mc-menu { font: 600 .9rem var(--font); white-space: nowrap; }
@@ -1098,17 +1100,17 @@ a { color: inherit; text-decoration: none; }
           display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
 .mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1; box-sizing: border-box;
-          background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
-          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
+          background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other));
+          box-shadow: 0 2px 0 var(--raised), 0 3px 4px color-mix(in srgb, var(--black) 50%, transparent); transition: filter var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out); }
 /* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
 .mc-btn:is(:active, .is-pressed) { background-image: none; }
-.mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35), inset 0 0 0 99px var(--press-wash-paper); }
+.mc-btn:is(:active, .is-pressed) .mc-lab { box-shadow: 0 1px 0 var(--raised), inset 0 1px 3px color-mix(in srgb, var(--black) 35%, transparent), inset 0 0 0 99px var(--press-wash-paper); }
 .mc-btn:focus-visible { outline: none; }
 .mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
 /* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
 .mc-alt { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: .8rem; overflow: hidden;
           font-size: .6rem; font-weight: 700; line-height: 1; color: var(--calc-legend); white-space: nowrap; opacity: .9; }
-.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px rgb(121 165 242 / .6); }
+.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px color-mix(in srgb, var(--hue-1) 60%, transparent); }
 .mc-btn sup, .mc-alt sup { font-size: .7em; vertical-align: .5em; line-height: 0; }
 .mk { display: inline-block; vertical-align: middle; overflow: visible; }
 .mc-alt .mk { height: 1.45em; width: auto; }
@@ -1125,12 +1127,12 @@ a { color: inherit; text-decoration: none; }
 .calc-top { grid-template-rows: repeat(6, calc(var(--calc-row) / 2)) auto; row-gap: 0; margin-bottom: 0; }
 .calc-top .mc-alt { color: var(--calc-print); font-size: .55rem; letter-spacing: .02em; }
 .calc-top .mc-lab { width: 36px; height: 36px; color: var(--calc-print); font-size: .95rem;
-                    background: radial-gradient(100% 100% at 50% 20%, #3a3b3f, var(--calc-key-dark) 70%); border: 1px solid #0c0c0d; }
-.calc-top .lt .mc-lab { color: var(--calc-key-ink); background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd); border: 0; }
-.calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, #4560d0, var(--calc-shift) 70%); color: #c9d4ff; }
-.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px rgb(121 165 242 / .7); }
+                    background: radial-gradient(100% 100% at 50% 20%, var(--paper-ink), var(--calc-key-dark) 70%); border: 1px solid var(--raised); }
+.calc-top .lt .mc-lab { color: var(--calc-key-ink); background: radial-gradient(120% 90% at 50% 25%, var(--paper), var(--calc-key) 55%, var(--tag-other)); border: 0; }
+.calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, var(--faint), var(--calc-shift) 70%); color: var(--ink); }
+.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px color-mix(in srgb, var(--hue-1) 70%, transparent); }
 .calc-pad { grid-area: 3 / 3 / 5 / 6; align-self: center; height: 40px; border-radius: 20px; background: var(--calc-pad);
-            box-shadow: inset 0 1px 2px rgb(0 0 0 / .8); }
+            box-shadow: inset 0 1px 2px color-mix(in srgb, var(--black) 80%, transparent); }
 .calc-pad-v { grid-area: 1 / 4 / 7 / 5; align-self: stretch; justify-self: center; width: 40px; height: auto; }
 .calc-top .pad { z-index: 1; justify-content: center; }
 .calc-top .pad .mc-lab { width: 34px; height: 34px; font-size: 1.1rem; }
@@ -1183,17 +1185,17 @@ a { color: inherit; text-decoration: none; }
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; isolation: isolate; overflow: clip;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 17rem; --nes-deco-h: 0px; --nes-flank: 0px;
-  --nes-body: transparent; --nes-px: 0px; --nes-pt: 0px; --nes-r: 0; --nes-hi: rgba(255, 255, 255, .3); --nes-lo: rgba(0, 0, 0, .32);
-  --nes-bezel: #141416; --nes-rim: transparent; --nes-rim-w: 0px; --nes-bz: 8px; --nes-bz-r: .35rem; --nes-ctl: transparent; --nes-well: transparent;
-  --nes-dp: #1b1b1d; --nes-dp-hi: #38383c; --nes-key: #2a2a2e; --nes-ink: #f2f2f2; --nes-mid: #3a3a40; --nes-mid-ink: #e6e6e6;
+  --nes-body: transparent; --nes-px: 0px; --nes-pt: 0px; --nes-r: 0; --nes-hi: color-mix(in srgb, var(--white) 30%, transparent); --nes-lo: color-mix(in srgb, var(--black) 32%, transparent);
+  --nes-bezel: var(--line-soft); --nes-rim: transparent; --nes-rim-w: 0px; --nes-bz: 8px; --nes-bz-r: .35rem; --nes-ctl: transparent; --nes-well: transparent;
+  --nes-dp: var(--line-soft); --nes-dp-hi: var(--paper-ink); --nes-key: var(--paper-ink); --nes-ink: var(--paper); --nes-mid: var(--paper-ink); --nes-mid-ink: var(--ink);
   --nes-sh: var(--nes-mid); --nes-sh-ink: var(--nes-mid-ink); --nes-a: var(--nes-key); --nes-b: var(--nes-key); --nes-x: var(--nes-key); --nes-y: var(--nes-key);
-  --nes-c: var(--nes-key); --nes-c-ink: var(--nes-ink); --nes-knob: #c8c9ce; --nes-knob-lo: #75767c;
+  --nes-c: var(--nes-key); --nes-c-ink: var(--nes-ink); --nes-knob: var(--tag-other); --nes-knob-lo: var(--faint);
   --k-dpad: 120px; --k-btn: 56px; --k-cell: 44px; --k-h: 44px; --k-gap: 8px; --k-font: 1rem; --k-small: .8rem;
   background: var(--nes-body); border-radius: var(--nes-r); padding: var(--nes-pt) var(--nes-px) 0; box-sizing: border-box; }
 .nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
 .nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
 
-.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated; border-radius: 2px; }
+.nes-canvas { width: 100%; height: 100%; display: block; background: var(--black); image-rendering: pixelated; border-radius: 2px; }
 
 /* TOO NARROW A CARD for buttons beside the screen (a 320px phone on keys): the screen keeps its width and the picture of them goes. */
 .nes-wrap { container: nes-body / inline-size; }
@@ -1202,44 +1204,44 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* NES: a grey box round the picture, and the oblong grey-and-black controller — D-pad, Select and Start on grey stripes, B and A red on a pale plate. */
-.nes-wrap[data-sys="nes"] { --nes-rim: #c6c6c1; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #121212; --nes-ctl: #1c1c1c; --nes-ctl-edge: #c6c6c1;
-  --nes-dp: #0b0b0b; --nes-dp-hi: #262626; --nes-mid: #222; --nes-mid-ink: #e8e8e8; --nes-a: #c8102e; --nes-b: #c8102e; --nes-plate: #d9d9d3;
-  --nes-stripe: #8e8e8a; --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
+.nes-wrap[data-sys="nes"] { --nes-rim: var(--tag-other); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line-soft); --nes-ctl: var(--line-soft); --nes-ctl-edge: var(--tag-other);
+  --nes-dp: var(--raised); --nes-dp-hi: var(--line); --nes-mid: var(--line); --nes-mid-ink: var(--ink); --nes-a: var(--alert); --nes-b: var(--alert); --nes-plate: var(--paper-strip);
+  --nes-stripe: var(--faint); --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
 
 /* SNES: the rounded grey controller, shoulders on its top edge, the D-pad dark, A red, B yellow, X blue and Y green in a diamond. */
-.nes-wrap[data-sys="snes"] { --nes-rim: #c5c6cc; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #1d1d21; --nes-ctl: #cfd0d6; --nes-ctl-top: 24px; --nes-ctl-r: 999px / 50%;
-  --nes-dp: #2b2b31; --nes-dp-hi: #4a4a52; --nes-well: transparent; --nes-mid: #65656e; --nes-mid-ink: #f0f0f0; --nes-sh: #b3b4bc; --nes-sh-ink: #3a3a40;
-  --nes-a: #d1312c; --nes-b: #e3b20b; --nes-x: #2b5fc4; --nes-y: #2a984b; --k-dpad: 112px; --nes-deco-h: 4.6rem; }
+.nes-wrap[data-sys="snes"] { --nes-rim: var(--tag-other); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line); --nes-ctl: var(--paper-strip); --nes-ctl-top: 24px; --nes-ctl-r: 999px / 50%;
+  --nes-dp: var(--paper-ink); --nes-dp-hi: var(--paper-dim); --nes-well: transparent; --nes-mid: var(--paper-faint); --nes-mid-ink: var(--paper); --nes-sh: var(--tag-other); --nes-sh-ink: var(--paper-ink);
+  --nes-a: var(--alert); --nes-b: var(--admin); --nes-x: var(--faint); --nes-y: var(--paper-faint); --k-dpad: 112px; --nes-deco-h: 4.6rem; }
 
 /* N64: the three-pronged grey pad, simplified — stick on the left prong, Start red in the middle, A blue, B green and yellow C buttons on the right; L, Z and R along the top. */
-.nes-wrap[data-sys="n64"] { --nes-rim: #34343a; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #141417; --nes-ctl: #a7a8ae; --nes-ctl-top: 22px; --nes-ctl-r: 0;
-  --nes-dp: #8b8c93; --nes-well: transparent; --nes-knob: #cbccd2; --nes-knob-lo: #707177; --nes-mid: #c8102e; --nes-mid-ink: #fff;
-  --nes-sh: #8b8c93; --nes-sh-ink: #f4f4f4; --nes-a: #2357c0; --nes-b: #28923f; --nes-c: #e9b300; --nes-c-ink: #2a2a2a; --k-dpad: 112px; --nes-deco-h: 4.8rem; }
+.nes-wrap[data-sys="n64"] { --nes-rim: var(--paper-ink); --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: var(--line-soft); --nes-ctl: var(--dim); --nes-ctl-top: 22px; --nes-ctl-r: 0;
+  --nes-dp: var(--faint); --nes-well: transparent; --nes-knob: var(--tag-other); --nes-knob-lo: var(--faint); --nes-mid: var(--alert); --nes-mid-ink: var(--white);
+  --nes-sh: var(--faint); --nes-sh-ink: var(--paper); --nes-a: var(--faint); --nes-b: var(--paper-faint); --nes-c: var(--admin); --nes-c-ink: var(--paper-ink); --k-dpad: 112px; --nes-deco-h: 4.8rem; }
 
 /* HANDHELDS: the body is the console — the screen set in its glass, the buttons on the casing. */
 .nes-wrap[data-sys="gb"], .nes-wrap[data-sys="gbc"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-px: 12px; --nes-pt: 10px; padding-bottom: 6px;
   box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -4px 0 var(--nes-lo); }
 
 /* GAME BOY: off-white, portrait, the glass grey-blue with its one round corner bottom right; D-pad, then B and A on a slant in deep pink; Select and Start under. */
-.nes-wrap[data-sys="gb"] { --nes-body: #cac7bd; --nes-r: .7rem .7rem 3.2rem .7rem; --nes-bezel: #5c5e70; --nes-bz: 14px; --nes-bz-r: .45rem .45rem 2rem .45rem;
-  --nes-dp: #1c1c1e; --nes-dp-hi: #3c3c40; --nes-a: #9c1d4c; --nes-b: #9c1d4c; --nes-mid: #8e8d96; --nes-mid-ink: #2a2a33; --nes-deco-h: 3.6rem; }
+.nes-wrap[data-sys="gb"] { --nes-body: var(--paper-rule); --nes-r: .7rem .7rem 3.2rem .7rem; --nes-bezel: var(--paper-faint); --nes-bz: 14px; --nes-bz-r: .45rem .45rem 2rem .45rem;
+  --nes-dp: var(--line-soft); --nes-dp-hi: var(--paper-ink); --nes-a: var(--paper-dim); --nes-b: var(--paper-dim); --nes-mid: var(--dim); --nes-mid-ink: var(--line); --nes-deco-h: 3.6rem; }
 /* GAME BOY COLOR: the same, in grape, the glass black and the buttons dark. */
-.nes-wrap[data-sys="gbc"] { --nes-body: #5a3c9c; --nes-r: 1rem 1rem 3.2rem 1rem; --nes-bezel: #242429; --nes-bz: 14px; --nes-bz-r: .6rem .6rem 1.8rem .6rem;
-  --nes-dp: #1e1e22; --nes-dp-hi: #3e3e44; --nes-a: #34343b; --nes-b: #34343b; --nes-mid: #34343b; --nes-mid-ink: #e8e8f0; --nes-deco-h: 3.6rem; }
+.nes-wrap[data-sys="gbc"] { --nes-body: var(--paper-faint); --nes-r: 1rem 1rem 3.2rem 1rem; --nes-bezel: var(--line); --nes-bz: 14px; --nes-bz-r: .6rem .6rem 1.8rem .6rem;
+  --nes-dp: var(--line); --nes-dp-hi: var(--paper-ink); --nes-a: var(--paper-ink); --nes-b: var(--paper-ink); --nes-mid: var(--paper-ink); --nes-mid-ink: var(--ink); --nes-deco-h: 3.6rem; }
 
 /* GAME BOY ADVANCE: landscape in indigo, wide round ends, the screen between the D-pad and A/B while keys play; L and R on its top corners. */
-.nes-wrap[data-sys="gba"] { --nes-body: #4a3e97; --nes-r: 3rem / 2.4rem; --nes-bezel: #222228; --nes-bz: 12px; --nes-bz-r: .5rem;
-  --nes-dp: #1f1f26; --nes-dp-hi: #45454f; --nes-a: #c9c5e2; --nes-b: #c9c5e2; --nes-ink: #2b2560; --nes-mid: #2e2a66; --nes-mid-ink: #e4e2f6;
-  --nes-sh: #6a5fc0; --nes-sh-ink: #f2f0ff; --nes-pt: 18px; }
+.nes-wrap[data-sys="gba"] { --nes-body: var(--paper-faint); --nes-r: 3rem / 2.4rem; --nes-bezel: var(--line); --nes-bz: 12px; --nes-bz-r: .5rem;
+  --nes-dp: var(--line); --nes-dp-hi: var(--paper-dim); --nes-a: var(--tag-other); --nes-b: var(--tag-other); --nes-ink: var(--line); --nes-mid: var(--line); --nes-mid-ink: var(--ink);
+  --nes-sh: var(--faint); --nes-sh-ink: var(--white); --nes-pt: 18px; }
 /* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
 .nes-wrap[data-sys="nds"] { --nes-pt: 18px; }
 
 /* A DS LITE (481): two halves of one width, each a rounded slab, joined by a hinge barrel; speakers either side of the top screen, D-pad left and A/B/X/Y right of the touch screen. */
 /* EVERY SIZE IS A SHARE OF THE BODY'S WIDTH (`cqw` of the nes-body container), so a narrow card shows the same DS smaller instead of rearranging it. */
-.nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c4c7cf; --nes-bezel: #0e0e11; --nes-ink: #4a4c54; --nes-key: #f7f8fa;
-  --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
-  --nes-mid: #d3d5db; --nes-mid-ink: #5a5c64; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64;
-  --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199; --ds-grille: #a3a6ae;
+.nes-wrap[data-sys="nds"] { --nes-body: var(--paper); --nes-edge: var(--tag-other); --nes-bezel: var(--raised); --nes-ink: var(--paper-dim); --nes-key: var(--white);
+  --nes-dp: var(--paper-dim); --nes-dp-hi: var(--paper-faint); --nes-well: radial-gradient(circle, var(--ink) 0 64%, transparent 65%);
+  --nes-mid: var(--paper-strip); --nes-mid-ink: var(--paper-faint); --nes-sh: var(--ink); --nes-sh-ink: var(--paper-faint);
+  --nes-hinge: var(--tag-other); --nes-hinge-hi: var(--white); --nes-hinge-lo: var(--dim); --ds-grille: var(--dim);
   --ds-s: 52; --ds-t: 9; --ds-hh: 5.5; --ds-gap: 90; --ds-bz: 2.2;
   --ds-sh: calc(var(--ds-s) * .75); --ds-gh: calc(var(--ds-s) * var(--ds-gap) / 256); --ds-mb: calc((var(--ds-gh) - var(--ds-hh)) / 2);
   --ds-lid: calc(var(--ds-t) + var(--ds-sh) + var(--ds-mb)); --ds-h: calc(2 * var(--ds-lid) + var(--ds-hh));
@@ -1258,8 +1260,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- WHAT THE LAWS PAINT § */
 .w-green     { color: var(--green); }                 /* a subject */
-.w-blue      { color: #58a6ff; }                      /* #tag */
-.w-blue-soft { color: color-mix(in srgb, #79c0ff 85%, var(--bg)); }        /* @name — the same idea, said quieter */
+.w-blue      { color: var(--hue-1); }                      /* #tag */
+.w-blue-soft { color: color-mix(in srgb, var(--hue-1) 85%, var(--bg)); }        /* @name — the same idea, said quieter */
 .w-purple    { color: var(--purple); }                 /* a venue */
 /* A TUTOR. Deliberately NOT `--bad` — that red means something is wrong, and a person's name in the identical colour to an error message is the one collision § */
 .w-red       { color: var(--coral); }                 /* a tutor */
@@ -1567,7 +1569,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .react::before {
   content: ''; position: absolute; inset: 6px 2px;
   border: 1px solid var(--chip-line); border-radius: 16px;
-  background: rgb(255 255 255 / .04);
+  background: color-mix(in srgb, var(--white) 4%, transparent);
   transition: background var(--dur-quick) var(--ease-out), border-color var(--dur-quick) var(--ease-out);
 }
 .react > span { position: relative; }
@@ -1600,7 +1602,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .rx-group + .rx-group { margin-top: 1.1rem; }
 #sheet-body .rx-head { display: flex; align-items: center; margin: 0 0 .25rem; padding: 0; }
 .rx-pill { display: inline-flex; align-items: center; gap: .3rem; height: 32px; padding: 0 .75rem;
-  border: 1px solid var(--chip-line); border-radius: 16px; background: rgb(255 255 255 / .04); }
+  border: 1px solid var(--chip-line); border-radius: 16px; background: color-mix(in srgb, var(--white) 4%, transparent); }
 .rx-pill .react-e { font-size: 1.25rem; }
 .rx-pill .react-n { font-size: .9rem; }
 .rx-pill.mine { border-color: var(--gold); background: var(--react-mine); }
@@ -1703,8 +1705,8 @@ button.text-drop { color: var(--bad); }
 .vid-poster .tile-i { width: 20px; height: 20px; }
 
 .kt-box { position: relative;
-          --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #e8a0bf;
-          --kt-4: #e8a0bf; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
+          --kt-0: var(--purple); --kt-1: var(--hue-1); --kt-2: var(--hue-10); --kt-3: var(--pink);
+          --kt-4: var(--pink); --kt-5: var(--hue-10); --kt-6: var(--hue-1); --kt-7: var(--purple); --kt-8: var(--faint); }
 
 /* AT 320 FIVE 44px RUNGS AND THEIR GAPS ARE 228px IN A 218px SLOT — the timetable's measurement, and
    its answer: the card gives up some of its own inside edge on a narrow phone rather than a rung
@@ -1740,7 +1742,7 @@ button.text-drop { color: var(--bad); }
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE § */
   /* ---------- THE SAME FAMILY AS THE ANSWERS UNDER IT § */
   min-height: 44px; padding: 0 .7rem;
-  background: rgb(255 255 255 / .08); border: 1px solid var(--chip-line); border-radius: var(--btn-r);
+  background: color-mix(in srgb, var(--white) 8%, transparent); border: 1px solid var(--chip-line); border-radius: var(--btn-r);
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
@@ -1765,8 +1767,6 @@ button.text-drop { color: var(--bad); }
             vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
 @keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
 
-/* ---------- THE TIMER § */
-/* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET § */
 .btn.tiny { min-height: 44px; min-width: 44px; padding: 0 .5rem; font-size: .8rem; }
 
 .dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
@@ -1791,7 +1791,7 @@ button.text-drop { color: var(--bad); }
    a licence that expects the photographer to be named, and a credit that appears before the
    photograph does is a credit for nothing. */
 .feed-credit { position: absolute; top: .6rem; left: .9rem; right: .9rem; z-index: 1;
-               font-size: .58rem; color: rgba(255,255,255,.55);
+               font-size: .58rem; color: color-mix(in srgb, var(--white) 55%, transparent);
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feed .feed-art, .reel > .feed-art { transition: transform var(--dur-quick) var(--ease-out); }
 /* A REEL IS ALL PICTURE, so the wash under it cannot show: it sinks as a post's picture does. */
@@ -1865,11 +1865,11 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
   contain: layout paint style;
   /* ---------- A SURFACE FIRST, GLASS SECOND § */
   background:
-    linear-gradient(160deg, rgb(255 255 255 / .05), rgb(255 255 255 / .015)),
-    #101010;
+    linear-gradient(160deg, color-mix(in srgb, var(--white) 5%, transparent), color-mix(in srgb, var(--white) 2%, transparent)),
+    var(--raised);
   /* THE EDGE, and it is the whole reason a card reads as a card. § */
-  border: 1px solid rgb(255 255 255 / .16);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 30px rgb(0 0 0 / .5);
+  border: 1px solid color-mix(in srgb, var(--white) 16%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 20%, transparent), 0 10px 30px color-mix(in srgb, var(--black) 50%, transparent);
 }
 /* A CARD THAT NEARLY FITS IS DRAWN AT FULL SIZE IN A TIGHTER PANE, not at .97 (533, `paneReach_`'s `PANE_ZOOM_SNUG`). */
 .pane.is-snug { padding-block: var(--s1) var(--s2); }
@@ -1909,23 +1909,23 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 
 /* ---------- AN INSTRUMENT, NOT A CARD § */
 .widget-full.solid > .card {
-  background: #14161a;
+  background: var(--line-soft);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   /* A CASE, not a pane: a hard edge and a shadow it sits in, rather than a light edge it catches.
      The difference between an object on a table and a sheet of glass over one. */
-  border: 1px solid #2a2e35;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 14px 34px rgb(0 0 0 / .55);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 6%, transparent), 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent);
 }
 /* `:has` is recent. Without it the pane stays glass — the widget still works and still reads, which
    is the right way for this to fail. */
 @supports not selector(:has(*)) {
-  .widget-full.solid { background: #14161a; border-radius: 10px; padding: .5rem; }
+  .widget-full.solid { background: var(--line-soft); border-radius: 10px; padding: .5rem; }
 }
 /* The display is a window into the case rather than another card on it. */
 /* `#notepad`, not `#np-body` — the second was a guess at the name. */
 .widget-full.solid #notepad, .widget-full.solid #docket-body {
-  background: #0b0d10; border: 1px solid #2a2e35;
+  background: var(--raised); border: 1px solid var(--line);
 }
 
 /* ---------- MESSAGES § */
@@ -2110,7 +2110,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 
 /* ---------- THE ROSTER § */
 /* ---------- THE ROSTER, TIGHTENED § */
-.rost { --rost-tutor: #8a7a4a; display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
+.rost { --rost-tutor: var(--paper-faint); display: grid; grid-template-columns: repeat(4, 1fr); gap: .25rem; margin: .1rem 0 .2rem; }
 .rost-slot { display: flex; flex-direction: column; align-items: center; gap: .05rem;
              padding: .18rem .1rem; border: 1px solid var(--paper-rule); border-radius: 3px;
              background: color-mix(in srgb, var(--paper) 50%, var(--paper-strip)); min-width: 0; }
@@ -2307,13 +2307,13 @@ label.bk-k { cursor: pointer; }
   width: 1.05em; height: 1.05em; flex: none;
   vertical-align: middle;
   border-radius: 2px;
-  border: 1.5px solid rgb(255 255 255 / .14);
-  background: rgb(255 255 255 / .04);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .05);
+  border: 1.5px solid color-mix(in srgb, var(--white) 14%, transparent);
+  background: color-mix(in srgb, var(--white) 4%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 5%, transparent);
   font-size: inherit; line-height: 1;
   /* THE GHOST OF THE MARK. The same glyph as a ticked one, at the alpha `.check .box::after` uses,
      so an empty box says what would go in it rather than sitting there as an empty square. */
-  color: rgb(255 255 255 / .16);
+  color: color-mix(in srgb, var(--white) 16%, transparent);
 }
 .bk-tick.on { background: var(--gold); border-color: var(--gold); box-shadow: none; color: var(--on-gold); }
 /* THE DATE BESIDE `Requested`, and it is the only stage that has one — see `JOB_STAGES`. Set like
@@ -2593,7 +2593,7 @@ label.bk-k { cursor: pointer; }
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: .9rem;
-  box-shadow: 0 14px 34px rgb(0 0 0 / .45);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--black) 45%, transparent);
 }
 
 /* AND IT MAY NOT GROW PAST ITS PANE. § */
@@ -2627,12 +2627,12 @@ label.bk-k { cursor: pointer; }
 .widget-full:has(.chess) .chess {
   border: 6px solid var(--chess-frame);
   border-radius: 4px;
-  box-shadow: 0 14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--black) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--white) 6%, transparent);
   transition: rotate var(--chess-turn) var(--chess-ease), box-shadow var(--chess-turn) var(--chess-ease);
 }
 /* TURNED, THE SHADOW IS WRITTEN UPSIDE DOWN so it still falls below the board; eased with the turn, it passes under the middle. */
 .widget-full:has(.chess) .chess.is-flipped {
-  box-shadow: 0 -14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
+  box-shadow: 0 -14px 34px color-mix(in srgb, var(--black) 55%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--white) 6%, transparent);
 }
 /* The board IS the object here, so the surface under it steps aside and the board carries the
    edge and the shadow itself — see the rule above. */
@@ -2644,52 +2644,6 @@ label.bk-k { cursor: pointer; }
 /* The device is the object, so the case under it steps aside (as the chess board's does). */
 .widget-full.solid:has(.calc) > .card { background: none; border: 0; box-shadow: none; padding: .25rem 0; }
 
-/* ---------- THE CALENDAR IS PAPER, ON A WIRE § */
-/* ---------- THE CALENDAR IS PAPER, AND PAPER IS NOT THIS APP'S PALETTE § */
-.widget-full:has(.cal-head) > .card {
-  /* THE PAPER TOKENS ARE AT `:root` — see the note there. This card used to carry its own five. */
-  background: var(--paper);
-  color: var(--paper-ink);
-  border: 0;
-  border-radius: 3px;
-  /* Room at the top for the binding, which is drawn over this padding. */
-  padding: 2.1rem .9rem 1rem;
-  position: relative;
-  box-shadow: 0 14px 34px rgb(0 0 0 / .55);
-}
-/* THE STRIP the rings are punched through — a slightly darker band of the same paper, so it reads
-   as the sheet's own edge rather than as a bar laid on top of it. */
-.widget-full:has(.cal-head) > .card::before {
-  content: '';
-  position: absolute; left: 0; right: 0; top: 0; height: 1.5rem;
-  background: var(--paper-strip);
-  border-bottom: 1px solid var(--paper-rule);
-  border-radius: 3px 3px 0 0;
-}
-/* AND THE WIRE. One repeating gradient: a short length of steel, a gap, over and over. The rings
-   sit half on the strip and half above it, which is what makes them read as going through it. */
-.widget-full:has(.cal-head) > .card::after {
-  content: '';
-  position: absolute; left: .9rem; right: .9rem; top: .35rem; height: 1.15rem;
-  background: repeating-linear-gradient(90deg,
-    transparent 0 .55rem,
-    #8d8b86 .55rem .72rem,
-    #c9c6bf .72rem .8rem,
-    transparent .8rem 1.5rem);
-  border-radius: 2px;
-  pointer-events: none;
-}
-/* The month, the days and the numbers are all ink on that paper now. */
-.widget-full:has(.cal-head) h3,
-.widget-full:has(.cal-head) .cal-head,
-.widget-full:has(.cal-head) .cal-h { color: var(--paper-ink); }
-.widget-full:has(.cal-head) .sub,
-.widget-full:has(.cal-head) .faint { color: var(--paper-faint); }
-.widget-full:has(.cal-head) .cal-arrow { color: var(--paper-dim); }
-
-/* ---------- THE HANDHELD, AND WHY IT IS NOT HERE ANY MORE § */
-
-/* ---------- THE HIGH SCORES § */
 .board { margin-top: .25rem; }
 .board-head {
   margin: 0;
@@ -2728,121 +2682,17 @@ label.bk-k { cursor: pointer; }
 #s-dm .card:has(> .msg-body) > * { flex: 0 0 auto; }
 #s-dm .card:has(> .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
 
-/* ---------- THE SPRINT, IN NEON § */
-.widget-full:has(#tt-idle) > .card {
-  background:
-    linear-gradient(rgb(10 4 24 / .82), rgb(10 4 24 / .95)),
-    repeating-linear-gradient(0deg, transparent 0 22px, rgb(255 60 200 / .16) 22px 23px),
-    repeating-linear-gradient(90deg, transparent 0 22px, rgb(60 230 255 / .13) 22px 23px),
-    #0a0418;
-  border: 1px solid rgb(255 60 200 / .45);
-  border-radius: 8px;
-  padding: 1.1rem .9rem;
-  box-shadow: 0 0 26px rgb(255 60 200 / .22), inset 0 0 40px rgb(60 230 255 / .07);
-}
-.widget-full:has(#tt-idle) h3 {
-  color: #ff4fd8;
-  text-align: center;
-  letter-spacing: .16em; text-transform: uppercase; font-size: .82rem;
-  text-shadow: 0 0 8px rgb(255 79 216 / .9), 0 0 22px rgb(255 79 216 / .5);
-}
-.widget-full:has(#tt-idle) .sub,
-.widget-full:has(#tt-idle) .k { color: #7de6ff; }
-.widget-full:has(#tt-idle) #tt-q,
-.widget-full:has(#tt-idle) .v {
-  color: #7de6ff;
-  text-shadow: 0 0 10px rgb(125 230 255 / .85), 0 0 26px rgb(125 230 255 / .45);
-}
-.widget-full:has(#tt-idle) #tt-answer {
-  background: rgb(255 255 255 / .04);
-  border: 1px solid rgb(125 230 255 / .5);
-  color: #eafcff; text-align: center;
-}
-.widget-full:has(#tt-idle) .btn {
-  background: linear-gradient(#ff4fd8, #c81fa8);
-  color: #14001a; border: 0;
-  box-shadow: 0 0 18px rgb(255 79 216 / .55);
-  letter-spacing: .12em; text-transform: uppercase;
-}
-
-/* ---------- THE DOCKET IS A CLIPBOARD § */
-.widget-full:has(#docket-body) > .card {
-  background: linear-gradient(#a9855c, #8f6f4b);
-  border: 0;
-  border-radius: 6px;
-  padding: 2.4rem .7rem .9rem;
-  position: relative;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 16px 36px rgb(0 0 0 / .55);
-}
-/* THE CLIP — centred at the top, half on the board and half above the paper. */
-.widget-full:has(#docket-body) > .card::before {
-  content: '';
-  position: absolute; left: 50%; transform: translateX(-50%); top: .5rem;
-  width: 5.5rem; height: 1.35rem;
-  background: linear-gradient(#e9ecef, #9aa1a8 55%, #6d7379);
-  border-radius: 3px;
-  box-shadow: 0 2px 5px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .8);
-}
-.widget-full:has(#docket-body) h3 { color: #2f2415; margin: 0 0 .5rem; font-size: .85rem; }
-.widget-full:has(#docket-body) .sub { color: #5b4a31; }
-/* THE PAPER under the clip. */
-.widget-full:has(#docket-body) #docket-body {
-  background: color-mix(in srgb, var(--paper) 30%, white);
-  border: 0;
-  border-radius: 2px;
-  padding: .7rem .6rem;
-  color: var(--paper-ink);
-  box-shadow: 0 2px 6px rgb(0 0 0 / .3);
-}
-
-/* ---------- THE NOTEPAD IS A NOTEPAD § */
-.widget-full:has(#notepad) > .card {
-  background: color-mix(in srgb, var(--paper) 80%, white);
-  border: 0;
-  border-radius: 2px;
-  padding: 1.5rem .7rem .9rem;
-  position: relative;
-  box-shadow: 0 16px 36px rgb(0 0 0 / .55);
-}
-/* THE GLUED HEAD of the pad — a band of colour where the sheets are bound. */
-.widget-full:has(#notepad) > .card::before {
-  content: '';
-  position: absolute; left: 0; right: 0; top: 0; height: 1rem;
-  background: linear-gradient(#c9542f, #a33f21);
-  border-radius: 2px 2px 0 0;
-}
-.widget-full:has(#notepad) h3 { color: var(--paper-ink); margin: 0 0 .4rem; font-size: .85rem; }
-.widget-full:has(#notepad) .sub, .widget-full:has(#notepad) .faint { color: var(--paper-faint); }
-.widget-full:has(#notepad) #notepad {
-  background:
-    /* the red margin */
-    linear-gradient(90deg, transparent 0 2.1rem, rgb(200 60 50 / .5) 2.1rem 2.15rem, transparent 2.15rem),
-    /* and the blue rules */
-    repeating-linear-gradient(color-mix(in srgb, var(--paper) 45%, white) 0 1.55rem, rgb(90 130 180 / .35) 1.55rem 1.6rem);
-  border: 0;
-  border-radius: 0;
-  color: var(--paper-ink);
-  padding: .1rem .6rem .6rem 2.5rem;
-  line-height: 1.6rem;
-  box-shadow: none;
-}
-
-/* ---------- THE TIMER READS LIKE A DIGITAL CLOCK § */
-.widget-full:has(#timer-display) > .card {
-  background: linear-gradient(#17181c, #0e0f11);
-  border: 1px solid #2b2e34;
-}
 .widget-full #timer-display {
   /* THE SIZE COMES FROM THE FIRST RULE for this selector, further up: § */
   /* THE PANEL the numerals sit on — darker than the case, the way the glass of a clock is. */
-  background: #0a0b0d;
-  border: 1px solid #23262c;
+  background: var(--raised);
+  border: 1px solid var(--line);
   border-radius: 4px;
   padding: .5rem .4rem;
   margin: .5rem 0 .6rem;
-  box-shadow: inset 0 2px 10px rgb(0 0 0 / .7);
+  box-shadow: inset 0 2px 10px color-mix(in srgb, var(--black) 70%, transparent);
 
-  /* One cell, two layers: the dead segments and the live time. */
+  /* One cell for the time; the colour is the screen's own ink, like every other widget (owner, 8 Nov). */
   display: grid;
   grid-template-areas: 'clock';
   place-items: center;
@@ -2850,26 +2700,9 @@ label.bk-k { cursor: pointer; }
   font-variant-numeric: tabular-nums;
   letter-spacing: .06em;
   line-height: 1.1;
-  color: #ffb648;
-  /* The glow of a lit segment: tight and bright at the edge of the stroke, wide and faint beyond
-     it, which is how light actually leaves a small emitter. */
-  text-shadow: 0 0 6px rgb(255 182 72 / .85), 0 0 20px rgb(255 140 20 / .45);
+  color: var(--ink);
 }
 .widget-full #timer-display { grid-area: clock; }
-/* THE SEGMENTS THAT ARE OFF. § */
-.widget-full #timer-display::before {
-  content: '88:88';
-  grid-area: clock;
-  color: rgb(255 182 72 / .07);
-  text-shadow: none;
-  pointer-events: none;
-}
-/* The buttons as the panel's own controls rather than as app buttons. */
-.widget-full:has(#timer-display) .btn {
-  background: #16181c;
-  border: 1px solid #2b2e34;
-  color: #d3b489;
-}
 .widget-full:has(#timer-display) .btn:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash)); }
 
 /* ---------- THE THINGS THAT KEEP THE FINGER FOR THEMSELVES § */
@@ -2896,7 +2729,7 @@ textarea { touch-action: none; }
              background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-sm, 8px);
              font: 400 .76rem/1.55 var(--mono); color: var(--ink); }
 #boot-slow b { color: var(--warn); }
-#boot-slow code { color: #7de6ff; word-break: break-all; }
+#boot-slow code { color: var(--hue-1); word-break: break-all; }
 
 /* IF IT CAN BE TAPPED, IT LOOKS LIKE IT THE PROBLEM. § */
 
@@ -2977,7 +2810,7 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-who { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
 /* WRAPS. `.pass-name` was one line with `text-overflow: ellipsis` on the lines under it, because a pass is a fixed object and a name that does not fit gets cut. § */
 /* ---------- THE ONE RED THIS CARD USES, DECLARED ONCE AND RAISED TO READABLE § */
-.is-prof { --prof-warn: #c4655a; }
+.is-prof { --prof-warn: var(--bad); }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
 /* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME § */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
@@ -3262,17 +3095,17 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- AND THE BARS TAKE THE THREE FIGURE TRACKS, ON THIS ROW ONLY § */
 .bk-row.bk-tally .bk-v { grid-column: 2 / -1; }
 .wc-row { position: relative; display: flex; align-items: center; gap: .5rem;
-          padding: .2rem .4rem; border-radius: 5px; background: rgb(0 0 0 / .16);
+          padding: .2rem .4rem; border-radius: 5px; background: color-mix(in srgb, var(--black) 16%, transparent);
           margin-bottom: .18rem; overflow: hidden; }
 .wc-row:last-child { margin-bottom: 0; }
 /* THE BAR IS BEHIND THE WORDS, not beside them — a row that is both a label and a measurement
    reads faster than a label with a chart next to it, and takes half the width. */
 .wc-row i { position: absolute; inset: 0 auto 0 0; width: var(--f);
-            background: rgb(111 216 196 / .18); }
-.wc-row.is-all i { background: rgb(111 216 160 / .3); }
+            background: color-mix(in srgb, var(--hue-5) 18%, transparent); }
+.wc-row.is-all i { background: color-mix(in srgb, var(--hue-10) 30%, transparent); }
 .wc-n { position: relative; font-variant-numeric: tabular-nums; font-weight: 700;
-        color: #6fd8c4; min-width: 2.1rem; }
-.wc-row.is-all .wc-n { color: #7fe0a8; }
+        color: var(--hue-5); min-width: 2.1rem; }
+.wc-row.is-all .wc-n { color: var(--hue-10); }
 .wc-slot { position: relative; }
 
 /* THE "or" BETWEEN THE TWO WAYS IN. A rule either side rather than a word floating in space, so it
@@ -3453,18 +3286,18 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-paper { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 /* ---------- THE PAPER'S NINE GREYS, NAMED § */
 :root {
-  --pa-ink:       #14140f;   /* what the sheet is printed in                    */
-  --pa-head:      #44443c;   /* block headings                                  */
-  --pa-label:     #66665c;   /* the label half of a label/value row             */
-  --pa-mid:       #77776c;   /* secondary text                                  */
-  --pa-mark:      #8d8878;   /* drawn marks: ticks, arrows, outlines            */
-  --pa-faint:     #9a9488;   /* the faintest text on the page                   */
-  --pa-line:      #b4ae9c;   /* drawn lines inside a figure                     */
-  --pa-rule:      #c9c3b2;   /* the rule above a block, and between columns     */
-  --pa-rule-soft: #ddd7c6;   /* the rule under a row                            */
+  --pa-ink:       var(--line-soft);   /* what the sheet is printed in                    */
+  --pa-head:      var(--paper-ink);   /* block headings                                  */
+  --pa-label:     var(--paper-faint);   /* the label half of a label/value row             */
+  --pa-mid:       var(--paper-faint);   /* secondary text                                  */
+  --pa-mark:      var(--faint);   /* drawn marks: ticks, arrows, outlines            */
+  --pa-faint:     var(--dim);   /* the faintest text on the page                   */
+  --pa-line:      var(--dim);   /* drawn lines inside a figure                     */
+  --pa-rule:      var(--paper-rule);   /* the rule above a block, and between columns     */
+  --pa-rule-soft: var(--paper-strip);   /* the rule under a row                            */
 }
 
-.mat-sheet { width: 210mm; height: 297mm; background: #fff; color: var(--pa-ink); position: relative;
+.mat-sheet { width: 210mm; height: 297mm; background: var(--white); color: var(--pa-ink); position: relative;
              padding: 6mm 6mm 5mm 20mm; transform-origin: 0 0; overflow: hidden;
              display: flex; flex-direction: column; gap: 2.8mm;
              font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
@@ -3693,7 +3526,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE SHADED REGION, AND THE SAME CIRCLE UNSHADED OVER THE TOP OF IT — `vs-out` is only there to put
    the outline back after a fill has covered it. */
 .mat-venn .vs-on  { fill: var(--pa-rule-soft); stroke: none; }
-.mat-venn .vs-out { fill: #fff; stroke: var(--pa-ink); stroke-width: 1.5; }
+.mat-venn .vs-out { fill: var(--white); stroke: var(--pa-ink); stroke-width: 1.5; }
 .mat-venn .vs-l   { font: 400 8px/1 var(--mono); fill: var(--pa-ink); text-anchor: middle; }
 .mat-venn .vs-x   { font: 400 7px/1 var(--mono); fill: var(--pa-mid); }
 
@@ -4216,16 +4049,16 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
   --bf-mat: color-mix(in srgb, var(--paper) 14%, var(--bg));
   --bf-stage: var(--raised);
   --bf-ghost: color-mix(in srgb, var(--dim) 42%, var(--raised));
-  --bf-unsaid-l: #887c50; --bf-unsaid-r: #56789a;
-  --bf-s1: #f6dcc8; --bf-s2: #e7bf9b; --bf-s3: #cf9a6c; --bf-s4: #ad7448; --bf-s5: #855433; --bf-s6: #643d25;
-  --bf-hc-black: #4e4944; --bf-hc-dark-brown: #5e402c; --bf-hc-brown: #6f4a2d; --bf-hc-light-brown: #9b7249;
-  --bf-hc-blond: #dcb866; --bf-hc-red: #b45a2c; --bf-hc-grey: #9d9b97; --bf-hc-white: #ecebe6;
-  --bf-fh-black: #100e0c;
-  --bf-tk-black: #4e4944; --bf-tk-white: #f5f5f2; --bf-tk-red: #d9302c; --bf-tk-maroon: #86283a;
-  --bf-tk-blue: #2f6fe0; --bf-tk-navy: #2c4290; --bf-tk-sky: #8cc8f0; --bf-tk-green: #23914f;
-  --bf-tk-gold: #e4ae30; --bf-tk-yellow: #f3d935; --bf-tk-orange: #f07f24; --bf-tk-purple: #7440ad;
-  --bf-tk-pink: #f08cbc; --bf-tk-silver: #c7cbcf; --bf-tk-grey: #8b8d91; --bf-tk-tan: #c9a67a;
-  --bf-tk-leopard: #d8a24a; --bf-tk-leopard-spot: #3d2614;
+  --bf-unsaid-l: var(--paper-faint); --bf-unsaid-r: var(--faint);
+  --bf-s1: var(--paper-strip); --bf-s2: var(--hue-11); --bf-s3: var(--hue-9); --bf-s4: var(--paper-dim); --bf-s5: var(--paper-dim); --bf-s6: var(--paper-ink);
+  --bf-hc-black: var(--paper-dim); --bf-hc-dark-brown: var(--paper-dim); --bf-hc-brown: var(--paper-dim); --bf-hc-light-brown: var(--paper-dim);
+  --bf-hc-blond: var(--warn); --bf-hc-red: var(--alert); --bf-hc-grey: var(--dim); --bf-hc-white: var(--ink);
+  --bf-fh-black: var(--raised);
+  --bf-tk-black: var(--paper-dim); --bf-tk-white: var(--paper); --bf-tk-red: var(--alert); --bf-tk-maroon: var(--paper-dim);
+  --bf-tk-blue: var(--hue-1); --bf-tk-navy: var(--paper-faint); --bf-tk-sky: var(--hue-8); --bf-tk-green: var(--paper-faint);
+  --bf-tk-gold: var(--warn); --bf-tk-yellow: var(--admin); --bf-tk-orange: var(--bad); --bf-tk-purple: var(--faint);
+  --bf-tk-pink: var(--pink); --bf-tk-silver: var(--tag-other); --bf-tk-grey: var(--faint); --bf-tk-tan: var(--dim);
+  --bf-tk-leopard: var(--warn); --bf-tk-leopard-spot: var(--paper-ink);
 }
 .boxer-ring .bf-stage { fill: var(--bf-stage); }
 .boxer-ring .bf-post { fill: var(--dim); }
@@ -4355,11 +4188,11 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- THE FIGHT CARD'S TWO FACES § */
 /* ---------- A PERSON'S 8-BIT PORTRAIT (batch D): the same drawer for every person and both corners of a fight, palette letters from tools/people_pix.py ---------- */
 .pp { display: block; width: 100%; height: auto; image-rendering: pixelated;
-  --pp-k: #1b1816; --pp-1: #ecc9aa; --pp-2: #e7bf9b; --pp-3: #cf9a6c; --pp-4: #ad7448; --pp-5: #855433; --pp-6: #643d25;
-  --pp-hbk: #2a2522; --pp-hdb: #5e402c; --pp-hbr: #6f4a2d; --pp-hlb: #9b7249; --pp-hbl: #dcb866; --pp-hrd: #b45a2c; --pp-hgr: #9d9b97; --pp-hwh: #ecebe6;
-  --pp-w: #f5f5f2; --pp-b: #26262b; --pp-r: #c8302c; --pp-m: #86283a; --pp-n: #2c4290; --pp-u: #2f6fe0; --pp-c: #8cc8f0;
-  --pp-g: #23914f; --pp-o: #6b7240; --pp-e: #b49a6a; --pp-t: #6e4a2e; --pp-y: #e4ae30; --pp-p: #7440ad; --pp-s: #8b8d91;
-  --pp-f: #f08cbc; --pp-a: #f07f24; }
+  --pp-k: var(--line-soft); --pp-1: var(--hue-11); --pp-2: var(--hue-11); --pp-3: var(--hue-9); --pp-4: var(--paper-dim); --pp-5: var(--paper-dim); --pp-6: var(--paper-ink);
+  --pp-hbk: var(--paper-ink); --pp-hdb: var(--paper-dim); --pp-hbr: var(--paper-dim); --pp-hlb: var(--paper-dim); --pp-hbl: var(--warn); --pp-hrd: var(--alert); --pp-hgr: var(--dim); --pp-hwh: var(--ink);
+  --pp-w: var(--paper); --pp-b: var(--line); --pp-r: var(--alert); --pp-m: var(--paper-dim); --pp-n: var(--paper-faint); --pp-u: var(--hue-1); --pp-c: var(--hue-8);
+  --pp-g: var(--paper-faint); --pp-o: var(--paper-dim); --pp-e: var(--dim); --pp-t: var(--paper-dim); --pp-y: var(--warn); --pp-p: var(--faint); --pp-s: var(--faint);
+  --pp-f: var(--pink); --pp-a: var(--bad); }
 .pp.is-none path { fill: var(--faint); }
 .pp-k { fill: var(--pp-k); } .pp-1 { fill: var(--pp-1); } .pp-2 { fill: var(--pp-2); } .pp-3 { fill: var(--pp-3); }
 .pp-4 { fill: var(--pp-4); } .pp-5 { fill: var(--pp-5); } .pp-6 { fill: var(--pp-6); } .pp-B { fill: var(--pp-hbk); }
@@ -4433,7 +4266,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   width: var(--tile); height: var(--tile); padding: 0; flex: none; box-sizing: border-box;
   /* ROUND (508): the owner, "turn all tiles into circles"; a square plate, so a circle; its focus ring follows the radius. */
   color: var(--ink); border-radius: var(--tile-r);
-  background: rgb(255 255 255 / .03);
+  background: color-mix(in srgb, var(--white) 3%, transparent);
   border: 1px solid var(--line);
   font: 600 .72rem/1 var(--mono);
   text-decoration: none; cursor: pointer;
@@ -4443,7 +4276,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile:is(:active, .is-pressed):not(.kp-key) { background: var(--press-wash); border-color: var(--line); transform: scale(var(--press-small)); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
-.tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
+.tile.on { color: var(--ink); background: color-mix(in srgb, var(--white) 9%, transparent); border-color: var(--line); }
 /* ---------- THE MARK BESIDE THE WORD § */
 .tile-i { width: var(--tile-i); height: var(--tile-i); flex: 0 0 auto; }
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
@@ -4640,7 +4473,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
               transform var(--quick) ease;
 }
 /* THE BOX THE CHIPS WRAP IN. § */
-.answers, .tag-answers, .chips, .qtags, .reacts, .rx-head { --chip-line: #3d3d3d; }
+.answers, .tag-answers, .chips, .qtags, .reacts, .rx-head { --chip-line: var(--paper-ink); }
 /* `.tag-answers` IS `.answers` UNDER ANOTHER NAME ON PURPOSE: thirty checks read `.answers` as "the
    question being asked", and an optional row is not that question (docs/history/354, 355). */
 .answers, .tag-answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
@@ -4669,7 +4502,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    mobile Safari and stays applied until something else is tapped, so the last answer pressed keeps
    a highlight that means nothing. */
 @media (hover: hover) {
-  .row.tap.counted:hover { background: rgb(255 255 255 / .06); }
+  .row.tap.counted:hover { background: color-mix(in srgb, var(--white) 6%, transparent); }
 }
 
 /* ---------- "DOESN'T MATTER" IS A WAY OUT, NOT AN ANSWER § */
@@ -4684,7 +4517,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .facet-none .none-chip { color: var(--ink); font-size: var(--fs-xs, .8rem); }
 .row.tap.counted.is-skip .k { color: var(--ink); font-weight: 400; }
 @media (hover: hover) {
-  .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
+  .row.tap.counted.is-skip:hover { background: color-mix(in srgb, var(--white) 4%, transparent); }
 }
 
 /* ---------- A NUMBERED RUN IS A GRID, NOT A PARAGRAPH OF PILLS § */
@@ -4924,8 +4757,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* THE FOUR CONTROLS. ASKED FOR BY SHAPE AND COLOUR — "white circle for take pic, Red for record, and switch camera, and photos". § */
 .cam-bar {
-  --cam-white: #ffffff;
-  --cam-red:   #ff453a;
+  --cam-white: var(--white);
+  --cam-red:   var(--alert);
   display: flex; align-items: center; justify-content: space-between;
   gap: .4rem; margin: .1rem 0 .45rem;
 }
@@ -5051,14 +4884,14 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* SCRABBLE ITS FOUR PREMIUM COLOURS AND ITS CREAM BOARD ARE DECLARED ON THE COMPONENT, which is the rule the house style states with the chess board's cream and § */
 .scr {
-  --scr-paper: #efe6d2;
-  --scr-line: #cbbd9e;
-  --scr-ink: #2b2417;
-  --scr-dl: #a9cfe4;
-  --scr-tl: #3f88b5;
-  --scr-dw: #e9b3ae;
-  --scr-tw: #cf5a4a;
-  --scr-tile: #e3c98f;
+  --scr-paper: var(--paper-strip);
+  --scr-line: var(--paper-rule);
+  --scr-ink: var(--paper-ink);
+  --scr-dl: var(--hue-8);
+  --scr-tl: var(--hue-5);
+  --scr-dw: var(--hue-11);
+  --scr-tw: var(--bad);
+  --scr-tile: var(--hue-11);
   display: grid; gap: 1px; margin: .5rem auto 0;
   grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr);
   aspect-ratio: 1; width: 100%; max-width: 24rem;
@@ -5244,7 +5077,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .meas-turn-i { fill: none; stroke: var(--gold); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 /* EDITING LIKE iOS (385): the loupe over a held finger, and a selection's two ends as handles to drag */
 .kp-loupe { position: fixed; z-index: 60; width: 132px; height: 56px; border-radius: 28px; overflow: hidden;
-            background: var(--paper); box-shadow: 0 0 0 1px var(--paper-rule), 0 6px 18px rgba(0, 0, 0, .45); pointer-events: none; }
+            background: var(--paper); box-shadow: 0 0 0 1px var(--paper-rule), 0 6px 18px color-mix(in srgb, var(--black) 45%, transparent); pointer-events: none; }
 .kp-loupe[hidden] { display: none; }
 .kp-loupe-in { position: absolute; inset: 0; }
 .kp-handle { position: absolute; width: 2px; margin-left: -1px; background: var(--paper-ink); z-index: 2; touch-action: none; }
@@ -5258,16 +5091,16 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* ---------- THE PAD § */
 /* ---------- LIGHT KEYS ON THE BLACK PAD, FOR SUNLIGHT § */
 #kp {
-  --kp-face: #f2f2f2;       --kp-ink: #111111;
-  --kp-op-face: #ffe0b8;    --kp-op-ink: #7a4300;
-  --kp-mode-face: #6b6b6b;  --kp-mode-ink: #ffffff;
-  --kp-del-face: var(--bad); --kp-del-ink: #000000;
+  --kp-face: var(--paper);       --kp-ink: var(--raised);
+  --kp-op-face: var(--paper-strip);    --kp-op-ink: var(--paper-ink);
+  --kp-mode-face: var(--paper-faint);  --kp-mode-ink: var(--white);
+  --kp-del-face: var(--bad); --kp-del-ink: var(--black);
   position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
   width: 100%; max-width: var(--app); box-sizing: border-box; z-index: 49;
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
   padding: 8px 16px calc(8px + var(--safe-bottom));
   background: var(--bg); border-top: 1px solid var(--line);
-  box-shadow: 0 -.4rem 1.2rem rgba(0,0,0,.5);
+  box-shadow: 0 -.4rem 1.2rem color-mix(in srgb, var(--black) 50%, transparent);
   touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 #kp[hidden] { display: none; }
@@ -5333,7 +5166,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
   content: attr(data-v); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
   min-width: 44px; padding: 8px 0; box-sizing: border-box; border-radius: var(--r);
   background: var(--kp-face); color: var(--kp-ink); font: 600 1.6rem/1 var(--font); text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .5); pointer-events: none;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--black) 50%, transparent); pointer-events: none;
 }
 
 /* WHAT THE BOX NOW SAYS, FOR A SCREEN READER ONLY (`kpSay_`): in the page, out of sight. */
@@ -5379,7 +5212,7 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 /* BACK TO TOP (463): under every result of a finder, its last row. */
 .find-top { margin-top: .9rem; }
 .mag { position: absolute; z-index: 30; width: 160px; height: 160px; border-radius: 50%; overflow: hidden;
-  pointer-events: none; background: var(--bg); border: 2px solid var(--gold); box-shadow: 0 6px 24px rgb(0 0 0 / .55); }
+  pointer-events: none; background: var(--bg); border: 2px solid var(--gold); box-shadow: 0 6px 24px color-mix(in srgb, var(--black) 55%, transparent); }
 .mag-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: flex; flex-direction: column; justify-content: center; }
 body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 @media (hover: hover) { body.mag-on .page.mag-host { cursor: none; } }
@@ -5453,7 +5286,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* ---------- THE LOUPE (357, `padLoupe_`) § */
 .pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: 50%; overflow: hidden;
   pointer-events: none; z-index: 9999; display: none; contain: strict; background: var(--raised); color: var(--ink);
-  border: 2px solid var(--gold); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+  border: 2px solid var(--gold); box-shadow: 0 6px 18px color-mix(in srgb, var(--black) 45%, transparent); }
 .pad-loupe.on { display: block; }
 .pad-loupe.is-paper { background: var(--paper); color: var(--paper-ink); }
 .pad-loupe.is-paper .qpad-g path { stroke: var(--paper-ink); }
@@ -5673,7 +5506,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .pf-head .pf-sum { flex-basis: 100%; color: var(--ink); font-size: var(--fs-xs); }
 
 /* ---------- THE STAFF HUB (405): terms, pricing with where an hour's money goes, the monthly statement — staff.js ---------- */
-.hub { --pb-tutor: var(--gold); --pb-room: #6f8fb3; --pb-fees: var(--dim); --pb-business: var(--good); }
+.hub { --pb-tutor: var(--gold); --pb-room: var(--dim); --pb-fees: var(--dim); --pb-business: var(--good); }
 .hub-tabs { margin-bottom: .8rem; }
 .hub-body h3 { margin: 0 0 .3rem; }
 .hub-ver, .hub-lead, .hub-note { margin: 0 0 .6rem; font-size: .74rem; }
@@ -5758,7 +5591,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
 .prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
-  color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }
+  color: color-mix(in srgb, var(--white) 72%, transparent); background: color-mix(in srgb, var(--black) 45%, transparent); padding: 0 3px; border-radius: 3px; }
 /* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js § */
 .prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
 .prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--ink); }
@@ -5862,7 +5695,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .daive .msg-text:disabled, .daive .msg-go:disabled { opacity: .5; }
 
 /* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
-.qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
+.qcard { --help-red: var(--alert); --help-wash: color-mix(in srgb, var(--alert) 28%, transparent); --help-ink: var(--white); }
 .qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
 .qhelp-tiles { margin-top: .5rem; align-items: center; }
 /* EVERY QUESTION PAGE'S FOOT ON A LINE OF ITS OWN (owner, 1 Nov: "buttons to all appear in the same place"): Help, the star, Suggest, Back to top, under the page's own tiles. */
@@ -5870,7 +5703,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: 1rem;
              padding: .35rem .7rem; border-radius: var(--r); }
 .qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }
-.help-list { --help-red: #d7261e; border-color: var(--help-red); }
+.help-list { --help-red: var(--alert); border-color: var(--help-red); }
 .help-list .help-line { margin: .2rem 0; }
 .help-list .help-none { margin: .2rem 0; }
 /* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
@@ -5949,7 +5782,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* ---------- THE E-INK SCREEN WIDGET (470, 482): the real 1.54-inch panel, 200x200 1-bit, drawn by the screen's own rules, its pixels kept square. */
 .eink {
-  --eink-white: #fff; --eink-black: #000;
+  --eink-white: var(--white); --eink-black: var(--black);
   padding: .7rem; border-radius: 10px; background: var(--eink-black);
   border: 1px solid var(--line); margin: .4rem auto .6rem; max-width: calc(400px + 1.4rem);
 }
@@ -6051,7 +5884,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms-side { flex: 1 1 0; min-width: 0; margin: 0; }
 .hdb-ms svg { display: block; width: 100%; height: auto; max-height: 40vh; }  /* NO CARD TALLER THAN A PHONE (562): the leaf shrinks to fit */
 .hdb-ms .mfr-leaf { fill: var(--paper); }
-.hdb-ms-papyrus { --papyrus: #a9765a; --papyrus-fibre: #8a5c44; --papyrus-ink: #2a1a14; }
+.hdb-ms-papyrus { --papyrus: var(--faint); --papyrus-fibre: var(--paper-dim); --papyrus-ink: var(--paper-ink); }
 .hdb-ms-papyrus .mfr-leaf { fill: var(--papyrus); }
 .hdb-ms-papyrus .mfr-fibre line { stroke: var(--papyrus-fibre); stroke-width: 1.4; opacity: .55; }
 .hdb-ms-papyrus .mfr-fibre .mfr-up { opacity: .25; }
@@ -6060,7 +5893,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .hdb-ms .mfr-ink .mfr-big { font-size: 17px; }
 .hdb-ms .mfr-ink .mfr-title { fill: var(--ms-red); font-size: 9px; }
 .hdb-ms .mfr-ink .mfr-trace { opacity: .3; }
-.hdb-ms-parchment { --ms-red: #b5532f; }
+.hdb-ms-parchment { --ms-red: var(--alert); }
 .hdb-ms .mfr-band { fill: none; stroke: var(--ms-red); stroke-width: 5; stroke-dasharray: 2 4; }
 .hdb-ms .mfr-spray { fill: none; stroke: var(--ms-red); stroke-width: 2.5; }
 .hdb-ms .mfr-edge { fill: none; stroke: var(--paper-dim); stroke-width: 2; }
@@ -6283,3 +6116,11 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .bk-row.is-blank .bk-k { color: var(--ink); }
 .bk-dates, .bk-when { font-size: inherit; }
 .bk-row.is-cols :is(.bk-k, .bk-v, .bk-m, .bk-r, .bk-t) { color: var(--gold); }
+
+/* THE APP STOPPED (overworld.js bootFailed): the warning tone, in tokens like everything else. */
+.boot-fail { padding: 1rem; font: 13px/1.5 var(--mono); color: var(--warn); }
+.boot-fail-head { color: var(--bad); font-weight: 700; margin: 0 0 .6rem; }
+.boot-fail-why { margin: 0 0 .6rem; white-space: pre-wrap; }
+.boot-fail-stack, .boot-fail-ver { color: var(--ink); font-size: .7rem; }
+.boot-fail-ver { margin: 0; }
+.build-said.is-warn { color: var(--warn); }

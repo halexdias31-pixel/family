@@ -104,7 +104,7 @@ function versionSaid_() {
         const newest = names.map(k => f[k]).sort().pop();
         const stale = names.filter(k => f[k] !== newest);
         return stale.length
-          ? `<p class="build-said" style="color:#c8853c">Not deployed: ${stale
+          ? `<p class="build-said is-warn">Not deployed: ${stale
               .map(k => esc(k) + '.gs (' + esc(f[k]) + ')').join(', ')}. Paste ${stale.length === 1
               ? 'that file' : 'those files'} into Apps Script.</p>`
           : '';
