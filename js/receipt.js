@@ -323,6 +323,7 @@ function drawBooker_() {
 on('book-send', el => {
   const said = $('book-said');
   const L = bookPrice();
+  const SH = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   el.disabled = true;
   if (said) said.textContent = 'Asking…';
 
@@ -403,13 +404,13 @@ on('book-send', el => {
     hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
     requestedTutor: spec.tutor,
     dates: (L && L.sessionDates || []).map(d => fmtDate(d)).join(', '),
-    price: L ? String(L.total || '') : '',
+    price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
        sent — so the sheet's profit column stayed empty on every booking made through the app. */
-    profit: L ? String(Math.round((L.profitTotal || 0) * 100) / 100) : '',
+    profit: SH ? String(SH.admin) : '',
     /* AND WHAT THE TUTOR EARNS, from the same ledger — the backend wrote `tutor_pay` blank on every
        job because nothing sent it, so a tutor's receipt had no figure to show them. */
-    tutorPay: L && isFinite(Number(L.tutorPay)) ? String(Math.round(L.tutorPay * 100) / 100) : '',
+    tutorPay: SH ? String(SH.tutor) : '',
     /* THE MONEY BLOCK'S FIGURES, AND WHAT KIND OF SESSION THEY PRICED (docs/history/353). § */
     ...bookMoneySend_(L),
     /* THE PRINTED LINES, sent with the request so the backend can keep the receipt AS DRAWN. § */
@@ -500,7 +501,7 @@ on('job-answer', el => {
   if (!yes && !sure_(el, 'Turn it down?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
-        name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name,
+        name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name, asAdmin: '1',
         move: yes ? 'Accept' : 'Decline',
         requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
     .then(d => {
@@ -512,6 +513,22 @@ on('job-answer', el => {
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });
 });
+
+/* A TUTOR APPLYING TO A NO-PREFERENCE BOOKING, and the family choosing one: both are a `move`. */
+function jobMove_(el, body, said) {
+  el.disabled = true;
+  api(Object.assign({ action: 'move', jobId: el.dataset.id, name: USER.name, personId: (USER && USER.personId) || '',
+                      requestId: body.move + '-' + el.dataset.id + '-' + Date.now() }, body))
+    .then(d => {
+      el.disabled = false;
+      if (d && d.error) { toast(d.error); return; }
+      toast(said);
+      load();
+    })
+    .catch(err => { el.disabled = false; toast(why_(err)); });
+}
+on('job-apply', el => jobMove_(el, { role: 'tutor', move: 'Request' }, 'Applied — the family picks'));
+on('job-choose', el => jobMove_(el, { role: 'client', move: 'Accept', counterpart: el.dataset.tutor }, 'Chosen'));
 
 /* ---------- A TUTOR ANSWERING A REQUEST (488) — Accept at once; Decline opens one line for why, in place. */
 on('job-request-answer', el => {

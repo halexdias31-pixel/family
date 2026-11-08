@@ -405,6 +405,15 @@ function bookMoney_(m) {
   };
 }
 
+/* THE THREE FIGURES A BOOKING ROW KEEPS, per family and after the discount, so client pays = tutor + admin + room and fees to the penny. */
+function bookShares_(L) {
+  const e = L && L.earn;
+  if (!e || !(Number(L.total) > 0)) return null;
+  const n = Math.max(1, Number(L.splitShares) || 1), p2 = x => Math.round((Number(x) || 0) / n * 100) / 100;
+  const pays = p2(e.charged), tutor = p2(e.tutorPayout), fees = p2(e.venue + e.cardFees);
+  return { pays, tutor, fees, admin: Math.round((pays - tutor - fees) * 100) / 100 };
+}
+
 /* The config readers priceFrom's helpers share: a constant by any of its names, and a surcharge lookup. */
 function priceKnobs_() {
   const m = DATA.multipliers || {};

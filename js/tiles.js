@@ -473,17 +473,32 @@ function jobTiles_(x) {
                 act: 'job-request-answer', data: { id: id, yes: '' } })
     : '';
   /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
-  if (!mine) return answer || (childView_() ? '' : joinTile_(j, id));
+  if (!mine) return answer + jobApplyTile_(j, id) + (answer || childView_() ? '' : joinTile_(j, id));
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
-  return `
+  return jobChooseTiles_(j, id) + `
     ${owed && !childView_() ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
                      note: typeof money === 'function' ? money(j.price || 0) : '',
                      act: 'job-pay', data: { id: id } }) : ''}
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
   `;
+}
+
+/* NO PREFERENCE (decision): tutors apply, the client picks. Apply is for an approved tutor not yet on it, while nobody is confirmed. */
+const jobOpenToTutors_ = j => !!(j && j.stealable) && !(j.tutorSlots || []).some(sl => /^confirmed$/i.test(String(sl.status || '')));
+function jobApplyTile_(j, id) {
+  if (!USER || !jobOpenToTutors_(j) || !(typeof isTutorRole === 'function' && isTutorRole())) return '';
+  if ((j.tutorSlots || []).some(sl => norm(sl.name) === norm(USER.name))) return '';
+  return tile_({ icon: 'join', label: 'Apply to teach', tone: 'buy', note: 'the family picks', act: 'job-apply', data: { id: id } });
+}
+/* THE CLIENT'S PICK: one tile per tutor who applied. */
+function jobChooseTiles_(j, id) {
+  if (!jobOpenToTutors_(j) || childView_()) return '';
+  return (j.tutorSlots || []).filter(sl => sl && sl.name && /^applied$/i.test(String(sl.status || '')))
+    .map(sl => tile_({ icon: 'tick', label: 'Choose ' + sl.name, tone: 'buy', note: 'they teach it',
+                       act: 'job-choose', data: { id: id, tutor: String(sl.name) } })).join('');
 }
 
 /* WHICH TUTOR A REQUEST IS WAITING ON (488): a named tutor not yet Confirmed on a job not open to others. */

@@ -148,6 +148,8 @@ function getQuestions_(payload) {
 /* The jobs into classes, under the keys the site asks for. */
 function getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payload) {
   // --- jobs ---------------------------------------------------------------------------------
+  const meRow = meAskedName ? findPerson(meAskedName) : null;
+  const viewerTutor = !!meRow && (hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)));
   jobsTab.forEach(j => {
     const jobId = S(j.job_id) || String(j._row);
     const cs = clientsIn(jobId), ts = tutorsIn(jobId);
@@ -169,7 +171,9 @@ function getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payl
       || (!!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName)));
     const openToOthers = TRUE_(j.open_to_others);
     const seatsGoing = Math.max(0, maxKids - cs.length);
-    if (!iAmIn && !(openToOthers && seatsGoing > 0)) return;
+    /* NO PREFERENCE IS OPEN TO EVERY APPROVED TUTOR until one is chosen: tutors apply, the client picks. */
+    const canApply = viewerTutor && TRUE_(j.stealable) && !confirmedTutor && !ts.some(t2 => key(t2.name) === key(meAskedName));
+    if (!iAmIn && !canApply && !(openToOthers && seatsGoing > 0)) return;
 
     /* ---------- WHO MAY SEE WHICH FIGURE, DECIDED HERE AND NOWHERE ELSE § */
     const iTeach = !!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName));
@@ -192,17 +196,22 @@ function getJobs_(meAskedName, viewerIsAdmin, vis, cfg, venuesTab, jobsTab, payl
       /* WHEN THE PEOPLE ON THE LIST CAN COME, gathered and counted — see `waitlistWhen`. § */
       whenCould: norm(j.kind) === 'waitlist' ? waitlistWhen(jobId) : null,
       canAsk: !iAmIn && openToOthers && seatsGoing > 0,
+      canApply: canApply,
       status: jobStatusOf(jobId),
       subject: S(j.subject), level: S(j.level), service: S(j.service),
       title: (S(j.level) + ' ' + S(j.subject)).trim(),
       subtitle: (S(j.weekday) || 'TBD') + ' @ ' + (fmtTime(j.start_time) || 'TBD'),
       day: S(j.weekday), time: fmtTime(j.start_time),
+      /* EVERY BOOKED HOUR, so the saved card's week shows the ticks the client chose (434). */
+      slotCodes: typeof jobCodes_ === 'function' ? jobCodes_(j).join(',') : '',
       location: S(j.venue) || 'Online',
       room: S(j.room),
       /* WHAT A SEAT COSTS. A class row carried no price at all — so the card read `j.price`, found nothing, and printed "Your seat £0.00" on a list that is priced § */
       price: tutorOnly ? '' : N(j.price_total),
       tutorPay: (viewerIsAdmin || iTeach) && S(j.tutor_pay) !== '' ? N(j.tutor_pay) : '',
       adminKeeps: viewerIsAdmin && S(j.admin_profit) !== '' ? N(j.admin_profit) : '',
+      /* THE ROOM AND CARD FEES, so the admin's card adds up: client pays = tutor + this + admin. */
+      feesKept: viewerIsAdmin ? Math.round((N(j.venue_cost) + N(j.card_fees)) * 100) / 100 : '',
       /* AND WHICH TERM, so the card can say when. `term_name` is the column; `term` is what I
          called it and it does not exist. */
       term: S(j.term_name),
