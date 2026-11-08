@@ -412,7 +412,9 @@ const BOOK_STEPS = [
   /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
      what makes the seat cost what it costs. */
   /* ---------- WHOSE BOOKING IT IS § */
-  { id: 'client', label: 'Who is this for?', short: 'For',
+  /* `set` IS WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js calls it after the answer is kept): one place per step. */
+  /* ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
+  { id: 'client', label: 'Who is this for?', short: 'For', set: () => bookKidsFor_(),
     /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
     fallback: () => (USER && USER.name) || '',
     options: () => {
@@ -431,14 +433,16 @@ const BOOK_STEPS = [
       ? 'a session needs somebody in it — this opens a waiting list' : '',
   },
 
-  { id: 'how', label: 'How would you like to book?', short: 'Kind',
+  /* SWITCHING THE KIND CLEARS THE TUTOR only the other kind could have given, and leaving the waiting list unchooses its class. */
+  { id: 'how', label: 'How would you like to book?', short: 'Kind', set: () => { BOOKING.tutor = ''; if (!isWaiting_()) BOOKING.joining = ''; },
     /* BOTH ARE "START", because both are things you set going — the difference is whether it runs now or waits for company. § */
     /* THE TWO KINDS, NAMED. § */
     options: () => ['Instant class', 'Waiting list class'],
   },
 
   /* ---------- JOINING ONE, OR STARTING ONE § */
-  { id: 'joining', label: 'Something already going, or a new one?', short: 'Class',
+  /* CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (`joiningSet_`). */
+  { id: 'joining', label: 'Something already going, or a new one?', short: 'Class', set: () => joiningSet_(),
     /* THE ONES OF THE KIND BEING ASKED FOR. § */
     options: () => {
       if (!BOOKING.how) return [];
@@ -521,7 +525,8 @@ const BOOK_STEPS = [
       return '';
     } },
 
-  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring',
+  /* AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS: an earlier `No` must not stand under a row that cannot be answered. */
+  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring', set: () => { if (atClientHome_(BOOKING.loc)) BOOKING.hosting = ''; },
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
     /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
        answer until its last word — see the note at the foot of `stepSelect_`. */
@@ -595,7 +600,9 @@ const BOOK_STEPS = [
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
 
   /* ---------- WHOSE CHILDREN ARE THESE? § */
+  /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
   { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true,
+    set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
     /* EVERY CHILD IS OFFERED. § */
     /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
     options: () => {

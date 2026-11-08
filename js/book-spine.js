@@ -87,13 +87,6 @@ const SPINE = (() => {
   return out.concat(tail);
 })();
 
-/* THE RECEIPT'S OLD NAMES FOR SPINE ROWS. Kept as a translation rather than renamed at the twenty
-   call sites, so a `push` anywhere in this file still lands on the right line. */
-/* `Total: ''` DROPS THE ROW. § */
-/* `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE. § */
-/* `Students` → `Extra seats`, WHICH MOVED WITH THE STEP'S OWN `short`. § */
-const SPINE_ALIAS = { Students: 'Extra seats', Host: 'Space', Total: '',
-                      'Extra subjects': 'Extra subj.' };
 
 /* One row name to the one document that can fill it, read off the two lists that declare rows so there is no third one to keep in step. § */
 /* WHICH DOCUMENTS A FLAG NAMES, READ THE SAME WAY BY BOTH READERS. § */
@@ -123,11 +116,8 @@ function spineRows_(rows, opts) {
   const say = {};
   const extra = [];
   rows.forEach(r => {
-    const k = SPINE_ALIAS[r.k] !== undefined ? SPINE_ALIAS[r.k] : r.k;
-    /* AN ALIAS TO NOTHING IS A ROW THAT SHOULD NOT BE DRAWN, not a row with no home — see `Total`
-       above. It was falling through to `extra` and printing at the foot anyway, which is the
-       opposite of what the alias says. */
-    if (SPINE_ALIAS[r.k] === '') return;
+    /* EVERY ROW IS PUSHED UNDER ITS SPINE NAME (a price row's `row`, the step's `short`): no translation table (check-spine). */
+    const k = r.k;
     if (!k) { extra.push(r); return; }
     if (SPINE.indexOf(k) === -1) { extra.push(r); return; }
     if (!say[k]) say[k] = Object.assign({}, r, { k: k });
@@ -191,8 +181,7 @@ function bookBreakdown(L, foot) {
     /* A ROW'S OWN FIGURE STAYS when its priced line has none: the week's `× 4` was wiped by its day lines' blank (525). */
     r.mul = S_(p.mul) ? p.mul : (r.mul || ''); r.rate = p.rate; r.total = S_(p.total) ? p.total : (r.total || '');
     p.used = true;
-    const k = SPINE_ALIAS[p.k] !== undefined ? SPINE_ALIAS[p.k] : p.k;
-    if (k) merged[k] = true;
+    if (p.k) merged[p.k] = true;
   });
 
   /* WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for. § */
@@ -448,10 +437,10 @@ function jobRows(j) {
   push('Level', j.level || '');
   /* ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT § */
   /* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED § */
-  push('Students', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
+  push('Extra seats', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
   push('Room', j.room || 'set by us');
-  push('Host', atClientHome_(j.venue || j.location || '') ? 'Yes'
+  push('Space', atClientHome_(j.venue || j.location || '') ? 'Yes'
     : TRUEish_(j.clientHosts) ? 'Yes \u2014 no room hire' : 'No \u2014 we book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));
