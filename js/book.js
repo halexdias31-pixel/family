@@ -1794,8 +1794,8 @@ function spineHead_(r) {
   if (!r || !r.cols || !(r.rows || []).length) return '';
   return `<div class="bk-row is-cols">
     <span class="bk-n"></span>
-    <span class="bk-k">Q</span>
-    <span class="bk-v">A</span>
+    <span class="bk-k"></span>
+    <span class="bk-v"></span>
     <span class="bk-m">×</span>
     <span class="bk-r">+/h</span>
     <span class="bk-t">=</span>
