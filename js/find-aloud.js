@@ -568,6 +568,7 @@ function findMineItems_() {
        Everything on it is already on this device because it is yours — see the note on the `me`
        kind above for why nobody else joins it. */
     /* ---------- WHAT YOU ARE IN, WHAT YOU ARE WAITING FOR, AND WHAT IS DONE § */
+    ...(USER ? [{ kind: 'bookform', name: 'Booking form', key: 'bookform', sub: '', image: '' }] : []),
     ...(typeof myJobs_ === 'function' ? myJobs_() : []).map(j => ({
       /* ONE KIND FOR ALL OF THEM — see the note on `receipt` above. `jobIsPast_` and `isWaitJob_`
          still decide how a card DRAWS and how the widgets split their lists; they no longer decide
@@ -578,6 +579,8 @@ function findMineItems_() {
       sub: [j.tutor, j.venue, j.weekday].filter(Boolean).join(' · '),
       cost: priced_(j.price), subject: j.subject || '', row: j,
       bandValue: j.level || '',
+      /* A FINISHED BOOKING ANSWERS "Previous" under Booking (owner, 8 Nov), the rest stay Receipts. */
+      kindLabel: (typeof jobIsPast_ === 'function' && jobIsPast_(j)) ? 'Previous' : undefined,
     })),
     ...(typeof levelRows === 'function' ? levelRows() : []).map(x => ({
       kind: 'level', name: x.name, key: 'lvl:' + x.name,

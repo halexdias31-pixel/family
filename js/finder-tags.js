@@ -104,7 +104,7 @@ const FINDER_TAGS = {
   "kindLabel=Library&subject=Spanish": ["level",[["A-Level"],["GCSE"]]],
   "kindLabel=Library&subject=Statistics": ["topic",[["Averages from a Table"],["Averages from Grouped Data"],["Bar Charts & Pictograms"],["Basic Probability"],["Box Plots & Quartiles"],["Comparing Distributions"],["Conditional Probability"],["Cumulative Frequency"],["Frequency Polygons"],["Histograms"],["Line Graphs & Time Series"],["Listing Outcomes & Sample Space"],["Mean"],["Median"],["Mode"],["Percentage Increase & Decrease"],["Pie Charts"],["Probability"],["Range"],["Relative Frequency & Expectation"],["Sampling"],["Scatter Graphs & Correlation"],["Stem & Leaf Diagrams"],["Tree Diagrams"],["Venn Diagrams & Set Notation"]]],
   "kindLabel=Posts": ["postState",[["Approved"],["Waiting for approval"]]],
-  "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"]]],
+  "kindLabel=Booking": ["kindOwn",[["Tutors"],["Venues"],["Levels"],["Booking form"]]],
   "kindLabel=Shop": ["shopKind",[["Bundle"],["Consumable"],["Equipment"],["Game"],["Made to order"],["Stationery"]]],
   "kindLabel=Shop&shopKind=Consumable": ["shopFor",[["Admins"],["Student"]]],
   "kindLabel=Shop&shopKind=Consumable&shopFor=Student": ["shopHow",[["Buy"],["Earn with ticks"]]],

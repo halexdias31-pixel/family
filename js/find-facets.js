@@ -253,7 +253,7 @@ const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' 
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
   /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
-  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
+  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', bookform: 'Booking', shop: 'Shop',
   friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', reel: 'Videos', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */

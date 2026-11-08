@@ -116,6 +116,8 @@ const KINDS = {
   /* ---------- THE WHOLE RECEIPT, NOT A STUB THAT OPENS ONE § */
   /* ---------- ONE ANSWER, NOT THREE § */
   receipt:  { group: 'Booking', label: 'Receipts',  card: x => jobPage_(x.row) },
+  /* THE FORM AS A TAG OF ITS OWN (owner, 8 Nov): "the booking form should be a section which can be found in the menu tags". */
+  bookform: { group: 'Booking', label: 'Booking form', card: () => bookFormCard_() },
 
   /* `coupon` WAS A KIND HERE — the classes with seats going. § */
 
