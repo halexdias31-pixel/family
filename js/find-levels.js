@@ -600,7 +600,7 @@ function jobPage_(j) {
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
   const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
   const forms = (roomOk ? jobRoomForm_(j) : '')
-    + (admin && typeof jobPaidForm_ === 'function' ? jobPaidForm_(j, stage, yes && !pays) : '');
+    + (admin && typeof jobPaidForm_ === 'function' ? jobPaidForm_(j, stage, yes) : '');
   const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '') + forms
     + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';

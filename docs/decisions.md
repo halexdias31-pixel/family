@@ -155,3 +155,4 @@ become an owner question showing both; never pick one.
 - 8 Nov: tag pills universally bigger for easier tapping (--tp-fs .78rem, --tp-h 1.55rem) (owner).
 - 8 Nov: a new build never reloads a page on screen; it waits until the page is put away (owner: site 'unloads' mid-lesson). No merges to main during lessons.
 - 8 Nov: a question part's tiles are ONE wrapping .tile-row under its answer box — tools, Check, Mark my working (once a photo is in), Show the answer, then share/star/message/top/help; "Marked by…", the working's wait and the verdict sit below it. check-answerable 'own-card' fails a part with more than one row or a tile outside it (owner).
+- 8 Nov: an admin always gets the Mark paid form on an accepted booking (cash), even on a booking where they are also the client and see the Stripe cart tile (owner could not mark paid).
