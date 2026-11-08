@@ -335,7 +335,8 @@ function studentSetPages_() {
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
     /* SIGN IN AND SIGNED IN ARE ONE UNIT, `acct:signed-in` (770): the owner moved it, signed out, and it jumped back — one saved place. */
     const signIn = (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
-    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(lockedPages_('account'));
+    const reg = typeof registerCard_ === 'function' ? [registerCard_()] : [];
+    return (typeof cardMark_ === 'function' ? cardMark_('acct:signed-in', signIn) : signIn).concat(reg, lockedPages_('account'));
   }
   const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */

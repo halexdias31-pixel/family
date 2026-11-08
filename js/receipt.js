@@ -183,12 +183,12 @@ function rcPng_(rc) {
 }
 
 /* ---------- WHERE THE PICTURE GOES § */
-let RC_SHOT = null;   /* { file, url } — the last picture made, for the sheet's own Share button */
+let RC_SHOT = null;   /* { file, url } — the last picture made, for the Share button under its receipt */
 
-function rcSave_(blob, name) {
+function rcSave_(blob, name, rc) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  if (!('download' in a)) return rcOffer_(blob, name);
+  if (!('download' in a)) return rcOffer_(blob, name, rc);
   a.href = url;
   a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
@@ -198,19 +198,22 @@ function rcSave_(blob, name) {
   toast('Saved a picture of this booking');
 }
 
-function rcOffer_(blob, name) {
+function rcOffer_(blob, name, rc) {
   if (RC_SHOT && RC_SHOT.url) URL.revokeObjectURL(RC_SHOT.url);
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : blob;
   RC_SHOT = { file, url: URL.createObjectURL(blob), name };
   const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
-  /* A DIALOGUE, SO ITS ACTIONS ARE BUTTONS — CLAUDE.md's rule, and the pay sheet is the precedent. */
-  openSheet('Share this booking', `
+  /* NO SHEET (owner, 7 Nov): the picture lands under its own receipt, outside the paper so the next picture does not hold it. */
+  const at = rc || document.querySelector('.screen.on .rc') || document.querySelector('.rc');
+  if (!at) { toast('There is no booking on screen to share'); return; }
+  document.querySelectorAll('.rc-shot-box').forEach(x => x.remove());
+  at.insertAdjacentHTML('afterend', `<div class="rc-shot-box">
     <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture" decoding="async">
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
-      ${can ? '' + tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) + '' : ''}
+      ${can ? tile_({ form: true, label: 'Share', act: 'rc-shot-share', cls: 'primary' }) : ''}
       <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
-    </div>`);
+    </div></div>`);
 }
 
 on('rc-shot-share', () => {
@@ -219,14 +222,14 @@ on('rc-shot-share', () => {
     .catch(e => { if (!e || e.name !== 'AbortError') toast('Could not share it — press and hold the picture to save it'); });
 });
 
-function rcHand_(blob, name) {
+function rcHand_(blob, name, rc) {
   const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
   const can = !!(file && navigator.share && navigator.canShare
                  && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
-  if (!can) return rcSave_(blob, name);
+  if (!can) return rcSave_(blob, name, rc);
   return navigator.share({ files: [file], title: 'Booking' }).catch(e => {
     if (e && e.name === 'AbortError') return;
-    rcOffer_(blob, name);
+    rcOffer_(blob, name, rc);
   });
 }
 
@@ -240,7 +243,7 @@ on('book-share', el => {
      second gets pressed again. */
   toast('Making a picture of this booking…');
   rcPng_(rc)
-    .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png'))
+    .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png', rc))
     .catch(e => toast('Could not make the picture: ' + why_(e)));
 });
 
@@ -557,27 +560,12 @@ on('job-leave', el => {
 });
 
 /* MARKING IT PAID BY HAND. § */
+/* NO SHEET (owner, 7 Nov): the how-was-it-paid box is on an accepted receipt from the start (`jobPaidForm_`, tiles.js). */
 on('job-paid', el => {
-  /* ---------- ASKED IN A SHEET, NOT IN A prompt() § */
-  askHow_(el);
-});
-
-/* Kept apart so the handler above reads as one line and this reads as one screen. */
-function askHow_(el) {
-  openSheet('Mark it paid', `
-    <p class="sub">How was it paid? This goes in the event log and is the whole audit trail for
-      the payment.</p>
-    <input id="paid-how" class="search" value="cash" autocomplete="off">
-    <div class="btn-row">
-      ${tile_({ form: true, label: 'Mark paid', act: 'job-paid-go', data: { id: el.dataset.id }, cls: 'primary' })}
-    </div>
-    <p class="faint" id="paid-said"></p>
-  `);
-}
-
-on('job-paid-go', el => {
-  const how = (($('paid-how') || {}).value || '').trim();
-  if (!how) { const s = $('paid-said'); if (s) s.textContent = 'Say how, even roughly.'; return; }
+  const f = el.closest('.paid-form');
+  const how = ((f && (f.querySelector('.paid-how') || {}).value) || '').trim();
+  const said = f && f.querySelector('.paid-said');
+  if (!how) { if (said) said.textContent = 'Say how, even roughly.'; return; }
   el.disabled = true;
   el.textContent = 'Saving…';
   api({ action: 'markPaid', jobId: el.dataset.id,
@@ -587,7 +575,6 @@ on('job-paid-go', el => {
       el.disabled = false;
       if (d && d.error) { toast(d.error); return; }
       toast(d && d.alreadyPaid ? 'Already marked paid' : 'Marked paid');
-      closeSheet();
       load();
     })
     .catch(err => { el.disabled = false; toast(why_(err)); });

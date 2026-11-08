@@ -996,7 +996,7 @@ check('a reload keeps what was typed and not yet sent: the composer, a comment, 
   const one = boot({ before: signedInAs_({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'], token: 'tok-P1', handle: 'pat_par1' }) });
   await wait(300);
   const W = one.w;
-  const fns = ['msgForm_', 'commentsHtml_', 'fieldHtml', 'registerSheet_', 'draftRead_', 'draftKeep_'].filter(n => typeof W[n] !== 'function');
+  const fns = ['msgForm_', 'commentsHtml_', 'fieldHtml', 'registerCard_', 'draftRead_', 'draftKeep_'].filter(n => typeof W[n] !== 'function');
   if (fns.length) return [fns.join(', ') + ' not reachable — nothing was reloaded'];
   const bad = [];
   const draw = (w, html) => { const h = w.document.createElement('div'); w.document.body.appendChild(h); h.innerHTML = html; return h; };
@@ -1057,23 +1057,23 @@ check('a reload keeps what was typed and not yet sent: the composer, a comment, 
   w.__t.USER(Object.assign({}, ANS_BEN));
   const ben = draw(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
   if (ben.value) bad.push('Ben opened the same conversation and the composer held Ada\'s draft: ' + JSON.stringify(ben.value));
-  /* SIGNED OUT: the make-an-account sheet is the device's draft, and comes back across a reload. */
+  /* SIGNED OUT: the make-an-account form is the device's draft, and comes back across a reload. */
   w.__t.USER(null);
   try { w.localStorage.removeItem('familyUser'); } catch (e) {}
-  w.registerSheet_();
+  draw(w, w.registerCard_());
   const rf = w.document.getElementById('reg-first'), rp = w.document.getElementById('reg-pin');
-  if (!rf || !rp) bad.push('the make-an-account sheet did not open, so it was NOT checked');
+  if (!rf || !rp) bad.push('the make-an-account form did not draw, so it was NOT checked');
   else {
     type(w, rf, 'Ivy');
     type(w, rp, PIN);
     w.dispatchEvent(new w.Event('pagehide'));
     const kept3 = keptStore_(w);
-    if (Object.keys(kept3).some(k => holds(kept3[k]))) bad.push('the PIN typed into the make-an-account sheet was written to the device');
+    if (Object.keys(kept3).some(k => holds(kept3[k]))) bad.push('the PIN typed into the make-an-account form was written to the device');
     const three = boot({ before: fromStore_(kept3) });
     await wait(300);
-    three.w.registerSheet_();
+    draw(three.w, three.w.registerCard_());
     const rf3 = three.w.document.getElementById('reg-first');
-    if (!rf3 || rf3.value !== 'Ivy') bad.push('after the reload the make-an-account sheet opened with the first name ' + JSON.stringify(rf3 && rf3.value));
+    if (!rf3 || rf3.value !== 'Ivy') bad.push('after the reload the make-an-account form drew with the first name ' + JSON.stringify(rf3 && rf3.value));
   }
   return bad;
 });

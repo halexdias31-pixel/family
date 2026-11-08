@@ -520,6 +520,16 @@ function joinTile_(j, id) {
 }
 
 /* A tap on a tile row that is not on a row. § */
+/* MARK AS PAID, A FORM ON THE RECEIPT (no sheet, owner 7 Nov). Only once accepted: the backend refuses paying an unagreed booking. */
+function jobPaidForm_(j, stage, accepted) {
+  const id = String((j && (j.id || j.jobId)) || '');
+  if (!id || stage !== 'application' || !accepted) return '';
+  return `<div class="rc-form paid-form">
+    <label class="field"><span>how was it paid? (the audit trail)</span>
+      <input class="paid-how" value="cash" autocomplete="off"></label>
+    <div class="btn-row">${tile_({ form: true, label: 'Mark paid', act: 'job-paid', data: { id: id } })}</div>
+    <p class="faint paid-said" aria-live="polite"></p></div>`;
+}
 /* ---------- AN ADMIN'S ACTIONS ON A JOB, AS TILES § */
 function jobAdminTiles_(j, stage, accepted) {
   const id = String((j && (j.id || j.jobId)) || '');
@@ -530,13 +540,6 @@ function jobAdminTiles_(j, stage, accepted) {
                       act: 'job-answer', data: { id: id, yes: '1' } }));
     rows.push(tile_({ icon: 'close', label: 'Decline', note: 'turns it down',
                       act: 'job-answer', data: { id: id, yes: '' } }));
-  }
-  /* ONLY ONCE IT IS ACCEPTED. Marking an unagreed booking paid puts somebody on a session whose
-     price and day nobody has settled — the backend refuses it, so this does not offer it and the
-     refusal is never something to run into. */
-  if (stage === 'application' && accepted) {
-    rows.push(tile_({ icon: 'cart', label: 'Mark as paid', note: 'cash or transfer',
-                      act: 'job-paid', data: { id: id } }));
   }
   rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody',
                     act: 'job-delete', data: { id: id } }));

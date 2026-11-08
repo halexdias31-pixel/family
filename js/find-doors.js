@@ -157,7 +157,7 @@ function settingPart_(p) {
   return g ? g.pages.join('').replace(/<!--(card|person):[^>]*-->/g, '') : '';
 }
 function settingDoorCard_(x) {
-  if (x.signIn) { if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn(); return typeof signInCard_ === 'function' ? signInCard_() : ''; }
+  if (x.signIn) { if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn(); return (typeof signInCard_ === 'function' ? signInCard_() : '') + (typeof registerCard_ === 'function' ? registerCard_() : ''); }
   if (x.notify) return notifyDoorCard_();
   return (x.parts || [{ col: x.setCol, at: x.setAt, id: x.setId }]).map(settingPart_).join('');
 }

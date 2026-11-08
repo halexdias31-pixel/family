@@ -590,11 +590,13 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (typeof suggestTile_ === 'function' && j && j.id ? suggestTile_('session', String(j.id), 'Booking') : '')
-    + (j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name))) ? tile_({ icon: 'edit', label: 'Set the room', act: 'job-room', data: { id: String(j.id), room: j.room || '' } }) : '')
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes && !pays) : '');
   /* THE REQUEST'S STANDING, one paragraph under the row (488). */
   const said = typeof requestSaid_ === 'function' ? requestSaid_(j) : '';
-  const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '')
+  const roomOk = j && j.id && (admin || (USER && norm(j.tutor || '') === norm(USER.name)));
+  const forms = (roomOk ? jobRoomForm_(j) : '')
+    + (admin && typeof jobPaidForm_ === 'function' ? jobPaidForm_(j, stage, yes && !pays) : '');
+  const foot = (tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '') + forms
     + (said ? '<p class="note rc-request" role="status">' + esc(said) + '</p>' : '');
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
@@ -619,22 +621,23 @@ function bookingPages_(o) {
   return [top + (BOOK_OPEN || !USER ? (form[0] || '') : '')].concat(form.slice(1));
 }
 let BOOK_OPEN = false;
+/* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
+const jobRoomForm_ = j => `<div class="rc-form room-form">
+    <label class="field"><span>the room in the venue — the family sees it</span>
+      <input class="room-name" value="${esc(j.room || '')}" autocomplete="off"></label>
+    <div class="btn-row">${tile_({ form: true, label: 'Save the room', act: 'job-room', data: { id: String(j.id) } })}</div>
+    <p class="faint room-said" aria-live="polite"></p></div>`;
 on('job-room', el => {
-  openSheet('The room', `
-    <p class="sub">Which room in the venue. The family sees it on their booking.</p>
-    <input id="room-name" class="search" value="${esc(el.dataset.room || '')}" autocomplete="off">
-    ${tileRow_(tile_({ form: true, label: 'Save the room', act: 'job-room-go', data: { id: el.dataset.id }, cls: 'primary' }))}
-    <p class="faint" id="room-said"></p>`);
-});
-on('job-room-go', el => {
-  const room = (($('room-name') || {}).value || '').trim();
+  const f = el.closest('.room-form');
+  const room = ((f && (f.querySelector('.room-name') || {}).value) || '').trim();
+  const said = f && f.querySelector('.room-said');
   el.disabled = true;
   api({ action: 'setRoom', jobId: el.dataset.id, room, name: USER.name, personId: USER.personId })
     .then(d => {
-      if (!d || d.error) { const s = $('room-said'); if (s) s.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
+      if (!d || d.error) { if (said) said.textContent = (d && d.error) || 'Not saved'; el.disabled = false; return; }
       const j = (DATA.liveJobs || DATA.jobs || []).find(x => String(x.id) === String(el.dataset.id));
       if (j) j.room = room;
-      closeSheet(); toast('Room saved'); repaint();
+      toast('Room saved'); repaint();
     })
     .catch(() => { el.disabled = false; toast('Not saved'); });
 });

@@ -12,7 +12,7 @@ const split_ = html => String(html).split(/(?=<div class="card|<h2)/).map(x => x
 
 /** Every card on the You screen, in order. */
 function meBlocks() {
-  if (!USER) return split_(signInCard_());
+  if (!USER) return split_(signInCard_() + registerCard_());
   return meRest_();
 }
 
@@ -689,8 +689,9 @@ const REG_NOTE = {
   student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
          + 'can also make your account, on Students.',
 };
-function registerSheet_() {
-  openSheet('Make an account', `
+/* MAKE AN ACCOUNT IS A CARD OF ITS OWN beside Sign in, its form there from the start (no sheet, owner 7 Nov). */
+function registerCard_() {
+  return `<div class="card reg-card"><h3>Make an account</h3><div class="reg-form">
     ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
     <div class="reg-who" id="reg-who" data-who="">
       <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
@@ -721,39 +722,46 @@ function registerSheet_() {
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
       <p class="faint" id="reg-note" style="margin:.6rem 0 0"></p>
-    </div>`);
+    </div></div></div>`;
 }
-on('register', () => registerSheet_());
+/* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */
+on('register', el => {
+  const near = () => (el && el.closest && el.closest('.screen') || document).querySelector('.reg-card') || document.querySelector('.screen.on .reg-card');
+  let f = near();
+  if (!f && typeof go === 'function') { go('account'); f = document.querySelector('#s-account .reg-card'); }
+  if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
 
 /* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
-const regWho_ = () => {
-  const w = (($('reg-who') || {}).dataset || {}).who || '';
+const regIn_ = (el, id) => ((el && el.closest && el.closest('.reg-form')) || document).querySelector('#' + id);
+const regWho_ = el => {
+  const w = ((regIn_(el, 'reg-who') || {}).dataset || {}).who || '';
   return w === 'parent' || w === 'student' ? w : '';
 };
 on('reg-who', el => {
-  const row = $('reg-who');
+  const row = regIn_(el, 'reg-who');
   if (!row || !el) return;
   /* THE SELECT ON A CHANGE; a check may hand one of its options. */
-  const sel = $('reg-who-in'), v = el.tagName === 'OPTION' ? el.value : (el.value || el.dataset.who);
+  const sel = regIn_(el, 'reg-who-in'), v = el.tagName === 'OPTION' ? el.value : (el.value || el.dataset.who);
   if (v !== 'parent' && v !== 'student') return;
   const who = v;
   row.dataset.who = who;
   if (sel) sel.value = who;
-  const rest = $('reg-rest'); if (rest) rest.hidden = false;
-  const tick = $('reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
+  const rest = regIn_(el, 'reg-rest'); if (rest) rest.hidden = false;
+  const tick = regIn_(el, 'reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
   if (tickRow) tickRow.hidden = who !== 'student';
   if (tick && who !== 'student') tick.checked = false;
-  const note = $('reg-note'); if (note) note.textContent = REG_NOTE[who];
+  const note = regIn_(el, 'reg-note'); if (note) note.textContent = REG_NOTE[who];
 });
 
 on('reg-send', el => {
-  const v = id => ((($(id) || {}).value) || '').trim();
+  const v = id => (((regIn_(el, id) || {}).value) || '').trim();
   const first = v('reg-first'), last = v('reg-last'), email = v('reg-email'), pin = v('reg-pin');
-  const who = regWho_();
+  const who = regWho_(el);
   /* A STUDENT'S TICK ONLY. The row is hidden for a parent and unticked when it hides, and this asks
      again rather than trusting that — a parent's address sent as `parent_email` is refused anyway. */
-  const kid = who === 'student' && !!($('reg-noemail') || {}).checked;
-  /* UNREACHABLE FROM THE SHEET — the button is under the question until it is answered — and said anyway, for a button pressed some other way: § */
+  const kid = who === 'student' && !!(regIn_(el, 'reg-noemail') || {}).checked;
+  /* UNREACHABLE FROM THE CARD — the button is under the question until it is answered — and said anyway, for a button pressed some other way: § */
   if (!who) { toast('Say who the account is for first — a parent or a student.'); return; }
   if (!first || !last) { toast('Your first and last name, please.'); return; }
   if (email.indexOf('@') < 0) {
@@ -767,8 +775,8 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
-      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerSheet_') } });
-      closeSheet();
+      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) { oops_(e, 'me:registerCard_') } });
+      const pinBox = regIn_(el, 'reg-pin'); if (pinBox) pinBox.value = '';
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the email — is sign in with it, and they have just typed it once. § */
       const handle = String((d && d.handle) || '');
       const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;

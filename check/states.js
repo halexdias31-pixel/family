@@ -2585,13 +2585,13 @@ const STATES = {
         ACTIONS['register'](tile);
       },
       expect: () => {
-        const sel = document.querySelector('#sheet-body select#reg-who-in');
+        const sel = document.querySelector('#s-account .reg-card select#reg-who-in');
         const who = sel && sel.offsetHeight >= 44 ? sel.querySelectorAll('option[data-who]').length : 0;
         const rest = document.getElementById('reg-rest');
         return who === 2 && rest && rest.hidden ? 2 : 0;
       },
-      wants: 'the register sheet open on its question: one 44px picker of two answers and nothing else yet',
-      leave: () => { closeSheet(); } },
+      wants: 'the register form open on its question: one 44px picker of two answers and nothing else yet',
+      leave: () => { paint('account'); } },
     /* ---------- AND ANSWERED "A PARENT" § */
     { name: 'making an account as a parent',
       only: () => typeof USER !== 'undefined' && !USER,
@@ -2599,20 +2599,20 @@ const STATES = {
         const tile = document.querySelector('#s-account [data-do="register"]');
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
-        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="parent"]');
-        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        const b = document.querySelector('#s-account .reg-card #reg-who-in option[data-who="parent"]');
+        if (!b) throw new Error('the register form does not ask who the account is for');
         ACTIONS['reg-who'](b);
       },
       expect: () => {
         const boxes = ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
           .filter(id => { const el = document.getElementById(id); return el && el.offsetHeight >= 44; }).length;
-        const send = document.querySelector('#sheet-body [data-do="reg-send"]');
+        const send = document.querySelector('#s-account .reg-card [data-do="reg-send"]');
         const tick = document.getElementById('reg-noemail');
         return boxes === 4 && send && send.offsetHeight >= 44
           && tick && tick.closest('.reg-kid').hidden ? 5 : 0;
       },
-      wants: 'the register sheet answered "a parent": four boxes, its button, and no grown-up\'s-email tick',
-      leave: () => { closeSheet(); } },
+      wants: 'the register form answered "a parent": four boxes, its button, and no grown-up\'s-email tick',
+      leave: () => { paint('account'); } },
     /* ---------- AND WITH "I HAVE NO EMAIL" TICKED § */
     { name: 'making an account with no email of your own',
       only: () => typeof USER !== 'undefined' && !USER,
@@ -2621,11 +2621,11 @@ const STATES = {
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
         /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
-        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="student"]');
-        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        const b = document.querySelector('#s-account .reg-card #reg-who-in option[data-who="student"]');
+        if (!b) throw new Error('the register form does not ask who the account is for');
         ACTIONS['reg-who'](b);
         const tick = document.getElementById('reg-noemail');
-        if (!tick) throw new Error('the register sheet has no no-email tick');
+        if (!tick) throw new Error('the register form has no no-email tick');
         tick.checked = true;
       },
       expect: () => {
@@ -2634,8 +2634,8 @@ const STATES = {
         const r = row && row.getBoundingClientRect();
         return tick && tick.checked && r && r.height >= 44 && !!document.getElementById('reg-email') ? 1 : 0;
       },
-      wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
-      leave: () => { closeSheet(); } },
+      wants: 'the register form with the no-email tick ticked, a whole 44px row under the email box',
+      leave: () => { paint('account'); } },
     { name: 'signing in, waiting for the answer',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
@@ -6005,8 +6005,8 @@ const STATES = {
         STALE.booking = 1;
       } },
 
-    /* ---------- THE PICTURE OF IT, IN A SHEET § */
-    { name: 'a picture of the receipt, offered in a sheet',
+    /* ---------- THE PICTURE OF IT, UNDER ITS RECEIPT (no sheet, owner 7 Nov) */
+    { name: 'a picture of the receipt, offered under it',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const c = document.createElement('canvas');
@@ -6018,9 +6018,9 @@ const STATES = {
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         rcOffer_(new Blob([bytes], { type: 'image/png' }), 'family-booking.png');
       },
-      expect: () => !!document.querySelector('#sheet:not(.hidden) img.rc-shot'),
-      wants: 'the receipt as a picture in a sheet, with a way to save it',
-      leave: () => { if (typeof closeSheet === 'function') closeSheet(); } },
+      expect: () => !!document.querySelector('.rc-shot-box img.rc-shot'),
+      wants: 'the receipt as a picture under it, with a way to save it',
+      leave: () => { document.querySelectorAll('.rc-shot-box').forEach(x => x.remove()); } },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY § */

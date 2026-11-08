@@ -423,7 +423,7 @@ check('signed out, Find is the one front door: the search bar and the menu, whos
   const signin = host.querySelector('[data-do="do-signin"]'), join = host.querySelector('[data-do="register"]');
   if (!signin || !join) return bad.concat(['the Settings card has no Sign in and Make an account tiles']);
   A.register(join); await wait(50);
-  const who = [...d.querySelectorAll('#sheet #reg-who-in option')].map(b => b.textContent.trim());
+  const who = [...host.querySelectorAll('.reg-card #reg-who-in option')].map(b => b.textContent.trim());
   if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Make an account did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
   host.remove();
   w.signedIn_(Object.assign({ success: true }, MEMBER_), 'momember');

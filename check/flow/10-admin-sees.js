@@ -871,9 +871,14 @@ check('an admin still has every action on a session after the move to tiles', as
     bad.push('only one half of Accept/Decline is there');
   }
 
-  /* ACCEPTED: paying by hand becomes possible, and answering is done with. */
+  /* ACCEPTED: paying by hand becomes possible — a form on the receipt, not a tile opening a sheet (owner, 7 Nov). */
   const agreed = w.__t.jobAdmin(job, 'application', true);
-  if (!has(agreed, 'job-paid')) bad.push('an accepted booking has no `job-paid`');
+  if (has(agreed, 'job-paid')) bad.push('Mark paid is a tile again — it is the form on the receipt (`jobPaidForm_`)');
+  if (typeof w.__t.jobPaid === 'function') {
+    const paid = w.__t.jobPaid(job, 'application', true);
+    if (!has(paid, 'job-paid') || paid.indexOf('paid-how') === -1) bad.push('an accepted booking has no Mark paid form with its how box');
+    if (w.__t.jobPaid(job, 'application', false)) bad.push('an unaccepted booking offers the Mark paid form');
+  }
   if (!has(agreed, 'job-delete')) bad.push('an accepted booking has no `job-delete`');
 
   /* A RUNNING SESSION: nothing to answer, nothing to mark, still endable. */
