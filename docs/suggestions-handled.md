@@ -37,3 +37,9 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1794015953454-11243 | 8 Nov 2026 | error report: inFinder_ undefined | handled earlier today: already declared, check.js clean |
 | N-1794095130869-88049 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
 | N-1794016059636-38932 | 8 Nov 2026 | next menu after Any what kind | handled earlier today: next menu is the best split |
+| N-1794042387481-57933 | 8 Nov 2026 | projects into library (re-check) | already done: Projects are a kind under Library |
+| N-1794045917606-80291 | 8 Nov 2026 | mechanics first menu (re-check) | already done: Car or car part asked first |
+| N-1794046031810-28828 | 8 Nov 2026 | statistics = GCSE Statistics (re-check) | Library holds only the Edexcel 1ST0 book; no Maths questions under Statistics; 1ST0 papers need importing |
+| N-1794046108103-76754 | 8 Nov 2026 | PE: no History (re-check) | already done: Boxing only |
+| N-1794045566287-50680 | 8 Nov 2026 | manuscript cards minimal (re-check) | captions off the card face, onto its facts page; picture then tags only |
+| N-1794045843240-64505 | 8 Nov 2026 | Writings, primary/secondary (re-check) | already done: Writings, Primary tag on every writing but the one flagged |

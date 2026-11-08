@@ -316,18 +316,23 @@ function msFragSvg_(r, ix) {
         <g clip-path="url(#${id})"><rect class="mfr-leaf" x="${bx}" y="${by}" width="${bw}" height="${bh}"/><g class="mfr-fibre">${fibres}</g>${s.orn || ''}<g class="mfr-ink">${text}</g></g>
         <path class="mfr-edge" d="${d}"/>
       </svg>
-      <figcaption>${esc(s.name + ' · ' + s.what)}</figcaption>
     </figure>`;
   };
   return `<figure class="hdb-ms hdb-ms-${L.stuff}">
     <div class="hdb-ms-sides">${leaf(side, ix | 0)}</div>
-    <figcaption>A drawing after the original, traced from a public-domain photograph (${esc(L.ref)}); the letters are the ones that survive.</figcaption>
   </figure>`;
 }
 /* THE LINES A MANUSCRIPT'S TAGS ALREADY SAY (owner, 7 Nov: facts as tags), left out of the pages after its card. */
 const MS_SAID = ['Repository', 'Date'];
 /* ITS FACTS AS TAGS: when and where it was found, when it is dated to (`Held at` is the repository's own tag). */
 const msFound_ = x => (isManuscript_(x) && histCol_(x, 'provenance')[0]) || '';
+/* A DRAWING'S CAPTIONS ARE ITS PAGES' FIRST LINES (owner, 8 Nov: manuscript cards minimal, picture then tags only). */
+function msDrawnRows_(x) {
+  const L = x && x.row && MS_LOOK[x.row.id];
+  if (!L) return [];
+  const s = L.sides[x.msSideIx | 0] || L.sides[0];
+  return [['Shown', s.name + ' · ' + s.what], ['Drawn from', 'A tracing of a public-domain photograph (' + L.ref + '); the letters are the ones that survive']];
+}
 const msDated_ = x => (isManuscript_(x) && x.row && String(x.row.date_text || '').trim()) || '';
 
 /* REFERENCES (504): the owner's bibliography, word for word and without page numbers, shown only on the cards each one is about. */
@@ -354,7 +359,8 @@ function histRows_(x) {
   const r = x.row || {};
   return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim())
-    .filter(l => !(isManuscript_(x) && MS_SAID.indexOf(l[0]) >= 0));
+    .filter(l => !(isManuscript_(x) && MS_SAID.indexOf(l[0]) >= 0))
+    .concat(isManuscript_(x) ? msDrawnRows_(x) : []);
 }
 function histPages_(x) {
   const rest = histRows_(x), out = [];
