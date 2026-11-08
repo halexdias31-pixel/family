@@ -26,3 +26,14 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1794045917606-80291 | 7 Nov 2026 | mechanics first menu car or part | first menu is Car or car part |
 | N-1794046031810-28828 | 7 Nov 2026 | statistics = GCSE Statistics | already only the GCSE Statistics book; board and spec added |
 | N-1794046108103-76754 | 7 Nov 2026 | PE: no History, boxing only | History shelf gone; Boxing only |
+| N-1794169416015-94452 | 8 Nov 2026 | a question card's pill not needed | rule: a card's tags drop any value every card in view shares (and, as before, any chosen chip); Q10a in 2024 Paper 3 now says Q10 · a · 1 mark |
+| N-1794042339581-848 | 8 Nov 2026 | draw tool always on; parts show one tag | verified on touch at 390/1024px: a swipe over the figure scrolls, draws only once the pen tile is on; part cards carry the same tag line as the first part |
+| N-1794100303139-40629 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794100417527-11326 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794111077770-89652 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794136688172-77588 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794141580948-55071 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794015625834-43331 | 8 Nov 2026 | front menu: twelve pills | handled earlier today (see 7 Nov line) |
+| N-1794015953454-11243 | 8 Nov 2026 | error report: inFinder_ undefined | handled earlier today: already declared, check.js clean |
+| N-1794095130869-88049 | 8 Nov 2026 | (handled earlier today) | see the 8 Nov lines in docs/decisions.md |
+| N-1794016059636-38932 | 8 Nov 2026 | next menu after Any what kind | handled earlier today: next menu is the best split |

@@ -198,6 +198,20 @@ function tagMadeOf_(text, said) {
   const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
   return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
 }
+/* A TAG EVERY CARD IN VIEW SHARES SAYS NOTHING (owner, 8 Nov: `Edexcel` `June` `KS4` on every card of one paper): held per list. */
+const TAG_SHARED = new WeakMap();
+function tagShared_(x, facet, raw) {
+  let list = null;
+  try { list = FIND_MEMO && FIND_MEMO.items; } catch (e) { list = null; }
+  if (!Array.isArray(list) || list.length < 2) return false;
+  /* A PART DRAWN UNDER ITS WHOLE QUESTION IS IN VIEW TOO, so it trims as its parent does. */
+  if (list.indexOf(x) < 0) { const q = qId_(x); if (!q || !list.some(i => qId_(i) === q)) return false; }
+  let memo = TAG_SHARED.get(list);
+  if (!memo) TAG_SHARED.set(list, memo = new Map());
+  const k = facet.field + '\u0000' + raw;
+  if (!memo.has(k)) memo.set(k, list.every(i => { try { return (facetTags_(facet, i) || []).some(v => String(v == null ? '' : v).trim() === raw); } catch (e) { return false; } }));
+  return memo.get(k);
+}
 function tagRow_(x, page) {
   const out = [], words = new Map(), ids = new Map(), said = [];
   if (!x) return '';
@@ -212,7 +226,7 @@ function tagRow_(x, page) {
     try { vals = facetTags_(facet, x, page); } catch (e) { vals = []; }
     vals.forEach(v => {
       const raw = String(v == null ? '' : v).trim();
-      if (!raw || picked.has(facet.field + '\u0000' + raw)) return;
+      if (!raw || picked.has(facet.field + '\u0000' + raw) || tagShared_(x, facet, raw)) return;
       let text = raw;
       try { text = String((facet.tagSay ? facet.tagSay(raw) : answerSay_(facet, raw) || raw) || '').trim(); } catch (e) { text = raw; }
       if (!text) return;
