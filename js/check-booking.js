@@ -472,7 +472,7 @@ try {
   if (!coreJs) throw new Error('js/core.js could not be read');
   const m = {};
   new Function('module', 'let DATA = {}; let USER = null; const $ = () => null;' + coreJs
-    + ';module.priceFrom = priceFrom; module.bookShares_ = bookShares_; module.setData = d => { DATA = d; };')(m);
+    + ';module.priceFrom = priceFrom; module.bookShares_ = bookShares_; module.seatLimits = seatLimits; module.setData = d => { DATA = d; };')(m);
   const b = { exports: {} };
   new Function('module', PRELUDE
     + 'const TRUE_ = v => /^(true|yes|1|✓)$/i.test(S(v)); const ON_ = v => S(v) === \'\' || TRUE_(v);'
@@ -513,12 +513,14 @@ if (money_) {
       want('£10 off, business absorbs', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 90, 2);
       want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
         discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
-      want('£20 off one child, business absorbs: a loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 60, -20);
+      /* NO LOSS (owner, 8 Nov): @family.'s share on one child is nothing, so the £20 is capped at nothing. */
+      want('£20 off one child, business absorbs: capped, no loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 60, 60, 0);
       /* "IF I PUT 30 IN THAT FIELD THEN IT'S JUST 30 PERCENT OFF" (owner, 29 Oct): off what the client pays, the room included. */
       const full = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere' });
-      const off30 = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere', discount: { type: '%', value: 30 } });
-      if (!(full.earn.venue > 0)) bad.push('the 30% example has no room in it, so it proves nothing about the room: ' + JSON.stringify(full.earn));
-      if (r2(off30.total) !== r2(full.total * 0.7)) bad.push('30% off ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + r2(full.total * 0.7));
+      /* 5%, under the cap where @family.'s share runs out (owner, 8 Nov), so the room-included base is what is tested. */
+      const off30 = quote({ n: 2, hours: 2, hoursPerWeek: 2, loc: 'Somewhere', discount: { type: '%', value: 5 } });
+      if (!(full.earn.venue > 0)) bad.push('the 5% example has no room in it, so it proves nothing about the room: ' + JSON.stringify(full.earn));
+      if (r2(off30.total) !== r2(full.total * 0.95)) bad.push('5% off ' + r2(full.total) + ' came to ' + r2(off30.total) + ', wanted ' + r2(full.total * 0.95));
       const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
       if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
         bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');
@@ -534,6 +536,8 @@ if (money_) {
         ['1 child', {}], ['4 seats', { n: 4 }], ['4 seats, 33% off', { n: 4, discount: { type: '%', value: 33, by: 'Business' } }],
         ['2 seats, room, 30% off', { n: 2, loc: 'Somewhere', discount: { type: '%', value: 30 } }],
         ['split with one other family, 10% off', { n: 3, splitOthers: 1, discount: { type: '%', value: 10 } }],
+        ['4 seats, 55% off: capped at what @family. keeps', { n: 4, discount: { type: '%', value: 55, by: 'Business' } }],
+        ['4 seats, 90% off shared with tutor', { n: 4, discount: { type: '%', value: 90, by: 'Shared with tutor' } }],
       ];
       cases.forEach(([what, spec]) => {
         const L = quote(Object.assign({ n: 1, hours: 2, hoursPerWeek: 2 }, spec), { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
@@ -541,6 +545,31 @@ if (money_) {
         if (!sh) { bad.push(what + ': no figures'); return; }
         if (r2(sh.tutor + sh.admin + sh.fees) !== sh.pays) bad.push(what + ': ' + JSON.stringify(sh) + ' does not add up');
         if (sh.pays !== r2(L.total)) bad.push(what + ': client pays ' + sh.pays + ' but COST reads ' + r2(L.total));
+        /* CLIENT PAYS = TOTAL − DISCOUNT, AND ADMIN NEVER BELOW NOTHING (owner, 8 Nov). */
+        if (r2(L.earn.gross - L.earn.discount) !== r2(L.earn.charged)) bad.push(what + ': total ' + r2(L.earn.gross) + ' − discount ' + r2(L.earn.discount) + ' is not ' + r2(L.earn.charged));
+        /* A DISCOUNT NEVER TAKES ADMIN BELOW NOTHING; card fees on a margin-free booking can, and that is not the discount's doing. */
+        const plain = quote(Object.assign({ n: 1, hours: 2, hoursPerWeek: 2 }, spec, { discount: null }), { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
+        if (L.earn.discount > 0 && L.earn.net < Math.min(0, plain.earn.net)) bad.push(what + ': the discount took admin to ' + r2(L.earn.net));
+        if (sh.tutor > sh.pays) bad.push(what + ': tutor earns ' + sh.tutor + ', more than the client pays ' + sh.pays);
+      });
+      return bad;
+    },
+  });
+  RULES.push({
+    what: 'an at-home booking takes every seat the tutor holds and is priced for all; the rows multiply out to the penny (owner, 8 Nov)',
+    check: () => {
+      const bad = [];
+      [[4, 4], [2, 2], [undefined, 1]].forEach(([cap, want]) => {
+        const data = MONEY_DATA();
+        data.tutors = [{ title: 'Tutor', rate: 12, maxStudents: cap }];
+        money_.setData(data);
+        const lim = money_.seatLimits(null, data.tutors[0], 'At home');
+        if (lim.max !== want || lim.min !== want) bad.push('a tutor holding ' + cap + ' at home allows ' + lim.min + '–' + lim.max + ' seats, wanted exactly ' + want);
+        const L = money_.priceFrom({ subjects: [], tutor: 'Tutor', n: lim.max, hours: 2, hoursPerWeek: 4, slots: 12, day: 'Wednesday, Sunday', hosting: true });
+        const perHour = r2(12 * (1 + (0.5 + 0.2) * (want - 1)));
+        if (r2(L.earn.gross) !== r2(perHour * L.hoursTotal)) bad.push('at home with ' + want + ' seats the total is ' + r2(L.earn.gross) + ', wanted ' + perHour + '/h × ' + L.hoursTotal + 'h');
+        const tutorHour = r2(12 + 12 * 0.5 * (want - 1));
+        if (r2(L.earn.tutorPayout) !== r2(tutorHour * L.hoursTotal)) bad.push('at home with ' + want + ' seats the tutor earns ' + r2(L.earn.tutorPayout) + ', wanted their own ' + tutorHour + '/h × ' + L.hoursTotal + 'h');
       });
       return bad;
     },

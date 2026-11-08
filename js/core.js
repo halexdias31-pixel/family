@@ -246,6 +246,8 @@ function seatLimits(space, tutor, loc) {
   if (tutor)  { capMax(Number(tutor.maxStudents) || 1, tutor.title);
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
+  /* AT HOME THE BOOKING TAKES EVERY SEAT THE TUTOR HOLDS (owner, 8 Nov): the floor is the cap, priced for all. */
+  if (loc && atClientHome_(loc)) { min = max; why.min = 'a home session'; }
   if (min > max) min = max;
 
   return { max, min, why };
@@ -309,13 +311,17 @@ function promoApplies(p, ctx) {
   }
 }
 
+const pence_ = x => Math.round((Number(x) || 0) * 100) / 100;
+const RATE_KEYS_ = ['base', 'subject', 'complexity', 'level', 'daytime', 'students'];
+
 /* THE RUNNING TOTAL after a given row has applied. § */
 function runningAfter(key, L) {
   let p = L.chargeRate || 0;
   const step = { subject: L.avgSubject, complexity: L.fSubjectCount,
-                 level: L.L, students: L.fChildrenAll };
-  for (const k of ['base', 'subject', 'complexity', 'level', 'students']) {
-    if (k !== 'base') p *= Number(step[k]) || 1;
+                 level: L.L, daytime: (Number(L.D) || 1) * (Number(L.T) || 1), students: L.fChildrenAll };
+  /* ROUNDED TO THE PENNY AT EVERY LINE (owner, 8 Nov), so each line's figure is the product of what the row shows. */
+  for (const k of RATE_KEYS_) {
+    if (k !== 'base') p = pence_(p * (Number(step[k]) || 1));
     if (k === key) return p;
   }
   /* NET ON ONE ROW (owner, 7 Nov): the venue's rate, unless the family provides the space. */
@@ -389,17 +395,24 @@ function bookMoney_(m) {
   const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
   const discountValue = discountType ? pos(d.value) : 0;
   /* `%` IS OFF WHAT THE CLIENT PAYS (owner, 29 Oct: "If I put 30 in that field then it's just 30 percent off"), the room included. */
-  const discount = !discountValue ? 0
+  const asked = !discountValue ? 0
     : discountType === '%' ? gross * Math.min(discountValue, 100) / 100
     : Math.min(discountValue, gross);
   const shared = /^shared/i.test(String(d.by || ''));
+  const tutor = pos(m.tutorPay), p = pos(m.feePct) / 100, f = pos(m.feeFixed);
+  /* THE DISCOUNT COMES OUT OF @FAMILY'S SHARE AND STOPS AT NOTHING LEFT (owner, 8 Nov): never pays the tutor more than the client pays. */
+  const den = 1 - p - (shared && teaching > 0 ? tutor / teaching : 0);
+  const room = gross * (1 - p) - tutor - venue - f;
+  const cap = den > 0 ? Math.max(0, Math.floor(room / den * 100) / 100) : gross;
+  const discount = Math.min(Math.round(asked * 100) / 100, cap, gross);
   const scale = shared && teaching > 0 ? 1 - Math.min(discount, teaching) / teaching : 1;
-  const tutorPayout = pos(m.tutorPay) * scale;
-  const charged = gross - discount;
-  const cardFees = charged > 0 ? charged * pos(m.feePct) / 100 + pos(m.feeFixed) : 0;
-  const net = charged - tutorPayout - venue - cardFees;
+  const tutorPayout = Math.round(tutor * scale * 100) / 100;
+  const charged = Math.round((gross - discount) * 100) / 100;
+  const cardFees = charged > 0 ? Math.round((charged * p + f) * 100) / 100 : 0;
+  const net = Math.round((charged - tutorPayout - venue - cardFees) * 100) / 100;
   return {
     gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
+    capped: asked > discount, maxPct: gross > 0 ? Math.floor(Math.min(cap, gross) / gross * 100) : 0,
     absorbedBy: discount ? (shared ? 'Shared with tutor' : 'Business') : '',
     charged, teaching, tutorPayout, venue, cardFees, net, margin: charged > 0 ? net / charged : 0,
   };
@@ -612,7 +625,8 @@ function priceFrom(spec) {
   const { weeksBooked, hoursTotal, splitShares, chargePerHour, tutorPay, profitTotal, venueTotal,
           cost, tutorHourly, belowMinWage, mo, total, wholeTotal, shareAmount } = priceMoney_(spec, knobs,
     { R, fSeats, discountFactor, promoAdj, V, splitOthers, bookedDays, sessionDates, slots,
-      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M });
+      chargeRate, avgSubject, L, D, T, fSubjects, cUsed, bUsed, M,
+      rows: { chargeRate, avgSubject, fSubjectCount: fSubjects, L, D, T, fChildrenAll: fSeats, n } });
   return {
     i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
     // True once we know the real dates; a term-based estimate still shows, marked as provisional.
@@ -668,7 +682,9 @@ function priceMoney_(spec, knobs, p) {
   /* The per-hour figure is real as soon as a rate is known — it does not need a length or a term. § */
   /* SPLITTING DIVIDES BOTH FIGURES. § */
   const splitShares = splitOthers + 1;
-  const chargePerHour = (R * fSeats * discountFactor * promoAdj + V) / splitShares;
+  /* THE HOURLY RATE THE ROWS SHOW, penny-rounded line by line (`runningAfter`), so gross = rows × hours exactly. */
+  const rate = pence_(runningAfter('students', p.rows) * discountFactor * promoAdj);
+  const chargePerHour = (rate + V) / splitShares;
   const teachTotal = hoursTotal ? chargePerHour * hoursTotal : null;
 
   // The three shares. They must add up to exactly what the client pays, so each is derived from
@@ -676,13 +692,11 @@ function priceMoney_(spec, knobs, p) {
   //   the tutor is paid their own rate plus every teaching surcharge
   //   your margin is the markup M(w−1)
   //   the extra-seat money is split between you by the ratio of c to B
-  const seatExtraPerHour = R * (fSeats - 1) * discountFactor * promoAdj;
-  const cbTotal = (cUsed + bUsed) || 1;                            // no divide-by-zero when both are 0
-  /* The tutor is paid their own rate, with every surcharge that belongs to teaching — subject, level, day, time. § */
-  const tutorBase = (chargeRate * avgSubject * L * D * T) * fSubjects * discountFactor * promoAdj;
-
-  const tutorPay    = (tutorBase + seatExtraPerHour * (cUsed / cbTotal)) * hoursTotal;
-  const profitTotal = (seatExtraPerHour * (bUsed / cbTotal)) * hoursTotal;
+  /* TUTOR = THEIR OWN RATE FOR THE FIRST SEAT + THEIR EXTRA-SEAT RATE FOR EACH OTHER, × HOURS (owner, 8 Nov); @family. keeps the rest of the teaching. */
+  const r = pence_(runningAfter('daytime', p.rows) * discountFactor * promoAdj);
+  const tutorHour = pence_(r + r * cUsed * Math.max(0, (p.rows.n || 1) - 1));
+  const tutorPay    = Math.min(tutorHour, rate) * hoursTotal;
+  const profitTotal = rate * hoursTotal - tutorPay;
   const venueTotal  = V * hoursTotal;                                   // venue gets
   const cost        = tutorPay + venueTotal;                            // what the job costs us
 

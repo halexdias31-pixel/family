@@ -491,8 +491,11 @@ const BOOK_STEPS = [
     label_: v => String(Math.max(0, Number(v) - 1)),
     /* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO § */
     /* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE § */
+    /* AT HOME THE COUNT IS FIXED (owner, 8 Nov): the select is greyed, still showing every seat the tutor holds. */
+    lock: () => homeSeats_() > 0,
     options: () => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
+      if (homeSeats_() > 0) return [String(lim.max)];
       const out = [];
       /* ALWAYS FOUR CHOICES, so the control stays put; a number past the cap is greyed by `off`, never hidden (owner, 7 Nov). */
       for (let i = lim.min; i <= lim.min + 3; i++) out.push(String(i));
@@ -586,7 +589,8 @@ const BOOK_STEPS = [
         .filter(x => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));
       return bad.length ? 'not an email address: ' + bad.join(', ') : '';
     },
-    options: () => isWaiting_() ? [] : ['emails'] },
+    /* A HOME BOOKING IS PRIVATE (owner, 8 Nov): every seat is theirs, so nobody to share with — `Just you`. */
+    options: () => (isWaiting_() || homeSeats_() > 0) ? [] : ['emails'] },
 
   /* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? § */
 
@@ -612,6 +616,21 @@ const BOOK_STEPS = [
 
 
 ];
+
+/* A HOME BOOKING'S SEAT COUNT, the tutor's whole capacity (owner, 8 Nov); 0 when not at home or on a waiting list. */
+function homeSeats_() {
+  if (isWaiting_() || !atClientHome_(BOOKING.loc)) return 0;
+  return seatLimits(null, tutorRow_(), BOOKING.loc).max;
+}
+
+/* Held in `BOOKING` itself, so the row, the price and the request all read the same total. */
+function bookHomeSeats_() {
+  const n = homeSeats_();
+  if (!n) return;
+  BOOKING.n = String(n);
+  BOOKING.split = [];
+  BOOKING.done = uniq((BOOKING.done || []).concat(['n']));
+}
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
 
