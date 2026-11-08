@@ -29,7 +29,7 @@
   --black:  #000000;
   --gold:      #ffffff;   /* the one action: white on black since 466 (the name stays) */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
-  --admin:     #f2d24b;   /* only you can see this — see `.tile.is-admin` */
+  --admin:     #f2d24b;   /* a yellow for content (a game's key, a chess move); never a marker for admin (11a) */
   --warn:      #ffb454;
   --good:      #3ddc84;
   --bad:       #ff5f56;
@@ -3860,7 +3860,6 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
 
 /* ---------- THE BIBLE — A COVER, AND A CARD A VERSE § */
-.bb-who { color: var(--admin); }
 .bb-miss { color: var(--warn); }
 
 /* ---------- THE VERSE § */
@@ -4298,18 +4297,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
    with a .07 background and there with .09 — and the one you could see was never this one. */
 
-/* ---------- SILVER MEANS ONLY YOU CAN SEE THIS § */
-/* ---------- AND IT IS YELLOW NOW, NOT SILVER § */
-/* THE TONE IS THE TOKEN, THINNED -- `color-mix` with `transparent` paints exactly what `rgb(242 210 75 / .07)` did, and names which colour it is. § */
-.tile.is-admin {
-  color: var(--admin);
-  background: color-mix(in srgb, var(--admin) 7%, transparent);
-  border-color: color-mix(in srgb, var(--admin) 22%, transparent);
-}
-.tile.is-admin:is(:active, .is-pressed) { background-image: linear-gradient(var(--press-wash), var(--press-wash));
-                                          border-color: color-mix(in srgb, var(--admin) 45%, transparent); }
-.tile.is-admin.on { background: color-mix(in srgb, var(--admin) 20%, transparent);
-                    border-color: color-mix(in srgb, var(--admin) 50%, transparent); }
+/* AN ADMIN'S TILE LOOKS LIKE ANY OTHER (owner, 8 Nov, 11a): black and white, no colour marker; only an admin is drawn one (tile_). */
 
 @media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
@@ -4335,9 +4323,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile.on .tile-i-wear,
 .tile.on .tile-i-spot { fill: currentColor; }
 
-/* ---------- SECOND PASS, FROM LOOKING AT IT § */
-/* ---------- SILVER, AND SMALLER § */
-.tile-row.is-admin .tile { color: var(--admin); }
 /* A DANGER TILE (a delete) had no tone of its own and drew as a bare grey square among plated ones (467). */
 .tile.is-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 

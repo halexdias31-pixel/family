@@ -96,5 +96,11 @@ files.forEach(({ n, src }) => {
   }
 });
 
+/* ---------- 11a. ADMIN THINGS ARE BLACK AND WHITE, AND ONLY AN ADMIN SEES THEM ---------- */
+for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  if (/admin/.test(m[1]) && /var\(--(admin|gold|warn)\)/.test(m[2]) && !/^\s*:root/.test(m[1])) bad.push(`11a an admin marker in colour: "${m[1].trim().slice(0, 60)}"`);
+}
+if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) return ''/.test(tilesSrc)) bad.push('11a tile_ draws an admin tile for someone who is not an admin');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

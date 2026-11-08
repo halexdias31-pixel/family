@@ -195,8 +195,9 @@ function tile_(o) {
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
   /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is said in `aria-pressed` beside the `on` the eye reads § */
   const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
-  /* SAME TILES FOR EVERY RANK (owner, 6 Nov): an admin's tile is drawn for everyone in its place, greyed for those without the right. */
-  const barred = o.tone === 'admin' && typeof isAdmin === 'function' && !isAdmin() ? ' aria-disabled="true"' : '';
+  /* ONLY AN ADMIN SEES AN ADMIN'S TILE (owner, 8 Nov, 11a), and it looks like any other tile. */
+  if (o.tone === 'admin' && !(typeof isAdmin === 'function' && isAdmin())) return '';
+  const barred = '';
   const style = o.style ? ` style="${esc(o.style)}"` : '';
   return `<button type="button" class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${style}${pressed}${barred}${o.off ? ' disabled' : ''}
     >${body}</button>`;
