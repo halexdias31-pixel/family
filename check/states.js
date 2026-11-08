@@ -5953,11 +5953,11 @@ const STATES = {
         if (!rc.querySelector('.rc-tiles [data-do="job-take-seat"]')) return false;
         if (rc.querySelectorAll('.bk-row.bk-tally .wc-row').length !== 3) return false;
         const sharing = [...rc.querySelectorAll('.bk-row')]
-          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Split');
         if (!sharing || !/2 seats free/.test(sharing.textContent)) return false;
         return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
       },
-      wants: 'a class\'s receipt with Take a seat in its foot, its seats in Sharing and its tally as a row',
+      wants: 'a class\'s receipt with Take a seat in its foot, its seats in Split and its tally as a row',
       leave: () => {
         if (window.__RC_WAS) USER = window.__RC_WAS;
         window.__RC_WAS = null;
@@ -5993,11 +5993,11 @@ const STATES = {
         if (!rc || pg.querySelector('.join')) return false;
         if (!rc.querySelector('.rc-tiles [data-do="job-join"]')) return false;
         const sharing = [...rc.querySelectorAll('.bk-row')]
-          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Split');
         if (!sharing || !/3 seats free/.test(sharing.textContent)) return false;
         return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
       },
-      wants: 'a session\'s receipt with Ask to join in its foot and its open seats in Sharing',
+      wants: 'a session\'s receipt with Ask to join in its foot and its open seats in Split',
       leave: () => {
         if (window.__RC_WAS) USER = window.__RC_WAS;
         window.__RC_WAS = null;

@@ -55,3 +55,33 @@ check('Find › Booking: an admin accepts a No-tutor-yet booking from its own ca
   }
   return bad;
 });
+
+/* THE BOOKING FORM IS THE BOOKING RECORD (owner, 8 Nov): the empty form and a saved booking draw the same lines in the same order, on the same five columns */
+check('a saved booking draws the booking form\'s lines, in its order, with its header and five columns', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof t.jobPage !== 'function' || typeof t.paper !== 'function') return ['`jobPage_` or the form is not exported — NOT checked'];
+  t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+  const job = Object.assign(NOTUTOR_JOB_(), { id: 'J-S', jobId: 'J-S', tutor: 'Ada Tutor', day: 'Monday,Tuesday,Saturday',
+    slotCodes: 'm16,m17,tu16,tu17,sa10,sa11', seatsGoing: 3, openToOthers: true, maxKids: 4,
+    slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }], tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }] });
+  const read = h => {
+    const el = d.createElement('div'); el.innerHTML = h;
+    const bk = el.querySelector('.rc .bk');
+    if (!bk) return null;
+    const rows = [...bk.children].filter(r => r.matches('.bk-row'));
+    return { head: rows.filter(r => r.matches('.is-cols')).map(r => [...r.children].map(c => c.textContent.trim()).join('|')),
+      keys: rows.filter(r => !r.matches('.is-cols')).map(r => (r.querySelector('.bk-k') || {}).textContent.trim()),
+      cells: [...new Set(rows.map(r => [...r.children].filter(c => /^bk-[nkvmrt]$/.test(c.className.split(' ')[0])).length))],
+      tags: el.querySelectorAll('.rc-head .qtag').length };
+  };
+  const f = read(t.paper()), s = read(t.jobPage(job));
+  if (!f || !s) return ['the form or the saved booking drew no rows'];
+  if (f.keys.join(' / ') !== s.keys.join(' / ')) bad.push('form lines ' + JSON.stringify(f.keys) + ' but the saved booking draws ' + JSON.stringify(s.keys));
+  if (f.head.join() !== s.head.join() || f.head.length !== 1) bad.push('header rows differ: ' + JSON.stringify([f.head, s.head]));
+  if (f.cells.join() !== '6' || s.cells.join() !== '6') bad.push('cells per line: form ' + f.cells + ', saved ' + s.cells + ', wanted 6 (number, label, answer, ×, +/h, =)');
+  if (f.tags !== s.tags) bad.push('a tag line above the rows on one and not the other');
+  ['Started', 'Completed'].forEach(k => { if (s.keys.includes(k) || f.keys.includes(k)) bad.push('a "' + k + '" status line is still drawn'); });
+  return bad;
+});

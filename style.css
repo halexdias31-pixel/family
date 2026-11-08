@@ -2166,7 +2166,8 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* ---------- ONE GRID FOR THE WHOLE CARD, BECAUSE EVERY ROW WAS ITS OWN § */
 .bk {
   display: grid;
-  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) max-content max-content max-content;
+  /* THE FIGURE TRACKS HAVE A FLOOR, so the empty form and a priced booking draw the same three columns (owner, 8 Nov). */
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) minmax(2.4em, max-content) minmax(2.4em, max-content) minmax(4.4em, max-content);
   column-gap: .45rem;
   margin: .4rem 0 .2rem;
 }
@@ -2412,11 +2413,7 @@ label.bk-k { cursor: pointer; }
 /* NAMED THROUGH THE ROW, because a day is a row of the card now and `.bk-row.bk-wk .hr` is three classes deep — a bare `.hr.blk` is two and lost, so the blocks § */
 .bk-row.bk-wk .hr.blk { min-height: 20px; }
 
-/* ---------- A GRID NOBODY CAN PRESS DOES NOT NEED A THUMB'S WORTH OF HEIGHT § */
-/* ---------- A CELL WITH NOTHING IN IT HAS TO STATE ITS OWN HEIGHT § */
-/* ---------- AND IT SAYS SO BY SPECIFICITY RATHER THAN BY SITTING LOWER IN THE FILE § */
-.rc.is-done .bk-row.bk-wk .hr { min-height: 1.1em; padding: 0; font-size: .58em; }
-.rc.is-done .slot-hh { font-size: .55em; }
+/* A SAVED BOOKING'S WEEK IS THE FORM'S WEEK, same cells and sizes (owner, 8 Nov: the booking form is the booking record). */
 /* THE ROOM FORM'S LABEL IS A QUESTION ON THE RECEIPT, so it is in ink like the rest of the paper's words. */
 .room-form label.field > span { color: var(--ink); }
 /* ---------- AND SIX RULES UNDER THIS ONE WERE COMPACTING A GRID THE RECEIPT NO LONGER DRAWS § */
@@ -6231,23 +6228,24 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* THREE PRICE COLUMNS ON EVERY FORM, priced or not (owner, 8 Nov): the same lines always, the last column carries a dash until it has a figure. */
 .bk-row:not(.is-cols):not(.is-wide):not(.rc-total):not(:has(.bk-tick)) > .bk-t:empty::before { content: '\2014'; }
 /* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
-.rc:not(.is-done) .bk-row { padding-block: .12rem; align-items: center; }
-.rc:not(.is-done) .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
-.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-v > .bk-in, .rc:not(.is-done) .bk-v > .bk-face {
+/* ONE ROW HEIGHT FOR THE FORM AND THE SAVED BOOKING. */
+.rc .bk-row { padding-block: .12rem; align-items: center; }
+.rc .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
+.rc .bk-v > .bk-sel, .rc .bk-v > .bk-in, .rc .bk-v > .bk-face {
   background-color: var(--paper); color: var(--paper-ink); border-radius: 999px; padding: .2em 1.4em .2em .8em; }
-.rc:not(.is-done) .bk-v > .bk-in { padding-right: .8em; }
-.rc:not(.is-done) .bk-face > .bk-sel { background-color: transparent; border-radius: 999px; }
-.rc:not(.is-done) .bk-face > .bk-said, .rc:not(.is-done) .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
-.rc:not(.is-done) .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
-.rc:not(.is-done) .bk-face { --sel-arrow: var(--paper-dim);
+.rc .bk-v > .bk-in { padding-right: .8em; }
+.rc .bk-face > .bk-sel { background-color: transparent; border-radius: 999px; }
+.rc .bk-face > .bk-said, .rc .bk-face:not(.is-set):has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--paper-ink); padding-right: 0; }
+.rc .bk-sel { --sel-arrow: var(--paper-dim); background-position: right .7em center, right calc(.7em + 4px) center; }
+.rc .bk-face { --sel-arrow: var(--paper-dim);
   background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%), linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
   background-position: right calc(.7em + 4px) center, right .7em center; background-size: 4px 4px; background-repeat: no-repeat; }
-.rc:not(.is-done) .bk-sel:disabled, .rc:not(.is-done) .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
-.rc:not(.is-done) .bk-v > .bk-sel, .rc:not(.is-done) .bk-face > .bk-said { text-align: left; text-align-last: left; }
-.rc:not(.is-done) .bk-v > .bk-sel { padding-right: 1.6em; }
-.rc:not(.is-done) .bk-face > .bk-sel { background-image: none; }
-.rc:not(.is-done) .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
-.rc:not(.is-done) .bk-v > .bk-in { text-align: left; }
+.rc .bk-sel:disabled, .rc .bk-in:read-only { opacity: .55; color: var(--paper-ink); }
+.rc .bk-v > .bk-sel, .rc .bk-face > .bk-said { text-align: left; text-align-last: left; }
+.rc .bk-v > .bk-sel { padding-right: 1.6em; }
+.rc .bk-face > .bk-sel { background-image: none; }
+.rc .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
+.rc .bk-v > .bk-in { text-align: left; }
 
 /* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
 .lib-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; }
