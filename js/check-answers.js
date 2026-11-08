@@ -24,7 +24,7 @@ if (missing.length) {
   process.exit(1);
 }
 const answerParts_ = eval('(' + cutFrom(src, 'answerParts_') + ')');
-const typeset_ = eval('(' + cutFrom(src, 'typeset_') + ')');
+const typeset_ = require('../tools/typeset-src.js').typesetFn(src, cutFrom);
 /* `answerBlock_` NEEDS `esc` FOR THE KIND'S LABEL, and data.js's is the whole of it: five characters
    escaped. Written here rather than cut, because data.js is not find.js and the label is not what
    this measures. */
