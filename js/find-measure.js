@@ -45,7 +45,7 @@ function paintDocket() {
 
   const list = docketLines();
   if (!list.length) {
-    host.innerHTML = '<p class="faint" style="padding:.4rem 0">Nothing on it.</p>';
+    host.innerHTML = empty_('Nothing on it yet.');
     return;
   }
   const left = list.filter(l => !l.done).length;
@@ -61,7 +61,7 @@ function paintDocket() {
             ''}
       ${tile_({ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' })}
     </label>`).join('')
-    + `<div class="row" style="border:0;padding:.4rem 0 0">
+    + `<div class="row dock-foot">
         <span class="k">${left ? left + ' left' : 'All done'}</span>
         ${list.length > left
           ? '<span class="v">' + tile_({ form: true, label: 'Clear done', act: 'dock-clear', kind: 'quiet', cls: 'tiny' }) + '</span>'

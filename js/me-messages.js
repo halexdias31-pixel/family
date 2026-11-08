@@ -173,7 +173,7 @@ function friendsSheet() {
     <label class="field"><span>their handle</span>
       <input id="fr-add" placeholder="as it is on their card" autocomplete="off"></label>
     ${tile_({ form: true, label: 'Add', act: 'friend-add' })}
-    <p class="faint" id="fr-said" style="margin:.6rem 0 0">
+    <p class="said" id="fr-said">
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
       harder to notice than nobody — they simply appear on a list you scroll past.</p>`);
 }

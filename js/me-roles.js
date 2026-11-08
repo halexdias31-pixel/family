@@ -24,7 +24,7 @@ function mailHeldNote_() {
   const at = pendingAddr_();
   /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
      took the card sideways — the fault the dotted answer line paid for (check/states.js). */
-  return at ? `<p class="faint mail-held" style="margin:.6rem 0 0">We will email you once you open the link
+  return at ? `<p class="said mail-held">We will email you once you open the link
     we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
 }
 
@@ -33,7 +33,7 @@ function movingNote_(p) {
   const to = p && p.email_moving ? String(p.email_moving) : '';
   if (!to) return '';
   const was = String((p && p.email) || '');
-  return `<p class="faint mail-moving" style="margin:.6rem 0 0">Your email changes to
+  return `<p class="said mail-moving">Your email changes to
     <b style="overflow-wrap:anywhere">${esc(to)}</b> once you open the link we sent there, on a phone where you
     are signed in.${was ? ` Until then it is still <b style="overflow-wrap:anywhere">${esc(was)}</b> — sign in
     with that, or your handle. Type it back here to keep it.` : ''}</p>`;

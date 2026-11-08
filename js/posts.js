@@ -1456,7 +1456,7 @@ function postComposeHtml_() {
     ${tile_({ form: true, label: 'Back', act: 'post-cancel', kind: 'quiet' })}
     ${tile_({ form: true, label: 'Post it', act: 'post-send' })}
   </div>
-  <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
+  <p class="said" id="post-said">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
 </div>`;
 }
 /* REDRAWS THE CARD ITSELF, so the camera's markup and the composer's are never on screen together. */
@@ -1543,7 +1543,7 @@ on('post-edit', el => {
   sheetHere_(el, true);    // the post card becomes its editor (453)
   openSheet(words ? 'Edit post' : 'Pin or date', `
     ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
-         style="width:100%;margin-bottom:.7rem">` : ''}
+         class="post-ed-img">` : ''}
     ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
           dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
     ${words ? `<label class="field"><span>caption</span>
@@ -1568,10 +1568,10 @@ on('post-edit', el => {
     </label>`}
 
     ${tile_({ form: true, label: 'Save', act: 'post-save', data: { id: p.id } })}
-    <div class="btn-row" style="margin-top:.5rem">
+    <div class="btn-row gap-t">
       ${tile_({ form: true, label: 'Delete', act: 'post-delete', data: { id: p.id, on: '' }, kind: 'danger' })}
     </div>
-    <p class="faint" id="pe-said" style="margin:.6rem 0 0">${words
+    <p class="said" id="pe-said">${words
       ? 'You can change it until it is approved. After that it stays as it is — you can still delete it.'
       : 'Once a post is up its words and pictures stay as they are. To change them, delete it and post again.'}</p>`);
 });

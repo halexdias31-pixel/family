@@ -718,7 +718,7 @@ function registerCard_() {
       ${tile_({ form: true, label: 'Make my account', act: 'reg-send' })}
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
-      <p class="faint" id="reg-note" style="margin:.6rem 0 0"></p>
+      <p class="said" id="reg-note"></p>
     </div></div></div>`;
 }
 /* THE SIGN-IN CARD'S TILE GOES TO THE FORM: on this column if it is drawn, else on the account column. */

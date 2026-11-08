@@ -61,5 +61,13 @@ files.forEach(({ n, src }) => {
   if (/class="(?:faint|sub)[^"]*">\s*(?:No |Nothing|None|Nobody)/.test(src)) bad.push(`4 a grey "nothing" line in ${n}.js — empty_('No … yet.')`);
 });
 
+/* ---------- 5. SPACING IS A CLASS ---------- */
+/* index.html's boot-trouble sheet keeps its inline styles: it is drawn when style.css may not have loaded. */
+files.forEach(({ n, src }) => {
+  for (const m of src.matchAll(/style="([^"]*)"/g)) {
+    if (/(^|;)\s*(margin|padding|gap)[\w-]*\s*:/.test(m[1])) bad.push(`5 inline spacing in ${n}.js: style="${m[1].slice(0, 50)}" — a class in style.css`);
+  }
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

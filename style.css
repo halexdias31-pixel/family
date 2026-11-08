@@ -6123,3 +6123,13 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .boot-fail-stack, .boot-fail-ver { color: var(--ink); font-size: .7rem; }
 .boot-fail-ver { margin: 0; }
 .build-said.is-warn { color: var(--warn); }
+
+/* SPACING IS A CLASS, NEVER AN INLINE STYLE (owner, 8 Nov). `.said` is the line a form writes its answer into. */
+.said { margin: .6rem 0 0; }
+.said.said-s { margin-top: .35rem; }
+.flush { margin: 0; }
+.gap-t { margin-top: .45rem; }
+.note.note-gap { margin: .2rem 0 .6rem; }
+.timer-big { font-size: 2.1rem; text-align: center; margin: .4rem 0; }
+.row.dock-foot { border: 0; padding: .4rem 0 0; }
+.post-ed-img { width: 100%; margin-bottom: .7rem; }
