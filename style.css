@@ -683,8 +683,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* ---------- THE TRACKS HOLD THE DIGITS **AND** THE INPUT'S OWN PADDING § */
 /* ---------- AND A 44px FLOOR IN `px`, BECAUSE A DAY BOX IS A FINGERTIP § */
 /* 16px ON THE GRID, BECAUSE `ch` RESOLVES AGAINST THE ELEMENT THAT DECLARES THE TRACK. § */
+/* ONE SPARE `ch` A BOX: the caret and a placeholder glyph wider than a digit clipped "MM" and "YYYY" at exactly Nch. */
 .dob-boxes { display: grid; font-size: 16px;
-  grid-template-columns: repeat(2, max(44px, calc(2ch + 1.9rem))) calc(4ch + 1.9rem); gap: .5rem; }
+  grid-template-columns: repeat(2, max(44px, calc(3ch + 1.9rem))) calc(5ch + 1.9rem); gap: .5rem; }
 .dob-boxes label.field { margin-bottom: 0; min-width: 0; }
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }

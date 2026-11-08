@@ -220,12 +220,17 @@ function applyFormHtml_() {
     ${area('statement', 'a short statement — why you want to teach')}
     ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
     <label class="check"><input type="checkbox" data-app="consent"><span class="box"></span><span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span></label>
-    <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}${tile_({ form: true, label: 'Cancel', act: 'apply-cancel', kind: 'quiet' })}</div>
+    <div class="btn-row">${tile_({ form: true, label: 'Send my application', act: 'apply-send' })}</div>
     <p class="faint me-said apply-said" aria-live="polite"></p>
   </div>`;
 }
-on('apply-open', () => { if (USER) openSheet('Apply to teach', applyFormHtml_()); });
-on('apply-cancel', () => closeSheet());
+/* MAY THIS ACCOUNT FILL THE FORM NOW: an adult with no application waiting. The form is in its card from the start (no sheet, owner 8 Nov). */
+function applyFormOpen_() {
+  if (!USER || rankAtLeast_('staff') || profileAge_(USER.profile) === null || !applyAdult_()) return false;
+  const st = USER.application && USER.application.status;
+  return st !== 'new' && st !== 'interview';
+}
+on('apply-open', () => { const f = document.querySelector('.apply-card .app-form'); if (f) f.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
 on('apply-send', el => {
   const f = el.closest('.app-form');
   if (!f || !USER) return;
@@ -243,7 +248,6 @@ on('apply-send', el => {
     .then(d => {
       USER.application = d.application || { status: 'new', at: Date.now() };
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) { /* storage can be blocked; the app runs without it */ }
-      closeSheet();
       toast('Application sent');
       try { paint('staff'); } catch (e) { oops_(e, 'me:applyFormHtml_') }
     })

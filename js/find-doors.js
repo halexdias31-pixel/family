@@ -102,7 +102,9 @@ const SETTING_TYPES = [
 /* THE MENU'S ORDER OF ACCOUNT TYPES; Admin has no column, only the data's tags. */
 const SETTING_ORDER = ['Student', 'Parent', 'Staff', 'Apprentice', 'Admin', 'Business', 'Site'];
 const cardTitle_ = h => (String(h).match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1];
-const plain_ = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+/* A TITLE CUT FROM DRAWN HTML IS STILL ESCAPED; it is esc()'d again where it is shown, so it goes back to plain text ("Contact &amp; address"). */
+const plain_ = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 /* ONE COLUMN'S CARDS, grouped as the layout groups them (a card of several pages is one item). */
 /* NOT FROM INSIDE ITSELF: a settings card that counts Find's items (What's missing) would build these again, without end. */
 let SETTING_BUILDING = false;
