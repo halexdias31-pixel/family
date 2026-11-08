@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-11-08-refund-rule-1151";
+const DOPOST_VERSION = "2026-11-08-tutor-side-1";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -169,6 +169,7 @@ function postActions_() {
     listOwnerAnswers: postListOwnerAnswers_,
     saveOwnerAnswer: postListOwnerAnswers_,
     updateProfile: postUpdateProfile_,
+    videoPart: postVideoPart_,
     imageData: postImageData_,
     editPost: postEditPost_,
     approvePost: postApprovePost_,
@@ -666,6 +667,7 @@ function profileOf_(r) {
   /* The library cards and the qualifications are rows on tabs of their own, read once each. */
   const cards = libCardsOut(r);
   const photos = photosOut(r.photos);
+  const jobs = jobsOut(r.jobs);
   const quals = qualsOut(r);
   /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING § */
   const dob = dobOut(r.date_of_birth);
@@ -674,6 +676,7 @@ function profileOf_(r) {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
            : PHOTO_FIELD.test(f) ? S(photos[f])
+           : JOB_FIELD.test(f) ? S(jobs[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
            : f === 'venues_ok' ? venuesFor_(r, read(TAB.venues).rows).join(', ')
            : f === 'date_of_birth' ? S(dobIn(dob))
@@ -686,6 +689,8 @@ function profileOf_(r) {
   const ph = phoneOut(r.phone);
   PHONE_FIELDS.forEach(f => { out[f] = S(ph[f]); });
   /* A NEW ADDRESS WAITING TO BE PROVED (`authMove*_`), or blank. § */
+  /* THE UPLOADED INTRO VIDEO'S DRIVE ID, for the Photos card's player — written only by `videoPart`. */
+  out.video_file = S(r.video_file);
   out.email_moving = S((authMoveGet_(r) || {}).to);
   /* WHICH EMAILS REACH THIS PERSON AND WHICH THEY HAVE TURNED OFF — `notifyOf_` in people.gs, the Notifications card's whole list. § */
   out.notify = notifyOf_(r);

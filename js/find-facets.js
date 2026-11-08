@@ -252,7 +252,8 @@ const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' 
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
+  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
+  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
   friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', reel: 'Videos', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
@@ -262,7 +263,7 @@ function underTop_(table, v) { return (v && table[v]) || v || ''; }
 /* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */
 function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
-function notTop_(x, v) { const top = spellKey_(kindTop_(x)); const l = [].concat(v || []).filter(k => k && spellKey_(k) !== top); return l.length > 1 ? l : (l[0] || ''); }
+function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {
@@ -291,6 +292,8 @@ function facetWhy_(items, facet, over) {
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
   const echo = facetEcho_(items, facet);
   if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
+  const local = facetLocal_(items, facet);
+  if (local) return 'counts within each ' + local + ' — asked once one ' + local + ' is left';
   const split = facetSplit_(items, facet);
   if (split < FACET_MIN_MINORITY && !kindNamed_(all) && !facet.choose) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
@@ -334,6 +337,46 @@ function facetEcho_(items, facet) {
     if (ok && gAll.size > 1 && Object.keys(to).length > 1) return G.label || G.field;
   }
   return '';
+}
+
+/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): each G answer with two F answers holds a run of the
+   same names, one run inside the next, so Q1 under two papers is two things. Held until one G answer is left. */
+/* Not when G's answers also run, unevenly, inside F's: that is a grid (Question by Part), and neither is the other's count. */
+function runsInside_(items, F, G) {
+  const by = {};
+  let cards = 0, cells = 0;
+  for (const x of items) {
+    const a = facetOwn_(F, x), b = facetOwn_(G, x);
+    if (!a.length) continue;
+    /* A count lives only inside its parent: a card with F and no single G (a key stage with no Accuracy) makes F G's equal. */
+    if (b.length !== 1) return 0;
+    const s = by[spellKey_(b[0])] || (by[spellKey_(b[0])] = new Set());
+    cards++;
+    a.forEach(v => s.add(spellKey_(v)));
+  }
+  for (const k in by) cells += by[k].size;
+  /* A parent holds more cards than counts; one card a cell is the card's own address (Question by Part), a grid. */
+  if (cards <= cells) return 0;
+  const sets = Object.values(by).filter(s => s.size > 1).sort((p, q) => p.size - q.size);
+  /* A count runs longer than its parents are many: Required (two answers) under each practical type is a side, not a count. */
+  if (sets.length < 2 || sets[sets.length - 1].size <= Object.keys(by).length) return 0;
+  if (!sets.every((s, i) => !i || [...sets[i - 1]].every(v => s.has(v)))) return 0;
+  return sets[0].size === sets[sets.length - 1].size ? 1 : 2;
+}
+const LOCAL_MEMO_ = new WeakMap();
+function facetLocal_(items, F) {
+  let m = LOCAL_MEMO_.get(items);
+  if (!m) LOCAL_MEMO_.set(items, m = {});
+  if (F.field in m) return m[F.field];
+  let say = '';
+  const nF = facetValues(items, F).length;
+  for (const G of facetList()) {
+    const nG = G === F ? 0 : facetValues(items, G).length;
+    if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
+    say = G.label || G.field;
+    break;
+  }
+  return (m[F.field] = say);
 }
 
 /* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is
@@ -590,12 +633,13 @@ function projectCard_(x) {
                  ages].filter(Boolean).join(' · ');
   /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return `<div class="card fc prac proj">
+  return `<div class="card fc prac proj lib-c">
+    ${libPic_('project', x.name)}
+    ${tagRow_(x)}
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
     </div>
-    ${tagRow_(x)}
-    <p class="sub">${esc([p.subject, p.level, qual].filter(Boolean).join(' · '))}</p>
+    ${qual ? `<p class="fc-meta">${esc(qual)}</p>` : ''}
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
@@ -659,9 +703,10 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
    pages of their own, each titled (`contentPart_`). */
 function contentCard_(x) {
   const c = x.row;
-  return `<div class="card fc prac tb ct">
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+  return `<div class="card fc prac tb ct lib-c">
+    ${libPic_('content', x.name)}
     ${tagRow_(x)}
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tbSections_(c, null, { only: 'words' })}
   </div>`;
 }

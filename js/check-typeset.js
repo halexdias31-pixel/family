@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-typeset.js DOES THE MATHS ON A QUESTION CARD LOOK THE WAY THE PAPER PRINTS IT. § */
-require('../check/lib-full.js').needWords(); // LIB_PRIVATE=absent (CI, 780): skipped and counted, not passed
+require('../check/lib-full.js').needWords('', { fixture: ['questions'] }); // LIB_PRIVATE=absent (CI): the public fixture, not a skip
 const fs = require('fs');
 const path = require('path');
 
@@ -154,7 +154,10 @@ rows.forEach(r => {
 });
 
 /* 6 */
+/* ON THE PUBLIC FIXTURE (CI) a reason for a row it has not got is not stale, only out of sight. */
+const fixtureIds = require('../check/lib-full.js').fixture() ? new Set(rows.map(r => r && r.row_id)) : null;
 Object.keys(KEEP).forEach(rid => Object.keys(KEEP[rid]).forEach(text => {
+  if (fixtureIds && !fixtureIds.has(rid)) return;
   if (!keepUsed.has(rid + '\u0000' + text)) {
     fail.push('tools/data/typeset-keep.json: ' + rid + ' "' + text + '" matches nothing any more — a reason nobody needs; delete the line');
   }

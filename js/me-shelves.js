@@ -361,14 +361,23 @@ function dobBoxes_(value) {
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
 /* ---------- A SHELF SHOWS WHAT IS FILLED IN, ONE EMPTY SLOT, AND A WAY TO ASK FOR ANOTHER § */
-function shelfSlots_(nums, filled, draw) {
+function shelfSlots_(nums, filled, draw, noun) {
   let last = 0;
   nums.forEach((n, i) => { if (filled(n)) last = i + 1; });
-  /* NO SPARE EMPTY SLOT ONCE ONE IS FILLED — `Add another` IS the empty slot, one tap away. § */
+  /* NO SPARE EMPTY SLOT ONCE ONE IS FILLED — `Add a …` IS the empty slot, one tap away. § */
   const show = Math.min(nums.length, Math.max(1, last));
-  return nums.map((n, i) => draw(n, i >= show)).join('')
-    + (show < nums.length
-      ? `${tile_({ form: true, label: 'Add another', act: 'shelf-more', kind: 'quiet', cls: 'shelf-more' })}` : '');
+  return nums.map((n, i) => draw(n, i >= show)).join('') + (show < nums.length ? shelfAdd_(noun || 'another') : '');
+}
+/* ONE SETTINGS-CARD SHAPE (8 Nov): every list's "Add a …" tile and every line's bin are these two, whatever the list. */
+const shelfAdd_ = (noun, act, o, row) => `<div class="tile-row set-adds${row ? ' ' + row : ''}">${tile_(Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
+  act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {}))}</div>`;
+const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
+/* A CARD: its title, one line per field, ONE Save at the foot (the owner, 8 Nov). `o.save` false for a card whose lines save themselves. */
+function setCard_(o) {
+  const save = o.save === false ? '' : `<div class="tile-row set-save">${o.save || tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>`;
+  const body = o.form == null ? (o.body || '') + save
+    : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="faint me-said"></p>' : o.foot}</div>`;
+  return `<div class="card${o.cls ? ' ' + o.cls : ''} set-shape"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`;
 }
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
 
@@ -380,7 +389,18 @@ on('shelf-more', el => {
     const box = next.querySelector('input, select');
     try { if (box) box.focus({ preventScroll: true }); } catch { /* an element that cannot take focus is left as it is */ }
   }
-  if (!shelf || !shelf.querySelector('.lib-card[hidden]')) el.remove();
+  if (!shelf || !shelf.querySelector('.lib-card[hidden]')) (el.closest('.set-adds') || el).remove();
+});
+/* A LINE'S BIN EMPTIES ITS BOXES AND TUCKS IT AWAY; the card's Save sends the empties, so a reload agrees. */
+on('shelf-drop', el => {
+  const line = el.closest('.lib-card'), shelf = el.closest('.lib-shelf');
+  if (!line || !shelf) return;
+  line.querySelectorAll('input, select').forEach(i => { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); });
+  line.hidden = true;
+  shelf.appendChild(line);
+  const add = shelf.querySelector('.shelf-more');
+  if (add) { const row = add.closest('.set-adds'); if (row) shelf.appendChild(row); }
+  else shelf.insertAdjacentHTML('beforeend', shelfAdd_(shelf.dataset.noun || 'another'));
 });
 
 /* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
@@ -416,8 +436,8 @@ function qualShelf_(list, value) {
     <div class="q-list">${groups.map(g => `<div class="q-subj" style="--q-w:${wide(g)}ch">${
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
-    <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}</div>
+    ${shelfAdd_('qualification', 'qual-add', { off: !pool.length, data: { unlocked: '' },
+      note: pool.length ? pool.length + ' more fit' : 'ten is the most' }, 'q-adds')}
     ${pool.length ? '' : `<p class="faint q-full">Ten is the most this card holds — remove one to add another.</p>`}
   </div>`;
 }

@@ -16,7 +16,7 @@ const envFor = c => (/check-flow\.js/.test(c.file) && FLOW_TIER ? Object.assign(
 const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
-  { file: 'check-css.js',     what: 'the stylesheet' },
+  { file: 'check-css.js',     what: 'the stylesheet', par: true },
   /* MOTION IS ONE SYSTEM (531): read, not run, so it stays in --fast; a ratchet on literal durations, curves and moved properties. */
   { file: 'check/motion.js', what: 'durations, curves and moved properties: no count grows past check/motion-baseline.json' },
   /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT § */
@@ -45,8 +45,8 @@ const SUITE = [
   /* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE § */
   { file: 'check-payload.js', what: 'DATA keys read vs DATA keys sent' },
   /* THE RUNTIME SAFETY NET (R6): one sink, malformed rows, and empty catches only falling. */
-  { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works' },
-  { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws' },
+  { file: 'check-errors.js',    what: 'a throw in a draw, an act, a timer and a promise: one report each, a fallback, the rest works', par: true },
+  { file: 'check-malformed.js', what: 'a null and a string in every DATA list: every column still draws', par: true },
   { file: 'check-catches.js',   what: 'empty catch blocks may only get fewer' },
   { file: 'check-errlog.js',    what: 'the error log: one counted row per distinct error, one note each, throttled, admin-only' },
   /* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN § */
@@ -65,7 +65,7 @@ const SUITE = [
   /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD § */
   { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   /* THE @family KEYPAD EVERYWHERE (528): every box the source can draw and every box on every column, bound to the pad and tapped. */
-  { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard' },
+  { file: 'check-keyboard.js', what: 'every box a person types into types on the @family keypad, never the phone\'s keyboard', par: true },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
@@ -83,14 +83,14 @@ const SUITE = [
   { file: 'check-pdtexts.js', what: 'the public-domain texts: loaded, counted, sourced' },
   { file: 'check-mechanics.js', what: 'the mechanics cards: system, source, no part numbers (548)' },
   { file: 'check-chemistry.js', what: 'the chemistry cards: 118 elements 1–118, reactions name real cards, sources (550)' },
-  { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
+  { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary', par: true },
   /* THE ONE SCHEMA (R4, R5): every card file's rows against check/schema.js, counts pinned until P4; both row-writers refuse a bad row. */
-  { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate' },
+  { file: 'check-schema.js', what: 'the whole library against its one schema, and the importers\' gate', par: true },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
-  { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
-  { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong' },
+  { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong', par: true },
+  { file: 'check-marking-norm.js', what: 'every spelling of one value marked alike, its near misses wrong', par: true },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
@@ -109,7 +109,7 @@ const SUITE = [
   /* THE HISTORY DATABASE (459): manuscripts, figures, writings, linked both ways. */
   { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
-  { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
+  { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows', par: true },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
   { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
   { file: 'check-writings.js', what: 'one model for every written work (520): one shape, one shelf, one facet set, tradition topics, one age, nothing twice, facets.json = FACETS' },
@@ -133,6 +133,7 @@ const SUITE = [
   /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
   { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
   { file: 'check-kid-prices.js', what: 'a child is sent no rate, price or £, and her money actions ask a parent (398)' },
+  { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, Mark paid, the receipt' },
   { file: 'check-pay-return.js', what: 'a card payment coming back from Stripe books once, and a refresh, a typed ref or a child does not (430)' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
@@ -150,7 +151,7 @@ const SUITE = [
   { file: 'check-posts.js', what: 'posts wait for approval (author and admin only), final once up, no links, a child uploads nothing, message faces' },
   { file: 'check-suggest.js', what: 'Suggest a change: an admin’s straight to Notes for Claude, anybody else’s waits for Confirm; the old reports moved once; one tile everywhere' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
-  { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap' },
+  { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap', par: true },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
@@ -295,7 +296,8 @@ const queue = [];
 let live = 0;
 const pump = () => { while (live < POOL && queue.length) { live++; queue.shift()(); } };
 const running = new Map();
-for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) ? 1 : 0) - (/ui\.js/.test(x.file) ? 1 : 0))) {
+/* `par` (fast): a read-only file check of 4 s or more (jsdom app loads, whole-library walks) starts here too, so --fast waits for the slowest, not the sum. */
+for (const c of SUITE.filter(x => x.slow || x.par).sort((x, y) => (/ui\.js/.test(y.file) ? 1 : 0) - (/ui\.js/.test(x.file) ? 1 : 0))) {
   const [file, ...args] = c.file.split(' ');
   const p = file.includes('/') ? path.join(dir, '..', file) : path.join(dir, file);
   if (!fs.existsSync(p)) continue;

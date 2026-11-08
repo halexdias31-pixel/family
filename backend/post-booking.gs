@@ -142,10 +142,11 @@ function postSetRoom_(body, action, began) {
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
   if (!j) return jsonOut({ error: 'No session with that id.' });
-  const teaches = participantsOf(S(j.job_id)).some(p2 => p2.role === 'tutor' && key(p2.name) === key(S(me.name)));
+  /* A PERSON ROW HAS NO `name` CELL: who they are is `personDisplayName`, as the roster spells the tutor. */
+  const teaches = participantsOf(S(j.job_id)).some(p2 => p2.role === 'tutor' && key(p2.name) === key(personDisplayName(me)));
   if (!rankAtLeast_(me, 'admin') && !teaches) return jsonOut({ error: 'Only an admin or the tutor can set the room.' });
   if (!setCell(t, j, 'room', S(body.room).slice(0, 80))) return jsonOut({ error: 'The jobs tab has no room column yet: open the /exec address with ?setup=1 once.' });
-  logEvent({ jobId: S(j.job_id), actor: S(me.name), action: 'room', message: S(body.room).slice(0, 80) });
+  logEvent({ jobId: S(j.job_id), actor: personDisplayName(me), action: 'room', message: S(body.room).slice(0, 80) });
   clearCache();
   return jsonOut({ success: true });
 }
@@ -237,7 +238,9 @@ function postMove_(body, action, began) {
   }
   if (!mine && !asAdmin) {
     if (role === 'client') {
-      const caps = [capacityFor('venue', j.venue), N(j.max_students)].filter(x => x > 0);
+      /* THE SAME CAP AS BOOKING (owner, 7 Nov): place and tutor via `seatCapFor_`, so a tutor holding 1 seat is not joined past it. */
+      const teacher = tutorsIn(jobId).find(p2 => p2.status !== BM.NONE) || null;
+      const caps = [seatCapFor_(j.venue, teacher ? teacher.name : ''), N(j.max_students)].filter(x => x > 0);
       const cap = caps.length ? Math.min.apply(null, caps) : 4;
       if (before.filter(p2 => p2.role === 'client').length >= cap) {
         return jsonOut({ error: 'This session is full.' });

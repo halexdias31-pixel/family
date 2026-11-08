@@ -798,6 +798,27 @@ function photosIn(fields) {
   }
   return out.join(' | ');
 }
+/* ---------- THE JOBS: FOUR BOXES A JOB, ONE CELL OF JSON (8 Nov) ---------- */
+function jobsList_(r) {
+  let a = [];
+  try { a = JSON.parse(S(r && r.jobs) || '[]'); } catch (err) { a = []; }
+  return (Array.isArray(a) ? a : []).map(o => ({ role: S((o || {}).role), where: S((o || {}).where), from: S((o || {}).from), to: S((o || {}).to) }))
+    .filter(o => o.role || o.where).slice(0, JOB_MAX);
+}
+function jobsOut(cellValue) {
+  const list = jobsList_({ jobs: cellValue }), out = {};
+  for (let i = 1; i <= JOB_MAX; i++) JOB_PARTS.forEach(k => { out['job_' + i + '_' + k] = S((list[i - 1] || {})[k]); });
+  return out;
+}
+function jobsIn(fields) {
+  const out = [];
+  for (let i = 1; i <= JOB_MAX; i++) {
+    const j = {};
+    JOB_PARTS.forEach(k => { j[k] = S(fields['job_' + i + '_' + k]).slice(0, 80); });
+    if (j.role || j.where) out.push(j);
+  }
+  return out.length ? JSON.stringify(out) : '';
+}
 /* A PHOTOGRAPH IS A LINK, AND ANYTHING ELSE IS REFUSED BY NAME rather than kept. § */
 function photosRefusal_(fields) {
   for (let i = 1; i <= PHOTO_MAX; i++) {

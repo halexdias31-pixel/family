@@ -580,6 +580,7 @@ function ownSecReg_() {
     size: ['Class size', 'your class size', 'The fewest and most students you take, and what a class pays.'], headline: ['Headline', 'your headline', 'The line under your name on your tutor card.'],
     photos: ['Photographs', 'your photographs', 'The photos and video on your tutor card.'], words: ['Three words', 'your three words', 'Three words that describe you.'],
     glance: ['At a glance', 'your experience and ages', 'Your experience, the ages you teach and your hours.'], quals: ['Qualifications', 'your qualifications', 'What you are qualified in and teach.'],
+    jobs: ['Jobs', 'your jobs', 'Your current and past jobs, shown on your tutor card.'],
     where: ['Where you teach', 'where you teach', 'The venues you teach at and how far you travel.'], week: ['Available', 'your weekly hours', 'The hours you can teach each week.'] };
   const of = OWN_SEC_OF_SET_;
   const where = { account: 'Kids settings', family: 'Parent settings', staff: 'Tutor settings' };
@@ -588,7 +589,7 @@ function ownSecReg_() {
 /* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
 const CARD_SAY_DYN = { 'deleted': 'Every deleted widget and card, each with Put back.', 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',
   'photos': 'The photos and video on your tutor card.', 'your-rate-and-group-size': 'Your rate, extra seats and group sizes.',
-  'qualifications': 'What you are qualified in and teach.', 'availability': 'The hours you can teach each week.',
+  'qualifications': 'What you are qualified in and teach.', 'jobs': 'Your current and past jobs, shown on your tutor card.', 'availability': 'The hours you can teach each week.',
   'where-you-teach': 'Where you teach and how far you travel.', 'about-you-as-a-tutor': 'Your headline, experience and the ages you teach.',
   'insurance': 'The business\'s insurance policies and when they renew.', 'tax': 'Tax registrations and when returns are due.',
   'legal-and-data': 'Data protection, privacy notice and terms, and when to review them.',
