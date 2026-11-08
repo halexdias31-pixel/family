@@ -178,7 +178,9 @@ function tile_(o) {
      appearance is this renderer's alone, which is the point of having one. */
   const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '') + (o.cls ? ' ' + o.cls : '');
   const name = o.label + (o.note ? ' · ' + o.note : '');
-  const attrs = ` title="${esc(name)}" aria-label="${esc(name)}"`;
+  /* ITS ONE WORD (owner, 8 Nov): `data-w` is what a worded row (a booking's) prints under the mark; `word` overrides the label's first. */
+  const word = String(o.word || o.label || '').split(' ')[0];
+  const attrs = ` title="${esc(name)}" aria-label="${esc(name)}" data-w="${esc(word)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
      has not been given one falls back to the word — visibly wrong, rather than invisible. */
   /* `face` IS A KEYPAD KEY'S OWN DRAWN FACE (a fraction, a power), trusted markup from keypad-keys.js, never data. */
@@ -552,7 +554,7 @@ function jobAdminTiles_(j, stage, accepted) {
   if (!id) return '';
   const rows = [];
   if (stage === 'application' || stage === 'waitlist') {
-    rows.push(tile_({ icon: 'book', label: 'Accept', tone: 'buy', note: 'settles the terms',
+    rows.push(tile_({ icon: 'tick', label: 'Accept', tone: 'buy', note: 'settles the terms',
                       act: 'job-answer', data: { id: id, yes: '1' } }));
     rows.push(tile_({ icon: 'close', label: 'Decline', note: 'turns it down',
                       act: 'job-answer', data: { id: id, yes: '' } }));
