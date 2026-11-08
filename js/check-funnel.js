@@ -1285,7 +1285,8 @@ function pathsAsked_(f, items) {
         }
         const at = S.filters.slice(keep.length).map(c => c.field + '=' + c.value).join(' > ');
         const shown = f.facetValues(f.stuffFiltered(), pf).map(v => String(v.show || v.text || v.value));
-        const long = shown.filter(t => !/^(Paper|Component|Unit|Practice paper) \w+/i.test(t));
+        /* A COVER CODE ("1MA1/3F", "8464/B/1H") IS THE PAPER'S OWN NAME (owner 8 Nov 2026), as good as "Paper 3". */
+        const long = shown.filter(t => !/^(Paper|Component|Unit|Practice paper) \w+/i.test(t) && !/^[A-Z0-9]{4,6}(\/[A-Z])?\/\d\w*/.test(t));
         if (long.length > shown.length / 4) bad.push('paper path ' + trail.join(' > ') + ': the Paper question (after ' + at + ') says ' + long.length + ' of ' + shown.length + ' answers as raw names, e.g. ' + long.slice(0, 3).join(' | '));
         if (process.env.VERBOSE) console.log('   papers after ' + at + ': ' + shown.slice(0, 12).join(' | '));
         S.filters = keep;
