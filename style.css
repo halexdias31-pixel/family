@@ -5556,10 +5556,12 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .rc.rc-snap .rc-more { display: none !important; }
 
 /* THE PICTURE IN THE SHEET, when the share sheet refused or there is none — see `rcOffer_`. Its
-   own width, never wider than the sheet, and a hairline so a dark card does not vanish into a dark
-   sheet. */
+   own width, never wider than its card, and a hairline so a dark card does not vanish into a dark
+   card. */
 .rc-shot { display: block; width: 100%; height: auto; margin: 0 0 .6rem;
            border: 1px solid var(--line); border-radius: var(--r); }
+/* THE FORMS ON A RECEIPT'S FOOT (Set the room, Mark paid) and the picture under it: no sheet, owner 7 Nov. */
+.rc-form, .rc-shot-box { margin-top: .8rem; }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT) § */
 .agree-draft {

@@ -87,11 +87,11 @@ const EXEMPT = [
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
   { file: 'tiles.js', fn: 'searchPill_', has: 'type="search"', why: 'the one search bar (487): Reels\' videos and the People search — a word looked up, not work, retyped in a second' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
-  { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
+  { file: 'me.js', fn: 'registerCard_', has: 'id="reg-pin"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-now"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-new"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-again"', why: PIN },
-  { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
+  { file: 'me.js', fn: 'registerCard_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   { file: 'me.js', fn: 'friendsSheet', has: 'id="fr-add"', why: 'one handle, typed in seconds and sent by the button beside it' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
   { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
@@ -109,8 +109,8 @@ const EXEMPT = [
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
   { file: 'posts.js', has: 'id="pe-pin"', why: 'one tick, pinning a post that is already up' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
-  { file: 'receipt.js', fn: 'askHow_', has: 'id="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the same sheet' },
-  { file: 'find.js', has: 'id="room-name"', why: 'a room name, a few words, prefilled and sent by the same sheet' },
+  { file: 'tiles.js', fn: 'jobPaidForm_', has: 'class="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the button under it' },
+  { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
 
 /* ---------- THE BOXES ------------------------------------------------------------------------------------ */

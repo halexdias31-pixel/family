@@ -565,18 +565,18 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   if (!reg) return bad.concat(['there is no Make an account tile to press']);
   t.ACTIONS['register'](reg);
   await wait(50);
-  const sheet = d.getElementById('sheet');
-  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing Make an account opened no sheet']);
+  if (d.querySelector('#sheet:not(.hidden)')) bad.push('pressing Make an account opened a sheet — the form is in its card (owner, 7 Nov)');
+  if (!d.querySelector('#s-account .reg-card .reg-form')) return bad.concat(['the account column has no Make an account card with its form']);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
   if (!['reg-first', 'reg-last', 'reg-email', 'reg-pin'].every(id => fill(id, ''))) {
-    return bad.concat(['the register sheet is missing one of its four boxes']);
+    return bad.concat(['the register form is missing one of its four boxes']);
   }
-  const go_ = d.querySelector('#sheet-body [data-do="reg-send"]');
-  if (!go_) return bad.concat(['the register sheet has no button']);
+  const go_ = d.querySelector('#s-account .reg-card [data-do="reg-send"]');
+  if (!go_) return bad.concat(['the register form has no button']);
   /* WHO IT IS FOR, FIRST — the journey after this one asks the question itself; here it is answered
      so the rest of the form can be asked about. */
-  const asStudent = d.querySelector('#sheet-body #reg-who-in option[data-who="student"]');
-  if (!asStudent) return bad.concat(['the register sheet does not ask who the account is for']);
+  const asStudent = d.querySelector('#s-account .reg-card #reg-who-in option[data-who="student"]');
+  if (!asStudent) return bad.concat(['the register form does not ask who the account is for']);
   t.ACTIONS['reg-who'](asStudent);
 
   /* A BAD PIN, REFUSED ON THE PHONE. Three digits and a letter are both things the server refuses. */
@@ -594,12 +594,12 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   t.ACTIONS['reg-send'](go_);
   await wait(300);
   const post = sent.find(b => b.action === 'register');
-  if (!post) bad.push('a filled sheet posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
+  if (!post) bad.push('a filled form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
   else {
     const want = { who: 'student', first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
     Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('register carried ' + k + ' = ' + JSON.stringify(post[k]) + ', wanted ' + JSON.stringify(want[k])); });
   }
-  if (!sheet.classList.contains('hidden')) bad.push('the sheet is still open after the account was made');
+  if ((d.getElementById('reg-pin') || {}).value) bad.push('the PIN is still in the form after the account was made');
   const said = String((d.getElementById('toast') || {}).textContent || '');
   if (!/link/i.test(said)) bad.push('after registering the toast says ' + JSON.stringify(said) + ' — nothing about the emailed link');
   return bad;
@@ -644,15 +644,15 @@ check('a child with no email makes their own account with a grown-up\'s address,
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
   /* A STUDENT — the grown-up's-email tick is theirs alone (see the next journey for the parent). */
-  const student = () => { const b = d.querySelector('#sheet-body #reg-who-in option[data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
-  if (!student()) return ['the register sheet does not ask who the account is for'];
+  const student = () => { const b = d.querySelector('#s-account .reg-card #reg-who-in option[data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
+  if (!student()) return ['the register form does not ask who the account is for'];
   const tick = d.getElementById('reg-noemail');
-  if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
+  if (!tick) return ['the register form has no "I have no email" tick, so a child with no address has no way in'];
   if (tick.closest('label.check') === null) bad.push('the no-email tick is not the app\'s own .check control');
   fill('reg-first', 'Ben'); fill('reg-last', 'Mum'); fill('reg-email', 'mum@example.org'); fill('reg-pin', '0000');
   tick.checked = true;
   sent.length = 0;
-  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  t.ACTIONS['reg-send'](d.querySelector('#s-account .reg-card [data-do="reg-send"]'));
   await wait(300);
   const post = sent.find(b => b.action === 'register');
   if (!post) return bad.concat(['the ticked form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
@@ -669,7 +669,7 @@ check('a child with no email makes their own account with a grown-up\'s address,
   student();
   fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org'); fill('reg-pin', '0000');
   sent.length = 0;
-  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  t.ACTIONS['reg-send'](d.querySelector('#s-account .reg-card [data-do="reg-send"]'));
   await wait(300);
   const post2 = sent.find(b => b.action === 'register');
   if (!post2 || post2.email !== 'rae@example.org' || post2.parent_email) bad.push('unticked, register posted ' + JSON.stringify(post2));
@@ -1093,10 +1093,10 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!reg) return ['there is no Make an account tile to press'];
   t.ACTIONS['register'](reg);
   await wait(50);
-  const choice = who => d.querySelector('#sheet-body #reg-who-in option[data-who="' + who + '"]');
+  const choice = who => d.querySelector('#s-account .reg-card #reg-who-in option[data-who="' + who + '"]');
   const rest = () => d.getElementById('reg-rest');
   const tickRow = () => { const x = d.getElementById('reg-noemail'); return x && x.closest('.reg-kid'); };
-  if (!choice('parent') || !choice('student')) return ['the register sheet does not ask "a parent or a student?"'];
+  if (!choice('parent') || !choice('student')) return ['the register form does not ask "a parent or a student?"'];
   /* THE QUESTION FIRST: the boxes and the button are not shown, and nothing is chosen for you. */
   if (!rest() || !rest().hidden) bad.push('the boxes are shown before anybody has said who the account is for');
   if (d.getElementById('reg-who-in').value) bad.push('an answer is already chosen when the sheet opens — the default is the fault this question ends');
@@ -1105,7 +1105,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; };
   fill('reg-first', 'Dana'); fill('reg-last', 'Brook'); fill('reg-email', 'dana@example.org'); fill('reg-pin', '0000');
   sent.length = 0;
-  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  t.ACTIONS['reg-send'](d.querySelector('#s-account .reg-card [data-do="reg-send"]'));
   await wait(200);
   if (sent.some(b => b.action === 'register')) bad.push('an unanswered sheet posted register — the server would make them a student');
 
@@ -1123,7 +1123,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!/Add as my child/.test(note) || !/Student profiles?/.test(note)) bad.push('a parent\'s note does not say where their child is added: ' + JSON.stringify(note));
 
   sent.length = 0;
-  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  t.ACTIONS['reg-send'](d.querySelector('#s-account .reg-card [data-do="reg-send"]'));
   await wait(300);
   const post = sent.find(b => b.action === 'register');
   if (!post) return bad.concat(['the parent\'s form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
@@ -1149,13 +1149,14 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   /* A STUDENT'S POST SAYS STUDENT. */
   t.USER(null);
   t.go('account', false, true);
+  try { w.paint('account'); } catch (e) {}
   await wait(80);
   t.ACTIONS['register'](d.querySelector('#s-account [data-do="register"]'));
   await wait(50);
   t.ACTIONS['reg-who'](choice('student'));
   fill('reg-first', 'Mo'); fill('reg-last', 'Learner'); fill('reg-email', 'mo@example.org'); fill('reg-pin', '0000');
   sent.length = 0;
-  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  t.ACTIONS['reg-send'](d.querySelector('#s-account .reg-card [data-do="reg-send"]'));
   await wait(300);
   const post2 = sent.find(b => b.action === 'register');
   if (!post2 || post2.who !== 'student') bad.push('a student\'s register carried who = ' + JSON.stringify(post2 && post2.who));
