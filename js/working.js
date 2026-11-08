@@ -20,10 +20,13 @@ function workStripInner_(k) {
   const pics = WORK_PICS[k] || [];
   const thumbs = pics.map((p, i) => `<span class="qp-work-pic"><img src="${esc(p.url)}" alt="Page ${i + 1} of your working">
     <button type="button" class="qp-work-x" data-do="qp-work-x" data-k="${esc(k)}" data-i="${i}" aria-label="Remove page ${i + 1}">×</button></span>`).join('');
-  const go = pics.length ? tile_({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
-    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : '';
-  return `<div class="qp-work-pics">${thumbs}</div><div class="tile-row qp-work-row">${go}</div>
+  return `<div class="qp-work-pics">${thumbs}</div>
     <p class="qp-work-say" role="status" aria-live="polite"></p>`;
+}
+/* MARK MY WORKING STANDS IN THE PART'S ONE TOOL ROW (owner, 8 Nov), in its slot there, once there is a photo to mark */
+function workGoTile_(k) {
+  return (WORK_PICS[k] || []).length ? tile_({ icon: 'tick', label: 'Mark my working', note: 'AI reads the photos',
+    act: 'qp-work-send', cls: 'qp-work-send is-submit', data: { k } }) : '';
 }
 function workPaint_(k) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -31,6 +34,7 @@ function workPaint_(k) {
     el.innerHTML = workStripInner_(k);
     el.hidden = !(WORK_PICS[k] || []).length;
   });
+  document.querySelectorAll('.qp-work-slot').forEach(el => { if (el.getAttribute('data-k') === k) el.innerHTML = workGoTile_(k); });
 }
 function workSay_(k, text) {
   document.querySelectorAll('.qp-work').forEach(el => {
@@ -116,7 +120,7 @@ on('qp-work-send', el => {
   el.disabled = true;
   el.classList.add('is-busy');
   workSay_(k, '');
-  const strip = el.closest('.qp-work');
+  const strip = [].find.call(document.querySelectorAll('.qp-work'), s => s.getAttribute('data-k') === k);
   const wait = strip && strip.querySelector('.qp-work-say');
   if (wait) wait.innerHTML = loading_();
   api({ action: 'markWorking', personId: USER.personId || '', id: subId_(), sent: Date.now(), key: k,
