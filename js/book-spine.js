@@ -622,7 +622,9 @@ function discountRow_(L) {
   /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): everybody sees the line, greyed for the rest; the server refuses theirs (`discountRefusal_`). */
   const admin = typeof isAdmin === 'function' && isAdmin();
   const e = (L && L.earn) || { discount: 0 };
-  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
+  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
+    /* CAPPED WHERE @FAMILY'S SHARE RUNS OUT (owner, 8 Nov): the most it can be is said in the rate column. */
+    rate: e.capped ? 'max ' + e.maxPct + '%' : '',
     total: e.discount > 0 ? '− ' + money(e.discount / ((L && L.splitShares) || 1)) : '—',
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
@@ -644,10 +646,13 @@ document.addEventListener('change', e => {
 /* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT § */
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
-  const ok = L && L.total > 0 && isFinite(Number(L.tutorPay));
-  return { label: 'Client pays', total: ok ? money(L.total) : '\u2014',
-           more: [{ k: 'Tutor earns', t: ok ? money(Number(L.tutorPay)) : '\u2014' },
-                  { k: 'Admin earns', t: ok ? money(L.total - Number(L.tutorPay)) : '\u2014' }] };
+  /* THE SAME THREE FIGURES THE BOOKING ROW KEEPS (`bookShares_`): after the discount, so pays = tutor + admin + fees to the penny. */
+  const sh = typeof bookShares_ === 'function' ? bookShares_(L) : null;
+  const dash = '\u2014';
+  return { label: 'Client pays', total: sh ? money(sh.pays) : dash,
+           more: [{ k: 'Tutor earns', t: sh ? money(sh.tutor) : dash }]
+             .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money(sh.fees) }] : [])
+             .concat([{ k: 'Admin earns', t: sh ? money(sh.admin) : dash }]) };
 }
 /* AN ADMIN'S MONEY, ONE BUILDER FOR THE FORM AND THE SAVED BOOKING: Client pays, then who earns what, as ordinary lines. */
 function moneyLines_(m) {

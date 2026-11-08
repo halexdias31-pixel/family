@@ -1000,7 +1000,8 @@ check('an admin\'s booking form ends on Discount, one percentage, and Client pay
     const B = w.__t.BOOKING;
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     Object.assign(B, { how: 'Instant class', level: 'GCSE', loc: 'Colliers Wood Library', subjects: ['Maths'],
-      n: '2', hosting: 'No', slots: ['m16', 'm17'],
+      /* FOUR SEATS, THE ROOM THEIRS, AND @FAMILY. KEEPING HALF OF EACH EXTRA SEAT: room under the cap for 30% (owner, 8 Nov: a discount stops where admin would go below 0). */
+      n: '4', hosting: 'Yes', slots: ['m16', 'm17'],
       /* A TERM OF ITS OWN, a week from today for three weeks, so a journey run next month still has Mondays to price. */
       interval: ['Money test term'], discValue: '30' }, extra || {});
   };
@@ -1011,6 +1012,7 @@ check('an admin\'s booking form ends on Discount, one percentage, and Client pay
   const gbp = n => '£' + (Number(n) || 0).toFixed(2);
 
   w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  (w.__t.DATA().constants = w.__t.DATA().constants || {}).vars = Object.assign({}, (w.__t.DATA().constants || {}).vars || {}, { c: 0.5, B: 1, card_fee_pct: 0, card_fee_fixed: 0 });
   seed({ discValue: '' });
   const full = (w.__t.price() || {}).total;
   seed();

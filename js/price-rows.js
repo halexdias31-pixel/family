@@ -48,6 +48,14 @@ const PRICE_ROWS = [
     mult:  L => L.L,
     of:    L => rateBase(L, 'level') },
 
+  /* THE DEAREST DAY AND TIME TICKED (owner, 8 Nov): it was in the price and on no line, so the column did not multiply out. */
+  { key: 'daytime', label: 'Day & time', kind: 'rate-mult', group: 'rate',
+    control: null,
+    value: L => '',
+    mult:  L => (Number(L.D) || 1) * (Number(L.T) || 1),
+    of:    L => rateBase(L, 'daytime'),
+    show:  L => (Number(L.D) || 1) * (Number(L.T) || 1) !== 1 },
+
   { key: 'students', label: 'Extra seats', kind: 'rate-mult', group: 'rate',
     control: 'l-qty',
     /* Says WHERE the fraction came from, for an admin. § */
@@ -90,6 +98,7 @@ const RATE_CHAIN = [
   { key: 'subject',    mult: L => L.avgSubject },
   { key: 'complexity', mult: L => L.fSubjectCount },
   { key: 'level',      mult: L => L.L },
+  { key: 'daytime',    mult: L => (Number(L.D) || 1) * (Number(L.T) || 1) },
   { key: 'students',   mult: L => L.fChildrenAll },
 ];
 
@@ -98,7 +107,7 @@ function rateBase(L, key) {
   let base = L.chargeRate || 0;
   for (const step of RATE_CHAIN) {
     if (step.key === key) return base;
-    base *= Number(step.mult(L)) || 1;
+    base = pence_(base * (Number(step.mult(L)) || 1));
   }
   return base;
 }
@@ -121,7 +130,7 @@ function priceCells(row, L, fmt) {
   /* A rate row produces a running RATE; a shape row produces a running TOTAL. Which column a row
      writes into is decided by which of the two it actually makes, never by what fits. */
   /* Every money row reports the same thing: § */
-  const isRateRow = ['base','subject','complexity','level','students','venue','host'].includes(row.key);
+  const isRateRow = ['base','subject','complexity','level','daytime','students','venue','host'].includes(row.key);
   const running = () => {
     if (isRateRow || known) return { total: money(runningAfter(row.key, L)) };
     /* Nothing to total yet — say WHY, on the row that's waiting for it. § */
@@ -176,7 +185,7 @@ function priceCells(row, L, fmt) {
     }
     if (!m || m === 1) { out.mul = row.value && row.value(L) ? '—' : ''; return out; }
     const base = row.of(L);
-    const perHour = base * (m - 1);
+    const perHour = pence_(runningAfter(row.key, L) - base);
     /* The multiplier AND the percentage. § */
     out.mul   = '× ' + Number(m).toFixed(m % 1 ? (m * 100 % 1 ? 3 : 2) : 0);
     out.rate  = signed(perHour, '/h');

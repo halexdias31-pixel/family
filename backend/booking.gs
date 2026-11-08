@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-08-photo-upload-1";
+const BOOKING_VERSION = "2026-11-08-home-seats-1";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -316,6 +316,11 @@ function capacityFor(kind, name) {
   }
   const p = findPerson(name);
   return p ? N(p.max_students) : 0;
+}
+
+/* THE CLIENT'S OWN HOUSE, by name — the same words as `atClientHome_` on the phone. */
+function atClientHome_(loc) {
+  return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(S(loc));
 }
 
 /* THE SEAT CAP A NEW BOOKING MEETS (owner, 7 Nov): the smaller of the tutor's and the place's; online and the client's house hold 4. Same rule as `seatLimits` on the phone. */

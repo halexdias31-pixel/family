@@ -251,6 +251,7 @@ on('book-share', el => {
 /* The one entry point. § */
 /* EVERY ANSWER ON THE CARD COMES THROUGH THIS ONE REDRAW. */
 function drawBooker() {
+  if (typeof bookHomeSeats_ === 'function') bookHomeSeats_();
   redrawBooker_(paintBook_);
   /* EVERY ANSWER COMES THROUGH HERE, so here is where the form is kept for a reload (`bookKeep_`, book.js). */
   if (typeof bookKeep_ === 'function') bookKeep_();
@@ -403,6 +404,8 @@ on('book-send', el => {
     slots: (Array.isArray(BOOKING.slots) ? BOOKING.slots : []).join(','),
     hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
     requestedTutor: spec.tutor,
+    /* THE SEAT TOTAL, so the server can hold a home booking to the tutor's whole capacity. */
+    n: String(spec.n || 1),
     dates: (L && L.sessionDates || []).map(d => fmtDate(d)).join(', '),
     price: SH ? String(SH.pays) : (L ? String(L.total || '') : ''),
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever

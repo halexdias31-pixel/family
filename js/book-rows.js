@@ -197,6 +197,7 @@ document.addEventListener('change', e => {
   /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old browser
      that lets a disabled option through, a hand-built event. Said, and the row redrawn on what it
      held. */
+  if (step.lock && step.lock()) { drawBooker(); return; }
   const no = step.off && el.value ? String(step.off(el.value) || '') : '';
   if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
   BOOKING[step.id] = el.value || '';
@@ -406,7 +407,8 @@ function stepSelect_(st) {
   const dup = !!fb && opts.some(o => norm(said(o)) === norm(fb));
   /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
      changes. A form whose rows come and go cannot be learnt. */
-  const off = stepLocked_(st);
+  /* A `lock` (the home seat count) greys the select but keeps it, so the fixed value still shows. */
+  const off = stepLocked_(st) || !!(st.lock && st.lock());
   /* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off` on
      the tutor step. The one already chosen is left pressable, so the row can show it. */
   const noOf = o => st.off ? String(st.off(o) || '') : '';
@@ -516,14 +518,16 @@ function slotHead_(hours) {
 function weekRows_(days, cell, opts) {
   const o = opts || {};
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
-  /* THE WEEK'S HOURS, ONCE, on its first row (the grid's own, owner 7 Nov): four boxes ticked over two days is × 4, the hours a week
+  /* THE WEEK'S HOURS, ONCE (the grid's own, owner 7 Nov): four boxes ticked over two days is × 4, the hours a week
      `priceFrom` multiplies by, never × 2 twice (docs/history/525). */
   const week = days.reduce((n, d) => n + (Number(d.mul) || 0), 0);
+  /* ON THE LAST TICKED DAY (owner, 8 Nov): × 4 on an empty Monday read as Monday's; it closes the week's ticks instead. */
+  const last = days.reduce((at, d, i) => (Number(d.mul) > 0 ? i : at), 0);
   return days.map((d, i) => ({
     n: '', k: String(d.label), v: '',
     /* ---------- HOW MANY HOURS THE WEEK IS, IN THE COLUMN THAT MULTIPLIES § */
-    mul: (i === 0 && week) ? '\u00d7 ' + week : '', rate: '',
-    total: (i === 0 && week && o.total) ? o.total : '',
+    mul: (i === last && week) ? '\u00d7 ' + week : '', rate: '',
+    total: (i === last && week && o.total) ? o.total : '',
     /* THE STEP EVERY ONE OF THESE ROWS BELONGS TO. `bookBreakdown` matches a price line to its
        question on `id`, and seven rows answering one question all carry the same one. */
     id: o.id || '',
