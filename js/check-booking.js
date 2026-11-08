@@ -85,6 +85,7 @@ try {
     + fn(booking, 'bmApply')
     + fn(core, 'sheetDate')
     + fn(booking, 'sessionDatesOf')
+    + fn(booking, 'refundOwedPure_')
     + block(booking, 'const DAY_CODE_ = ', '};')
     + fn(booking, 'slotCodes_')
     + fn(booking, 'jobCodes_')
@@ -92,7 +93,7 @@ try {
     + `; module.exports = { BM, ACT, set: e => { EVENTS = e },
          setJobs: (j, t) => { JOBS = j; TUTOR_OF = t || {}; },
          participantsOf, clientsIn, jobStatusOf, tutorStatusOf, bmActionsFor, bmApply,
-         busyHours };`;
+         busyHours, refundOwedPure_ };`;
   const m = { exports: {} };
   new Function('module', 'exports', src)(m, m.exports);
   api = m.exports;
@@ -563,6 +564,18 @@ if (money_) {
     },
   });
 }
+
+/* NO REFUND INSIDE A PAID BLOCK; 24h FOR A SINGLE LESSON (owner, 7 Nov). */
+RULES.push({
+  what: 'leaving a paid block owes nothing; a single lesson is refunded only with 24h notice',
+  check() {
+    const bad = [], f = api.refundOwedPure_;
+    if (f(['10/11/2026', '17/11/2026'], '16:00', new Date(2026, 9, 1))) bad.push('a block left weeks ahead was refunded');
+    if (!f(['10/11/2026'], '16:00', new Date(2026, 10, 9, 15, 0))) bad.push('a single lesson left 25h ahead was not refunded');
+    if (f(['10/11/2026'], '16:00', new Date(2026, 10, 9, 17, 0))) bad.push('a single lesson left 23h ahead was refunded');
+    return bad;
+  },
+});
 
 /* ---------- RUN ---------------------------------------------------------------------------------- */
 let failed = 0;
