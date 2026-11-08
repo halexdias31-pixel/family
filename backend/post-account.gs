@@ -998,13 +998,29 @@ function postSavePhoto_(body, action, began) {
 
 /* ---------- A TUTOR'S INTRO VIDEO, IN 4 MB PARTS (8 Nov): Apps Script cannot hold 100 MB, so each part goes on to a Drive resumable upload. */
 /* The last part shares the file view-by-link and writes its id on the row; 4 MB is a multiple of Drive's 256 KB step. */
-function videoFolder_() {
+function videoFolder_() { return propFolder_(VIDEO_FOLDER_PROP, VIDEO_FOLDER_NAME); }
+function propFolder_(prop, name) {
   const props = PropertiesService.getScriptProperties();
-  const id = S(props.getProperty(VIDEO_FOLDER_PROP));
+  const id = S(props.getProperty(prop));
   if (id) { try { const f = DriveApp.getFolderById(id); if (f && !(f.isTrashed && f.isTrashed())) return f; } catch (err) { /* made again below */ } }
-  const f = DriveApp.createFolder(VIDEO_FOLDER_NAME);
-  props.setProperty(VIDEO_FOLDER_PROP, f.getId());
+  const f = DriveApp.createFolder(name);
+  props.setProperty(prop, f.getId());
   return f;
+}
+/* A TUTOR'S EXTRA PHOTO, UPLOADED (8 Nov): one JPEG the phone has redrawn at 1200px; the link goes back to the box and Save keeps it. */
+function postPhotoFile_(body, action, began) {
+  const r = findPerson(S(body.name), S(body.personId));
+  if (!r) return jsonOut({ error: 'Person not found.' });
+  if (!(hasRole(r, 'tutor') || hasRole(r, 'admin'))) return jsonOut({ error: 'Only a tutor has extra photos.' });
+  const raw = S(body.data).trim();
+  if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
+  if (Math.floor(raw.split(',')[1].length * 3 / 4) > PHOTO_FILE_MAX_BYTES) return jsonOut({ error: 'That picture is too big. Try a smaller one.' });
+  try {
+    const url = driveKeep_(propFolder_(PHOTO_FOLDER_PROP, PHOTO_FOLDER_NAME), raw, 'photo-' + (S(r.person_id) || 'tutor') + '-' + Date.now());
+    return jsonOut({ success: true, url });
+  } catch (err) {
+    return jsonOut({ error: 'Could not save the photo. ' + driveTrouble_(err, hasRole(r, 'admin')) });
+  }
 }
 function postVideoPart_(body, action, began) {
   const t = read(TAB.people);

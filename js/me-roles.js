@@ -194,7 +194,7 @@ const libFieldsOf_ = groups => [].concat(...Object.keys(groups || {}).map(g => g
 /* ---------- A COLUMN PER RANK (444): YOU FOR EVERY ACCOUNT, THEN FAMILY, TUTOR AND ADMIN ----------
    The owner: one column whose contents change with rank "becomes really messy and hard for me to know what's going on". */
 /* A FIELD IS A TUTOR'S WHEN NEITHER A CLIENT'S NOR A STUDENT'S GROUPS HAVE IT — the backend's lists decide, not a list here. */
-const STAFF_GROUPS_ = ['Your rate and group size', 'Qualifications', 'Availability'];
+const STAFF_GROUPS_ = ['Your rate and group size', 'Qualifications', 'Jobs', 'Availability', 'When I can teach'];
 function staffField_(f, g) {
   const sets = [DATA.clientFields, DATA.studentFields].filter(x => x && Object.keys(x).length);
   if (!sets.length) return STAFF_GROUPS_.indexOf(g) !== -1;
@@ -210,8 +210,8 @@ const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you'
 /* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
 function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
-  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so the week group is not drawn here a second time. */
-  if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
+  /* AND STAFF SET THEIR WEEK ON THE AVAILABLE CARD (487), so it is not drawn twice — but that card needs a tutor row, which a new tutor lacks. */
+  if (typeof hubFor_ === 'function' && hubFor_() && cardMine_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
   const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     if (!shown[g].length) return;
