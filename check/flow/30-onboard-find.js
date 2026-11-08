@@ -110,3 +110,22 @@ function onboardShot_(c, name) {
   if (!dir) return;
   try { require('fs').writeFileSync(require('path').join(dir, 'onboard-' + name + '.html'), '<!doctype html>' + c.d.documentElement.outerHTML); } catch (e) {}
 }
+
+/* THE WEEKLY EMAIL IN FIND › SETTINGS › BUSINESS (owner, 8 Nov): its look and its words, an admin's only, each titled. */
+check('Find › Settings › Business shows the Sunday letter to parents and its words to an admin, never to a parent', async () => {
+  const W = cardWorld_({});
+  const findSet_ = async (c, type) => { c.t.go('stuff', false, true); c.w.findSettings_(type); c.w.paintStuff(); await wait(300); };
+  const serve0 = W.serve;
+  W.serve = u => { const m = /data\/(settings\/[\w-]+)\.json/.exec(u); if (!m) return serve0(u);
+    try { return JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', m[1] + '.json'), 'utf8')); } catch (e) { return serve0(u); } };
+  const bad = [];
+  const a = await cardOpen_(W, 'admin@example.org', {});
+  if (a.err) return [a.err];
+  await findSet_(a, 'Business'); await wait(400); a.w.paintStuff(); await wait(200);
+  const biz = a.w.settingDoorItems_().filter(x => x.settingFor.indexOf('Business') !== -1).map(x => x.name);
+  ['Weekly email', 'Weekly email\'s words'].forEach(n => { if (biz.indexOf(n) === -1) bad.push('Find › Settings › Business has no ' + n + ': ' + biz.join(', ')); });
+  const p = await cardOpen_(W, 'parent@example.org', {});
+  if (p.err) return bad.concat([p.err]);
+  if (p.w.settingDoorItems_().some(x => /Weekly email/.test(x.name))) bad.push('a parent is offered the weekly email');
+  return bad;
+});
