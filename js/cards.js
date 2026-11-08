@@ -534,5 +534,20 @@ on('book-with', el => {
   go('stuff');
 });
 
+/* ---------- A LIBRARY CARD'S PICTURE (owner's look rule: picture first): a kind with no drawing of its own gets one 8-bit sign of its kind ---------- */
+const LIB_PIX = {
+  writing: ['', '...eeeeeeeeee', '..etttttttttte', '...eeeeeeeeee', '...ewwwwwwwwe', '...ewkkkkkkwe', '...ewwwwwwwwe', '...ewkkkkkwwe',
+    '...ewwwwwwwwe', '...ewkkkkkkwe', '...ewwwwwwwwe', '...ewkkkwwwwe', '...eeeeeeeeee', '..etttttttttte', '...eeeeeeeeee', ''],
+  event: ['', '..k', '..krrrrrrrr', '..krrrrrrrrrr', '..krrrrrrrrrrr', '..krrrrrrrrrr', '..krrrrrrrr', '..k', '..k', '..k', '..k', '..k',
+    '..k', '.kkk', 'kkkkk', ''],
+  content: ['', '', '..tttttttttttt', '..tywwwwwwwwwt', '..tywkkkkkkwwt', '..tywwwwwwwwwt', '..tywkkkkkwwwt', '..tywwwwwwwwwt',
+    '..tywkkkkkkwwt', '..tywwwwwwwwwt', '..tywkkkkwwwwt', '..tywwwwwwwwwt', '..tttttttttttt', '..twwwwwwwwwwt', '...ttttttttttt', ''],
+  project: ['', '......yyyy', '....yyyyyyyy', '...yyywwyyyyy', '...yywwyyyyyy', '...yyyyyyyyyy', '...yyyyyyyyyy', '....yyyyyyyy',
+    '.....yyyyyy', '......yyyy', '......ssss', '......kkkk', '......ssss', '.......kk', '', ''],
+  manuscript: ['', '..eeeeeeeeeee', '..eeeeeeeeeeee', '..ettttttttee', '..eeeeeeeeeee', '..etttttttttee', '..eeeeeeeeeeee', '..ettttttteee',
+    '..eeeeeeeeeeee', '..etttttttttee', '..eeeeeeeeeee', '..ettttteeeee', '..eeeeeeeeeeee', '...eeeeeeeeeee', '', ''],
+};
+const libPic_ = (kind, name) => (LIB_PIX[kind] ? `<figure class="lib-pic">${pixSvg_(LIB_PIX[kind], name || '')}</figure>` : '');
+
 /* `on('prof-shot')` WAS HERE — a tutor's extra photograph opened across its row on a tap. Taken out
    on request (10 Oct, `findCard`): the squares are pictures, not controls. */
