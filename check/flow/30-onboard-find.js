@@ -89,7 +89,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   const pat = [...k.d.querySelectorAll('#s-stuff .card')].find(x => /Pat Parent/.test(x.textContent));
   if (!pat) return bad.concat(['Find › Profiles does not list Pat: ' + k.w.stuffFiltered().map(x => x.kind + ':' + x.name).join(', ')]);
   onboardShot_(k, 'listed');
-  const book = pat.querySelector('[data-do="book-with"]');
+  const book = ((pat.closest('.favwrap') || pat).parentNode).querySelector('[data-do="book-with"]');
   if (!book) return bad.concat(['Pat\'s card in Find › Profiles has no Book tile: ' + [...pat.querySelectorAll('[data-do]')].map(x => x.dataset.do).join(',')]);
   k.A('book-with', book); await wait(400);
   const door = (k.t.STUFF().filters || []).some(f => f.value === 'Booking');
@@ -97,6 +97,10 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   const step = k.d.querySelector('#s-stuff [data-step="tutor"]');
   if (!step || !/Pat Parent/.test(step.value || '')) bad.push('the booking form does not show Pat as the tutor: ' + (step ? step.outerHTML.slice(0, 200) : 'no tutor step drawn'));
   onboardShot_(k, 'book');
+  /* ONE TUTOR CARD (owner, 8 Nov): the same tutor item answers Booking too, with its Book tile. */
+  const KB = k.t.STUFF(); KB.filters.length = 0; KB.filters.push({ field: 'kindLabel', value: 'Booking' }); KB.q = 'Pat'; k.w.paintStuff(); await wait(300);
+  const patB = k.w.stuffFiltered().find(x => x.kind === 'tutor' && /Pat Parent/.test(x.name));
+  if (!patB || !/data-do="book-with"/.test(k.w.stuffCard(patB))) bad.push('Find › Booking does not list Pat with a Book tile: ' + k.w.stuffFiltered().map(x => x.kind + ':' + x.name).join(', '));
   return bad;
 });
 

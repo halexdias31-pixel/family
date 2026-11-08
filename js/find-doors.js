@@ -72,7 +72,8 @@ function profileDoorItems_() {
     out.push({ kind: 'person', name: p.title || p.name || p.handle, key: 'person:' + id, sub: '', image: p.image || '', row: p,
       profileType: profileTypes_(p, tutor), text: [p.title, p.name, p.handle, p.role].filter(Boolean).join(' ') });
   };
-  ((DATA && DATA.tutors) || []).filter(t => t && t.title && t.listed !== false).forEach(t => add(t, true));
+  /* Tutors are Booking's tutor items, tagged Profiles too (KIND_UNDER): never a second card here. */
+  ((DATA && DATA.tutors) || []).forEach(t => { if (t) seen[String(t.personId || t.title || t.handle || '')] = 1; });
   if (typeof isAdmin === 'function' && isAdmin()) ((DATA && DATA.everyone) || []).filter(p => p && p.title).forEach(p => add(p, false));
   if (typeof canTrack === 'function' && canTrack() && typeof friendHandles === 'function') friendHandles().forEach(h => {
     const s2 = ((DATA && DATA.students) || []).find(x => norm(x.handle) === norm(h)) || {};
@@ -83,16 +84,9 @@ function profileDoorItems_() {
 /* PICTURE FIRST: the face fills the top of the card, the name under it; everything else is a tag. */
 function profileDoorCard_(x) {
   const t = x.row || {};
-  /* A TUTOR IN PROFILES IS THE ONE TUTOR CARD (owner, 8 Nov): rate, pills, map, hours — never a short face-and-name card. */
-  if (x.profileType.indexOf('Tutor') !== -1 && typeof findCard === 'function') {
-    const tx = { kind: 'tutor', name: t.title || x.name, row: t };
-    return findCard(tx).replace(/<\/div>\s*$/, (typeof tileRow_ === 'function' && typeof tutorTiles_ === 'function'
-      ? tileRow_(tutorTiles_(tx) + (typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles') : '') + '</div>');
-  }
   return `<div class="card is-prof prof-door">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title || t.name, personId: t.personId },
     { cls: 'prof-big', none: 'prof-none', size: 160 })}<h3>${esc(x.name)}</h3>${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-    ${tileRow_((x.profileType.indexOf('Tutor') !== -1 && typeof bookTile_ === 'function' ? bookTile_(x) : '')
-      + (typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}</div>`;
+    ${tileRow_((typeof peopleTiles_ === 'function' ? peopleTiles_(t) : ''), 'person-tiles')}</div>`;
 }
 
 /* ---------- SETTINGS BY ACCOUNT TYPE: each settings card has one home, Find › Settings › its type ---------- */

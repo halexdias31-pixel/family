@@ -248,7 +248,7 @@ const SOON_WIDGET_UNDER = { videos: 'Videos', console: 'Games', boardgames: 'Gam
 function frontSoonOnly_(value) {
   if (value === 'Coming soon') return false;
   try {
-    const all = stuffItems().filter(x => kindTop_(x) === value);
+    const all = stuffItems().filter(x => asList_(kindTop_(x)).indexOf(value) !== -1);
     return !all.length ? soonItems_().some(x => x.top === value) : all.every(x => x.soon);
   } catch (e) { return false; }
 }

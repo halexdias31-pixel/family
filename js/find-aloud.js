@@ -533,6 +533,7 @@ function findPeopleItems_() {
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
       cost: priced_(t.rate), off: t.listed === false, row: t,
+      profileType: typeof profileTypes_ === 'function' ? profileTypes_(t, true) : ['Tutor'],
     })),
     ...(DATA.venues || []).filter(v => v.title).map(v => ({
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,

@@ -252,7 +252,8 @@ const DOC_TYPE_UNDER = { 'Specimen paper': 'Past paper', '5-a-day': 'Worksheet' 
 /* What kind offers the one above (`kindLabel`); the kind itself is asked after it (`kindOwn`). */
 const KIND_UNDER = { question: 'Practice', answer: 'Practice', practical: 'Practice', project: 'Library', timeline: 'Library',
   /* THE OWNER'S FRONT MENU (4 Nov): each kind under one of FRONT_ORDER's answers. */
-  tutor: 'Booking', venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
+  /* A TUTOR ANSWERS TWO FRONT DOORS (owner, 8 Nov): one card, tagged Booking and Profiles, like a setting's several types. */
+  tutor: ['Booking', 'Profiles'], venue: 'Booking', subject: 'Booking', level: 'Booking', receipt: 'Booking', shop: 'Shop',
   friend: 'Profiles', person: 'Profiles', video: 'Videos', setting: 'Settings', health: 'Settings', soon: 'Coming soon', msg: 'Messages',
   post: 'Posts', tool: 'Tools', game: 'Games', reel: 'Videos', offPosts: 'Posts', offShop: 'Shop', offBooking: 'Booking' };
 /* A RETURNED WIDGET THAT IS A BROWSABLE THING (batch B) is its own front answer: FIND_WIDGET_GROUPS (arcade.js). */
@@ -262,7 +263,7 @@ function underTop_(table, v) { return (v && table[v]) || v || ''; }
 /* 680: the second offers only what is BELOW the one above, never the parent's own name again; Doesn't matter covers the rest. */
 function underOwn_(table, v) { return v && table[v] && table[v] !== v ? v : ''; }
 /* 680: a kind spelt like the kind above it is never offered twice (What kind, then Which). */
-function notTop_(x, v) { const top = spellKey_(kindTop_(x)); const l = [].concat(v || []).filter(k => k && spellKey_(k) !== top); return l.length > 1 ? l : (l[0] || ''); }
+function notTop_(x, v) { const top = asList_(kindTop_(x)).map(spellKey_); const l = [].concat(v || []).filter(k => k && top.indexOf(spellKey_(k)) === -1); return l.length > 1 ? l : (l[0] || ''); }
 
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {
