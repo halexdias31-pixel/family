@@ -22,6 +22,14 @@ const VIEWERS = [
   { as: 'student', user: { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' } },
   { as: 'admin', user: { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' } },
 ];
+/* EVERY ACCOUNT TYPE SETTINGS IS TRIED AS (check/chips-settings.js): kept apart from VIEWERS so the other walks keep their three. */
+const ACCOUNTS = VIEWERS.filter(v => v.user).concat([
+  { as: 'parent', user: { name: 'Pat Parent', personId: 'P21', person_id: 'P21', role: 'client', rank: 'client', roles: ['client'], handle: 'pat_parent' } },
+  { as: 'tutor', user: { name: 'Tia Tutor', personId: 'P31', person_id: 'P31', role: 'tutor', rank: 'staff', roles: ['tutor'], handle: 'tia_tutor' },
+    profile: { first_name: 'Tia', last_name: 'Tutor', rate_per_hour: '30', headline: 'Maths and physics' } },
+  { as: 'tutor-new', user: { name: 'Nia New', personId: 'P32', person_id: 'P32', role: 'tutor', rank: 'staff', roles: ['tutor'], handle: 'nia_new' } },
+  { as: 'apprentice', user: { name: 'Ari Apprentice', personId: 'P41', person_id: 'P41', role: 'student', rank: 'student', roles: ['student', 'apprentice'], handle: 'ari_appr' } },
+]);
 /* A SMALL PHONE, A COMMON PHONE AND A LAPTOP: the three widths every audit lens measured. */
 const SIZES = [[320, 568], [390, 844], [1280, 800]];
 
@@ -144,4 +152,4 @@ async function run(o) {
   console.log(`${tag}: ${o.green} — ${ran} scenario run(s), ${mods.length} module(s), ${combos} visitor/width pair(s)`);
 }
 
-module.exports = { QUIET_MS, QUIET_CAP, VIEWERS, SIZES, FIXTURE, FIXTURE_ANON, serve, modules, open, run, arg };
+module.exports = { QUIET_MS, QUIET_CAP, VIEWERS, ACCOUNTS, SIZES, FIXTURE, FIXTURE_ANON, serve, modules, open, run, arg };
