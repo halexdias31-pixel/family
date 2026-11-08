@@ -74,5 +74,27 @@ if (/attr\(data-w\)/.test(css)) bad.push('4c a tile prints its word on the page 
 const tilesSrc = (files.find(f => f.n === 'tiles') || {}).src || '';
 if (!/function tileWordShow_/.test(tilesSrc) || !/'pointerdown'/.test(tilesSrc)) bad.push('4c the one long-press handler (tileWordShow_ in tiles.js) is missing');
 
+/* ---------- 5a. A RISKY ACTION IS TAPPED TWICE (sure_), NEVER A confirm() ---------- */
+const stripC = t => t.replace(/(^|[\s;{}(),])\/\*[\s\S]*?\*\//g, '$1').replace(/(^|\s)\/\/[^\n]*/g, '$1');
+/* Not risky: a cancel closes an unsaved editor, and a filter chip or a photo not yet sent is only a choice on screen. */
+const SAFE = new Set(['card-cancel', 'person-cancel', 'post-cancel', 'rep-cancel', 'filter-drop', 'cam-drop', 'msg-unqueue']);
+const RISKY = /(delete|decline|cancel|remove|drop|leave|revoke|unlink|refuse|reject|wipe|reset|del)\b/;
+const body = {};
+files.forEach(({ n, src }) => {
+  const code = stripC(src);
+  if (/(^|[^\w.$])(window\.)?confirm\(/.test(code)) bad.push(`5a a confirm() pop-up in ${n}.js — sure_(el, 'Remove?') instead`);
+  const hits = [...code.matchAll(/\bon\(\s*'([a-z0-9-]+)'/g)];
+  hits.forEach((m, k) => { body[m[1]] = (body[m[1]] || '') + code.slice(m.index, k + 1 < hits.length ? hits[k + 1].index : m.index + 3000); });
+});
+const armed = act => /\b(sure_|layArm_)\(/.test(body[act] || '');
+Object.keys(body).forEach(act => {
+  if (RISKY.test(act.replace(/-/g, ' ')) && !SAFE.has(act) && !armed(act)) bad.push(`5a on('${act}') is risky and not tapped twice — sure_(el, …) first`);
+});
+files.forEach(({ n, src }) => {
+  for (const m of src.matchAll(/tile_\(\{[^}]*?label:\s*'(Delete|Decline|Remove)[^']*'[^}]*?act:\s*'([a-z0-9-]+)'/g)) {
+    if (!SAFE.has(m[2]) && body[m[2]] && !armed(m[2])) bad.push(`5a the ${m[1]} tile (${m[2]}, ${n}.js) is not tapped twice — sure_`);
+  }
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

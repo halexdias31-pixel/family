@@ -95,6 +95,7 @@ on('dock-drop', (el, e) => {
   /* It sits inside the label, so without this a tap would toggle the tick on its way past. § */
   e?.preventDefault?.();
   e?.stopPropagation?.();
+  if (!sure_(el, 'Remove?')) return;
   const list = docketLines();
   const i = dockRow_(list, el);
   if (i < 0) { paintDocket(); return; }               // already gone: redraw, delete nothing

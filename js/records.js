@@ -198,6 +198,7 @@ function appsStart_() {
 on('app-decide', el => {
   if (!isAdmin()) return;
   const id = el.dataset.id, status = el.dataset.status;
+  if (status === 'declined' && !sure_(el, 'Turn it down?')) return;
   send_({ action: 'decideApplication', id, status }, { button: el, where: el.closest('.card').querySelector('.app-said'), busy: 'Saving…' })
     .then(d => {
       const a = (APPS.list || []).find(x => x.id === id);
@@ -985,7 +986,7 @@ document.addEventListener('change', e => {
   profitRedraw_();
 });
 on('profit-reset', el => {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  if (!(typeof isAdmin === 'function' && isAdmin()) || !sure_(el, 'Reset?')) return;
   PROFIT.vals = {};
   profitKeep_();
   profitRedraw_();

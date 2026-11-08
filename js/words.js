@@ -136,7 +136,7 @@ on('words-save', el => {
   wordsSend_(set, reset);
 });
 on('words-reset', el => {
-  if (!layoutIsAdmin_()) return;
+  if (!layoutIsAdmin_() || !sure_(el, 'Reset?')) return;
   const k = el.getAttribute('data-wk');
   if (WORDS_KEY_RE.test(k || '')) wordsSend_({}, [k]);
 });

@@ -198,8 +198,10 @@ on('friend-add', () => {
   toast('Added ' + found.handle);
 });
 
-on('friend-drop', el => friendsSave(
-  friendHandles().filter(h => norm(h) !== norm(el.dataset.handle)), $('fr-said')));
+on('friend-drop', el => {
+  if (!sure_(el, 'Remove?')) return;
+  friendsSave(friendHandles().filter(h => norm(h) !== norm(el.dataset.handle)), $('fr-said'));
+});
 
 /* Adding one from the Find browse page, where the list is. */
 on('friend-add-open', () => friendsSheet());
@@ -475,7 +477,7 @@ on('msg-words', el => {
 });
 on('msg-drop', el => {
   const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
-  if (!p) return;
+  if (!p || !sure_(el, 'Remove?')) return;
   MSG_PENDING = MSG_PENDING.filter(x => x !== p);
   /* What was typed and chosen goes back in the composer rather than being thrown away with the
      bubble — Remove is "I will write it differently", not "I did not mean any of it". */

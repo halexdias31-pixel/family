@@ -550,6 +550,7 @@ on('job-request-answer', el => {
       .catch(err => { el.disabled = false; toast(why_(err)); });
   };
   if (yes) { send(''); return; }
+  if (!sure_(el, 'Turn it down?')) return;
   const row = el.closest('.tile-row');
   if (!row || (row.nextElementSibling && row.nextElementSibling.classList.contains('req-why'))) return;
   row.insertAdjacentHTML('afterend', `<form class="req-why" data-id="${esc(id)}">

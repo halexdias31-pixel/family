@@ -295,7 +295,7 @@ on('cmt-add', el => {
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where the server has already said yes — and the server checks again § */
 on('cmt-del', el => {
-  if (!USER) return;
+  if (!USER || !sure_(el, 'Delete?')) return;
   el.disabled = true;
   send({ action: 'deleteComment', name: USER.name, personId: USER.personId,
          commentId: el.dataset.id })
