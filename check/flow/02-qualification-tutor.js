@@ -891,8 +891,8 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   { const h = W.real.tabs.people[0], r = W.real.tabs.people.find(x => x[h.indexOf('person_id')] === 'P-C1'); r[h.indexOf('date_of_birth')] = '01/05/1980'; }
   const p = await cardOpen_(W, 'parent@example.org', { reply });
   if (p.err) return [p.err];
-  /* 464: Tutor settings is a padlock for a client, with Apply to teach its one tile. */
-  const card = p.d.querySelector('#s-staff .col-lock');
+  /* 464, 1150: Tutor settings is a padlock for a client, and Apply to teach a card of its own beside it. */
+  const card = p.d.querySelector('#s-staff .apply-card');
   const open = card && card.querySelector('[data-do="apply-open"]:not([disabled])');
   if (!open) return ['a client\x27s Tutor column has no "Apply to teach" tile'];
   p.A('apply-open', open); await wait(100);
@@ -912,8 +912,8 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   set('[data-app="consent"]', true);
   p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(400);
   if (rows() !== 1) return bad.concat(['the application was not written: ' + rows() + ' rows']);
-  const st = p.d.querySelector('#s-staff .col-lock .apply-tiles');
-  if (!st || !/Application sent/.test(st.innerHTML) || p.d.querySelector('#s-staff .col-lock [data-do="apply-open"]:not([disabled])')) bad.push('Tutor settings does not say the application is sent: ' + (st ? st.innerHTML : 'no tile row'));
+  const st = p.d.querySelector('#s-staff .apply-card .apply-tiles');
+  if (!st || !/Application sent/.test(st.innerHTML) || p.d.querySelector('#s-staff .apply-card [data-do="apply-open"]:not([disabled])')) bad.push('Tutor settings does not say the application is sent: ' + (st ? st.innerHTML : 'no tile row'));
   /* THE ADMIN: the card glows, the dot says 1, Approve. */
   const a = await cardOpen_(W, 'admin@example.org', { reply });
   if (a.err) return bad.concat([a.err]);

@@ -675,7 +675,7 @@ function toolsStart_(kind, arriving) {
 /* ---------- A WIDGET THAT IS A FIND CARD (790): data/settings/widgets-in-find.json names a kind or an id, the id's row winning; before it comes, every tool and game ---------- */
 const FIND_WIDGET_KINDS = ['tool', 'game', 'reel', 'shop'];
 /* A WIDGET THAT IS ITS OWN FIRST ANSWER IN FIND (batch B): a browsable thing gets a menu pill, not a column or a mini-app. */
-const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Reels', newspaper: 'Newspaper', flyers: 'Flyers', poster: 'Posters', verse: 'Verse', cart: 'Shop' };
+const FIND_WIDGET_GROUPS = { videos: 'Videos', reels: 'Tools', newspaper: 'Newspaper', flyers: 'Tools', poster: 'Tools', verse: 'Tools', cart: 'Shop' };
 function widgetInFind_(w) {
   if (!w) return false;
   const rows = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.widgetsInFind)) ? DATA.widgetsInFind : null;

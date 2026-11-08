@@ -569,7 +569,7 @@ function postUpdateProfile_(body, action, began) {
   if (mailPlan === 'keep' || mailPlan === 'waiting' || mailPlan === 'move') delete put.email;
   if (mailPlan === 'correct') put.verify_token = mailKey;
   /* THE STAMP GOES ON WITH THE WRITE, NOT BEFORE IT: § */
-  if (priceMoved) put.pricing_changed_at = new Date();
+  if (pricingChanged_(r, priceAsked).length) put.pricing_changed_at = new Date();
   const renamed = fields.first_name !== undefined || fields.last_name !== undefined;
   let full = '';
   if (renamed) {

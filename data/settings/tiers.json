@@ -422,5 +422,17 @@
       "orthodox",
       "hymns"
     ]
+  },
+  "soonUnder": {
+    "notes": "WHERE AN OFF WIDGET'S COMING SOON CARD WAITS (owner, 7 Nov P7/P8): under this front answer, greyed there; any other waits under Coming soon. Written into find-finder.js by node tools/tiers.js.",
+    "videos": "Videos",
+    "console": "Games",
+    "boardgames": "Games",
+    "wordgames": "Games",
+    "reels": "Tools",
+    "flyers": "Tools",
+    "poster": "Tools",
+    "verse": "Tools",
+    "homework": "Tools"
   }
 }

@@ -374,6 +374,11 @@ function pricingMoved_(me, fields) {
                                  && N(fields[f]) !== N(me[f]));
 }
 
+/* A CHANGE IS A PRICE THAT HAD A VALUE: a new tutor filling their blank rate, then their class size, is setting up, not changing (1150). */
+function pricingChanged_(me, fields) {
+  return pricingMoved_(me, fields).filter(f => S(me[f]) !== '');
+}
+
 function pricingRefusal_(me, fields, isAdmin) {
   if (!me) return '';
   if (!pricingMoved_(me, fields).length) return '';   // nothing moved: not a change at all
@@ -396,7 +401,7 @@ function pricingRefusal_(me, fields, isAdmin) {
   }
   /* AN ADMIN FIXING A TUTOR'S RATE OR CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the
      same exemption, for the same reason, the handle cooldown had while there was one. */
-  if (isAdmin) return '';
+  if (isAdmin || !pricingChanged_(me, fields).length) return '';
   /* ONE DATE AND NO COUNTER: the rule is "has a month passed", and a row that has never changed has
      no cell and is free. */
   const last = sheetDate(me.pricing_changed_at);

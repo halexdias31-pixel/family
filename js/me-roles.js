@@ -422,12 +422,17 @@ function familyPages_() {
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
+/* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
+function applyCard_() {
+  const tile = typeof applyTile_ === 'function' ? applyTile_() : '';
+  return tile ? [`<div class="card apply-card" data-yours="1"><h3>Apply to teach</h3><p class="sub">Teach with us: tell us what you teach, and we will be in touch.</p>${tile}</div>`] : [];
+}
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), then every card shut (467). */
-  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.', typeof applyTile_ === 'function' ? applyTile_() : '')].concat(lockedPages_('staff'));
+  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
   const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
