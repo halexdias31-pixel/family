@@ -652,6 +652,8 @@ function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
 }
+/* IS THIS THE ONE LOADER? Asked of `loading_()`'s own output, never of a class name read out of some HTML (check-loading). */
+const isLoading_ = h => String(h == null ? '' : h).trim() === loading_();
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;
