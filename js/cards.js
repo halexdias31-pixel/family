@@ -106,6 +106,9 @@ function profLastGap_(html) {
   }
   return at;
 }
+/* A LONG LIST SHORTENED TO "+N" (8 Nov): the whole tutor card fits one phone screen; the rest are named in the pill's title. */
+const PROF_MORE_ = (chips, n, names) => chips.length > n
+  ? chips.slice(0, n).concat(`<span class="prof-tag prof-more" title="${esc((names || []).slice(n).join(', '))}">+${chips.length - n}</span>`) : chips;
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
   let chips;
@@ -120,6 +123,7 @@ function profQuals_(t) {
   } else {
     chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
   }
+  chips = PROF_MORE_(chips, 3, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
   return chips.length
     ? `<div class="prof-cap">Qualifications</div><div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
 }
@@ -127,7 +131,8 @@ function profQuals_(t) {
 /* ---------- JOBS, CURRENT AND PAST (8 Nov): one pill a job — "Role · Where · 2019–now" — in the jobs colour. */
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
-  const chips = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean).map(v => `<span class="prof-tag">${esc(v)}</span>`);
+  const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
+  const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 2, says);
   return chips.length ? `<div class="prof-cap">Jobs</div><div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
 }
 
@@ -183,7 +188,7 @@ function profHeat_(names) {
   const pts = names.map(n => byName[norm(n)])
     .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
   /* EVERY PLACE BY NAME TOO, so the card still says where when the map cannot load. */
-  const tail = `<div class="qtags prof-tags prof-teach prof-places">${names.map(n => `<span class="prof-tag">${esc(n)}</span>`).join('')}</div>`;
+  const tail = `<div class="qtags prof-tags prof-teach prof-places">${PROF_MORE_(names.map(n => `<span class="prof-tag">${esc(n)}</span>`), 3, names).join('')}</div>`;
   if (!pts.length) return `<div class="prof-cap">Tutors at</div>${tail}`;
   let z = 12;
   for (; z > 9; z--) {
@@ -274,7 +279,7 @@ function profAvail_(t) {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
     return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(spans.map(profSpan_).join(', '))}</span>` : '';
-  }).filter(Boolean).join('<span class="prof-sep">, </span>');
+  }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-cap">Available</div>
     <div class="prof-week prof-hours" data-avail="${ticked.length}"
@@ -307,7 +312,7 @@ function findCard(x) {
   const t = x.row;
   /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE § */
   if (x.kind === 'tutor') return `
-    <div class="card is-widget is-prof${t.listed === false ? ' is-off' : ''}">
+    <div class="card is-widget is-prof tcard${t.listed === false ? ' is-off' : ''}">
       ${/* ---------- A TITLE SITS BESIDE THE ROLE, IN THE ROLE'S OWN LABEL § */
              ''}
       <h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
@@ -327,9 +332,11 @@ function findCard(x) {
         ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: § */
               ''}
         ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
-                      { cls: 'prof-pic', none: 'prof-none', size: 52 })}
+                      { cls: 'prof-pic', none: 'prof-none', size: 44 })}
         <div class="prof-who">
-          <span class="prof-name">${esc(t.title)}</span>
+          <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>
+          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
+          </span>
           ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL § */
                 ''}
           ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
@@ -339,11 +346,21 @@ function findCard(x) {
           ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
           ${/* ---------- THE RATE, UP HERE AND BIGGER § */
                 ''}
-          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
           ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
                 ''}
         </div>
       </div>
+      ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the other one. i dont want that"* — so `teachesSpec` is a list, every one § */
+            ''}
+      ${/* ONE CHIP A SUBJECT, ITS LEVELS RAISED — `teachGroups_`. § */
+            ''}
+      ${(() => {
+        const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+        return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
+                  PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 6).join('')}</div>` : '')
+             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
+                  PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 3).join('')}</div>` : '');
+      })()}
       ${/* EXPERIENCE, AGES, GROUP SIZE AND SESSION LENGTH, AS PILLS UNDER THE FACE (look rules: every attribute a tag at the top). */
             ''}
       ${profFacts_(t).length
@@ -356,8 +373,8 @@ function findCard(x) {
       ${/* ---------- THEIR OTHER PHOTOGRAPHS, AS SMALL SQUARES § */
             ''}
       ${Array.isArray(t.photos) && t.photos.length
-        ? `<div class="prof-photos">${t.photos.slice(0, 8).map(u =>
-             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`).join('')}</div>`
+        ? `<div class="prof-photos">${PROF_MORE_(t.photos.map(u =>
+             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`), 4).join('')}</div>`
         : ''}
       ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. § */
             ''}
@@ -370,17 +387,6 @@ function findCard(x) {
             ''}
       ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS § */
             ''}
-      ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the other one. i dont want that"* — so `teachesSpec` is a list, every one § */
-            ''}
-      ${/* ONE CHIP A SUBJECT, ITS LEVELS RAISED — `teachGroups_`. § */
-            ''}
-      ${(() => {
-        const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
-        return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
-                  teachGroups_(main).map(g => teachChip_(g, true)).join('')}</div>` : '')
-             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
-                  teachGroups_(also).map(g => teachChip_(g, false)).join('')}</div>` : '');
-      })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS § */
             ''}
       ${profQuals_(t)}

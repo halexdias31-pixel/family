@@ -377,6 +377,13 @@ function cardSeatSay_(rate, seat) {
   const p = cardSeatParts_(rate, seat, '');
   return `<span class="prof-seat">+${esc(money(p.kx))}/h</span> a seat${p.kOwn ? '' : ', usual'}`;
 }
+/* THE @FAMILY SHARE BAR (8 Nov): first seat + the tutor's extra seat + @family's block, from `cardSeatParts_`, the formula's own numbers. */
+function cardShareBar_(rate, seat, cut) {
+  if (!(rate > 0)) return '';
+  const p = cardSeatParts_(rate, seat, cut), blocks = [['shb-first', rate, 'first seat'], ['shb-seat', p.kx, 'another seat'], ['shb-fam', p.gx, '@family.']];
+  const all = blocks.reduce((t, b) => t + b[1], 0) || 1;
+  return blocks.map(([k, v, say], i) => `${i ? '<span class="shb-plus" aria-hidden="true">+</span>' : ''}<span class="shb-blk ${k}" style="flex-grow:${(v / all).toFixed(4)}"><b>${esc(money(v))}</b><small>${esc(say)}</small></span>`).join('');
+}
 /* @FAMILY.'S CARD'S LINE: its part of each extra student, in pounds. */
 function cardCutSay_(rate, cut) {
   if (!(rate > 0)) return "@family.'s part is priced from the rate — set it first.";
@@ -402,7 +409,9 @@ function cardRateHtml_(L, val, box, e) {
   const pound = fieldHtml('extra_seat_rate', cardSeatShown_('extra_seat_rate', rate, val('extra_seat_rate')), { attr: 'data-pound',
     label: own ? 'yours, £/h' : 'theirs, £/h', readonly: !live, draft: false,
     extra: `type="number" min="0" max="${live ? pounds2_(rate * STAFF_SEAT_MAX) : 0}" step="0.01" placeholder="${esc(cardSeatPh_(rate))}"` });
-  return box('rate_per_hour', {})
+  const bar = own || (typeof isAdmin === 'function' && isAdmin())
+    ? `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(val('extra_seat_cut') || ''))}">${cardShareBar_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</div>` : '';
+  return box('rate_per_hour', {}) + bar
     + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'))}</span>`,
       `${pound}<input type="hidden" data-me="extra_seat_rate" value="${esc(String(val('extra_seat_rate')))}">
        <p class="faint ce-note ce-seat-note">${esc('Blank or £0 is the usual' + (u ? ' ' + money(u.extra_seat_rate) : '')
@@ -470,6 +479,8 @@ function cardSeatSync_(form, t, ev) {
     });
   }
   const seat = hid('extra_seat_rate'), cut = hid('extra_seat_cut');
+  const bar = sec.querySelector('.share-bar');
+  if (bar) bar.innerHTML = cardShareBar_(rate, seat ? seat.value : '', cut ? cut.value : bar.dataset.cut);
   const line = sec.querySelector(id === 'seat' ? '.ce-seat' : '.ce-cut');
   if (line) line.innerHTML = id === 'seat' ? cardSeatSay_(rate, seat ? seat.value : '') : cardCutSay_(rate, cut ? cut.value : '');
 }
@@ -788,3 +799,19 @@ function peopleTiles_(p) {
 /* `col` (453): the people column it is drawn on — "Add a tutor" on Tutors, the form's role ticked to match, drawn where it was opened. */
 const PEOPLE_ADD_ = { tutors: { role: 'tutor', say: 'Add a tutor' }, students: { role: 'student', say: 'Add a student' },
                       parents: { role: 'client', say: 'Add a parent' } };
+/* THE SHARE BAR ON THE SETTINGS RATE CARD TOO (8 Nov): drawn where the rate and the extra-seat share are boxes, redrawn as either is typed. */
+function shareBarFor_(list, p) {
+  const has = f => (list || []).indexOf(f) !== -1;
+  if (!has('rate_per_hour') || !has('extra_seat_rate')) return '';
+  p = p || {};
+  return `<div class="share-bar" role="img" aria-label="Who gets what for a second student" aria-live="polite" data-cut="${esc(String(p.extra_seat_cut || ''))}">${
+    cardShareBar_(num(p.rate_per_hour), p.extra_seat_rate, p.extra_seat_cut)}</div>`;
+}
+document.addEventListener('input', e => {
+  const form = e.target && e.target.closest && e.target.closest('.set-shape');
+  const bar = form && form.querySelector(':scope > .share-bar');
+  if (!bar) return;
+  const v = f => { const b = form.querySelector('[data-me="' + f + '"]'); return b ? b.value : ''; };
+  const cut = form.querySelector('[data-me="extra_seat_cut"]') ? v('extra_seat_cut') : bar.dataset.cut;
+  bar.innerHTML = cardShareBar_(num(v('rate_per_hour')), v('extra_seat_rate'), cut);
+});
