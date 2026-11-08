@@ -430,9 +430,9 @@ RULES.push({
 RULES.push({
   what: 'the hours a tutor can tick are the hours a family can book',
   check: () => {
-    const bookJs = fs.readFileSync(path.join(dir, 'book.js'), 'utf8');
+    const bookJs = require('../tools/piece-src.js').pieceSrc('book');
     const m = /const SLOT_HOURS = \[\];\s*\n\s*for \(([^)]*)\) SLOT_HOURS\.push\(h\);/.exec(bookJs);
-    if (!m) return ['cannot find SLOT_HOURS in js/book.js, so the two spans were NOT compared'];
+    if (!m) return ['cannot find SLOT_HOURS in js/book-*.js, so the two spans were NOT compared'];
     const slot = new Function('const SLOT_HOURS = []; for (' + m[1] + ') SLOT_HOURS.push(h); return SLOT_HOURS;')();
     const avail = new Function(block(constants, 'const AVAIL_HOURS = ', ';') + ' return AVAIL_HOURS;')();
     return slot.join(',') === avail.join(',') ? []
