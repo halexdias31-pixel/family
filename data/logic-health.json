@@ -60,7 +60,7 @@
   {
    "where": "Find",
    "asks": "What kind",
-   "cards": 279072,
+   "cards": 279071,
    "why": [
     "a finer question asked before its coarser one: What kind before What for"
    ]
@@ -368,7 +368,7 @@
   {
    "field": "forLabel",
    "label": "What for",
-   "cards": 279072,
+   "cards": 279071,
    "why": "lopsided — pressing its commonest answer would leave 0% of the list, needs 2%"
   },
   {
