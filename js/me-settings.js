@@ -188,8 +188,9 @@ function photoShelf_(list, value, o) {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
         <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
-          extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}${shelfDrop_('photo')}
+        ${fieldHtml('photos_' + i, v, { placeholder: 'Photo', draft: (o || {}).draft, extra: 'type="hidden"' })}
+        <div class="tile-row">${tile_({ icon: 'plus', label: v ? 'Change photo' : 'Choose photo', act: 'ph-pick' })}${shelfDrop_('photo')}</div>
+        <p class="faint ph-said"></p><input type="file" class="ph-in" accept="image/*" hidden>
       </div>`;
     }, 'photo')}</div>`;
 }
@@ -201,6 +202,48 @@ document.addEventListener('input', e => {
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
   if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
+});
+
+/* ---------- AN EXTRA PHOTO IS UPLOADED, NOT LINKED (owner, 8 Nov): redrawn here at 1200px JPEG, kept in Drive by
+   `photoFile`, and its link put in the slot's box so Save keeps it with the rest of the card. */
+const PHOTO_EDGE_ = 1200;
+function photoShrink_(file) {
+  return new Promise(done => {
+    try {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, k = Math.min(1, PHOTO_EDGE_ / Math.max(w, h));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+        try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); done(cv.toDataURL('image/jpeg', 0.82)); } catch (e) { done(null); }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); done(null); };
+      img.src = url;
+    } catch (e) { done(null); }
+  });
+}
+on('ph-pick', el => { const slot = el.closest('.ph-slot'), inp = slot && slot.querySelector('.ph-in'); if (inp) inp.click(); });
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.ph-in')) return;
+  const file = (inp.files || [])[0], slot = inp.closest('.ph-slot');
+  inp.value = '';
+  if (!file || !slot || !USER) return;
+  const said = slot.querySelector('.ph-said'), say = m => { if (said) said.textContent = m; };
+  if (!/^image\//.test(file.type || '')) { say('That is not a picture. Choose a photo from your phone.'); return; }
+  say('Getting the photo ready…');
+  photoShrink_(file).then(data => {
+    if (!data || !/^data:image\/jpeg/.test(data)) { say('The phone could not read that photo. Try another.'); return; }
+    return send_({ action: 'photoFile', name: USER.name, personId: USER.personId, data },
+      { button: slot.querySelector('[data-do="ph-pick"]'), where: said, saying: 'Uploading…', lock: slot }).then(d => {
+      const url = String((d && d.url) || ''), box = slot.querySelector('input[data-me]');
+      if (!url || !box) { say('The photo went but no link came back. Try again.'); return; }
+      box.value = url;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      say('Uploaded. Press Save to keep it on your card.');
+    });
+  }).catch(() => { /* `send_` has said why on the line */ });
 });
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */

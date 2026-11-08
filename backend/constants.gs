@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-08-booking-tiles-1";
+const BACKEND_VERSION = "2026-11-08-photo-upload-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -928,6 +928,10 @@ const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 /* THE SCRIPT PROPERTY HOLDING THE PRIVATE FOLDER'S ID — made on the first upload, never written in the repository. */
 const VIDEO_FOLDER_PROP = 'TUTOR_VIDEOS_FOLDER';
 const VIDEO_FOLDER_NAME = 'Tutor videos';
+/* AND THE EXTRA PHOTOS' FOLDER, the same way: a Script Property made on the first upload; 5 MB caps a 1200px JPEG generously. */
+const PHOTO_FOLDER_PROP = 'TUTOR_PHOTOS_FOLDER';
+const PHOTO_FOLDER_NAME = 'Tutor photos';
+const PHOTO_FILE_MAX_BYTES = 5 * 1024 * 1024;
 /* `_received`, `_teach` AND `_spec` ARE THE THREE THE ITEM GREW, and they replace two pages. § */
 const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
@@ -1607,6 +1611,8 @@ const ACTION_ACCESS = {
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   /* YOUR OWN INTRO VIDEO, in parts: the handler writes `video_file` on the row the token resolved to. */
   videoPart: 'self',
+  /* AN EXTRA PHOTO, uploaded: the handler only keeps the file; the link is saved by `updateProfile`. */
+  photoFile: 'self',
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
