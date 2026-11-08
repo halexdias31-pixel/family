@@ -910,7 +910,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const bad = [];
   const job = {
     id: 'J-M', jobId: 'J-M', kind: '', subject: 'Maths', level: 'GCSE', price: 270,
-    tutorPay: 135, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
+    tutorPay: 189, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
     dates: '06/10/26, 13/10/26', startDate: '06/10/26', endDate: '13/10/26',
     slots: [{ n: 1, client: 'Pat Parent', status: 'Booked' }],
     tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
@@ -923,13 +923,13 @@ check('each person sees their own figure on a session, and its tiles are on the 
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const c = totals(doc(w.__t.jobPage(job)));
   if (c.length !== 1 || !/270\.00/.test(c[0])) bad.push('the client sees ' + JSON.stringify(c) + ', wanted their £270.00 alone');
-  if (c.some(x => /135|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
+  if (c.some(x => /189|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
 
   /* THE TUTOR: what they earn IN PLACE OF the client total — never beside it. */
   w.__t.USER({ name: 'Ada Tutor', personId: 'P2', role: 'tutor', roles: ['tutor'] });
   const t = totals(doc(w.__t.jobPage(job)));
-  if (t.length !== 1 || !/^YOU EARN|^You earn/i.test(t[0]) || !/135\.00/.test(t[0])) {
-    bad.push('the tutor sees ' + JSON.stringify(t) + ', wanted "You earn £135.00" alone');
+  if (t.length !== 1 || !/^YOU EARN|^You earn/i.test(t[0]) || !/189\.00/.test(t[0])) {
+    bad.push('the tutor sees ' + JSON.stringify(t) + ', wanted "You earn £189.00" alone');
   }
   if (t.some(x => /270\.00/.test(x))) bad.push('the tutor is shown the client\'s total: ' + JSON.stringify(t));
   /* A BLANK `tutor_pay` IS A DASH, NOT A NOUGHT — every job before the phone sent it. */
@@ -949,9 +949,9 @@ check('each person sees their own figure on a session, and its tiles are on the 
   w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
   const ad = doc(w.__t.jobPage(job));
   const a = totals(ad);
-  const want = [/client pays.*270\.00/i, /tutor earns.*135\.00/i, /admin earns.*81\.00/i];
+  const want = [/client pays.*270\.00/i, /tutor earns.*189\.00/i, /admin earns.*81\.00/i];
   if (a.length !== 3 || want.some((re, i) => !re.test(a[i] || ''))) {
-    bad.push('the admin sees ' + JSON.stringify(a) + ', wanted Client pays £270.00, Tutor earns £135.00, Admin earns £81.00');
+    bad.push('the admin sees ' + JSON.stringify(a) + ', wanted Client pays £270.00, Tutor earns £189.00, Admin earns £81.00');
   }
   if (ad.querySelector('.money-note')) bad.push('a money block still floats under the paper');
   /* A WAITING LIST'S `price` IS ONE SEAT, so the admin's line must not call it what the client pays. */

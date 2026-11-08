@@ -61,6 +61,8 @@ function askedBlock_() {
   const jobs = (DATA && (DATA.liveJobs || DATA.jobs)) || [];
   const j = jobs.find(x => String((x && (x.id || x.jobId)) || '') === String(ASKED_JOB));
   if (!j) return '';
+  /* WITH ITS TILES: the bare receipt left the booking just sent with no Accept, Apply or pick (owner, 8 Nov). */
+  if (typeof jobPage_ === 'function') return jobPage_(j);
   return typeof jobReceipt === 'function' ? jobReceipt(j) : '';
 }
 
@@ -1992,10 +1994,24 @@ function jobRows(j) {
 /* ---------- THE WEEK, ON A RECEIPT, WITH THE BOOKED HOURS LIT § */
 /* ---------- THE SAME SEVEN ROWS ON THE RECEIPT § */
 function jobWeekRows_(j) {
-  const days = String((j && j.weekday) || '').split(',').map(norm).filter(Boolean);
+  /* THE PAYLOAD SENDS `day` AND `slotCodes`; reading only `weekday` drew every saved booking's grid empty (owner, 8 Nov). */
+  const days = String((j && (j.weekday || j.day)) || '').split(',').map(norm).filter(Boolean);
   const start = parseInt(String((j && (j.time || j.startTime)) || '').split(':')[0], 10);
   const hrs = Math.max(1, Number(j && (j.hours || j.hoursPerSession)) || 1);
   const hours = SLOT_HOURS;
+  const codes = String((j && j.slotCodes) || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (codes.length) {
+    return weekRows_(
+      SLOT_DAYS.map(([c, label]) => {
+        const lit = hours.filter(h => codes.indexOf(c + h) !== -1);
+        return { label: label, hours: hours, on: lit.length > 0, lit: lit, mul: lit.length };
+      }),
+      (h, d) => {
+        const on = d.lit.indexOf(h) !== -1;
+        return `<button class="hr${on ? ' on' : ' shut'}" disabled title="${h}:00" aria-label="${esc(d.label)} ${h}:00"></button>`;
+      },
+      { off: true, ruler: true });
+  }
   return weekRows_(
     SLOT_DAYS.map(([, label]) => {
       const runs = days.indexOf(norm(label)) !== -1;
@@ -2047,9 +2063,13 @@ function jobMoney_(j) {
   if (typeof isAdmin === 'function' && isAdmin()) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
+    /* ADMIN EARNS IS WHAT IS LEFT, so the three lines always add up; a stored figure counted before the discount once said tutor £600 on a £302.40 booking. */
+    const fees = has(j.feesKept) ? Number(j.feesKept) : 0;
+    const left = has(j.price) && has(j.tutorPay) ? Number(j.price) - Number(j.tutorPay) - fees : j.adminKeeps;
     return { label: seat ? 'Each seat pays' : 'Client pays', total: say(j.price),
-             more: [{ k: 'Tutor earns', t: say(j.tutorPay) },
-                    { k: 'Admin earns', t: say(j.adminKeeps) }] };
+             more: [{ k: 'Tutor earns', t: say(j.tutorPay) }]
+               .concat(fees ? [{ k: 'Room and fees', t: say(fees) }] : [])
+               .concat([{ k: 'Admin earns', t: seat ? say(j.adminKeeps) : say(left) }]) };
   }
   /* A CHILD'S SESSION HAS NO FIGURE ON IT (398) — `jobReceipt` draws no total row. */
   if (childView_()) return { label: null, total: '', more: [], none: true };

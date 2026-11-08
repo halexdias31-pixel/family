@@ -230,7 +230,8 @@ function postMove_(body, action, began) {
 
   /* ---------- THE ADMIN MAY ANSWER ANY REQUEST § */
   const iAmAdmin = isAdminPerson(S(body.adminName) || me);
-  const asAdmin = !mine && iAmAdmin && (act === ACT.ACCEPT || act === ACT.DECLINE);
+  /* AN ADMIN WHO BOOKED IT THEMSELVES still answers as the business when the Accept tile says so (`asAdmin`), or their own booking could never be accepted. */
+  const asAdmin = (!mine || TRUE_(body.asAdmin)) && iAmAdmin && (act === ACT.ACCEPT || act === ACT.DECLINE);
 
   // Joining is a Request from someone not yet involved. Everything else needs you in already.
   if (!mine && !asAdmin && act !== ACT.REQUEST) {
