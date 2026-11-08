@@ -214,6 +214,16 @@ sittings.forEach((papers, key) => {
 });
 twice.forEach(t => fail.push(t));
 
+/* ---------- EVERY BOARD PAPER ON THE SITE IS NAMED BY THE CODE ON ITS COVER (owner 8 Nov 2026): Find's Paper facet says it ---------- */
+{
+  const PC = require('../tools/set-paper-codes.js');
+  PC.shownCovers(rows).forEach(r => {
+    const c = String(r.paper_code || '').trim(), pat = PC.PATTERNS[String(r.exam_board).trim()];
+    if (!c) fail.push(`${r.paper_id} (${r.exam_board} ${r.document_type.toLowerCase()}) has no \`paper_code\` — node tools/set-paper-codes.js, or type it off the cover.`);
+    else if (!pat.test(c)) fail.push(`${r.paper_id}'s paper_code "${c}" is not how ${r.exam_board} prints a paper reference (${pat}).`);
+  });
+}
+
 /* ---------- THE SAME DOCUMENT, TRANSCRIBED TWICE — AND THIS IS THE STRONGER TEST § */
 const driveId = u => {
   const m = String(u || '').match(/[-\w]{25,}/);

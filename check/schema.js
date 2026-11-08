@@ -95,7 +95,7 @@ const FILES = {
       'accept', 'lead', 'figure', 'diagram', 'diagram_twin', 'diagram_twin_wh', 'examiner_note', 'examiner_report', 'guide',
       'needs_print', 'pages', 'pages_checked', 'topics', 'print_required', 'mark_words', 'diagram_by', 'surface',
       'draw_answer', 'verified', 'choices', 'choice_right', 'order_ends', 'uses', 'sort_order', 'needs', 'cells',
-      'spec_code', 'lines', 'placeholder', 'currency', 'total_marks', 'lib_pending', 'lib_has', 'description', 'exam_date',
+      'spec_code', 'paper_code', 'lines', 'placeholder', 'currency', 'total_marks', 'lib_pending', 'lib_has', 'description', 'exam_date',
       'images'],
     level: 'level', keystage: 'key_stage', tier: 'tier', board: 'exam_board', company: 'company', topics: 'topics',
     vocab: true,
