@@ -47,6 +47,8 @@
   /* AND THE REST, SO EVERY FACET HAS A COLOUR (396): what it is, a claim about it, and any facet the sheet invents. */
   --tag-kind:    #e2cfa6;
   --tag-check:   #9ec5e8;
+  /* A TUTOR'S JOBS (8 Nov), warm beside the qualifications' blue. */
+  --tag-job:     #ffb454;
   --tag-other:   #bdbdbd;
   /* YOUR RESULT (463): attempted, correct and so on, yours alone. */
   --tag-mine:    #ffcf70;
@@ -3029,6 +3031,15 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .prof-facts { --tag: var(--tag-kind); }
 .prof-teach:not(.prof-facts, .prof-quals, .prof-places) { --tag: var(--green); }
 .prof-quals { --tag: var(--tag-check); }
+.prof-teach.prof-jobs { --tag: var(--tag-job); }
+/* ONE LINE A JOB (8 Nov): role, where, then from–to side by side. */
+.job-slot { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.job-slot > * { flex: 1 1 8rem; min-width: 0; }
+.job-slot > .job-when { display: flex; align-items: center; gap: .3rem; flex: 1 1 10rem; }
+.job-dash { flex: 0 0 auto; }
+/* THE INTRO VIDEO: the Drive player at 16:9, on the card and on the Photos card. */
+.vid-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: .5rem 0; border-radius: var(--r); overflow: hidden; background: var(--bg); }
+.vid-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .prof-places { --tag: var(--tag-board); }
 .prof-tags .prof-lv { color: inherit; }
 .prof-hours .prof-busy { color: var(--gold); }

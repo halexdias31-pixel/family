@@ -404,6 +404,7 @@ function fieldsHtml(groups, o) {
     /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. § */
     const library = !timetable && isLibrary_(list);
     const quals = !timetable && isQuals_(list);
+    const jobs = !timetable && isJobs_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT § */
     /* EITHER SHAPE. The backend's group list names COLUMNS, so today it says `date_of_birth` — and `isDob_` is asked as well so a deployment that ever sends the § */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
@@ -414,7 +415,7 @@ function fieldsHtml(groups, o) {
     const photos = !timetable && isPhotos_(list);
     /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
     const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
-    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
+    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
                               && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
@@ -422,9 +423,10 @@ function fieldsHtml(groups, o) {
       : (picture ? photoPicker_(value) : '')
       + (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value) : '')
+      + (jobs ? jobShelf_(list, value) : '')
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
-      + (photos ? photoShelf_(list, value) : '');
+      + (photos ? videoPicker_(value) + photoShelf_(list, value) : '');
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }
@@ -741,6 +743,7 @@ const CARD_SECTIONS = [
   { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
   { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },
+  { id: 'jobs', cap: 'Jobs', match: /^job_\d+_(role|where|from|to)$/ },
   { id: 'where', fields: ['venues_ok', 'travel_km'] },
   { id: 'week', cap: 'Available', match: /^(m|tu|w|th|f|sa|su)\d\d$/ },
 ];
@@ -774,12 +777,117 @@ function ownCardSections_(col) {
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
 /* A card whose first line is its own label (a fold's, or a field's) carries no title over it (491). */
-const OWN_SEC_UNTITLED_ = ['headline', 'photos', 'words', 'glance', 'quals', 'where', 'figure', 'handle'];
+const OWN_SEC_UNTITLED_ = ['headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'figure', 'handle'];
 const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', seat: 'Rate and extra seat', cut: "@family.'s share", size: 'Class size', headline: 'Headline',
   photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
-  staff: ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
+  staff: ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
 /* THE RATE, THE SEAT AND THE CLASS SIZE HAVE ONE HOME, the Rate and class size card (620); the hub's Pricing only tries figures and points here. */
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));
+
+/* ---------- JOBS, CURRENT AND PAST (8 Nov): one line a job — role, where, from–to or "now" — added with "Add a job" like a qualification. */
+const isJobField_ = f => /^job_\d+_(role|where|from|to)$/.test(String(f || ''));
+const isJobs_ = list => (list || []).some(isJobField_);
+const JOB_PH_ = { role: 'role', where: 'where', from: 'from', to: 'to, or now' };
+function jobShelf_(list, value, o) {
+  const nums = [...new Set((list || []).filter(isJobField_).map(f => String(f).match(/^job_(\d+)_/)[1]))];
+  let last = 0;
+  nums.forEach((n, i) => { if (shelfFilled_(value, ['job_' + n + '_role', 'job_' + n + '_where'])) last = i + 1; });
+  const box = (n, k) => fieldHtml('job_' + n + '_' + k, String(value('job_' + n + '_' + k) || ''), { label: ' ', placeholder: JOB_PH_[k],
+    draft: (o || {}).draft, extra: 'autocomplete="off" maxlength="80"' });
+  return `<div class="lib-shelf job-shelf">${nums.map((n, i) => `<div class="lib-card job-slot"${i >= last ? ' hidden' : ''}>
+      ${box(n, 'role')}${box(n, 'where')}<span class="job-when">${box(n, 'from')}<span class="job-dash">–</span>${box(n, 'to')}</span>
+    </div>`).join('')}${last < nums.length
+      ? `<div class="tile-row job-adds">${tile_({ icon: 'plus', label: 'Add a job', act: 'shelf-more', cls: 'shelf-more' })}</div>` : ''}</div>`;
+}
+/* HOW MANY JOBS, for the fold's line. */
+const jobCount_ = val => [1, 2, 3, 4, 5, 6].filter(n => String(val('job_' + n + '_role') || val('job_' + n + '_where') || '').trim()).length;
+
+/* ---------- THE INTRO VIDEO, UPLOADED (8 Nov): a file, not a link — about a minute, 100 MB at most, checked here before
+   anything is sent, then sent in 4 MB parts (`videoPart`) to the owner's private Drive folder. */
+const VIDEO_MAX_MB_ = 100, VIDEO_MAX_S_ = 75, VIDEO_PART_ = 4 * 1024 * 1024;
+const introSrc_ = id => 'https://drive.google.com/file/d/' + encodeURIComponent(String(id || '')) + '/preview';
+function videoPicker_(value, said) {
+  const id = String(value('video_file') || '').trim();
+  return `<div class="vid-pick" data-file="${esc(id)}">
+    <div class="ce-line"><span class="ce-k">Intro video</span><span class="ce-v">${id ? 'uploaded' : 'none'}</span></div>
+    ${id ? `<div class="vid-frame"><iframe src="${esc(introSrc_(id))}" title="Your intro video" loading="lazy" allow="autoplay; fullscreen" allowfullscreen></iframe></div>` : ''}
+    <div class="tile-row">${tile_({ icon: 'plus', label: id ? 'Change video' : 'Upload video', note: 'about a minute', act: 'vid-pick' })}${
+      tile_({ icon: 'bin', label: 'Remove', act: 'vid-remove', off: !id })}</div>
+    <p class="faint vid-said">${esc(said || (id ? 'Parents can watch this on your card.' : 'A short clip saying hello: about a minute, 100 MB at most.'))}</p>
+    <input type="file" class="vid-in" accept="video/*" hidden>
+  </div>`;
+}
+const vidSay_ = (box, msg) => { const p = box && box.querySelector('.vid-said'); if (p) p.textContent = msg; };
+function vidTake_(box, id, msg) {
+  if (USER) USER.profile = Object.assign({}, USER.profile || {}, { video_file: id });
+  const row = USER && ((DATA && DATA.tutors) || []).find(t => t && t.personId === USER.personId);
+  if (row) row.videoFile = id;
+  if (box) box.outerHTML = videoPicker_(f => (f === 'video_file' ? id : ''), msg);
+}
+on('vid-pick', el => { const inp = el.closest('.vid-pick') && el.closest('.vid-pick').querySelector('.vid-in'); if (inp) inp.click(); });
+on('vid-remove', el => {
+  const box = el.closest('.vid-pick');
+  if (!USER || !box) return;
+  send_({ action: 'videoPart', name: USER.name, personId: USER.personId, remove: true }, { button: el, where: box.querySelector('.vid-said'), saying: 'Removing…', lock: box })
+    .then(() => { vidTake_(box, '', 'Removed.'); toast('Video removed'); }).catch(() => { /* the line says why */ });
+});
+/* HOW LONG THE CLIP RUNS, read by the browser before sending; 0 when it cannot tell, and then only the size is asked. */
+function vidLength_(file) {
+  return new Promise(ok => {
+    try {
+      const v = document.createElement('video'), url = URL.createObjectURL(file);
+      const end = s => { URL.revokeObjectURL(url); ok(s); };
+      const k = setTimeout(() => end(0), 4000);
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => { clearTimeout(k); const s = Number(v.duration); end(isFinite(s) ? s : 0); };
+      v.onerror = () => { clearTimeout(k); end(0); };
+      v.src = url;
+    } catch (e) { ok(0); }
+  });
+}
+const vidB64_ = blob => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).split(',')[1] || '');
+  r.onerror = () => no(new Error('the phone could not read the video'));
+  r.readAsDataURL(blob);
+});
+/* THE REFUSAL BEFORE SENDING, in words; '' when the clip may go. */
+function vidRefusal_(file, secs) {
+  if (!file || !/^video\//.test(file.type || '') && !/\.(mov|mp4|m4v|webm)$/i.test(file.name || '')) return 'That is not a video. Choose a video from your phone.';
+  if (file.size > VIDEO_MAX_MB_ * 1024 * 1024) return 'That video is ' + Math.ceil(file.size / 1048576) + ' MB — 100 MB at most. Trim it to about a minute.';
+  if (secs > VIDEO_MAX_S_) return 'That video runs ' + Math.round(secs) + ' seconds — about a minute at most. Trim it and choose it again.';
+  return '';
+}
+async function vidUpload_(box, file) {
+  const parts = Math.max(1, Math.ceil(file.size / VIDEO_PART_)), upload = 'u' + Date.now().toString(36);
+  const btn = box.querySelector('[data-do="vid-pick"]');
+  let d = null;
+  for (let i = 0; i < parts; i++) {
+    const data = await vidB64_(file.slice(i * VIDEO_PART_, Math.min(file.size, (i + 1) * VIDEO_PART_)));
+    d = await send_({ action: 'videoPart', name: USER.name, personId: USER.personId, upload, part: i, parts, size: file.size,
+      mime: file.type || 'video/mp4', data }, { button: btn, where: box.querySelector('.vid-said'), saying: 'Uploading… ' + Math.round(i / parts * 100) + '%', lock: box });
+  }
+  return d;
+}
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.vid-in')) return;
+  const file = (inp.files || [])[0];
+  inp.value = '';
+  const box = inp.closest('.vid-pick');
+  if (!file || !box || !USER) return;
+  vidSay_(box, 'Checking the video…');
+  vidLength_(file).then(secs => {
+    const no = vidRefusal_(file, secs);
+    if (no) { vidSay_(box, no); return; }
+    return vidUpload_(box, file).then(d => {
+      const id = String((d && d.videoFile) || '');
+      if (!id) { vidSay_(box, 'The video went but no file came back. Try again.'); return; }
+      vidTake_(box, id, 'Saved. Parents can watch this on your card.');
+      toast('Video saved');
+    });
+  }).catch(() => { /* `send_` has said why on the line */ });
+});

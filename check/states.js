@@ -3055,7 +3055,7 @@ const STATES = {
         const cards = [...form.querySelectorAll('.card-ed')];
         const secs = cards.map(x => x.dataset.sec).join(',');
         /* YOUR FIGURE AFTER THE PICTURE AND YOUR HANDLE AFTER THE NAME, on your own card (docs/history/339). */
-        return secs === 'picture,figure,name,handle,rate,headline,photos,words,glance,quals,where,week'
+        return secs === 'picture,figure,name,handle,rate,headline,photos,words,glance,quals,jobs,where,week'
           && cards.every(k => k.querySelectorAll('.ce-sec').length === 1 && k.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2)
           && !form.querySelector('.own-set, .me-card')
           && !!form.querySelector('.pfp [data-do="pfp-pick"]')

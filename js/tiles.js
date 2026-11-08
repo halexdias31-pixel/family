@@ -297,8 +297,9 @@ function tutorTiles_(x) {
   const t = x.row || {};
   return `
     ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookTile_(x)}
-    ${/* THEIR INTRO VIDEO (Settings › Photos › video), a link out: the card has no player. */
-          /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
+    ${/* THEIR INTRO VIDEO: the uploaded one plays on the card (`intro-play`); an older row's link still goes out. */
+          String(t.videoFile || '').trim() ? tile_({ icon: 'play', label: 'Watch intro', act: 'intro-play', data: { file: t.videoFile } })
+          : /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
     ${/* SILVER, IN THE ORDINARY ROW. § */
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
@@ -612,3 +613,16 @@ function tileRowsJoin_(html) {
   });
   return joined ? t.innerHTML : h;
 }
+
+/* WATCH INTRO: the Drive player opens under the card's tiles, and a second tap closes it. */
+on('intro-play', el => {
+  const card = el.closest('.card') || el.parentNode;
+  if (!card) return;
+  const was = card.querySelector('.vid-frame.intro');
+  if (was) { was.remove(); return; }
+  const f = document.createElement('div');
+  f.className = 'vid-frame intro';
+  f.innerHTML = `<iframe src="${esc(introSrc_(el.dataset.file))}" title="Intro video" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  const row = el.closest('.tile-row');
+  if (row && row.parentNode) row.parentNode.insertBefore(f, row.nextSibling); else card.appendChild(f);
+});

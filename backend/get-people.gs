@@ -29,6 +29,8 @@ function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
         title: name, handle: S(r.handle),
         subtitle: S(r.city) || 'London',
         image: S(r.photo), mediaUrl: S(r.video),
+        /* THE UPLOADED INTRO VIDEO'S DRIVE ID (shared view-by-link), played on the card; and the jobs as a list. */
+        videoFile: S(r.video_file), jobs: jobsList_(r),
         /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. § */
         avatar: faceFig_(r).avatar,
         /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. § */

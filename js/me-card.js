@@ -272,7 +272,9 @@ function ceSums_(form) {
   const sec = id => form.querySelector('.ce-sec[data-sec="' + id + '"]');
   const ph = sec('photos'), v = ph && ph.querySelector('details[data-fold="photos"] > summary .ce-v');
   if (v) v.textContent = cePhotoSay_([...ph.querySelectorAll('.ph-slot input')].filter(i => String(i.value).trim()).length,
-    String((ph.querySelector('[data-me="video"]') || {}).value || '').trim());
+    String((ph.querySelector('.vid-pick') || { dataset: {} }).dataset.file || '').trim());
+  const jb = sec('jobs'), jv = jb && jb.querySelector('details[data-fold="jobs"] > summary .ce-v');
+  if (jv) jv.textContent = ceCount_(jobCount_(f => (jb.querySelector('[data-me="' + f + '"]') || {}).value), 'job', 'jobs');
   const q = sec('quals'), qv = q && q.querySelector('details[data-fold="quals"] > summary .ce-v');
   const gl = sec('glance'), gv = gl && gl.querySelector('details[data-fold="glance"] > summary .ce-v');
   if (gv) gv.textContent = ceGlanceSay_(f => (gl.querySelector('[data-me="' + f + '"]') || {}).value);
@@ -312,8 +314,9 @@ function cardEditForm_(t, e, vals, only) {
          `wardrobeBody_` — so the fold's inside carries that class, and the picture above follows. */
       : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
       : s.id === 'handle' ? cardHandleHtml_()
-      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video')).trim())),
-          fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video_file')).trim())),
+          (e.own ? videoPicker_(val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'jobs' ? ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(val), 'job', 'jobs')), jobShelf_(L, val, { draft: false }))
       : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
       : s.id === 'seat' ? cardRateHtml_(L, val, box, e)
@@ -522,6 +525,11 @@ function cardPatchRow_(pid, all, sent) {
   if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
   if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
   if (has('video')) row.mediaUrl = txt(all.video);
+  /* THE JOBS, AS `jobsList_` SENDS THEM, so the card shows the new pills before the payload comes back. */
+  if (Object.keys(sent).some(isJobField_)) {
+    row.jobs = [1, 2, 3, 4, 5, 6].map(n => ({ role: txt(all['job_' + n + '_role']), where: txt(all['job_' + n + '_where']),
+      from: txt(all['job_' + n + '_from']), to: txt(all['job_' + n + '_to']) })).filter(j => j.role || j.where);
+  }
   if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
     row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
   }

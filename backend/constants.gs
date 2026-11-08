@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-08-refund-rule-1151";
+const BACKEND_VERSION = "2026-11-08-tutor-jobs-video";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -238,7 +238,11 @@ const SCHEMA = {
     "verified", "verify_token", "listed", "details_confirmed", "joined_on", "came_from",
     "invited_by", "referral_code",
     /* the profile a parent reads */
-    "photo", "photos", "video", "headline", "adjective_1", "adjective_2", "adjective_3",
+    "photo", "photos", "video",
+    /* THE INTRO VIDEO A TUTOR UPLOADED: its Drive file id in the private tutor-videos folder (`postVideoPart_`). */
+    "video_file",
+    /* CURRENT AND PAST JOBS, one cell of JSON — `jobsIn`/`jobsOut` in core.gs, like the photographs. */
+    "jobs", "headline", "adjective_1", "adjective_2", "adjective_3",
     "years_experience",
     /* THE AGES THEY TEACH: a whole number or the word `Adults`, out of `AGE_OPTIONS` — see
        `ageRefusal_` in people.gs. Not on the pricing page: the age range does not decide a price. */
@@ -910,6 +914,20 @@ const QUAL_FIELDS = (() => {
     'qual_' + i + '_grade', 'qual_' + i + '_received', 'qual_' + i + '_teach', 'qual_' + i + '_spec');
   return out;
 })();
+/* ---------- UP TO SIX JOBS, FOUR BOXES EACH OVER ONE CELL (8 Nov): role, where, from, to (or "now"). */
+const JOB_MAX = 6;
+const JOB_PARTS = ['role', 'where', 'from', 'to'];
+const JOB_FIELDS = (() => {
+  const out = [];
+  for (let i = 1; i <= JOB_MAX; i++) JOB_PARTS.forEach(k => out.push('job_' + i + '_' + k));
+  return out;
+})();
+const JOB_FIELD = /^job_\d+_(role|where|from|to)$/;
+/* THE INTRO VIDEO'S LIMITS, asked on the phone before sending and again here: about a minute, 100 MB. */
+const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+/* THE SCRIPT PROPERTY HOLDING THE PRIVATE FOLDER'S ID — made on the first upload, never written in the repository. */
+const VIDEO_FOLDER_PROP = 'TUTOR_VIDEOS_FOLDER';
+const VIDEO_FOLDER_NAME = 'Tutor videos';
 /* `_received`, `_teach` AND `_spec` ARE THE THREE THE ITEM GREW, and they replace two pages. § */
 const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
@@ -1187,7 +1205,8 @@ const PROFILE_GROUPS = {
                            not a column here; see `venuesWrites_` in core.gs. */
                         'venues_ok'],
   /* ---------- THE PHOTOGRAPHS, ON A PAGE OF THEIR OWN § */
-  'Photos': ['photo','video'].concat(PHOTO_FIELDS),
+  /* THE INTRO VIDEO IS UPLOADED, NOT LINKED (8 Nov): `videoPart`, so `video` is no box here. */
+  'Photos': ['photo'].concat(PHOTO_FIELDS),
   /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
   /* AND THE BUSINESS'S CUT OF AN EXTRA SEAT straight after the tutor's own share, as the card reads them — an
      admin's to write, which `seatCutRefusal_` decides, not this list (`SEAT_CUT_FIELD` above says why). */
@@ -1199,6 +1218,8 @@ const PROFILE_GROUPS = {
   /* ---------- AND THEN THE PAGE WENT § */
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH § */
   'Qualifications': QUAL_FIELDS,
+  /* CURRENT AND PAST JOBS, added one line at a time like the qualifications (8 Nov). */
+  'Jobs': JOB_FIELDS,
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA. § */
   'Library cards': LIBRARY_FIELDS,
@@ -1584,6 +1605,8 @@ const ACTION_ACCESS = {
   imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
+  /* YOUR OWN INTRO VIDEO, in parts: the handler writes `video_file` on the row the token resolved to. */
+  videoPart: 'self',
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
