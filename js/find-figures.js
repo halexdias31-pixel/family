@@ -309,16 +309,28 @@ function qStemWhole_(x, p) {
 /* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
 function qPartCard_(x, ans) {
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
-  const a = ans && (questionHasAns_(x) || schemeOwed_(x)) ? questionAnsCard_(x) : '';
-  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${a}</div>`;
+  const has = ans && (questionHasAns_(x) || schemeOwed_(x));
+  const a = has ? questionAnsCard_(x, true) : '';
+  /* EVERY TILE OF THE PART IN ITS ONE TOOL ROW (owner, 8 Nov): Show the answer, Help and the card's tiles handed to `qtRow_` */
+  const more = (has && !schemeOwed_(x) ? qaToggle_(ansKey_(x), ansOpen_(x)) : '') + qPartFoot_(x);
+  QT_MORE.html = more; QT_MORE.used = false;
+  const area = ansArea_(x);
+  const left = QT_MORE.used ? '' : (more ? `<div class="tile-row">${more}</div>` : '');
+  QT_MORE.html = ''; QT_MORE.used = false;
+  return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
+}
+/* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
+function qPartFoot_(p) {
+  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
+  const row = String(cardTiles_(Object.assign(Object.create(p), { lead: help })) || '').trim();
+  const m = /^<div class="tile-row[^"]*">([\s\S]*)<\/div>$/.exec(row);
+  return m ? m[1] : row;
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {
   const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
     .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s); }).join('');
-  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  const foot = cardTiles_(Object.assign(Object.create(p), { lead: help }));
-  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>${foot}`;
+  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>`;
 }
 /* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
@@ -662,7 +674,12 @@ function schemeOwed_(x) {
   if (!r || !isQ_(x) || questionHasAns_(x) || libTrue(r.verified) || String(r.document_type || '') !== 'Past paper') return false;
   return !['accept', 'cells', 'mark_words', 'draw_answer', 'choice_right'].some(f => libHasField_(r, f));
 }
-function questionAnsCard_(x) {
+/* SHOW OR HIDE THE ANSWER, one tile that says which way it goes */
+const qaToggle_ = (k, open) => open
+  ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
+  : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } });
+/* `inRow`: a part of a whole question, whose toggle and Help are in its one tool row, so this card holds no row of its own */
+function questionAnsCard_(x, inRow) {
   const id = (x.row && x.row.row_id) || x.key || '';
   if (schemeOwed_(x)) return `<div class="qcard qans-card" data-of="${esc(id)}">${tagRow_(x, 'ans')}
     <p class="qans-none">No checked answer yet: this paper's mark scheme has not been added.</p></div>`;
@@ -671,13 +688,11 @@ function questionAnsCard_(x) {
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
   return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_(x, 'ans') : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${tagRow_(x, 'ans')}
-    <div class="tile-row qans-tiles">${open
-      ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
-      : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } })}${
+    ${inRow ? '' : `<div class="tile-row qans-tiles">${qaToggle_(k, open)}${
       /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
-      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>`}
     ${open ? answerBlock_(x) : ''}
-    ${typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : ''}
+    ${!inRow && typeof helpRow_ === 'function' ? helpRow_(x, 'ans') : ''}
   </div>`;
 }
 
@@ -696,12 +711,16 @@ function ansSet_(x, open) {
   document.querySelectorAll('.qans-card').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
-    t.innerHTML = questionAnsCard_(x);
+    const part = el.closest('.qb-part');
+    t.innerHTML = questionAnsCard_(x, !!part);
     const card = t.firstElementChild;
     if (!card) return;
-    const had = el.contains(document.activeElement);
+    const row = part ? [].find.call(part.querySelectorAll('.qa-toggle'), b => b.getAttribute('data-k') === k) : null;
+    const had = el.contains(document.activeElement) || (!!row && row === document.activeElement);
     el.replaceWith(card);
-    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
+    if (row) { const r = document.createElement('div'); r.innerHTML = qaToggle_(k, open); if (r.firstElementChild) row.replaceWith(r.firstElementChild); }
+    const scope = part || card;
+    if (had) { try { const tl = scope.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) { /* an element that cannot take focus is left as it is */ } }
   });
 }
 function ansShow_(x) { ansSet_(x, true); }

@@ -342,7 +342,12 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
         const id = b.getAttribute('data-part') || '?', foot = b.nextElementSibling;
         if (b.parentElement.closest('.qb')) bad('own-card', x, 'part ' + id + ' is drawn inside another part');
         if (!b.querySelector(':scope > .qcard-tags')) bad('own-card', x, 'part ' + id + ' has no tag line of its own at its top');
-        if (!b.querySelector('[data-do="card-share"]') && !(foot && foot.matches('.tile-row') && foot.querySelector('[data-do="card-share"]'))) bad('own-card', x, 'part ' + id + ' has no whole tile row of its own');
+        if (!b.querySelector('[data-do="card-share"]')) bad('own-card', x, 'part ' + id + ' has no whole tile row of its own');
+        /* ONE ROW, EVERY TILE IN IT (owner, 8 Nov): no second row, no lone tile, no row left after the part */
+        const rows = b.querySelectorAll('.tile-row');
+        if (rows.length !== 1) bad('own-card', x, 'part ' + id + ' has ' + rows.length + ' tile rows, not one');
+        if (rows.length && [].some.call(b.querySelectorAll('.tile'), t => t.closest('.tile-row') !== rows[0])) bad('own-card', x, 'part ' + id + ' has a tile outside its one row');
+        if (foot && foot.matches('.tile-row')) bad('own-card', x, 'part ' + id + ' has a tile row after it, outside its card');
       });
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');

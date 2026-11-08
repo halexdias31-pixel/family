@@ -3826,7 +3826,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .qwhole { background: none; border: 0; border-radius: 0; padding: .85rem 0; margin: 0; }
 .qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
 .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
-.qwhole > .tile-row:not(:last-child) { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line-soft); }
+.qwhole > .qb:not(:last-child) { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line-soft); }
+.qp-work-slot { display: contents; }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }

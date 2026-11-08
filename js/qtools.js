@@ -113,7 +113,9 @@ function qtCheck_(x, m) {
 }
 
 /* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on), then Undo, Clear and Check: all drawn from the start (1020). */
-const PEN_OPEN = new Set();      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
+const PEN_OPEN = new Set();
+/* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
+const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
 function qtToolTile_(t, x) {
   const key = (x && x.key) || '';
   if (t.id === 'mag') return typeof magOpts_ === 'function' ? tile_(magOpts_()) : '';
@@ -145,7 +147,11 @@ function qtRow_(x) {
   const art = typeof padReady_ !== 'function' || padReady_(x);
   const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id]) && qtHere_(t.id, x)).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
-  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}</div>
+  /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
+  const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
+  const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
+  const work = wk && typeof workGoTile_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${workGoTile_(wk)}</span>` : '';
+  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}${work}${more}</div>
     <p class="qt-how">${esc(m.how)}</p>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
