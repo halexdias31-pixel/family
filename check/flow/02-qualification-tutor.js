@@ -893,11 +893,9 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   if (p.err) return [p.err];
   /* 464, 1150: Tutor settings is a padlock for a client, and Apply to teach a card of its own beside it. */
   const card = p.d.querySelector('#s-staff .apply-card');
-  const open = card && card.querySelector('[data-do="apply-open"]:not([disabled])');
-  if (!open) return ['a client\x27s Tutor column has no "Apply to teach" tile'];
-  p.A('apply-open', open); await wait(100);
-  const f = p.d.querySelector('#sheet .app-form');
-  if (!f) return ['"Apply to teach" opened no form'];
+  /* NO SHEET (owner, 8 Nov): the form is in the card from the start. */
+  const f = card && card.querySelector('.app-form');
+  if (!f) return ['a client\x27s Apply to teach card has no form in it'];
   const set = (sel, v) => { const el = f.querySelector(sel); if (!el) { bad.push('the form has no ' + sel); return; }
     if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
   set('[data-app-subj="0"]', 'Maths'); set('[data-app-level="0"]', 'GCSE');
@@ -1096,7 +1094,7 @@ const hubWorld_ = () => {
 const hubBoot_ = async (W, who) => {
   const a = await cardOpen_(W, who, { reply: W.hubReply });
   if (a.err) return a;
-  a.sheet = () => a.d.getElementById('sheet-body');
+  a.sheet = () => a.d.querySelector('#s-staff .staff-top:not(.is-locked) .hub[data-hub]') || a.d.createElement('div');
   a.part = async k => { const t = a.sheet().querySelector('[data-do="hub-part"][data-part="' + k + '"]'); if (t) a.A('hub-part', t); await wait(250); return !!t; };
   return a;
 };

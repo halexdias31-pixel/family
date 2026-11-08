@@ -288,7 +288,7 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ payload: g, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c.w);
   /* 467: SHOWN TO A CLIENT ONLY LOCKED — the card is seen, never usable. */
-  if (c.w.document.querySelector('[data-do="hub-open"]:not([disabled]), .staff-top:not(.is-locked)')) bad.push('a client can use the Staff hub moved to Student settings');
+  if (c.w.document.querySelector('[data-do="hub-part"]:not([disabled]), .staff-top:not(.is-locked)')) bad.push('a client can use the Staff hub moved to Student settings');
   if (!c.w.document.querySelector('#s-students [data-do="pin-save"]') || c.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a client does not find the PIN where it was moved');
   if (c.w.document.querySelector('.card-admin, .start-tiles, [data-do="lay-c-move"]')) bad.push('a client sees layout tiles');
   /* A MEMBER: no tiles, no post. */

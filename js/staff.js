@@ -118,11 +118,10 @@ on('agree-sign', el => {
 });
 
 /* ---------- ON THE TUTOR COLUMN (444): THE HUB'S TILE, AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
-const hubTile_ = () => hubFor_() ? tile_({ icon: 'key', label: 'Staff hub', note: termsAgreed_() ? 'terms, pricing, statement' : 'terms to agree',
-  act: 'hub-open', tone: termsAgreed_() ? '' : 'admin' }) : '';
+const hubBlock_ = () => hubFor_() ? hubHtml_() : '';
 const hubWarn_ = () => hubFor_() && !termsAgreed_()
   ? `<p class="hub-warn" role="status">${USER.agreementSignedAt ? 'The tutor terms have changed.' : 'You have not agreed to the tutor terms yet.'}
-     Open Staff hub to read them and tick I agree — until then @family. sees you as not agreed.</p>` : '';
+     Read them below and tick I agree and tick I agree — until then @family. sees you as not agreed.</p>` : '';
 
 /* ---------- THE HUB: ONE SHEET, THREE PARTS — Hours left in 487 for Tutor settings' Available card ---------- */
 const HUB = { part: 'terms' };
@@ -132,20 +131,20 @@ function hubTilesHtml_() {
     on: HUB.part === k, pressed: HUB.part === k,
     note: k === 'terms' ? (termsAgreed_() ? 'agreed' : 'to agree') : k === 'pricing' ? 'what you charge' : 'each month' })).join('')}</div>`;
 }
-const hubTilesRedraw_ = () => { const r = document.querySelector('#sheet-body .hub-tabs'); if (r) r.outerHTML = hubTilesHtml_(); };
+const hubTilesRedraw_ = () => document.querySelectorAll('.hub .hub-tabs').forEach(r => { r.outerHTML = hubTilesHtml_(); });
 function hubHtml_() {
   const body = HUB.part === 'pricing' ? priceHtml_() : HUB.part === 'statement' ? stmtHtml_() : agreementCard_();
   return `<div class="hub" data-hub="${esc(HUB.part)}">${hubTilesHtml_()}<div class="hub-body">${body}</div></div>`;
 }
+/* NO SHEET (owner, 8 Nov): the hub is in its card from the start; a part's tile redraws every live hub in place. */
 function hubOpen_(part) {
   if (!hubFor_()) return;
   if (part) HUB.part = part;
   if (HUB.part === 'statement') { STMT.tutorId = ''; STMT.tutorName = ''; }
   if (HUB.part === 'pricing') priceStart_();
-  openSheet('Staff hub', hubHtml_());
+  document.querySelectorAll('.hub[data-hub]').forEach(h => { if (!h.closest('.is-locked')) h.outerHTML = hubHtml_(); });
   if (HUB.part === 'statement') stmtAsk_();
 }
-on('hub-open', () => hubOpen_(termsAgreed_() ? '' : 'terms'));
 on('hub-part', el => hubOpen_(el.dataset.part));
 
 
@@ -229,7 +228,7 @@ function priceHtml_() {
 }
 /* IN PLACE, as the thumb moves: widths and words change, so the bars slide (the CSS transition) and the slider stays held. */
 function priceRedraw_() {
-  const box = document.querySelector('#sheet-body .pb');
+  const box = document.querySelector('.hub .pb');
   if (!box) return;
   const rows = [1, 2, 3].map(priceSplit_);
   const full = Math.max(1, ...rows.map(r => r.tutor + r.room + r.fees + Math.max(0, r.business)));
@@ -249,7 +248,7 @@ function priceRedraw_() {
   });
   const note = box.querySelector('.pb-note');
   if (note) note.hidden = !(rows[0].business < 0);
-  const said = document.querySelector('#sheet-body .hub-said');
+  const said = document.querySelector('.hub .hub-said');
   if (said) said.textContent = priceWrong_();
 }
 function priceInput_(el) {
@@ -259,15 +258,14 @@ function priceInput_(el) {
   PRICE[k] = isNaN(x) ? 0 : x;
   PRICE.moved[k] = true;
   /* THE TWIN FOLLOWS: slider ↔ box, and the seat slider's end follows the rate (twice it). */
-  document.querySelectorAll('#sheet-body [data-pv="' + k + '"]').forEach(o => { if (o !== el && o.tagName === 'INPUT') o.value = String(PRICE[k]); });
-  if (k === 'rate') document.querySelectorAll('#sheet-body input[data-pv="seat"]').forEach(o => { o.max = String(Math.max(1, PRICE.rate * STAFF_SEAT_MAX)); });
+  document.querySelectorAll('.hub [data-pv="' + k + '"]').forEach(o => { if (o !== el && o.tagName === 'INPUT') o.value = String(PRICE[k]); });
+  if (k === 'rate') document.querySelectorAll('.hub input[data-pv="seat"]').forEach(o => { o.max = String(Math.max(1, PRICE.rate * STAFF_SEAT_MAX)); });
   priceRedraw_();
 }
-document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('#sheet-body .hub-price')) priceInput_(el); });
-document.addEventListener('change', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('#sheet-body .hub-price')) priceInput_(el); });
+document.addEventListener('input', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('.hub-price')) priceInput_(el); });
+document.addEventListener('change', e => { const el = e.target; if (el && el.dataset && el.dataset.pv && el.closest('.hub-price')) priceInput_(el); });
 /* THE ONE HOME OF THE RATE, THE SEAT AND THE CLASS SIZE IS YOUR CARD (620, CLAUDE.md "every setting has one home"): Pricing opens it. */
 on('price-card', () => {
-  try { closeSheet(); } catch (e) {}
   /* ON YOUR PUBLIC CARD (the Tutors column) when you have one; otherwise Tutor settings carries the same fields. */
   const col = cardMine_() ? 'tutors' : 'staff';
   go(col);
@@ -320,11 +318,11 @@ function stmtHtml_() {
   </div>`;
 }
 function stmtDraw_() {
-  const out = document.querySelector('#sheet-body .stmt-out');
+  const out = document.querySelector('.hub .stmt-out');
   if (!out) return;
   out.innerHTML = stmtOutHtml_();
   if (STMT.asking) out.setAttribute('aria-busy', 'true'); else out.removeAttribute('aria-busy');
-  const p = document.querySelector('#sheet-body [data-do="stmt-print"]');
+  const p = document.querySelector('.hub [data-do="stmt-print"]');
   if (p) p.disabled = !STMT.data;
 }
 function stmtAsk_() {
@@ -343,13 +341,13 @@ function stmtAsk_() {
 }
 document.addEventListener('change', e => {
   const el = e.target;
-  if (!el || !el.matches || !el.matches('#sheet-body select[data-stmt="month"]')) return;
+  if (!el || !el.matches || !el.matches('.hub select[data-stmt="month"]')) return;
   STMT.month = el.value;
   stmtAsk_();
 });
 /* "DOWNLOAD PDF" IS THE PRINT DIALOGUE: a paper copy at the end of the body, everything else hidden (`.printing-stmt`), as the mat prints. */
 on('stmt-print', () => {
-  const src = document.querySelector('#sheet-body .stmt');
+  const src = document.querySelector('.hub .stmt');
   if (!src || !STMT.data) return;
   const paper = document.createElement('div');
   paper.className = 'stmt-paper';
@@ -411,6 +409,8 @@ function staffStart_() {
 on('stmt-for', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
   STMT.tutorId = el.dataset.id || ''; STMT.tutorName = el.dataset.name || '';
-  openSheet('Statement', `<div class="hub">${stmtHtml_()}</div>`);
+  /* IN THE CARD PRESSED, under its row: one statement at a time, no sheet. */
+  document.querySelectorAll('.hub-for').forEach(h => h.remove());
+  const c = el.closest('.card'); if (c) c.insertAdjacentHTML('beforeend', `<div class="hub hub-for">${stmtHtml_()}</div>`);
   stmtAsk_();
 });

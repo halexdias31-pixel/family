@@ -113,13 +113,16 @@ on('resend-link', el => {
 });
 
 /* ---------- A NEW PIN FOR YOUR CHILD, OR FOR ANYBODY IF YOU ARE AN ADMIN § */
+/* NO SHEET (owner, 8 Nov): the ask opens under the row pressed, and the new PIN replaces it there. */
 on('kid-pin', el => {
   const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
   if (!id) { toast('That account has no id yet — ask us.'); return; }
-  openSheet('A new PIN for ' + who, `
-    <p class="sub">Their old PIN stops working, and they are signed out everywhere. You will see the
+  const row = el.closest('.tile-row') || el;
+  document.querySelectorAll('.kid-pin-ask').forEach(x => x.remove());
+  row.insertAdjacentHTML('afterend', `<div class="kid-pin-ask">
+    <p class="note">A new PIN for ${esc(who)}: their old PIN stops working, and they are signed out everywhere. You will see the
       new one once, to give them.</p>
-    ${tile_({ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } })}`);
+    ${tile_({ form: true, label: 'Make a new PIN', act: 'kid-pin-go', data: { id: id, name: who } })}</div>`);
 });
 
 on('kid-pin-go', el => {
@@ -128,11 +131,10 @@ on('kid-pin-go', el => {
   send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
         { button: el, busy: 'Making it…' })
     .then(d => {
-      const body = $('sheet-body');
+      const body = el.closest('.kid-pin-ask');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
-        + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Kids settings once they are in.</p>'
-        + '' + tile_({ form: true, label: 'Done', act: 'sheet-done', kind: 'quiet' }) + '';
+        + '<p class="note">Write it down or read it to them — it is not shown again. They can change it '
+        + 'under Kids settings once they are in.</p>';
     })
     .catch(() => {});
 });
@@ -404,8 +406,8 @@ function lockCard_(h) {
 const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => `<div class="card own-lock" data-lay-card="own:${col}:${k}"><h3>${esc(OWN_SEC_TITLE_[k] || k)}</h3></div>`);
 /* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
 const LOCKED_DRAW_ = {
-  staff: () => lockedOwnCards_('staff').concat([`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${
-    typeof hubTile_ === 'function' ? hubTile_() : ''}</div></div>`]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  staff: () => lockedOwnCards_('staff').concat([`<div class="card staff-top"><h3>Staff hub</h3>${
+    typeof hubBlock_ === 'function' ? hubBlock_() : ''}</div>`]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
   family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
@@ -424,8 +426,9 @@ screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_
 
 /* APPLY TO TEACH IS A CARD OF ITS OWN, not a line on the padlock: Find › Settings skips a padlock, and the owner onboards through Find (1150). */
 function applyCard_() {
-  const tile = typeof applyTile_ === 'function' ? applyTile_() : '';
-  return tile ? [`<div class="card apply-card" data-yours="1"><h3>Apply to teach</h3><p class="sub">Teach with us: tell us what you teach, and we will be in touch.</p>${tile}</div>`] : [];
+  const open = typeof applyFormOpen_ === 'function' && applyFormOpen_();
+  const body = open ? applyFormHtml_() : typeof applyTile_ === 'function' ? applyTile_() : '';
+  return body ? [`<div class="card apply-card" data-yours="1"><h3>Apply to teach</h3><p class="note">Teach with us: tell us what you teach, and we will be in touch.</p>${body}</div>`] : [];
 }
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
@@ -433,9 +436,9 @@ function staffPages_() {
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
   /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), then every card shut (467). */
   if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.')].concat(applyCard_(), lockedPages_('staff'));
-  const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
+  const hub = typeof hubBlock_ === 'function' ? hubBlock_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
-  const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
+  const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
 }

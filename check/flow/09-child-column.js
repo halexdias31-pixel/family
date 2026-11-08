@@ -304,16 +304,14 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
     t.ACTIONS['kid-pin'](pins[0]);
     await wait(80);
     if (sent.some(b => b.action === 'resetPin')) bad.push('New PIN on the card reset the PIN before asking');
-    const yes = d.querySelector('#sheet-body [data-do="kid-pin-go"]');
-    if (!yes) bad.push('New PIN on the card opened no sheet to say yes in');
+    const yes = d.querySelector('.kid-pin-ask [data-do="kid-pin-go"]');
+    if (!yes) bad.push('New PIN on the card opened nothing under the row to say yes in');
     else {
       t.ACTIONS['kid-pin-go'](yes);
       await wait(300);
       const post = sent.find(b => b.action === 'resetPin');
       if (!post || post.targetId !== 'P-K1') bad.push('saying yes posted ' + JSON.stringify(post) + ', wanted resetPin for Wren');
-      if (!d.querySelector('#sheet-body .pin-slip') || d.querySelector('#sheet-body .pin-slip').textContent.indexOf(FRESH) === -1) bad.push('the new PIN was not shown on the slip');
-      const done = d.querySelector('#sheet-body [data-do="sheet-done"]');
-      if (done) t.ACTIONS['sheet-done'](done);
+      if (!d.querySelector('.kid-pin-ask .pin-slip') || d.querySelector('.kid-pin-ask .pin-slip').textContent.indexOf(FRESH) === -1) bad.push('the new PIN was not shown on the slip');
     }
   }
   /* LINKING ONE WHO HAS AN ACCOUNT moved to People (442): the add section only points there, no boxes. */
@@ -413,17 +411,16 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   sent.length = 0;
   t.ACTIONS['kid-pin'](tile);
   await wait(80);
-  const sheet = d.getElementById('sheet');
-  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing New PIN opened nothing to confirm in']);
+  if (!d.querySelector('.kid-pin-ask')) return bad.concat(['pressing New PIN opened nothing to confirm in']);
   if (sent.some(b => b.action === 'resetPin')) bad.push('pressing New PIN reset the PIN before asking');
-  const go_ = d.querySelector('#sheet-body [data-do="kid-pin-go"]');
-  if (!go_) return bad.concat(['the New PIN sheet has no button to say yes with']);
+  const go_ = d.querySelector('.kid-pin-ask [data-do="kid-pin-go"]');
+  if (!go_) return bad.concat(['the New PIN ask has no button to say yes with']);
   t.ACTIONS['kid-pin-go'](go_);
   await wait(300);
   const post = sent.find(b => b.action === 'resetPin');
   if (!post || post.targetId !== 'P-K') bad.push('saying yes posted ' + JSON.stringify(post) + ' — wanted resetPin for P-K');
-  const slip = d.querySelector('#sheet-body .pin-slip');
-  if (!slip) bad.push('after the new PIN there is no slip in the sheet');
+  const slip = d.querySelector('.kid-pin-ask .pin-slip');
+  if (!slip) bad.push('after the new PIN there is no slip under the row');
   else if (!/@kit_kind41/.test(slip.textContent) || slip.textContent.indexOf(FRESH) === -1) bad.push('the slip does not show the handle and the new PIN: ' + JSON.stringify(slip.textContent.replace(/\s+/g, ' ')));
   /* A PARENT'S OWN PARENT IS NOT THEIRS TO RESET — and a student's parent card carries no tile. */
   t.USER({ name: 'Kit Parent', personId: 'P-K', role: 'student', roles: ['student'], token: 'tk3' });
