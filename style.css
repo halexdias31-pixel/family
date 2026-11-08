@@ -2166,8 +2166,8 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
 /* ---------- ONE GRID FOR THE WHOLE CARD, BECAUSE EVERY ROW WAS ITS OWN § */
 .bk {
   display: grid;
-  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) 7ch 8ch 7.5ch;
-  column-gap: .3rem;
+  grid-template-columns: minmax(6.2em, max-content) minmax(4.5em, 1fr) max-content max-content max-content;
+  column-gap: .45rem;
   margin: .4rem 0 .2rem;
 }
 /* A ROW SPANS THE CARD AND BORROWS ITS TRACKS. § */
@@ -2194,7 +2194,7 @@ html.flow:not(.is-loaded) #s-feed { min-height: 100svh; }   /* the home column h
   /* THE SIZE IS DECLARED BELOW, WITH THE CARD'S, because the card's tracks are `em` and `ch`. */
 }
 /* ---------- ONE SIZE, BECAUSE THE TRACKS ARE MEASURED IN IT § */
-.bk, .bk-row { font-size: min(.74rem, 2.85vw); }
+.bk, .bk-row { font-size: min(.8rem, 3.05vw); }
 /* BREAK A WORD ONLY WHEN IT WILL NOT FIT, and hyphenate it when it does break. § */
 /* BUT NOT ON THE LABEL. § */
 .bk-k { line-height: 1.35; }
@@ -6270,3 +6270,10 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-photos .prof-more { display: grid; place-items: center; border-radius: 6px; }
 .tcard .prof-name { min-width: 0; }
 .tcard .prof-line .prof-price { margin-left: auto; }
+
+/* ---------- BOOKING CARD AT 390px (owner 7 Nov: no grey text; read like the tutor card) ---------- */
+/* Words in ink: greyed is kept only for unticked ticks and a "—" that does not apply. */
+.bk-k, .bk-v, .bk-m, .bk-r, .bk-set, .bk-dates, .bk-when,
+.bk-row.is-blank .bk-k { color: var(--ink); }
+.bk-dates, .bk-when { font-size: inherit; }
+.bk-row.is-cols :is(.bk-k, .bk-v, .bk-m, .bk-r, .bk-t) { color: var(--gold); }
