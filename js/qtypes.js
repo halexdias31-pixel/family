@@ -116,9 +116,10 @@ const QT_COORD = /^\(\s*[-−]?[\d.\/]+\s*,\s*[-−]?[\d.\/]+\s*\)$/;
 const QT_FRAC = /^[-−]?(\d+\s+)?\d+\s*[\/⁄]\s*\d+$|^[-−]?\d*\s*[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]$/;
 const QT_ROMAN = /^[ivxlcdm]+$/i;
 /* ALGEBRA: a one-letter name raised, beside a number or bracket, or joined by an operator. "x = 9" is a value, named; "fifty-four" is words. */
-const QT_V = '(?<![a-z])[a-z](?![a-z])';
-const QT_ALG = new RegExp(QT_V + '[\\^²³]|[\\d)]' + QT_V + '|' + QT_V + '\\(|' + QT_V + '\\s*[-+−×*\\/]\\s*[\\d(]|'
-  + QT_V + '\\s*[-+−×*\\/]\\s*' + QT_V + '|[\\d)]\\s*[-+−×*\\/]\\s*' + QT_V + '|√' + QT_V, 'i');
+const QT_V = '(?:^|[^a-z])[a-z](?![a-z])';
+const QT_V0 = '[a-z](?![a-z])';
+const QT_ALG = new RegExp(QT_V + '[\\^²³]|[\\d)]' + QT_V0 + '|' + QT_V + '\\(|' + QT_V + '\\s*[-+−×*\\/]\\s*[\\d(]|'
+  + QT_V + '\\s*[-+−×*\\/]\\s*' + QT_V0 + '|[\\d)]\\s*[-+−×*\\/]\\s*' + QT_V0 + '|√' + QT_V0, 'i');
 function qtExpr_(w) {
   const s = w.replace(/π|pi\b/gi, '').trim();
   if (!/[a-z]/i.test(s) || /^[a-z]\s*=\s*[-−]?[\d.\/\s]+$/i.test(s) || QT_UNIT.test(s)) return false;

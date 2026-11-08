@@ -617,7 +617,7 @@ function sayChunks_(text, max) {
   const out = [], all = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
   /* A LINE THAT IS ALREADY SHORT IS ONE UTTERANCE: Read aloud hands over a line at a time, and a split there only adds a gap. */
   if (all.length <= max) return all ? [all] : [];
-  all.split(/(?<=[.?!])\s+(?=[A-Z0-9“\u0022\u0027(£¿¡])/).forEach(s => {
+  all.replace(/([.?!])\s+(?=[A-Z0-9“\u0022\u0027(£¿¡])/g, '$1\u0001').split('\u0001').forEach(s => {
       while (s.length > max) {
         let cut = s.lastIndexOf(', ', max);
         if (cut < max / 3) cut = s.lastIndexOf(' ', max);
