@@ -6221,3 +6221,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rc:not(.is-done) .bk-face > .bk-sel { background-image: none; }
 .rc:not(.is-done) .bk-v > .bk-sel { background-position: right calc(.7em + 4px) center, right .7em center; }
 .rc:not(.is-done) .bk-v > .bk-in { text-align: left; }
+
+/* ---------- LIBRARY CARDS, ONE LOOK (owner's look rule): picture first, facts as tags, no grey text, the tiles on one line ---------- */
+.lib-pic { margin: .4rem auto .6rem; width: min(100%, 8rem); background: var(--raised); border-radius: 12px; padding: .5rem; }
+.lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
+.lib-c > .person-pic { margin: .2rem auto .6rem; }
+.pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }

@@ -496,7 +496,7 @@ function pixSvg_(rows, name, flip, cls) {
     flip ? `<g transform="translate(16 0) scale(-1 1)">${paths}</g>` : paths}</svg>`;
 }
 function personCard_(x) {
-  return `<div class="card fc person" aria-label="${esc(x.name)}">${tagRow_(x)}<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure></div>`;
+  return `<div class="card fc person lib-c" aria-label="${esc(x.name)}"><figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>${tagRow_(x)}</div>`;
 }
 
 /* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */

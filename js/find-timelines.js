@@ -49,7 +49,7 @@ function tlTicks_(from, to, win, unit) {
 /* THE SCENE: the event's 16x16 drawing, its date and its caption — swapped whole so it pops in each time. */
 function tlScene_(s) {
   return `<figure class="tl-pic">${pixSvg_(s.px, s.label, false, ' tl-big')}</figure>
-    <p class="tl-year">${esc(s.ev.date_text || histDay_(s.ev.date_iso))}</p><p class="tl-label">${esc(s.label)}</p>`;
+    <div class="tl-year">${esc(s.ev.date_text || histDay_(s.ev.date_iso))}</div><div class="tl-label">${esc(s.label)}</div>`;
 }
 /* THE GEOMETRY: the track is span ÷ window views wide, so a short window is zoomed in; it is moved to centre the event shown. */
 function tlGeom_(x) {
@@ -81,9 +81,10 @@ function tlStage_(x) {
 }
 function histTimelineCard_(x) {
   setTimeout(() => tlAuto_(x.key), 700);
-  return `<div class="card fc hdb hdb-tl" aria-label="${esc(x.name)}">
-    ${tagRow_(x)}
+  /* PICTURE FIRST (owner's look rule): the stage, then the tags. */
+  return `<div class="card fc hdb hdb-tl lib-c" aria-label="${esc(x.name)}">
     <section class="fc-sec tl-anim" data-tl="${esc(x.key)}">${tlStage_(x)}</section>
+    ${tagRow_(x)}
   </div>`;
 }
 function tlExtras_(x) { const ch = histTimelineChapter_(x.era); return ch ? [{ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } }] : null; }

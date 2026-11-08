@@ -348,24 +348,23 @@ const writingRefs_ = on => {
 };
 
 const HIST_TILE_LINKS = 3;
-/* NO CARD TALLER THAN A PHONE (562, owner note 122): a history card keeps this many lines, none under a drawing; the rest are pages of HIST_PAGE_ROWS after it. */
-const HIST_CARD_ROWS = 6, HIST_PAGE_ROWS = 8;
+/* NO CARD TALLER THAN A PHONE (562, owner note 122): a history card's lines are all pages of HIST_PAGE_ROWS after it (owner's look rule: facts as tags on the card). */
+const HIST_PAGE_ROWS = 8;
 function histRows_(x) {
   const r = x.row || {};
   return (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
     .filter(l => String(l[1] == null ? '' : l[1]).trim())
     .filter(l => !(isManuscript_(x) && MS_SAID.indexOf(l[0]) >= 0));
 }
-const histOnCard_ = x => (isManuscript_(x) ? 0 : HIST_CARD_ROWS);
 function histPages_(x) {
-  const rest = histRows_(x).slice(histOnCard_(x)), out = [];
+  const rest = histRows_(x), out = [];
   for (let i = 0; i * HIST_PAGE_ROWS < rest.length; i++) out.push('facts' + i);
   return out;
 }
 const histDl_ = rows => `<section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
   histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>`;
 function histFactsPart_(x, part) {
-  const i = Number(part.slice(5)) || 0, at = histOnCard_(x) + i * HIST_PAGE_ROWS;
+  const i = Number(part.slice(5)) || 0, at = i * HIST_PAGE_ROWS;
   const rows = histRows_(x).slice(at, at + HIST_PAGE_ROWS);
   return rows.length ? `<div class="card fc hdb hdb-more"><div class="fc-head"><h3>${esc(x.name)}</h3></div>${histDl_(rows)}</div>` : '';
 }
@@ -378,13 +377,13 @@ function histExtras_(x) {
       histList_(r.sources).filter(u => /^https:\/\//.test(u)).slice(0, 1).map(u => ({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u }))); }
 function histCard_(x) {
   const r = x.row || {};
-  const rows = histRows_(x).slice(0, histOnCard_(x));
   /* A MANUSCRIPT IS MINIMAL (owner, 7 Nov): its picture first where drawn, then its facts as tags; no title, no grey line. */
-  if (isManuscript_(x)) return `<div class="card fc hdb hdb-msc" aria-label="${esc(x.name)}">${msFragSvg_(r, x.msSideIx)}${tagRow_(x)}</div>`;
-  return `<div class="card fc hdb">
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+  if (isManuscript_(x)) return `<div class="card fc hdb hdb-msc lib-c" aria-label="${esc(x.name)}">${msFragSvg_(r, x.msSideIx) || libPic_('manuscript', x.name)}${tagRow_(x)}</div>`;
+  /* EVERY LIBRARY CARD LOOKS ONE WAY (owner's look rule): its picture, its facts as tags, its name; the long lines are its pages. */
+  return `<div class="card fc hdb lib-c">
+    ${libPic_(x.kind, x.name)}
     ${tagRow_(x)}
-    ${rows.length ? histDl_(rows) : ''}
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${writingRefs_(r.id)}
   </div>`;
 }

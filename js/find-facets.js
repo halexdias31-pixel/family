@@ -590,12 +590,13 @@ function projectCard_(x) {
                  ages].filter(Boolean).join(' · ');
   /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work counts towards, and a project has neither, so its line is unchanged. § */
   const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
-  return `<div class="card fc prac proj">
+  return `<div class="card fc prac proj lib-c">
+    ${libPic_('project', x.name)}
+    ${tagRow_(x)}
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
     </div>
-    ${tagRow_(x)}
-    <p class="sub">${esc([p.subject, p.level, qual].filter(Boolean).join(' · '))}</p>
+    ${qual ? `<p class="fc-meta">${esc(qual)}</p>` : ''}
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
@@ -659,9 +660,10 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
    pages of their own, each titled (`contentPart_`). */
 function contentCard_(x) {
   const c = x.row;
-  return `<div class="card fc prac tb ct">
-    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+  return `<div class="card fc prac tb ct lib-c">
+    ${libPic_('content', x.name)}
     ${tagRow_(x)}
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tbSections_(c, null, { only: 'words' })}
   </div>`;
 }
