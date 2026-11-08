@@ -124,6 +124,8 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
                'wordsSave',
                /* The weekly email's words (491), edited on the Site column. */
                'digestWordsSave',
+               /* The @family share of an extra seat (8 Nov), config B, set on the Business column. */
+               'familyShareSave',
                /* Notes for Claude (484): an admin's note on a widget or card. */
                'claudeNoteAdd', 'claudeNoteDone',
                /* Favourite links and the Rewrite coach (509). */

@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-08-tutor-side-1";
+const BACKEND_VERSION = "2026-11-08-family-share-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1699,6 +1699,8 @@ const ACTION_ACCESS = {
   wordsSave: 'admin',
   /* THE WEEKLY EMAIL'S WORDS (491), four config rows. */
   digestWordsSave: 'admin',
+  /* THE @FAMILY SHARE (8 Nov): config B, one share for everyone. */
+  familyShareSave: 'admin',
   /* NOTES FOR CLAUDE (484): an admin's words on a widget or card, and marking one done. */
   claudeNoteAdd: 'admin', claudeNoteDone: 'admin',
   /* FAVOURITE LINKS (509): your own list, written whole. */
