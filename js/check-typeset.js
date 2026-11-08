@@ -16,7 +16,7 @@ if (!body) {
   console.log('check-typeset: cannot find typeset_ in find.js — renamed?');
   process.exit(1);
 }
-const typeset_ = eval('(' + body + ')');
+const typeset_ = require('../tools/typeset-src.js').typesetFn(src, cutFrom);
 
 const fail = [];
 
