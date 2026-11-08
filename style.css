@@ -2367,7 +2367,9 @@ label.bk-k { cursor: pointer; }
 /* AND A WEEK THAT CANNOT BE ANSWERED RECEDES RATHER THAN VANISHING — a joined class's hours are
    somebody else's decision, and greying them still says which ones they were. */
 .bk-row.bk-wk.is-off .slot-hours { opacity: .45; }
-.bk-row.bk-wk.is-off .wk-hh { color: var(--faint); }
+.bk-row.bk-wk.is-off .wk-hh { color: var(--ink); }
+/* A SAVED BOOKING'S WEEK IS READ, NOT PRESSED: the whole grid at full strength, the booked hours gold (owner, 8 Nov). */
+.rc.is-done .bk-row.bk-wk.is-off .slot-hours, .rc.is-done .bk-row.bk-wk .hr.shut { opacity: 1; }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
@@ -2379,12 +2381,12 @@ label.bk-k { cursor: pointer; }
 .slot-hours { display: flex; gap: 2px; flex: 1; min-width: 0; }
 /* ---------- THE HOUR, ONCE, ABOVE THE COLUMN IT NAMES § */
 .slot-hh { flex: 1 1 0; min-width: 0; text-align: center;
-           font-size: .6em; letter-spacing: -.02em; color: var(--faint);
+           font-size: .6em; letter-spacing: -.02em; color: var(--ink);
            font-variant-numeric: tabular-nums; }
 .slot-head { margin-bottom: 1px; }
 /* ---------- AND WHERE A COLUMN IS NARROWER THAN ITS OWN LABEL, THE STRIP SAYS ITS SPAN § */
 .wk-hh.wk-rule { display: block; text-align: center; white-space: nowrap;
-                 font-size: .6em; letter-spacing: -.02em; color: var(--faint);
+                 font-size: .6em; letter-spacing: -.02em; color: var(--ink);
                  font-variant-numeric: tabular-nums; }
 /* A BUTTON IN THE BOOKER, A LABEL IN THE FORM. § */
 .hr {
@@ -2415,6 +2417,8 @@ label.bk-k { cursor: pointer; }
 /* ---------- AND IT SAYS SO BY SPECIFICITY RATHER THAN BY SITTING LOWER IN THE FILE § */
 .rc.is-done .bk-row.bk-wk .hr { min-height: 1.1em; padding: 0; font-size: .58em; }
 .rc.is-done .slot-hh { font-size: .55em; }
+/* THE ROOM FORM'S LABEL IS A QUESTION ON THE RECEIPT, so it is in ink like the rest of the paper's words. */
+.room-form label.field > span { color: var(--ink); }
 /* ---------- AND SIX RULES UNDER THIS ONE WERE COMPACTING A GRID THE RECEIPT NO LONGER DRAWS § */
 
 /* ---------- A ROW THAT SAYS NOTHING TAKES THE ROOM OF ONE THAT DOES § */
@@ -3299,8 +3303,7 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* ---------- AND A DAY ROW IS THE ONE THAT CARRIES A MULTIPLIER WITHOUT A TOTAL § */
 /* ---------- AND THE DATES ROW IS THE SECOND OF THOSE, ASKED FOR BY NAME § */
 .bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-m,
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-r,
-.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-t { display: none; }
+.bk-row:not(.is-cols):not(.is-wide):not(.bk-wk):not(:has(.bk-dates)):not(:has(.bk-t:not(:empty))) .bk-r { visibility: hidden; }
 /* ---------- AND THE ANSWER STAYS IN THE ANSWER COLUMN § */
 
 /* ---------- THE FIGURE COLUMNS STAY ON AN UNPRICED CARD, FOURTH TIME OF ASKING § */
@@ -3336,8 +3339,8 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
   overflow-wrap: break-word; hyphens: none;
 }
 /* `:not(.is-wide)` BECAUSE A BASKET LINE CAN BE BOTH. § */
-.bk-row.is-bare:not(.is-wide) .bk-m, .bk-row.is-bare:not(.is-wide) .bk-r,
-.bk-row.is-bare .bk-t { display: none; }
+.bk-row.is-bare:not(.is-wide) .bk-m, .bk-row.is-bare:not(.is-wide) .bk-r { visibility: hidden; }
+.bk-row.is-bare.is-wide .bk-t { display: none; }
 
 /* AN OPEN WAITING LIST — A TICKET, NOT A CARD. § */
 .cpn {
@@ -6219,13 +6222,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* ---------- FIND › BOOKING, FINISHED (owner, 7 Nov): no box, tags on top, cream-pill answers, two columns when nothing is priced ---------- */
 #bookr .rc, .page .rc { background: none; border: 0; border-radius: 0; padding: .2rem 0 .4rem; }
 .rc-head .qtags { margin: 0 0 .35rem; }
-/* AN UNPRICED FORM HAS NO FIGURES, so its three figure columns and their heading give the answer the room. */
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) { grid-template-columns: minmax(6.2em, max-content) minmax(0, 1fr); }
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row.is-cols,
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row :is(.bk-m, .bk-r) { display: none; }
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .bk-row:not(.rc-total) .bk-t { display: none; }
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-v { display: none; }
-.bk:not(:has(.bk-row:not(.is-cols):not(.rc-total) :is(.bk-m, .bk-r):not(:empty))) > .rc-total .bk-t { grid-column: 2; }
+/* THREE PRICE COLUMNS ON EVERY FORM, priced or not (owner, 8 Nov): the same lines always, the last column carries a dash until it has a figure. */
+.bk-row:not(.is-cols):not(.is-wide):not(.rc-total):not(:has(.bk-tick)) > .bk-t:empty::before { content: '\2014'; }
 /* THE ANSWERS LOOK LIKE THE CREAM QUESTION PILL, so a reader sees at once what can be set. */
 .rc:not(.is-done) .bk-row { padding-block: .12rem; align-items: center; }
 .rc:not(.is-done) .bk-v:has(> .bk-sel, > .bk-in, > .bk-face) { border-bottom: 0; }
