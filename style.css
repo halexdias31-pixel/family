@@ -226,12 +226,8 @@ body {
   position: relative;
 }
 
-/* On a desktop the column sits on a darker field, so it reads as an app rather than as a website
-   that failed to fill the window. */
-@media (min-width: 30rem) {
-  html { background: #0a0a0a; }
-  body { box-shadow: 0 0 0 1px var(--line-soft); }
-}
+/* ONE FIELD AT EVERY WIDTH (owner, 8 Nov): the page colour runs edge to edge, so a wide window shows a centred column, never a side panel. */
+html { background: var(--bg); }
 
 /* ---------- THE WIDE WINDOW: THE COLUMN STOPS BEING A PHONE § */
 html.wide body { max-width: none; box-shadow: none; }
@@ -1694,10 +1690,8 @@ button.text-drop { color: var(--bad); }
 }
 .vid-watch.is-fs::backdrop { background: var(--letterbox); }
 
-@media (orientation: landscape) {
-  .vid-watch.on.is-fs { flex-direction: row; }
-
-}
+/* WIDER THAN TALL, the picture and its words sit side by side: a shape rule, so a desktop window and a turned phone get it alike. */
+@media (min-aspect-ratio: 1/1) { .vid-watch.on.is-fs { flex-direction: row; } }
 /* THE ONE THING THE TOP LAYER DOES NOT SHED IS `zoom`. § */
 .pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
@@ -1811,7 +1805,8 @@ button.text-drop { color: var(--bad); }
 
 /* ---------- THE ONE SCROLLING PAGE (900, `FLOW_LAYOUT` in shell.js): the grid above undone — one centred column in flow, scrolled by the browser. */
 #topbar { display: none; }
-html.flow body { max-width: 40rem; padding: var(--safe-top) 16px calc(var(--s4) + var(--safe-bottom)); box-shadow: none; }
+/* ONE FLUID COLUMN: capped at a reading width in rem, centred, gutters never inside a notch — the same rule upright, on its side and on a desktop. */
+html.flow body { max-width: min(100%, 48rem); padding: var(--safe-top) max(16px, var(--safe-right)) calc(var(--s4) + var(--safe-bottom)) max(16px, var(--safe-left)); box-shadow: none; }
 /* THE PAD'S ROOM: the last answer box can still scroll above it. */
 html.flow.kp-up body { padding-bottom: calc(var(--kp-h, 50dvh) + var(--s4)); }
 html.flow #topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: 48px; }
@@ -5520,7 +5515,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 /* SIX TOOLS DO NOT FIT THE WHITEBOARD'S 272px AT A PHONE'S WIDTH; two even rows of three rather than five and an orphan (414, check/ui.js). */
 
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
   .card.is-widget:has(.nb) {
     display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr;
     column-gap: 1rem; align-items: start;
@@ -5532,7 +5527,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 }
 
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
   .wb { --wb-side: calc(7px + 3.65rem); }
   .card.is-widget:has(.wb) {
     display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto 1fr;

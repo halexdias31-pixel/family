@@ -227,6 +227,7 @@ const SUITE = [
   { file: 'check/later.js', what: 'every column gone to and started while the LATER files are away reads none of their names; they arrive in one task (720)', slow: true },
   { file: 'check/talpage.js', what: 'a Talmud page stays a balanced rectangle: what runs long continues full-width (494)', slow: true },
   { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
+  { file: 'check/fluid.js',   what: 'any shape of screen: seven phone, tablet and desktop sizes scroll no wider than the window and leave no blank side', slow: true },
   { file: 'check/centred.js', what: 'Find and Find 2 float back to the middle when words or chips are cleared (508)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   { file: 'check/slide.js',   what: 'the slide between columns as iOS does it: landings, a spring, the rubber band, a held row (527)', slow: true },
