@@ -23,5 +23,18 @@ files.forEach(({ n, src }) => {
   if (raw.length > may) bad.push(`1 raw <button>: ${n}.js has ${raw.length}, allowed ${may} — draw it with tile_({…}) (a form's Save: tile_({ form: true }))`);
 });
 
+/* ---------- 2. NO GREY SENTENCES ---------- */
+/* Text is ink or a tag; the two greys colour only a control that cannot be pressed (P8) or a placeholder. */
+const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
+const GREY = /(?<![-\w])color:\s*var\(--(dim|faint)\)/;
+const STILL = /disabled|placeholder|is-off|\.shut|locked|\.off\b|:empty|read-only/;
+for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+  const sel = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  if (GREY.test(m[2]) && !STILL.test(sel)) bad.push(`2 grey text: "${sel.slice(0, 80)}" — ink, a tag (.qtag), or nothing`);
+}
+files.forEach(({ n, src }) => {
+  if (/(?<![-\w])color:\s*var\(--(dim|faint)\)/.test(src)) bad.push(`2 grey text: inline in ${n}.js`);
+});
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
