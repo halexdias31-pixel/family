@@ -142,8 +142,9 @@ function settingsInto_(d, extra) {
 
   /* ---------- EACH SETTING'S ACCOUNT TYPES (owner, 7 Nov): `for` is a comma list, so one item is found under every type it belongs to ---------- */
   const setFor = extra['settings/setting-for'];
+  /* THE ROWS' ORDER IS THE ITEMS' ORDER (identity, contact, sign-in, roles, notifications, reading, role-specific); `rank` overrides it. */
   if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
-    .map(r => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim() }]));
+    .map((r, i) => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: libN(r.rank) || i }]));
 
   return d;
 }

@@ -137,8 +137,8 @@ function settingDoorItems_() {
   const add = (name, id, part, type, mine) => {
     const row = tags[id], fr = (row && row.for && row.for.length) ? row.for : [type];
     const x = byName[norm(name)];
-    if (x) { x.parts.push(part); fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
-    const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice() };
+    if (x) { x.parts.push(part); if (row && (row.rank || 0) < x.rank) x.rank = row.rank || 0; fr.forEach(t => { if (x.settingFor.indexOf(t) === -1) x.settingFor.push(t); }); x.mine = x.mine || mine; return; }
+    const it = { kind: 'setting', name: name, key: 'set:' + (id || part.col + ':' + part.at), sub: '', image: '', parts: [part], mine: mine, settingFor: fr.slice(), rank: row ? row.rank || 0 : 5000 + out.length };
     byName[norm(name)] = it; out.push(it);
   };
   SETTING_TYPES.forEach(([type, col, may, peek]) => {
@@ -154,6 +154,8 @@ function settingDoorItems_() {
     });
   });
   if (rankAtLeast_('admin')) add('Notifications', 'set:notify', { notify: true }, 'Business', true);
+  /* ORDER IS DATA (setting-for.json's rows); an untagged card keeps its column's place after them. */
+  out.sort((a, b) => a.rank - b.rank);
   out.forEach(x => { x.settingFor.sort((a, b) => SETTING_ORDER.indexOf(a) - SETTING_ORDER.indexOf(b)); x.text = x.name + ' ' + x.settingFor.join(' ') + ' settings'; });
   return out;
 }
