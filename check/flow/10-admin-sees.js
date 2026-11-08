@@ -16,9 +16,9 @@ check('a class with seats offers Take a seat as a tile on its receipt, and its s
     if (foot[0] !== 'job-take-seat') bad.push('Take a seat is not first in the foot: ' + foot.join(', '));
   }
   if (foot.includes('job-join')) bad.push('a class offers Ask to join, which is the act for a family\'s session');
-  const sharing = rowSays_(pg, 'Sharing');
-  if (sharing == null) bad.push('no Sharing row on the class\'s paper');
-  else if (!/2 seats free/.test(sharing)) bad.push('the Sharing row says "' + sharing + '", wanted the 2 seats going');
+  const sharing = rowSays_(pg, 'Split');
+  if (sharing == null) bad.push('no Split row on the class\'s paper');
+  else if (!/2 seats free/.test(sharing)) bad.push('the Split row says "' + sharing + '", wanted the 2 seats going');
   const seat = [...pg.querySelectorAll('.rc .rc-total .bk-t')].map(x => x.textContent.trim());
   if (!seat.includes('£19.00')) bad.push('the seat price is not on the paper\'s total row: ' + JSON.stringify(seat));
   const can = rowSays_(pg, 'Can come');
@@ -77,16 +77,16 @@ check('a session a family booked offers Ask to join as a tile, and says its seat
     bad.push('Ask to join is not first beside Share with its id: ' + foot.join(', '));
   }
   if (foot.includes('job-take-seat')) bad.push('a family\'s session offers Take a seat, which is the act for a list');
-  const sharing = rowSays_(pg, 'Sharing');
-  if (sharing == null) bad.push('no Sharing row on the session\'s paper');
+  const sharing = rowSays_(pg, 'Split');
+  if (sharing == null) bad.push('no Split row on the session\'s paper');
   else if (/just you/i.test(sharing) || !/3 seats free/.test(sharing)) {
-    bad.push('the Sharing row says "' + sharing + '" on a session offering you one of its 3 seats');
+    bad.push('the Split row says "' + sharing + '" on a session offering you one of its 3 seats');
   }
   if (rowSays_(pg, 'Can come') != null) bad.push('a session with a day draws a waiting list\'s tally');
 
   /* "JUST YOU" IS STILL THE ANSWER WHERE IT IS TRUE: nothing going and nobody named. */
   const rows = w.__t.jobRows(Object.assign({}, open, { seatsGoing: 0 }));
-  const full = (rows.find(r => r.k === 'Sharing') || {}).v;
+  const full = (rows.find(r => r.k === 'Split') || {}).v;
   if (full !== 'Just you') bad.push('a session with no seat going says "' + full + '", wanted "Just you"');
 
   if (tile) {
@@ -916,7 +916,8 @@ check('each person sees their own figure on a session, and its tiles are on the 
     tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
   };
   const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
-  const totals = d => [...d.querySelectorAll('.rc .rc-total')]
+  /* THE MONEY LINES: the total bar, or an admin's Client pays / earns lines (the form's own, owner 8 Nov). */
+  const totals = d => [...d.querySelectorAll('.rc .rc-total, .rc .rc-pays, .rc .rc-earn')]
     .map(r => r.querySelector('.bk-k').textContent.trim() + ' ' + r.querySelector('.bk-t').textContent.trim());
 
   /* THE CLIENT: what they pay, and not one other figure. */
@@ -969,14 +970,14 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
-  /* AND THE FORM: an admin's figure is "Client pays" and nothing under it (owner, 29 Oct: "Forget the charged, discount, venue, tutor payout and card fees … also delete net profit"). */
+  /* AND THE FORM: Client pays, Tutor earns, Admin earns, the saved booking's three (owner, 8 Nov: the form is the record); no charged, venue, card fees or net profit (29 Oct). */
   if (typeof w.__t.formMoney === 'function' && typeof w.bookMoney_ === 'function') {
     const earn = w.bookMoney_({ tutorPay: 90, profit: 12, venue: 0 });
     const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, earn };
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
-    if (fa.label !== 'Client pays' || (fa.more || []).length || fa.say) {
-      bad.push('an admin pricing a booking is shown ' + JSON.stringify(fa) + ', wanted "Client pays" and nothing under it');
+    if (fa.label !== 'Client pays' || (fa.more || []).map(x => x.k).join() !== 'Tutor earns,Admin earns' || fa.say) {
+      bad.push('an admin pricing a booking is shown ' + JSON.stringify(fa) + ', wanted Client pays, Tutor earns, Admin earns');
     }
     w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     const fp = w.__t.formMoney(L);
@@ -1033,7 +1034,9 @@ check('an admin\'s booking form ends on Discount, one percentage, and Client pay
     if (['bk-n', 'bk-k', 'bk-v', 'bk-m', 'bk-r', 'bk-t'].some(c => !pays.querySelector('.' + c))) bad.push('Client pays does not have the six cells every line above has');
     if (tOf(pays) !== gbp(off)) bad.push('Client pays reads ' + JSON.stringify(tOf(pays)) + ', wanted ' + gbp(off));
     if (tOf(disc[0]) !== '− ' + gbp(full - off)) bad.push('the Discount line\'s figure reads ' + JSON.stringify(tOf(disc[0])) + ', wanted − ' + gbp(full - off));
-    if (pays.nextElementSibling && pays.nextElementSibling.matches('.bk-row, .bk-say')) bad.push('something is still drawn under Client pays: ' + JSON.stringify(kOf(pays.nextElementSibling) || pays.nextElementSibling.textContent));
+    /* THEN WHO EARNS WHAT, the saved booking's lines too (owner, 8 Nov), and nothing else. */
+    const under = []; for (let r = pays.nextElementSibling; r && r.matches('.bk-row, .bk-say'); r = r.nextElementSibling) under.push(kOf(r));
+    if (under.join() !== 'Tutor earns,Admin earns') bad.push('under Client pays: ' + JSON.stringify(under) + ', wanted Tutor earns, Admin earns');
   }
   if (a.querySelector('.rc-total, .rc-more, .rc-money, .rc-money-say')) bad.push('the admin\'s form still draws a total bar or the money block under it');
   ['Charged', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {

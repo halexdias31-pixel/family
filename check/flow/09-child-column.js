@@ -492,7 +492,7 @@ check('each stage tick takes the date it actually happened on', async () => {
     { at: '26/09/2026', actor: 'A', role: 'client', action: 'Confirm', target: '', message: '' },
     { at: '28/09/2026', actor: 'B', role: 'client', action: 'Confirm', target: '', message: '' },
   ];
-  /* BOTH SESSION DATES IN THE PAST, so all five tick and all five have a date to be wrong about. */
+  /* BOTH SESSION DATES IN THE PAST, so all four tick and all four have a date to be wrong about. */
   const job = { kind: 'session', createdAt: '21/09/2026', events: log,
                 startDate: '01/10/2025', endDate: '05/11/2025',
                 slots: [{ n: 1, client: 'A', status: 'Booked' }, { n: 2, client: 'B', status: 'Booked' }],
@@ -502,8 +502,8 @@ check('each stage tick takes the date it actually happened on', async () => {
   got.forEach(r => { by[r.k] = r; });
   /* `Applied for` TAKES THE ASKING'S OWN DATE on a booking with no `Apply` event, which is every booking today — see `JOB_STAGES`. § */
   const want = { Requested: '21/09/26', 'Applied for': '21/09/26',
-                 Accepted: '25/09/26', Paid: '26/09/26',
-                 Started: '01/10/25', Completed: '05/11/25' };
+                 Accepted: '25/09/26', Paid: '26/09/26' };
+  ['Started', 'Completed'].forEach(k => { if (by[k]) bad.push('a "' + k + '" status line is still drawn (owner, 8 Nov: four lines)'); });
   Object.keys(want).forEach(k => {
     const r = by[k];
     if (!r) { bad.push('no "' + k + '" row at all'); return; }

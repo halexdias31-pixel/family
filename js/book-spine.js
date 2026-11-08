@@ -2,7 +2,7 @@
 /* ---------- THE FORM IS THE ARCHETYPE, SO THE FORM IS WHERE THIS COMES FROM § */
 /* ---------- FOUR LABELS WERE TOO LONG FOR THEIR OWN COLUMN § */
 /* ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW § */
-/* WHERE A BOOKING HAS GOT TO, AS FIVE TICKS RATHER THAN ONE SENTENCE. § */
+/* WHERE A BOOKING HAS GOT TO, AS FOUR TICKS RATHER THAN ONE SENTENCE. § */
 /* ---------- AND EVERY TICK CARRIES THE DAY IT HAPPENED § */
 const JOB_STAGES = [
   /* THE ROW EXISTS, SO IT WAS ASKED FOR. § */
@@ -17,9 +17,6 @@ const JOB_STAGES = [
   /* MONEY HAS MOVED. A seat at `Booked` is the machine's own record of a payment — `jobStage_` reads the same seats to decide which of the four documents this is § */
   { row: 'Paid',      is: j => jobStage_(j) === 'receipt',
     when: j => evAt_(j, 'Confirm', paidNeeds_(j)) },
-  /* THE FIRST PLANNED SESSION IS IN THE PAST. § */
-  { row: 'Started',   is: j => datePassed_(j.startDate), when: j => S_(j.startDate) },
-  { row: 'Completed', is: j => datePassed_(j.endDate),   when: j => S_(j.endDate) },
 ];
 
 /* THE nTH EVENT OF A KIND, AND `-1` IS THE LAST. § */
@@ -35,15 +32,6 @@ function paidNeeds_(j) {
   return norm(j && j.kind) === 'waitlist' ? seatsOf_(j) : 1;
 }
 
-/* HAS THIS DAY BEEN AND GONE. § */
-function datePassed_(v) {
-  const d = parseDMY(v);
-  if (!d) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return d <= today;
-}
-
 /* ONE BUILDER, BOTH DOCUMENTS — which is the whole of what stops them drifting, the same argument `weekRows_` makes for the three week grids. § */
 function stageRows_(j) {
   let on = true;
@@ -51,7 +39,7 @@ function stageRows_(j) {
     /* THE CHAIN. Once one is unticked, nothing below it can be — see the note above. `on` carries
        that down the list rather than each test repeating the ones before it. */
     on = on && !!j && !!st.is(j);
-    /* ---------- ONE DATE FORMAT FOR THE FIVE, DECIDED HERE AND NOT IN FIVE PLACES § */
+    /* ---------- ONE DATE FORMAT FOR THE FOUR, DECIDED HERE AND NOT IN FIVE PLACES § */
     const at = on && st.when ? st.when(j) : '';
     return { n: '', k: st.row, v: (at && fmtDate(at)) || '',
              mul: '', rate: '', total: '', free: true, tick: on };
@@ -63,9 +51,6 @@ const SPINE_EXTRA = [
   /* THE ROOM UNDER ITS VENUE (owner, 7 Nov), on the form and the booking alike. */
   { after: 'Venue',   row: 'Room' },
   { after: 'When',    row: 'Per session', only: 'wait' },
-  /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
-     form asks the question as `Split` and names the answer there. */
-  { after: 'Split',   row: 'Sharing',     only: 'receipt' },
   /* ---------- THE TALLY OF EVERYBODY'S ANSWER TO `When free`, UNDER THAT QUESTION § */
   { after: 'When free', row: 'Can come',  only: 'receipt' },
   /* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST § */
@@ -78,7 +63,7 @@ const SPINE_EXTRA = [
   { after: '',        row: 'Shared by', only: 'book, wait' },
   /* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now § */
   ...JOB_STAGES.map(st => ({ after: '', row: st.row, tick: true })),
-  /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the five ticks are it. */
+  /* NO `Status` (owner, 29 Oct: "What is status for? … all those bits above status … tell you the status"): the four ticks are it. */
 ];
 
 const SPINE = (() => {
@@ -258,7 +243,7 @@ function bookBreakdown(L, foot) {
     /* DRAW THE COLUMN HEADER. § */
     cols: !kid,
     rows: out,
-    /* AN ADMIN'S PRICED FORM ENDS ON TWO ORDINARY LINES, Discount and Client pays (`payRow_`), and so has no total bar. */
+    /* AN ADMIN'S FORM ENDS ON ORDINARY LINES, Discount, Client pays, Tutor earns, Admin earns (`payRow_`), and so has no total bar. */
     noTotal: kid || !!pays,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE § */
     total: (L && L.total > 0) ? money(L.total) : '—',
@@ -455,23 +440,28 @@ function jobRows(j) {
     }, opts || {}));
   };
 
+  /* THE FORM'S OWN LINES, IN THE FORM'S WORDS (owner, 8 Nov: "the booking form is the booking record"). */
+  const wait = norm(j.kind) === 'waitlist';
+  push('For', j.client || ((j.slots || [])[0] || {}).client || '');
+  push('Kind', wait ? 'Waiting list class' : 'Instant class');
   push('Subject', j.subject || '');
   push('Level', j.level || '');
   /* ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT § */
   /* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED § */
   push('Students', seatsOf_(j) ? String(Math.max(0, seatsOf_(j) - 1)) : '');
   push('Venue', j.venue || j.location || '');
-  push('Room', j.room || 'set by us before the first session');
-  push('Host', TRUEish_(j.clientHosts) ? 'You' : 'We book the room');
+  push('Room', j.room || 'set by us');
+  push('Host', atClientHome_(j.venue || j.location || '') ? 'Yes'
+    : TRUEish_(j.clientHosts) ? 'Yes \u2014 no room hire' : 'No \u2014 we book the room');
   /* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS § */
   jobWeekRows_(j).forEach(r => rows.push(r));
-  push('Per session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
+  if (wait) push('Per session', j.hours ? j.hours + ' hour' + (Number(j.hours) === 1 ? '' : 's') : '');
   push('Term', j.term || '');
   /* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: § */
   /* ---------- AND ON AN OPEN SESSION IT WAS THE OPPOSITE OF TRUE TOO § */
   const going = Number(j.seatsGoing) || 0;
   const seatsFree = 'Open — ' + going + ' seat' + (going === 1 ? '' : 's') + ' free';
-  push('Sharing', norm(j.kind) === 'waitlist'
+  push('Split', norm(j.kind) === 'waitlist'
     ? (going > 0 ? seatsFree : 'Full')
     : (j.splitEmails
       || (going > 0 && TRUEish_(j.openToOthers) ? seatsFree : 'Just you')));
@@ -506,14 +496,14 @@ function jobRows(j) {
   push('Dates', dates.length ? dates.join(', ') : '—', '',
        { free: true, dates: true, mul: dates.length > 1 ? '× ' + dates.length : '' });
 
-  /* WHAT THE MONEY DOES, for whoever is allowed to see it. § */
-  if (j.price && !childView_()) push('Total', '', money(j.price), { free: true });
+  push('Child', (j.forChildren || []).filter(Boolean).join(', '));
+  push('Note', j.note || '');
   /* `Tutor is paid` AND `Left over` WERE ROWS HERE. § */
 
   /* ---------- WHERE IT IS, AND WHERE IT IS GOING § */
   stageRows_(j).forEach(r => rows.push(r));
   /* THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in — and NOT a dash for every question this job cannot answer. § */
-  return spineRows_(rows, { fill: false });
+  return spineRows_(rows, { on: wait ? 'wait' : 'book, tutoring' });
 }
 
 /** A job, on the same paper a booking is drawn on. */
@@ -558,9 +548,9 @@ function jobWeekRows_(j) {
 /* ---------- HOW MANY SEATS A SESSION HAS § */
 const seatsOf_ = j => Math.max(0, Number((j && (j.maxKids || j.maxStudents)) || 0));
 
-/* ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FIVE TICKS NOW § */
+/* ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FOUR TICKS NOW § */
 
-/* `jobStatusSaid_` AND THE `Status` ROW WENT (owner, 29 Oct): the five ticks above it already say where a booking is. */
+/* `jobStatusSaid_` AND THE `Status` ROW WENT (owner, 29 Oct): the four ticks above it already say where a booking is. */
 
 function jobStage_(j) {
   const paid = (j.slots || []).filter(sl => /^booked$/i.test(String(sl.status || '')));
@@ -628,12 +618,12 @@ function bookMoneySend_(L) {
 
 /* ---------- AN ADMIN'S DISCOUNT IS ONE LINE, A PERCENTAGE § */
 function discountRow_(L) {
-  if (isWaiting_() || !L) return '';
+  if (isWaiting_()) return '';
   /* ONLY AN ADMIN SETS A DISCOUNT (owner, 7 Nov): everybody sees the line, greyed for the rest; the server refuses theirs (`discountRefusal_`). */
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const e = L.earn || { discount: 0 };
+  const e = (L && L.earn) || { discount: 0 };
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
-    total: e.discount > 0 ? '− ' + money(e.discount / (L.splitShares || 1)) : '—',
+    total: e.discount > 0 ? '− ' + money(e.discount / ((L && L.splitShares) || 1)) : '—',
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
       aria-label="Discount, per cent off">` });
@@ -654,13 +644,26 @@ document.addEventListener('change', e => {
 /* ---------- WHAT THE CLIENT PAYS, A LINE LIKE THE ONES ABOVE IT § */
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
-  if (!L || !(L.total > 0) || !isFinite(Number(L.tutorPay))) return { label: null, more: [] };
-  return { label: 'Client pays', more: [] };
+  const ok = L && L.total > 0 && isFinite(Number(L.tutorPay));
+  return { label: 'Client pays', total: ok ? money(L.total) : '\u2014',
+           more: [{ k: 'Tutor earns', t: ok ? money(Number(L.tutorPay)) : '\u2014' },
+                  { k: 'Admin earns', t: ok ? money(L.total - Number(L.tutorPay)) : '\u2014' }] };
+}
+/* AN ADMIN'S MONEY, ONE BUILDER FOR THE FORM AND THE SAVED BOOKING: Client pays, then who earns what, as ordinary lines. */
+function moneyLines_(m) {
+  return [{ k: m.label, t: m.total, cls: 'rc-pays' }].concat((m.more || []).map(x => ({ k: x.k, t: x.t, cls: 'rc-earn' })))
+    .map(x => receiptRow({ n: '', k: x.k, v: '', mul: '', rate: '', total: x.t, cls: x.cls })).join('');
 }
 function payRow_(L) {
-  const label = formMoney_(L).label;
-  if (!label || isWaiting_()) return '';
-  return receiptRow({ n: '', k: label, v: '', mul: '', rate: '', total: money(L.total), cls: 'rc-pays' });
+  const m = formMoney_(L);
+  if (!m.label || isWaiting_()) return '';
+  return moneyLines_(m);
+}
+/* THE SAVED BOOKING'S DISCOUNT LINE: the form's box, read-only, so the two documents keep one line list. */
+function discountSaid_(j) {
+  const pc = Number(j && j.discountValue) || 0;
+  return receiptRow({ n: '', k: 'Discount', v: '', mul: '', rate: '', cls: 'rc-disc', total: '\u2014',
+    sel: `<input class="bk-in" type="number" value="${pc > 0 ? esc(String(pc)) : ''}" placeholder="% off" disabled aria-label="Discount, per cent off">` });
 }
 
 /* ---------- WHAT THE CARD HOLDS, FOR A SUGGESTION ABOUT IT § */
@@ -695,6 +698,9 @@ function jobReceipt(j, foot) {
   const rows = jobRows(j);
   const pay = jobMoney_(j);
   const stage = jobStage_(j);
+  /* THE FORM'S FOOT, LINE FOR LINE: Discount, then an admin's three lines or everybody else's Cost bar. */
+  const wait = norm(j.kind) === 'waitlist';
+  const lines = !pay.none && !wait && pay.more.length;
   return receiptHtml({
     /* ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT § */
     /* `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off. § */
@@ -706,21 +712,18 @@ function jobReceipt(j, foot) {
        waiting are the same object at two moments, and the difference is the whole point of the
        stamp. */
     accepted: jobAccepted_(j),
-    /* `location` IS WHAT THE PAYLOAD SENDS FOR A CLASS, and this read `venue` — which the jobs list uses and `clientClasses` does not. § */
-    lines: [j.venue || j.location || 'No venue', j.tutor || 'No tutor yet', j.term || '']
-      .filter(Boolean),
+    /* NO TAG LINE ABOVE THE ROWS: the form has none, and Venue, Tutor and Term are rows of both (owner, 8 Nov). */
+    lines: [],
     /* AND THE RECEIPT DRAWS IT TOO. This said `Detail` where the form said `Answer`, because nothing
        on a receipt is being asked; both are `A` now and the distinction has nowhere to show. */
     cols: !pay.none,
     rows: rows.map(receiptRow),
-    /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. § */
-    totalLabel: pay.label
-      || (stage === 'application' ? 'It would come to'
-        : stage === 'waitlist' ? 'Your seat'
-        : 'Cost'),
+    before: (pay.none || wait ? '' : discountSaid_(j)) + (lines ? moneyLines_(pay) : ''),
+    /* THE FORM'S WORD FOR THE FIGURE, so the two documents end on the same line. */
+    totalLabel: pay.label || (wait ? 'Your seat' : 'Cost'),
     total: pay.total,
-    noTotal: !!pay.none,
-    more: pay.more,
+    noTotal: !!pay.none || !!lines,
+    more: lines ? [] : pay.more,
     /* ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S § */
     foot: foot || '',
     /* ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL § */
