@@ -48,6 +48,8 @@ function boot(cb) {
     if (o && o.body) return Promise.resolve(body_({ success: true }));
     return Promise.resolve(body_(fixture));
   };
+  /* SIGNED IN AS THE ADMIN (8 Nov): signed out, Find holds Settings alone, and the owner hit these funnels as admin. */
+  require('../check/flow-shared.js').signedInAs_(Object.assign({}, require('../check/flow-shared.js').MEMBER_, { rank: 'admin', role: 'admin', roles: ['admin'] }))(w);
   const src = loadOrder_().map(n => fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
@@ -78,7 +80,7 @@ function boot(cb) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
   }
-  setTimeout(() => cb(w.__f), 1500);
+  setTimeout(() => cb(w.__f), Number(process.env.FUNNEL_WAIT || 1500));
 }
 
 /* THE RAW FILE, NOT THE MAPPED ITEMS. `stuffItems` drops every `kind: 'document'` row, and a
@@ -100,6 +102,7 @@ boot(f => {
   /* `FUNNEL_ONLY=walk` walks the random funnels alone — about three minutes, and its OK line names only them. */
   if (process.env.FUNNEL_ONLY === 'under') { underTypes_(f, items); return done('the types under another and the timelines alone (545)'); }
   if (process.env.FUNNEL_ONLY === 'email') { emailTags_(f); return done('the Sunday email\'s tags against the card\'s alone (380)'); }
+  if (process.env.FUNNEL_ONLY === 'paths') { pathsAsked_(f, items); return done('the owner\'s paper paths alone (8 Nov)'); }
   if (process.env.FUNNEL_ONLY === 'walk') { walkFunnels_(f, items); return done('the random funnels alone (section 7)'); }
 
   /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS § */
@@ -1062,6 +1065,7 @@ boot(f => {
   }
 
   walkFunnels_(f, items);
+  pathsAsked_(f, items);
 
   /* ---------- A RANGE IS EVERY LEVEL IT COVERS (O1): one Level answer per level, and the item found under each ---------- */
   {
@@ -1236,6 +1240,61 @@ function underTypes_(f, items) {
   });
   Object.keys(practice).forEach(k => { if (!practice[k]) bad.push('no ' + k + ' was read, so "a ' + k + ' is Practice" proves nothing'); });
   console.log('  Types under another: ' + JSON.stringify(seenUnder) + '; timelines: ' + tls.length + '; under Practice: ' + JSON.stringify(practice));
+}
+
+/* THE OWNER'S PAPER PATHS (8 Nov): after a level and Past paper, Subject is asked before any paper name, and the funnel never ends while Subject still splits the list. */
+const PAPER_PATHS = [['GCSE', 'Any tier', 'Any function', 'Past paper', 'Any accuracy'], ['GCSE', 'Past paper', 'Higher', 'Any accuracy', 'Any function']];
+function pathsAsked_(f, items) {
+  const S = f.STUFF, was = { q: S.q, filters: S.filters };
+  try {
+    PAPER_PATHS.forEach(path => {
+      S.filters = []; S.q = '';
+      const trail = [];
+      /* EACH CHIP AS THE OWNER PRESSED IT, on whichever question holds that answer: the path, not the order it was asked in. */
+      const press = want => {
+        const list = f.stuffFiltered(), asked = S.filters.map(c => c.field);
+        for (const fac of f.facetList()) {
+          if (asked.indexOf(fac.field) !== -1) continue;
+          if (/^Any /.test(want)) {
+            if (!new RegExp('^' + want.slice(4), 'i').test(fac.label || fac.field)) continue;
+            S.filters = S.filters.concat([{ field: fac.field, any: true }]); trail.push(fac.field + '=any'); return true;
+          }
+          const v = f.facetValues(list, fac).find(x => String(x.show || x.value) === want || x.value === want);
+          if (v) { S.filters = S.filters.concat([{ field: fac.field, value: v.value }]); trail.push(fac.field + '=' + v.value); return true; }
+        }
+        return false;
+      };
+      if (!press('Practice') || !press('Questions')) return bad.push('paper path: could not reach Questions (' + trail.join(' > ') + ')');
+      for (const w of path) if (!press(w)) return bad.push('paper path: "' + w + '" was never offered after ' + trail.join(' > '));
+      const list = f.stuffFiltered();
+      const fac = f.nextFacet(list) || f.overFacet_(list);
+      const subj = f.facetList().find(x => x.field === 'subject');
+      const nSubj = subj ? f.facetValues(list, subj).length : 0;
+      console.log('\nPAPER PATH ' + trail.join(' > ') + ': ' + list.length + ' left, next ' + (fac ? fac.field + ' (' + f.facetValues(list, fac).length + ' answers)' : 'NOTHING') + ', subjects ' + nSubj);
+      /* THE PAPER QUESTION SAYS SHORT NUMBERS once its sitting is chosen (owner 8 Nov): each answer "Paper N", maybe one word more. */
+      const pf = f.facetList().find(x => x.field === 'paperId');
+      if (pf) {
+        /* asked where it is asked: the sitting chosen, by the funnel's own next questions */
+        const keep = S.filters;
+        for (let st = 0; st < 8; st++) {
+          const l = f.stuffFiltered(), q = f.nextFacet(l);
+          if (process.env.VERBOSE) console.log('   then ' + (q ? q.field + ' (' + f.facetValues(l, q).length + ')' : 'nothing') + ' :: ' + ['examBoard','examYear','examMonth','paperId','qNumber'].map(k => { const F = f.facetList().find(x => x.field === k); return k + ' ' + f.facetValues(l, F).length + ' ' + (f.facetWhy_(l, F) || f.facetBits_(l, F)); }).join('; '));
+          if (!q || q.field === 'paperId' || !['subject', 'examBoard', 'examYear', 'examMonth', 'tier', 'level'].includes(q.field)) break;
+          const vs = f.facetValues(l, q).sort((a, b) => b.n - a.n);
+          S.filters = S.filters.concat([{ field: q.field, value: vs[0].value }]);
+        }
+        const at = S.filters.slice(keep.length).map(c => c.field + '=' + c.value).join(' > ');
+        const shown = f.facetValues(f.stuffFiltered(), pf).map(v => String(v.show || v.text || v.value));
+        const long = shown.filter(t => !/^(Paper|Component|Unit|Practice paper) \w+/i.test(t));
+        if (long.length > shown.length / 4) bad.push('paper path ' + trail.join(' > ') + ': the Paper question (after ' + at + ') says ' + long.length + ' of ' + shown.length + ' answers as raw names, e.g. ' + long.slice(0, 3).join(' | '));
+        if (process.env.VERBOSE) console.log('   papers after ' + at + ': ' + shown.slice(0, 12).join(' | '));
+        S.filters = keep;
+      }
+      if (process.env.VERBOSE) f.facetList().forEach(x => console.log('   ' + x.field + ': ' + f.facetValues(list, x).length + ' ' + (f.facetWhy_(list, x) || 'ok')));
+      if (!fac) bad.push('paper path ' + trail.join(' > ') + ': nothing left to narrow with ' + list.length + ' across ' + nSubj + ' subjects');
+      else if (nSubj > 1 && fac.field !== 'subject') bad.push('paper path ' + trail.join(' > ') + ': asks `' + fac.field + '` before Subject (' + nSubj + ' subjects)');
+    });
+  } finally { S.q = was.q; S.filters = was.filters; }
 }
 
 function walkFunnels_(f, items) {
