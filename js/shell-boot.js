@@ -568,10 +568,10 @@ function paint(id, fresh, o) {
   let html;
   try {
     /* A COLUMN WHOSE FILE IS STILL ON ITS WAY (670, `LATER`) waits, and `load()` paints it once it is in. */
-    html = s ? s.draw() : (LATER_IN ? null : waitShape_(id));
+    html = s ? s.draw() : (filesIn_() ? null : waitShape_(id));
   } catch (err) {
     /* ITS CODE NOT IN YET (670, `LATER`): the column waits, and is drawn again when the payload lands. */
-    if (!LATER_IN && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
+    if (!filesIn_() && err instanceof ReferenceError) { el.innerHTML = waitShape_(id); STALE[id] = 1; return; }
     oops_(err, 'draw:' + id);
     el.innerHTML = `<div class="pane"><div class="card">
         <h3>This screen did not draw</h3>
