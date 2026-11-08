@@ -18,9 +18,7 @@ function resumeAsk_(force) {
 }
 window.addEventListener('focus', () => resumeAsk_(false));
 setInterval(() => { if (!document.hidden) resumeAsk_(true); }, RESUME_POLL);
-setInterval(() => {
-  try { if (BUILD_WAITING && !document.hidden && Date.now() - BUILD_TOUCH > RESUME_IDLE) buildQuietly_(); } catch (e) { oops_(e, 'resume') }
-}, Math.min(RESUME_IDLE, 15000));
+/* A NEW BUILD WAITS FOR THE PAGE TO BE PUT AWAY (owner, 8 Nov): a lesson on screen is never reloaded under the children, however idle it looks. */
 
 /* ---------- THE NOTE: written as the page goes, only when this page set a new build's mark — i.e. the reload is the update's own § */
 let RESUME_MARK = null;
