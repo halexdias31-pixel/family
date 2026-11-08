@@ -22,52 +22,10 @@ function doGet(e) {
       return ASKED_BY;
     };
 
-    /* ---------- THE SHEET CATCHES UP, BUT NEVER WHILE SOMEBODY IS WAITING § */
-    const behind = (function () {
-      try {
-        return PropertiesService.getScriptProperties()
-          .getProperty('SCHEMA_VERSION') !== BACKEND_VERSION;
-      } catch (err) { return false; }
-    })();
-    /* A maintenance URL still brings it up to date first — a job that needs a column needs the
-       column to exist, and nobody is watching a spinner on one of those. */
-    const migrated = (p.run || p.setup) ? autoMigrate_() : null;
-    /* AND ON AN ADMIN'S PAGE LOAD (361), so "open the site once" after a deploy is the whole of setup; a visitor never waits on it. */
-    if (!p.run && !p.setup && p.token) {
-      try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) {}
-    }
+    const caught = getCatchUp_(p, askedBy_), behind = caught.behind, migrated = caught.migrated;
 
-    /* ---------- AND THE SHEET SAYS SO ITSELF, ONCE § */
-    if (behind && !p.run && !p.setup) {
-      try {
-        const gaps = schemaGaps();
-        if (!Object.keys(gaps).length) {
-          PropertiesService.getScriptProperties()
-            .setProperty('SCHEMA_VERSION', BACKEND_VERSION);
-        }
-      } catch (err) { /* it stays behind and says so, which is the safe way round */ }
-    }
-
-    /* A maintenance job, before anything else — none of these want a payload built first, and
-       `checkEverything` in particular is for the case where building one fails. */
-    if (p.run) return getRun_(p, migrated);
-
-    /* ?setup=1 brings the sheets' tabs and columns up to date in place, so a schema change never means re-uploading a file and repointing the ids in FILES. § */
-    if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema_(),
-      alsoAvailable: 'add ?run=<job>&name=…&pin=… for the rest: ' + Object.keys(RUNNABLE).join(', ') });
-
-    /* `?pages=1` AND `?pages=all` WERE HERE. § */
-
-    /* SOMEBODY'S OWN RECEIPTS. Their own only — a receipt names what a family paid, and the list of
-       them is the shape of a household's year. */
-    if (p.receipts) return getReceipts_(p, askedBy_);
-
-    /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
-    if (p.race) return raceServe_();
-
-    // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
-    if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
-      triggers: String(p.triggers).toLowerCase() === 'list' ? listTriggers() : installTriggers_() });
+    const routed = getRouted_(p, migrated, askedBy_);
+    if (routed) return routed;
 
     // Confirm the tabs exist before building anything. Pointing at the wrong spreadsheet is the
     // single likeliest setup mistake, and read() returning empty rows makes it look like eleven
@@ -92,19 +50,8 @@ function doGet(e) {
       if (kept) { mark('cache'); return jsonRaw_(payloadWithFresh_(kept, freshFor_(cacheViewer), true)); }
     }
 
-    /* ---------- THE TABS WHOSE ABSENCE MEANS THE DATABASE IS NOT CONNECTED § */
-    const REQUIRED_TABS = {
-      people:  'nobody can sign in, and every person-keyed screen is empty for everybody',
-      config:  'the switches and numbers the whole app reads through DATA.constants.vars',
-      pricing: 'quotePerHour has nothing to quote from, so a booking is priced at nought',
-      venues:  'the booking form has nowhere to offer, so nothing can be booked',
-      jobs:    "a family's sessions come back as none, which reads as them being cancelled",
-      events:  'the calendar is empty, which is not distinguishable from nothing being on',
-      shop:    'every price and every wearable is gone, and the coins buy nothing',
-      options: 'every dropdown on every admin form comes back blank'
-    };
-    const missingTabs = Object.keys(REQUIRED_TABS).filter(name => !read(name).sheet);
-    if (missingTabs.length) return getMissingTabs_(REQUIRED_TABS, missingTabs);
+    const tabsNo = getRequiredTabs_();
+    if (tabsNo) return tabsNo;
 
     /* WHO IS LOOKING, asked ONCE. § */
     /* AND ASKED OF THE TOKEN rather than of `?name=`. § */
@@ -162,23 +109,101 @@ function doGet(e) {
     /* ---------- WITHOUT `submissions` OR THE FILMS, WHICH GO ON FRESH EVERY TIME § */
     /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a
        key sent, and a line that takes a key OUT would answer for one that was never put in. */
-    if (cacheKey) {
-      /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
-         `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
-         `freshFor_`. */
-      try { kidNamesOff_(payload); } catch (err) {}
-      /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
-      try { kidPricesOff_(payload); } catch (err) {}
-      const fresh = {};
-      ['submissions', 'films', 'favLinks', 'messages', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
-      const body = JSON.stringify(payload);
-      cachePut_(cacheKey, body);
-      return jsonRaw_(payloadWithFresh_(body, fresh, false));
-    }
-    return jsonOut(payload);
+    return getKeepAndSend_(payload, cacheKey);
   } catch (err) {
     return jsonOut({ error: err.toString() });
   }
+}
+
+/* THE SHEET AGAINST THE CODE: whether it is behind, and brought up to date where nobody is waiting. */
+function getCatchUp_(p, askedBy_) {
+  /* ---------- THE SHEET CATCHES UP, BUT NEVER WHILE SOMEBODY IS WAITING § */
+  const behind = (function () {
+    try {
+      return PropertiesService.getScriptProperties()
+        .getProperty('SCHEMA_VERSION') !== BACKEND_VERSION;
+    } catch (err) { return false; }
+  })();
+  /* A maintenance URL still brings it up to date first — a job that needs a column needs the
+     column to exist, and nobody is watching a spinner on one of those. */
+  const migrated = (p.run || p.setup) ? autoMigrate_() : null;
+  /* AND ON AN ADMIN'S PAGE LOAD (361), so "open the site once" after a deploy is the whole of setup; a visitor never waits on it. */
+  if (!p.run && !p.setup && p.token) {
+    try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) {}
+  }
+
+  /* ---------- AND THE SHEET SAYS SO ITSELF, ONCE § */
+  if (behind && !p.run && !p.setup) {
+    try {
+      const gaps = schemaGaps();
+      if (!Object.keys(gaps).length) {
+        PropertiesService.getScriptProperties()
+          .setProperty('SCHEMA_VERSION', BACKEND_VERSION);
+      }
+    } catch (err) { /* it stays behind and says so, which is the safe way round */ }
+  }
+  return { behind: behind, migrated: migrated };
+}
+
+/* THE ASKS THAT ARE NOT A PAYLOAD (a job, setup, receipts, the racer's map, triggers); null for a payload. */
+function getRouted_(p, migrated, askedBy_) {
+  /* A maintenance job, before anything else — none of these want a payload built first, and
+     `checkEverything` in particular is for the case where building one fails. */
+  if (p.run) return getRun_(p, migrated);
+
+  /* ?setup=1 brings the sheets' tabs and columns up to date in place, so a schema change never means re-uploading a file and repointing the ids in FILES. § */
+  if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema_(),
+    alsoAvailable: 'add ?run=<job>&name=…&pin=… for the rest: ' + Object.keys(RUNNABLE).join(', ') });
+
+  /* `?pages=1` AND `?pages=all` WERE HERE. § */
+
+  /* SOMEBODY'S OWN RECEIPTS. Their own only — a receipt names what a family paid, and the list of
+     them is the shape of a household's year. */
+  if (p.receipts) return getReceipts_(p, askedBy_);
+
+  /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
+  if (p.race) return raceServe_();
+
+  // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
+  if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
+    triggers: String(p.triggers).toLowerCase() === 'list' ? listTriggers() : installTriggers_() });
+  return null;
+}
+
+/* THE TABS THE SITE CANNOT RUN WITHOUT: the answer that names the missing ones, or null. */
+function getRequiredTabs_() {
+  /* ---------- THE TABS WHOSE ABSENCE MEANS THE DATABASE IS NOT CONNECTED § */
+  const REQUIRED_TABS = {
+    people:  'nobody can sign in, and every person-keyed screen is empty for everybody',
+    config:  'the switches and numbers the whole app reads through DATA.constants.vars',
+    pricing: 'quotePerHour has nothing to quote from, so a booking is priced at nought',
+    venues:  'the booking form has nowhere to offer, so nothing can be booked',
+    jobs:    "a family's sessions come back as none, which reads as them being cancelled",
+    events:  'the calendar is empty, which is not distinguishable from nothing being on',
+    shop:    'every price and every wearable is gone, and the coins buy nothing',
+    options: 'every dropdown on every admin form comes back blank'
+  };
+  const missingTabs = Object.keys(REQUIRED_TABS).filter(name => !read(name).sheet);
+  if (missingTabs.length) return getMissingTabs_(REQUIRED_TABS, missingTabs);
+  return null;
+}
+
+/* THE PAYLOAD KEPT FOR NEXT TIME (less what goes on fresh), then sent. */
+function getKeepAndSend_(payload, cacheKey) {
+  if (cacheKey) {
+    /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
+       `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
+       `freshFor_`. */
+    try { kidNamesOff_(payload); } catch (err) {}
+    /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
+    try { kidPricesOff_(payload); } catch (err) {}
+    const fresh = {};
+    ['submissions', 'films', 'favLinks', 'messages', 'filmsSync', 'setup', 'claudeNotes'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+    const body = JSON.stringify(payload);
+    cachePut_(cacheKey, body);
+    return jsonRaw_(payloadWithFresh_(body, fresh, false));
+  }
+  return jsonOut(payload);
 }
 /* ---------- `payload.family`, BUILT FOR ONE VIEWER — AND FOR THE SIGN-IN REPLY § */
 function familyOf_(me) {

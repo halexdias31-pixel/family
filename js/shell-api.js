@@ -476,6 +476,64 @@ async function loadOnce_(again, n, kept) {
     /* ALL THREE ARE BUILT BY `loadWho_` — `who`, at the top of this function. */
     /* NO CACHE, AND A DIFFERENT URL EVERY TIME. § */
     let d; if (kept) { d = kept; window.PAYLOAD_KEPT = true; } else {
+    d = await loadFetch_(who);
+    reached = true;
+    /* WHAT THE SLOW BOX ASKS (index.html): the backend has answered, so whatever is left is ours and bounded. */
+    window.PAYLOAD_IN = true; }
+    /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been signed in over since it went, or older than a payload already § */
+    if (loadStale_(n, who)) return;
+    /* KEPT ONLY ONCE IT IS STILL THIS PERSON'S (1070): a stale answer for someone who signed out must never be filed under whoever is here now. */
+    if (!kept) payloadOwe_(d);
+    if (d && !d.error) {
+      /* WHAT WAS ASKED FOR AND NOT SENT. § */
+      /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
+         `find.js` because this is the moment a payload becomes DATA, and a favourite read before
+         that is the last device's guess. */
+      /* ---------- THE LIBRARY, MERGED IN BEFORE THIS BECOMES `DATA` § */
+      /* ---------- NOT `d = ...`, AND THAT LINE HAD BEEN THROWING ON EVERY LOAD § */
+      /* THE CODE THE FIRST SCREEN DID NOT NEED (670) is in before anything draws from the payload. */
+      if (!(await loadTakeData_(d, n, who))) return;
+      got = true;
+      RECONNECT.shown = n; RECONNECT.shownFor = who;
+      /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
+      if (typeof dmAdopt_ === 'function') dmAdopt_(d);
+      /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
+      setTimeout(shapeSave_, 4000);
+      /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
+      adoptMarks_();
+      /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you
+         are on, and everything painted after it reads `AT`. */
+      applyColumns_();
+      applyBrandIcon_();
+      /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE § */
+      if (!kept) loadNotices_(d);   /* a kept copy says nothing new (1070): banners, messages and settings wait for the network */
+    }
+    else {
+      LOAD_FAILED = String(d.error || 'the server refused the request');
+      /* THE FILES STILL STAND -- see `filesOnly_`. A refusal from the backend is not a reason for
+         a student to lose the paper they are working through. */
+      await filesOnly_();
+      /* ASKED AGAIN, EVERY TWO MINUTES — doGet's catch-all answers ANY exception this way, and the client cannot tell a throw that will pass from a refusal that will § */
+      if (reconnectFail_(null, 'refused')) banner('The server said: ' + (d.error || 'something went wrong'));
+    }
+  } catch (err) {
+    /* A FAILURE IS STALE THE SAME WAY — it would put the quiet line back over a payload that came. Not
+       once the payload is `DATA`: a throw after that is this load's own, and this load is current. */
+    if (!got && loadStale_(n, who)) return;
+    LOAD_FAILED = String((err && err.message) || err || 'could not reach the backend');
+    await filesOnly_();
+    /* ASKED AGAIN, AND SAID QUIETLY — see `RECONNECT`. What follows is the diagnostic, and it is drawn
+       only when `reconnectFail_` says an admin should see it now. */
+    /* WHICH URL IT TRIED, as something you can press. § */
+    if (reconnectFail_(err, reached ? 'ours' : 'way')) loadFailBanner_(err, reached);
+  }
+  /* A RETRY THAT BROUGHT NO PAYLOAD CHANGED NOTHING — failed on the way, or refused: § */
+  if (again && !got && LOADED && reconnecting_()) return;
+  loadFinish_(kept);
+}
+
+/* THE REQUEST ITSELF, under its deadlines: the reply parsed, or a throw for the catch in `loadOnce_`. */
+async function loadFetch_(who) {
     const bust = (who ? '&' : '?') + '_=' + Date.now();
     /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
        this is the moment the app begins waiting, and it is the only moment worth timing from. */
@@ -527,23 +585,12 @@ async function loadOnce_(again, n, kept) {
     /* ---------- READ AS TEXT, THEN PARSE, so a web page says what it is § */
     /* THE BODY UNDER A DEADLINE TOO (503): the 60 seconds above covered the headers only. */
     let bodyBell;
-    d = await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
+    return await Promise.race([bootJson_(res), new Promise((u, no) => { bodyBell = setTimeout(() => no(new Error('timeout')), 60000); })])
       .finally(() => clearTimeout(bodyBell));
-    reached = true;
-    /* WHAT THE SLOW BOX ASKS (index.html): the backend has answered, so whatever is left is ours and bounded. */
-    window.PAYLOAD_IN = true; }
-    /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been signed in over since it went, or older than a payload already § */
-    if (loadStale_(n, who)) return;
-    /* KEPT ONLY ONCE IT IS STILL THIS PERSON'S (1070): a stale answer for someone who signed out must never be filed under whoever is here now. */
-    if (!kept) payloadOwe_(d);
-    if (d && !d.error) {
-      /* WHAT WAS ASKED FOR AND NOT SENT. § */
-      /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
-         `find.js` because this is the moment a payload becomes DATA, and a favourite read before
-         that is the last device's guess. */
-      /* ---------- THE LIBRARY, MERGED IN BEFORE THIS BECOMES `DATA` § */
-      /* ---------- NOT `d = ...`, AND THAT LINE HAD BEEN THROWING ON EVERY LOAD § */
-      /* THE CODE THE FIRST SCREEN DID NOT NEED (670) is in before anything draws from the payload. */
+}
+
+/* THE PAYLOAD BECOMES `DATA`, library and settings merged in first; false when it went stale on the way. */
+async function loadTakeData_(d, n, who) {
       await laterFiles_();
       /* FEED FIRST (670): a library not yet here is merged after the payload is painted, and only Find waits for it (`LIBRARY_LATE`). */
       const late = !libraryHere_();
@@ -560,27 +607,18 @@ async function loadOnce_(again, n, kept) {
       d.dropdowns = d.dropdowns || {};
       d.dropdowns.checklists = d.dropdowns.checklists || {};
       /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. § */
-      if (loadStale_(n, who)) return;
+      if (loadStale_(n, who)) return false;
       loadRowsClean_(d);
       DATA = dataProxy_(d);
       LIBRARY_LATE = late;
       LIBRARY_FOR = d;
       if (late) libraryLate_(d);
       LOAD_FAILED = '';
-      got = true;
-      RECONNECT.shown = n; RECONNECT.shownFor = who;
-      /* THE MESSAGES CAME WITH IT (700), so the DMs column is drawn with the rest, not one cold round trip later. */
-      if (typeof dmAdopt_ === 'function') dmAdopt_(d);
-      /* AND THE SHAPE THE COLUMNS LANDED IN, for the next visit's wait (700). */
-      setTimeout(shapeSave_, 4000);
-      /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. § */
-      adoptMarks_();
-      /* BEFORE THE ICON AND BEFORE ANYTHING IS DRAWN. `applyColumns_` can change which screen you
-         are on, and everything painted after it reads `AT`. */
-      applyColumns_();
-      applyBrandIcon_();
-      /* ---------- THE WATCHDOG'S MESSAGE IS NOT TRUE ANY MORE § */
-      if (!kept) {   /* a kept copy says nothing new (1070): banners, messages and settings wait for the network */
+      return true;
+}
+
+/* WHAT A FRESH (NOT KEPT) PAYLOAD HAS TO SAY: banners, messages, settings, missing features. */
+function loadNotices_(d) {
       if (LOAD_SLOW) banner('');
       /* AND THE ASKING-AGAIN STOPS — the quiet line goes, and an admin's diagnostic with it. Here, for
          the same reason as the line above: before the checks below write anything of their own. */
@@ -615,27 +653,12 @@ async function loadOnce_(again, n, kept) {
              + ', which cannot ' + missing.join(', ') + '. Either that deployment is old, or '
              + 'this site is pointed at the wrong one — check the id in API against the '
              + 'Deployment ID in Manage deployments.');
-      } }
-    }
-    else {
-      LOAD_FAILED = String(d.error || 'the server refused the request');
-      /* THE FILES STILL STAND -- see `filesOnly_`. A refusal from the backend is not a reason for
-         a student to lose the paper they are working through. */
-      await filesOnly_();
-      /* ASKED AGAIN, EVERY TWO MINUTES — doGet's catch-all answers ANY exception this way, and the client cannot tell a throw that will pass from a refusal that will § */
-      if (reconnectFail_(null, 'refused')) banner('The server said: ' + (d.error || 'something went wrong'));
-    }
-  } catch (err) {
-    /* A FAILURE IS STALE THE SAME WAY — it would put the quiet line back over a payload that came. Not
-       once the payload is `DATA`: a throw after that is this load's own, and this load is current. */
-    if (!got && loadStale_(n, who)) return;
-    LOAD_FAILED = String((err && err.message) || err || 'could not reach the backend');
-    await filesOnly_();
-    /* ASKED AGAIN, AND SAID QUIETLY — see `RECONNECT`. What follows is the diagnostic, and it is drawn
-       only when `reconnectFail_` says an admin should see it now. */
-    const tell = reconnectFail_(err, reached ? 'ours' : 'way');
-    /* WHICH URL IT TRIED, as something you can press. § */
-    const el = tell ? $('banner') : null;
+      }
+}
+
+/* THE ADMIN'S DIAGNOSTIC for a load that failed: which URL, and advice that matches the fault. */
+function loadFailBanner_(err, reached) {
+    const el = $('banner');
     if (el) {
       el.classList.remove('hidden');
       /* NOT A DOOR. `banner(msg, true)` makes the whole bar a "tap to load the new build", and this writes its own markup over it — found by review: § */
@@ -665,7 +688,6 @@ async function loadOnce_(again, n, kept) {
           + 'built cold (after clearPayloadCache) and the next ask gets the copy it kept; minutes of '
           + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
-
       el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
         + '<span class="faint">' + esc(why) + '</span><br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
@@ -673,24 +695,21 @@ async function loadOnce_(again, n, kept) {
         + '<span class="faint">' + esc(msg)
         + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
     }
-  }
-  /* A RETRY THAT BROUGHT NO PAYLOAD CHANGED NOTHING — failed on the way, or refused: § */
-  if (again && !got && LOADED && reconnecting_()) return;
-  /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
-     loader up for ever would be the app pretending it is still trying. */
+}
+
+/* A LOAD FINISHED, whether it succeeded or failed: the loader goes and every screen is drawn. */
+function loadFinish_(kept) {
   LOADED = true;
   /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
   bootLoaded_(true);
   /* THE ADMIN'S FRONT DOOR (489, layout.js), once the layout has come with the payload. */
   try { if (typeof frontGo_ === 'function') frontGo_(); } catch (e) { oops_(e, 'shell:loadOnce_') }
-
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW § */
   /* ---------- ONCE, NOT ON EVERY LOAD § */
   /* ---------- AND NOT EMPTIED AT ALL ANY MORE — THE GLASS IS DRAWN, THE REST IN THE QUIET AFTER IT § */
   const first = !FIRST_PAINT_DONE && !LOAD_FAILED;
   if (first) TABS.forEach(t => { if (t.id !== AT && screenHasMarkup_(t.id)) PRE_PAYLOAD.add(t.id); });
   if (!LOAD_FAILED) FIRST_PAINT_DONE = true;
-
   /* AND THE WHOLE SEQUENCE, in the one order it may happen in — see `repaint`. Around the box somebody
      is typing in, if they are: see `landRepaint_`. */
   landRepaint_();

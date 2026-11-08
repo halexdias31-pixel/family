@@ -110,7 +110,86 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
       doGet:   typeof DOGET_VERSION   !== 'undefined' ? DOGET_VERSION   : 'not deployed',
       booking: typeof BOOKING_VERSION !== 'undefined' ? BOOKING_VERSION : 'not deployed',
     },
-    features: [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
+    features: payloadFeatures_(),
+    tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
+    /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
+       id of the person it was built for, which the phone checks before drawing any of it. */
+    family: [], familyFor: '',
+    /* EVERYBODY WHO IS NOT ON `tutors`, for an admin's people column — see "EVERYONE" below. */
+    everyone: [],
+    /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW § */
+    claims: [],
+    /* `links: []` WAS FIRST ON THIS LINE. See "`links` IS NOT SENT AT ALL NOW" below. */
+    shop: [], promotions: [], intervals: [],
+    campaigns: [],
+    /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
+    facets: [],
+    /* And what its first two questions answer — see SCHEMA.kinds. */
+    kinds: [],
+    profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS, phoneCodes: PHONE_CODES,
+    studentFields: STUDENT_GROUPS,
+    /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a document, built from the server's own allow-list so it could not offer a § */
+    /* The admin forms' field lists (venue, post, shop, trip, room, link), `options`, `availGrid`, `multiSelect`, `pricingRows` and `galleryError` went in 433: nothing read them. */
+    /* `resourceInUse` WAS HERE. § */
+    profileReadonly: PROFILE_READONLY,
+    // field -> its option list, in the shape the edit forms already read. Built from the
+    // `options` tab, so every form and every booking dropdown share one source. Editing a list
+    // there takes effect on the next load: nothing to rebuild, nothing to go stale.
+    validations: payloadValidations_(opts),
+    dropdowns: payloadDropdowns_(opts, venuesTab),
+    /* `subjects` holds the subject surcharges, which is what its name says. § */
+    multipliers: { levels: sur.level,
+                   subjects: sur.subject,
+                   subjectsEta: sur.subject,      // the old name, kept so nothing breaks
+                   days: sur.day, times: sur.time, services: sur.service,
+                   students: {}, weeks: {}, baseRate: N(cfg.M) },
+    /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
+       folder's id, and that id is the folder's only lock; this payload goes to everybody. */
+    constants: { vars: configPublic_(cfg) },
+    /* THE SITE'S LAYOUT (462): the admin's order of widgets over the code's, or null for the code's own. */
+    layout: layoutClean_(cfg[LAYOUT_KEY]),
+    /* THE RULES (496): which exceptions the admin made universal, and the last twenty changes for Undo. */
+    rules: rulesClean_(cfg[RULES_KEY]),
+    /* THE SITE'S OWN WORDS (497): an admin's text over the code's, `{key: text}`; {} for the code's own. */
+    words: wordsClean_(cfg[WORDS_KEY]),
+    /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
+    /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
+    closures: [],
+    exams: [], birthdays: [], posts: [], laws: [],
+    /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — filled below for an admin and nobody else. */
+    promoCodes: [],
+    facts: [],
+    questions: [], boxers: [], fights: [], herd: [],
+    /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON § */
+    films: filmsOut,
+    /* AN ADMIN'S REELS AND VIDEOS (404), the same for everybody; the site merges them over the repository's. */
+    /* PER VIEWER (406) — the kept body is per viewer too (`payloadKey_`). */
+    media: mediaOut_(mediaAgeCap_(meAsked)),
+    cheatsheet: [],
+    /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a key the phone filled from `data/topics.json` as read-and-never-sent. § */
+    /* AND `practicals` IS THE FIFTH, for exactly the same reason. § */
+    practicals: [],
+    /* AND `projects` IS THE SIXTH, for the same sentence: § */
+    projects: [],
+    /* AND `textbooks` IS THE SEVENTH, for the same sentence again: `data/textbooks.json` is
+       filled in on the phone, and this key is here so `check-payload.js` does not report it
+       read-and-never-sent. */
+    textbooks: [],
+    /* AND `inserts` IS THE EIGHTH (455): `data/inserts.json`, filled in on the phone, declared for the same reason. */
+    inserts: [],
+    /* AND THE HISTORY DATABASE'S FOUR (459, 461): `data/manuscripts|figures|writings|timeline.json`, filled in on the phone, declared for the same reason; the portraits (batch D) too. */
+    manuscripts: [], figures: [], writings: [], timeline: [], portraits: [], timelines: [],
+    /* An object rather than an array — branding is looked up by name, never iterated. */
+    brand: {},
+    /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. § */
+    health: { ok: true, missing: [], problems: [] }
+  };
+  return payload;
+}
+
+/* WHAT THIS DEPLOY CAN DO, by action name: the site compares it against what it needs. */
+function payloadFeatures_() {
+  return [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
                'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist', 'findChild',
                'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
                'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
@@ -181,43 +260,25 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
                'saveAnswers', 'myAnswers',
                /* "Send the link again", and the sign-in link in a forgotten-PIN mail — listed so a
                   phone ahead of the deployment is told which file has not been pasted in. */
-               'resendLink', 'pinLink'],
-    tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
-    /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
-       id of the person it was built for, which the phone checks before drawing any of it. */
-    family: [], familyFor: '',
-    /* EVERYBODY WHO IS NOT ON `tutors`, for an admin's people column — see "EVERYONE" below. */
-    everyone: [],
-    /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW § */
-    claims: [],
-    /* `links: []` WAS FIRST ON THIS LINE. See "`links` IS NOT SENT AT ALL NOW" below. */
-    shop: [], promotions: [], intervals: [],
-    campaigns: [],
-    /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
-    facets: [],
-    /* And what its first two questions answer — see SCHEMA.kinds. */
-    kinds: [],
-    profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS, phoneCodes: PHONE_CODES,
-    studentFields: STUDENT_GROUPS,
-    /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a document, built from the server's own allow-list so it could not offer a § */
-    /* The admin forms' field lists (venue, post, shop, trip, room, link), `options`, `availGrid`, `multiSelect`, `pricingRows` and `galleryError` went in 433: nothing read them. */
-    /* `resourceInUse` WAS HERE. § */
-    profileReadonly: PROFILE_READONLY,
-    // field -> its option list, in the shape the edit forms already read. Built from the
-    // `options` tab, so every form and every booking dropdown share one source. Editing a list
-    // there takes effect on the next load: nothing to rebuild, nothing to go stale.
-    validations: (function () {
-      const out = {};
-      Object.keys(FIELD_OPTIONS).forEach(f => {
-        const list = opts[FIELD_OPTIONS[f]];
-        if (list && list.length) out[f] = list;
-      });
-      /* THE CODE'S OWN LISTS LAST, so they win — `FIELD_FIXED` in constants.gs says why a sheet row
-         must not be able to widen a list the server refuses everything outside. */
-      Object.keys(FIELD_FIXED).forEach(f => { out[f] = FIELD_FIXED[f]; });
-      return out;
-    })(),
-    dropdowns: {
+               'resendLink', 'pinLink'];
+}
+
+/* field -> its option list for the edit forms, the code's fixed lists over the sheet's. */
+function payloadValidations_(opts) {
+  const out = {};
+  Object.keys(FIELD_OPTIONS).forEach(f => {
+    const list = opts[FIELD_OPTIONS[f]];
+    if (list && list.length) out[f] = list;
+  });
+  /* THE CODE'S OWN LISTS LAST, so they win — `FIELD_FIXED` in constants.gs says why a sheet row
+     must not be able to widen a list the server refuses everything outside. */
+  Object.keys(FIELD_FIXED).forEach(f => { out[f] = FIELD_FIXED[f]; });
+  return out;
+}
+
+/* THE BOOKING FORM'S LISTS, from the options tab and the venues. */
+function payloadDropdowns_(opts, venuesTab) {
+  return {
       levels: opts.level || [], subjects: opts.subject || [], days: opts.weekday || [],
       // What kind each option is, so a subject can be academic or sporty the way a tutor already
       // can. Sent as a lookup rather than folded into the lists, which stay plain.
@@ -226,53 +287,5 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
       locations: venuesTab.map(v => S(v.name)).filter(Boolean),
       /* `linkCategories: []` went with the links: sent empty, and read by nothing in `js/`. */
       services: opts.service || [], topics: [], checklists: {},
-    },
-    /* `subjects` holds the subject surcharges, which is what its name says. § */
-    multipliers: { levels: sur.level,
-                   subjects: sur.subject,
-                   subjectsEta: sur.subject,      // the old name, kept so nothing breaks
-                   days: sur.day, times: sur.time, services: sur.service,
-                   students: {}, weeks: {}, baseRate: N(cfg.M) },
-    /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
-       folder's id, and that id is the folder's only lock; this payload goes to everybody. */
-    constants: { vars: configPublic_(cfg) },
-    /* THE SITE'S LAYOUT (462): the admin's order of widgets over the code's, or null for the code's own. */
-    layout: layoutClean_(cfg[LAYOUT_KEY]),
-    /* THE RULES (496): which exceptions the admin made universal, and the last twenty changes for Undo. */
-    rules: rulesClean_(cfg[RULES_KEY]),
-    /* THE SITE'S OWN WORDS (497): an admin's text over the code's, `{key: text}`; {} for the code's own. */
-    words: wordsClean_(cfg[WORDS_KEY]),
-    /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
-    /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
-    closures: [],
-    exams: [], birthdays: [], posts: [], laws: [],
-    /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — filled below for an admin and nobody else. */
-    promoCodes: [],
-    facts: [],
-    questions: [], boxers: [], fights: [], herd: [],
-    /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON § */
-    films: filmsOut,
-    /* AN ADMIN'S REELS AND VIDEOS (404), the same for everybody; the site merges them over the repository's. */
-    /* PER VIEWER (406) — the kept body is per viewer too (`payloadKey_`). */
-    media: mediaOut_(mediaAgeCap_(meAsked)),
-    cheatsheet: [],
-    /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a key the phone filled from `data/topics.json` as read-and-never-sent. § */
-    /* AND `practicals` IS THE FIFTH, for exactly the same reason. § */
-    practicals: [],
-    /* AND `projects` IS THE SIXTH, for the same sentence: § */
-    projects: [],
-    /* AND `textbooks` IS THE SEVENTH, for the same sentence again: `data/textbooks.json` is
-       filled in on the phone, and this key is here so `check-payload.js` does not report it
-       read-and-never-sent. */
-    textbooks: [],
-    /* AND `inserts` IS THE EIGHTH (455): `data/inserts.json`, filled in on the phone, declared for the same reason. */
-    inserts: [],
-    /* AND THE HISTORY DATABASE'S FOUR (459, 461): `data/manuscripts|figures|writings|timeline.json`, filled in on the phone, declared for the same reason; the portraits (batch D) too. */
-    manuscripts: [], figures: [], writings: [], timeline: [], portraits: [], timelines: [],
-    /* An object rather than an array — branding is looked up by name, never iterated. */
-    brand: {},
-    /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. § */
-    health: { ok: true, missing: [], problems: [] }
-  };
-  return payload;
+    };
 }
