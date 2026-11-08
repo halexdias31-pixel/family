@@ -20,6 +20,12 @@ reads (never runs) these files from it and writes data/texts/index.json and one 
   anf01.xml              https://www.ccel.org/ccel/schaff/anf01.xml (Ante-Nicene Fathers I, Justin Martyr)
   confccel.xml           https://www.ccel.org/ccel/augustine/confess.xml (Pusey's Confessions)
   jc.txt                 https://www.gutenberg.org/cache/epub/11000/pg11000.txt (Jastrow and Clay, Old Babylonian Gilgamesh, 1920)
+  npnf204.xml            https://www.ccel.org/ccel/schaff/npnf204.xml (NPNF II.4, Athanasius: Ellershaw's Life of Antony, 1892)
+  npnf211.xml            https://www.ccel.org/ccel/schaff/npnf211.xml (NPNF II.11: Gibson's Cassian, 1894; Roberts's Sulpitius, 1894)
+
+    python3 -I tools/writings-more.py DOWNLOADS_DIR --add desert
+
+builds the Desert Fathers alone (only the two NPNF files needed) and puts them in the index as it stands, the rest untouched.
 """
 import html, json, os, re, sys, glob
 
@@ -653,6 +659,68 @@ def split_work(title, parts, texts, limit=900 * 1024):
     return [work('%s, part %d' % (title, i + 1), p, t, title=title) for i, (p, t) in enumerate(out)]
 
 
+# ---------------------------------------------------------------- Desert Fathers (NPNF, CCEL): Antony, Cassian, Sulpitius
+def npnf(name):
+    xml = open(os.path.join(DL, name), encoding='utf-8').read()
+    return re.sub(r'<note\b.*?</note>', ' ', xml, flags=re.S)
+
+
+def paras(body):
+    body = re.sub(r'<h[1-6]\b.*?</h[1-6]>', ' ', body, flags=re.S)
+    body = re.sub(r'<p class="subh"[^>]*>.*?</p>', ' ', body, flags=re.S)
+    return [p for p in (flat(p) for p in re.findall(r'<p\b[^>]*>(.*?)</p>', body, re.S)) if p and not re.fullmatch(r'[—\-\s]*', p)]
+
+
+def chapters(div, name):
+    """One card a chapter of a <div3> (a book, conference or dialogue), its chapter titles left to the source."""
+    parts, texts = [], []
+    for cm in re.finditer(r'<div4 title="Chapter ([IVXLC]+)\.[^"]*"[^>]*>(.*?)</div4>', div, re.S):
+        ps = paras(cm.group(2))
+        if ps:
+            c = roman(cm.group(1))
+            parts.append(['Chapter %d' % c, str(c), 0])
+            texts.append([' '.join(ps)])
+    return work(name, parts, texts)
+
+
+def desert():
+    x = npnf('npnf204.xml')
+    i = x.index('<div2 title="Life of Antony. (Vita Antoni.)"')
+    s = x[x.index('<div3 title="Preface."', i): x.index('<div1 title="Circular to Bishops', i)]
+    parts, texts = [['Preface', '', 0]], [[]]
+    for p in paras(s):
+        m = re.match(r'^(\d+)\.\s+(.*)', p)
+        if m and int(m.group(1)) == len(parts):
+            parts.append(['Section ' + m.group(1), m.group(1), 0])
+            texts.append([m.group(2)])
+        elif len(parts) > 1 or texts[0] or p.startswith('You have entered'):
+            texts[-1].append(p)
+    texts = [[' '.join(t)] for t in texts]
+    assert len(parts) == 95, len(parts)
+    works = [work('Life of Antony', parts, texts)]
+    y = npnf('npnf211.xml')
+    for d in re.finditer(r'<div3 title="(Book|Conference) ([IVXL]+)\. ([^"]*)"[^>]*>(.*?)</div3>', y, re.S):
+        kind, n = d.group(1), roman(d.group(2))
+        if kind == 'Book' and '<div4 title="Chapter' not in d.group(4):  # Book VI: Gibson left it untranslated
+            continue
+        if kind == 'Book' and y.rfind('Institutes of the C', 0, d.start()) < y.rfind('Against Nestorius', 0, d.start()):
+            continue
+        name = ('Institutes, Book %d' if kind == 'Book' else 'Conferences, Conference %d') % n
+        works.append(chapters(d.group(4), name) | {'title': 'Institutes' if kind == 'Book' else 'Conferences'})
+    d = re.search(r'<div3 title="Dialogue I\. Concerning the Virtues of the Monks of the East\."[^>]*>(.*?)</div3>', y, re.S)
+    works.append(chapters(d.group(1), 'Dialogue I: The Monks of the East') | {'title': 'Dialogue I: The Monks of the East'})
+    assert sum(w['name'].startswith('Institutes') for w in works) == 11, [w['name'] for w in works]
+    assert sum(w['name'].startswith('Conferences') for w in works) == 24, [w['name'] for w in works]
+    return works
+
+
+def desert_add():
+    add('desert-en', 'Desert Fathers', 'NPNF', 'en', desert(),
+        "Athanasius, Life of Antony, tr. H. Ellershaw (1892); John Cassian, Institutes and Conferences, tr. E. C. S. Gibson "
+        "(1894); Sulpitius Severus, Dialogue I, tr. A. Roberts (1894): Nicene and Post-Nicene Fathers, Second Series 4 and 11, via CCEL",
+        'Public domain', 'https://www.ccel.org/ccel/schaff/npnf211.html', unit='Chapter')
+
+
 # ---------------------------------------------------------------- writing it out
 TEXTS = []
 
@@ -667,6 +735,9 @@ def slug(s):
 
 
 def main():
+    if '--add' in sys.argv and sys.argv[sys.argv.index('--add') + 1] == 'desert':
+        desert_add()
+        return write(keep=True)
     add('apocrypha', 'Apocrypha', 'KJV', 'en', apocrypha(),
         'King James Version Apocrypha (1611; standard text of 1769)', 'Public domain',
         'https://ebible.org/Scriptures/eng-kjv_vpl.zip')
@@ -714,8 +785,17 @@ def main():
     add('zohar', 'Zohar', 'Aramaic', 'he', zohar(),
         'Zohar Chadash and Tikkunei Zohar (vocalised), Torat Emet editions as exported by Sefaria', 'Public domain',
         'https://www.sefaria.org/texts/Kabbalah/Zohar', unit='Paragraph')
+    desert_add()
+    write()
 
+
+def write(keep=False):
+    """keep: the index as it stands, a text of the same id replaced, the others untouched."""
     index = {'v': 1, 'texts': []}
+    if keep:
+        old = json.load(open(os.path.join(OUT, 'index.json'), encoding='utf-8'))
+        ids = {t['id'] for t in TEXTS}
+        index['texts'] = [t for t in old['texts'] if t['id'] not in ids]
     sizes = {}
     for t in TEXTS:
         folder = os.path.join(OUT, t['folder'])
@@ -737,6 +817,8 @@ def main():
     raw = json.dumps(index, ensure_ascii=False, separators=(',', ':'))
     open(os.path.join(OUT, 'index.json'), 'w', encoding='utf-8').write(raw + '\n')
     for t in index['texts']:
+        if t['id'] not in sizes:
+            continue
         cards = sum(1 if p[2] == 0 else (p[2] if isinstance(p[2], int) else len(p[2])) for w in t['works'] for p in w['parts'])
         print('%-12s %-20s %6d cards %9d bytes' % (t['id'], t['text'], cards, sizes[t['id']]))
     print('index.json', len(raw.encode('utf-8')), 'bytes')

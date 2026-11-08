@@ -25,6 +25,7 @@ const WRITING_WORKS = {
   'texts:fathers-grc': { topic: 'Christianity', collection: 'Apostolic Fathers' }, 'texts:fathers-en': { topic: 'Christianity', collection: 'Apostolic Fathers' },
   'texts:justin-en': { topic: 'Christianity', collection: 'Church Fathers' }, 'texts:justin-grc': { topic: 'Christianity', collection: 'Church Fathers' },
   'texts:confessions': { topic: 'Christianity', collection: 'Church Fathers' },
+  'texts:desert-en': { topic: 'Christianity', collection: 'Desert Fathers' },
   'texts:gilgamesh': { topic: 'Mesopotamian religion' },
   'works:WR-0001': { topic: 'Christianity', collection: 'Apostolic Fathers' },
   'works:WR-0002': { topic: 'Judaism', collection: 'Second Temple' },
