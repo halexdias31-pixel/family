@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* @family. — check/share-profile.js: THE SHARED STAFF PROFILE IS THE SITE CARD (547, 549) at 390px — same width, lines and places, rate on one line, no overlap, map loaded or left out. --shots=DIR. */
+/* @family. — check/share-profile.js: THE SHARED STAFF PROFILE IS THE SITE CARD (547, 549) at 390px — same width, lines, places and parts, pixel diff small, rate on one line, map loaded or left out. --shots=DIR. */
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
@@ -15,10 +15,13 @@ const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'applicat
                 '.html': 'text/html', '.woff2': 'font/woff2', '.svg': 'image/svg+xml',
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 const ADMIN = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
+const DIFF_MAX = 0.01;
+/* WHAT A FULLY FILLED CARD SHOWS — each counted on the site and in the picture. */
+const PARTS = ['img', '.prof-heat', '.prof-tag', '.prof-facts', '.prof-places', '.prof-q', '.prof-busy', '.prof-cap', '.prof-say', '.prof-words'];
 const TEXTS = ['h3', '.prof-name', '.prof-handle', '.prof-rate', '.prof-say', '.prof-words', '.prof-cap'];
 
 /* IN THE PAGE: each text's place in its card and how many lines it takes, plus any two that overlap. */
-function measure(card, TEXTS) {
+function measure(card, TEXTS, PARTS) {
   const c = card.getBoundingClientRect(), out = { w: c.width, texts: {}, overlap: [] };
   const boxes = [];
   TEXTS.forEach(sel => [...card.querySelectorAll(sel)].forEach((el, i) => {
@@ -45,6 +48,40 @@ function measure(card, TEXTS) {
   out.heat = heat ? (tiles && /url\("?data:/.test(getComputedStyle(tiles).backgroundImage) ? 'data' : 'remote') : 'none';
   out.caps = [...card.querySelectorAll('.prof-cap')].map(x => x.textContent.trim());
   out.seat = !!card.querySelector('.prof-seat');
+  out.parts = {};
+  PARTS.forEach(sel => { out.parts[sel] = card.querySelectorAll(sel).length; });
+  return out;
+}
+
+/* IN THE PAGE: both pictures on canvases; the share of pixels whose colour differs by more than 48 in any channel from every pixel within one, at the best small vertical shift. */
+async function diffPng([siteB64, picUrl]) {
+  const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load')); i.src = src; });
+  const [a, b] = await Promise.all([load('data:image/png;base64,' + siteB64), load(picUrl)]);
+  const px = i => { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight;
+    const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); g.drawImage(i, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
+  const out = { a: a.naturalWidth + 'x' + a.naturalHeight, b: b.naturalWidth + 'x' + b.naturalHeight, frac: 1, dy: 0 };
+  if (Math.abs(a.naturalWidth - b.naturalWidth) > 2 || Math.abs(a.naturalHeight - b.naturalHeight) > 6) { out.err = 'sizes differ: ' + out.a + ' vs ' + out.b; return out; }
+  const A = px(a), B = px(b), W = Math.min(a.naturalWidth, b.naturalWidth), H = Math.min(a.naturalHeight, b.naturalHeight);
+  const wa = a.naturalWidth, wb = b.naturalWidth;
+  /* A PIXEL MATCHES when the picture has its colour within one device pixel: the screen snaps each line to whole pixels from the card's fractional top, the picture from 0. */
+  const near = (y, x, dy) => {
+    const i = (y * wa + x) * 4;
+    for (let v = -1; v <= 1; v++) for (let u = -1; u <= 1; u++) {
+      const yy = y + dy + v, xx = x + u;
+      if (yy < 0 || yy >= b.naturalHeight || xx < 0 || xx >= wb) continue;
+      const j = (yy * wb + xx) * 4;
+      if (Math.abs(A[i] - B[j]) <= 48 && Math.abs(A[i + 1] - B[j + 1]) <= 48 && Math.abs(A[i + 2] - B[j + 2]) <= 48) return true;
+    }
+    return false;
+  };
+  for (let dy = -3; dy <= 3; dy++) {
+    let n = 0, all = 0;
+    for (let y = 3; y < H - 3; y++) for (let x = 0; x < W; x++) {
+      all++;
+      if (!near(y, x, dy)) n++;
+    }
+    if (n / all < out.frac) { out.frac = n / all; out.dy = dy; }
+  }
   return out;
 }
 
@@ -75,7 +112,7 @@ function measure(card, TEXTS) {
   await page.evaluate(() => { go('tutors', false, true); return document.fonts && document.fonts.ready; });
   await page.waitForTimeout(900);
 
-  const shoot = () => page.evaluate(async ([TEXTS, measureSrc]) => {
+  const shoot = () => page.evaluate(async ([TEXTS, PARTS, measureSrc]) => {
     const measure = (0, eval)('(' + measureSrc + ')');
     const t = (DATA.tutors || [])[0];
     const site = [...document.querySelectorAll('.card.is-prof')].find(el => el.getBoundingClientRect().width > 0 && !el.closest('.tpng-host')
@@ -84,20 +121,22 @@ function measure(card, TEXTS) {
     site.scrollIntoView({ block: 'start' }); site.setAttribute('data-share-site', '');
     const real = window.rcPng_;
     let pic = null;
-    window.rcPng_ = card => { pic = measure(card, TEXTS); return real(card); };
+    window.rcPng_ = card => { pic = measure(card, TEXTS, PARTS); return real(card); };
     let blob;
     try { blob = await tutorPng_(t); } catch (e) { return { err: 'tutorPng_ threw: ' + e.message }; }
     finally { window.rcPng_ = real; }
     const url = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(blob); });
-    return { site: measure(site, TEXTS), pic, url, rate: rateRange_(t) };
-  }, [TEXTS, String(measure)]);
+    return { site: measure(site, TEXTS, PARTS), pic, url, rate: rateRange_(t) };
+  }, [TEXTS, PARTS, String(measure)]);
 
-  /* THE SITE CARD'S PICTURE BEFORE ANY SHARE, so nothing the share opens lies over it. */
-  if (SHOTS) {
+  /* THE SITE CARD'S PICTURE BEFORE ANY SHARE, so nothing the share opens lies over it — always taken: the shared PNG is diffed against it. */
+  let sitePng = null;
+  {
     await page.evaluate(() => { const t = (DATA.tutors || [])[0]; const el = [...document.querySelectorAll('.card.is-prof')].find(c =>
       ((c.querySelector('.prof-handle') || {}).textContent || '') === '@' + t.handle); if (el) { el.setAttribute('data-share-site', ''); el.scrollIntoView({ block: 'start' }); } });
     await page.waitForTimeout(400);
-    await page.locator('[data-share-site]').first().screenshot({ path: path.join(SHOTS, 'profile-390-site.png'), animations: 'disabled' });
+    sitePng = await page.locator('[data-share-site]').first().screenshot({ animations: 'disabled' });
+    if (SHOTS) fs.writeFileSync(path.join(SHOTS, 'profile-390-site.png'), sitePng);
   }
   const got = await shoot();
   if (got.err) bad.push(got.err);
@@ -123,6 +162,14 @@ function measure(card, TEXTS) {
         if (a.lines !== b.lines) bad.push(`${k} ("${a.text}"): ${a.lines} lines on the site, ${b.lines} in the picture`);
         if (Math.abs(a.x - b.x) > 1 || (pic.heat !== 'none' && Math.abs(a.y - b.y) > 1)) bad.push(`${k} ("${a.text}"): at ${a.x},${a.y} on the site and ${b.x},${b.y} in the picture`);
       });
+      /* EVERY PART OF A FULL CARD IS IN THE PICTURE: photo, fact pills, subject and venue pills, the hours, "Already teaching". */
+      PARTS.forEach(sel => { if (site.parts[sel] && site.parts[sel] !== pic.parts[sel]) bad.push(`${sel}: ${site.parts[sel]} on the site, ${pic.parts[sel] || 0} in the picture`);
+        if (!site.parts[sel]) bad.push(`the fixture's card has no ${sel} — a full card is not proved`); });
+      /* PIXEL FOR PIXEL: the two pictures differ in under DIFF_MAX of their pixels (best of a ±3px shift: the element shot rounds a fractional top). */
+      const d = await page.evaluate(diffPng, [sitePng.toString('base64'), got.url]);
+      console.log(`  pixel diff: site ${d.a}, picture ${d.b}, ${(d.frac * 100).toFixed(2)}% differ (shift ${d.dy}px)`);
+      if (d.err) bad.push('pixel diff: ' + d.err);
+      else if (d.frac > DIFF_MAX) bad.push(`the picture differs from the site card in ${(d.frac * 100).toFixed(2)}% of its pixels (allowed ${DIFF_MAX * 100}%)`);
       if (pic.heat !== 'data') bad.push(`with the tiles served, the picture's map is "${pic.heat}", not drawn from loaded tiles`);
     }
     if (SHOTS) {
