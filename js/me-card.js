@@ -317,7 +317,7 @@ function cardEditForm_(t, e, vals, only) {
       : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
       : s.id === 'handle' ? cardHandleHtml_()
       : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video_file')).trim())),
-          (e.own ? videoPicker_(val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+          (e.own ? videoPicker_(val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f) && !(e.own && f === 'video')), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
       : s.id === 'jobs' ? ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(val), 'job', 'jobs')), jobShelf_(L, val, { draft: false }))
       : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)

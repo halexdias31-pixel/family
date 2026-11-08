@@ -416,7 +416,7 @@ function fieldsHtml(groups, o) {
     /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE § */
     const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f)) && !(jobs && isJobField_(f))
-                              && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
+                              && !(photos && (isPhotoField_(f) || f === 'video')) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
