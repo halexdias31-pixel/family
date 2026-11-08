@@ -26,3 +26,9 @@ The register is the ledger's `claude_notes` tab (`TAB.claude_notes`). One line p
 | N-1794045917606-80291 | 7 Nov 2026 | mechanics first menu car or part | first menu is Car or car part |
 | N-1794046031810-28828 | 7 Nov 2026 | statistics = GCSE Statistics | already only the GCSE Statistics book; board and spec added |
 | N-1794046108103-76754 | 7 Nov 2026 | PE: no History, boxing only | History shelf gone; Boxing only |
+| N-1794042387481-57933 | 8 Nov 2026 | projects into library (re-check) | already done: Projects are a kind under Library |
+| N-1794045917606-80291 | 8 Nov 2026 | mechanics first menu (re-check) | already done: Car or car part asked first |
+| N-1794046031810-28828 | 8 Nov 2026 | statistics = GCSE Statistics (re-check) | Library holds only the Edexcel 1ST0 book; no Maths questions under Statistics; 1ST0 papers need importing |
+| N-1794046108103-76754 | 8 Nov 2026 | PE: no History (re-check) | already done: Boxing only |
+| N-1794045566287-50680 | 8 Nov 2026 | manuscript cards minimal (re-check) | captions off the card face, onto its facts page; picture then tags only |
+| N-1794045843240-64505 | 8 Nov 2026 | Writings, primary/secondary (re-check) | already done: Writings, Primary tag on every writing but the one flagged |
