@@ -123,7 +123,7 @@ function profQuals_(t) {
   } else {
     chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
   }
-  chips = PROF_MORE_(chips, 3, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
+  chips = PROF_MORE_(chips, 2, parts.length ? parts.map(p => profQualV_(p.subject)) : profList_(t.quals));
   return chips.length
     ? `<div class="prof-cap">Qualifications</div><div class="qtags prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
 }
@@ -132,7 +132,7 @@ function profQuals_(t) {
 const profJobSay_ = j => [j.role, j.where, [j.from, j.to].filter(Boolean).join('–')].map(v => String(v || '').trim()).filter(Boolean).join(' · ');
 function profJobs_(t) {
   const says = (Array.isArray(t.jobs) ? t.jobs : []).map(profJobSay_).filter(Boolean);
-  const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 2, says);
+  const chips = PROF_MORE_(says.map(v => `<span class="prof-tag">${esc(v)}</span>`), 1, says);
   return chips.length ? `<div class="prof-cap">Jobs</div><div class="qtags prof-tags prof-teach prof-jobs">${chips.join('')}</div>` : '';
 }
 
@@ -278,7 +278,9 @@ function profAvail_(t) {
   const line = which => days.map(d => {
     const hs = d.hours.filter(which).map(c => c.h), spans = [];
     hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
-    return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(spans.map(profSpan_).join(', '))}</span>` : '';
+    /* ONE SPAN A DAY AND "+N": a choppy week stays one pill a day; the aria-label above says every hour. */
+    const say = !spans.length ? '' : profSpan_(spans[0]) + (spans.length > 1 ? ' +' + (spans.length - 1) : '');
+    return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(say)}</span>` : '';
   }).filter(Boolean).join('<span class="prof-sep"> </span>');
   const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-cap">Available</div>
@@ -357,9 +359,9 @@ function findCard(x) {
       ${(() => {
         const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
         return (main.length ? `<div class="prof-cap">Teaches</div><div class="qtags prof-tags prof-teach">${
-                  PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 6).join('')}</div>` : '')
+                  PROF_MORE_(teachGroups_(main).map(g => teachChip_(g, true)), 3).join('')}</div>` : '')
              + (also.length ? `<div class="prof-cap">Can also teach</div><div class="qtags prof-tags prof-teach">${
-                  PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 3).join('')}</div>` : '');
+                  PROF_MORE_(teachGroups_(also).map(g => teachChip_(g, false)), 2).join('')}</div>` : '');
       })()}
       ${/* EXPERIENCE, AGES, GROUP SIZE AND SESSION LENGTH, AS PILLS UNDER THE FACE (look rules: every attribute a tag at the top). */
             ''}
