@@ -187,7 +187,7 @@ async function main() {
 
   /* ---------- 6. A ROW A SCRIPT WRITES: THE SCRIPT IS THE SOURCE § */
   {
-    const { spawnSync } = require('child_process');
+    const { execFile } = require('child_process');
     const os = require('os');
     const toolDir = path.join(ROOT, 'tools');
     const writers = fs.readdirSync(toolDir).filter(f => f.endsWith('.py') && f !== 'anim_row.py').sort()
@@ -200,22 +200,37 @@ async function main() {
     const books0 = fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8');
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'check-anims-'));
     try {
-      fs.mkdirSync(path.join(tmp, 'tools')); fs.mkdirSync(path.join(tmp, 'data'));
-      fs.copyFileSync(path.join(toolDir, 'anim_row.py'), path.join(tmp, 'tools', 'anim_row.py'));
-      /* AND A SHARED KIT (`*_kit.py`, tools/cb_kit.py): a script may build its drawing with one, as it may write it with anim_row. */
-      fs.readdirSync(toolDir).filter(f => /_kit\.py$/.test(f)).forEach(f => fs.copyFileSync(path.join(toolDir, f), path.join(tmp, 'tools', f)));
       const before = books0.split('\n');
-      for (const t of writers) {
-        fs.writeFileSync(path.join(tmp, 'data', 'textbooks.json'), books0);
-        fs.copyFileSync(path.join(toolDir, t.f), path.join(tmp, 'tools', t.f));
-        const run = spawnSync('python3', ['-I', path.join(tmp, 'tools', t.f)], { cwd: tmp, encoding: 'utf8', timeout: 60000 });
+      const kits = fs.readdirSync(toolDir).filter(f => f === 'anim_row.py' || /_kit\.py$/.test(f));
+      /* EACH SCRIPT IN ITS OWN COPY, a few at once (165 python starts, one after another, were most of this check's time); verdicts kept in writer order. */
+      const runOne = (t, i) => new Promise(done => {
+        const dirI = path.join(tmp, String(i));
+        fs.mkdirSync(path.join(dirI, 'tools'), { recursive: true }); fs.mkdirSync(path.join(dirI, 'data'));
+        kits.forEach(k => fs.copyFileSync(path.join(toolDir, k), path.join(dirI, 'tools', k)));
+        fs.writeFileSync(path.join(dirI, 'data', 'textbooks.json'), books0);
+        fs.copyFileSync(path.join(toolDir, t.f), path.join(dirI, 'tools', t.f));
+        execFile('python3', ['-I', path.join(dirI, 'tools', t.f)], { cwd: dirI, encoding: 'utf8', timeout: 60000, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+          let r;
+          if (err && err.code === 'ENOENT') r = { error: err };
+          else if (err) r = { status: 1, out: String(stderr || stdout) };
+          else r = { status: 0, after: fs.readFileSync(path.join(dirI, 'data', 'textbooks.json'), 'utf8') };
+          try { fs.rmSync(dirI, { recursive: true, force: true }); } catch (e) {}
+          done(r);
+        });
+      });
+      const results = new Array(writers.length);
+      let next = 0;
+      const lane = async () => { while (next < writers.length) { const i = next++; results[i] = await runOne(writers[i], i); } };
+      await Promise.all(Array.from({ length: Math.max(2, os.cpus().length) }, lane));
+      writers.forEach((t, i) => {
+        const run = results[i];
         if (run.error) { console.log('COULD NOT RUN — python3 would not start (' + run.error.message + '), so whether the ' + writers.length + ' scripts and their rows agree was NOT checked'); process.exit(1); }
-        if (run.status !== 0) { fail.push('tools/' + t.f + ' fails on a copy of the books: ' + String(run.stderr || run.stdout).trim().split('\n').pop().slice(0, 160)); continue; }
-        const after = fs.readFileSync(path.join(tmp, 'data', 'textbooks.json'), 'utf8');
-        if (after === books0) continue;
+        if (run.status !== 0) { fail.push('tools/' + t.f + ' fails on a copy of the books: ' + run.out.trim().split('\n').pop().slice(0, 160)); return; }
+        const after = run.after;
+        if (after === books0) return;
         const moved = after.split('\n').map((l, i) => l === before[i] ? null : (/"anim":"([a-z0-9]+)"/.exec(l) || /"anim":"([a-z0-9]+)"/.exec(before[i] || '') || [])[1] || ('line ' + (i + 1))).filter(Boolean);
         fail.push('tools/' + t.f + ' rewrites ' + [...new Set(moved)].join(', ') + ' — the row and its script disagree. The script is the source: move a hand edit into it, or re-run it after changing it');
-      }
+      });
     } finally { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
     said.push(writers.length + ' scripts write a row each (' + made.join(' ') + '); each, re-run on a copy of the books, leaves it byte for byte as it is');
   }
