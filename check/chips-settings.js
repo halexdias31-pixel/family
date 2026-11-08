@@ -6,6 +6,8 @@
 /*   settings-work  every visible settings box (data-me) of every settings column, as an admin and as a student: changed, Saved, the page */
 /*                  reloaded with the profile read back from the (fake, stateful) server only — the save must send the new value and the box */
 /*                  must show it after the reload. A backend that drops a field is not tested here: the fake keeps what it is sent.          */
+/*                  Also as a parent, a tutor, a brand-new tutor and an apprentice (glass.ACCOUNTS); a shut card's boxes must be disabled, and a */
+/*                  refused save must say the sheet's own words beside its Save.                                                                 */
 'use strict';
 const fs = require('fs'), path = require('path');
 const glass = require('./glass.js');
@@ -68,9 +70,11 @@ async function colSettings(col) {
   const browser = await chromium.launch();
   const work = [], settings = [], errors = [];
   let chips = null;
-  for (const as of ['admin', 'student']) {
+  for (const A of glass.ACCOUNTS) {
+    const as = A.as;
     /* A SIGNED-IN SESSION HAS A TOKEN, AND THE SHEET'S ROW HAS EVERY COLUMN (phone_cc is how the site knows it is the whole row, profileShapeOk_). */
-    const user = Object.assign({ token: 'cs-token' }, glass.VIEWERS.find(v => v.as === as).user), store = { phone_cc: '+44' }, sent = [];
+    const user = Object.assign({ token: 'cs-token' }, A.user), store = Object.assign({ phone_cc: '+44' }, A.profile || {}), sent = [];
+    let fail = '';
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(as + ': ' + String(e.message).slice(0, 160)));
@@ -81,7 +85,8 @@ async function colSettings(col) {
       let a = {}; try { a = JSON.parse(r.request().postData() || '{}'); } catch (e) { a = {}; }
       let body = { success: true };
       /* CS_DROP=<field> IS THE MUTATION: a sheet that drops one field must fail that setting, and only it. */
-      if (a.action === 'updateProfile') { sent.push(a.fields || {}); Object.assign(store, a.fields || {}); delete store[process.env.CS_DROP || '\u0000']; body = { success: true, personId: user.personId, profile: Object.assign({}, store) }; }
+      if (a.action === 'updateProfile' && fail) body = { success: false, error: fail };
+      else if (a.action === 'updateProfile') { sent.push(a.fields || {}); Object.assign(store, a.fields || {}); delete store[process.env.CS_DROP || '\u0000']; body = { success: true, personId: user.personId, profile: Object.assign({}, store) }; }
       if (a.action === 'myProfile') body = { success: true, personId: user.personId, profile: Object.assign({}, store) };
       return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
     });
@@ -127,6 +132,26 @@ async function colSettings(col) {
       if (r.none) continue;
       Object.assign(changed, Object.fromEntries(Object.entries(r.out).map(([k, v]) => [k, { col, v }])));
     }
+    /* SHUT MEANS SHUT: a box on a card you do not hold is greyed, never typed into. */
+    for (const col of COLS) {
+      const open = await page.evaluate(async ({ col, cs }) => { const s = await (0, eval)('(' + cs + ')')(col); if (!s) return [];
+        return [...s.querySelectorAll('.is-locked input, .is-locked select, .is-locked textarea')].filter(i => !i.disabled).map(i => i.name || i.dataset.me || i.type); }, { col, cs: colSettings.toString() });
+      open.forEach(k => work.push({ kind: 'settings-work', where: as + ' › ' + col + ' › ' + k, say: 'a box on a shut card can be typed into' }));
+    }
+    /* A REFUSED SAVE SAYS WHY, PLAINLY: the sheet's words show on the page, not a silent Save. */
+    fail = 'The sheet is busy, try again';
+    const said = await page.evaluate(async ({ col, nv, cs, fail }) => {
+      const newValue = (0, eval)('(' + nv + ')');
+      for (const c of col) { const s = await (0, eval)('(' + cs + ')')(c); if (!s) continue;
+        const i = [...s.querySelectorAll('.me-form [data-me]')].find(i => i.offsetParent !== null && !i.disabled && i.type !== 'checkbox' && i.tagName !== 'SELECT'); if (!i) continue;
+        i.value = newValue(i); i.dispatchEvent(new Event('input', { bubbles: true }));
+        const b = i.closest('.me-form').querySelector('[data-do="me-save"]'); if (!b) continue;
+        b.click(); await new Promise(r => setTimeout(r, 2000));
+        return document.body.innerText.indexOf(fail) !== -1 ? 'ok' : 'no words'; }
+      return 'none';
+    }, { col: COLS, nv: newValue.toString(), cs: colSettings.toString(), fail });
+    fail = '';
+    if (said === 'no words') work.push({ kind: 'settings-work', where: as + ' › refused save', say: 'the sheet refused a save and the page did not say so' });
     /* THE RELOAD READS THE SHEET, NOT THE DEVICE: the stored sign-in keeps who you are and loses the saved profile. */
     await page.evaluate(() => { try { const u = JSON.parse(localStorage.getItem('familyUser')); delete u.profile; localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) { /* none stored */ } });
     await load();

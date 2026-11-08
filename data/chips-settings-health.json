@@ -23,9 +23,114 @@
   }
  },
  "settings": {
-  "tried": 116,
-  "passed": 116,
+  "tried": 201,
+  "passed": 201,
   "each": [
+   {
+    "as": "student",
+    "col": "account",
+    "field": "first_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "last_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "dob_d",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "dob_m",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "dob_y",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "exam_small_date",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "exam_big_date",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "email",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "phone_cc",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "phone_no",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "city",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "town",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "borough",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "postcode",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "student",
+    "col": "account",
+    "field": "address",
+    "pass": true,
+    "why": []
+   },
    {
     "as": "admin",
     "col": "staff",
@@ -85,27 +190,6 @@
    {
     "as": "admin",
     "col": "staff",
-    "field": "travel_km",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
-    "field": "video",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
-    "field": "photos_1",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "admin",
-    "col": "staff",
     "field": "rate_per_hour",
     "pass": true,
     "why": []
@@ -149,6 +233,27 @@
     "as": "admin",
     "col": "staff",
     "field": "max_hours",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "admin",
+    "col": "staff",
+    "field": "video",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "admin",
+    "col": "staff",
+    "field": "photos_1",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "admin",
+    "col": "staff",
+    "field": "travel_km",
     "pass": true,
     "why": []
    },
@@ -734,105 +839,595 @@
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "first_name",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "last_name",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
-    "col": "account",
-    "field": "dob_d",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "student",
-    "col": "account",
-    "field": "dob_m",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "student",
-    "col": "account",
-    "field": "dob_y",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "student",
-    "col": "account",
-    "field": "exam_small_date",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "student",
-    "col": "account",
-    "field": "exam_big_date",
-    "pass": true,
-    "why": []
-   },
-   {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "email",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "phone_cc",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "phone_no",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "city",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "town",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "borough",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
     "col": "account",
     "field": "postcode",
     "pass": true,
     "why": []
    },
    {
-    "as": "student",
+    "as": "parent",
+    "col": "account",
+    "field": "address",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "headline",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "years_experience",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "age_min",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "age_max",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "favourite_colour",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "adjective_1",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "adjective_2",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "adjective_3",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "rate_per_hour",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "extra_seat_rate",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "min_students",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "max_students",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "min_hours",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "max_hours",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "video",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "photos_1",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "staff",
+    "field": "travel_km",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "first_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "last_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "dob_d",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "dob_m",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "dob_y",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "email",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "phone_cc",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "phone_no",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "city",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "town",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "borough",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "postcode",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor",
+    "col": "account",
+    "field": "address",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "headline",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "years_experience",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "age_min",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "age_max",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "favourite_colour",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "adjective_1",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "adjective_2",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "adjective_3",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "rate_per_hour",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "extra_seat_rate",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "min_students",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "max_students",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "min_hours",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "max_hours",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "video",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "photos_1",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "staff",
+    "field": "travel_km",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "first_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "last_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "dob_d",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "dob_m",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "dob_y",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "email",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "phone_cc",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "phone_no",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "city",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "town",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "borough",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "postcode",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "tutor-new",
+    "col": "account",
+    "field": "address",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "first_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "last_name",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "dob_d",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "dob_m",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "dob_y",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "exam_small_date",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "exam_big_date",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "email",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "phone_cc",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "phone_no",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "city",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "town",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "borough",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
+    "col": "account",
+    "field": "postcode",
+    "pass": true,
+    "why": []
+   },
+   {
+    "as": "apprentice",
     "col": "account",
     "field": "address",
     "pass": true,
@@ -844,7 +1439,7 @@
   {
    "kind": "chip-size",
    "where": "Find",
-   "say": "no \"Past paper\" answer to press on the way to the GCSE card"
+   "say": "no \"GCSE\" answer to press on the way to the GCSE card"
   }
  ]
 }
