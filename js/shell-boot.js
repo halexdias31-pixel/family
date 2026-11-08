@@ -298,12 +298,10 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* WHERE A SCREEN THAT MOVED NOW LIVES (461, batch C): another column, or `find:<kind>[:<account type>]`. */
-/* columns.json's `moved` and `was` say it; this copy stands until the file lands (check-doors keeps them one). */
+/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — columns.json's `moved`/`was`; this copy until it lands (check-doors). */
 const SCREEN_MOVED = { progress: 'account', booking: 'find:Booking', staff: 'find:Settings:Staff', site: 'find:Settings:Site',
   account: 'find:Settings:Student', family: 'find:Settings:Parent', apprentice: 'find:Settings:Apprentice', biz: 'find:Settings:Business' };
 function screenMoved_() { try { return (DATA && DATA.columnsMoved) || SCREEN_MOVED; } catch (e) { return SCREEN_MOVED; } }
-/* A COLUMN RENAMED INTO ANOTHER: its new id, else its own. */
 const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */

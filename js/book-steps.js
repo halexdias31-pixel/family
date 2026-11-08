@@ -412,8 +412,7 @@ const BOOK_STEPS = [
   /* NO TUTOR TO CHOOSE. The class is priced against a tutor nobody picked, which is precisely
      what makes the seat cost what it costs. */
   /* ---------- WHOSE BOOKING IT IS § */
-  /* `set` IS WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js calls it after the answer is kept): one place per step. */
-  /* ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
+  /* `set`: WHAT ANSWERING A STEP DOES TO THE OTHERS (book-rows.js). ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
   { id: 'client', label: 'Who is this for?', short: 'For', set: () => bookKidsFor_(),
     /* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. § */
     fallback: () => (USER && USER.name) || '',
@@ -601,8 +600,7 @@ const BOOK_STEPS = [
 
   /* ---------- WHOSE CHILDREN ARE THESE? § */
   /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true,
-    set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
+  { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true, set: list => { if (list && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length); },
     /* EVERY CHILD IS OFFERED. § */
     /* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS § */
     options: () => {

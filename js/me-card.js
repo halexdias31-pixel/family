@@ -320,8 +320,7 @@ document.addEventListener('change', e => {
   if (v) v.textContent = ceCount_(profList_(hid.value).length, 'venue', 'venues');
 });
 const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
-/* ONE TABLE OF SECTIONS: each id's body, and for the money parts (`rate`) the line redrawn as the rate is typed (`cardSeatSync_`). */
-/* An id not here is its fields' rows. `c` is the form's own: t, e, val, vals, ro, box, filled. */
+/* ONE TABLE OF SECTIONS, id → body; an id not here is its fields' rows. `c` is the form's own: t, e, val, vals, ro, box, filled. */
 const CARD_SECTION = {
   picture: (L, c) => c.e.own ? photoPicker_(c.val, '', { fold: true }) : cardFaceOnly_(c.t),
   /* THE WARDROBE, saved a pick at a time (`avatarSave`), redraws every `.av-card` from `wardrobeBody_`, so the fold's inside carries that class. */
@@ -331,19 +330,13 @@ const CARD_SECTION = {
     (c.e.own ? videoPicker_(c.val) : '') + fieldRows_(L.filter(f => !isPhotoField_(f) && !(c.e.own && f === 'video')), c.box) + (isPhotos_(L) ? photoShelf_(L, c.val, { draft: false }) : '')),
   jobs: (L, c) => ceFold_('jobs', 'Jobs', esc(ceCount_(jobCount_(c.val), 'job', 'jobs')), jobShelf_(L, c.val, { draft: false })),
   quals: (L, c) => ceFold_('quals', 'Qualifications', esc(ceCount_(c.filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, c.val)),
-  week: (L, c) => availGrid_(L, c.vals, c.ro, false),
-  seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
-  cut: (L, c) => cardCutHtml_(L, c.val, c.box),
-  size: (L, c) => cardSizeHtml_(L, c.val, c.box),
-  glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)),
-  where: (L, c) => ceWhere_(L, c.val, c.box),
+  week: (L, c) => availGrid_(L, c.vals, c.ro, false), seat: (L, c) => cardRateHtml_(L, c.val, c.box, c.e),
+  cut: (L, c) => cardCutHtml_(L, c.val, c.box), size: (L, c) => cardSizeHtml_(L, c.val, c.box),
+  glance: (L, c) => ceFold_('glance', 'At a glance', esc(ceGlanceSay_(c.val)), fieldRows_(L, c.box)), where: (L, c) => ceWhere_(L, c.val, c.box),
 };
-/* THE MONEY SECTIONS, redrawn as the rate is typed: the line each one says, and how it says it. */
-const CARD_RATE_SECTION = {
-  seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
-  cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) },
-  size: { sizeLine: true },
-};
+/* THE MONEY SECTIONS, redrawn as the rate is typed (`cardSeatSync_`): the line each one says, and how. */
+const CARD_RATE_SECTION = { seat: { line: '.ce-seat', say: (rate, seat) => cardSeatSay_(rate, seat) },
+  cut: { line: '.ce-cut', say: (rate, seat, cut) => cardCutSay_(rate, cut) }, size: { sizeLine: true } };
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
 function cardEditForm_(t, e, vals, only) {
   const val = f => (vals[f] == null ? '' : vals[f]);

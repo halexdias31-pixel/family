@@ -101,8 +101,7 @@ const SETTING_TYPES = [
 ];
 /* WHO MAY SEE AN ADMIN'S SETTING IS DATA: setting-for.json's `min_rank` (and `role`, held instead); absent, an admin's only. */
 function settingMay_(key) {
-  let row = null;
-  try { row = ((DATA && DATA.settingFor) || {})[key] || null; } catch (e) { row = null; }
+  let row = null; try { row = ((DATA && DATA.settingFor) || {})[key] || null; } catch (e) { row = null; }
   const min = (row && row.minRank) || 'admin', role = row && row.role;
   return rankAtLeast_(min) || (!!role && hasRole(role));
 }
@@ -239,7 +238,5 @@ function screenGone_(id) {
   if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
   if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
   try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] });
-  go('stuff');
-  return true;
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] }); go('stuff'); return true;
 }
