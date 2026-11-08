@@ -554,7 +554,7 @@ function stuffQuestion() {
   if (pre) return facetAnswersHtml_(pre.facet, pre.values, '');
   /* NOBODY YET, and a way to fix that. § */
   if (STUFF.filters.some(f => f.value === 'Friends') && !items.length) {
-    return `<p class="empty">No friends yet.</p>
+    return `${empty_('No friends yet.')}
       ${tileRow_(tile_({ icon: 'plus', label: 'Add someone by their handle', word: 'Add', act: 'friend-add-open' }), 'worded')}`;
   }
   /* ---------- AN EMPTY FUNNEL SAID NOTHING AT ALL, WHICH IS THE WORST OF THE THREE ANSWERS § */

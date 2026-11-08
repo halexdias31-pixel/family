@@ -62,7 +62,7 @@ function kidListSec_(held) {
      list that is a moment away is the `nothingHere` fault. The one loader (`loading_`) until it lands. */
   if (!kids.length) {
     return `<div class="kid-sec kid-list">${typeof awaiting_ === 'function' && awaiting_() ? loading_()
-      : `<p class="faint kid-none">No child is linked to you yet.</p>`}</div>`;
+      : empty_('No child linked yet.')}</div>`;
   }
   return `<div class="kid-sec kid-list">${kids.map(f => {
     /* THEIR FIRST NAME, as the server calls a child (docs/history/333), without the `(@handle)` it adds
@@ -434,7 +434,7 @@ function staffPages_() {
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3>${warn}${hub}</div>`] : [];
   const out = ownCardSetPage_('staff').concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
-  return out.length ? out : [`<div class="card rank-off set-none"><p class="sub rank-off-say">Nothing here yet.</p></div>`];
+  return out.length ? out : [`<div class="card rank-off set-none">${empty_('Nothing here yet.')}</div>`];
 }
 screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
@@ -608,13 +608,11 @@ function notifyCard_() {
     /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
        all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
     const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
-    inner = `<p class="sub notify-none">${esc(kid
-      ? 'There is no email address on your account, so @family. emails you nothing — there is nothing to turn off. If you forget your PIN, a new one goes to your grown-up.'
-      : 'There is no email address on your account, so nothing is emailed to you. Add one on your Contact card and your choices appear here.')}</p>`;
+    inner = empty_(kid ? 'No email address, so no emails.' : 'No email address yet — add one on your Contact card.');
   }
   /* A LIST WITH NOTHING IN IT. § */
   else if (!n.kinds.length) {
-    inner = `<p class="sub notify-none">${esc('We could not tell which emails reach your account, so nothing here can be switched yet — everything is sent as before.')}</p>`;
+    inner = empty_('No email choices yet.');
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';

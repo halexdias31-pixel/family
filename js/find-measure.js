@@ -38,7 +38,7 @@ function paintDocket() {
   /* SIGNED OUT, NO ADD ROW (720): it took a line and did nothing with it, which reads as broken. */
   const row = host.parentElement && host.parentElement.querySelector('.dock-new');
   if (row) row.hidden = !USER;
-  if (!USER) { host.innerHTML = '<p class="empty">Sign in to keep a docket.</p>'; return; }
+  if (!USER) { host.innerHTML = empty_('Sign in to keep a docket.'); return; }
   /* Google Tasks lives with the tasks it copies, not in Student settings (491). */
   const gt = $('docket-gtasks');
   if (gt) gt.innerHTML = typeof gtasksCard_ === 'function' ? gtasksCard_() : '';

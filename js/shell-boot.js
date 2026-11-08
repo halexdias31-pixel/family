@@ -592,7 +592,7 @@ function paint(id, fresh, o) {
   const kept = pre ? null : placeKeep_(el);
   el.innerHTML = html !== null
     ? html
-    : '<p class="empty">Nothing here yet.</p>';
+    : empty_('Nothing here yet.');
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
@@ -630,16 +630,14 @@ function nothingHere(whenEmpty, needsLibrary) {
   if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
-    return `<p class="empty">Couldn’t load.<br>
-        <span class="faint">${esc(why)}</span><br>
-        <button type="button" class="text-action" data-do="retry">Try again</button></p>`;
+    return empty_('Couldn’t load.') + tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'retry' }));
   }
   /* ---------- AND STILL COMING IS NOT THE SAME AS EMPTY § */
   /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN § */
   if (needsLibrary && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) {
     return loading_();
   }
-  return `<p class="empty">${whenEmpty}</p>`;
+  return empty_(whenEmpty);
 }
 
 /* WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN § */

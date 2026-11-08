@@ -117,7 +117,7 @@ function fillRoster_(jobId) {
   if (!j) {
     /* IT WENT WHILE THE WIDGET WAS OPEN — withdrawn, or cancelled by us. Said rather than left
        blank, because an empty roster reads as a class nobody has joined. */
-    el.innerHTML = `<p class="empty">This session is no longer yours.</p>`;
+    el.innerHTML = empty_('This session is no longer yours.');
     return;
   }
   el.innerHTML = rosterHtml({

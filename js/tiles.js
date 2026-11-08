@@ -203,6 +203,11 @@ function tile_(o) {
 }
 
 
+/* ONE EMPTY STATE (owner, 8 Nov): a short, specific sentence in ordinary text ("No bookings yet."), the same everywhere. */
+function empty_(text) {
+  return `<p class="empty">${esc(String(text || 'Nothing here yet.'))}</p>`;
+}
+
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */
 /* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */
 function addCard_(o) {

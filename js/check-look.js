@@ -15,7 +15,7 @@ const bad = [];
 const INPUT_CLS = /^(qp-slot|qp-item|qp-opt|hr|q-line|q-mark-b)\b/;
 /* Files not yet converted, with their raw-button count: a ratchet, so each number only goes down. */
 const LEFT = { tiles: 3, collections: 5, hadith: 1, layout: 3, map: 4, mat: 1, posts: 20, quran: 1,
-  receipt: 1, rules: 1, 'shell-api': 1, 'shell-boot': 1, working: 1 };
+  receipt: 1, rules: 1, 'shell-api': 1, working: 1 };
 files.forEach(({ n, src }) => {
   const raw = [...src.matchAll(/<button\b[^>]*?class="([^"]*)"|<button\b(?![^>]*class=)/g)]
     .filter(m => !INPUT_CLS.test(m[1] || ''));
@@ -51,6 +51,14 @@ files.forEach(({ n, src }) => {
   for (const m of src.matchAll(/style="([^"]*)"/g)) {
     if (/(?<![\w&-])#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(m[1])) bad.push(`3 inline colour literal in ${n}.js: ${m[1].slice(0, 60)}`);
   }
+});
+
+/* ---------- 4. ONE EMPTY STATE ---------- */
+/* `empty_(text)` (tiles.js) is the only maker; a hand-made empty paragraph is the variant this replaced. */
+files.forEach(({ n, src }) => {
+  if (n === 'tiles') return;
+  if (/class="empty\b/.test(src)) bad.push(`4 empty state by hand in ${n}.js — empty_('No … yet.')`);
+  if (/class="(?:faint|sub)[^"]*">\s*(?:No |Nothing|None|Nobody)/.test(src)) bad.push(`4 a grey "nothing" line in ${n}.js — empty_('No … yet.')`);
 });
 
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }

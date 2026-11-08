@@ -504,9 +504,8 @@ function markRead_(msgs) {
   });
 }
 
-/* THE EMPTY INBOX SAYS HOW TO START ONE. § */
-const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">To write to a tutor,
-     open their card and press Message.</span></p>`;
+/* AN EMPTY INBOX IS ONE SHORT LINE (owner, 8 Nov). */
+const emptyMessages_ = () => empty_('No messages yet.');
 
 /* ---------- ONE THREAD PER PERSON § */
 /* When a message was sent, as a number: § */

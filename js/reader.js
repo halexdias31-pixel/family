@@ -98,7 +98,7 @@ function speedLoad_(text) {
   clearInterval(SPEED.wait); SPEED.wait = 0;
   const el = $('rsvp-word');
   if (!el) return;
-  if (!SPEED.words.length) { el.innerHTML = '<p class="empty">No words to read.</p>'; return; }
+  if (!SPEED.words.length) { el.innerHTML = empty_('No words to read.'); return; }
   speedShow_();
 }
 /* WAITING FOR THE WORDS: the Ledger's (`libItems`) or a book of the Bible — the three dots until they come. */
@@ -108,7 +108,7 @@ function speedAwait_(x) {
       if (SPEED.x !== x) return;
       const t = speedText_(x);
       if (t) speedLoad_(t);
-      else { const el = $('rsvp-word'); if (el) el.innerHTML = '<p class="empty">This verse did not arrive.</p>'; }
+      else { const el = $('rsvp-word'); if (el) el.innerHTML = empty_('This verse did not arrive.'); }
     });
     return;
   }
