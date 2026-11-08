@@ -232,7 +232,7 @@ function settingsCards_(shown, moved, col) {
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
   /* ONE SHAPE FOR EVERY CARD (8 Nov): `setCard_` — the title, one line per field, one Save at the foot, the qualifications' too. */
   const mail = list => (list || []).indexOf('email') !== -1;
-  const one = (g, list, top, id, n, lid) => setHeldSay_(setCard_({ title: g, cls: id ? 'set-card' : '', lead: top,
+  const one = (g, list, top, id, n, lid) => setHeldSay_(setCard_({ title: g, cls: id ? 'set-card' : '', lead: (top || '') + shareBarFor_(list, p),
     attrs: (id ? ` data-split="${esc(id)}"` : '') + (lid ? ` data-lay-card="${esc(lid)}"` : ''),
     form: fieldsHtml({ [g]: list }, {
       head: false,

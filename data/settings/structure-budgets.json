@@ -61,7 +61,7 @@
   "js/find-bundles.js": 132,
   "js/find-cells.js": 80,
   "js/find-facets.js": 57,
-  "js/find-figures.js": 90,
+  "js/find-figures.js": 87,
   "js/find-finder.js": 146,
   "js/find-history.js": 80,
   "js/find-levels.js": 106,
@@ -606,7 +606,7 @@
    "rawButton": 0
   },
   "style.css": {
-   "lines": 7199,
+   "lines": 6242,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,
@@ -655,7 +655,7 @@
    "rawButton": 0
   },
   "js/find-figures.js": {
-   "lines": 775,
+   "lines": 738,
    "oneOff": 3,
    "emptyCatch": 3,
    "inlineStyle": 0,
@@ -929,12 +929,12 @@
    "label": "Card drawers"
   },
   "maker": {
-   "count": 38,
+   "count": 36,
    "ideal": 1,
    "label": "Tile and button makers"
   },
   "listrow": {
-   "count": 27,
+   "count": 21,
    "ideal": 1,
    "label": "List-row styles"
   },
@@ -944,7 +944,7 @@
    "label": "Settings row shapes"
   },
   "wait": {
-   "count": 7,
+   "count": 5,
    "ideal": 1,
    "label": "Wait indicators"
   },

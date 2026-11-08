@@ -485,7 +485,8 @@ try {
 }
 const r2 = x => Math.round(x * 100) / 100;
 const MONEY_DATA = (vars) => ({
-  constants: { vars: Object.assign({ c: 0.5, B: 0.2 }, vars || {}) },
+  /* B IS A SHARE OF THE EXTRA-SEAT RATE SINCE 8 NOV: 0.4 x c 0.5 = 0.2 of the rate, so the owner's examples keep their pennies. */
+  constants: { vars: Object.assign({ c: 0.5, B: 0.4 }, vars || {}) },
   tutors: [{ title: 'Tutor', rate: 30 }], multipliers: {},
   venues: [{ title: 'Somewhere', bestRate: 15 }],
 });

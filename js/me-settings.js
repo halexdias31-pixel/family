@@ -736,7 +736,6 @@ const CARD_SECTIONS = [
   { id: 'handle', own: true, cap: 'Handle' },
   /* THREE CARDS, EACH ONE HOME (620): the rate and the tutor's seat k; @family.'s share g, an admin's; the class size. */
   { id: 'seat', cap: 'Rate and extra seat', fields: ['rate_per_hour', 'extra_seat_rate'] },
-  { id: 'cut', cap: "@family.'s share", fields: ['extra_seat_cut'] },
   { id: 'size', cap: 'Class size', fields: ['min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
@@ -780,7 +779,7 @@ const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name'
   photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', jobs: 'Jobs', where: 'Where you teach', week: 'Available' };
 /* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
 const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
-  staff: ['seat', 'cut', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
+  staff: ['seat', 'size', 'headline', 'photos', 'words', 'glance', 'quals', 'jobs', 'where', 'week'] };
 const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
 /* THE RATE, THE SEAT AND THE CLASS SIZE HAVE ONE HOME, the Rate and class size card (620); the hub's Pricing only tries figures and points here. */
 const ownCardFields_ = () => [].concat(...ownCardSections_().map(s => s.list));

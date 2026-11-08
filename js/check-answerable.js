@@ -80,7 +80,9 @@ const twiceOn = root => {
     const act = t.getAttribute('data-do');
     /* THE SAME ACT WITH THE SAME data-* ON ONE PART (1040 dup-controls): Help's data-pg and each part's own Check differ */
     const k = [SAME_AS[act] || act].concat([...t.attributes].filter(a => /^data-(?!do$)/.test(a.name)).map(a => a.name + '=' + a.value))
-      .concat(t.closest('.qb-part[data-of]') ? ['part=' + t.closest('.qb-part[data-of]').getAttribute('data-of')] : []).join(' ');
+      .concat(t.closest('.qb-part[data-of]') ? ['part=' + t.closest('.qb-part[data-of]').getAttribute('data-of')] : [])
+      /* EACH PART'S OWN TILE ROW (owner, 8 Nov) follows its card: its Share and Top are that part's, not a second on one part */
+      .concat(t.closest('.tile-row') && (t.closest('.tile-row').previousElementSibling || { matches: () => false }).matches('.qb[data-part]') ? ['card=' + t.closest('.tile-row').previousElementSibling.getAttribute('data-part')] : []).join(' ');
     seen[k] = (seen[k] || 0) + 1;
   });
   return Object.keys(seen).filter(k => seen[k] > 1).map(k => k + ' x' + seen[k]);
@@ -104,6 +106,8 @@ const insText_ = () => {
   try { LIB_FULL.rows('inserts').forEach(r => { INS_TEXT[S(r.insert_id)] = S(r.source_text); }); } catch (e) { INS_TEXT.__error = e.message; }
   return INS_TEXT;
 };
+/* AN IMPORTER'S NOTE OR SUMMARY STANDING IN FOR THE PAPER'S OWN WORDS (owner, 8 Nov, 1160): "[FUNCTION NOT EXTRACTED — g(x) is a cubic …]" reached a student */
+const STAND_IN = /\[[^\]]*\b(NOT|PARTIALLY) (EXTRACTED|TRANSCRIBED)\b|\bgarbled in extraction\b|\bthe source PDF\b|\bOpen the paper to transcribe\b|\binvolving (terms in|a constant|a positive constant)\b|\bthe given (identity|equation)\b|\bthe corresponding equation involving\b/i;
 const WRONG = ['zzqq wvxk', '987654.321'];
 /* EACH MARKER'S CHECK, written here and not read from the app: a part's Check must be its marker's (Review A) */
 const CHECK_OF = { choice: 'qp-choice-check', order: 'qp-order-send', cells: 'qp-cells-check', draw: 'pad-check', accept: 'qp-check', words: 'qp-rule', ai: 'qp-ai' };
@@ -331,6 +335,15 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       if (!has('[data-do="q-lock"]')) bad('magnifier', x, 'its card has no padlock');
       if (twiceOn(host).length) bad('twice', x, 'its card has a tile more than once: ' + twiceOn(host).join(', '));
       if ((x.stems || []).length && !figs()) bad('figures', x, 'its card has a drawing with no size');
+      const stand = STAND_IN.exec(S(host.textContent).replace(/\s+/g, ' '));
+      if (stand) bad('standin', x, 'a student reads an importer\'s note, not the paper: "' + stand[0] + '"');
+      /* EVERY PART ITS OWN CARD (owner, 8 Nov): its own tags and its own whole tile row, none inside another part */
+      host.querySelectorAll('.qb').forEach(b => {
+        const id = b.getAttribute('data-part') || '?', foot = b.nextElementSibling;
+        if (b.parentElement.closest('.qb')) bad('own-card', x, 'part ' + id + ' is drawn inside another part');
+        if (!b.querySelector(':scope > .qcard-tags')) bad('own-card', x, 'part ' + id + ' has no tag line of its own at its top');
+        if (!b.querySelector('[data-do="card-share"]') && !(foot && foot.matches('.tile-row') && foot.querySelector('[data-do="card-share"]'))) bad('own-card', x, 'part ' + id + ' has no whole tile row of its own');
+      });
     } catch (e) { bad('parts', x, 'a page of it threw: ' + e.message); }
     const uses = S(x.uses || r.uses).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (uses) {

@@ -315,8 +315,8 @@ function ownerWork() {
     const out = new Function('tagRow_', ft + '; return tagsOnTop_;')(() => row)({ k: 1 }, '<div class="card"><h3>T</h3>' + row + '<p>x</p></div>');
     if (!(out.indexOf('qtags') >= 0 && out.indexOf('qtags') < out.indexOf('<h3'))) W.push({ kind: 'card-tags', where: 'js/find-figures.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function tagsOnTop_'))), say: 'a card that draws its tag line under its title keeps it there (tagsOnTop_ must move it to the top)' }); }
   catch (e) { W.push({ kind: 'card-tags', where: 'js/find-figures.js', say: 'tagsOnTop_ could not be run on a fixture: ' + e.message }); }
-  const wt = (/function qWholeTags_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
-  if (!/'marks'/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qWholeTags_'))), say: 'a whole question\'s top tag line no longer carries each part\'s marks' });
+  const wt = (/function qOneCard_\([\s\S]*?\n\}/.exec(fsrc) || [''])[0];
+  if (!/tagRow_\(p\)/.test(wt)) W.push({ kind: 'card-tags', where: 'js/find.js:' + lineOf(fsrc, Math.max(0, fsrc.indexOf('function qOneCard_'))), say: 'a question part\'s card no longer starts with its own tag line (owner, 8 Nov)' });
   /* attr-outside-tags: no template draws an attribute beside the tag line — a marks label, "[2 marks]". */
   for (const f of git(['ls-files', 'js/*.js']).split('\n').filter(f => f && !/^js\/check/.test(f))) { const src = read(f);
     for (const m of src.matchAll(/class="[^"]*\b[\w-]*marks\b[^"]*"|\[\$\{[^}]*marks[^}]*\}\s*mark/g))

@@ -3181,6 +3181,14 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 /* WHAT AN EXTRA SEAT ADDS, UNDER ITS TWO PARTS — `cardRateHtml_` in me.js (docs/history/345). § */
 .ce-seat { margin: -.35rem 0 0; font: 400 .7rem/1.35 var(--mono); color: var(--dim); }
 .ce-seat .prof-seat { font-family: var(--mono); font-size: inherit; line-height: inherit; }
+/* THE @FAMILY SHARE BAR (8 Nov): the tutor's money green, @family's gold — colour by meaning. */
+.share-bar { display: flex; align-items: stretch; gap: .2rem; margin: .4rem 0; font: 400 .66rem/1.2 var(--mono); }
+.share-bar .shb-blk { flex-basis: 0; min-width: 3.4rem; display: flex; flex-direction: column; justify-content: center; padding: .3rem .4rem; border-radius: 6px; color: var(--bg); }
+.share-bar .shb-blk b { font-weight: 600; font-size: .78rem; }
+.share-bar .shb-first { background: var(--green); }
+.share-bar .shb-seat { background: color-mix(in srgb, var(--green) 70%, var(--bg)); }
+.share-bar .shb-fam { background: var(--gold); }
+.share-bar .shb-plus { align-self: center; color: var(--dim); }
 .ce-seat + .ce-seat-note { margin: .2rem 0 .75rem; }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
@@ -3808,15 +3816,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-row .qcard-verdict.is-near { color: var(--warn); }
 .tile-row .qcard-verdict.is-right::before { content: "\2713"; margin-right: .3rem; font-weight: 700; }
 .tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: .3rem; font-weight: 700; }
-/* ---------- ONE ELEMENT PER QUESTION (960), NO BOX ROUND IT (1030): drawn as a `.card` is; each level's block indented one step. */
+/* ---------- ONE QUESTION NUMBER, NO BOX ROUND IT (1030): its parts are cards one under another, none indented (owner, 8 Nov, 1160). */
 .qwhole { background: none; border: 0; border-radius: 0; padding: .85rem 0; margin: 0; }
 .qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
-.qwhole .qb-d0 > .qsheet-stem, .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
-.qb-d1, .qb-d2, .qb-d3 { margin-top: .9rem; padding-left: .85rem; }
-.qb-d1 { padding-left: 0; }
-.qb-head { display: flex; align-items: baseline; gap: .5rem; }
-.qb-shut { font-size: .7rem; color: var(--faint); }
-.qb.is-shut, .qb.is-shut .qb-label { color: var(--dim); }
+.qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
+.qwhole > .tile-row:not(:last-child) { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line-soft); }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
@@ -6243,3 +6247,23 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .lib-c .fc-say, .lib-c .fc-lede, .lib-c h4, .lib-c li, .hdb-more .hdb-lines dt, .lib-c .tl-tick i { color: var(--ink); }
 .lib-c > .person-pic { margin: .2rem auto .6rem; }
 .pane:has(> .favwrap > .lib-c) > .tile-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+/* ---------- THE TUTOR CARD FITS ONE PHONE SCREEN (8 Nov): small face, name and rate on one line, tight pills, short map, hours as day pills. */
+.tcard .prof-top { gap: .55rem; align-items: center; }
+.tcard .prof-pic { width: 2.75rem; height: 2.75rem; }
+.tcard .prof-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: .5rem; }
+.tcard .prof-line .prof-price { margin: 0; }
+.tcard .prof-tags { gap: .2rem; margin-top: .3rem; }
+.tcard .prof-cap { margin: .4rem 0 .1rem; }
+.tcard .prof-say { margin-top: .4rem; font-size: .8rem; line-height: 1.35; }
+.tcard .prof-words { margin: .35rem 0 0; font-size: .85rem; }
+.tcard .prof-photos { grid-template-columns: repeat(5, 2.6rem); margin-top: .4rem; }
+.tcard .prof-heat { height: 64px; margin: .1rem 0 .2rem; }
+.tcard .prof-busy { margin: .2rem 0 0; font-size: .66rem; }
+.tcard .prof-tags > * { padding-top: .1rem; padding-bottom: .1rem; }
+.tcard .prof-hours .prof-hour-line { display: flex; flex-wrap: wrap; font-size: .62rem; gap: .15rem; }
+.tcard .prof-hours .prof-hour-line .prof-day { display: inline-block; padding: 0 .35rem; border: 1px solid var(--line); border-radius: 999px; }
+.tcard .prof-line .prof-rate { white-space: nowrap; }
+.tcard .prof-who { gap: .05rem; flex: 1; min-width: 0; }
+.tcard .prof-photos .prof-more { display: grid; place-items: center; border-radius: 6px; }
+.tcard .prof-name { min-width: 0; }
+.tcard .prof-line .prof-price { margin-left: auto; }

@@ -117,7 +117,7 @@ function bizPages_() {
   /* PROFIT FIRST, as the column opens; then applications, staff and the records. The site's own cards are the Site column's (491). */
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
+  return profitCards_().concat([familyShareCard_()], typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
 }
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
@@ -1080,6 +1080,28 @@ on('digest-words-save', el => {
       try { Object.assign(digestVars_(), d.words || words); } catch (x) { /* no vars yet: the next payload carries them */ }
       toast('The email\'s words are saved');
       digestShownAsk_(null);
+    });
+});
+
+/* ---------- THE @FAMILY SHARE (8 Nov): ONE VALUE FOR EVERYONE, config B — `seatShare_` prices every extra seat with it; admin only ---------- */
+const familyShareNow_ = () => { try { const v = num(((DATA.constants || {}).vars || {}).B); return isNaN(v) ? 0 : v; } catch (e) { return 0; } };
+function familyShareCard_() {
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  return `<div class="card biz family-share set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">@family.'s share</h3>
+    <p class="sub">Of each extra seat, as a share of the tutor's rate (0.5 is half). One value for every tutor.</p>
+    ${fieldHtml('family_share', String(familyShareNow_()), { label: 'share, 0–2', draft: false,
+      extra: `type="number" min="0" max="2" step="0.05" inputmode="decimal"${admin ? '' : ' disabled'}` })}
+    <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'family-share-save', off: !admin })}</div>
+    <p class="faint fs-said" aria-live="polite"></p></div>`;
+}
+on('family-share-save', el => {
+  const card = el.closest('.family-share'), box = card && card.querySelector('input');
+  if (!box || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
+  send_({ action: 'familyShareSave', personId: USER.personId || '', share: String(box.value).trim() }, { button: el, where: card.querySelector('.fs-said') || undefined, busy: 'Saving…' })
+    .then(d => {
+      if (!d || !d.success) return;
+      try { ((DATA.constants = DATA.constants || {}).vars = DATA.constants.vars || {}).B = d.share; } catch (x) { /* the next payload carries it */ }
+      toast("@family.'s share is saved");
     });
 });
 
