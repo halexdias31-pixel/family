@@ -2,7 +2,8 @@
 check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the same rule, Question and Part wait for a paper, and a sub-part reads ii as its card tag does', async () => {
   const PID = 'RS1786302107764-415';
   const rows = LIB_FULL.rows('questions').filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  /* SIGNED IN: signed out, Find holds Settings alone (owner, 7 Nov) */
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 60 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PID)); i++) await wait(50);
   const t = w.__t, d = w.document, bad = [];
   const OWN = ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'];
@@ -64,7 +65,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   const prac = LIB_FULL.rows('practicals');
   const p = payload();
   p.practicals = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: prac }))).practicals || [];
-  const { w } = boot({ payload: p });
+  const { w } = boot({ member: true, payload: p });
   for (let i = 0; i < 100 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.kind === 'practical')); i++) await wait(50);
   const t = w.__t, S = t.STUFF(), bad = [];
   if (!w.stuffItemsAll_().some(x => x.kind === 'practical')) return ['no practicals loaded — Required was NOT checked'];

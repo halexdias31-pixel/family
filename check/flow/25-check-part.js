@@ -342,7 +342,8 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     const x = all.find(i => i.row && i.row.row_id === id);
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
     host.innerHTML = w.questionCard_(x, 0);
-    if (host.querySelector('.qpad')) bad.push(id + ': made a box, and still drawn on');
+    /* ITS FIGURE MAY BE A PAD WITH THE PEN OFF (1020, owner 7 Nov: the pen is off until chosen); drawn on means a drawing Check. */
+    if (host.querySelector('.qpad-send [data-do="pad-check"], .qpad.is-drawing')) bad.push(id + ': made a box, and still drawn on');
     const cells = [...host.querySelectorAll('.qp-cell')], opts = [...host.querySelectorAll('[data-do="qp-choose"]')];
     if (cells.length) {
       const ways = w.cellsOf_(x);
@@ -456,10 +457,12 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     if (w.stemCarried_(x)) {
       carried++;
       if (w.pageParts_(x, null).some(q => /^stem/.test(q || '') && (x.stems || [])[+String(q).replace(/^stem(\d+).*$/, '$1')] === p.from)) bad.push(id + ': its stem is carried and still has a page');
-      const words = String(p.from.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20);
-      /* on the card, or -- a long stem -- on the part's pages in front of it */
-      const pre = w.pageParts_(x, null).filter(q => /^pre\d+$/.test(q || '')).map(q => w.questionPreCard_(x, +q.slice(3))).join('');
-      const seen = (pre + host.innerHTML).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+      /* ITS OPENING WORDS, letters and digits only up to the figure: an entity (&frasl;) is typeset as a sign, and the figure may sit after its first sentence */
+      const flat = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/[^A-Za-z0-9]+/g, '');
+      const words = flat(String(p.from.html || '').split(/<!--\s*fig\s*-->/i)[0]).slice(0, 16);
+      /* on the card, or -- a long stem -- on the part's own pages, which since 960 are one card: the part as the whole question draws it (`qPartCard_`) */
+      const pre = typeof w.qPartCard_ === 'function' ? w.qPartCard_(x, false) : '';
+      const seen = flat(pre + host.innerHTML);
       if (words && seen.indexOf(words) < 0) bad.push(id + ': its stem is carried and its words are not on its pages: ' + JSON.stringify(words));
     }
     /* THE OTHER PARTS ON THIS FIGURE: a stroke each, then this card shows them faint and its own pen empty */
