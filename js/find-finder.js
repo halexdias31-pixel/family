@@ -596,7 +596,9 @@ const FACETS = [
     of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
     tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
   { field: 'marks',     label: 'Marks',
-    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '' },
+    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '',
+    /* SAID AS THE PAPER PRINTS IT (owner 8 Nov, 28b): "[1]", while the value stays "1 mark". */
+    showOf: v => { const m = /^(\d+) marks?$/.exec(String(v)); return m ? '[' + m[1] + ']' : v; } },
   /* A WORKSHEET'S MAKER (O3): Publisher went, being the exam board twice or this. */
   { field: 'source',    label: 'Source',      of: x => sourceOf_(x) },
   { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
