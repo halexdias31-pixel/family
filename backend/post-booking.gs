@@ -238,31 +238,8 @@ function postMove_(body, action, began) {
     return jsonOut({ error: "You're not part of this session." });
   }
   if (!mine && !asAdmin) {
-    if (role === 'client') {
-      /* THE SAME CAP AS BOOKING (owner, 7 Nov): place and tutor via `seatCapFor_`, so a tutor holding 1 seat is not joined past it. */
-      const teacher = tutorsIn(jobId).find(p2 => p2.status !== BM.NONE) || null;
-      const caps = [seatCapFor_(j.venue, teacher ? teacher.name : ''), N(j.max_students)].filter(x => x > 0);
-      const cap = caps.length ? Math.min.apply(null, caps) : 4;
-      if (before.filter(p2 => p2.role === 'client').length >= cap) {
-        return jsonOut({ error: 'This session is full.' });
-      }
-      /* AND THE FAMILY WHOSE BOOKING IT IS HAS TO HAVE SAID YES. § */
-      if (!TRUE_(j.open_to_others)) {
-        return jsonOut({ error: 'That session is not open to other families.' });
-      }
-    } else {
-      /* TAKING A SESSION AS ITS TUTOR NEEDS A TUTOR. § */
-      const meRow = findPerson(me, S(body.personId));
-      if (!meRow || !(hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)))) {
-        return jsonOut({ error: meRow && tutorPending_(meRow)
-          ? 'You can take sessions once @family. has approved you as a tutor.'
-          : 'Only a tutor can take a session.' });
-      }
-      // "No preference" IS the client's consent to being matched with someone they didn't
-      // pick. Without it, no.
-      if (!TRUE_(j.stealable)) return jsonOut({ error: 'This job is not open to other tutors.' });
-      if (tutorStatusOf(jobId) === 'Confirmed') return jsonOut({ error: 'This job already has its tutor.' });
-    }
+    const joinNo = moveJoinRefusal_(j, jobId, role, me, before, body);
+    if (joinNo) return jsonOut({ error: joinNo });
   }
 
   // Who this move is about. Named explicitly, or the only person on the other side.
@@ -309,50 +286,16 @@ function postMove_(body, action, began) {
                message: text, requestId: body.requestId });
   }
 
-  /* AN ADMIN'S ACCEPT SETTLES THE WHOLE ROOM. § */
-  if (asAdmin && act === ACT.ACCEPT) {
-    before.forEach(pp => logEvent({
-      jobId, actor: pp.name, role: pp.role, action: ACT.ACCEPT,
-      message: 'accepted by ' + me,
-      requestId: S(body.requestId) ? S(body.requestId) + '-' + key(pp.name) : '',
-    }));
-  }
-  /* AND A DECLINE CLEARS IT. One Decline names one person; the business turning a booking down
-     is turning it down for everybody in it. */
-  if (asAdmin && act === ACT.DECLINE) {
-    before.forEach(pp => logEvent({
-      jobId, actor: me, role: 'admin', action: ACT.DECLINE, target: pp.name,
-      message: 'declined by ' + me,
-      requestId: S(body.requestId) ? S(body.requestId) + '-d-' + key(pp.name) : '',
-    }));
-  }
+  moveAdminSettle_(before, act, asAdmin, me, body, jobId);
 
   // Edit carries the new terms. They're job-level — one weekday, one venue, one price — so
   // they're the one thing still written to a cell rather than derived.
-  if ((act === ACT.EDIT || act === ACT.REQUEST) && body.edits) {
-    const MAP = { subject:'subject', level:'level', day:'weekday', time:'start_time',
-                  venue:'venue', price:'price_total', students:'max_students' };
-    Object.keys(body.edits).forEach(k => {
-      const f = MAP[k], v = body.edits[k];
-      if (f && v !== '' && v != null) setCell(t, j, f, k === 'time' ? fmtTime(v) : v);
-    });
-  }
+  moveEdits_(t, j, act, body);
 
   // Accepting a tutor settles who teaches: the rest are declined by the same act, because two
   // tutors can't both teach it and a second step would leave a window where one thinks they
   // have it and another thinks it's open.
-  if (act === ACT.ACCEPT && role === 'client' && them) {
-    setCell(t, j, 'stealable', 'FALSE');
-    others.filter(p2 => key(p2.name) !== key(target.name)).forEach(o => {
-      logEvent({ jobId, actor: me, role, action: ACT.DECLINE, target: o.name,
-                 message: 'another tutor was chosen' });
-      /* `booked` both — the decision on an application, which a tutor must not learn by noticing. */
-      notify(o.name, 'Not taken forward: ' + S(j.subject),
-        'The family chose another tutor this time.\n\n— @family.', 'booked');
-    });
-    notify(target.name, "You're teaching " + S(j.subject),
-      'You were picked for ' + S(j.subject) + '.\n\nLog in to @family. to agree the terms.\n\n— @family.', 'booked');
-  }
+  if (act === ACT.ACCEPT && role === 'client' && them) moveTutorChosen_(t, j, jobId, me, role, others, target);
 
   // The job's status, from who is left. Written for readability in the sheet; nothing reads it.
   const status = jobStatusOf(jobId);
@@ -373,6 +316,94 @@ function postMove_(body, action, began) {
 
   // Tell whoever didn't move. Keying this off "whose turn is next" is what previously meant
   // declines, withdrawals and payments notified nobody — those moves end the turn-taking.
+  moveTell_(j, act, me, text, target, others);
+
+  const after = participantsOf(jobId);
+  const mineAfter = after.find(p2 => key(p2.name) === key(me));
+  return jsonOut({ success: true, jobStatus: status,
+                   mine: mineAfter ? mineAfter.status : '',
+                   participants: after });
+}
+
+/* JOINING A SESSION YOU ARE NOT IN: a family needs a seat and consent, a tutor needs to be one. The words, or "". */
+function moveJoinRefusal_(j, jobId, role, me, before, body) {
+  if (role === 'client') {
+    /* THE SAME CAP AS BOOKING (owner, 7 Nov): place and tutor via `seatCapFor_`, so a tutor holding 1 seat is not joined past it. */
+    const teacher = tutorsIn(jobId).find(p2 => p2.status !== BM.NONE) || null;
+    const caps = [seatCapFor_(j.venue, teacher ? teacher.name : ''), N(j.max_students)].filter(x => x > 0);
+    const cap = caps.length ? Math.min.apply(null, caps) : 4;
+    if (before.filter(p2 => p2.role === 'client').length >= cap) {
+      return 'This session is full.';
+    }
+    /* AND THE FAMILY WHOSE BOOKING IT IS HAS TO HAVE SAID YES. § */
+    if (!TRUE_(j.open_to_others)) {
+      return 'That session is not open to other families.';
+    }
+  } else {
+    /* TAKING A SESSION AS ITS TUTOR NEEDS A TUTOR. § */
+    const meRow = findPerson(me, S(body.personId));
+    if (!meRow || !(hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)))) {
+      return (meRow && tutorPending_(meRow)
+        ? 'You can take sessions once @family. has approved you as a tutor.'
+        : 'Only a tutor can take a session.');
+    }
+    // "No preference" IS the client's consent to being matched with someone they didn't
+    // pick. Without it, no.
+    if (!TRUE_(j.stealable)) return 'This job is not open to other tutors.';
+    if (tutorStatusOf(jobId) === 'Confirmed') return 'This job already has its tutor.';
+  }
+  return '';
+}
+
+/* AN ADMIN ANSWERS FOR THE WHOLE ROOM: everybody accepted, or everybody declined. */
+function moveAdminSettle_(before, act, asAdmin, me, body, jobId) {
+  /* AN ADMIN'S ACCEPT SETTLES THE WHOLE ROOM. § */
+  if (asAdmin && act === ACT.ACCEPT) {
+    before.forEach(pp => logEvent({
+      jobId, actor: pp.name, role: pp.role, action: ACT.ACCEPT,
+      message: 'accepted by ' + me,
+      requestId: S(body.requestId) ? S(body.requestId) + '-' + key(pp.name) : '',
+    }));
+  }
+  /* AND A DECLINE CLEARS IT. One Decline names one person; the business turning a booking down
+     is turning it down for everybody in it. */
+  if (asAdmin && act === ACT.DECLINE) {
+    before.forEach(pp => logEvent({
+      jobId, actor: me, role: 'admin', action: ACT.DECLINE, target: pp.name,
+      message: 'declined by ' + me,
+      requestId: S(body.requestId) ? S(body.requestId) + '-d-' + key(pp.name) : '',
+    }));
+  }
+}
+
+/* THE NEW TERMS AN Edit OR Request CARRIES, written to the job's cells. */
+function moveEdits_(t, j, act, body) {
+  if ((act === ACT.EDIT || act === ACT.REQUEST) && body.edits) {
+    const MAP = { subject:'subject', level:'level', day:'weekday', time:'start_time',
+                  venue:'venue', price:'price_total', students:'max_students' };
+    Object.keys(body.edits).forEach(k => {
+      const f = MAP[k], v = body.edits[k];
+      if (f && v !== '' && v != null) setCell(t, j, f, k === 'time' ? fmtTime(v) : v);
+    });
+  }
+}
+
+/* A FAMILY ACCEPTED A TUTOR: the job closes to others and the rest are declined and told. */
+function moveTutorChosen_(t, j, jobId, me, role, others, target) {
+  setCell(t, j, 'stealable', 'FALSE');
+  others.filter(p2 => key(p2.name) !== key(target.name)).forEach(o => {
+    logEvent({ jobId, actor: me, role, action: ACT.DECLINE, target: o.name,
+               message: 'another tutor was chosen' });
+    /* `booked` both — the decision on an application, which a tutor must not learn by noticing. */
+    notify(o.name, 'Not taken forward: ' + S(j.subject),
+      'The family chose another tutor this time.\n\n— @family.', 'booked');
+  });
+  notify(target.name, "You're teaching " + S(j.subject),
+    'You were picked for ' + S(j.subject) + '.\n\nLog in to @family. to agree the terms.\n\n— @family.', 'booked');
+}
+
+/* TELL WHOEVER DID NOT MOVE, with a heading by the act. */
+function moveTell_(j, act, me, text, target, others) {
   const HEAD = { Edit: me + ' changed the terms for ' + S(j.subject) +
                        ' — everyone needs to agree again',
                  Say:  me + ' left a note about ' + S(j.subject),
@@ -388,12 +419,6 @@ function postMove_(body, action, began) {
     (text ? '\n\nTheir message:\n"' + text + '"' : '') +
     '\n\nLog in to @family. to respond.\n\n— @family.',
     (act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW) ? 'booked' : 'bookings'));
-
-  const after = participantsOf(jobId);
-  const mineAfter = after.find(p2 => key(p2.name) === key(me));
-  return jsonOut({ success: true, jobStatus: status,
-                   mine: mineAfter ? mineAfter.status : '',
-                   participants: after });
 }
 
 /* --- A TUTOR ANSWERING A REQUEST (488) ----------------------------------------------------- the named tutor, or an admin, says yes or no in one press. */

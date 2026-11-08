@@ -466,26 +466,8 @@ function postUpdateProfile_(body, action, began) {
     return jsonOut({ error: 'The spreadsheet has no tab called: ' + tabMissing.join(', ')
       + '. Open the site once as an admin to make it — nothing was saved.' });
   }
-  /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
-     saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
-  if (dobSent) {
-    const dobNo = dobRefusal_(fields);
-    if (dobNo) return jsonOut({ error: dobNo });
-  }
-  /* A PHOTOGRAPH THAT IS NOT A LINK is refused rather than kept or dropped — `photosRefusal_`. */
-  if (photosSent) {
-    const photoNo = photosRefusal_(fields);
-    if (photoNo) return jsonOut({ error: photoNo });
-  }
-  /* AND THE FACE ITSELF: § */
-  if (fields.photo !== undefined && allowed.indexOf('photo') !== -1) {
-    const faceNo = photoRefusal_(fields.photo);
-    if (faceNo) return jsonOut({ error: faceNo });
-  }
-  /* AN EXAM DATE IS A COLUMN, so `wanted` finds it; what a column check cannot say is whether the VALUE is a date. § */
-  const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
-                    : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
-  if (badDate) return jsonOut({ error: badDate });
+  const valueNo = profileValueRefusal_(fields, allowed, dobSent, photosSent);
+  if (valueNo) return jsonOut({ error: valueNo });
   const wanted = Object.keys(fields)
     .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
               && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f) && !JOB_FIELD.test(f)
@@ -536,28 +518,9 @@ function postUpdateProfile_(body, action, began) {
     if (mailNo) return jsonOut({ error: mailNo });
   }
   /* ---------- AND A NEW ADDRESS IS PROVED BEFORE IT IS TRUSTED § */
-  const mailWant = (wanted.indexOf('email') !== -1 && fields.email !== undefined) ? S(fields.email) : '';
-  const moving = authMoveGet_(r);
-  const mailPlan = !mailWant ? ''
-    : norm(mailWant) === norm(r.email) ? (moving ? 'keep' : 'same')
-    : moving && norm(moving.to) === norm(mailWant) ? 'waiting'
-    : (S(r.email) && addressPending_(r)) ? 'correct' : 'move';
-  let mailKey = '';
-  if (mailPlan === 'correct' || mailPlan === 'move') {
-    let quota = 1;
-    try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
-    const cannot = 'We could not email ' + mailWant + ' just now, so nothing was saved. Try again later.';
-    if (quota < 1) return jsonOut({ why: 'no-mail', error: cannot });
-    try {
-      if (mailPlan === 'correct') {
-        mailKey = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-        linkMail_({ first_name: r.first_name, email: mailWant, handle: r.handle }, mailKey, hasRole(r, 'client'));
-      } else {
-        mailKey = 'M' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-        moveMail_(mailWant, mailKey);
-      }
-    } catch (err) { return jsonOut({ why: 'no-mail', error: cannot }); }
-  }
+  const mail = profileMailPlan_(r, wanted, fields);
+  if (mail.fail) return mail.fail;
+  const mailPlan = mail.plan, mailKey = mail.key;
 
   /* 2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL. § */
   const put = {};
@@ -587,15 +550,7 @@ function postUpdateProfile_(body, action, began) {
   /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
   const wrote = setCells(t, r, put);
   /* AND WHAT WAITS BESIDE THE ROW. § */
-  if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
-  if (mailPlan === 'correct') authResetDrop_(r);
-  if (mailPlan === 'move') {
-    authMovePut_(r, { to: mailWant, key: mailKey, at: Date.now(), until: Date.now() + AUTH.MOVE_DAYS * 864e5 });
-  }
-  /* A LINK HAS JUST GONE, so "Send the link again" counts its quarter hour from now (`resendLink`). */
-  if (mailPlan === 'correct' || mailPlan === 'move') {
-    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) {}
-  }
+  profileMailAfter_(r, mail);
   let rowsMoved = 0;
   if (qualsSent) rowsMoved += writeOwnRows_(TAB.qualifications, S(r.person_id), qualsIn(fields), QUAL_COLS).changed;
   if (libSent) rowsMoved += writeOwnRows_(TAB.library_cards, S(r.person_id), libCardsIn(fields), LIB_COLS).changed;
@@ -611,6 +566,88 @@ function postUpdateProfile_(body, action, began) {
   const out = { success: true, changed: wrote.length + rowsMoved, profile: adminEditing ? null : profileOf_(r) };
   /* WHAT HAPPENED TO THE ADDRESS, IN WORDS — "Saved" over an address that has not changed yet would be
      read as the change being done. `pendingEmail` for the phone's held cards, as the sign-in reply. */
+  profileMailSaid_(out, mail, r, adminEditing);
+  // Only the person themselves needs their session renamed; an admin must not inherit it.
+  /* AS `nameFor_` SAYS IT, of the row as it now stands — a child renaming herself is still her first
+     name on her own screen (the owner, 10 Oct: *"dont show children's last name"*). */
+  if (renamed) out.name = adminEditing ? '' : (nameFor_(r) || full);
+  /* WHAT WAS LEFT OUT, IN WORDS, beside what was saved (620). */
+  if (refused.length) {
+    out.refused = refused.map(p => ({ fields: p[0], said: p[1] }));
+    out.said = (out.said || 'Saved') + ' — the rest. Not saved: ' + refused.map(p => p[1]).join(' ');
+  }
+  return jsonOut(out);
+}
+
+/* THE VALUES THAT CAN BE WRONG IN THEMSELVES: a birthday, photographs, a face, exam dates. The words, or "". */
+function profileValueRefusal_(fields, allowed, dobSent, photosSent) {
+  /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
+     saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
+  if (dobSent) {
+    const dobNo = dobRefusal_(fields);
+    if (dobNo) return dobNo;
+  }
+  /* A PHOTOGRAPH THAT IS NOT A LINK is refused rather than kept or dropped — `photosRefusal_`. */
+  if (photosSent) {
+    const photoNo = photosRefusal_(fields);
+    if (photoNo) return photoNo;
+  }
+  /* AND THE FACE ITSELF: § */
+  if (fields.photo !== undefined && allowed.indexOf('photo') !== -1) {
+    const faceNo = photoRefusal_(fields.photo);
+    if (faceNo) return faceNo;
+  }
+  /* AN EXAM DATE IS A COLUMN, so `wanted` finds it; what a column check cannot say is whether the VALUE is a date. § */
+  const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
+                    : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
+  if (badDate) return badDate;
+  return '';
+}
+
+/* WHAT HAPPENS TO THE ADDRESS, and its link sent first — `{ fail }` when the mail could not go. */
+function profileMailPlan_(r, wanted, fields) {
+  const mailWant = (wanted.indexOf('email') !== -1 && fields.email !== undefined) ? S(fields.email) : '';
+  const moving = authMoveGet_(r);
+  const mailPlan = !mailWant ? ''
+    : norm(mailWant) === norm(r.email) ? (moving ? 'keep' : 'same')
+    : moving && norm(moving.to) === norm(mailWant) ? 'waiting'
+    : (S(r.email) && addressPending_(r)) ? 'correct' : 'move';
+  let mailKey = '';
+  if (mailPlan === 'correct' || mailPlan === 'move') {
+    let quota = 1;
+    try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
+    const cannot = 'We could not email ' + mailWant + ' just now, so nothing was saved. Try again later.';
+    if (quota < 1) return { fail: jsonOut({ why: 'no-mail', error: cannot }) };
+    try {
+      if (mailPlan === 'correct') {
+        mailKey = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        linkMail_({ first_name: r.first_name, email: mailWant, handle: r.handle }, mailKey, hasRole(r, 'client'));
+      } else {
+        mailKey = 'M' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+        moveMail_(mailWant, mailKey);
+      }
+    } catch (err) { return { fail: jsonOut({ why: 'no-mail', error: cannot }) }; }
+  }
+  return { want: mailWant, moving: moving, plan: mailPlan, key: mailKey };
+}
+
+/* AFTER THE ROW IS WRITTEN: the pending move and the resend clock, by the plan. */
+function profileMailAfter_(r, mail) {
+  const mailPlan = mail.plan, mailWant = mail.want, mailKey = mail.key;
+  if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
+  if (mailPlan === 'correct') authResetDrop_(r);
+  if (mailPlan === 'move') {
+    authMovePut_(r, { to: mailWant, key: mailKey, at: Date.now(), until: Date.now() + AUTH.MOVE_DAYS * 864e5 });
+  }
+  /* A LINK HAS JUST GONE, so "Send the link again" counts its quarter hour from now (`resendLink`). */
+  if (mailPlan === 'correct' || mailPlan === 'move') {
+    try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) {}
+  }
+}
+
+/* WHAT HAPPENED TO THE ADDRESS, in words on the answer. */
+function profileMailSaid_(out, mail, r, adminEditing) {
+  const mailPlan = mail.plan, mailWant = mail.want, moving = mail.moving;
   if (mailPlan === 'move') {
     out.movingEmail = mailWant;
     out.said = adminEditing
@@ -627,16 +664,6 @@ function postUpdateProfile_(body, action, began) {
     out.said = 'Saved. Your email stays ' + S(r.email) + ', and the link we sent to ' + S(moving.to)
              + ' no longer does anything.';
   }
-  // Only the person themselves needs their session renamed; an admin must not inherit it.
-  /* AS `nameFor_` SAYS IT, of the row as it now stands — a child renaming herself is still her first
-     name on her own screen (the owner, 10 Oct: *"dont show children's last name"*). */
-  if (renamed) out.name = adminEditing ? '' : (nameFor_(r) || full);
-  /* WHAT WAS LEFT OUT, IN WORDS, beside what was saved (620). */
-  if (refused.length) {
-    out.refused = refused.map(p => ({ fields: p[0], said: p[1] }));
-    out.said = (out.said || 'Saved') + ' — the rest. Not saved: ' + refused.map(p => p[1]).join(' ');
-  }
-  return jsonOut(out);
 }
 
 function postSaveNotepad_(body, action, began) {
