@@ -289,60 +289,7 @@ function questionCard_(x, was) {
   </div>`;
 }
 
-/* ---------- ONE CARD PER QUESTION NUMBER, AS THE PAPER PRINTS IT (960) § */
-/* EVERY ATTRIBUTE IS A TAG (1030); with several parts, each part's own (marks, result, function) is in that part's row (owner, 7 Nov). */
-const Q_PART_FACETS = { qPart: 1, qSub: 1, qPage: 1, qPages: 1, marks: 1, myResult: 1, accuracy: 1, function: 1 };
-const Q_TAG_RE = /<span class="qtag"[^>]*data-f="([^"]*)"[^>]*>([\s\S]*?)<\/span>/g;
-function qWholeTags_(x, list) {
-  const row = String(tagRow_(x) || '');
-  if (!list || list.length < 2) return row;
-  return row.replace(Q_TAG_RE, (m, f) => (Q_PART_FACETS[f] ? '' : m));
-}
-/* A PART'S OWN TAGS, from `tagRow_`, so what is already chosen is left out here as on the top line */
-function qPartTags_(p) {
-  const out = [];
-  try {
-    String(tagRow_(p) || '').replace(Q_TAG_RE, (m, f) => {
-      if (Q_PART_FACETS[f] && !/^q(Part|Sub|Page|Pages)$/.test(f) && out.indexOf(m) === -1) out.push(m);
-      return m;
-    });
-  } catch (e) { return ''; }
-  return out.join('');
-}
-/* THE TREE: the question, its letters, their numerals; a stem stands at the deepest level every part under it shares. */
-function qTree_(parts) {
-  const root = { label: '', depth: 0, kids: [], items: [], stems: [] };
-  const kid = (n, label) => {
-    let k = n.kids.find(c => c.label === label);
-    if (!k) { k = { label: label, depth: n.depth + 1, kids: [], items: [], stems: [] }; n.kids.push(k); }
-    return k;
-  };
-  const home = new Map();
-  parts.forEach(x => {
-    const sp = qSplitOf_(x) || { part: '', sub: '' };
-    const raw = String(x.qPart || '').trim();
-    let n = root;
-    if (sp.part) n = kid(n, sp.part.replace(/^\./, ''));
-    if (sp.sub) n = kid(n, sp.sub);
-    if (n === root && raw) n = kid(root, raw);
-    n.items.push(x);
-    home.set(x, n);
-  });
-  const up = n => { const out = []; for (let c = n; c; c = c.parent) out.unshift(c); return out; };
-  const link = n => n.kids.forEach(k => { k.parent = n; link(k); });
-  link(root);
-  const seen = {};
-  parts.forEach(x => (x.stems || []).forEach(p => {
-    const id = stemId_(p);
-    if (!id || seen[id]) return;
-    const who = parts.filter(s => (s.stems || []).some(q => stemId_(q) === id)).map(s => up(home.get(s)));
-    let at = root;
-    for (let d = 1; who.every(w => w[d] && w[d] === who[0][d]); d++) at = who[0][d];
-    seen[id] = true;
-    at.stems.push(p);
-  }));
-  return root;
-}
+/* ---------- EVERY PART IS ITS OWN CARD, ALL AT ONE LEFT EDGE (owner, 8 Nov; history 1160) */
 /* A STEM WHOLE: its words and its figure, no page-cuts (a card scrolls). */
 function qStemWhole_(x, p) {
   const html = [];
@@ -359,36 +306,26 @@ function qStemWhole_(x, p) {
   if (stemFigOwed_(x, p)) html.push('<p class="qfig-missing">Figure not drawn yet.</p>');
   return `<div class="qsheet-stem qb-stem${p.placeholder ? ' is-standin' : ''}" data-of="${esc(stemId_(p))}">${p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>`;
 }
-/* ONE BLOCK, THE SAME AT EVERY LEVEL: its label, its own words, its answer row, its children. */
-function qBlock_(n, ctx) {
-  const own = n.items[0] || null;
-  const shut = own && !ctx.open.has(own);
-  /* A PART'S LETTER IS A PILL TAG IN ITS OWN TAG ROW (owner, 6 Nov), drawn by the same rule as every other tag. */
-  const label = n.label ? `<div class="qb-head qtags qcard-tags"><span class="qtag qb-label"${tagAttr_(n.depth === 1 ? 'qPart' : 'qSub')} data-f="${n.depth === 1 ? 'qPart' : 'qSub'}">${esc(n.label)}</span>${own && !shut && ctx.list.length > 1 ? qPartTags_(own) : ''}${shut ? '<span class="qb-shut">not in this search</span>' : ''}</div>` : '';
-  const stems = n.stems.filter(p => !ctx.carried.has(p) && !ctx.drawn[stemId_(p)])
-    .map(p => { ctx.drawn[stemId_(p)] = true; return qStemWhole_(own || ctx.x, p); }).join('');
-  const body = own && !shut ? qPartCard_(own, ctx.ans) : '';
-  const kids = n.kids.map(k => qBlock_(k, ctx)).join('');
-  const id = own ? ` data-part="${esc(own.key || '')}"` : '';
-  return `<div class="qb qb-d${n.depth}${shut ? ' is-shut' : ''}"${id}>${shut ? label : label + stems + body}${kids}</div>`;
-}
 /* A PART'S WORDS AND ANSWER ROW, a `.qcard` of its own so every handler's `closest('.qcard')` finds this part and no other. */
 function qPartCard_(x, ans) {
   const words = partChunks_(x).map(c => chunkHtml_(c, circOf_(x), x)).join('');
   const a = ans && (questionHasAns_(x) || schemeOwed_(x)) ? questionAnsCard_(x) : '';
   return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet">${qWordsOr_(x, cellsHere_(x, words))}</div>${ansArea_(x)}${a}</div>`;
 }
-/* THE CARD: tags once, the blocks, then ONE tile row (`cardTiles_` with the page tools and Help folded in). */
+/* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
+function qOneCard_(p, ctx) {
+  const stems = (p.stems || []).filter(s => !ctx.carried.has(s) && !ctx.drawn[stemId_(s)])
+    .map(s => { ctx.drawn[stemId_(s)] = true; return qStemWhole_(p, s); }).join('');
+  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
+  const foot = cardTiles_(Object.assign(Object.create(p), { lead: help }));
+  return `<div class="qb favwrap${isFav(p.key) ? ' is-fav' : ''}" data-part="${esc(p.key || '')}">${tagRow_(p)}${stems}${qPartCard_(p, ctx.ans)}</div>${foot}`;
+}
+/* A QUESTION NUMBER: its parts the search kept, one card each, one after another; none indented under another. */
 function questionWhole_(x, parts, open, ans) {
   const list = parts && parts.length ? parts : [x];
-  const ctx = { x: x, list: list, open: open || new Set(list), ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
-  const tree = qTree_(list);
-  /* READ ALOUD, MAGNIFIER AND PADLOCK ARE EVERY PART'S OWN (`qtRow_`, owner 7 Nov); the foot keeps Help and the rest */
-  const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(x, '') : null);
-  const foot = cardTiles_(Object.assign(Object.create(x), { lead: help }));
-  return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}"><div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">
-    ${qWholeTags_(x, list)}${qBlock_(tree, ctx)}
-  </div></div>${foot}`;
+  const shown = list.filter(p => !open || !open.size || open.has(p));
+  const ctx = { ans: ans !== false, drawn: {}, carried: new Set(list.map(stemCarried_).filter(Boolean)) };
+  return `<div class="qwhole${typeof helpCls_ === 'function' ? helpCls_(x, '') : ''}" data-q="${esc(qId_(x) || x.key || '')}">${shown.map(p => qOneCard_(p, ctx)).join('')}</div>`;
 }
 
 /* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS § */

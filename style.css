@@ -3816,15 +3816,11 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .tile-row .qcard-verdict.is-near { color: var(--warn); }
 .tile-row .qcard-verdict.is-right::before { content: "\2713"; margin-right: .3rem; font-weight: 700; }
 .tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: .3rem; font-weight: 700; }
-/* ---------- ONE ELEMENT PER QUESTION (960), NO BOX ROUND IT (1030): drawn as a `.card` is; each level's block indented one step. */
+/* ---------- ONE QUESTION NUMBER, NO BOX ROUND IT (1030): its parts are cards one under another, none indented (owner, 8 Nov, 1160). */
 .qwhole { background: none; border: 0; border-radius: 0; padding: .85rem 0; margin: 0; }
 .qwhole .qcard { background: none; border: 0; border-radius: 0; padding: 0; margin: 0; }
-.qwhole .qb-d0 > .qsheet-stem, .qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
-.qb-d1, .qb-d2, .qb-d3 { margin-top: .9rem; padding-left: .85rem; }
-.qb-d1 { padding-left: 0; }
-.qb-head { display: flex; align-items: baseline; gap: .5rem; }
-.qb-shut { font-size: .7rem; color: var(--faint); }
-.qb.is-shut, .qb.is-shut .qb-label { color: var(--dim); }
+.qwhole .qb-stem { color: var(--ink); border-bottom: 0; margin: .6rem 0 0; }
+.qwhole > .tile-row:not(:last-child) { padding-bottom: .85rem; margin-bottom: .85rem; border-bottom: 1px solid var(--line-soft); }
 .qwhole .qb-part .qsheet { margin-top: .4rem; }
 /* ---------- THE CARD'S TAGS § */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }

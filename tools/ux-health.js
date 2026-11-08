@@ -208,12 +208,12 @@ function instruments() {
           if (v.length && !have.has(F.field) && !(STUFF.filters || []).some(f => f.field === F.field && !f.any)) r.missing[F.field] = (r.missing[F.field] || 0) + 1; });
       });
     });
-    /* A WHOLE QUESTION (960) as its page draws it: each part's marks must be a tag on the top line, never beside a part label. */
+    /* A WHOLE QUESTION as its page draws it (owner, 8 Nov): each part a card with its own tag line, its marks a tag there, never beside it. */
     try { const qp = questionParts_(), r = out.question = out.question || { cards: 0, sampled: 0, noTags: 0, missing: {} };
       Object.keys(qp).filter(k => (qp[k] || []).length > 1).slice(0, 20).forEach(k => { const ps = qp[k];
         host.innerHTML = questionWhole_(ps[0], ps, new Set(ps), true);
-        const top = host.querySelector('.qwhole > .qtags'), want = ps.filter(p => Number(p.marks) > 0).length;
-        const bad = !top || [...host.querySelectorAll('.qtags')].filter(e => !e.classList.contains('qb-head')).length !== 1 || (want > 1 && top.querySelectorAll('[data-f="marks"]').length < want)
+        const want = ps.filter(p => Number(p.marks) > 0).length, cards = [...host.querySelectorAll('.qb')];
+        const bad = cards.some(b => !b.querySelector(':scope > .qcard-tags')) || (want > 1 && host.querySelectorAll('.qb > .qcard-tags [data-f="marks"]').length < want)
           || [...host.querySelectorAll('span, small, div')].some(e => !e.closest('.qtags') && /^\[?\(?\d+ marks?\)?\]?$/i.test((e.textContent || '').trim()));
         if (bad) r.outside = (r.outside || 0) + 1; }); } catch (e) { /* no question parts in this build: nothing to measure */ }
     host.remove(); probe.remove();

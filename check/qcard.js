@@ -34,16 +34,16 @@ function staticPass(sample) {
       host.innerHTML = rowsOne_(questionWhole_(pg.x, pg.parts, pg.open, pg.ans));
       const card = host.querySelector('.qwhole');
       if (!card) { out.orphan.push(k + ' (no card)'); continue; }
-      if (card.querySelectorAll('.qcard-tags').length !== 1) out.dupTag.push(k);
-      const rows = [...host.querySelectorAll('.tile-row')].filter(r => !r.closest('.qwhole'));
-      if (rows.length > 1) out.rows.push(k + ' ' + rows.length);
-      const rank = e => e.matches('.qb-head') ? 0 : e.matches('.qb-stem') ? 1 : e.matches('.qb-part') ? 2 : e.matches('.qb') ? 3 : -1;
-      card.querySelectorAll('.qb').forEach(b => {
+      /* EVERY PART ITS OWN CARD (owner, 8 Nov, 1160): one tag line at its top, one tile row after it, none inside another */
+      const blocks = [...card.querySelectorAll('.qb')];
+      if (blocks.some(b => b.querySelectorAll('.qcard-tags:not(.qans-card .qcard-tags)').length !== 1)) out.dupTag.push(k);
+      const own = b => b.querySelector('[data-do="card-share"]') || (b.nextElementSibling && b.nextElementSibling.matches('.tile-row') && b.nextElementSibling.querySelector('[data-do="card-share"]'));
+      if (blocks.some(b => !own(b))) out.rows.push(k + ' a part with no tile row of its own');
+      const rank = e => e.matches('.qcard-tags') ? 0 : e.matches('.qb-stem') ? 1 : e.matches('.qb-part') ? 2 : -1;
+      blocks.forEach(b => {
         const r = [...b.children].map(rank).filter(n => n >= 0);
         if (r.some((n, j) => j && n < r[j - 1])) out.order.push(k + ' ' + (b.getAttribute('data-part') || 'root'));
-        const d = Number((/qb-d(\d+)/.exec(b.className) || [])[1]), up = b.parentElement.closest('.qb');
-        const pd = up ? Number((/qb-d(\d+)/.exec(up.className) || [])[1]) : -1;
-        if (d !== pd + 1) out.indent.push(k + ' depth ' + d + ' under ' + pd);
+        if (b.parentElement.closest('.qb')) out.indent.push(k + ' part ' + (b.getAttribute('data-part') || '?') + ' inside another');
       });
     }
     out.sampled = Math.ceil(qs.length / step);
@@ -183,8 +183,8 @@ function tagScan() {
     const qp = questionParts_();
     Object.keys(qp).filter(k => qp[k].length > 1).slice(0, 30).forEach(k => { const ps = qp[k];
       look('whole question ' + k, questionWhole_(ps[0], ps, new Set(ps), true), null);
-      const top = host.querySelector('.qwhole > .qtags'), want = ps.filter(p => Number(p.marks) > 0).length;
-      if (top && want > 1 && top.querySelectorAll('[data-f="marks"]').length < want) out['card-tags'].push('whole question ' + k + ': ' + want + ' parts with marks, ' + top.querySelectorAll('[data-f="marks"]').length + ' marks tags'); });
+      const want = ps.filter(p => Number(p.marks) > 0).length, got = host.querySelectorAll('.qb > .qcard-tags [data-f="marks"]').length;
+      if (want > 1 && got < want) out['card-tags'].push('whole question ' + k + ': ' + want + ' parts with marks, ' + got + ' marks tags on their cards'); });
     Object.keys(out).forEach(k => { out[k] = [...new Set(out[k])]; });
     return out;
   });
