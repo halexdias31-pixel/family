@@ -629,10 +629,9 @@ function dataProblems(deep) {
       }
       /* THEIR OWN CUT OF AN EXTRA SEAT (docs/history/345), typed into the sheet by hand where the card's refusal cannot reach. § */
       const cut = S(r.extra_seat_cut);
-      if (cut !== '' && seatCutOut_(cut) === '') {
+      if (cut !== '') {
         add('pricing looks wrong', personDisplayName(r) + "'s extra_seat_cut is " + cut,
-            'It is a FRACTION of their rate, written as a plain number from 0 to 2 — 0.1 is a tenth. '
-            + 'Anything else is priced at the usual cut, the config B, as a blank is.');
+            'It is ignored since 8 Nov: config B is the one @family. share for every tutor. Clear the cell.');
       }
     }
     /* Email is how everybody finds out anything. Without one, every notification this system
@@ -661,10 +660,9 @@ function dataProblems(deep) {
         'These are FRACTIONS of the rate — 0.25 means +25%. A value above 1 is usually a pound '
         + 'figure left over from an older formula.');
   }
-  /* B IS THE DEFAULT CUT since docs/history/345 — a tutor's own `extra_seat_cut` wins over it — so a nought
-     here is nothing earned on every tutor whose own cell is blank, not on every tutor. */
+  /* B IS THE ONE @FAMILY SHARE (8 Nov), a fraction of each tutor's extra-seat rate: a nought here is nothing earned on any extra seat. */
   if (!B) {
-    add('you earn nothing', 'B is 0 — you take no share of an extra seat from a tutor with no cut of their own',
+    add('you earn nothing', 'B is 0 — you take no share of any extra seat',
         'Every hour such a tutor teaches earns you £0. That is a directory, not an agency.');
   }
 

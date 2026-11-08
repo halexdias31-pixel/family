@@ -365,10 +365,9 @@ function seatShare_(tutorRow, c, B) {
   const seatTop = x => Math.min(x, STAFF_SEAT_MAX);
   const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
   const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
-  const own = tutorRow ? seatCutOf_(tutorRow.extraSeatCut) : NaN;
-  const cutOwn = !isNaN(own);
-  const bRaw = cutOwn ? own : B;
-  return { cRaw, bRaw, seatOwn, cutOwn, cUsed: seatTop(asFraction(cRaw, 0)), bUsed: asFraction(bRaw, 0) };
+  /* @FAMILY'S BLOCK IS B x THE EXTRA-SEAT RATE (8 Nov, the owner): one B for everyone, a tutor's own cut no longer read; bUsed is still a fraction of the rate. */
+  const cUsed = seatTop(asFraction(cRaw, 0));
+  return { cRaw, bRaw: B, seatOwn, cutOwn: false, cUsed, bUsed: asFraction(B, 0) * cUsed };
 }
 /* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) § */
 function seatCutOf_(v) {

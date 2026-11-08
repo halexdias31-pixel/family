@@ -51,7 +51,8 @@ function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
         ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
         extraSeat: N(r.extra_seat_rate),
         /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which is the config tab's `B`, and nought for nought, which is § */
-        extraSeatCut: seatCutOut_(r.extra_seat_cut),
+        /* A TUTOR'S OWN CUT IS IGNORED SINCE 8 NOV: config B is the one share, so none is sent. */
+        extraSeatCut: '',
         /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
            reader, and the Settings page is the one writer. Names, in the tab's order. */
         venues: venuesFor_(r, venuesTab),
