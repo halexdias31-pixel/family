@@ -312,6 +312,7 @@
     "check/talpage.js": "secondary",
     "check/calc-steady.js": "core",
     "check/centred.js": "core",
+    "check/fluid.js": "secondary",
     "check/swipe.js": "core",
     "check/slide.js": "core",
     "check/pen.js": "core",

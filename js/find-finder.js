@@ -578,7 +578,7 @@ const FACETS = [
   /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked -- asked before Paper (529). */
   { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
   { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
-  /* THE ID DECIDES WHO ANSWERS; the paper's own number is what is said (owner 8 Nov) — subject, year, tier are their own facets, and tellApart_ adds one where two collide. */
+  /* THE ID DECIDES WHO ANSWERS; its cover code is what is said (owner 8 Nov) — year, month, tier, board are their own facets, and tellApart_ adds one where two collide. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
     showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id) },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
@@ -801,9 +801,11 @@ const paperLabel_ = id => {
   /* A PAPER SAT IN SECTIONS IS ITS REAL NUMBER (770): "Paper 31: Statistics" was the owner's "paper thirty-something" — Paper 3, Section A. */
   return sec ? name.replace(/^Paper \d+\b/, 'Paper ' + sec.paper + ', ' + sec.section) : name;
 };
-/* A PAPER'S TAG IS ITS OWN NUMBER (1040 r12): its title repeats the card's other tags. */
+/* A PAPER'S TAG IS THE CODE ON ITS COVER (owner 8 Nov 2026: "1MA1/3F", by the barcode), else its own number (1040 r12). */
 const paperTag_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null, sec = paperSectionOf_(d), n = String((d && d.paper) || '').trim();
+  const code = String((d && d.paper_code) || '').trim();
+  if (code) return code;
   /* ONE ATTRIBUTE PER TAG (1040 s12:37): the section is its own tag. */
   if (sec) return 'Paper ' + sec.paper;
   const lead = /^(?:Practice paper|Paper|Component|Unit) \w+/i.exec(String((d && d.name) || '').trim());

@@ -393,20 +393,20 @@ check('a manuscript card (owner, 7 Nov): Papyrus 52 leads with a drawing of the 
   const card = el.firstElementChild;
   if (!card || !card.firstElementChild || !card.firstElementChild.matches('.hdb-ms')) bad.push('the card does not start with its picture');
   if (!card || !card.lastElementChild || !card.lastElementChild.matches('.qcard-tags')) bad.push('the card\'s tags do not follow its picture');
-  if (card && card.querySelector('.fc-meta, .hdb-facts, p')) bad.push('the card still has a line of text beside its tags');
+  if (card && card.querySelector('.fc-meta, .hdb-facts, p, figcaption')) bad.push('the card still has a line of text beside its tags');
   if (card && card.querySelector('h3')) bad.push('the card still has a title');
   const svg = card && card.querySelector('.hdb-ms svg');
   if (!svg || !svg.querySelector('clipPath path') || !svg.querySelectorAll('text').length) bad.push('the card has no drawing of the fragment');
   /* ONE SIDE A CARD (507): the front card draws the recto alone; only letters that survive -- a whole line of 30 would be the old guess. */
   if (card && card.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the card draws ' + card.querySelectorAll('.hdb-ms-side svg').length + ' sides, not one');
-  if (!/Recto/.test((card && card.querySelector('.hdb-ms-side figcaption') || {}).textContent || '')) bad.push('the front card does not draw the recto');
+  if (!/recto/i.test((card && card.querySelector('.hdb-ms-side svg') || { getAttribute: () => '' }).getAttribute('aria-label') || '')) bad.push('the front card does not draw the recto');
   /* THE OTHER SIDE IS ITS OWN ITEM (507): Front and Back tags, the bare key the Front's (a saved key still opens), the facts line on both. */
   const its = w.histItems_('manuscript', r);
   if (its.length !== 2 || its[0].msSide !== 'Front (recto)' || its[1].msSide !== 'Back (verso)' || its[0].key !== 'hdb:MS-0001' || its[1].key !== 'hdb:MS-0001:back')
     bad.push('Papyrus 52 is not two items, Front at hdb:MS-0001 and Back at hdb:MS-0001:back: ' + JSON.stringify(its.map(i => [i.key, i.msSide])));
   else {
     const e2 = d.createElement('div'); e2.innerHTML = w.histCard_(its[1]);
-    if (!/Verso/.test((e2.querySelector('.hdb-ms-side figcaption') || {}).textContent || '') || e2.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the back card does not draw the verso alone');
+    if (!/verso/i.test((e2.querySelector('.hdb-ms-side svg') || { getAttribute: () => '' }).getAttribute('aria-label') || '') || e2.querySelectorAll('.hdb-ms-side svg').length !== 1) bad.push('the back card does not draw the verso alone');
     if (!e2.querySelector('.qtag[data-f="histRepository"]')) bad.push('the back card has no Held at tag');
     if (!e2.querySelector('.qtag[data-f="histSide"]')) bad.push('the back card carries no Side tag');
   }

@@ -26,3 +26,8 @@ manuscript cards go minimal, pixel pictures allowed, no grey text.
 - **Manuscripts**: every manuscript card is its drawing (where one exists) then its tags. The facts
   line is gone: Found (`histFound`, provenance's first line) and Dated (`histDated`) are tags beside
   Held at; the caption under a drawing is no longer grey. The other columns are the card's pages.
+
+**8 Nov re-check.** The manuscript card still carried two captions under its drawing (the side, and
+the tracing credit). Both now sit on the card's first facts page as `Shown` and `Drawn from`
+(`msDrawnRows_`), so the face is the drawing and its tags, like a boxer's card. Journey 19 now
+reads the side from the drawing's label and refuses a `figcaption` on the card.

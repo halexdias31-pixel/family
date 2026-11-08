@@ -45,6 +45,12 @@ zohar/         Zohar Chadash ("Zohar Chadash", Torat Emet) and Tikkunei Zohar ("
                its daf (Sefaria's numbering). Not included: the Zohar itself — every Aramaic version in the export
                (Sulam Edition 1945, Vocalized Zohar 2013, the Hebrew translation) is marked licence "unknown"; Tikkunei
                Zohar "Constantinople, 1740" is CC BY-NC; every English (Soncino 1931-34 and Pritzker are in copyright).
+desert-en/     Nicene and Post-Nicene Fathers, Second Series, ed. P. Schaff and H. Wace, as CCEL prints it: vol. 4 (1892),
+               Athanasius's Life of Antony, tr. H. Ellershaw (https://www.ccel.org/ccel/schaff/npnf204.xml); vol. 11 (1894),
+               John Cassian's Institutes and Conferences, tr. E. C. S. Gibson (died 1924), and Sulpitius Severus's Dialogue I
+               (the monks of Egypt), tr. A. Roberts (died 1901) (https://www.ccel.org/ccel/schaff/npnf211.xml). Public
+               domain. The editors' notes and chapter titles left out; Institutes Book VI is not there (Gibson did not translate it).
+               Not included: Lowther Clarke's Lausiac History (1918; he died 1968), Chase's John of Damascus (1958).
 
 The Project Gutenberg files are used as public-domain text with Project Gutenberg's own header, licence and
 trademark removed, as its licence allows.
