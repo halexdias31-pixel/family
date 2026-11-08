@@ -60,7 +60,7 @@
   /* ONE TILE SPEC (467, 487, 508): a 36px plate, a 16px mark, 6px apart -- 487 halved it to 22px and kids missed taps (508). */
   --tile: 44px; --tile-i: 16px; --tile-gap: 6px; --tile-send: 44px; --tile-r: 999px; --btn-r: 22px;
   /* ONE PILL SIZE (owner, 1040 r12): a chosen chip, a menu answer and a card tag are drawn alike; a tappable one keeps 44px in an invisible ::before. */
-  --tp-fs: .64rem; --tp-lh: 1.35; --tp-pad: .05rem .45rem; --tp-h: 1.1rem;
+  --tp-fs: .78rem; --tp-lh: 1.35; --tp-pad: .18rem .65rem; --tp-h: 1.55rem;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
