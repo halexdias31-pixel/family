@@ -321,22 +321,36 @@ function facetEcho_(items, facet) {
   for (const g of skipped) {
     const G = facetList().find(f => f.field === g.field);
     if (!G) continue;
-    const to = {};
-    let ok = true;
-    for (const x of items) {
-      const a = facetOwn_(facet, x);
-      if (!a.length) continue;
-      const b = facetOwn_(G, x);
-      if (b.length !== 1) { ok = false; break; }
-      const kb = spellKey_(b[0]);
-      if (a.some(v => { const ka = spellKey_(v); if (to[ka] && to[ka] !== kb) return true; to[ka] = kb; return false; })) { ok = false; break; }
-    }
+    /* FINER BY WHAT IT IS, NOT BY THIS LIST (8 Nov): read over everything, so Year under Any accuracy, inside it only by chance
+       in one subject's list, is still asked; Shelf sits inside Subject everywhere and stays an echo. */
+    const to = echoInside_(facet, G) && echoTo_(items, facet, G), ok = !!to && Object.keys(to).length > 1;
     /* A skipped question the list answers one way was never a choice, so nothing re-asks it (a list of projects alone, 660). */
     const gAll = new Set();
     if (ok) for (const x of items) { facetOwn_(G, x).forEach(v => gAll.add(spellKey_(v))); if (gAll.size > 1) break; }
-    if (ok && gAll.size > 1 && Object.keys(to).length > 1) return G.label || G.field;
+    if (ok && gAll.size > 1) return G.label || G.field;
   }
   return '';
+}
+/* Each F answer's one G answer over a list, or null when one F answer spans two G answers or a card holds no single G. */
+function echoTo_(items, F, G) {
+  const to = {};
+  for (const x of items) {
+    const a = facetOwn_(F, x);
+    if (!a.length) continue;
+    const b = facetOwn_(G, x);
+    if (b.length !== 1) return null;
+    const kb = spellKey_(b[0]);
+    if (a.some(v => { const ka = spellKey_(v); if (to[ka] && to[ka] !== kb) return true; to[ka] = kb; return false; })) return null;
+  }
+  return to;
+}
+const ECHO_MEMO_ = { from: null, m: {} };
+function echoInside_(F, G) {
+  const all = stuffItems();
+  if (ECHO_MEMO_.from !== all) { ECHO_MEMO_.from = all; ECHO_MEMO_.m = {}; }
+  const k = F.field + '>' + G.field;
+  if (!(k in ECHO_MEMO_.m)) ECHO_MEMO_.m[k] = !!echoTo_(all, F, G);
+  return ECHO_MEMO_.m[k];
 }
 
 /* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): each G answer with two F answers holds a run of the
@@ -367,16 +381,20 @@ const LOCAL_MEMO_ = new WeakMap();
 function facetLocal_(items, F) {
   let m = LOCAL_MEMO_.get(items);
   if (!m) LOCAL_MEMO_.set(items, m = {});
-  if (F.field in m) return m[F.field];
+  /* A G ALREADY ASKED NEVER HOLDS F (8 Nov): answered Any, "one G left" never comes, and the funnel ended with thousands left. */
+  const asked = (STUFF.filters || []).map(f => f.field), key = F.field + '|' + asked.join(',');
+  if (key in m) return m[key];
   let say = '';
   const nF = facetValues(items, F).length;
+  /* ONLY A COARSER G, one the tab puts before F (8 Nov): Marks after Paper never holds Paper as its count, by chance or otherwise. */
   for (const G of facetList()) {
-    const nG = G === F ? 0 : facetValues(items, G).length;
+    if (G === F) break;
+    const nG = asked.indexOf(G.field) !== -1 ? 0 : facetValues(items, G).length;
     if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
     say = G.label || G.field;
     break;
   }
-  return (m[F.field] = say);
+  return (m[key] = say);
 }
 
 /* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is

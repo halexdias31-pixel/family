@@ -578,9 +578,9 @@ const FACETS = [
   /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked -- asked before Paper (529). */
   { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
   { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
-  /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
+  /* THE ID DECIDES WHO ANSWERS; the paper's own number is what is said (owner 8 Nov) — subject, year, tier are their own facets, and tellApart_ adds one where two collide. */
   { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
-    showOf: id => paperLabel_(id), tagSay: id => paperTag_(id) },
+    showOf: id => paperTag_(id) || paperLabel_(id), tagSay: id => paperTag_(id) },
   /* THE SECTION OF A PAPER SAT IN SECTIONS (770), a tag on its cards; after Paper it has one answer, so it is a detail, never a question. */
   { field: 'paperSection', label: 'Paper section',  of: x => { const r = paperSectionOf_(x && x.row); return r ? r.section + (r.topic ? ': ' + r.topic : '') : paperNameSection_(x); } },
   /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
