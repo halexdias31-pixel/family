@@ -129,6 +129,10 @@ function setColumns_(d, extra) {
     /* AND NOT AN EMPTY LIST. § */
     if (live.length) d.columns = live;
     /* SWITCHED OFF (880): each is a Coming soon card in Find, its first plain line its notes; switched on again, its card goes. */
+    /* WHERE A SCREEN THAT MOVED LANDS (461, batch C): a row's `moved`, and `was` for a column dissolved into it (`SCREEN_MOVED`). */
+    const moved = {};
+    columns.forEach(r => { const id = libS(r.screen); if (!id) return; if (libS(r.moved)) moved[id] = libS(r.moved); if (libS(r.was)) moved[libS(r.was)] = id; });
+    if (Object.keys(moved).length) d.columnsMoved = moved;
     d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active) && libS(r.screen) !== 'res')
       .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }

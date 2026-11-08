@@ -216,7 +216,6 @@ function venueDoorCard_(x) {
 }
 
 /* AN OLD SETTINGS COLUMN ASKED FOR BY NAME (a tile, a link) opens Find › Settings › its type instead. */
-const SETTINGS_HOME = { account: 'Student', family: 'Parent', staff: 'Staff', apprentice: 'Apprentice', biz: 'Business', site: 'Site' };
 function findSettings_(type) {
   try {
     inFinder_(FINDER, () => {
@@ -227,4 +226,13 @@ function findSettings_(type) {
     inFinder_(FINDER, () => paintStuff());
   } catch (e) { oops_(e, 'doors:settings'); }
 }
-function settingsGone_(id) { if (!SETTINGS_HOME[id] || TABS.some(t => t.id === id)) return false; findSettings_(SETTINGS_HOME[id]); return true; }
+/* A SWITCHED-OFF COLUMN THAT MOVED INTO FIND (`SCREEN_MOVED`): Settings for its account type, or its kind's door. */
+function screenGone_(id) {
+  const to = String(screenMoved_()[id] || '').split(':');
+  if (to[0] !== 'find' || !to[1] || TABS.some(t => t.id === id)) return false;
+  if (to[1] === 'Settings') { findSettings_(to[2] || ''); return true; }
+  try { if (typeof OPEN_JOB !== 'undefined' && OPEN_JOB) BOOK_OPEN = false; } catch (e) { oops_(e, 'doors:gone'); }
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: to[1] }] });
+  go('stuff');
+  return true;
+}

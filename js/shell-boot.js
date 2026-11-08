@@ -298,8 +298,13 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* A COLUMN THAT WAS DISSOLVED, AND WHERE ITS THINGS WENT: an old link or a remembered place lands there (461). */
-const TAB_GONE = { progress: 'account' };
+/* WHERE A SCREEN THAT MOVED NOW LIVES (461, batch C): another column, or `find:<kind>[:<account type>]`. */
+/* columns.json's `moved` and `was` say it; this copy stands until the file lands (check-doors keeps them one). */
+const SCREEN_MOVED = { progress: 'account', booking: 'find:Booking', staff: 'find:Settings:Staff', site: 'find:Settings:Site',
+  account: 'find:Settings:Student', family: 'find:Settings:Parent', apprentice: 'find:Settings:Apprentice', biz: 'find:Settings:Business' };
+function screenMoved_() { try { return (DATA && DATA.columnsMoved) || SCREEN_MOVED; } catch (e) { return SCREEN_MOVED; } }
+/* A COLUMN RENAMED INTO ANOTHER: its new id, else its own. */
+const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -320,7 +325,7 @@ let AT = TAB_HOME;
 try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = localStorage.getItem('familyTab');
-  const was = TAB_GONE[kept] || kept;
+  const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch { /* a bad stored tab opens the default one */ }
@@ -334,7 +339,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
 function go(id, remember, instant) {
-  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return; if (typeof bookingGone_ === 'function' && bookingGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
+  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];

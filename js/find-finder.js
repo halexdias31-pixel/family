@@ -266,7 +266,7 @@ function frontSoonOnly_(value) {
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */
 function soonItems_() {
   /* A COLUMN WHOSE THINGS ARE FIND ITEMS NOW (batch C: settings, reels) is no Coming soon card. */
-  const inFind = c => c.screen === 'reel' || (typeof SETTINGS_HOME !== 'undefined' && !!SETTINGS_HOME[c.screen]);
+  const inFind = c => c.screen === 'reel' || (typeof screenMoved_ === 'function' && /^find:Settings:/.test(screenMoved_()[c.screen] || ''));
   const cols = ((DATA && DATA.columnsOff) || []).filter(c => !inFind(c)).map(c => ({ kind: c.screen === 'dm' ? 'msg' : 'soon', name: c.label, sub: c.what || '', image: '', key: 'soon:' + c.screen, soon: 'column', soonId: c.screen }));
   const ws = (typeof TIER_OFF_WIDGETS !== 'undefined' ? TIER_OFF_WIDGETS : []).map(id => ({ kind: 'soon', name: SOON_WIDGET_NAMES[id] || id,
     sub: SOON_WIDGET_NAMES[id] || id, image: '', key: 'soon:w:' + id, soon: 'widget', soonId: id, top: SOON_WIDGET_UNDER[id] || '' }));

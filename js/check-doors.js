@@ -164,6 +164,18 @@ let gsStale = [];
 try { const g = require(path.join(dir, '..', 'tools', 'columns_gs.js')), src = fs.readFileSync(path.join(dir, '..', 'backend', 'constants.gs'), 'utf8');
   if (g.columnsInto(src) !== src) gsStale = ['backend/constants.gs\'s COLUMNS block is stale: node tools/columns_gs.js']; } catch (e) { gsStale = ['(tools/columns_gs.js could not run: ' + e.message + ')']; }
 
+/* ONE "SCREEN MOVED" MAP (batch C): shell-boot's `SCREEN_MOVED` is columns.json's `moved`/`was`, and no other table says where a screen went. */
+let movedDiffer = [];
+try {
+  const fileMoved = {};
+  (colRows || []).forEach(r => { if (r && r.moved) fileMoved[r.screen] = r.moved; if (r && r.was) fileMoved[r.was] = r.screen; });
+  const m = /const SCREEN_MOVED = (\{[^}]*\})/.exec(fs.readFileSync(path.join(dir, 'shell-boot.js'), 'utf8'));
+  const code = m ? Function('return ' + m[1])() : null;
+  if (!code) movedDiffer = ['(no SCREEN_MOVED in shell-boot.js)'];
+  else [...new Set([...Object.keys(code), ...Object.keys(fileMoved)])].sort().forEach(k => { if (code[k] !== fileMoved[k]) movedDiffer.push(k + ': code ' + (code[k] || '-') + ', columns.json ' + (fileMoved[k] || '-')); });
+  files.forEach(({ n, src }) => { if (/\b(TAB_GONE|SETTINGS_HOME|settingsGone_|bookingGone_)\b/.test(strip(src))) movedDiffer.push(n + '.js keeps its own moved-screen table'); });
+} catch (e) { movedDiffer = ['(SCREEN_MOVED could not be read: ' + e.message + ')']; }
+
 /* NOTHING UNMOVABLE WITHOUT A REASON (730): each column is a card column, a widget column (LAYOUT_COL) or in LAYOUT_FIXED with its sentence. */
 let unhosted = [];
 try {
@@ -219,6 +231,7 @@ say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDER
 say('A CARD COLUMN IN TABS AND NOT IN columns.json, OR THE OTHER WAY — `cards: true` and the row\'s `cards` part', cardsDiffer,
     t => cardTabs.has(t) ? 'TABS marks it cards: true, the row does not' : 'the row says cards TRUE, TABS does not');
 say('THE BACKEND\'S COPY OF THE COLUMNS IS NOT columns.json\'s', gsStale, t => '');
+say('WHERE A SCREEN MOVED IS SAID TWICE — SCREEN_MOVED (shell-boot.js) and columns.json\'s moved/was part', movedDiffer, t => '');
 
 say('A COLUMN NOTHING CAN MOVE ONTO OR OFF, WITH NO REASON IN LAYOUT_FIXED (layout.js)', unhosted, t => '');
 
