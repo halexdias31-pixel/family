@@ -5,7 +5,16 @@ function typeset_(html) {
   /* NOTHING TO DO IS THE COMMON CASE -- most of the library is prose -- so it is the first thing
      asked, before a regex is built or a tag is read. */
   if (s.indexOf('^') === -1 && !/&frasl;|\u2044|&#8260;/.test(s)) return s;
+  const k = { s: s };
+  typesetKit_(k);
+  typesetTerms_(k);
+  typesetPowers_(k);
+  typesetFracs_(k);
+  return k.s;
+}
 
+/* THE TOOLS typeset_ READS WITH: what a term is made of, and where a tag or bracket opens and shuts. They read k.s live. */
+function typesetKit_(k) {
   /* AN ELEMENT A TERM MAY BE MADE OF. `<p>` and `<li>` are not -- they are where a term ends. */
   const INLINE = /^(i|b|em|strong|sup|sub|span|u|var|small)$/;
   /* ENTITIES THAT ARE OPERATORS OR SPACES, so a term stops at them. Everything else written as an
@@ -21,7 +30,7 @@ function typeset_(html) {
   const where = p => {
     const re = /<(\/?)([a-zA-Z][\w-]*)[^>]*>/g;
     let m, deep = 0, raw = 0;
-    while ((m = re.exec(s)) && m.index < p) {
+    while ((m = re.exec(k.s)) && m.index < p) {
       if (p < m.index + m[0].length) return { tag: true, deep: deep, raw: raw > 0 };
       const n = m[2].toLowerCase(), by = m[1] ? -1 : (/\/>$/.test(m[0]) ? 0 : 1);
       if (n === 'sup' || n === 'sub') deep += by;
@@ -34,7 +43,7 @@ function typeset_(html) {
   const openOf = (end, name) => {
     const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi'), all = [];
     let m;
-    while ((m = re.exec(s)) && m.index < end) all.push(m);
+    while ((m = re.exec(k.s)) && m.index < end) all.push(m);
     for (let k = all.length - 1, d = 0; k >= 0; k--) {
       d += all[k][1] ? 1 : -1;
       if (d === 0) return all[k].index;
@@ -45,7 +54,7 @@ function typeset_(html) {
   const shutOf = (at, name) => {
     const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi');
     re.lastIndex = at;
-    for (let m, d = 0; (m = re.exec(s));) {
+    for (let m, d = 0; (m = re.exec(k.s));) {
       d += m[1] ? -1 : 1;
       if (d === 0) return m.index + m[0].length;
     }
@@ -63,22 +72,28 @@ function typeset_(html) {
     return -1;
   };
   const brBack = at => {
-    const c = s[at], o = BACK[c];
+    const c = k.s[at], o = BACK[c];
     for (let i = at, d = 0; i >= 0; i--) {
-      if (s[i] === '>') { const l = s.lastIndexOf('<', i); if (l < 0) return -1; i = l; continue; }
-      if (s[i] === c) d++;
-      else if (s[i] === o && --d === 0) return i;
+      if (k.s[i] === '>') { const l = k.s.lastIndexOf('<', i); if (l < 0) return -1; i = l; continue; }
+      if (k.s[i] === c) d++;
+      else if (k.s[i] === o && --d === 0) return i;
     }
     return -1;
   };
+  Object.assign(k, { INLINE, OP, ATOM, PAIR, BACK, FN, where, openOf, shutOf, brFwd, brBack });
+}
+
+/* A TERM EITHER SIDE OF A SLASH, the gaps around it, and the stacked fraction drawn from two. */
+function typesetTerms_(k) {
+  const { INLINE, OP, ATOM, PAIR, BACK, openOf, shutOf, brFwd, brBack } = k;
   /* THE TERM ENDING AT `end`, read leftwards: elements, bracket groups, entities that are not
      operators, and the characters above, until a space or an operator. Returns where it starts. */
   const termBack = end => {
     let i = end;
     while (i > 0) {
-      const c = s[i - 1];
+      const c = k.s[i - 1];
       if (c === '>') {
-        const l = s.lastIndexOf('<', i - 1), t = /^<\/([a-zA-Z]\w*)>$/.exec(s.slice(l, i));
+        const l = k.s.lastIndexOf('<', i - 1), t = /^<\/([a-zA-Z]\w*)>$/.exec(k.s.slice(l, i));
         if (!t || !INLINE.test(t[1].toLowerCase())) break;
         const o = openOf(i, t[1].toLowerCase());
         if (o < 0) break;
@@ -88,10 +103,10 @@ function typeset_(html) {
         if (o < 0) break;
         i = o;
       } else if (c === ';') {
-        const a = s.lastIndexOf('&', i - 1), e = a < 0 ? null : /^&(#?\w+);$/.exec(s.slice(a, i));
+        const a = k.s.lastIndexOf('&', i - 1), e = a < 0 ? null : /^&(#?\w+);$/.exec(k.s.slice(a, i));
         if (!e || OP.test(e[1])) break;
         i = a;
-      } else if (c === '.' && /\d/.test(s[i - 2] || '') && /\d/.test(s[i] || '')) {
+      } else if (c === '.' && /\d/.test(k.s[i - 2] || '') && /\d/.test(k.s[i] || '')) {
         i--;
       } else if (ATOM.test(c)) {
         i--;
@@ -103,24 +118,24 @@ function typeset_(html) {
   const TAG = /<([a-zA-Z]\w*)\b[^>]*>/y;
   const termFwd = from => {
     let i = from;
-    while (i < s.length) {
-      const c = s[i];
+    while (i < k.s.length) {
+      const c = k.s[i];
       if (c === '<') {
         TAG.lastIndex = i;
-        const t = TAG.exec(s);
+        const t = TAG.exec(k.s);
         if (!t || !INLINE.test(t[1].toLowerCase())) break;
         const z = shutOf(i, t[1].toLowerCase());
         if (z < 0) break;
         i = z;
       } else if (PAIR[c]) {
-        const z = brFwd(s, i);
+        const z = brFwd(k.s, i);
         if (z < 0) break;
         i = z + 1;
       } else if (c === '&') {
-        const e = /^&(#?\w+);/.exec(s.slice(i, i + 12));
+        const e = /^&(#?\w+);/.exec(k.s.slice(i, i + 12));
         if (!e || OP.test(e[1])) break;
         i += e[0].length;
-      } else if (c === '.' && /\d/.test(s[i - 1] || '') && /\d/.test(s[i + 1] || '')) {
+      } else if (c === '.' && /\d/.test(k.s[i - 1] || '') && /\d/.test(k.s[i + 1] || '')) {
         i++;
       } else if (ATOM.test(c)) {
         i++;
@@ -132,8 +147,8 @@ function typeset_(html) {
   const gapBack = at => {
     let i = at;
     for (;;) {
-      if (i > 0 && /\s/.test(s[i - 1])) i--;
-      else if (s.slice(i - 6, i) === '&nbsp;') i -= 6;
+      if (i > 0 && /\s/.test(k.s[i - 1])) i--;
+      else if (k.s.slice(i - 6, i) === '&nbsp;') i -= 6;
       else return i;
     }
   };
@@ -143,38 +158,45 @@ function typeset_(html) {
   };
   const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
     + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+  Object.assign(k, { termBack, termFwd, GAP, gapBack, bare, stack });
+}
 
+function typesetPowers_(k) {
+  const { where, PAIR, brFwd } = k;
   /* ---------- POWERS FIRST, so `x^(5/2)` is a power before anything looks at its slash ---------- */
   for (let from = 0; ;) {
-    const p = s.indexOf('^', from);
+    const p = k.s.indexOf('^', from);
     if (p === -1) break;
     from = p + 1;
     const w = where(p);
     if (w.tag || w.raw) continue;
     let exp = '', end = p + 1;
-    if (PAIR[s[p + 1]]) {
-      const z = brFwd(s, p + 1);
+    if (PAIR[k.s[p + 1]]) {
+      const z = brFwd(k.s, p + 1);
       if (z < 0) continue;
-      exp = s.slice(p + 2, z);
+      exp = k.s.slice(p + 2, z);
       end = z + 1;
     } else {
       const t = /^(?:-|&minus;|\u2212|\+)?(?:\d+(?:\.\d+)?|[A-Za-z\u0370-\u03ff]+|[\u00bc-\u00be\u2150-\u215e]|<i>[^<]*<\/i>)/
-        .exec(s.slice(p + 1, p + 40));
+        .exec(k.s.slice(p + 1, p + 40));
       if (!t) continue;
       exp = t[0];
       end = p + 1 + t[0].length;
     }
     if (!exp.trim()) continue;
     /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
-    s = s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + s.slice(end);
+    k.s = k.s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + k.s.slice(end);
     from = p;
   }
+}
 
+function typesetFracs_(k) {
+  const { where, openOf, shutOf, termBack, termFwd, GAP, gapBack, stack, FN } = k;
   /* ---------- THEN EVERY FRACTION SLASH, left to right -------------------------------------------- */
   const SL = /&frasl;|\u2044|&#8260;/g;
   for (let from = 0; ;) {
     SL.lastIndex = from;
-    const m = SL.exec(s);
+    const m = SL.exec(k.s);
     if (!m) break;
     const p = m.index, q = p + m[0].length;
     from = q;
@@ -182,10 +204,10 @@ function typeset_(html) {
     if (w.tag || w.raw) continue;
     /* A FRACTIONAL INDEX LOOKS LIKE A HALF (owner, 1 Nov: "make it look more like a half. universal rule"): x<sup>1/2</sup> is a small 1 over a small 2 on a slant, like ½ -- on its line, not stacked (241). */
     if (w.deep) {
-      const a = /\d+$/.exec(s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(s.slice(q, q + 12));
+      const a = /\d+$/.exec(k.s.slice(Math.max(0, p - 12), p)), b = /^\d+/.exec(k.s.slice(q, q + 12));
       if (!a || !b) continue;
       const ix = '<span class="frac-ix"><span class="frac-ix-n">' + a[0] + '</span>&#x2044;<span class="frac-ix-d">' + b[0] + '</span></span>';
-      s = s.slice(0, p - a[0].length) + ix + s.slice(q + b[0].length);
+      k.s = k.s.slice(0, p - a[0].length) + ix + k.s.slice(q + b[0].length);
       from = p - a[0].length + ix.length;
       continue;
     }
@@ -193,42 +215,41 @@ function typeset_(html) {
     const le = gapBack(p);
     let ls = termBack(le), whole = '', num;
     if (ls === le) continue;
-    if (s.slice(le - 6, le) === '</sup>') {
+    if (k.s.slice(le - 6, le) === '</sup>') {
       const o = openOf(le, 'sup');
-      const pre = s.slice(ls, o), inner = s.slice(s.indexOf('>', o) + 1, le - 6);
+      const pre = k.s.slice(ls, o), inner = k.s.slice(k.s.indexOf('>', o) + 1, le - 6);
       if (!pre) num = inner;
       else if (/^\(?\d+\)?$/.test(pre)) { whole = pre; num = inner; }
-      else num = s.slice(ls, le);
+      else num = k.s.slice(ls, le);
     } else {
-      const f = /(sin|cos|tan|log|ln|lg|exp)(?:\s|&nbsp;)+$/.exec(s.slice(0, ls));
-      if (f && !/[A-Za-z]/.test(s[f.index - 1] || '')) ls = f.index;
-      num = s.slice(ls, le);
+      const f = /(sin|cos|tan|log|ln|lg|exp)(?:\s|&nbsp;)+$/.exec(k.s.slice(0, ls));
+      if (f && !/[A-Za-z]/.test(k.s[f.index - 1] || '')) ls = f.index;
+      num = k.s.slice(ls, le);
     }
     /* THE BOTTOM. */
-    const g = GAP.exec(s.slice(q, q + 40));
+    const g = GAP.exec(k.s.slice(q, q + 40));
     const rs = q + (g ? g[0].length : 0);
     let re, den;
-    if (/^<sub\b/i.test(s.slice(rs, rs + 5))) {
+    if (/^<sub\b/i.test(k.s.slice(rs, rs + 5))) {
       re = shutOf(rs, 'sub');
       if (re < 0) continue;
-      den = s.slice(s.indexOf('>', rs) + 1, re - 6);
+      den = k.s.slice(k.s.indexOf('>', rs) + 1, re - 6);
     } else {
       re = termFwd(rs);
       if (re === rs) continue;
-      if (FN.test(s.slice(rs, re))) {
-        const h = GAP.exec(s.slice(re, re + 40));
+      if (FN.test(k.s.slice(rs, re))) {
+        const h = GAP.exec(k.s.slice(re, re + 40));
         const more = h ? termFwd(re + h[0].length) : re;
         if (h && more > re + h[0].length) re = more;
       }
-      den = s.slice(rs, re);
+      den = k.s.slice(rs, re);
     }
     const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
-    s = s.slice(0, ls) + out + s.slice(re);
+    k.s = k.s.slice(0, ls) + out + k.s.slice(re);
     /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
        <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
     from = ls;
   }
-  return s;
 }
 
 /* ---------- THE ANSWER: SHOWN, THEN SPLIT BY WHO WAS READING, AND NOW ONE PAGE FOR EVERYBODY § */
