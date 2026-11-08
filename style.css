@@ -3022,6 +3022,16 @@ span[data-do]:is(:active, .is-pressed) { text-decoration-color: var(--gold); }
 .is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. § */
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
+/* A COLOUR PER KIND OF PILL (look rules): facts, subjects green, qualifications, places; never the grey line. */
+.prof-tags .prof-tag { border-color: color-mix(in srgb, var(--tag, var(--ink)) 60%, transparent); color: var(--tag, var(--ink));
+  background: color-mix(in srgb, var(--tag, var(--ink)) 10%, transparent); }
+.prof-facts { --tag: var(--tag-kind); }
+.prof-teach:not(.prof-facts, .prof-quals, .prof-places) { --tag: var(--green); }
+.prof-quals { --tag: var(--tag-check); }
+.prof-places { --tag: var(--tag-board); }
+.prof-tags .prof-lv { color: inherit; }
+.prof-hours .prof-busy { color: var(--gold); }
+.is-prof .prof-top + .prof-facts { margin-top: .5rem; }
 /* NO STRONGER OUTLINE FOR "Teaches" (720, owner: "one of the tags is harder outlined"): the caption over the row says which they teach; every chip is drawn alike. */
 .prof-tags + .prof-teach { margin-top: .35rem; }
 /* THE LEVELS, RAISED AFTER THE SUBJECT — `teachChip_` in cards.js. § */
