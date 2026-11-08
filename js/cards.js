@@ -175,9 +175,9 @@ function profHeat_(names) {
     if (v && v.title) byName[norm(v.title)] = v; });
   const pts = names.map(n => byName[norm(n)])
     .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
-  const online = names.some(n => /^online$/i.test(String(n).trim()));
-  const tail = online ? `<div class="qtags prof-tags prof-teach"><span class="prof-tag">Online</span></div>` : '';
-  if (!pts.length) return online ? `<div class="prof-cap">Tutors at</div>${tail}` : '';
+  /* EVERY PLACE BY NAME TOO, so the card still says where when the map cannot load. */
+  const tail = `<div class="qtags prof-tags prof-teach prof-places">${names.map(n => `<span class="prof-tag">${esc(n)}</span>`).join('')}</div>`;
+  if (!pts.length) return `<div class="prof-cap">Tutors at</div>${tail}`;
   let z = 12;
   for (; z > 9; z--) {
     const px = pts.map(p => heatPx_(p[0], p[1], z));
@@ -273,7 +273,7 @@ function profAvail_(t) {
     <div class="prof-week prof-hours" data-avail="${ticked.length}"
       aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
         + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
-        ? `<p class="prof-key faint">Already teaching ${busyLine}</p>` : ''}</div>`;
+        ? `<p class="prof-key prof-busy">Already teaching ${busyLine}</p>` : ''}</div>`;
 }
 /* AN HOUR SPAN AS A PERSON SAYS IT: 4–7pm, 10am–1pm, 12–1pm. */
 const profHr_ = h => (h % 12 || 12) + '';
@@ -337,6 +337,11 @@ function findCard(x) {
                 ''}
         </div>
       </div>
+      ${/* EXPERIENCE, AGES, GROUP SIZE AND SESSION LENGTH, AS PILLS UNDER THE FACE (look rules: every attribute a tag at the top). */
+            ''}
+      ${profFacts_(t).length
+        ? `<div class="qtags prof-tags prof-teach prof-facts">${profFacts_(t)
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already wraps it in quotation marks, so it
             is printed as said rather than as a field with a label — which is the difference between
             a profile and a form. */''}
@@ -352,11 +357,6 @@ function findCard(x) {
       ${profList_(t.tags).length
         ? `<p class="prof-words">${profList_(t.tags).slice(0, 3)
              .map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''}
-      ${/* ---------- EXPERIENCE, GROUP SIZE AND SESSION LENGTH, AS CHIPS § */
-            ''}
-      ${profFacts_(t).length
-        ? `<div class="qtags prof-tags prof-teach prof-facts">${profFacts_(t)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* ---------- THE ROWS, AND EVERY ONE OF THEM IS DROPPED WHEN IT IS EMPTY § */
             ''}
       ${/* ---------- WHAT THEY TEACH, AS THE SAME CHIPS THE ADJECTIVES ARE § */

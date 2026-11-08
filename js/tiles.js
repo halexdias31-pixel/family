@@ -297,6 +297,8 @@ function tutorTiles_(x) {
   const t = x.row || {};
   return `
     ${/* BOOK, FIRST (owner, 7 Nov): Find › Booking with this tutor's row answered. */ bookTile_(x)}
+    ${/* THEIR INTRO VIDEO (Settings › Photos › video), a link out: the card has no player. */
+          /^https?:\/\//i.test(String(t.mediaUrl || '')) ? tile_({ icon: 'play', label: 'Watch intro', href: t.mediaUrl }) : ''}
     ${/* SILVER, IN THE ORDINARY ROW. § */
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
