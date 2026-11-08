@@ -39,17 +39,19 @@ check('every Find kind that is not a question is made of the shared parts: head,
       }
       /* THE TAGS ARE THE TITLE (499): a name the tag row already says has no head — the card opens on its row, its name its aria-label. */
       const tagTitled = card.getAttribute('aria-label') === x.name && !card.querySelector('.fc-head');
-      const head = tagTitled ? null : card.firstElementChild;
+      /* TAGS AT THE TOP OF EVERY CARD (1030): the row may stand above the head instead of under it. */
+      const top = card.firstElementChild, rowFirst = !!top && top.classList.contains('qtags');
+      const head = tagTitled ? null : rowFirst ? top.nextElementSibling : top;
       if (tagTitled) {
         const tr0 = card.firstElementChild;
         if (!tr0 || !tr0.classList.contains('qtags') || !tr0.querySelector('.qtag[data-f="kindLabel"]')) bad.push(name + ' has no head and does not open on its tag row');
       } else {
-        if (!head || !head.classList.contains('fc-head')) bad.push(name + ' does not open on `.fc-head`');
+        if (!head || !head.classList.contains('fc-head')) bad.push(name + ' does not open on `.fc-head` (or its tag row, then the head)');
         else if (!head.querySelector(':scope > h3') || head.querySelector('.fc-flag, .fc-flags')) {
           bad.push(name + '\'s head is not its title alone');
         }
         /* AND THE ONE ROW UNDER IT, opening on the What kind answer (355). */
-        const tr = head && head.nextElementSibling;
+        const tr = rowFirst ? top : head && head.nextElementSibling;
         if (!tr || !tr.classList.contains('qtags') || !tr.querySelector('.qtag[data-f="kindLabel"]')) bad.push(name + '\'s head is not followed by its tag row');
         if (card.querySelectorAll('.fc-head').length !== 1) bad.push(name + ' has ' + card.querySelectorAll('.fc-head').length + ' heads');
       }

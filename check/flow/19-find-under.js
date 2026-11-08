@@ -427,11 +427,12 @@ check('the history database: a manuscript and a historical figure are each found
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { manuscripts: read('manuscripts'), figures: read('figures'), writings: read('writings') })));
   const hp = Object.assign(p, { manuscripts: made.manuscripts || [], figures: made.figures || [], writings: made.writings || [] });
-  /* THE RELIGIOUS ROWS ARE 18+ (499): a member of no known age is not given Papyrus 52, Codex Alexandrinus, Clement or First Clement; an adult is. */
+  /* NO AGE GATES (1040, owner: "cancel all that"): a member of no known age is given Papyrus 52, Codex Alexandrinus and Clement too. */
   const young = boot({ payload: JSON.parse(JSON.stringify(hp)), member: true });
   for (let i = 0; i < 80 && !young.w.__t; i++) await wait(25);
   await wait(250);
-  const youngHas = young.w.__t ? young.w.stuffItemsAll_().filter(x => /^hdb:(MS-0001|MS-0002|FIG-0003|WR-0001)$/.test(x.key)).map(x => x.key) : ['(did not boot)'];
+  const youngHas = young.w.__t ? young.w.stuffItemsAll_().map(x => x.key) : [];
+  const youngLacks = ['hdb:MS-0001', 'hdb:MS-0002', 'hdb:FIG-0003'].filter(k => youngHas.indexOf(k) < 0);
   /* THE WORKS' PAGES SERVED (520): a writing is its pages, so a link to WR-0001 lands on First Clement's first page. */
   const serveWorks = url => {
     const m = /(?:^|\/)data\/works\/([A-Za-z0-9-]+\.json)(?:\?|$)/.exec(url);
@@ -444,7 +445,7 @@ check('the history database: a manuscript and a historical figure are each found
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   t.go('stuff'); w.paintStuff();
   for (let i = 0; i < 80 && !w.stuffItemsAll_().some(x => x.key === 'wt:WR-0001:English:0'); i++) await wait(25);
-  if (youngHas.length) bad.push('a member of no known age is given ' + youngHas.join(', ') + ' — religious rows are 18+ (499)');
+  if (youngLacks.length) bad.push('a member of no known age is not given ' + youngLacks.join(', ') + ' — there are no age gates (1040)');
   const all = w.stuffItemsAll_();
   const get = id => all.find(x => x.key === 'hdb:' + id);
   const ms = get('MS-0002'), fig = get('FIG-0003'), wr = all.find(x => x.key === 'wt:WR-0001:English:0');
@@ -464,6 +465,8 @@ check('the history database: a manuscript and a historical figure are each found
     t.STUFF().filters = walk;
     if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
     /* THE CARD: its name, its tags, one line per field, an era tag; a person (batch D) is the portrait under the tags, nothing else. */
+    /* drawn with no chips picked: a tag a picked chip already says is left off (owner, 6 Nov), and the walk picks Era. */
+    t.STUFF().filters = [];
     const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
     if (x.kind === 'people') {
       const pc = el.querySelector('.card.person');
@@ -509,28 +512,30 @@ check('the history database: a manuscript and a historical figure are each found
 });
 
 /* ---------- THE TIMELINE (461): EVENTS FOUND AS A FOURTH KIND, THE WORLD WAR 2 CARD LISTS THEM IN DATE ORDER, EVERY TILE LANDS IN PLACE ---------- */
-check('the history timeline: events are found under Learning, Content, History, Events, the timeline under Learning, Timeline (545); the World War 2 timeline card lists every event in date order as a tile to its card, an event links to its figure and back, and the Animation tile opens the chapter with the drawing', async () => {
+check('the history timeline: events are found under Learning, Content, History, Events, the timeline under Learning, Timeline (545); the World War 2 timeline card is an animation of its events in date order (batch F), an event links to its figure, and the Animation tile opens the chapter with the drawing', async () => {
   const p = await resPayload_();
   if (!p) return ['the app did not load — NOT checked'];
   const one = boot();
   for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
-  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
-  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });   // an adult: the history database is 14+ (505)
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline'), timelines: read('timelines') })));
+  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [], timelines: made.timelines || [] }), before: signedInAs_(Object.assign({}, MEMBER_, { profile: { dob_d: '1', dob_m: '1', dob_y: String(new Date().getFullYear() - 30) } })) });   // an adult: the history database is 14+ (505)
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(250);
   if (!b.w.__t) return ['the app did not boot — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const all = w.stuffItemsAll_();
-  const tl = all.find(x => x.kind === 'timeline' && x.name === 'World War 2 timeline');
+  const tl = all.find(x => x.kind === 'timeline' && x.era === 'World War 2');
   const evs = read('timeline').filter(e => e.era === 'World War 2');
   if (!tl || evs.length < 20) return ['no World War 2 timeline item, or data/timeline.json has fewer than 20 of its events — NOT checked'];
   const get = id => all.find(x => x.key === 'hdb:' + id);
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
                        { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
   const found = w.stuffFiltered();
-  /* A TIMELINE IS IN LIBRARY › HISTORY (610), and Which says Timeline. */
-  if (found.indexOf(tl) < 0) bad.push('the timeline is not under Library, History (610)');
+  /* A TIMELINE IS IN LIBRARY › HISTORY › TIMELINES (610, batch F), and Which says Timeline. */
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' },
+                       { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Timelines' }];
+  if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is not under Library, History, Timelines (610)');
   t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Timeline' }];
   if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Timeline');
   const lost = evs.filter(e => found.indexOf(get(e.id)) < 0).map(e => e.id);
@@ -539,13 +544,17 @@ check('the history timeline: events are found under Learning, Content, History, 
   const walk = w.finderWalk_(tl);
   t.STUFF().filters = walk;
   if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
-  /* THE CARD: a tile per event, in date order, then the Animation tile. */
+  /* THE CARD IS AN ANIMATION (batch F): a scene per stop, the stops in date order, and an Animation tile to the chapter with the drawing. */
+  t.STUFF().filters = [];
   const box = d.createElement('div'); box.innerHTML = w.stuffCard(tl);
+  const stops = (tl.row && tl.row.stops) || [];
+  if (stops.length < 5) bad.push('the timeline has ' + stops.length + ' stops — five at least');
+  if (box.querySelectorAll('.tl-anim .tl-track .tl-ev').length !== stops.length) bad.push('the timeline card does not draw one scene per stop on its axis');
+  const isos = stops.map(s => s.ev.date_iso);
+  if (isos.some((v, k) => k && v.localeCompare(isos[k - 1]) < 0)) bad.push('the timeline\'s stops are not in date order: ' + isos.slice(0, 4).join(', ') + '…');
   const keys = [...box.querySelectorAll('[data-do="find-open"]')].map(e => e.getAttribute('data-key'));
-  const want = evs.slice().sort((a, c) => a.date_iso.localeCompare(c.date_iso)).map(e => 'hdb:' + e.id);
-  if (JSON.stringify(keys.slice(0, want.length)) !== JSON.stringify(want)) bad.push('the timeline\'s tiles are not every event in date order: ' + keys.slice(0, 4).join(', ') + '…');
-  const animKey = keys[want.length];
-  if (!animKey || !/^ct:TB-GCSE-HIST-6$/.test(animKey)) bad.push('the timeline\'s last tile is not the Animation tile to GCSE History chapter 6: ' + animKey);
+  const animKey = keys.find(k => /^ct:/.test(k));
+  if (!animKey || !/^ct:TB-GCSE-HIST-6$/.test(animKey)) bad.push('the timeline has no Animation tile to GCSE History chapter 6: ' + animKey);
   if (box.querySelector('[data-do="find-open"][href], a[target]')) bad.push('a timeline tile opens a page instead of a card in place');
   const ev = get('EV-0003'), hit = get('FIG-0004');
   if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
@@ -567,9 +576,8 @@ check('the history timeline: events are found under Learning, Content, History, 
   const opener = d.createElement('button'); opener.setAttribute('data-key', tl.key); d.getElementById('s-stuff').appendChild(opener);
   A['find-open'](opener); await wait(120);
   onCard(tl, 'the timeline opened');
-  if (press(tl, ev.key)) { await wait(120); onCard(ev, 'the timeline\'s tile to ' + ev.name); }
   if (press(ev, hit.key)) { await wait(120); onCard(hit, 'the event\'s Figure tile'); }
-  if (press(tl, animKey)) {
+  if (animKey && press(tl, animKey)) {
     await wait(150);
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
     if (!pg || !pg.x || pg.x.key !== animKey) bad.push('the Animation tile lands on ' + (pg && pg.x ? pg.x.key : 'nothing') + ', not ' + animKey);

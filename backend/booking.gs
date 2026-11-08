@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-11-07-onboard-1150";
+const BOOKING_VERSION = "2026-11-08-refund-rule-1151";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -362,6 +362,27 @@ function payStatement_(tutor, ym) {
   const sum = k => r2(rows.reduce((t, r) => t + r[k], 0));
   return { month: S(ym), tutor: personDisplayName(tutor), tutorId: S(tutor.person_id), sessions: rows,
            totals: { sessions: rows.length, hours: sum('hours'), paid: sum('paid'), business: sum('business'), tutor: sum('tutor') } };
+}
+
+/* WHO IS OWED MONEY BACK (owner, 7 Nov): nobody who leaves a paid block of several lessons, whatever the notice; a single lesson is refunded only if left 24h or more before it starts. */
+function refundOwedPure_(dates, startTime, leftAt) {
+  if ((dates || []).length !== 1) return false;
+  const day = sheetDate(dates[0]), left = leftAt instanceof Date ? leftAt : sheetDate(leftAt);
+  if (!day || !left || isNaN(left)) return true;            // cannot tell: the admin decides
+  const m = String(startTime || '').match(/(\d{1,2}):(\d{2})/);
+  const starts = new Date(day.getFullYear(), day.getMonth(), day.getDate(), m ? +m[1] : 0, m ? +m[2] : 0);
+  return starts.getTime() - left.getTime() >= 24 * 36e5;
+}
+
+/* The names on this job who paid, withdrew and are owed a refund by `refundOwedPure_`. */
+function refundsOwedFor_(j, jobId) {
+  const left = {};
+  read(TAB.events).rows.forEach(r => {
+    if (S(r.job_id) === S(jobId) && S(r.action) === ACT.WITHDRAW) left[S(r.actor)] = r.at;
+  });
+  return participantsOf(jobId)
+    .filter(p => p.refundDue && refundOwedPure_(sessionDatesOf(j), fmtTime(j.start_time), left[p.name]))
+    .map(p => p.name);
 }
 
 function sessionDatesOf(j) {

@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-07-onboard-1150";
+const BACKEND_VERSION = "2026-11-08-refund-rule-1151";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

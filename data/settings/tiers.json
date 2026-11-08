@@ -390,7 +390,7 @@
     "find-pages",
     "find-measure"
   ],
-  "lazy": [],
+  "lazy": ["mat", "records", "biz-check", "one-place", "inbox"],
   "widgetFiles": {},
   "frozen": {
     "notes": "FROZEN (owner, 7 Nov 2026; docs/history/1090): only Find, the library, questions, settings and bookings matter for now. tools/health.js leaves these js/ file stems out of its score and worklist, beside every non-core file above. Unfreeze: take a stem off this list.",

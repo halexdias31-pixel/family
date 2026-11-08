@@ -63,14 +63,20 @@ function laterFiles_() {
   LATER_ASK = batchFiles_(later).then(() => { LATER_IN = true; });
   return LATER_ASK;
 }
-/* THE SECOND BATCH (1080): index.html's `LAZY`, widget-only files, asked for when one of their cards first starts — after LATER, one task, same rule. `lazyFiles_.in` once run. */
+/* THE SECOND BATCH (1080): index.html's `LAZY`, files Find never needs, asked for behind the library (boot.js) or when a widget of theirs starts — one task, same rule. */
 let LAZY_ASK = null;
 function lazyFiles_() {
   if (LAZY_ASK) return LAZY_ASK;
   const lazy = (typeof window !== 'undefined' && Array.isArray(window.LAZY)) ? window.LAZY : [];
-  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy)).then(() => { lazyFiles_.in = true; });
+  LAZY_ASK = laterFiles_().then(() => batchFiles_(lazy)).then(() => {
+    lazyFiles_.in = true;
+    /* A column that waited for them (`paint`'s ReferenceError) is drawn now, if the payload is here to draw it. */
+    try { if (typeof STALE !== 'undefined' && STALE[AT] && LOADED) repaint(); } catch (e) { oops_(e, 'data:lazyIn'); }
+  });
   return LAZY_ASK;
 }
+/* EVERY BATCH IN: until then a column whose code is missing waits instead of saying it did not draw. */
+function filesIn_() { return LATER_IN && (!(Array.isArray(window.LAZY) && window.LAZY.length) || !!lazyFiles_.in); }
 /* IN window.FILES' ORDER, whatever order the list is written in: that list is the load order. Never rejects. */
 function batchFiles_(want) {
   const off = Array.isArray(window.OFF) ? window.OFF : [];

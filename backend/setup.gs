@@ -783,15 +783,13 @@ function dataProblems(deep) {
     read(TAB.jobs).rows.forEach(j => {
       const id = S(j.job_id) || String(j._row);
       if (!id) return;
-      participantsOf(id).forEach(p => {
-        if (S(p.status) === 'Withdrawn') {
-          owed.push(p.name + ' — ' + (S(j.subject) || 'a session')
-            + (S(j.weekday) ? ' on ' + S(j.weekday) : ''));
-        }
+      refundsOwedFor_(j, id).forEach(name => {
+        owed.push(name + ' — ' + (S(j.subject) || 'a session')
+          + (S(j.weekday) ? ' on ' + S(j.weekday) : ''));
       });
     });
     if (owed.length) {
-      add('money to give back', owed.length + ' paid and then withdrew: ' + owed.join('; '),
+      add('money to give back', owed.length + ' paid, withdrew in time and are owed a refund: ' + owed.join('; '),
           'Refund them in Stripe. They are kept on the session marked Withdrawn so this does not '
           + 'disappear — nothing else anywhere says a refund is owed.');
     }
