@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-08-home-seats-1";
+const BACKEND_VERSION = "2026-11-08-old-rows-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1438,6 +1438,8 @@ const RUNNABLE = {
   priceWearables:    () => repairShopPrices(),
   /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED § */
   fillHandles:       () => fillHandles(),
+  /* OLD SHEET ROWS INTO TODAY'S SHAPE (owner, 8 Nov), the same job as Business › Tidy old rows. */
+  tidyOldRows:       () => migrateOldRows_(),
   /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE § */
   renameHandles:     () => renameHandles_(),
   /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
@@ -1676,7 +1678,7 @@ const ACTION_ACCESS = {
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self', report: 'self',
   /* AN ERROR FROM A PHONE: `anyone`, because a screen can break before sign-in; throttled per device and day in the handler. */
-  clientError: 'anyone', listClientErrors: 'admin',
+  clientError: 'anyone', listClientErrors: 'admin', tidyOldRows: 'admin',
   /* A SAMPLED VISIT'S FIGURES (920): `anyone`, as an error is; throttled per device and day in the handler. */
   healthLog: 'anyone',
   suggest: 'self', suggestUpload: 'admin', listSuggestions: 'admin', decideSuggestion: 'admin',
