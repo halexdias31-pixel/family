@@ -530,15 +530,16 @@ const cardEditEverything_ = async c => {
   await wait(50);
   c.type(c.box('qual_1_grade'), '8');
   await wait(50);
-  const mitcham = f.querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
-  if (mitcham) c.tick(mitcham, true);
+  /* BY AREA (owner, 8 Nov): Mitcham Library's area ticked afresh brings in every venue of it. */
+  const mitcham = f.querySelector('input[data-where-area]');
+  if (mitcham) { c.tick(mitcham, false); c.tick(mitcham, true); }
   c.type(c.box('travel_km'), '8');
   await wait(50);
   return { more: !!more, line: !!line, mitcham: !!mitcham, 'session length': hours };
 };
 const CARD_PLAIN_ = { headline: 'Maths and physics, mostly', adjective_2: 'patient',
   years_experience: '6', favourite_colour: 'Green', age_max: '18', min_hours: '2', max_hours: '3',
-  venues_ok: 'Colliers Wood Library, Mitcham Library', travel_km: '8' };
+  venues_ok: 'Colliers Wood Library, Mitcham Library, Online', travel_km: '8' };
 const CARD_WHOLE_RE_ = /^photos_\d+$|^qual_\d+(_\w+)?$/;
 
 check('a tutor edits every section of their tutor card on Tutor settings, each section a card of its own with no preview (468): each Save posts its own section\'s changes, the sheet holds them, and the profile on Tutors redraws with them', async () => {
@@ -581,7 +582,7 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   const did = await cardEditEverything_(c);
   Object.keys(did).forEach(k => { if (!did[k]) bad.push('there is no ' + k + ' to press, so that section was NOT edited'); });
   if (form.querySelector('.prof-heat')) bad.push('Tutor settings draws the venue map (491: the map is the profile\'s; settings is configuration)');
-  { const wv = form.querySelector('.card-ed[data-sec="where"] details[data-fold="where"] .ce-v'); if (!wv || !/2 venues/.test(wv.textContent)) bad.push('ticking Mitcham did not count two venues: ' + (wv && wv.textContent)); }
+  { const wv = form.querySelector('.card-ed[data-sec="where"] details[data-fold="where"] .ce-v'); if (!wv || !/3 venues/.test(wv.textContent)) bad.push('ticking Mitcham\'s area did not count its three venues: ' + (wv && wv.textContent)); }
   const dirty = c.dirty();
   if (JSON.stringify(dirty) !== JSON.stringify(['headline', 'photos', 'words', 'glance', 'quals', 'where'])) bad.push('the cards typed into are ' + JSON.stringify(dirty));
   c.sent.length = 0;
@@ -684,8 +685,8 @@ check('Cancel on a section\'s card puts it back as it was and sends nothing; a r
   const row = W.real.row('P-T1');
   if (String(row.headline) !== 'Maths, mostly' || String(row.age_min) !== '8') bad.push('a refused Save wrote to the sheet: headline ' + JSON.stringify(row.headline) + ', age_min ' + JSON.stringify(row.age_min));
   /* CANCEL ON EACH CARD TYPED INTO: nothing sent, each box back, no draft. */
-  const mitcham = c.sec('where') && c.sec('where').querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
-  if (mitcham) c.tick(mitcham, true);
+  const mitcham = c.sec('where') && c.sec('where').querySelector('input[data-where-area]');
+  if (mitcham) { c.tick(mitcham, false); c.tick(mitcham, true); }
   if (!c.tileOn('where', 'card-cancel')) return bad.concat(['there is no Cancel on the Where you teach card, so Cancel was NOT checked']);
   c.sent.length = 0;
   for (const id of ['quals', 'glance', 'headline', 'where']) { c.A('card-cancel', c.tileOn(id, 'card-cancel')); await wait(300); }

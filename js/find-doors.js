@@ -128,6 +128,8 @@ const settingNone_ = h => /^\s*<div class="card (?:rank-off|set-none|own-lock)\b
 function settingDoorItems_() {
   if (!USER) return [{ kind: 'setting', name: 'Sign in or join', key: 'set:signin', sub: '', image: '', signIn: true, text: 'sign in join make an account pin' }];
   const tags = (DATA && DATA.settingFor) || {}, out = [], byName = {}, seen = {};
+  /* RECORDS ARE LAZY (the weekly email's cards): until that batch lands they are missing, so Find is drawn again once it does. */
+  try { if (typeof lazyFiles_ === 'function' && !lazyFiles_.in) doorAsk_(lazyFiles_()); } catch (e) { /* drawn without them; the next paint has them */ }
   const add = (name, id, part, type, mine) => {
     const row = tags[id], fr = (row && row.for && row.for.length) ? row.for : [type];
     const x = byName[norm(name)];

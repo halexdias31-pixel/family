@@ -291,14 +291,34 @@ function ceGlanceSay_(get) {
   return [g('years_experience') ? g('years_experience') + ' yrs' : '', g('favourite_colour'),
     range('age_min', 'age_max', ''), range('min_hours', 'max_hours', ' h')].filter(Boolean).join(' · ') || 'none';
 }
-/* THE VENUES OPEN ON THEIR TICKS AT ONCE. No map (491, the owner: "this column is just configuration"): the map is on the profile. */
+/* BY AREA, NOT BY LIBRARY (owner, 8 Nov: "the operation will grow"): a tick an area; every venue stays in the data, and a tick adds or drops all of its area's. */
+const ceAreaOf_ = v => String((v && (v.borough || v.city)) || '').trim() || 'Elsewhere';
+function ceAreas_() {
+  const by = {};
+  ((typeof DATA !== 'undefined' && DATA && DATA.venues) || []).forEach(v => { if (v && v.title) (by[ceAreaOf_(v)] = by[ceAreaOf_(v)] || []).push(v.title); });
+  return by;
+}
 function ceWhere_(L, val, box) {
-  const n = profList_(val('venues_ok')).length;
-  const ticks = L.indexOf('venues_ok') !== -1 ? box('venues_ok', {}).replace('<details class="many-d"', '<details open class="many-d"') : '';
-  return ceFold_('where', 'Venues', esc(ceCount_(n, 'venue', 'venues')),
-      ticks)
+  const got = profList_(val('venues_ok')), by = ceAreas_(), has = t => got.some(g => norm(g) === norm(t));
+  const ro = (((typeof DATA !== 'undefined' && DATA && DATA.profileReadonly) || []).indexOf('venues_ok') !== -1);
+  const ticks = L.indexOf('venues_ok') === -1 ? '' : `<input type="hidden" data-me="venues_ok" value="${esc(got.join(', '))}">
+    <div class="many-list where-areas" role="group" aria-label="Areas you teach in">${Object.keys(by).sort().map(a => `<label class="check many-opt">
+      <input type="checkbox" data-where-area="${esc(a)}"${by[a].some(has) ? ' checked' : ''}${ro ? ' disabled' : ''}><span class="box"></span><span>${esc(a)}</span>
+      <span class="faint">${esc(ceCount_(by[a].length, 'venue', 'venues'))}</span></label>`).join('') || `<p class="faint">${esc(brand('where_none', 'No venues yet.'))}</p>`}</div>`;
+  return ceFold_('where', 'Areas', esc(ceCount_(got.length, 'venue', 'venues')), ticks)
     + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
 }
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('input[data-where-area]')) return;
+  const sec = t.closest('.ce-sec'), hid = sec && sec.querySelector('input[data-me="venues_ok"]');
+  if (!hid) return;
+  const mine = ceAreas_()[t.getAttribute('data-where-area')] || [];
+  const keep = profList_(hid.value).filter(g => !mine.some(m => norm(m) === norm(g)));
+  hid.value = (t.checked ? keep.concat(mine) : keep).join(', ');
+  const v = sec.querySelector('details[data-fold="where"] > summary .ce-v');
+  if (v) v.textContent = ceCount_(profList_(hid.value).length, 'venue', 'venues');
+});
 const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
 function cardEditForm_(t, e, vals, only) {

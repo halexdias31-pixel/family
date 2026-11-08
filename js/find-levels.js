@@ -621,6 +621,14 @@ function bookingPages_(o) {
   return [top + (BOOK_OPEN || !USER ? (form[0] || '') : '')].concat(form.slice(1));
 }
 let BOOK_OPEN = false;
+/* THE BOOKING FORM TAG: the form itself once that tag is chosen; under plain Booking the Book tile above opens it, so this card only points there. */
+function bookFormCard_() {
+  const alone = (STUFF.filters || []).some(f => f.field !== DOOR_FIELD);
+  if (!alone) return `<div class="card book-form-door"><h3>Booking form</h3><p class="sub">${esc(brand('book_form_say', 'Book a session: who, where, what and when.'))}</p>${
+    tileRow_(tile_({ icon: 'book', label: 'Book', act: 'book-open', cls: 'primary' }), 'book-top')}</div>`;
+  if (typeof awaiting_ === 'function' && awaiting_()) return loading_();
+  return (typeof bookBlocks === 'function' ? bookBlocks() : [])[0] || '';
+}
 /* SET THE ROOM, A FORM ON THE RECEIPT from the start (no sheet, owner 7 Nov). */
 const jobRoomForm_ = j => `<div class="rc-form room-form">
     <label class="field"><span>the room in the venue — the family sees it</span>

@@ -110,3 +110,43 @@ function onboardShot_(c, name) {
   if (!dir) return;
   try { require('fs').writeFileSync(require('path').join(dir, 'onboard-' + name + '.html'), '<!doctype html>' + c.d.documentElement.outerHTML); } catch (e) {}
 }
+
+/* THE WEEKLY EMAIL IN FIND › SETTINGS › BUSINESS (owner, 8 Nov): its look and its words, an admin's only, each titled. */
+check('Find › Settings › Business shows the Sunday letter to parents and its words to an admin, never to a parent', async () => {
+  const W = cardWorld_({});
+  const findSet_ = async (c, type) => { c.t.go('stuff', false, true); c.w.findSettings_(type); c.w.paintStuff(); await wait(300); };
+  const serve0 = W.serve;
+  W.serve = u => { const m = /data\/(settings\/[\w-]+)\.json/.exec(u); if (!m) return serve0(u);
+    try { return JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', m[1] + '.json'), 'utf8')); } catch (e) { return serve0(u); } };
+  const bad = [];
+  const a = await cardOpen_(W, 'admin@example.org', {});
+  if (a.err) return [a.err];
+  await findSet_(a, 'Business'); await wait(400); a.w.paintStuff(); await wait(200);
+  const biz = a.w.settingDoorItems_().filter(x => x.settingFor.indexOf('Business') !== -1).map(x => x.name);
+  ['Weekly email', 'Weekly email\'s words'].forEach(n => { if (biz.indexOf(n) === -1) bad.push('Find › Settings › Business has no ' + n + ': ' + biz.join(', ')); });
+  const p = await cardOpen_(W, 'parent@example.org', {});
+  if (p.err) return bad.concat([p.err]);
+  if (p.w.settingDoorItems_().some(x => /Weekly email/.test(x.name))) bad.push('a parent is offered the weekly email');
+  return bad;
+});
+
+/* FIND › BOOKING'S OWN TAGS (owner, 8 Nov): Booking form opens the form; Previous holds the client's finished bookings. */
+check('Find › Booking offers a Booking form tag that draws the form, and a Previous tag with the client\'s finished bookings only', async () => {
+  const W = cardWorld_({ people: [['P-C2', 'Cara', 'Client', 'client', 'cara@example.org']] });
+  const k = await cardOpen_(W, 'cara@example.org', {});
+  if (k.err) return [k.err];
+  const bad = [], D = k.t.DATA();
+  D.liveJobs = (D.liveJobs || []).concat([{ id: 'J-OLD', client: 'Cara Client', tutor: 'Ada Tutor', subject: 'Maths', startDate: '01/01/2024', endDate: '01/02/2024' },
+    { id: 'J-NOW', client: 'Cara Client', tutor: 'Ada Tutor', subject: 'Physics', startDate: '01/01/2024', endDate: '01/01/2099' }]);
+  k.w.stuffForget_();
+  k.t.go('stuff', false, true);
+  const pick = async v => { const S = k.t.STUFF(); S.q = ''; S.filters.length = 0; S.filters.push({ field: 'kindLabel', value: 'Booking' }); if (v) S.filters.push({ field: 'kindOwn', value: v }); k.w.paintStuff(); await wait(300); };
+  await pick('Booking form');
+  const list = k.w.stuffFiltered().map(x => x.kind + ':' + x.name);
+  if (list.join() !== 'bookform:Booking form') bad.push('the Booking form tag lists ' + list.join(', '));
+  if (!k.d.querySelector('#s-stuff [data-step="tutor"]')) bad.push('the Booking form tag does not draw the form');
+  await pick('Previous');
+  const prev = k.w.stuffFiltered().map(x => x.key);
+  if (prev.join() !== 'job:J-OLD') bad.push('Previous lists ' + prev.join(', ') + ', wanted only the finished booking');
+  return bad;
+});
