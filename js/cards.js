@@ -321,7 +321,6 @@ const kcPct_ = m => (m === 1 ? '—' : (m > 1 ? '+' : '−') + Math.abs(Math.rou
 const KC_FIELDS = {
   kindPic: x => libPic_(x.kind, x.name),
   name: x => `<h3>${esc(x.name || '')}</h3>`,
-  facets: x => (typeof tagRow_ === 'function' && x.key ? tagRow_(x) : ''),
   /* THE TUTOR'S COMPACT ONE-SCREEN CARD (547) as fields: face, role, the name line with the rate, then pills and lines. */
   face: x => { const t = kcRow_(x); return personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
     { cls: 'prof-pic', none: 'prof-none', size: 44 }); },
@@ -357,7 +356,6 @@ const KC_FIELDS = {
   places: x => profHeat_(profList_(kcRow_(x).venues)),
   /* DAY PILLS. */
   avail: x => profAvail_(kcRow_(x)),
-  venuePic: x => (typeof VENUE_PIX !== 'undefined' ? `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(kcRow_(x))], x.name)}</figure>` : ''),
   venueSub: x => (kcRow_(x).subtitle ? `<p class="sub">${mark(kcRow_(x).subtitle)}</p>` : ''),
   /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
   rooms: x => { const t = kcRow_(x), kid = childView_();
@@ -373,11 +371,9 @@ const KC_FIELDS = {
   bookingForm: x => (kcRow_(x).listed ? '' : row('Booking form', 'Not offered', 'bad')),
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
   tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<p class="faint kc-who">${esc(t.map(y => y.title).join(', '))}</p>` : ''; },
-  /* A MANUSCRIPT'S OWN FRAGMENT WHERE DRAWN, else its kind's picture. */
-  msPic: x => (typeof msFragSvg_ === 'function' && msFragSvg_(kcRow_(x), x.msSideIx)) || libPic_('manuscript', x.name),
-  refs: x => (typeof writingRefs_ === 'function' ? writingRefs_(kcRow_(x).id) : ''),
-  boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>`,
 };
+/* A FIELD ITS OWN FILE DRAWS (tags, a venue's building, a manuscript, a boxer) is added to `window.KC_FIELDS_MORE` there; no load order needed. */
+const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
 /* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js) or the bare three. */
 function kcSpec_(kind) {
   const rows = (typeof DATA !== 'undefined' && DATA && DATA.cardFields) || {};
@@ -388,7 +384,7 @@ function findCard(x) {
   const t = kcRow_(it), name = it.name || t.title || t.name || '';
   const one = it.name ? it : Object.assign({}, it, { name });
   const s = kcSpec_(it.kind);
-  const run = list => (list || []).map(k => { try { return KC_FIELDS[k] ? KC_FIELDS[k](one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
+  const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines) };
   const off = it.kind === 'tutor' && t.listed === false ? ' is-off' : '';
   return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${off}" aria-label="${esc(name)}">${

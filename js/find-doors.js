@@ -225,3 +225,6 @@ function findSettings_(type) {
   } catch (e) { oops_(e, 'doors:settings'); }
 }
 function settingsGone_(id) { if (!SETTINGS_HOME[id] || TABS.some(t => t.id === id)) return false; findSettings_(SETTINGS_HOME[id]); return true; }
+/* A VENUE'S 8-BIT BUILDING AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  venuePic: x => `<figure class="person-pic">${pixSvg_(VENUE_PIX[venueShape_(x.row || {})], x.name)}</figure>` });

@@ -654,3 +654,6 @@ function bibleItems_() {
 function bibleCard_(x) {
   return x && x.bb ? bibleVerseCard_(x) : '';
 }
+/* A MANUSCRIPT'S OWN FRAGMENT WHERE DRAWN (else its kind's picture), and a writing's references, as fields of the one card shape. */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, {
+  msPic: x => msFragSvg_(x.row || {}, x.msSideIx) || libPic_('manuscript', x.name), refs: x => writingRefs_((x.row || {}).id) });

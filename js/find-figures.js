@@ -770,3 +770,5 @@ function magPageAt_(t) {
   const page = MAG.on && t && t.closest ? t.closest('.page') : null;
   return page && page.querySelector('.q-mag') ? page : null;
 }
+/* A CARD'S FACET TAGS AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { facets: x => (x.key ? tagRow_(x) : '') });

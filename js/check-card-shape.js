@@ -29,6 +29,11 @@ const d = {};
 try { got.setCardFields_(d, { 'settings/card-fields': rows }); } catch (e) { bad.push('setCardFields_ threw: ' + e.message); }
 scope.DATA = d;
 const fields = got.KC_FIELDS && typeof got.KC_FIELDS === 'object' ? Object.keys(got.KC_FIELDS) : [];
+/* AND THE FIELDS OTHER FILES ADD (`window.KC_FIELDS_MORE`), read by name off their source. */
+fs.readdirSync(path.join(ROOT, 'js')).filter(f => /\.js$/.test(f)).forEach(f => {
+  const src = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), re = /window\.KC_FIELDS_MORE = Object\.assign\(window\.KC_FIELDS_MORE \|\| \{\}, \{\s*([\s\S]*?)\}\);\n/g;
+  for (let m; (m = re.exec(src));) m[1].replace(/(?:^|,)\s*([A-Za-z_$][\w$]*):\s*x\s*=>/g, (a, n) => { fields.push(n); return a; });
+});
 if (!fields.length) bad.push('KC_FIELDS is not found in js/cards.js');
 rows.forEach(r => ['pic', 'title', 'tags', 'lines'].forEach(p => String(r[p] || '').split(',').map(s => s.trim()).filter(Boolean)
   .forEach(f => { if (fields.indexOf(f) < 0) bad.push('card-fields.json ' + r.kind + ' names a ' + p + ' field "' + f + '" that KC_FIELDS has not'); })));

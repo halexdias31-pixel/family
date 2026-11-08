@@ -502,3 +502,5 @@ function vecHtml_(html) {
     '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
 }
 window.CARD_EXTRAS_MORE = Object.assign(window.CARD_EXTRAS_MORE || {}, { bible: bibleOpts_, insert: insertExtras_, manuscript: histExtras_, writing: histExtras_, event: histExtras_, timeline: tlExtras_ });
+/* A BOXER'S OR FIGURE'S PIXEL PORTRAIT AS A FIELD OF THE ONE CARD SHAPE (card-fields.json). */
+window.KC_FIELDS_MORE = Object.assign(window.KC_FIELDS_MORE || {}, { boxerPic: x => `<figure class="person-pic">${personPic_(x.pixId, x.name)}</figure>` });
