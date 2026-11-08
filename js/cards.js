@@ -308,6 +308,8 @@ function rateRange_(t) {
   return max > 1 && seat > 0 ? say(r) + '–' + say(r + seat * (max - 1)).slice(1) + '/hour' : say(r) + '/hour';
 }
 
+/* WHO A CARD IS DRAWN FOR: undefined is whoever is signed in; a share sets 'public' while it draws (tutorPng_). */
+let CARD_VIEWER;
 function findCard(x) {
   const t = x.row;
   /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE § */
@@ -328,7 +330,7 @@ function tutorTop_(t) {
       ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
                     { cls: 'prof-pic', none: 'prof-none', size: 44 })}
       <div class="prof-who">
-        <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>
+        <span class="prof-line"><span class="prof-name">${esc(displayName_(t, CARD_VIEWER))}</span>
         ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
         </span>
         ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL § */

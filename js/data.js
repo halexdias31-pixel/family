@@ -120,6 +120,21 @@ function nameBesideHandle_(name, handle) {
   return n.slice(-tail.length).toLowerCase() === tail.toLowerCase() ? n.slice(0, -tail.length) : n;
 }
 
+/* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
+   `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+function displayName_(person, viewer) {
+  const p = person && typeof person === 'object' ? person : { name: person };
+  const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
+  const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
+  const v = viewer === undefined ? (typeof USER !== 'undefined' ? USER : null) : viewer;
+  const rs = v && typeof v === 'object' ? (Array.isArray(v.roles) && v.roles.length ? v.roles : [v.role]).map(String) : [];
+  if (rs.indexOf('admin') !== -1) return full;
+  if (first && last) return first + ' ' + last.charAt(0).toUpperCase() + '.';
+  const w = full.split(/\s+/).filter(Boolean);
+  if (w.length < 2 || /[@(]/.test(full)) return full;
+  return w[0] + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
+}
+
 /* ---------- A CHILD SIGNED IN BEFORE 10 OCT IS CALLED BY HER FIRST NAME FROM THE FIRST FRAME § */
 try {
   const p = USER && USER.profile, first = String((p && p.first_name) || '').trim();

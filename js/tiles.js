@@ -499,7 +499,7 @@ function jobApplyTile_(j, id) {
 function jobChooseTiles_(j, id) {
   if (!jobOpenToTutors_(j) || childView_()) return '';
   return (j.tutorSlots || []).filter(sl => sl && sl.name && /^applied$/i.test(String(sl.status || '')))
-    .map(sl => tile_({ icon: 'tick', label: 'Choose ' + sl.name, tone: 'buy', note: 'they teach it',
+    .map(sl => tile_({ icon: 'tick', label: 'Choose ' + displayName_(sl.name), tone: 'buy', note: 'they teach it',
                        act: 'job-choose', data: { id: id, tutor: String(sl.name) } })).join('');
 }
 

@@ -326,7 +326,7 @@ function breakdownRows(L) {
   /* READ FROM THE BOOKING, NOT FROM `L`. § */
   /* ---------- "NOBODY YET" IS AN ANSWER, NOT A NAME § */
   const forWhom = BOOKING.client === NOBODY ? '' : (BOOKING.client || (USER && USER.name) || '');
-  if (forWhom) push('For', esc(forWhom), '', '', '', { free: true, who: true });
+  if (forWhom) push('For', esc(displayName_(forWhom)), '', '', '', { free: true, who: true });
 
   /* ---------- A WAITING LIST HAS A DIFFERENT BREAKDOWN, AND WAS SHOWN THE WRONG ONE § */
   if (isWaiting_()) return waitBreakdownRows_(rows, push);

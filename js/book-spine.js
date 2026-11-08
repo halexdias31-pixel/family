@@ -291,7 +291,7 @@ function rosterHtml(o) {
         : '<span class="rost-plus">+</span>'}</span>
       ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE § */
             ''}
-      <span class="rost-name">${esc(sl.filled ? (sl.name || sl.role) : 'Open')}</span>
+      <span class="rost-name">${esc(sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open')}</span>
       ${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}
     </div>`).join('')}
   </div>`;
@@ -441,7 +441,7 @@ function jobRows(j) {
 
   /* THE FORM'S OWN LINES, IN THE FORM'S WORDS (owner, 8 Nov: "the booking form is the booking record"). */
   const wait = norm(j.kind) === 'waitlist';
-  push('For', j.client || ((j.slots || [])[0] || {}).client || '');
+  push('For', displayName_(j.client || ((j.slots || [])[0] || {}).client || ''));
   push('Kind', wait ? 'Waiting list class' : 'Instant class');
   push('Subject', j.subject || '');
   push('Level', j.level || '');
@@ -484,7 +484,7 @@ function jobRows(j) {
     }
   }
 
-  if (j.tutor) push('Tutor', j.tutor);
+  if (j.tutor) push('Tutor', displayName_(j.tutor));
 
   /* ---------- `dates` IS WHAT THE SERVER SENDS AND THIS ASKED FOR `sessionDates` § */
   const dates = String(j.dates || j.sessionDates || '')

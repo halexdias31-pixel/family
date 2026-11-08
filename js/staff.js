@@ -294,7 +294,7 @@ function stmtPaper_(s) {
   const T = s.totals || {};
   return `<div class="stmt">
     <div class="stmt-head"><b>${esc(brand('name', '@family.'))}</b><span>Statement</span></div>
-    <p class="stmt-who">${esc(s.tutor || '')} · ${esc(ymSay_(s.month))}</p>
+    <p class="stmt-who">${esc(displayName_(s.tutor || ''))} · ${esc(ymSay_(s.month))}</p>
     ${rows ? `<table class="stmt-t"><thead><tr><th>Session</th><th>Hrs</th><th>Pupils</th><th>Paid</th><th title="@family.’s share">Share</th><th>${own ? 'You' : 'Tutor'}</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td>${esc(String(T.sessions || 0))} ${T.sessions === 1 ? 'session' : 'sessions'}</td><td>${esc(String(T.hours || 0))}</td><td></td>
