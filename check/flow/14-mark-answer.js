@@ -76,7 +76,8 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard â
   /* AND ONE DRAWN ON THE PAPER'S OWN FIGURE, drawn under the pen in its card (356). */
   const paperPen = q('q:Q-OWN-F', { answerType: 'annotate', diagram: '<svg viewBox="0 0 340 120"><line class="axis" x1="10" y1="60" x2="330" y2="60"/></svg>' });
   const passage = q('q:Q-OWN-T', { answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' });
-  const prac = w.stuffItems().find(x => x.kind === 'practical');
+  /* FROM THE WHOLE LIBRARY: signed out, Find holds Settings alone (owner, 7 Nov) */
+  const prac = (typeof w.stuffItemsAll_ === 'function' ? w.stuffItemsAll_() : w.stuffItems()).find(x => x.kind === 'practical');
   [maths, words, shortW, pen, paperPen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   const drawn = {
     'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
