@@ -439,25 +439,17 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 .btn:is(:active, .is-pressed) { transform: scale(var(--press-small)); }
 
-/* ---------- A BUTTON THAT IS WAITING HAS TO LOOK LIKE IT IS § */
-.btn.is-busy::before {
-  content: ''; flex: 0 0 auto; width: 1em; height: 1em; border-radius: 50%;
-  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-top-color: currentColor;
-  animation: btn-spin .7s linear infinite;
+/* ---------- A BUTTON THAT IS WAITING SHOWS THE THREE DOTS (owner, 8 Nov, 30a): loading_()'s look, never a spinner. */
+.btn.is-busy::before, .tile:is(.is-busy, [aria-busy="true"])::before {
+  content: ''; flex: 0 0 auto; width: .32rem; height: .32rem; margin: 0 .5rem; border-radius: 50%;
+  background: currentColor; box-shadow: -.5rem 0 currentColor, .5rem 0 currentColor;
+  animation: loading 1.2s ease-in-out infinite;
 }
-@keyframes btn-spin { to { transform: rotate(360deg); } }
-/* STILL A RING, JUST NOT A SPINNING ONE. Removing the mark entirely would take the state with it,
-   which is the thing this exists to show. */
-@media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
-/* A TILE WAITING IS THE SAME RING IN PLACE OF ITS MARK. § */
+@media (prefers-reduced-motion: reduce) { .btn.is-busy::before, .tile.is-busy::before { animation: none; } }
+/* A TILE WAITING SHOWS THE DOTS IN PLACE OF ITS MARK. */
 .tile:is(.is-busy, [aria-busy="true"]) { opacity: 1; background: color-mix(in srgb, var(--white) 3%, transparent);
   border-color: var(--line-soft); cursor: progress; }
 .tile:is(.is-busy, [aria-busy="true"]) svg { display: none; }
-.tile:is(.is-busy, [aria-busy="true"])::before { content: ''; width: var(--tile-i); height: var(--tile-i); border-radius: var(--tile-r);
-  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--paper-ink); }

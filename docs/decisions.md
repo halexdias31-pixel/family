@@ -175,3 +175,4 @@ become an owner question showing both; never pick one.
 - 8 Nov · tap twice (owner, 5a): every delete, decline, remove and reset arms with `sure_()` on the first press; no `confirm()` anywhere. Exempt: closing an unsaved editor (Cancel), a filter chip, an unsent photo. `check-look` §5a.
 - 8 Nov · admin in black and white (owner, 11a): admin tiles and rows carry no yellow; `tile_` draws an admin tile only for an admin. `check-look` §11a.
 - 8 Nov · frozen front pills (owner, 12a): stay greyed as "coming soon" — no change.
+- 8 Nov · one loading look (owner, 30a): a pressed button or tile waits with the same three dots as `loading_()` (the busy ring is gone, and `btn-spin` with it); `check-loading` accepts no spinner keyframe and `check-look` §30a fails on a rotate-360 animation.

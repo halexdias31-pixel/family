@@ -102,5 +102,8 @@ for (const m of noComments.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
 }
 if (!/tone === 'admin' && !\(typeof isAdmin === 'function' && isAdmin\(\)\)\) return ''/.test(tilesSrc)) bad.push('11a tile_ draws an admin tile for someone who is not an admin');
 
+/* ---------- 30a. ONE LOADING LOOK: THE THREE DOTS (comments aside) ---------- */
+if (/rotate\((360deg|1turn)\)/.test(noComments)) bad.push('30a a spinner in style.css — a wait is the three dots (loading_, .is-busy)');
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');
