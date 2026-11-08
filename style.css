@@ -6115,3 +6115,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .timer-big { font-size: 2.1rem; text-align: center; margin: .4rem 0; }
 .row.dock-foot { border: 0; padding: .4rem 0 0; }
 .post-ed-img { width: 100%; margin-bottom: .7rem; }
+/* A CHIP'S CLOSE IS A TILE (owner, 8 Nov), drawn at the chip's own height so the pill stays one line. */
+.chip > .tile.chip-x, .msg-chip > .tile.msg-chip-x { width: 24px; height: 24px; min-width: 24px; border: 0; background: none; margin-left: .2rem; }
+.chip > .tile.chip-x .tile-i, .msg-chip > .tile.msg-chip-x .tile-i { width: 12px; height: 12px; }
