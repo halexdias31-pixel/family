@@ -247,11 +247,20 @@ const SOON_WIDGET_NAMES = { console: 'Console', boardgames: 'Board games', wordg
 /* AN OFF WIDGET THAT WAITS UNDER ANOTHER FRONT ANSWER (owner, 6 Nov: Homework under Tools); the rest wait under Coming soon. */
 const SOON_WIDGET_UNDER = { videos: 'Videos', console: 'Games', boardgames: 'Games', wordgames: 'Games', reels: 'Tools', flyers: 'Tools', poster: 'Tools', verse: 'Tools', homework: 'Tools' };
 /* A FRONT ANSWER HOLDING ONLY COMING SOON CARDS IS GREYED, never hidden (owner, 7 Nov P7/P8): Videos and Games until one is turned on. */
+/* One walk per list for every front answer (slow taps, 8 Nov): the front menu asked it a dozen times, a walk each. */
+const FRONT_SOON_MEMO = new WeakMap();
 function frontSoonOnly_(value) {
   if (value === 'Coming soon') return false;
   try {
-    const all = stuffItems().filter(x => asList_(kindTop_(x)).indexOf(value) !== -1);
-    return !all.length ? soonItems_().some(x => x.top === value) : all.every(x => x.soon);
+    const items = stuffItems();
+    let by = FRONT_SOON_MEMO.get(items);
+    if (!by) {
+      by = {};
+      items.forEach(x => asList_(kindTop_(x)).forEach(t => { const b = by[t] || (by[t] = { n: 0, soon: true }); b.n++; if (!x.soon) b.soon = false; }));
+      FRONT_SOON_MEMO.set(items, by);
+    }
+    const b = by[value];
+    return !b ? soonItems_().some(x => x.top === value) : b.soon;
   } catch (e) { return false; }
 }
 /* EVERY SWITCHED-OFF COLUMN AND WIDGET, from columns.json and tiers.json, so turning one on removes its card. */

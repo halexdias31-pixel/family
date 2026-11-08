@@ -401,6 +401,10 @@ let STUFF_PAGES = { from: null, pages: [] };
 function stuffPages_() {
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
+  /* BACK TO A LIST JUST SEEN (slow taps, 8 Nov): its pages are kept with it, as `stuffFiltered` keeps the list. */
+  const fkey = JSON.stringify(STUFF.filters || []);
+  const seen = (STUFF_PAGES.recent || []).find(r => r.from === items && r.gen === LIB.gen && r.fkey === fkey);
+  if (seen) { STUFF_PAGES = Object.assign({}, seen, { recent: STUFF_PAGES.recent }); return seen.pages; }
   const pages = [];
   /* A SHARED STEM DRAWN ONCE (`pageParts_`); A PART BRINGS ITS WHOLE QUESTION (`wholeQuestions_`). § */
   const seq = wholeQuestions_(items), hit = new Set(items);
@@ -432,7 +436,8 @@ function stuffPages_() {
       if (kept(x, part)) pages.push({ x: x, part: part });
     });
   });
-  STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
+  const keep = { from: items, pages: pages, gen: LIB.gen, fkey: fkey };
+  STUFF_PAGES = Object.assign({ recent: [keep].concat((STUFF_PAGES.recent || []).filter(r => r.gen === LIB.gen)).slice(0, 6) }, keep);
   return pages;
 }
 
