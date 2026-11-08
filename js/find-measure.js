@@ -59,8 +59,7 @@ function paintDocket() {
       <span class="dock-text">${mark(l.text)}</span>
       ${/* A BUTTON, NOT A SPAN. § */
             ''}
-      <button type="button" class="text-drop" data-do="dock-drop" data-i="${i}"
-              data-t="${esc(l.text)}" aria-label="Remove ${esc(l.text)}">\u2715</button>
+      ${tile_({ icon: 'close', label: 'Remove ' + l.text, act: 'dock-drop', data: { i: i, t: l.text }, cls: 'text-drop' })}
     </label>`).join('')
     + `<div class="row" style="border:0;padding:.4rem 0 0">
         <span class="k">${left ? left + ' left' : 'All done'}</span>

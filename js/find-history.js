@@ -36,7 +36,7 @@ function insSay_(r) {
   if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
   const t = 'in:' + r.id;
   if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
-  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
+  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span></p>${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }), 'worded')}`;
   return loading_();
 }
 /* ASKED FOR, if it has words in the Ledger and they are not here yet */

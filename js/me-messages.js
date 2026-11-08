@@ -310,8 +310,7 @@ function msgQueueHtml_(key) {
   return q.map((a, i) => `<span class="msg-chip">${
       /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
     <span class="msg-chip-name">${esc(a.name)}</span>
-    <button class="msg-chip-x" data-do="msg-unqueue" data-k="${esc(key)}" data-i="${i}"
-      aria-label="Remove ${esc(a.name)}">×</button></span>`).join('');
+    ${tile_({ icon: 'close', label: 'Remove ' + a.name, act: 'msg-unqueue', data: { k: key, i: i }, cls: 'msg-chip-x' })}</span>`).join('');
 }
 function msgQueueDraw_(form) {
   const key = form && form.dataset.k;
@@ -636,12 +635,12 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>
-           <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>${
-           m.why === 'files' && words && (m.queue || []).length
-             ? `<button class="msg-act" data-do="msg-words" data-k="${esc(m.tmp)}">Words only</button>` : ''}
-           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button>${
-           msgFixLinks_(m.err)}</p>`
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>${
+           msgFixLinks_(m.err)}</p>${tileRow_(tile_([
+             { icon: 'again', label: 'Retry', act: 'msg-retry', data: { k: m.tmp }, cls: 'msg-act' },
+             m.why === 'files' && words && (m.queue || []).length
+               ? { icon: 'doc', label: 'Words only', act: 'msg-words', data: { k: m.tmp }, cls: 'msg-act' } : null,
+             { icon: 'bin', label: 'Remove', act: 'msg-drop', data: { k: m.tmp }, cls: 'msg-act' }]), 'worded msg-acts')}`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
@@ -670,13 +669,11 @@ function msgForm_(to, toId, note, rows) {
   return `<div class="msg-form" data-k="${esc(k)}">
     <div class="msg-queue">${msgQueueHtml_(k)}</div>
     ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
-      rankAtLeast_('client') ? `<button class="btn quiet msg-clip" data-do="msg-attach"
-      aria-label="Attach a photo, video or file">＋</button>
+      rankAtLeast_('client') ? `${tile_({ icon: 'plus', label: 'Attach a photo, video or file', act: 'msg-attach', cls: 'msg-clip' })}
     <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
-    <button class="btn msg-go" data-do="msg-send"
-      data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
+    ${tile_({ form: true, label: 'Send', act: 'msg-send', data: { to: to, id: toId || '' }, cls: 'msg-go' })}
     <p class="faint msg-said">${esc(note || '')}</p>
   </div>`;
 }

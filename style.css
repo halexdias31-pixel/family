@@ -4545,7 +4545,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* A BOOKING'S TILES SAY THEIR WORD (owner, 8 Nov): Accept and Decline looked alike as bare rounds; the word sits under each mark. */
 .rc-tiles { row-gap: 1.3rem; column-gap: .6rem; padding-bottom: 1.1rem; }
 .rc-tiles .tile { position: relative; overflow: visible; }
-.rc-tiles .tile[data-w]::after { content: attr(data-w); position: absolute; top: calc(100% + .2rem); left: 50%; transform: translateX(-50%);
+.tile-row.worded { row-gap: 1.3rem; padding-bottom: 1.1rem; }
+.tile-row.worded .tile { position: relative; overflow: visible; }
+.rc-tiles .tile[data-w]::after, .tile-row.worded .tile[data-w]::after { content: attr(data-w); position: absolute; top: calc(100% + .2rem); left: 50%; transform: translateX(-50%);
   font: 600 .62rem/1 var(--mono); color: var(--dim); white-space: nowrap; pointer-events: none; }
 /* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH § */
 

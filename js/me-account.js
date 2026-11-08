@@ -576,12 +576,9 @@ function wardrobeBody_() {
          count towards, which is the difference between a shop window and a list of doors. */
       const why = it.unlocked ? '' : (it.cost ? it.cost + 'cr' : 'Lv' + it.level);
       const said = it.name + (why ? ' — ' + (it.cost ? it.cost + ' credits' : 'level ' + it.level) : '');
-      return `<button class="av-opt${on ? ' on' : ''}${it.unlocked ? '' : ' locked'}"
-        data-do="av-pick" data-slot="${esc(slot)}" data-id="${esc(it.id)}"
-        aria-label="${esc(said)}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(said)}">
-        ${itemArt(slot, it.id, 24) || '<span class="av-none">—</span>'}
-        ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
-      </button>`;
+      return tile_({ label: said, act: 'av-pick', data: { slot: slot, id: it.id }, on: on, pressed: on,
+        cls: 'av-opt' + (it.unlocked ? '' : ' locked'),
+        face: (itemArt(slot, it.id, 24) || '<span class="av-none">—</span>') + (why ? `<span class="av-why">${esc(why)}</span>` : '') });
     }).join('')}</div>`);
   };
 

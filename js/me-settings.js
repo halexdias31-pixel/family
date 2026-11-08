@@ -255,10 +255,8 @@ function photoPicker_(value, said, o) {
   const me = USER || {};
   const opt = n => {
     const label = n === 'avatar' ? 'Your figure' : PFP_ART[n].name;
-    return `<button type="button" class="pfp-opt${chosen === n ? ' on' : ''}" data-do="pfp-choose" data-pic="${esc(n)}"
-      aria-pressed="${chosen === n ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${n === 'avatar'
-        ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
-        : pfpArt_(n, 40)}</button>`;
+    return tile_({ label: label, act: 'pfp-choose', data: { pic: n }, on: chosen === n, pressed: chosen === n, cls: 'pfp-opt',
+      face: n === 'avatar' ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true }) : pfpArt_(n, 40) });
   };
   const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
   const fold = !!(o && o.fold);

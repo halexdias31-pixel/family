@@ -211,6 +211,7 @@
     "check-keyboard.js": "core",
     "check-post.js": "core",
     "check-doors.js": "secondary",
+    "check-look.js": "secondary",
     "check-dead.js": "secondary",
     "check-stability.js": "core",
     "check-booking.js": "core",

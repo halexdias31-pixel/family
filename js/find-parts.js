@@ -713,8 +713,8 @@ function libSay_(x) {
   /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
   if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && (x.row.pending === true || libTrue(x.row.lib_pending)) ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
   if (LIB.failed) {
-    return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
-      <button type="button" class="text-action" data-do="lib-retry">Try again</button></p>`;
+    return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span></p>
+      ${tileRow_(tile_({ icon: 'again', label: 'Try again', act: 'lib-retry' }), 'worded')}`;
   }
   return loading_();
 }
