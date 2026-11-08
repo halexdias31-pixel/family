@@ -1,7 +1,7 @@
 {
  "why": "THE SITE IS THE BUSINESS (philosophy 1): each business function and the code that shows the site handles it; all found = yes, some = partly, none = no. Report-only (tools/health.js one-place).",
  "functions": [
-  { "id": "bookings", "name": "Bookings", "evidence": [["backend/dopost.gs", "'createJob'"], ["js/book.js", "function"]] },
+  { "id": "bookings", "name": "Bookings", "evidence": [["backend/dopost.gs", "'createJob'"], ["js/book-steps.js", "function"]] },
   { "id": "payments", "name": "Payments and receipts", "evidence": [["backend/dopost.gs", "'finalizePayment'"], ["js/receipt.js", "receipt"], ["backend/dopost.gs", "'payStatement'"]] },
   { "id": "tax", "name": "Tax records and self-assessment figures", "evidence": [["js/records.js", "hmrc"], ["js/biz-check.js", "bcMoneyNow_"], ["backend/dopost.gs", "selfAssessment"]] },
   { "id": "accounts", "name": "Accounts (income and expenses)", "evidence": [["js/biz-check.js", "bcMoneyNow_"], ["backend/dopost.gs", "saveExpense"]] },

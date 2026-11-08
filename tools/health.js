@@ -33,8 +33,8 @@ const mtime = f => dirty.has(f) ? Date.now() : Number(git(['log', '-1', '--forma
 
 /* WHAT THE FUNNEL WALK READS: a change to any of these makes data/logic-health.json stale. */
 const FIND_FILES = require('./find-src.js').findFiles();
-const PS_ = require('./piece-src.js'), ME_FILES = PS_.pieceFiles('me'), SHELL_FILES = PS_.pieceFiles('shell'), KP_FILES = PS_.pieceFiles('keypad');
-const SPLIT_GROUPS = [{ old: 'js/find.js', files: FIND_FILES }, { old: 'js/me.js', files: ME_FILES }, { old: 'js/shell.js', files: SHELL_FILES }, { old: 'js/keypad.js', files: KP_FILES }];
+const PS_ = require('./piece-src.js'), ME_FILES = PS_.pieceFiles('me'), SHELL_FILES = PS_.pieceFiles('shell'), KP_FILES = PS_.pieceFiles('keypad'), BOOK_FILES = PS_.pieceFiles('book');
+const SPLIT_GROUPS = [{ old: 'js/find.js', files: FIND_FILES }, { old: 'js/me.js', files: ME_FILES }, { old: 'js/shell.js', files: SHELL_FILES }, { old: 'js/keypad.js', files: KP_FILES }, { old: 'js/book.js', files: BOOK_FILES }];
 const LOGIC_INPUTS = [...FIND_FILES, 'check/fixture.json', 'data/questions.json', 'data/textbooks.json', 'data/practicals.json',
   'data/projects.json', 'data/topics.json', 'tools/logic-health.js'];
 function logic() {

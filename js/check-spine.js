@@ -6,8 +6,8 @@ const path = require('path');
 
 function run() {
   let src;
-  try { src = fs.readFileSync(path.join(__dirname, 'book.js'), 'utf8'); }
-  catch (err) { console.log('COULD NOT RUN — no book.js beside this checker'); process.exitCode = 1; return; }
+  try { src = require('../tools/piece-src.js').pieceSrc('book'); }
+  catch (err) { console.log('COULD NOT RUN — no book-*.js pieces in index.html'); process.exitCode = 1; return; }
 
   /* ---------- THE SPINE, READ OFF THE FILE ------------------------------------------------------
      Not copied here. A checker holding its own copy of the list it checks passes for ever the day

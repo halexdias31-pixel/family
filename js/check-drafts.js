@@ -16,7 +16,7 @@ const FILES = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1] + '.js');
 const SRC = {};
 FILES.forEach(f => { SRC[f] = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'); });
 SRC['find.js'] = require('../tools/find-src.js').findSrc();
-['me', 'shell', 'keypad'].forEach(b => { SRC[b + '.js'] = require('../tools/piece-src.js').pieceSrc(b); });
+['me', 'shell', 'keypad', 'book'].forEach(b => { SRC[b + '.js'] = require('../tools/piece-src.js').pieceSrc(b); });
 const ALL = FILES.map(f => SRC[f]).join('\n');
 
 /* ---------- THE LISTS § */
@@ -43,10 +43,10 @@ const KEPT = [
   { file: 'map.js', has: 'id="notepad"',
     why: 'the notepad — on the device at every keystroke (`familyUser`), on the account 1.4 s later or as the page goes',
     proof: [['find.js', /USER\.notepad = e\.target\.value/], ['find.js', /keepDue_\('notepad', padSend_\)/]] },
-  { file: 'book.js', fn: 'noteRow_', has: 'book-note',
+  { file: 'book-rows.js', fn: 'noteRow_', has: 'book-note',
     why: 'the booking note — an answer in `BOOKING`, which is kept whole as it is typed (`bookKeep_`)',
     proof: [['book.js', /closest\('\[data-do="book-note"\]'\)[\s\S]{0,120}?BOOKING\.note = el\.value \|\| '';\s*bookKeep_\(\);/]] },
-  { file: 'book.js', fn: 'discountRow_', has: 'data-do="book-disc"',
+  { file: 'book-spine.js', fn: 'discountRow_', has: 'data-do="book-disc"',
     why: 'an admin\'s discount, one percentage (29 Oct) — an answer in `BOOKING`, kept whole as it is typed (`bookKeep_`), like the booking note (docs/history/353)',
     proof: [['book.js', /closest\('input\[data-do="book-disc"\]'\)[\s\S]{0,160}?BOOKING\.discValue = String\(el\.value \|\| ''\); bookKeep_\(\);/]] },
   { file: 'records.js', fn: 'profitControl_', has: 'data-pf=', count: 2,

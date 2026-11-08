@@ -131,7 +131,7 @@ const ACCEPTED_ENGINE = {
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
-const engineFiles = ['calc.js', 'map.js', 'book.js', ...require('../tools/piece-src.js').pieceFiles('me').map(f => f.slice(3)), 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
+const engineFiles = ['calc.js', 'map.js', ...require('../tools/piece-src.js').pieceFiles('book').map(f => f.slice(3)), ...require('../tools/piece-src.js').pieceFiles('me').map(f => f.slice(3)), 'overworld.js', ...require('../tools/find-src.js').findFiles().map(f => f.slice(3)), 'receipt.js'];
 const orphanEngine = [];
 engineFiles.forEach(f => {
   const fp = path.join(jsDir, f);

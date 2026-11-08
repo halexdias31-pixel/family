@@ -486,15 +486,8 @@ function postCreateJob_(body, action, began) {
   const t = read(TAB.jobs);
 
   // Without a cap one family can paper every open slot and tie up every tutor's queue.
-  // Only OPEN requests count; settled ones don't hold anything.
-  if (me) {
-    let live = 0;
-    t.rows.forEach(j => clientsIn(S(j.job_id) || String(j._row)).forEach(c => {
-      if (key(c.name) === key(me) && c.status && c.status !== BM.BOOKED) live++;
-    }));
-    if (live >= cap) return jsonOut({
-      error: 'You already have ' + live + ' requests waiting. Please resolve one first.' });
-  }
+  const tooMany = createJobCapRefusal_(me, cap, t);
+  if (tooMany) return jsonOut({ error: tooMany });
 
   /* THE ONE NUMBER THE PHONE MUST NOT CHOOSE, checked before anything is written. § */
   /* ---------- IF THE CLIENT IS PAYING THE TRAVEL, IT IS ADDED HERE AND NOWHERE ELSE § */
@@ -529,7 +522,6 @@ function postCreateJob_(body, action, began) {
   const codeRow = codes ? (codes.rows.find(r => key(r.code) === key(body.discountCode)) || null) : null;
   const noDiscount = discountRefusal_(body, !!(asker && hasRole(asker, 'admin')), codeRow, new Date());
   if (noDiscount) return jsonOut({ error: noDiscount });
-  const cash = v => S(v) !== '' ? Math.round(N(v) * 100) / 100 : '';
   /* THE CLASH TESTS AND THE WRITE IN ONE HOLD (434): two phones pressing Book in the same second must not both pass. */
   const bookLock = LockService.getScriptLock();
   if (!bookLock.tryLock(10000)) return jsonOut({ error: 'Busy — please press Book again in a moment.' });
@@ -540,53 +532,7 @@ function postCreateJob_(body, action, began) {
     /* AND THE ROOM'S HOURS (434): a room taken at any booked hour in those weeks refuses, whoever teaches. */
     const roomTaken = roomClashRefusal_(body);
     if (roomTaken) return jsonOut({ error: roomTaken });
-    addRow(read(TAB.jobs), {
-      job_id: jobId, status: 'unconfirmed',
-      subject: S(body.subject), level: S(body.level), service: S(body.service),
-      weekday: S(body.day), start_time: fmtTime(body.time),
-      /* EVERY BOOKED HOUR (434): weekday + start + length kept only the first run, so a second run was sold twice. */
-      slot_codes: bookingCodes_(body).join(','),
-      // Per booking now, not one global figure — a client picking a three-hour slot has to have
-      // that recorded, or the price and the grid disagree the next time the job is read.
-      hours_per_session: N(body.hours) || N(cfg3.h) || 2,
-      venue: S(body.location),
-      client_hosts: body.hosting ? 'TRUE' : 'FALSE',
-      term_name: S(body.interval), session_dates: S(body.dates),
-      /* NUMBERS, not strings of numbers. § */
-      /* ---------- WHAT IT EARNS, WHAT IT COSTS, AND WHAT IS LEFT § */
-      price_total: N(body.price),
-      /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and which was dropped here — `tutor_pay` was written as an empty string on § */
-      tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
-      travel_paid: travelCost(S(body.location), sessionCount),
-      /* THE SUBTRACTION, rather than whatever the phone worked out. § */
-      admin_profit: Math.round((N(body.profit)
-        - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
-      // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
-      // booking — who was invited to share it — not about any one person's account.
-      split_emails: S(body.splitEmails),
-      /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
-         the cost, these are the people in the chairs. A tutor needs the second one and has never
-         been told it. */
-      /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
-      for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
-        ? findPerson(S(body.clientName)) : asker),
-      /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
-         older booking — is a no. */
-      open_to_others: TRUE_(body.openToOthers) ? 'TRUE' : 'FALSE',
-      max_students: N(cfg3.max_students_per_job) || 4,
-      // "No preference" IS the consent to being matched; naming a tutor withholds it.
-      stealable: named ? 'FALSE' : 'TRUE',
-      created_at: new Date(),
-      /* AN ADMIN BOOKING FOR A FAMILY. § */
-      booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
-      /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
-      gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
-      /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are shop items. An older phone's fields are ignored; old rows keep theirs. */
-      card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
-      discount_type: S(body.discountType), discount_value: cash(body.discountValue),
-      discount_code: S(body.discountCode),
-      discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
-    });
+    addRow(read(TAB.jobs), createJobRow_(body, { jobId, me, asker, named, cfg3, sessionCount }));
     if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
 
     /* Who is in it comes from here, not from cells on the row above — and inside the hold, since a job with no events reads as cancelled and holds no hour. */
@@ -601,6 +547,79 @@ function postCreateJob_(body, action, began) {
     bookLock.releaseLock();
   }
 
+  createJobNotify_(body, me, jobId, named);
+  const receipt = createJobReceipt_(body, me, jobId, chargeTravel, travel);
+
+  /* A FAILED RECEIPT DOES NOT FAIL THE BOOKING. § */
+  return jsonOut({ success: true, jobId,
+    receiptId: receipt.receiptId || '', receiptError: receipt.error || '' });
+}
+
+/* ONE FAMILY'S OPEN REQUESTS AGAINST THE CAP: only OPEN ones count, settled ones hold nothing. '' when under it. */
+function createJobCapRefusal_(me, cap, t) {
+  if (!me) return '';
+  let live = 0;
+  t.rows.forEach(j => clientsIn(S(j.job_id) || String(j._row)).forEach(c => {
+    if (key(c.name) === key(me) && c.status && c.status !== BM.BOOKED) live++;
+  }));
+  return live >= cap ? 'You already have ' + live + ' requests waiting. Please resolve one first.' : '';
+}
+
+/* THE NEW JOB'S ROW, as `postCreateJob_` writes it inside its hold. */
+function createJobRow_(body, ctx) {
+  const jobId = ctx.jobId, me = ctx.me, asker = ctx.asker, named = ctx.named, cfg3 = ctx.cfg3, sessionCount = ctx.sessionCount;
+  const cash = v => S(v) !== '' ? Math.round(N(v) * 100) / 100 : '';
+  return {
+    job_id: jobId, status: 'unconfirmed',
+    subject: S(body.subject), level: S(body.level), service: S(body.service),
+    weekday: S(body.day), start_time: fmtTime(body.time),
+    /* EVERY BOOKED HOUR (434): weekday + start + length kept only the first run, so a second run was sold twice. */
+    slot_codes: bookingCodes_(body).join(','),
+    // Per booking now, not one global figure — a client picking a three-hour slot has to have
+    // that recorded, or the price and the grid disagree the next time the job is read.
+    hours_per_session: N(body.hours) || N(cfg3.h) || 2,
+    venue: S(body.location),
+    client_hosts: body.hosting ? 'TRUE' : 'FALSE',
+    term_name: S(body.interval), session_dates: S(body.dates),
+    /* NUMBERS, not strings of numbers. § */
+    /* ---------- WHAT IT EARNS, WHAT IT COSTS, AND WHAT IS LEFT § */
+    price_total: N(body.price),
+    /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and which was dropped here — `tutor_pay` was written as an empty string on § */
+    tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
+    travel_paid: travelCost(S(body.location), sessionCount),
+    /* THE SUBTRACTION, rather than whatever the phone worked out. § */
+    admin_profit: Math.round((N(body.profit)
+      - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
+    // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
+    // booking — who was invited to share it — not about any one person's account.
+    split_emails: S(body.splitEmails),
+    /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
+       the cost, these are the people in the chairs. A tutor needs the second one and has never
+       been told it. */
+    /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
+    for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
+      ? findPerson(S(body.clientName)) : asker),
+    /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
+       older booking — is a no. */
+    open_to_others: TRUE_(body.openToOthers) ? 'TRUE' : 'FALSE',
+    max_students: N(cfg3.max_students_per_job) || 4,
+    // "No preference" IS the consent to being matched; naming a tutor withholds it.
+    stealable: named ? 'FALSE' : 'TRUE',
+    created_at: new Date(),
+    /* AN ADMIN BOOKING FOR A FAMILY. § */
+    booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
+    /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
+    gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
+    /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are shop items. An older phone's fields are ignored; old rows keep theirs. */
+    card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+    discount_type: S(body.discountType), discount_value: cash(body.discountValue),
+    discount_code: S(body.discountCode),
+    discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
+  };
+}
+
+/* THE CLIENT'S AND THE NAMED TUTOR'S MESSAGES for a new booking. */
+function createJobNotify_(body, me, jobId, named) {
   /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. */
   notify(me, 'Booking received 🎉',
     'Thanks for requesting ' + S(body.subject) + ' with @family.\n\n' +
@@ -622,10 +641,14 @@ function postCreateJob_(body, action, began) {
       (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
       '\nIt may be outside your usual hours. Log in to @family. to accept or decline.\n\n— @family.', 'booked');
   }
+}
+
+/* THE NEW BOOKING'S RECEIPT; its error is returned, never thrown. */
+function createJobReceipt_(body, me, jobId, chargeTravel, travel) {
   /* THE RECEIPT, WRITTEN AT THE MOMENT OF ASKING. § */
   /* THE RECEIPT BELONGS TO THE FAMILY, NOT TO WHOEVER TYPED IT. § */
   const forWhom = findPerson(me, S(body.clientId));
-  const receipt = writeReceipt_({
+  return writeReceipt_({
     kind: 'session', jobId: jobId,
     personId: S(forWhom && forWhom.person_id) || S(body.personId), personName: me,
     total: N(body.price), currency: 'GBP',
@@ -640,10 +663,6 @@ function postCreateJob_(body, action, began) {
     })(),
     note: S(body.message),
   });
-
-  /* A FAILED RECEIPT DOES NOT FAIL THE BOOKING. § */
-  return jsonOut({ success: true, jobId,
-    receiptId: receipt.receiptId || '', receiptError: receipt.error || '' });
 }
 
 function postOpenWaitlist_(body, action, began) {

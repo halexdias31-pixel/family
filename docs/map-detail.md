@@ -39,11 +39,11 @@ any name used but never declared. Run it after every change.
 
 | File | What it is |
 |---|---|
-| `js/shell-*.js` | **The runtime**, six files cut in order from `shell.js` (1040), `shell-boot.js` first; checks read them as one via `tools/piece-src.js` (`pieceSrc('shell')`; `me-*.js` and `keypad-*.js` likewise). `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
+| `js/shell-*.js` | **The runtime**, six files cut in order from `shell.js` (1040), `shell-boot.js` first; checks read them as one via `tools/piece-src.js` (`pieceSrc('shell')`; `me-*.js`, `keypad-*.js` and `book-*.js` (book-steps, book-rows, book-spine) likewise). `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, the small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
 | `js/find-*.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`): sixteen files cut in order from one (1040), `find-finder.js` first, `find-measure.js` last; checks read them as one through `tools/find-src.js`. |
-| `js/book.js` | Sessions, seats, payment. |
+| `js/book-*.js` | Sessions, seats, payment: cut in order from book.js into book-steps, book-rows, book-spine. |
 
 Nineteen screens are registered (eighteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
 grouped by purpose since 21 Oct (docs/history/392), and `data/settings/columns.json` lists the same order
@@ -363,7 +363,7 @@ reports any name used but never declared. **Run it after every change.**
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
-| `js/book.js` | Sessions, seats, payment. |
+| `js/book-*.js` | Sessions, seats, payment: cut in order from book.js into book-steps, book-rows, book-spine. |
 
 Screens, in `TAB_ORDER` (392, 461, 730, 790): `spotlight feed reel dm | stuff res saved | booking shop |
 web tutors students parents apprentices | staff site account family apprentice biz`; `data/settings/columns.json` must list the same order

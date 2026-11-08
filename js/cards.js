@@ -313,7 +313,44 @@ function rateRange_(t) {
 function findCard(x) {
   const t = x.row;
   /* ---------- A PERSON IS A WIDGET, AND THE LANYARD HAS GONE § */
-  if (x.kind === 'tutor') return `
+  if (x.kind === 'tutor') return tutorCard_(t);
+  /* ---------- A VENUE IS AN ORDINARY CARD § */
+  if (x.kind === 'venue') return venueCard_(t);
+  /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD § */
+  if (x.kind === 'level') return levelCard_(t);
+  return subjectCard_(t);
+}
+
+/* A tutor card's top row: the face, name, rate, handle and activity. */
+function tutorTop_(t) {
+  return `
+    <div class="prof-top">
+      ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: § */
+            ''}
+      ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
+                    { cls: 'prof-pic', none: 'prof-none', size: 44 })}
+      <div class="prof-who">
+        <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>
+        ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
+        </span>
+        ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL § */
+              ''}
+        ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
+        ${/* HOW MANY QUESTIONS AND HOW RECENTLY — set only on a learner in an admin's people column,
+              by `subsLine_` in find.js, off the summary of the sheet's `submissions` tab. Absent
+              everywhere else. */''}
+        ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
+        ${/* ---------- THE RATE, UP HERE AND BIGGER § */
+              ''}
+        ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
+              ''}
+      </div>
+    </div>`;
+}
+
+/* A tutor's card in Find: the profile widget. */
+function tutorCard_(t) {
+  return `
     <div class="card is-widget is-prof tcard${t.listed === false ? ' is-off' : ''}">
       ${/* ---------- A TITLE SITS BESIDE THE ROLE, IN THE ROLE'S OWN LABEL § */
              ''}
@@ -330,28 +367,7 @@ function findCard(x) {
                eye below approves them.</p>`
           : `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
              them back on the site.</p>`) : ''}
-      <div class="prof-top">
-        ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: § */
-              ''}
-        ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
-                      { cls: 'prof-pic', none: 'prof-none', size: 44 })}
-        <div class="prof-who">
-          <span class="prof-line"><span class="prof-name">${esc(t.title)}</span>
-          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}
-          </span>
-          ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL § */
-                ''}
-          ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
-          ${/* HOW MANY QUESTIONS AND HOW RECENTLY — set only on a learner in an admin's people column,
-                by `subsLine_` in find.js, off the summary of the sheet's `submissions` tab. Absent
-                everywhere else. */''}
-          ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
-          ${/* ---------- THE RATE, UP HERE AND BIGGER § */
-                ''}
-          ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
-                ''}
-        </div>
-      </div>
+      ${tutorTop_(t)}
       ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the other one. i dont want that"* — so `teachesSpec` is a list, every one § */
             ''}
       ${/* ONE CHIP A SUBJECT, ITS LEVELS RAISED — `teachGroups_`. § */
@@ -398,9 +414,10 @@ function findCard(x) {
       ${profHeat_(profList_(t.venues))}
       ${profAvail_(t)}
     </div>`;
+}
 
-  /* ---------- A VENUE IS AN ORDINARY CARD § */
-  if (x.kind === 'venue') {
+/* A venue's card: its rooms, seats and rate. */
+function venueCard_(t) {
     /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
     const kid = childView_();
     const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free']
@@ -414,10 +431,11 @@ function findCard(x) {
         ? (t.rooms || []).slice(0, 4).map(r => roomRow(r.name || 'Room', r.max, r.rate)).join('')
         : roomRow('The room', t.maxCapacity, t.bestRate)}
     </div>`;
-  }
+}
 
-  /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD § */
-  if (x.kind === 'level') return `
+/* A level's card: its surcharge, subjects and tutors. */
+function levelCard_(t) {
+  return `
     <div class="card is-level">
       <h3>${esc(t.name)}</h3>
       ${t.priced
@@ -437,7 +455,10 @@ function findCard(x) {
         ? `<p class="faint" style="margin:.3rem 0 0">${esc(t.tutors.map(y => y.title).join(', '))}</p>`
         : '<p class="faint" style="margin:.3rem 0 0">Nobody teaches at this level yet</p>'}
     </div>`;
+}
 
+/* A subject's card: its surcharge, levels and tutors. */
+function subjectCard_(t) {
   return `
     <div class="card is-subject">
       <h3>${esc(t.name)}</h3>

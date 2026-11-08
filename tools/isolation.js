@@ -14,8 +14,8 @@ function decls(src) {
   for (const m of src.matchAll(/\bid="([\w-]+)"/g)) ids.add(m[1]);
   return { names, ids };
 }
-/* The pieces of me.js, shell.js and keypad.js (1040) are one caller each, as the file they were cut from was; a cut adds no coupling. */
-const ONE_ = f => f.replace(/^js\/(me|shell|keypad)-[\w-]+\.js$/, 'js/$1.js');
+/* The pieces of me.js, shell.js, keypad.js and book.js (1040) are one caller each, as the file they were cut from was; a cut adds no coupling. */
+const ONE_ = f => f.replace(/^js\/(me|shell|keypad|book)-[\w-]+\.js$/, 'js/$1.js');
 function isolation() {
   const F = files(), S = {}, D = {}, owner = Object.create(null), idOwner = Object.create(null);
   F.forEach(f => { S[f] = H.read(f); D[f] = decls(S[f]); D[f].names.forEach(n => { if (!owner[n]) owner[n] = f; }); D[f].ids.forEach(id => { (idOwner[id] = idOwner[id] || []).push(f); }); });

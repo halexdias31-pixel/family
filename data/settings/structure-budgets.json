@@ -220,12 +220,26 @@
    "inlineStyle": 0,
    "rawButton": 0
   },
-  "js/book.js": {
-   "lines": 2243,
-   "oneOff": 14,
-   "emptyCatch": 14,
+  "js/book-steps.js": {
+   "lines": 775,
+   "oneOff": 1,
+   "emptyCatch": 1,
    "inlineStyle": 0,
-   "rawButton": 3
+   "rawButton": 0
+  },
+  "js/book-rows.js": {
+   "lines": 706,
+   "oneOff": 9,
+   "emptyCatch": 12,
+   "inlineStyle": 0,
+   "rawButton": 2
+  },
+  "js/book-spine.js": {
+   "lines": 788,
+   "oneOff": 7,
+   "emptyCatch": 1,
+   "inlineStyle": 0,
+   "rawButton": 2
   },
   "js/boot.js": {
    "lines": 38,
@@ -892,8 +906,8 @@
   "backend/setup.gs dataProblems": 283,
   "backend/setup.gs checkEverything": 90,
   "js/answers.js answersPush_": 86,
-  "js/book.js breakdownRows": 87,
-  "js/book.js bookBreakdown": 102,
+  "js/book-rows.js breakdownRows": 87,
+  "js/book-spine.js bookBreakdown": 102,
   "js/cards.js findCard": 142,
   "js/core.js priceFrom": 252,
   "js/games.js vidPaint_": 82,
