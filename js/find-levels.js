@@ -655,14 +655,6 @@ on('job-room', el => {
     .catch(() => { el.disabled = false; toast('Not saved'); });
 });
 on('book-open', () => { BOOK_OPEN = !BOOK_OPEN; repaint(); });
-/* THE BOOKING COLUMN IS FIND › BOOKING when columns.json switches it off: every go('booking') lands there. */
-function bookingGone_(id) {
-  if (id !== 'booking' || TABS.some(t => t.id === id)) return false;
-  if (OPEN_JOB) BOOK_OPEN = false;
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
-  go('stuff');
-  return true;
-}
 
 /* ---------- THE FEED, BEHIND ITS OWN ANSWER § */
 function feedPages_() {

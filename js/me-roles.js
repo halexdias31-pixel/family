@@ -340,7 +340,7 @@ function studentSetPages_() {
       typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* WHAT WAS THE PROGRESS COLUMN (461, the owner: "the progress column content can all be moved to student column account settings"). */
-  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = c => /^<div class="loading/.test(String(c).trim());
+  const all = typeof progressCards_ === 'function' ? progressCards_() : [], isWait = isLoading_;
   /* `prog-w` MARKS THEM, so a check can ask the progress widgets apart from the settings around them. */
   const prog = all.filter(c => !isWait(c)).map(c => String(c).replace('<div class="card', '<div class="card prog-w')), wait = coming.length || !all.some(isWait) ? coming : [loading_()];
   /* ONLY SIGN IN HERE (owner, 4 Nov, 880): every other setting is a Coming soon card in Find until it is wanted. */

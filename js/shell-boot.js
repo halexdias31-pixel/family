@@ -298,8 +298,11 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* THE FIRST THING ANYBODY SEES IS FIND (1070): the core and the one front door; the other columns stand below it. */
 const TAB_HOME = 'stuff';
-/* A COLUMN THAT WAS DISSOLVED, AND WHERE ITS THINGS WENT: an old link or a remembered place lands there (461). */
-const TAB_GONE = { progress: 'account' };
+/* WHERE A SCREEN THAT MOVED LIVES (461): a column, or `find:<kind>[:<type>]` — columns.json's `moved`/`was`; this copy until it lands (check-doors). */
+const SCREEN_MOVED = { progress: 'account', booking: 'find:Booking', staff: 'find:Settings:Staff', site: 'find:Settings:Site',
+  account: 'find:Settings:Student', family: 'find:Settings:Parent', apprentice: 'find:Settings:Apprentice', biz: 'find:Settings:Business' };
+function screenMoved_() { try { return (DATA && DATA.columnsMoved) || SCREEN_MOVED; } catch (e) { return SCREEN_MOVED; } }
+const screenNow_ = id => { const to = screenMoved_()[id]; return to && to.indexOf(':') < 0 ? to : id; };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -320,7 +323,7 @@ let AT = TAB_HOME;
 try { columnsFor_(); } catch (e) { oops_(e, 'shell:screen') }
 try {
   const kept = localStorage.getItem('familyTab');
-  const was = TAB_GONE[kept] || kept;
+  const was = kept && screenNow_(kept);
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch { /* a bad stored tab opens the default one */ }
@@ -334,7 +337,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
 function go(id, remember, instant) {
-  id = TAB_GONE[id] || id; if (typeof settingsGone_ === 'function' && settingsGone_(id)) return; if (typeof bookingGone_ === 'function' && bookingGone_(id)) return;  /* a settings column is Find › Settings now (batch C) */
+  id = screenNow_(id); if (typeof screenGone_ === 'function' && screenGone_(id)) return;  /* a column switched off is a Find door now (batch C) */
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
@@ -647,6 +650,8 @@ function loading_() {
   return '<div class="loading" role="status" aria-label="Loading">'
     + '<span></span><span></span><span></span></div>';
 }
+/* IS THIS THE ONE LOADER? Asked of `loading_()`'s own output, never of a class name read out of some HTML (check-loading). */
+const isLoading_ = h => String(h == null ? '' : h).trim() === loading_();
 
 /* EACH COLUMN'S SHAPE, KEPT ON THE DEVICE (700): page heights in px, no data, so a column waiting next visit holds its final size. */
 const SHAPE_KEY = 'arrival:shape', SHAPE_PAGES = 6;

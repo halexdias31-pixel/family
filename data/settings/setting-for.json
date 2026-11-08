@@ -31,5 +31,10 @@
 {"card": "staff:hub", "for": "Staff", "name": "", "notes": "the staff hub after the card parts."},
 {"card": "appr:blurb", "for": "Apprentice", "name": "Work experience", "notes": "the apprentice placeholder; its card has no title of its own.", "rank": 9000},
 {"card": "site:digest", "for": "Business", "name": "Weekly email", "notes": "the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov).", "rank": 8000},
-{"card": "site:digest-words", "for": "Business", "name": "Weekly email's words", "notes": "the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov).", "rank": 8001}
+{"card": "site:digest-words", "for": "Business", "name": "Weekly email's words", "notes": "the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov).", "rank": 8001},
+{"card": "type:Apprentice", "for": "Apprentice", "name": "", "notes": "who may open the Apprentice settings: an admin, or anyone holding the apprentice role (`role`).", "min_rank": "admin", "role": "apprentice"},
+{"card": "type:Business", "for": "Business", "name": "", "notes": "who may open the Business settings: an admin only; they hold the business's own data.", "min_rank": "admin"},
+{"card": "type:Site", "for": "Site", "name": "", "notes": "who may open the Site settings: an admin only.", "min_rank": "admin"},
+{"card": "door:notify", "for": "Business", "name": "", "notes": "who sees the Notifications door under Business (its card is set:notify, which keeps its own place).", "min_rank": "admin"},
+{"card": "door:checks", "for": "Business", "name": "", "notes": "the Checks card (site health, business checker, owner questions, what's missing): an admin's only.", "min_rank": "admin"}
 ]

@@ -134,15 +134,12 @@ const ST = {
 
 const ROLE = { ADMIN: 'admin', TUTOR: 'tutor', CLIENT: 'client', STUDENT: 'student' };
 
-const ROLE_ALIASES = {
-  admin: ROLE.ADMIN, administrator: ROLE.ADMIN,
-  tutor: ROLE.TUTOR, teacher: ROLE.TUTOR,
-  client: ROLE.CLIENT, parent: ROLE.CLIENT, guardian: ROLE.CLIENT,
-  student: ROLE.STUDENT, kid: ROLE.STUDENT, child: ROLE.STUDENT, pupil: ROLE.STUDENT,
-};
+/* THE ROLE WORDS ARE THE BACKEND'S `ROLE_ALIASES` (constants.gs), sent as `roleAliases`; this copy stands until the payload lands (check-payload). */
+const ROLE_ALIASES = { administrator: 'admin', teacher: 'tutor', parent: 'client', guardian: 'client',
+                       kid: 'student', child: 'student', pupil: 'student' };
+const roleAliases_ = () => { try { return (DATA && DATA.roleAliases) || ROLE_ALIASES; } catch (e) { return ROLE_ALIASES; } };
 
-
-const roleOf = r => ROLE_ALIASES[norm(r)] || norm(r);
+const roleOf = r => roleAliases_()[norm(r)] || norm(r);
 
 
 const isRole = (r, want) => roleOf(r) === want;

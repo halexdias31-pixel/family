@@ -25,6 +25,8 @@ const CHECK = process.argv.includes('--check');
     const lev1 = (a, b) => { if (Math.abs(a.length - b.length) > 1) return false; let i = 0; while (i < a.length && a[i] === b[i]) i++;
       return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i); };
     /* "Richard II"/"Richard III", "Section A"/"Section B": a numbering, not a spelling. */
+    /* ONE LETTER APART, TWO THINGS: "Timetables" (reading a bus timetable) is not "Times Tables" (multiplication). */
+    const DISTINCT = new Set(['wcbmtimestable|wcbmtimetable']);
     const ROMAN = (a, b) => { const t = x => x.replace(/\\s*\\b(?:[IVXLC]+|[A-Z])\\b['.]?\\s*$/, ''); return t(a) === t(b) && t(a) !== a; };
     const at = (a, b) => { const r = []; for (let p = a.indexOf(b); p >= 0; p = a.indexOf(b, p + 1)) if ((p === 0 || a[p - 1] === ' ') && (p + b.length === a.length || a[p + b.length] === ' ')) r.push(p); return r; };
     facetList().forEach(f => {
@@ -46,7 +48,7 @@ const CHECK = process.argv.includes('--check');
       const ks = Object.keys(seen).filter(k => k.length >= 8).sort();
       if (ks.length < 4000) for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) {
         if (ks[j].slice(0, 3) !== ks[i].slice(0, 3)) break;
-        if (lev1(ks[i], ks[j]) && !/\\d/.test(ks[i] + ks[j]) && !ROMAN(seen[ks[i]][0], seen[ks[j]][0])) out.push({ kind: 'near-dup', menu: label, value: seen[ks[i]][0], say: 'one letter from "' + seen[ks[j]][0] + '"' }); }
+        if (lev1(ks[i], ks[j]) && !DISTINCT.has(ks[i] + '|' + ks[j]) && !/\\d/.test(ks[i] + ks[j]) && !ROMAN(seen[ks[i]][0], seen[ks[j]][0])) out.push({ kind: 'near-dup', menu: label, value: seen[ks[i]][0], say: 'one letter from "' + seen[ks[j]][0] + '"' }); }
       /* WORDS: the menu's text, the chip after the pick and the card's tag line are one text, for every answer. */
       /* EACH AS DRAWN: the menu's button, the chip, and the tag on one card that wears the answer. */
       const card = {}; items.forEach(x => { let o = []; try { o = facetOwn_(f, x); } catch (e) { o = []; } o.forEach(w => { const k = spellKey_(w); if (!(k in card)) card[k] = x; }); });
@@ -56,8 +58,9 @@ const CHECK = process.argv.includes('--check');
         STUFF.filters = [{ field: f.field, value: v.value }];
         try { chip = norm(chipText_(STUFF.filters[0], 0)); } catch (e) { chip = '?'; }
         STUFF.filters = [];
-        try { const x = card[spellKey_(v.value)]; const re = new RegExp('data-f="' + f.field + '">([^<]*)<', 'g'); let m, hit = null, html = x ? tagRow_(x) + tagRow_(x, 'ans') : '';  /* an answer page wears Answers */
-          while ((m = re.exec(html))) if (norm(m[1]) === menu) hit = menu; else if (hit === null) hit = norm(m[1]);
+        try { const x = card[spellKey_(v.value)]; const re = new RegExp('data-f="' + f.field + '"[^>]*>([^<]*)<|data-also="(?:[^"]* )?' + f.field + '(?: [^"]*)?">([^<]*)<', 'g'); let m, hit = null, html = x ? tagRow_(x) + tagRow_(x, 'ans') : '';  /* an answer page wears Answers */
+          /* A TAG SHARED WITH ANOTHER FACET (data-also: a winner who is also a fighter, a kind that is also a for) still wears this one. */
+          while ((m = re.exec(html))) { const t = norm(m[1] != null ? m[1] : m[2]); if (t === menu) hit = menu; else if (hit === null) hit = t; }
           tag = hit === null ? menu : hit; } catch (e) { tag = '?'; }
         STUFF.filters = [];
         const chipOk = chip === menu || chip === norm(f.label + ' ' + menu);

@@ -47,12 +47,8 @@ function run() {
   /* AN EXTRA PINNED TO A STEP THAT IS GONE. § */
   const stranded = extras.filter(x => x.after && shorts.indexOf(x.after) === -1);
 
-  const aliasBlock = src.match(/const SPINE_ALIAS = \{([^}]*)\}/);
+  /* NO TRANSLATION TABLE (batch F): a row is pushed under its spine name, so `alias` stays empty and a SPINE_ALIAS fails below. */
   const alias = {};
-  ((aliasBlock && aliasBlock[1]) || '').split(',').forEach(pair => {
-    const m = pair.match(/(\w+)\s*:\s*'([^']*)'/);
-    if (m) alias[m[1]] = m[2];
-  });
 
   /* ---------- EVERY LABEL EITHER BUILDER PUSHES § */
   const pushed = new Set();
@@ -63,6 +59,9 @@ function run() {
   if (Object.keys(week).length) DAYS.forEach(d => pushed.add(d));
 
   const bad = [];
+  /* WHAT AN ANSWER CLEARS IS ITS STEP'S `set` (book-steps.js), never a `step.id === '…'` branch in the answering code. */
+  if (/\bstep\.id === '/.test(src.replace(/\/\*[\s\S]*?\*\//g, ''))) bad.push('a step.id === branch in the booking code: declare what the answer does as that step\'s `set`.');
+  if (/\bSPINE_ALIAS\b/.test(src)) bad.push('SPINE_ALIAS is back: push each row under its spine name (a price row\'s `row`, the step\'s `short`) instead.');
   const unknown = [...pushed].filter(k => {
     const resolved = alias[k] !== undefined ? alias[k] : k;
     return resolved && spine.indexOf(resolved) === -1;
@@ -71,7 +70,7 @@ function run() {
   unknown.forEach(k => bad.push(
     '"' + k + '" is pushed as a row and is not on the SPINE.\n'
     + '      Either add it to SPINE — and it appears on the form AND the receipt, which is the\n'
-    + '      point — or give it an entry in SPINE_ALIAS pointing at the row it really is.'));
+    + '      point — or push it under the name of the row it really is.'));
 
   /* ---------- AND THE OTHER DIRECTION § */
   const never = spine.filter(k => {

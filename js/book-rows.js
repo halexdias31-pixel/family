@@ -172,8 +172,7 @@ function bookToggle_(step, v) {
       list.sort((a, b) => at_(a) - at_(b));
     } catch (err) {}
     BOOKING[step.id] = list;
-    /* THE SEATS FOLLOW THE CHILDREN (owner, 7 Nov): picking a child past the count raises it; seats beyond them stay the admin's. */
-    if (step.id === 'kids' && list.length > (Number(BOOKING.n) || 1)) BOOKING.n = String(list.length);
+    if (step.set) step.set(list);
   }
   /* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. § */
   BOOKING.done = uniq((BOOKING.done || []).concat([step.id]));
@@ -203,32 +202,23 @@ document.addEventListener('change', e => {
   BOOKING[step.id] = el.value || '';
   BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
 
-  /* ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN § */
-  if (step.id === 'how') BOOKING.tutor = '';
-  /* ANOTHER CLIENT, ANOTHER FAMILY: a child the new client does not have is not on their booking (two clients' children showed, 29 Oct). */
-  if (step.id === 'client') bookKidsFor_();
-  /* AND AT THE CLIENT'S OWN HOUSE THE SPACE IS THEIRS — an earlier `No` must not stand under a row that cannot be answered. */
-  if (step.id === 'loc' && atClientHome_(BOOKING.loc)) BOOKING.hosting = '';
-
-  /* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS § */
-  if (step.id === 'joining') {
-    const j = joinedJob_();
-    BOOKING.subjects = j && j.subject ? [j.subject] : [];
-    BOOKING.level    = (j && j.level) || '';
-    BOOKING.loc      = (j && (j.location || j.venue)) || '';
-    BOOKING.n        = j ? '1' : '';
-    ['subjects', 'level', 'loc', 'n'].forEach(id => {
-      BOOKING.done = j ? uniq((BOOKING.done || []).concat([id]))
-                       : (BOOKING.done || []).filter(x => x !== id);
-    });
-  }
-
-  /* AND UNCHOOSING THE KIND UNCHOOSES THE CLASS. "Instant" with a waiting list still named on the
-     row below is the form contradicting itself. */
-  if (step.id === 'how' && !isWaiting_()) BOOKING.joining = '';
+  /* WHAT THIS ANSWER DOES TO THE OTHERS IS THE STEP'S OWN `set` (book-steps.js), never a branch here. */
+  if (step.set) step.set(BOOKING[step.id]);
 
   drawBooker();
 });
+/* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS (the `joining` step's `set`) § */
+function joiningSet_() {
+  const j = joinedJob_();
+  BOOKING.subjects = j && j.subject ? [j.subject] : [];
+  BOOKING.level    = (j && j.level) || '';
+  BOOKING.loc      = (j && (j.location || j.venue)) || '';
+  BOOKING.n        = j ? '1' : '';
+  ['subjects', 'level', 'loc', 'n'].forEach(id => {
+    BOOKING.done = j ? uniq((BOOKING.done || []).concat([id]))
+                     : (BOOKING.done || []).filter(x => x !== id);
+  });
+}
 
 
 
@@ -356,7 +346,7 @@ function breakdownRows(L) {
       /* THE SAME DROPDOWN THE UNPRICED CARD USES. § */
       const st = asked ? bookStep_(asked) : null;
       const sel = st ? stepControl_(st) : '';
-      push(r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
+      push(r.row || r.label, plain || (asked ? '—' : ''), c.mul, c.rate, c.total,
         /* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL § */
         /* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE § */
         { end: gi === inGroup.length - 1, step: asked, key: r.key, sel: sel });

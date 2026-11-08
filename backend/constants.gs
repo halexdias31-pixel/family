@@ -128,7 +128,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-11-08-home-seats-1";
+const BACKEND_VERSION = "2026-11-08-role-words-1";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -966,8 +966,11 @@ const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
 
 /* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT § */
 const SELF_ROLES = ['tutor', 'client', 'student'];
-const SELF_ROLE_ALIASES = { teacher: 'tutor', parent: 'client', guardian: 'client',
-                            kid: 'student', child: 'student', pupil: 'student' };
+/* ONE LIST OF ROLE WORDS (batch G): sent by doGet as `roleAliases`, read by the site's `roleOf`; core.js keeps a copy only until it lands. */
+const ROLE_ALIASES = { administrator: 'admin', teacher: 'tutor', parent: 'client', guardian: 'client',
+                       kid: 'student', child: 'student', pupil: 'student' };
+/* THE SAME WORDS, LESS ANY THAT NAMES A ROLE NOBODY MAY TICK FOR THEMSELVES (admin). */
+const SELF_ROLE_ALIASES = Object.fromEntries(Object.entries(ROLE_ALIASES).filter(([, to]) => SELF_ROLES.indexOf(to) !== -1));
 
 /* ---------- AND A TICKED TUTOR IS A TUTOR THE BUSINESS HAS NOT SAID YES TO YET § */
 const LISTED_PENDING = 'PENDING';

@@ -122,6 +122,8 @@ for (const f of appFiles_()) {
       if (t.value === 'loading_') { calls++; callers.add(f); }
       if (t.value === 'loaded_') loadedCalls++;
     }
+    /* 0. A WAIT FOUND BY READING ITS HTML: `isLoading_(h)` asks, a regex for the class never does. */
+    if (t.type.label === 'regexp' && /class=.{0,2}"?loading/.test(String((t.value && t.value.pattern) || ''))) bad.push(`${f}:${lineOf(src, t.start)}: a wait found by matching its class — ask \`isLoading_(html)\``);
     if (t.type.label !== 'string' && t.type.label !== 'template') return;
     strings++;
     const v = String(t.value || '');

@@ -132,6 +132,7 @@ function getPayloadInit_(behind, migrated, meAsked, cfg, opts, sur, filmsOut, ve
     /* The admin forms' field lists (venue, post, shop, trip, room, link), `options`, `availGrid`, `multiSelect`, `pricingRows` and `galleryError` went in 433: nothing read them. */
     /* `resourceInUse` WAS HERE. § */
     profileReadonly: PROFILE_READONLY,
+    roleAliases: ROLE_ALIASES,
     // field -> its option list, in the shape the edit forms already read. Built from the
     // `options` tab, so every form and every booking dropdown share one source. Editing a list
     // there takes effect on the next load: nothing to rebuild, nothing to go stale.

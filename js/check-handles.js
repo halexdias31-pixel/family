@@ -33,7 +33,9 @@ const SRC = [
   grab(people, /const HANDLE_TAIL_MIN[^;]*;/, 'HANDLE_TAIL_MIN'),
   grab(people, /const HANDLE_ORDERS\s*=\s*\[[\s\S]*?\]\];/, 'HANDLE_ORDERS'),
   /* ---------- A CHILD'S HANDLE (342), AND THE ONE TEST THAT SAYS WHO IS A CHILD § */
-  grab(consts, /const SELF_ROLE_ALIASES\s*=\s*\{[\s\S]*?\};/, 'SELF_ROLE_ALIASES'),
+  grab(consts, /const SELF_ROLES\s*=[^;]*;/, 'SELF_ROLES'),
+  grab(consts, /const ROLE_ALIASES\s*=\s*\{[\s\S]*?\};/, 'ROLE_ALIASES'),
+  grab(consts, /const SELF_ROLE_ALIASES\s*=[^\n]*\n/, 'SELF_ROLE_ALIASES'),
   grab(consts, /const LISTED_PENDING[^;]*;/, 'LISTED_PENDING'),
   grab(people, /function rolesOf\([\s\S]*?\n\}/, 'rolesOf'),
   grab(people, /function hasRole\([^\n]*\n/, 'hasRole'),

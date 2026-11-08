@@ -36,7 +36,7 @@ const PRICE_ROWS = [
     mult:  L => L.avgSubject,
     of:    L => rateBase(L, 'subject') },
 
-  { key: 'complexity', label: 'Extra subjects', kind: 'rate-mult', group: 'rate',
+  { key: 'complexity', label: 'Extra subjects', row: 'Extra subj.', kind: 'rate-mult', group: 'rate',
     control: null,
     value: L => String(Math.max(0, (L.k || 1) - 1)),
     mult:  L => L.fSubjectCount,
@@ -71,7 +71,7 @@ const PRICE_ROWS = [
     perHour: L => (L.hosting ? 0 : L.venueRate) || 0,
     atCost: true },
 
-  { key: 'host',    label: 'Host',     kind: 'rate-add',  group: 'rate',
+  { key: 'host',    label: 'Host', row: 'Space',     kind: 'rate-add',  group: 'rate',
     control: 'host-toggle',
     perHour: L => (L.hosting && L.venueRate) ? -L.venueRate : 0,
     atCost: true,
