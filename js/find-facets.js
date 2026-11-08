@@ -291,6 +291,8 @@ function facetWhy_(items, facet, over) {
   if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
   const echo = facetEcho_(items, facet);
   if (echo) return echo + ' asked finer, and it was answered Any — each answer sits inside one of that question\'s';
+  const local = facetLocal_(items, facet);
+  if (local) return 'counts within each ' + local + ' — asked once one ' + local + ' is left';
   const split = facetSplit_(items, facet);
   if (split < FACET_MIN_MINORITY && !kindNamed_(all) && !facet.choose) {
     return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
@@ -334,6 +336,46 @@ function facetEcho_(items, facet) {
     if (ok && gAll.size > 1 && Object.keys(to).length > 1) return G.label || G.field;
   }
   return '';
+}
+
+/* A COUNT WITHIN EACH ANSWER OF ANOTHER QUESTION (Question within Paper): each G answer with two F answers holds a run of the
+   same names, one run inside the next, so Q1 under two papers is two things. Held until one G answer is left. */
+/* Not when G's answers also run, unevenly, inside F's: that is a grid (Question by Part), and neither is the other's count. */
+function runsInside_(items, F, G) {
+  const by = {};
+  let cards = 0, cells = 0;
+  for (const x of items) {
+    const a = facetOwn_(F, x), b = facetOwn_(G, x);
+    if (!a.length) continue;
+    /* A count lives only inside its parent: a card with F and no single G (a key stage with no Accuracy) makes F G's equal. */
+    if (b.length !== 1) return 0;
+    const s = by[spellKey_(b[0])] || (by[spellKey_(b[0])] = new Set());
+    cards++;
+    a.forEach(v => s.add(spellKey_(v)));
+  }
+  for (const k in by) cells += by[k].size;
+  /* A parent holds more cards than counts; one card a cell is the card's own address (Question by Part), a grid. */
+  if (cards <= cells) return 0;
+  const sets = Object.values(by).filter(s => s.size > 1).sort((p, q) => p.size - q.size);
+  /* A count runs longer than its parents are many: Required (two answers) under each practical type is a side, not a count. */
+  if (sets.length < 2 || sets[sets.length - 1].size <= Object.keys(by).length) return 0;
+  if (!sets.every((s, i) => !i || [...sets[i - 1]].every(v => s.has(v)))) return 0;
+  return sets[0].size === sets[sets.length - 1].size ? 1 : 2;
+}
+const LOCAL_MEMO_ = new WeakMap();
+function facetLocal_(items, F) {
+  let m = LOCAL_MEMO_.get(items);
+  if (!m) LOCAL_MEMO_.set(items, m = {});
+  if (F.field in m) return m[F.field];
+  let say = '';
+  const nF = facetValues(items, F).length;
+  for (const G of facetList()) {
+    const nG = G === F ? 0 : facetValues(items, G).length;
+    if (nG < 2 || nG >= nF || !runsInside_(items, F, G) || runsInside_(items, G, F) === 2) continue;
+    say = G.label || G.field;
+    break;
+  }
+  return (m[F.field] = say);
 }
 
 /* HOW WELL A QUESTION SPLITS THE LIST, in bits, the score the menu-rule check measures (920). Past FACET_BITS_ENOUGH a split is
