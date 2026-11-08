@@ -728,7 +728,7 @@ function padArm_(pad, on) {
   if (card) card.querySelectorAll('.qt-row .qt-t[data-do="qt-inst"], .qt-row .qt-t[data-do="qt-pen"]').forEach(t => {
     /* the Straight line tile is the pad's \`ruler\` mode; the Ruler tile is the measuring one, lit by \`measOpen_\` (553) */
     const id = t.getAttribute('data-tool');
-    const lit = !!on && (id === 'protractor' ? padProtOn_(k) : id === 'ruler' ? !!(MEAS && MEAS.k === t.getAttribute('data-key') && MEAS.tool === 'ruler') : (id === 'line' ? 'ruler' : id) === tool);
+    const lit = qtToolOn_(id, t.getAttribute('data-key'), k, on ? tool : '');
     tileSet_(t, { on: lit, pressed: lit });
   });
 }

@@ -17,15 +17,14 @@ const QT_TOOLS = [
   { id: 'lock',       icon: 'unlock',     label: 'Lock',            note: 'hold this page still',     act: 'q-lock' },
   { id: 'check',      icon: 'send',       label: 'Check',           note: '',                         act: '' },
 ];
-const QT_ORDER = QT_TOOLS.map(t => t.id);
-/* THE TOOLS THAT DRAW ON THE PART'S FIGURE OR SURFACE: drawn only where it has one (`qtRow_`). */
-const QT_DRAWING = { pen: 1, line: 1, ruler: 1, protractor: 1, compass: 1 };
+/* THE ONE ROW EVERY PART SHOWS, identically (owner, 8 Nov); data/settings/qengine.json `row` repeats it (check-answerable) */
+const QT_ROW = ['photo', 'mag', 'read', 'lock', 'ruler', 'protractor'];
+/* THE PEN'S TILES, added only where the part has a figure to draw on (a drawing answer needs its pen) */
+const QT_DRAWING = { pen: 1, line: 1, compass: 1 };
+const QT_ORDER = QT_ROW.concat(Object.keys(QT_DRAWING), ['check']);
 /* THE PEN'S OWN NAME FOR EACH DRAWING TILE: Straight line is the pad's `ruler` mode (a line from press to lift, `padStroke_`). */
 const QT_PAD_TOOL = { pen: 'pen', line: 'ruler', compass: 'compass', protractor: 'protractor' };
-/* THE SAME ROW ON EVERY PART (owner, 7 Nov): magnifier, padlock and Read aloud included; Read aloud reads its own part. */
-const QT_CARD_LEVEL = {};
 const qMulti_ = x => { try { return (questionParts_()[qId_(x)] || []).length > 1; } catch (e) { return false; } };
-const qtHere_ = id => !QT_CARD_LEVEL[id];
 const qtTool_ = id => QT_TOOLS.find(t => t.id === id) || null;
 
 /* ---------- THE PART'S ONE RECORD (text, choice, cells, strokes, photos, the AI's mark): keyed as its answer is. */
@@ -112,7 +111,7 @@ function qtCheck_(x, m) {
   return ai || tile_({ send: true, act: 'qp-ai', cls: 'qp-ai-go qp-check', off: true });
 }
 
-/* ---------- THE ROW. All nine in QT_ORDER (the four drawing tools where there is something to draw on), then Undo, Clear and Check: all drawn from the start (1020). */
+/* ---------- THE ROW. QT_ROW on every part, the pen's tiles where there is a figure, then Undo, Clear and Check (1020). */
 const PEN_OPEN = new Set();
 /* WHAT `qPartCard_` HANDS THE NEXT ROW DRAWN: its part's other tiles; `used` says a row took them */
 const QT_MORE = { html: '', used: false };      // parts whose pen was opened this visit (the surface is made on the first Pen tap)
@@ -129,23 +128,28 @@ function qtToolTile_(t, x) {
   if (t.id === 'photo') {
     return tile_({ icon: t.icon, label: t.label, note: t.note, act: 'qp-work', cls: 'qp-work-go qt-t', data: { k: ansKey_(x), tool: t.id } });
   }
-  /* A CARD DRAWN AGAIN keeps the tool in hand lit -- `padArm_`'s rule, read off PAD_ON and PAD_TOOL, which outlive the markup */
+  /* A CARD DRAWN AGAIN keeps the tool in hand lit, by the one rule `padArm_` uses too */
   const pk = (t.act === 'qt-pen' || t.act === 'qt-inst') && typeof padKey_ === 'function' ? padKey_(x) : '';
-  const held = t.id === 'ruler' ? !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler')
-    : !!pk && PAD_ON === pk && (t.id === 'protractor' ? padProtOn_(pk) : (PAD_TOOL.get(pk) || 'pen') === QT_PAD_TOOL[t.id]);
-  const on = held;
+  const on = qtToolOn_(t.id, key, pk, PAD_ON === pk ? (PAD_TOOL.get(pk) || 'pen') : '');
   const cls = 'qt-t' + ((t.id === 'ruler' || t.id === 'protractor') ? ' q-meast' : '');
   return tile_({ icon: t.icon, label: t.label, note: t.note, act: t.act, cls, on, pressed: on, data: { tool: t.id, key } });
+}
+/* IS THIS TOOL IN HAND: the Ruler measures (MEAS), the protractor lies on the pad, the rest are the pad's tool (`inHand`, '' when the pad is off) */
+function qtToolOn_(id, key, pk, inHand) {
+  if (id === 'ruler') return !!(typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && MEAS.tool === 'ruler');
+  if (!pk || !inHand) return false;
+  if (id === 'protractor') return !!padProtOn_(pk);
+  return inHand === QT_PAD_TOOL[id];
 }
 function qtRow_(x) {
   if (!x || !x.key) return '';
   const key = x.key;
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
   if (typeof MEAS !== 'undefined' && MEAS && MEAS.k === key && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
-  /* THE DRAWING TOOLS ONLY WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank grid -- "the working paper", which the owner had removed (29 Oct) */
-  /* AND ONLY WHERE THE PAD IS ALREADY ON THE CARD (1020), so a tap never redraws it; a passage's grid is the one still made on the first tap */
+  /* QT_ROW ON EVERY PART; the pen's tiles, Undo and Clear only where the pad is already on the card (1020) */
   const art = typeof padReady_ !== 'function' || padReady_(x);
-  const tools = QT_TOOLS.filter(t => t.id !== 'check' && (art || !QT_DRAWING[t.id]) && qtHere_(t.id, x)).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
+  const ids = QT_ROW.concat(art ? Object.keys(QT_DRAWING) : []);
+  const tools = ids.map(qtTool_).filter(Boolean).map(t => qtToolTile_(t, x)).join('') + (art && typeof padUndoTiles_ === 'function' ? padUndoTiles_(x) : '');
   const m = markerOf_(x);
   /* A PART OF A WHOLE QUESTION (owner, 8 Nov): its Show-the-answer and card tiles join this row, so the part has one row, not three */
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
