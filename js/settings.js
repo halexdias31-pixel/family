@@ -13,9 +13,7 @@ const setNorm_ = v => libS(v).toLowerCase().trim();
 /* A ROW NUMBER THE SHEET WOULD HAVE GIVEN. § */
 const setRow_ = i => i + 2;
 
-function settingsInto_(d, extra) {
-  if (!d || !extra) return d;
-
+function setBrand_(d, extra) {
   /* the branding, whole ------------------------------------------------------------------- EVERY ROW, whether or not the code knows the key — the backend's own § */
   const brand = extra['settings/brand'];
   if (brand && brand.length) {
@@ -25,7 +23,9 @@ function settingsInto_(d, extra) {
       if (k) d.brand[k] = libS(r.value);
     });
   }
+}
 
+function setFacets_(d, extra) {
   /* what the funnel asks ------------------------------------------------------------------- `order` is THREE-STATE: § */
   const facets = extra['settings/facets'];
   if (facets && facets.length) {
@@ -36,7 +36,9 @@ function settingsInto_(d, extra) {
       active: libOn(r.active),
     }));
   }
+}
 
+function setKinds_(d, extra) {
   /* what the funnel's first two questions answer -------------------------------------------- A KIND MAY BE IN MORE THAN ONE GROUP and the cell says so with commas § */
   const kinds = extra['settings/kinds'];
   if (kinds && kinds.length) {
@@ -48,7 +50,9 @@ function settingsInto_(d, extra) {
       active: libOn(r.active),
     }));
   }
+}
 
+function setLaws_(d, extra) {
   /* --- the laws that paint words ---------------------------------------------------------------
      Heaviest first, so a specific law beats a general one when both match the same word. */
   const laws = extra['settings/laws'];
@@ -63,7 +67,9 @@ function settingsInto_(d, extra) {
       }))
       .sort((a, b) => b.weight - a.weight);
   }
+}
 
+function setFacts_(d, extra) {
   /* the reels and the "one more thing" widget ------------------------------------------------ HEADING OR CLIP. § */
   const facts = extra['settings/facts'];
   if (facts && facts.length) {
@@ -84,10 +90,9 @@ function settingsInto_(d, extra) {
       .sort((a, b) => (a.order - b.order) || (a.row - b.row));
   }
 
+}
 
-  /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
-
-  /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
+function setCampaigns_(d, extra) {
   const campaigns = extra['settings/campaigns'];
   if (campaigns && campaigns.length) {
     const words = {};
@@ -111,7 +116,9 @@ function settingsInto_(d, extra) {
       }));
   }
 
-  /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
+}
+
+function setColumns_(d, extra) {
   const columns = extra['settings/columns'];
   if (columns && columns.length) {
     const live = columns
@@ -125,7 +132,9 @@ function settingsInto_(d, extra) {
     d.columnsOff = columns.filter(r => libS(r.screen) && !libOn(r.active) && libS(r.screen) !== 'res')
       .map(r => ({ screen: libS(r.screen), label: libS(r.label) || libS(r.screen), what: libS(r.notes).split(/ — |\. |\(/)[0].trim() }));
   }
+}
 
+function setSpot_(d, extra) {
   /* ---------- THE SHOP WINDOW'S FLOOR, AND IT IS `spotlightFile` RATHER THAN `spotlight` § */
   const spot = extra['settings/spotlight'];
   if (spot && spot.length) {
@@ -133,19 +142,31 @@ function settingsInto_(d, extra) {
       .filter(r => libS(r.item_id) && libOn(r.on))
       .map(r => libS(r.item_id));
   }
+}
 
+function setInFind_(d, extra) {
   /* ---------- WHICH WIDGETS ARE FIND CARDS (790): a row names a widget's kind or its id; the id's row wins (`widgetInFind_`, arcade.js) ---------- */
   const inFind = extra['settings/widgets-in-find'];
   if (inFind && inFind.length) {
     d.widgetsInFind = inFind.filter(r => libS(r.widget).trim()).map(r => ({ widget: libS(r.widget).trim(), find: libOn(r.find) }));
   }
+}
 
+function setFor_(d, extra) {
   /* ---------- EACH SETTING'S ACCOUNT TYPES (owner, 7 Nov): `for` is a comma list, so one item is found under every type it belongs to ---------- */
   const setFor = extra['settings/setting-for'];
   /* THE ROWS' ORDER IS THE ITEMS' ORDER (identity, contact, sign-in, roles, notifications, reading, role-specific); `rank` overrides it. */
   if (setFor && setFor.length) d.settingFor = Object.fromEntries(setFor.filter(r => libS(r.card).trim())
     .map((r, i) => [libS(r.card).trim(), { for: libS(r.for).split(',').map(t => t.trim()).filter(Boolean), name: libS(r.name).trim(), rank: libN(r.rank) || i }]));
+}
 
+function settingsInto_(d, extra) {
+  if (!d || !extra) return d;
+  /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
+  /* the campaigns, and the words they say ---------------------------------------------------- ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins § */
+  /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
+  setBrand_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
+  setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra);
   return d;
 }
 

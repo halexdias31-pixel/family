@@ -604,24 +604,7 @@ function glassOffset_(sl, page) {
   return { top, left };
 }
 
-function placeGrid(instant, drag) {
-  if (FLOW_LAYOUT) return flowPlace_();
-  if (drag && dragFast_(drag)) return;
-  DRAG_PLAN = null;
-  /* Said before anything is measured or moved, so the width the stylesheet draws and the width
-     this function spaces by cannot be different on the same frame. Setting a custom property that
-     already holds that value costs nothing. */
-  publishCardWidth_();
-  const tabs = TABS.map(t => t.id);
-  const ti = Math.max(0, tabs.indexOf(AT));
-  const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
-  const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
-  const stepX = stepX_();
-
-  /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED § */
-  /* ---------- AN INSTANT PLACEMENT DOES NOT CANCEL A SLIDE THAT IS STILL RUNNING § */
-  if (instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until) instant = false;
-  if (!drag && motionLess_()) { instant = true; SETTLE_FROM = null; SETTLE_ON = null; }
+function placeHosts_(tabs, drag) {
   const hosts = [];
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
@@ -640,19 +623,10 @@ function placeGrid(instant, drag) {
        transition on the column; a drag now zeroes only its own axis (`colTransition_` below). */
     host.classList.toggle('dragging', !!drag);
   });
-  /* A CARD HELD BECAUSE YOU WERE USING IT IS LET GO THE MOMENT ANOTHER ONE IS IN FRONT — see
-     `HOLD_AT`. Before the shifts are read, so the card arrived at is centred. */
-  if (HOLD_AT && (HOLD_AT.id !== AT || (PAGE[AT] || 0) !== HOLD_AT.p)) HOLD_AT = null;
-  /* Slid so the page being read sits in the middle — see `columnShift_`. A vertical drag only ever
-     moves the screen in front; the others have no finger on them. READ ONLY — see the three passes
-     above. */
-  hosts.forEach(h => {
-    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
-  });
-  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
-  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
-  /* THE SETTLE, if this placement is the one a release asked for. § */
-  /* WHENEVER IT COMES. A window of 150ms was the first version, and on a slow phone the placement a release asks for can start later than that — it then fell back § */
+  return hosts;
+}
+
+function placeSettleStart_(hosts, ti, stepX, instant, drag) {
   const rel = !instant && !drag && SETTLE_FROM ? SETTLE_FROM : null;
   if (rel) {
     SETTLE_FROM = null;
@@ -667,17 +641,10 @@ function placeGrid(instant, drag) {
     /* SIXTEEN MILLISECONDS IN ALREADY — see the delay below. */
     SETTLE_ON = { axis: rel.axis, dur: c.dur, tf: c.tf, until: performance.now() + c.dur - 16 };
   }
-  const settle = !instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until ? SETTLE_ON : null;
-  /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. § */
-  const runs = ax => (settle && settle.axis === ax
-    ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
-  const front = hosts.find(h => h.id === AT);
-  const before = front && !instant && !drag ? colPlaced_(front.host) : null;
-  /* ON A WIDE WINDOW, how far from the middle a column can be and still have a card on the glass:
-     half the window and half a card, and one step more, so a column a drag is about to bring in is
-     already drawn. */
-  const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
-  /* ---------- AND WHAT A SLIDE CARRIES ACROSS THE GLASS STAYS DRAWN WHILE IT IS CARRIED § */
+}
+
+/* Whether the row is drawn wider than the glass, so it is put back once the slide ends. */
+function placeReads_(hosts, ti, stepX, glass, instant, drag, settle) {
   const now = performance.now();
   if (!drag) TRAIL_X = trailX_(ti, now, !!instant, settle);
   const xRun = now < TRAIL_X.until || !drag;
@@ -698,50 +665,117 @@ function placeGrid(instant, drag) {
     h.c = c;
     h.pg = pagesRead_(h.host, h.id, c);
   });
+  return wider;
+}
+
+function placeWrite_({ id, i, host, shift, c, pg, wasFront }, ti, stepX, dxPx, instant, drag, runs, glass) {
+  const dx = i - ti;
+  const at = c.at;
+  const x = dx * stepX + dxPx;
+  /* A COLUMN ARRIVING ON THE PAGE IT WAS PLACED FOR, WHOSE CARD CHANGED HEIGHT SINCE, TAKES ITS NEW HEIGHT NOW: the slide carries it across, never down (382). */
+  if (!instant && !drag && !wasFront && host.PLACED_P === at) {
+    const was = colPlaced_(host);
+    if (was && Math.abs(shift - was[1]) > 0.5) colShiftNow_(host, shift - was[1]);
+  }
+
+  /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
+     keeps whatever slide it is in the middle of. */
+  colTransition_(host,
+    instant || (drag && drag.which === 'x') ? SLIDE_NONE : runs('x'),
+    instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
+    instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
+  colWrite_(host, x, shift);
+  host.REST_X = null;
+  /* WHICH PAGE THIS SHIFT WAS WORKED OUT FOR — read by `holdColumn_`, which corrects a column only
+     for the page it was sent to. */
+  host.PLACED_P = at;
+  /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
+     something to look at, not something to tap. */
+  /* STILL TRUE ON A WIDE WINDOW, where the columns beside are whole and readable: § */
+  host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
+  const across = Math.abs(dx);
+  /* ---------- THE NEIGHBOUR IS BARELY DIMMED, AND HERE IS WHY § */
+  /* ---------- AND THE ROW KEEPS DRAWN THE COLUMNS A SLIDE CROSSES § */
+  const onGlass = c.onGlass;
+  const lit = WIDE && c.acrossT * stepX < glass + stepX;
+  const op = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
+    : c.acrossT <= 3 ? '.92' : '0';
+  /* ---------- AND A COLUMN COMING BACK FROM NOUGHT IS DRAWN AT ONCE, NOT FADED IN § */
+  const was = +host.style.opacity || 0;
+  if (!instant && was <= 0.05 && +op > 0.05) colTransition_(host, null, null, { d: '0s', tf: 'linear', delay: '0s' });
+  host.style.opacity = op;
+  /* AND SIDEWAYS, THE SAME. § */
+  host.style.visibility = c.acrossT > 4 && !lit ? 'hidden' : 'visible';
+
+  /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares. § */
+  placePages_({ id: id, host: host }, c, pg);
+}
+
+function placeSlideUntil_(before, front, settle) {
+  if (before && front) {
+    const now = colPlaced_(front.host);
+    if (now && (Math.abs(now[0] - before[0]) > 2 || Math.abs(now[1] - before[1]) > 2)) {
+      SLIDE_UNTIL = performance.now() + (settle ? settle.dur : 300);
+    }
+  }
+}
+
+function placeBlurLeft_() {
+  try {
+    const fe = document.activeElement;
+    const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
+    if (pg && !pg.classList.contains('on') && typeof fe.blur === 'function') fe.blur();
+  } catch (e) { /* a field that keeps its focus is the behaviour before this existed */ }
+}
+
+function placeGrid(instant, drag) {
+  if (FLOW_LAYOUT) return flowPlace_();
+  if (drag && dragFast_(drag)) return;
+  DRAG_PLAN = null;
+  /* Said before anything is measured or moved, so the width the stylesheet draws and the width
+     this function spaces by cannot be different on the same frame. Setting a custom property that
+     already holds that value costs nothing. */
+  publishCardWidth_();
+  const tabs = TABS.map(t => t.id);
+  const ti = Math.max(0, tabs.indexOf(AT));
+  const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
+  const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
+  const stepX = stepX_();
+
+  /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED § */
+  /* ---------- AN INSTANT PLACEMENT DOES NOT CANCEL A SLIDE THAT IS STILL RUNNING § */
+  if (instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until) instant = false;
+  if (!drag && motionLess_()) { instant = true; SETTLE_FROM = null; SETTLE_ON = null; }
+  const hosts = placeHosts_(tabs, drag);
+  /* A CARD HELD BECAUSE YOU WERE USING IT IS LET GO THE MOMENT ANOTHER ONE IS IN FRONT — see
+     `HOLD_AT`. Before the shifts are read, so the card arrived at is centred. */
+  if (HOLD_AT && (HOLD_AT.id !== AT || (PAGE[AT] || 0) !== HOLD_AT.p)) HOLD_AT = null;
+  /* Slid so the page being read sits in the middle — see `columnShift_`. A vertical drag only ever
+     moves the screen in front; the others have no finger on them. READ ONLY — see the three passes
+     above. */
+  hosts.forEach(h => {
+    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
+  });
+  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
+  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
+  /* THE SETTLE, if this placement is the one a release asked for. § */
+  /* WHENEVER IT COMES. A window of 150ms was the first version, and on a slow phone the placement a release asks for can start later than that — it then fell back § */
+  placeSettleStart_(hosts, ti, stepX, instant, drag);
+  const settle = !instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until ? SETTLE_ON : null;
+  /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. § */
+  const runs = ax => (settle && settle.axis === ax
+    ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
+  const front = hosts.find(h => h.id === AT);
+  const before = front && !instant && !drag ? colPlaced_(front.host) : null;
+  /* ON A WIDE WINDOW, how far from the middle a column can be and still have a card on the glass:
+     half the window and half a card, and one step more, so a column a drag is about to bring in is
+     already drawn. */
+  const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
+  /* ---------- AND WHAT A SLIDE CARRIES ACROSS THE GLASS STAYS DRAWN WHILE IT IS CARRIED § */
+  const wider = placeReads_(hosts, ti, stepX, glass, instant, drag, settle);
   /* PUT BACK TO THE GLASS ONCE THE SLIDE HAS ENDED — see `trailEnd_`. */
   if (wider && !drag && typeof afterSlide_ === 'function') afterSlide_(trailEnd_, 'trail');
-  hosts.forEach(({ id, i, host, shift, c, pg, wasFront }) => {
-    const dx = i - ti;
-    const at = c.at;
-    const x = dx * stepX + dxPx;
-    /* A COLUMN ARRIVING ON THE PAGE IT WAS PLACED FOR, WHOSE CARD CHANGED HEIGHT SINCE, TAKES ITS NEW HEIGHT NOW: the slide carries it across, never down (382). */
-    if (!instant && !drag && !wasFront && host.PLACED_P === at) {
-      const was = colPlaced_(host);
-      if (was && Math.abs(shift - was[1]) > 0.5) colShiftNow_(host, shift - was[1]);
-    }
-
-    /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
-       keeps whatever slide it is in the middle of. */
-    colTransition_(host,
-      instant || (drag && drag.which === 'x') ? SLIDE_NONE : runs('x'),
-      instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
-      instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
-    colWrite_(host, x, shift);
-    host.REST_X = null;
-    /* WHICH PAGE THIS SHIFT WAS WORKED OUT FOR — read by `holdColumn_`, which corrects a column only
-       for the page it was sent to. */
-    host.PLACED_P = at;
-    /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
-       something to look at, not something to tap. */
-    /* STILL TRUE ON A WIDE WINDOW, where the columns beside are whole and readable: § */
-    host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
-    const across = Math.abs(dx);
-    /* ---------- THE NEIGHBOUR IS BARELY DIMMED, AND HERE IS WHY § */
-    /* ---------- AND THE ROW KEEPS DRAWN THE COLUMNS A SLIDE CROSSES § */
-    const onGlass = c.onGlass;
-    const lit = WIDE && c.acrossT * stepX < glass + stepX;
-    const op = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
-      : c.acrossT <= 3 ? '.92' : '0';
-    /* ---------- AND A COLUMN COMING BACK FROM NOUGHT IS DRAWN AT ONCE, NOT FADED IN § */
-    const was = +host.style.opacity || 0;
-    if (!instant && was <= 0.05 && +op > 0.05) colTransition_(host, null, null, { d: '0s', tf: 'linear', delay: '0s' });
-    host.style.opacity = op;
-    /* AND SIDEWAYS, THE SAME. § */
-    host.style.visibility = c.acrossT > 4 && !lit ? 'hidden' : 'visible';
-
-    /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares. § */
-    placePages_({ id: id, host: host }, c, pg);
-  });
+  hosts.forEach(h => placeWrite_(h, ti, stepX, dxPx, instant, drag, runs, glass));
 
   if (drag) {
     /* THE SUMS THIS FRAME DID, KEPT FOR THE REST OF THE DRAG — see `dragFast_`. The finger's own
@@ -755,17 +789,8 @@ function placeGrid(instant, drag) {
 
   /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
      is not a press. See `SLIDE_UNTIL`. */
-  if (before && front) {
-    const now = colPlaced_(front.host);
-    if (now && (Math.abs(now[0] - before[0]) > 2 || Math.abs(now[1] - before[1]) > 2)) {
-      SLIDE_UNTIL = performance.now() + (settle ? settle.dur : 300);
-    }
-  }
+  placeSlideUntil_(before, front, settle);
 
   /* ---------- A FIELD ON A CARD THAT HAS LEFT IS LET GO OF § */
-  try {
-    const fe = document.activeElement;
-    const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
-    if (pg && !pg.classList.contains('on') && typeof fe.blur === 'function') fe.blur();
-  } catch (e) { /* a field that keeps its focus is the behaviour before this existed */ }
+  placeBlurLeft_();
 }

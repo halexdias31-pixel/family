@@ -405,8 +405,8 @@ function go(id, remember, instant) {
   if (finder) {
     const host = $('s-' + finder.id);
     const drawn = host && host.querySelector('.page[data-filled]');
-    if (instant || !drawn) oopsTry_('go:fill:' + finder.id, () => inFinder_(finder, fillStuffPages));
-    else afterSlide_(() => inFinder_(finder, fillStuffPages), 'fill:' + finder.id);
+    if (instant || !drawn) oopsTry_('go:fill:' + finder.id, () => finderSoon_(finder, fillStuffPages));
+    else afterSlide_(() => finderSoon_(finder, fillStuffPages), 'fill:' + finder.id);
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved. § */
   oopsTry_('go:pager', () => paintPager(AT, instant));

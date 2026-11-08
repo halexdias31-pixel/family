@@ -302,12 +302,12 @@ function markUnitOff_(t) {
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
-  const re = /(?<![\d.\/a-z^])(-?)(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\/(\d+))?(p?)(?![\d.\/a-z^\u00b2\u00b3])/g;
+  const re = /(?:^|[^\d.\/a-z^])(-?)(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\/(\d+))?(p?)(?![\d.\/a-z^\u00b2\u00b3])/g;
   let m;
   while ((m = re.exec(t))) {
     let v = m[3] ? Number(m[2]) + Number(m[3]) / Number(m[4]) : m[5] ? Number(m[2]) / Number(m[5]) : Number(m[2]);
     if (m[6]) v /= 100;
-    out.push({ v: m[1] ? -v : v, s: m[0].trim() });
+    out.push({ v: m[1] ? -v : v, s: m[0].replace(/^[^\d-]/, '').trim() });
   }
   return out;
 }

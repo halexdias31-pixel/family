@@ -607,3 +607,9 @@ function libraryQuiet_() {
     k();
   });
 }
+/* A FINDER CALL BEFORE THE SECOND BATCH LANDS: `inFinder_` lives in find-finder.js (LATER), so an early tap waits for it instead of throwing. */
+function finderSoon_(F, fn) {
+  if (typeof inFinder_ === 'function') return inFinder_(F, fn);
+  laterFiles_().then(() => { try { if (typeof inFinder_ === 'function') inFinder_(F, fn); } catch (e) { /* the screen redraws on its own once in */ } });
+  return undefined;
+}

@@ -682,7 +682,7 @@ function aheadPaint_(id) {
   /* A FINDER ON THE GLASS (beside the one in front, on a wide window) is filled as far as the glass shows, in this slice and before it is placed — its draw no § */
   const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
   if (F && typeof stuffOnGlass_ === 'function' && stuffOnGlass_(id)) {
-    try { inFinder_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) { /* a finder gone mid-draw keeps its old band */ }
+    try { finderSoon_(F, () => { if ($(id + '-controls')) stuffBandFill_(); }); } catch (e) { /* a finder gone mid-draw keeps its old band */ }
   }
   placeOne_(id);
   if (typeof paneWatch_ === 'function') paneWatch_(host);
@@ -715,7 +715,7 @@ function goPage(id, to, instant) {
   if (!PAGER[id]) return;
   /* A FINDER IS TURNED IN ITS OWN BINDING — Find, or the second finder (find.js, `inFinder_`) — so its window, its fills and its kept place below are its own and § */
   const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
-  return inFinder_(F, () => goPageHere_(id, to, instant, F));
+  return finderSoon_(F, () => goPageHere_(id, to, instant, F));
 }
 function goPageHere_(id, to, instant, F) {
   const n = Math.max(0, Math.min(pageCount(id) - 1, to));
@@ -753,7 +753,7 @@ function goPageHere_(id, to, instant, F) {
   if (id === 'reel' && typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) { oops_(e, 'shell:goPage') } }
   if (id === AT) placeCells('y', instant);
   /* AFTER THE SLIDE, THE LANDING'S OWN WORK — the page in front and one either side if a jump left them empty, its textbook animation and its running widget. § */
-  if (F && !bare) afterSlide_(() => inFinder_(F, fillStuffPages), 'fill:' + id);
+  if (F && !bare) afterSlide_(() => finderSoon_(F, fillStuffPages), 'fill:' + id);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN § */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
   /* AND THE TEXTBOOK'S ANIMATION ON THE PAGE TURNED TO, by name for the reason `reelsWatch_` is. */

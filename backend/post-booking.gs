@@ -211,6 +211,68 @@ function postMarkPaid_(body, action, began) {
 }
 
 /* --- THE booking move ------------------------------------------------------------------- */
+/* WHO A MOVE IS ABOUT: `them` named, `target` named or the one candidate. */
+function moveTarget_(body, act, asAdmin, before, others) {
+  // Who this move is about. Named explicitly, or the only person on the other side.
+  const wanted = S(body.counterpart);
+  // Only an EXPLICIT counterpart names someone. Inferring "the only other person" broke the
+  // lobby: a tutor pressing ✓ to mark themselves ready was recorded as "I accept <the client>",
+  // which readied her too — so one person could ready the whole room. Readying up is about
+  // yourself; choosing someone is about them, and the difference is whether you said a name.
+  /* AND BY THE NAME THE PHONE WAS SHOWN. § */
+  const shownAs = wanted ? others.filter(p2 => key(kidNamesOff_(S(p2.name))) === key(wanted)) : [];
+  const them = wanted ? (others.find(p2 => key(p2.name) === key(wanted))
+                         || (shownAs.length === 1 ? shownAs[0] : null)) : null;
+  // Declining still needs a target, and with exactly one candidate there's no ambiguity.
+  /* AN ADMIN'S TARGET IS EVERYBODY WHO IS WAITING. § */
+  const target = them || ((act === ACT.DECLINE && others.length === 1) ? others[0] : null)
+    || (asAdmin && before.length === 1 ? before[0] : null);
+  return { them: them, target: target };
+}
+
+/* THE MOVE'S OWN REFUSALS: no target, a named tutor still asked, the lobby rules. The words, or null. */
+function moveRefusal_(j, act, role, mine, asAdmin, target, others, before) {
+  if (!target && act === ACT.DECLINE) {
+    return others.length ? 'Say which person you mean.'
+                         : 'No one on the other side to respond to.';
+  }
+
+  /* A NAMED TUTOR ANSWERS FOR THEMSELVES (488): a family cannot accept them on their behalf while they are still asked. */
+  if (!asAdmin && role === 'client' && act === ACT.ACCEPT && target && target.role === 'tutor'
+      && target.status === BM.WAITING && !TRUE_(j.stealable)) {
+    return 'Waiting for ' + target.name + ' to accept or decline.';
+  }
+  // Permission is judged against whoever is on the other side of the lobby, named or not —
+  // that's what decides whether the client may pay. Only the WRITE is targeted.
+  const facing = target || others[0] || before[0] || null;
+  /* THE LOBBY RULES ARE ABOUT THE TWO SIDES, and an admin is not one of them. § */
+  if (!asAdmin) {
+    const res = bmApply(role, mine ? S(mine.status) : '', facing ? S(facing.status) : '', act);
+    if (!res.ok) return res.error;
+  }
+  return null;
+}
+
+/* THE JOB'S STATUS FROM WHO IS LEFT, written with what it freezes or cancels; returned. */
+function moveStatus_(t, j, jobId, act) {
+  const status = jobStatusOf(jobId);
+  setCell(t, j, 'status', status);
+  /* THE MOVE THAT SETTLES THE LAST SEAT FREEZES WHAT THE BOOKING EARNS (docs/history/353) — card fees
+     from today's config, the net, `priced_at`. Once stamped, `jobMoneyFreeze_` answers null for ever. */
+  if (act === ACT.ACCEPT && jobAgreed_(jobId)) {
+    const frozen = jobMoneyFreeze_(j, config(), new Date());
+    if (frozen) Object.keys(frozen).forEach(f => setCell(t, j, f, frozen[f]));
+  }
+  if (status === 'cancelled') {
+    setCell(t, j, 'stealable', 'FALSE');
+    // Tell any tutor still attached: a cancelled job is invisible, so they'd otherwise hold a
+    // place on something they can neither see nor act on.
+    tutorsIn(jobId).forEach(tu => notify(tu.name, 'Cancelled: ' + S(j.subject),
+      'The family has withdrawn, so ' + S(j.subject) + ' is not going ahead.\n\n— @family.', 'booked'));
+  }
+  return status;
+}
+
 function postMove_(body, action, began) {
   const t = read(TAB.jobs);
   const j = t.rows.find(x => S(x.job_id) === S(body.jobId) || String(x._row) === S(body.jobId));
@@ -242,40 +304,12 @@ function postMove_(body, action, began) {
     if (joinNo) return jsonOut({ error: joinNo });
   }
 
-  // Who this move is about. Named explicitly, or the only person on the other side.
-  const wanted = S(body.counterpart);
-  // Only an EXPLICIT counterpart names someone. Inferring "the only other person" broke the
-  // lobby: a tutor pressing ✓ to mark themselves ready was recorded as "I accept <the client>",
-  // which readied her too — so one person could ready the whole room. Readying up is about
-  // yourself; choosing someone is about them, and the difference is whether you said a name.
-  /* AND BY THE NAME THE PHONE WAS SHOWN. § */
-  const shownAs = wanted ? others.filter(p2 => key(kidNamesOff_(S(p2.name))) === key(wanted)) : [];
-  const them = wanted ? (others.find(p2 => key(p2.name) === key(wanted))
-                         || (shownAs.length === 1 ? shownAs[0] : null)) : null;
-  // Declining still needs a target, and with exactly one candidate there's no ambiguity.
-  /* AN ADMIN'S TARGET IS EVERYBODY WHO IS WAITING. § */
-  const target = them || ((act === ACT.DECLINE && others.length === 1) ? others[0] : null)
-    || (asAdmin && before.length === 1 ? before[0] : null);
+  const aim = moveTarget_(body, act, asAdmin, before, others);
+  const them = aim.them, target = aim.target;
   // Only moves ABOUT someone need one. Request opens a negotiation and Withdraw ends your own
   // part in it — a "No preference" job with no applicants must still be leaveable.
-  if (!target && act === ACT.DECLINE) {
-    return jsonOut({ error: others.length ? 'Say which person you mean.'
-                                         : 'No one on the other side to respond to.' });
-  }
-
-  /* A NAMED TUTOR ANSWERS FOR THEMSELVES (488): a family cannot accept them on their behalf while they are still asked. */
-  if (!asAdmin && role === 'client' && act === ACT.ACCEPT && target && target.role === 'tutor'
-      && target.status === BM.WAITING && !TRUE_(j.stealable)) {
-    return jsonOut({ error: 'Waiting for ' + target.name + ' to accept or decline.' });
-  }
-  // Permission is judged against whoever is on the other side of the lobby, named or not —
-  // that's what decides whether the client may pay. Only the WRITE is targeted.
-  const facing = target || others[0] || before[0] || null;
-  /* THE LOBBY RULES ARE ABOUT THE TWO SIDES, and an admin is not one of them. § */
-  if (!asAdmin) {
-    const res = bmApply(role, mine ? S(mine.status) : '', facing ? S(facing.status) : '', act);
-    if (!res.ok) return jsonOut({ error: res.error });
-  }
+  const moveNo = moveRefusal_(j, act, role, mine, asAdmin, target, others, before);
+  if (moveNo !== null) return jsonOut({ error: moveNo });
 
   // THE write. One append — no slot to find, no status cells to keep in step, nothing to
   // clear on the way out. The participant list is recomputed from this on the next read.
@@ -298,21 +332,7 @@ function postMove_(body, action, began) {
   if (act === ACT.ACCEPT && role === 'client' && them) moveTutorChosen_(t, j, jobId, me, role, others, target);
 
   // The job's status, from who is left. Written for readability in the sheet; nothing reads it.
-  const status = jobStatusOf(jobId);
-  setCell(t, j, 'status', status);
-  /* THE MOVE THAT SETTLES THE LAST SEAT FREEZES WHAT THE BOOKING EARNS (docs/history/353) — card fees
-     from today's config, the net, `priced_at`. Once stamped, `jobMoneyFreeze_` answers null for ever. */
-  if (act === ACT.ACCEPT && jobAgreed_(jobId)) {
-    const frozen = jobMoneyFreeze_(j, config(), new Date());
-    if (frozen) Object.keys(frozen).forEach(f => setCell(t, j, f, frozen[f]));
-  }
-  if (status === 'cancelled') {
-    setCell(t, j, 'stealable', 'FALSE');
-    // Tell any tutor still attached: a cancelled job is invisible, so they'd otherwise hold a
-    // place on something they can neither see nor act on.
-    tutorsIn(jobId).forEach(tu => notify(tu.name, 'Cancelled: ' + S(j.subject),
-      'The family has withdrawn, so ' + S(j.subject) + ' is not going ahead.\n\n— @family.', 'booked'));
-  }
+  const status = moveStatus_(t, j, jobId, act);
 
   // Tell whoever didn't move. Keying this off "whose turn is next" is what previously meant
   // declines, withdrawals and payments notified nobody — those moves end the turn-taking.

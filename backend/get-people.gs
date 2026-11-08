@@ -1,6 +1,125 @@
 /* @family. — doGet's payload: people, family, venues, campaigns and laws. Called from doGet in doget.gs (1140). */
 
 /* People into tutors and students. */
+/* ONE TUTOR CARD, AS SENT. */
+function tutorOut_(r, i, name, listed, qp, venuesTab) {
+  return {
+    id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
+    /* A TITLE IS A SEPARATE FIELD RATHER THAN A LONGER `role` STRING, because `role` is one word: § */
+    titles: titlesOf(r),
+    /* ---------- WHO THEY ARE, NOT WHAT THEY ARE CALLED § */
+    personId: S(r.person_id),
+    listed: listed,      // so the site can show which ones are hidden, and offer the switch
+    /* AND WHICH OF THE HIDDEN ONES ASKED — a Tutor box ticked in Settings (`LISTED_PENDING`). § */
+    pending: tutorPending_(r),
+    /* THE HANDLE OR NOTHING — never the first name in its place. § */
+    title: name, handle: S(r.handle),
+    subtitle: S(r.city) || 'London',
+    image: S(r.photo), mediaUrl: S(r.video),
+    /* THE UPLOADED INTRO VIDEO'S DRIVE ID (shared view-by-link), played on the card; and the jobs as a list. */
+    videoFile: S(r.video_file), jobs: jobsList_(r),
+    /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. § */
+    avatar: faceFig_(r).avatar,
+    /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. § */
+    photos: photosList_(r),
+    tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
+    description: S(r.headline) ? '"' + S(r.headline) + '"' : '',
+    rate: N(r.rate_per_hour),
+    dbs: TRUE_(r.dbs_checked),
+    /* When they last confirmed their details are current. § */
+    detailsConfirmed: fmtDate(r.details_confirmed),
+    yrsExp: S(r.years_experience),
+    // The shape of job they'll accept. Sent as numbers so the booking form can filter on
+    // them; 0 means "no limit set", which is treated as no limit rather than as zero.
+    // Blank means "no view", and the smallest real booking is one student for one hour.
+    minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
+    minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
+    /* THE AGES THEY TEACH, public like the rate — it is what a parent checks before anything else. § */
+    ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
+    extraSeat: N(r.extra_seat_rate),
+    /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which is the config tab's `B`, and nought for nought, which is § */
+    /* A TUTOR'S OWN CUT IS IGNORED SINCE 8 NOV: config B is the one share, so none is sent. */
+    extraSeatCut: '',
+    /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
+       reader, and the Settings page is the one writer. Names, in the tab's order. */
+    venues: venuesFor_(r, venuesTab),
+    focus: S(r.focus).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
+    xp: N(r.xp), credits: N(r.credits),
+    highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
+    avail: availGridOut(r.availability),
+    /* WHAT THEY ARE ALREADY TEACHING, as the same `m16` codes — so the booking grid can show an hour as taken WITHOUT the tutor's own availability having been edited. § */
+    busy: busyHours(personDisplayName(r)),
+    /* ---------- THE SAME SUBJECT TWICE IS ONE SUBJECT § */
+    /* WHAT THEY TEACH, THE SPECIALISM FIRST — derived from the two ticks on their rows of the `qualifications` tab by `teachesOf_`, which dedupes, so a sheet typed § */
+    teaches: teachesOf_(r).all,
+    teachesMain: teachesOf_(r).first,
+    teachesSpec: teachesOf_(r).main,
+    /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. § */
+    quals: qp.map(qualSentence_),
+    qualsParts: qp,
+    actionText: '▶ Watch Intro'
+  };
+}
+
+function peopleClient_(r, viewerIsAdmin, payload) {
+  if (viewerIsAdmin && (hasRole(r, 'client') || hasRole(r, 'parent'))) {
+    /* AND THEIR CHILDREN, so the booking form can ask WHICH of them once a client is chosen.
+       Names only — the same rule as the list itself, and for the same reason. */
+    payload.clients.push({
+      name: nameFor_(r),
+      /* BY FIRST NAME — the owner, 10 Oct: *"dont show children's last name"* (`nameFor_`, people.gs).
+         The ticklist these fill is what goes into `for_children`, so the booking keeps the name
+         the admin saw. */
+      children: childrenOf(S(r.person_id)).map(c => nameFor_(c)),
+    });
+  }
+}
+
+function peopleClaims_(r, meRow, payload) {
+  if (meRow && S(r.person_id) === S(meRow.person_id)) {
+    read(TAB.family).rows.forEach(f => {
+      if (norm(f.state) !== 'asked') return;
+      if (S(f.child_id) !== S(r.person_id)) return;
+      const parent = findPerson(S(f.parent_id));
+      payload.claims.push({
+        rowIndex: f._row,
+        from: parent ? nameFor_(parent) : S(f.parent_id),
+        asked: S(f.asked_on),
+      });
+    });
+  }
+}
+
+function peopleEveryone_(r, viewerIsAdmin, payload) {
+  if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
+    payload.everyone.push({
+      /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
+         blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
+      /* A CHILD BY FIRST NAME (`nameFor_`) — the admin included, who reads the surname in the sheet.
+         The card prints the handle, so two children called Sam are told apart by it. */
+      personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
+      role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
+      /* AND THE FIGURE WHEN IT IS THEIR PICTURE — an admin is already sent this person's face, so
+         the face drawn as the figure tells them nothing they could not already see. `faceFig_`. */
+      avatar: faceFig_(r).avatar,
+    });
+  }
+}
+
+function peopleStudent_(r, maySeeChildren, vis, payload) {
+  if (hasRole(r, 'student') && maySeeChildren && (!vis || vis[S(r.person_id)])) {
+    payload.students.push({
+      /* ---------- `siblings` AND `friends` WERE HERE, AND THEY WENT TO EVERY STUDENT § */
+      avatar: S(r.avatar),
+      /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: § */
+      name: kidFirst_(r) || nameFor_(r, true),
+      handle: S(r.handle),
+      xp: N(r.xp), credits: N(r.credits),
+      highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
+    });
+  }
+}
+
 function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
   // --- people -> tutors + students ---------------------------------------------------------
   people.forEach((r, i) => {
@@ -16,62 +135,7 @@ function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
     if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
       /* READ ONCE, SENT TWICE — `quals` and `qualsParts` below are one list in two spellings. */
       const qp = qualsParts_(r);
-      payload.tutors.push({
-        id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
-        /* A TITLE IS A SEPARATE FIELD RATHER THAN A LONGER `role` STRING, because `role` is one word: § */
-        titles: titlesOf(r),
-        /* ---------- WHO THEY ARE, NOT WHAT THEY ARE CALLED § */
-        personId: S(r.person_id),
-        listed: listed,      // so the site can show which ones are hidden, and offer the switch
-        /* AND WHICH OF THE HIDDEN ONES ASKED — a Tutor box ticked in Settings (`LISTED_PENDING`). § */
-        pending: tutorPending_(r),
-        /* THE HANDLE OR NOTHING — never the first name in its place. § */
-        title: name, handle: S(r.handle),
-        subtitle: S(r.city) || 'London',
-        image: S(r.photo), mediaUrl: S(r.video),
-        /* THE UPLOADED INTRO VIDEO'S DRIVE ID (shared view-by-link), played on the card; and the jobs as a list. */
-        videoFile: S(r.video_file), jobs: jobsList_(r),
-        /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. § */
-        avatar: faceFig_(r).avatar,
-        /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. § */
-        photos: photosList_(r),
-        tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
-        description: S(r.headline) ? '"' + S(r.headline) + '"' : '',
-        rate: N(r.rate_per_hour),
-        dbs: TRUE_(r.dbs_checked),
-        /* When they last confirmed their details are current. § */
-        detailsConfirmed: fmtDate(r.details_confirmed),
-        yrsExp: S(r.years_experience),
-        // The shape of job they'll accept. Sent as numbers so the booking form can filter on
-        // them; 0 means "no limit set", which is treated as no limit rather than as zero.
-        // Blank means "no view", and the smallest real booking is one student for one hour.
-        minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
-        minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
-        /* THE AGES THEY TEACH, public like the rate — it is what a parent checks before anything else. § */
-        ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
-        extraSeat: N(r.extra_seat_rate),
-        /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which is the config tab's `B`, and nought for nought, which is § */
-        /* A TUTOR'S OWN CUT IS IGNORED SINCE 8 NOV: config B is the one share, so none is sent. */
-        extraSeatCut: '',
-        /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
-           reader, and the Settings page is the one writer. Names, in the tab's order. */
-        venues: venuesFor_(r, venuesTab),
-        focus: S(r.focus).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
-        xp: N(r.xp), credits: N(r.credits),
-        highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
-        avail: availGridOut(r.availability),
-        /* WHAT THEY ARE ALREADY TEACHING, as the same `m16` codes — so the booking grid can show an hour as taken WITHOUT the tutor's own availability having been edited. § */
-        busy: busyHours(personDisplayName(r)),
-        /* ---------- THE SAME SUBJECT TWICE IS ONE SUBJECT § */
-        /* WHAT THEY TEACH, THE SPECIALISM FIRST — derived from the two ticks on their rows of the `qualifications` tab by `teachesOf_`, which dedupes, so a sheet typed § */
-        teaches: teachesOf_(r).all,
-        teachesMain: teachesOf_(r).first,
-        teachesSpec: teachesOf_(r).main,
-        /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. § */
-        quals: qp.map(qualSentence_),
-        qualsParts: qp,
-        actionText: '▶ Watch Intro'
-      });
+      payload.tutors.push(tutorOut_(r, i, name, listed, qp, venuesTab));
     }
     /* ---------- CHILDREN ARE NOT SENT TO STRANGERS § */
     /* THE TOKEN, NOT THE QUERY STRING. `?person=<any id>` or `?name=<any name>` made somebody a
@@ -84,58 +148,15 @@ function getPeople_(meAsked, viewerIsAdmin, vis, people, venuesTab, payload) {
     const maySeeChildren = viewerIsAdmin || iAmStudent || iAmParent;
 
     /* ---------- WHO AN ADMIN MAY BOOK ON BEHALF OF § */
-    if (viewerIsAdmin && (hasRole(r, 'client') || hasRole(r, 'parent'))) {
-      /* AND THEIR CHILDREN, so the booking form can ask WHICH of them once a client is chosen.
-         Names only — the same rule as the list itself, and for the same reason. */
-      payload.clients.push({
-        name: nameFor_(r),
-        /* BY FIRST NAME — the owner, 10 Oct: *"dont show children's last name"* (`nameFor_`, people.gs).
-           The ticklist these fill is what goes into `for_children`, so the booking keeps the name
-           the admin saw. */
-        children: childrenOf(S(r.person_id)).map(c => nameFor_(c)),
-      });
-    }
+    peopleClient_(r, viewerIsAdmin, payload);
 
     /* ---------- CLAIMS WAITING ON THIS PERSON § */
-    if (meRow && S(r.person_id) === S(meRow.person_id)) {
-      read(TAB.family).rows.forEach(f => {
-        if (norm(f.state) !== 'asked') return;
-        if (S(f.child_id) !== S(r.person_id)) return;
-        const parent = findPerson(S(f.parent_id));
-        payload.claims.push({
-          rowIndex: f._row,
-          from: parent ? nameFor_(parent) : S(f.parent_id),
-          asked: S(f.asked_on),
-        });
-      });
-    }
+    peopleClaims_(r, meRow, payload);
 
     /* ---------- EVERYONE, FOR AN ADMIN'S PEOPLE COLUMN § */
-    if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
-      payload.everyone.push({
-        /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
-           blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
-        /* A CHILD BY FIRST NAME (`nameFor_`) — the admin included, who reads the surname in the sheet.
-           The card prints the handle, so two children called Sam are told apart by it. */
-        personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
-        role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
-        /* AND THE FIGURE WHEN IT IS THEIR PICTURE — an admin is already sent this person's face, so
-           the face drawn as the figure tells them nothing they could not already see. `faceFig_`. */
-        avatar: faceFig_(r).avatar,
-      });
-    }
+    peopleEveryone_(r, viewerIsAdmin, payload);
 
-    if (hasRole(r, 'student') && maySeeChildren && (!vis || vis[S(r.person_id)])) {
-      payload.students.push({
-        /* ---------- `siblings` AND `friends` WERE HERE, AND THEY WENT TO EVERY STUDENT § */
-        avatar: S(r.avatar),
-        /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: § */
-        name: kidFirst_(r) || nameFor_(r, true),
-        handle: S(r.handle),
-        xp: N(r.xp), credits: N(r.credits),
-        highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
-      });
-    }
+    peopleStudent_(r, maySeeChildren, vis, payload);
   });
 }
 

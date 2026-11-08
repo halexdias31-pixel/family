@@ -918,7 +918,6 @@
   "js/racer.js raceRoute_": 83,
   "js/racer.js raceMesh_": 152,
   "js/receipt.js initFlappy": 304,
-  "js/settings.js settingsInto_": 135,
   "js/find-aloud.js stuffItemsRaw_": 162,
   "js/find-bundles.js bundleBuild_": 85,
   "js/find-bundles.js paintStuff": 87,
@@ -928,8 +927,7 @@
   "js/find-parts.js typeset_": 231,
   "js/me-settings.js profileRefresh_": 81,
   "js/me-shelves.js fieldHtml": 84,
-  "js/shell-api.js loadOnce_": 251,
-  "js/shell-layout.js placeGrid": 165
+  "js/shell-api.js loadOnce_": 251
  },
  "variety": {
   "qpage": {
