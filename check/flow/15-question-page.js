@@ -1006,8 +1006,8 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   if (need.length || typeof t.facetBy !== 'function') return [need.concat(['facetBy']).join(', ') + ' not reachable — renamed? The tag row was NOT checked'];
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const row = html => {
-    /* ONE CARD PER QUESTION NUMBER (960): a whole question's tag row heads its .qwhole; a lone part's its .qcard. */
-    const card = el(html).querySelector('.qwhole, .qcard');
+    /* EVERY PART ITS OWN CARD (owner, 8 Nov): a whole question's tag row heads each part's .qb; a lone part's its .qcard. */
+    const card = el(html).querySelector('.qwhole .qb, .qcard');
     const r = card && card.querySelector('.qcard-tags');
     return { card, first: card && card.firstElementChild,
              tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', f: s.getAttribute('data-f') || '', text: s.textContent.trim() })) : [] };
