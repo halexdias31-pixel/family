@@ -372,6 +372,11 @@ const KC_FIELDS = {
   levels: x => { const l = (kcRow_(x).levels || []).filter(Boolean); return l.length ? row('Levels', l.join(', ')) : ''; },
   tutorNames: x => { const t = kcRow_(x).tutors || []; return t.length ? `<div class="qtags">${t.map(y => `<span class="qtag" data-tag="3">${esc(y.title)}</span>`).join('')}</div>`
     : x.kind === 'subject' ? row('Tutors', 'None yet', 'bad') : ''; },
+  /* A KIND WHOSE OWN FILE WRITES ITS INSIDES (`KC_OWN`) hands them over cut into the four parts (`kcSplit_`); no tag line of its own gets its facets. */
+  ownPic: x => (x.kcOwn || {}).pic || '',
+  ownHead: x => (x.kcOwn || {}).head || '',
+  ownTags: x => (x.kcOwn || {}).tags || (kcField_('facets') || (() => ''))(x),
+  ownLines: x => (x.kcOwn || {}).lines || '',
 };
 /* A FIELD ITS OWN FILE DRAWS (tags, a venue's building, a manuscript, a boxer) is added to `window.KC_FIELDS_MORE` there; no load order needed. */
 const kcField_ = k => KC_FIELDS[k] || (window.KC_FIELDS_MORE || {})[k];
@@ -387,8 +392,40 @@ const KC_DEFAULT = {
   people: { cls: 'person lib-c', pic: ['boxerPic'], title: ['name'], tags: ['facets'], lines: [], tiles: [] },
   msg: { cls: 'msg-fc', pic: ['msgPic'], title: ['msgWho'], tags: ['msgTags'], lines: ['msgBody', 'msgTiles'], tiles: [] },
   post: { cls: 'post-fc', pic: ['postPic'], title: ['postTitle'], tags: ['postTags'], lines: ['postBody', 'postTiles'], tiles: [] },
+  receipt: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  bookform: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  friend: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  question: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  answer: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  shop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  practical: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  project: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  content: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  insert: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  timeline: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  fight: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  bible: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  talmud: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  quran: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  worktext: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  hadith: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  writ: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  pdtext: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  orthotext: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  hymn: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  mech: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  chem: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  soon: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  person: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  setting: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  health: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  offPosts: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  offShop: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
+  offBooking: { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] },
 };
 /* A KIND'S FIELDS: its row in data/settings/card-fields.json (`DATA.cardFields`, settings.js), else the built-in row, else the bare three. */
+/* A KIND THE FILE DOES NOT NAME BUT WHOSE OWN MAKER DREW IT (a verse another file draws) keeps every part it drew. */
+const KC_OWN_SPEC = { cls: '', pic: ['ownPic'], title: ['ownHead'], tags: ['ownTags'], lines: ['ownLines'], tiles: [] };
 function kcSpec_(kind) {
   const rows = (typeof DATA !== 'undefined' && DATA && DATA.cardFields) || KC_DEFAULT;
   return rows[kind] || KC_BARE;
@@ -400,20 +437,70 @@ function kcTilesFill_(x, html) {
   return html + s.tiles.map(t => { const [act, icon, label] = String(t).split(':');
     return new RegExp('data-do="' + act + '"').test(html) ? '' : tile_({ icon, label: label || act, act, off: true, cls: 'kc-off' }); }).join('');
 }
+/* ---------- A CARD ITS OWN FILE STILL WRITES, CUT INTO THE FOUR PARTS ---------- */
+const KC_VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/;
+const KC_ATTRS = '((?:\\s+[^\\s=>\\/]+(?:\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s>]+))?)*)';
+/* THE TOP-LEVEL ELEMENTS OF SOME HTML, each with its tag, class, whole html and inside; loose text is an element with no tag. */
+function kcKids_(html) {
+  const re = new RegExp('<!--[\\s\\S]*?-->|<(\\/?)([a-zA-Z][\\w-]*)' + KC_ATTRS + '\\s*(\\/?)>', 'g'), out = [];
+  let depth = 0, start = 0, top = null;
+  const loose = to => { if (html.slice(start, to).trim()) out.push({ tag: '', cls: '', html: html.slice(start, to), inner: '' }); };
+  for (let m; (m = re.exec(html));) {
+    if (!m[2]) continue;
+    const tag = m[2].toLowerCase(), close = !!m[1], self = !close && (!!m[4] || KC_VOID.test(tag));
+    if (!close && depth === 0) { loose(m.index); top = { tag, cls: (/\bclass\s*=\s*"([^"]*)"/.exec(m[3]) || [, ''])[1], attrs: m[3], at: m.index, from: re.lastIndex }; start = m.index; }
+    if (self) { if (depth === 0) { out.push(Object.assign(top, { html: m[0], inner: '' })); top = null; start = re.lastIndex; } continue; }
+    if (!close) { depth++; continue; }
+    if (depth === 0) continue;
+    if (--depth === 0 && top) { out.push(Object.assign(top, { html: html.slice(top.at, re.lastIndex), inner: html.slice(top.from, m.index) })); top = null; start = re.lastIndex; }
+  }
+  loose(html.length);
+  return out;
+}
+/* ONE CARD'S HTML AS PARTS: its first picture, its heading, its tag line, the rest as lines; a `.thing` wrapper is opened. null if it is not one card. */
+function kcSplit_(html) {
+  const els = kcKids_(String(html || '')), card = els.length === 1 ? els[0] : null;
+  if (!card || card.tag !== 'div') return null;
+  const parts = { cls: card.cls, attrs: String(card.attrs || '').replace(/\s+class\s*=\s*"[^"]*"/, ''), pic: '', head: '', tags: '', lines: '' };
+  const walk = list => list.forEach(k => {
+    const c = ' ' + k.cls + ' ';
+    if (/ thing(-body)? /.test(c)) return walk(kcKids_(k.inner));
+    if (!parts.pic && (/^(img|svg|figure|canvas)$/.test(k.tag) || /[ -](pic|art) /.test(c))) parts.pic = k.html;
+    else if (!parts.head && (/^h[1-4]$/.test(k.tag) || / ([\w-]+-)?(head|title) /.test(c))) parts.head = k.html;
+    else if (!parts.tags && / [\w-]*tags /.test(c)) parts.tags = k.html;
+    else parts.lines += k.html;
+  });
+  walk(kcKids_(card.inner));
+  return parts;
+}
 /* A KIND WHOSE CARD NEEDS ITS OWN ROW OR A TAIL (a conversation's messages) sets `window.KC_AROUND[kind] = (x, draw) => html`; `draw(extra)` is this card. */
-function findCard(x) {
+function findCard(x, credits) {
   const around = x && !x.kcIn && (window.KC_AROUND || {})[x.kind];
   if (around) return around(x, extra => findCard(Object.assign({}, x, extra || {}, { kcIn: true })));
-  const it = x && x.row ? x : { kind: 'subject', row: x || {} };
+  /* A KIND WHOSE OWN FILE STILL WRITES ITS CARD (`window.KC_OWN[kind] = (x, credits) => html`) is cut into the parts; one already in the shape is kept whole. */
+  const own = x && !x.kcOwn && x.kind && (window.KC_OWN || {})[x.kind];
+  if (own) {
+    let got = '';
+    try { got = own(x, credits); } catch (e) { oops_(e, 'card:' + x.kind); }
+    if (typeof got !== 'string' || !got || /^\s*<div class="card fc kc\b/.test(got)) return got || '';
+    /* SEVERAL CARDS FROM ONE MAKER (site health's) are each cut into the shape. */
+    const els = kcKids_(got), many = els.length > 1 && els.every(k => k.tag === 'div' && / card /.test(' ' + k.cls + ' '));
+    const cuts = (many ? els.map(k => k.html) : [got]).map(kcSplit_);
+    return cuts.every(Boolean) ? cuts.map(cut => findCard(Object.assign({}, x, { kcOwn: cut }))).join('') : got;
+  }
+  const it = x && (x.row || x.kcOwn) ? x : { kind: 'subject', row: x || {} };
   const t = kcRow_(it), name = it.name || t.title || t.name || '';
   const one = it.name ? it : Object.assign({}, it, { name });
-  const s = kcSpec_(it.kind);
+  const s = it.kcOwn && kcSpec_(it.kind) === KC_BARE ? KC_OWN_SPEC : kcSpec_(it.kind);
   const run = list => (list || []).map(k => { try { const f = kcField_(k); return f ? f(one) || '' : ''; } catch (e) { oops_(e, 'card:' + k); return ''; } }).join('');
   const parts = { pic: run(s.pic), head: run(s.title), tags: run(s.tags), lines: run(s.lines) };
   const off = (it.kind === 'tutor' && t.listed === false ? ' is-off' : '') + (it.cardCls ? ' ' + esc(it.cardCls) : '');
   /* `cardData` BECOMES data-* ATTRIBUTES, so a card can be found again where it stands (a post's sheet, a conversation's redraw). */
   const data = Object.keys(it.cardData || {}).map(k => ` data-${k}="${esc(it.cardData[k])}"`).join('');
-  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${off}"${data} aria-label="${esc(name)}">${
+  /* ITS OWN MAKER'S CLASSES AND ATTRIBUTES STAY ON IT, so every handler's `closest('.qcard')` or `[data-key]` still finds it. */
+  const mine = it.kcOwn || {}, ownCls = String(mine.cls || '').split(/\s+/).filter(c => c && !/^(card|fc|kc)$/.test(c)).join(' ');
+  const label = /\saria-label=/.test(mine.attrs || '') ? '' : ` aria-label="${esc(name)}"`;
+  return `<div class="card fc kc kc-${esc(it.kind || 'thing')}${s.cls ? ' ' + esc(s.cls) : ''}${ownCls ? ' ' + ownCls : ''}${off}"${data}${mine.attrs || ''}${label}>${
     KC_PARTS.map(p => `<div class="kc-${p}">${parts[p]}</div>`).join('')}</div>`;
 }
 

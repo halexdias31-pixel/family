@@ -68,12 +68,23 @@ rows.forEach(r => String(r.tiles || '').split(',').map(s => s.trim()).filter(Boo
   if (String(got.kcTilesFill_({ kind: r.kind, key: 'k' }, '<button data-do="' + act + '"></button>')).split('data-do="' + act + '"').length !== 2) bad.push(r.kind + ': a card with its ' + act + ' tile gets a second, greyed one');
   if (!new RegExp("on\\('" + act + "'").test(allJs)) bad.push(r.kind + ': tile ' + act + ' has no on() handler');
 }));
-/* EVERY KIND THE SETTINGS FILE SHAPES IS DRAWN BY `findCard` IN FIND, not by a card maker of its own. */
-rows.forEach(r => { if (r.kind === 'tutor') return;
-  const m = new RegExp('\\n  ' + r.kind + ':\\s+\\{[^\\n]*?card: x => ([^}]*?) \\}').exec(finder);
-  if (!m) bad.push('find-finder.js KINDS has no one-line ' + r.kind + ' entry');
-  else if (!/findCard\(x\)/.test(m[1])) bad.push('find-finder.js draws ' + r.kind + ' with ' + m[1].trim() + ', not findCard'); });
+/* EVERY FIND KIND IS DRAWN BY `findCard` (owner 1a, 8 Nov), never a card maker of its own; its own file may still write the insides (`KC_OWN`). */
+/* A TOOL, GAME OR REEL IS THE LIVE WIDGET ITSELF (790: its slot, star and padlock, started by arcade.js), so it alone keeps its column's card. */
+const WIDGET_KINDS = ['tool', 'game', 'reel'];
+const kindsSrc = (/\nconst KINDS = \{([\s\S]*?)\n\};/.exec(finder) || [, ''])[1];
+const kindNames = [];
+kindsSrc.replace(/\n  ([A-Za-z]\w*):\s+\{/g, (m, k) => { kindNames.push(k); return m; });
+if (kindNames.length < 20) bad.push('find-finder.js KINDS was not found (' + kindNames.length + ' kinds read)');
+kindNames.forEach(k => { if (k === 'tutor' || WIDGET_KINDS.indexOf(k) >= 0) return;
+  const m = new RegExp('\\n  ' + k + ':\\s+\\{[^\\n]*?card: (\\([^)]*\\)|x) => ([^\\n]*?) \\},?\\n').exec(kindsSrc + '\n');
+  if (!m) bad.push('find-finder.js KINDS has no one-line ' + k + ' entry');
+  else if (!/findCard\(x[,)]|findCard\(x\.soon/.test(m[2])) bad.push('find-finder.js draws ' + k + ' with ' + m[2].trim() + ', not findCard'); });
+rows.forEach(r => { if (kindNames.length && kindNames.indexOf(r.kind) < 0) bad.push('card-fields.json names a kind ' + r.kind + ' that KINDS has not'); });
+/* A KIND'S OWN MAKER, CUT INTO THE PARTS, STILL MAKES THE ONE SHAPE: a card that was its own `.thing`, a heading, tags and lines. */
+scope.window.KC_OWN = { legacy: () => '<div class="card x" data-k="1"><div class="thing"><img src="a"><div class="thing-body"><h3>One</h3><p class="sub">s</p></div></div><span class="qtags"><b>t</b></span></div>' };
+try { const w = shapeOf(String(got.findCard({ kind: 'legacy', key: 'legacy:1', name: 'One' }))); if (w) bad.push('a KC_OWN card: ' + w); } catch (e) { bad.push('a KC_OWN card: findCard threw ' + e.message); }
+scope.window.KC_OWN = {};
 if (!/\n  tutor:[\s\S]{0,300}?: findCard\(x\) \}/.test(finder)) bad.push('find-finder.js does not draw a tutor with findCard');
 
 if (bad.length) { console.log('✗ card shape:\n  ' + bad.join('\n  ')); process.exit(1); }
-console.log('card shape: ' + rows.length + ' kinds and a kind the file does not name, one shape (' + SHAPE.join(', ') + ')');
+console.log('card shape: ' + rows.length + ' kinds, a kind the file does not name and a KC_OWN card, one shape (' + SHAPE.join(', ') + '); every Find kind but ' + WIDGET_KINDS.join(', ') + ' drawn by findCard');
