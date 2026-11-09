@@ -242,7 +242,6 @@ on('pin-show', el => {
       pinHideAll_();
       const line = document.createElement('p');
       line.className = 'faint person-pin';
-      line.style.margin = '.6rem 0 0';
       line.setAttribute('data-id', id);
       line.innerHTML = d.pin ? 'PIN <b>' + esc(d.pin) + '</b>' : esc(d.said || 'No PIN');
       row.after(line);

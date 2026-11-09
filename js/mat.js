@@ -540,7 +540,7 @@ const MAT_PH = ['#d7191c', '#e8402b', '#f0672d', '#f68f2f', '#fbb72f', '#f7dc33'
 function matPh() {
   if (MAT_PH.length !== 15) return '<p class="mat-gone">The pH scale has a colour missing.</p>';
   const cells = MAT_PH.map((c, n) =>
-    `<i style="background:${c};color:${n >= 3 && n <= 7 ? '#111' : '#fff'}">${n}</i>`).join('');
+    `<i style="background:${c};color:var(${n >= 3 && n <= 7 ? '--paper-ink' : '--white'})">${n}</i>`).join('');
   /* THE THREE INDICATORS, as the words a mark scheme accepts. § */
   const ind = [['litmus', 'red', 'blue'], ['methyl orange', 'red', 'yellow'],
                ['phenolphthalein', 'colourless', 'pink']]
@@ -656,11 +656,11 @@ function matPoly(n) {
 function matProtractor() {
   /* A PROTRACTOR YOU CAN ACTUALLY READ AT THE ENDS. § */
   const R = 41, cx = R + 4, cy = R + 4;
-  const INK = '#14140f', MID = '#8d8878', FAINT = '#b4ae9c', RED = '#9b2d22';
+  const INK = 'ink', MID = 'mid', FAINT = 'faint', RED = 'red';
   const at = (r, t) => [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)];
 
   let p = `<path d="M${cx - R} ${cy} A${R} ${R} 0 0 1 ${cx + R} ${cy}" fill="none"
-    stroke="${MID}" stroke-width=".4"/>`;
+    class="s-${MID}" stroke-width=".4"/>`;
 
   for (let a = 0; a <= 180; a++) {
     const t = Math.PI * (180 - a) / 180;
@@ -668,7 +668,7 @@ function matProtractor() {
     const [x1, y1] = at(ten ? R - 6.5 : (five ? R - 4.5 : R - 2.4), t);
     const [x2, y2] = at(R, t);
     p += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-      stroke="${ten ? INK : (five ? MID : FAINT)}" stroke-width="${ten ? .45 : (five ? .3 : .18)}"/>`;
+      class="s-${ten ? INK : (five ? MID : FAINT)}" stroke-width="${ten ? .45 : (five ? .3 : .18)}"/>`;
 
     if (!ten) continue;
     /* ROTATED WITH THE RADIUS. `a - 90` is upright at the top and a quarter turn at either end,
@@ -677,17 +677,17 @@ function matProtractor() {
     const [ox, oy] = at(R - 10.5, t);
     const [ix, iy] = at(R - 16, t);
     p += `<text x="${ox}" y="${oy}" text-anchor="middle" dominant-baseline="middle"
-      font-size="2.9" fill="${INK}" transform="rotate(${turn} ${ox} ${oy})">${a}</text>`;
+      font-size="2.9" class="f-${INK}" transform="rotate(${turn} ${ox} ${oy})">${a}</text>`;
     p += `<text x="${ix}" y="${iy}" text-anchor="middle" dominant-baseline="middle"
-      font-size="2.9" fill="${RED}" transform="rotate(${turn} ${ix} ${iy})">${180 - a}</text>`;
+      font-size="2.9" class="f-${RED}" transform="rotate(${turn} ${ix} ${iy})">${180 - a}</text>`;
   }
 
   /* THE BASELINE, AND THE CROSS YOU LINE UP WITH THE VERTEX. The cross is the one part of a
      protractor that is used rather than read, so it stays the strongest mark on it. */
-  p += `<line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" stroke="${INK}" stroke-width=".5"/>
-    <line x1="${cx - 5}" y1="${cy}" x2="${cx + 5}" y2="${cy}" stroke="${RED}" stroke-width=".6"/>
-    <line x1="${cx}" y1="${cy - 5}" x2="${cx}" y2="${cy + 5}" stroke="${RED}" stroke-width=".6"/>
-    <circle cx="${cx}" cy="${cy}" r="1.1" fill="none" stroke="${RED}" stroke-width=".4"/>`;
+  p += `<line x1="${cx - R}" y1="${cy}" x2="${cx + R}" y2="${cy}" class="s-${INK}" stroke-width=".5"/>
+    <line x1="${cx - 5}" y1="${cy}" x2="${cx + 5}" y2="${cy}" class="s-${RED}" stroke-width=".6"/>
+    <line x1="${cx}" y1="${cy - 5}" x2="${cx}" y2="${cy + 5}" class="s-${RED}" stroke-width=".6"/>
+    <circle cx="${cx}" cy="${cy}" r="1.1" fill="none" class="s-${RED}" stroke-width=".4"/>`;
 
   return `<div class="mat-prot"><svg viewBox="0 0 ${2 * (R + 4)} ${R + 8}">${p}</svg></div>`;
 }
@@ -702,7 +702,7 @@ function matAngles() {
     const arc = deg === 180 ? '' :
       `<path d="M 27 22 A 7 7 0 ${deg > 180 ? 1 : 0} 0
         ${(20 + 7 * Math.cos(t)).toFixed(1)} ${(22 - 7 * Math.sin(t)).toFixed(1)}"
-        fill="none" stroke="#9b2d22" stroke-width=".7"/>`;
+        fill="none" class="s-red" stroke-width=".7"/>`;
     return `<div><svg viewBox="0 0 40 30">
       <line x1="20" y1="22" x2="36" y2="22" stroke="currentColor" stroke-width="1.4"/>
       <line x1="20" y1="22" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"
@@ -761,8 +761,8 @@ function matGraphs() {
     `<div><svg viewBox="0 0 ${W} ${H}">
       ${/* AXES IN THE SHEET'S GREY. § */
             ''}
-      <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#b4ae9c" stroke-width=".4"/>
-      <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#b4ae9c" stroke-width=".4"/>
+      <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" class="s-faint" stroke-width=".4"/>
+      <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" class="s-faint" stroke-width=".4"/>
       ${curve(f).map(pts =>
         `<polyline points="${pts.join(' ')}" fill="none" stroke="currentColor" stroke-width="1.2"/>`
       ).join('')}

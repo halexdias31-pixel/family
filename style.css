@@ -72,6 +72,7 @@
   --paper-faint: #6a635a;   /* a third — captions, disabled, the small print */
   --paper-strip: #e7e2d5;   /* the punched binding strip at the top of the calendar */
   --paper-rule:  #cfc7b5;   /* a hairline drawn on paper */
+  --paper-red:   #9b2d22;   /* the one red printed on paper: a protractor's inner scale, an angle's arc */
   /* THE CREAM ANSWER PILL (1030): every typing box on the site is drawn as the question's answer box. */
   --pill-r: 26px; --pill-h: 52px;
   --pad:    1rem;
@@ -836,6 +837,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--ink); font-size: var(--fs-body); }
 .faint { color: var(--ink); font-size: var(--fs-small); }
+.person-pin { margin: .6rem 0 0; }
 /* NO GREY CLUTTER (owner, 6 Nov, A+): a card's small grey line says nothing a tag would not; a live status slot (an id, a role) stays. */
 .card :is(.sub, .faint, .muted):not([id]):not([role]):not([aria-live]):not([class*="said"]):not(:has([id])) { display: none; }
 .gold  { color: var(--gold); }
@@ -852,12 +854,11 @@ code   { font-family: var(--mono); font-size: var(--fs-body); color: var(--ink);
 
 /* ---------- THE SHEET OPENS IN PLACE (453) ------------------------------------------------------ */
 /* Inside the card that was pressed, under its tile row; an editor (`.sheet-swap`) replaces the card's own content. */
-#sheet.hidden { display: none !important; }
 /* CLOSING (537): drawn while its fade plays, already shut, so nothing in it can be pressed. */
 #sheet.is-leaving { pointer-events: none; }
 #sheet { position: static; width: 100%; display: flex; flex-direction: column;
   margin: .6rem 0 0; border-top: 1px solid var(--line-soft); background: transparent; }
-.sheet-swap > :not(#sheet) { display: none !important; }
+.sheet-swap > :not(#sheet) { display: none; }
 .sheet-swap > #sheet { margin-top: 0; border-top: 0; }
 #sheet-head {
   display: flex; align-items: center; gap: .4rem;
@@ -3450,6 +3451,13 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 .mat-ang em { grid-column: 2; font: 400 2.2mm/1.2 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-prot { text-align: center; }
 .mat-prot svg { display: block; margin: 0 auto; width: 90mm; }
+/* THE PRINTED FIGURES' INKS, as classes so a colour is a paper token and not a literal in mat.js. */
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-ink { stroke: var(--pa-ink); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-mid { stroke: var(--pa-mark); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-faint { stroke: var(--pa-line); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .s-red { stroke: var(--paper-red); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .f-ink { fill: var(--pa-ink); }
+:is(.mat-prot, .mat-ang, .mat-graphs) .f-red { fill: var(--paper-red); }
 .mat-shapes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1.5mm; text-align: center; }
 .mat-shapes svg { width: 100%; height: auto; }
 .mat-shapes span { display: block; font-style: normal; font-weight: 400; font-size: 2.4mm; line-height: 1.2; margin-top: .6mm; }
@@ -5273,8 +5281,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .tile.is-listen { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
 
 /* SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER. § */
-.rc.rc-snap .rc-tiles,
-.rc.rc-snap .rc-more { display: none !important; }
+.rc.rc-snap :is(.rc-tiles, .rc-more):not(#no-such-id) { display: none; }
 
 /* THE PICTURE IN THE SHEET, when the share sheet refused or there is none — see `rcOffer_`. Its
    own width, never wider than its card, and a hairline so a dark card does not vanish into a dark
@@ -5782,7 +5789,8 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* WRITING IN PLACE OF THE THING (489, `boxInPlace_`): the note or report box takes the thing's own footprint, its content hidden until Cancel or Send. */
 .is-writing { height: var(--writing-h, auto); min-height: 12rem; overflow: hidden; display: flex; flex-direction: column; }
-.is-writing > :not(.rep-box) { display: none !important; }
+/* `:not(#no-such-id)` lends ID weight, so no card part's own display outranks the hiding. */
+.is-writing > :not(.rep-box):not(#no-such-id) { display: none; }
 .is-writing > .rep-box { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-top: 0; border-top: 0; }
 .is-writing > .ncl-box .ncl-text { flex: 1 1 auto; min-height: 4rem; }
 /* THE SHOP (491): an icon in front of every item, and the search card's list of matches. */
