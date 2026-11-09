@@ -43,7 +43,7 @@ function inboxPaint_() {
 
 /* ---------- ASKING: the inbox's newest threads, the first four kept. Read-only: nothing here writes to Gmail. */
 function inboxFetch_() {
-  if (!(typeof isAdmin === 'function' && isAdmin()) || INBOX_.busy) return;
+  if (!can_(myRole_(), 'action', 'inboxList') || INBOX_.busy) return;
   const f = (typeof DATA !== 'undefined' && DATA && DATA.features) || [];
   if (f.length && f.indexOf('inboxList') < 0) {
     INBOX_.said = 'The live backend has no Email yet. In Apps Script: sync, run authoriseGmail and Allow (tick every box), THEN Deploy → New version.';
