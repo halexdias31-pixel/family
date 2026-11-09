@@ -8,8 +8,6 @@
 /* A `let` SINCE THE SECOND FINDER (below): § */
 let STUFF = { q: '', filters: [], whose: '' };
 
-/* ---------- ONE FINDER, TWICE § */
-const RES_ST = { q: '', filters: [], whose: '' };
 /* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. § */
 const finder_ = o => Object.assign({
   items: { key: null, from: null, items: null },
@@ -26,10 +24,6 @@ const FINDERS = {
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    lead: () => (typeof missingLead_ === 'function' ? missingLead_() : []),
                    leadN: () => (typeof missingLeadN_ === 'function' ? missingLeadN_() : 0),
-                   empty: FINDER_EMPTY }),
-  res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   /* A RULE (496), locked: `find-front` — the front pages are Find's alone. */
-                   front: () => (typeof ruleOn_ !== 'function' || ruleOn_('find-front')) ? [] : [].concat(bookingPages_(), feedPages_(), bundlePages_()),
                    empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;

@@ -300,7 +300,7 @@ check('every input and textarea on every screen asks the browser and password ma
     if (el.hasAttribute('list')) why.push('list=' + el.getAttribute('list'));
     if (why.length) bad.push(where + ': ' + (el.id || el.className || el.tagName) + ' — ' + why.join(', '));
   });
-  const tabs = ['feed', 'booking', 'shop', 'stuff', 'res', 'account', 'tools', 'family'];
+  const tabs = ['feed', 'booking', 'shop', 'stuff', 'account', 'tools', 'family'];
   t.USER(null);
   for (const id of tabs) { try { t.go(id, false, true); w.paint(id); } catch (e) {} await wait(20); look(id); }
   if (d.querySelectorAll('datalist').length) bad.push(d.querySelectorAll('datalist').length + ' datalist(s) drawn');
@@ -444,27 +444,24 @@ check('both finders are started again when an admin signs out from the admin-onl
     const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
     await wait(300);
     const t = w.__t, d = w.document;
-    /* THE BOOKS SHELF IS ON THE RESOURCES COLUMN NOW (docs/history/329); Find holds a question of the
-       admin's own beside it, and both go. */
-    t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    t.RES().q = 'genesis';
-    w.paintFinder_('res');
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
-    t.STUFF().q = 'fractions';
-    if (!/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Writings shelf, so its going was NOT checked');
+    /* THE BOOKS SHELF ON THE ONE FIND (10a): the admin's chips and words there go at sign-out. */
+    t.go('stuff', false, true);
+    t.STUFF().filters = [{ field: 'shelf', value: 'Writings' }];
+    t.STUFF().q = 'genesis';
+    w.paintFinder_('stuff');
+    if (!/\bWritings\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find chips do not name the Writings shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
-    t.go('res', false, true);
+    t.go('stuff', false, true);
     await wait(30);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out from the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2’s chips still name the Writings shelf');
+    if (/\bWritings\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find’s chips still name the Writings shelf');
     /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find 2: ' + JSON.stringify(t.RES().filters));
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
   }
   /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
   {
@@ -475,13 +472,13 @@ check('both finders are started again when an admin signs out from the admin-onl
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     t.STUFF().q = 'fractions';
     w.paintStuff();
-    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
-    t.RES().q = 'ali';
+    t.STUFF().filters = [{ field: 'shelf', value: 'Boxing' }];
+    t.STUFF().q = 'ali';
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the switch was NOT checked']);
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Find 2: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
     /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
@@ -590,15 +587,15 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     await wait(300);
     const t = w.__t;
     /* ON THE RESOURCES COLUMN, where the Books shelf is now (docs/history/329). */
-    t.go('res', false, true);
-    t.RES().filters = [{ field: 'shelf', value: 'Writings' }];
-    t.RES().q = 'genesis';
-    w.paintFinder_('res');
+    t.go('stuff', false, true);
+    t.STUFF().filters = [{ field: 'shelf', value: 'Writings' }];
+    t.STUFF().q = 'genesis';
+    w.paintFinder_('stuff');
     await w.api({ action: 'sessionProbe', personId: 'P001' });
     await wait(30);
     if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
-    if (t.RES().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.RES().whose]));
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin’s session ending on the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (t.STUFF().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.STUFF().whose]));
   }
   return bad;
 });
@@ -726,16 +723,16 @@ check('the payload landing does not rebuild Find under a keypad box with the foc
 });
 
 /* ---------- AND FIND 2 THE SAME, NOW THAT IT HOLDS THE QUESTIONS (docs/history/347) § */
-check('the payload landing does not rebuild Find 2 under a keypad box with the focus, and does rebuild it once the box is left', async () => {
+check('the payload landing does not rebuild Find under a keypad box with the focus, and does rebuild it once the box is left', async () => {
   const { w } = boot();
   await wait(400);
   const t = w.__t, d = w.document, bad = [];
   if (typeof w.findKeep_ !== 'function' || typeof w.kpField_ !== 'function') return ['findKeep_ or kpField_ not reachable — the keep was NOT checked'];
   t.USER(Object.assign({}, ANS_ADA));
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await wait(60);
-  const host = d.getElementById('s-res');
-  if (!host || !host.firstElementChild) return ['Find 2 is not drawn — the keep was NOT checked'];
+  const host = d.getElementById('s-stuff');
+  if (!host || !host.firstElementChild) return ['Find is not drawn — the keep was NOT checked'];
   const page = d.createElement('div');
   page.className = 'qcard';
   page.innerHTML = w.kpField_('ans:u:P7:q:Q-KEEP-2', '7');
@@ -743,14 +740,14 @@ check('the payload landing does not rebuild Find 2 under a keypad box with the f
   const inp = page.querySelector('.kp-in');
   inp.focus();
   if (d.activeElement !== inp) return ['the keypad box could not take the focus, so nothing was checked'];
-  if (!w.findKeep_('res')) bad.push('findKeep_ does not hold Find 2 while a box in it has the focus');
+  if (!w.findKeep_('stuff')) bad.push('findKeep_ does not hold Find while a box in it has the focus');
   await w.load();
   await wait(50);
-  if (!d.contains(inp)) bad.push('the payload landing rebuilt Find 2 and threw away the box the child was typing in');
-  if (d.activeElement !== inp) bad.push('after the payload the focus is on ' + (d.activeElement && d.activeElement.tagName) + ', not the box in Find 2');
+  if (!d.contains(inp)) bad.push('the payload landing rebuilt Find and threw away the box the child was typing in');
+  if (d.activeElement !== inp) bad.push('after the payload the focus is on ' + (d.activeElement && d.activeElement.tagName) + ', not the box in Find');
   inp.blur();
   await wait(500);
-  if (d.contains(inp)) bad.push('half a second after the box was left, Find 2 was still the stale copy — it is never redrawn');
+  if (d.contains(inp)) bad.push('half a second after the box was left, Find was still the stale copy — it is never redrawn');
   return bad;
 });
 

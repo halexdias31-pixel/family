@@ -369,9 +369,6 @@ const PAGER = {
   /* A COUNT RATHER THAN A LIST OF NAMES, and it is the only entry that needs to be. § */
   /* ---------- THE SAME GROUPS `screen('stuff')` BUILDS FROM, WHICH IS THIS TABLE'S OWN RULE § */
   stuff:  () => (typeof finderPageCount_ === 'function' ? finderPageCount_('stuff') : 1),
-  /* THE SECOND FINDER, counted by the same engine in its own binding (`finderPageCount_` in find.js)
-     — the question, then its results; it has no pages in front of the question. */
-  res:    () => (typeof finderPageCount_ === 'function' ? finderPageCount_('res') : 1),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */

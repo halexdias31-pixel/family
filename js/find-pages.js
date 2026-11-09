@@ -664,8 +664,8 @@ function finderScreen_() {
     <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
     ${/* THE FINDER ITSELF TAKES A SUGGESTION TOO (494): "should be on finder widget too". */
-      typeof suggestTile_ === 'function' && suggestTile_('finder', F.id, F.id === 'res' ? 'Find 2' : 'Find')
-        ? `<div class="tile-row rep-row find-sg">${suggestTile_('finder', F.id, F.id === 'res' ? 'Find 2' : 'Find')}</div>` : ''}
+      typeof suggestTile_ === 'function' && suggestTile_('finder', F.id, 'Find')
+        ? `<div class="tile-row rep-row find-sg">${suggestTile_('finder', F.id, 'Find')}</div>` : ''}
   </div>`;
 
   /* THE CONTROLS ARE A PAGE, and the results are the pages after it. § */
@@ -701,15 +701,11 @@ function finderScreen_() {
       if (stuffOnGlass_(F.id) && stuffBandFill_()) settle_(true);
     }); } catch (e) { /* a band redrawn mid-change settles on the next frame */ } });
   }
-  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than Find 2's `res` id, and nothing to
-     do with it: `#s-res .page.is-res` is a result page of Find 2. */
+  /* `is-res` IS "A PAGE OF RESULTS". */
   return finderLeadHtml_(lead) + pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
-/* FIND 2 — the owner's *"finder 2"*, the column right of Find: *"an identical second finder"* (12 Oct),
-   the same list and the same questions with a state of its own. */
-screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */

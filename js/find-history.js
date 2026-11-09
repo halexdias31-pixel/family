@@ -536,14 +536,14 @@ function bibleLoad_(n, dir) {
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) § */
 function bibleChosen_() {
-  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   const f = (st.filters || []).find(x => x.field === 'wBook' && x.value != null);
   if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
   return BIBLE.rank.b[spellKey_(f.value)] || 0;
 }
 /* THE CHOSEN TRANSLATION'S FOLDER: '' for the KJV, or when none is chosen yet. */
 function bibleChosenDir_() {
-  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const st = FINDERS.stuff === FINDER ? STUFF : FINDERS.stuff.st;
   /* BY THE LANGUAGE AND THE TRANSLATION CHOSEN (546), either or both: an original text (the Septuagint) is its language alone. */
   const f = (st.filters || []).find(x => x.field === 'wText' && x.value != null), l = (st.filters || []).find(x => x.field === 'wLanguage' && x.value != null);
   const t = (f || l) && BIBLE.index ? bibleTrs_(BIBLE.index).find(t => {
@@ -558,9 +558,9 @@ function bibleAhead_() {
   bibleLoad_(n, dir).then(() => bibleRedraw_(k));
 }
 function bibleJobs_() {
-  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
+  const n = TABS.some(t => t.id === 'stuff') ? bibleChosen_() : 0, k = bibleSlot_(n, bibleChosenDir_());
   if (!n || !bibleFor_() || BIBLE.books[k] || BIBLE.loading[k] || BIBLE.missed[k]) return [];
-  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('res', null), run: bibleAhead_ }];
+  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('stuff', null), run: bibleAhead_ }];
 }
 AHEAD_KINDS.push(bibleJobs_);
 

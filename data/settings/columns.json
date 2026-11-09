@@ -8,14 +8,6 @@
   "notes": "the funnel."
  },
  {
-  "screen": "res",
-  "label": "Find 2",
-  "icon": "🔎",
-  "active": "FALSE",
-  "sort_order": 3,
-  "notes": "the owner's \"finder 2\" — \"an identical second finder\" (12 Oct): the same funnel over the same list as Find, with its own search, chips, page and kept place, so a student can keep a chapter up here while answering questions on Find. It held only the resources from 10 to 12 Oct (docs/history/329, reversed in 347). RIGHT OF FIND, which is where it was asked for."
- },
- {
   "screen": "saved",
   "label": "Saved",
   "icon": "★",

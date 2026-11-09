@@ -28,8 +28,6 @@ const RULES = [
     uni: 'Move tiles like every card.', lock: 'Their column\'s own code places them; there is nothing to move them with yet.' },
   { id: 'form-save-row', say: 'A settings form keeps its own Save row instead of joining the card\'s tile row', where: 'Settings (489)',
     uni: 'One joined row like every other card.', lock: 'Joining it moved Add a qualification and broke a section\'s own Save.' },
-  { id: 'find-front', say: 'The booking, feed and bundle pages stand in front of Find\'s results, not Find 2\'s', where: 'Find (347)',
-    uni: 'Find 2 opens on them too.', lock: 'Those pages are drawn once with fixed ids; a second copy would answer for both.' },
   /* THE TOOLS ON A QUESTION are no rule: every part has every tool, in one row (round 3, qtools.js). */
   { id: 'mag-items', say: 'The Magnifier is on Find\'s items (questions, library cards, scripture), not on people, shop or feed cards', where: 'Every card\'s tile row (463, 502)',
     uni: 'A Magnifier on every card.' },

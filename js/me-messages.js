@@ -718,7 +718,7 @@ function uploadsHtml_(d) {
 function uploadsPaint_() {
   document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
   /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note over `paneWatch_`. § */
-  if (typeof placeCells === 'function' && (AT === 'stuff' || AT === 'res' || AT === 'saved')) {
+  if (typeof placeCells === 'function' && (AT === 'stuff' || AT === 'saved')) {
     try { placeCells('y', true, 0, AT); } catch (e) { oops_(e, 'me:uploadsPaint_') }
   }
 }

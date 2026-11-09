@@ -92,7 +92,7 @@ function bibleRedraw_(n) {
 }
 
 /* ---------- INTO THE BIBLE, FROM WHEREVER THE TAP WAS § */
-/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open pressed in Find 2 stays in Find 2, where the student is reading — and into Find from § */
+/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open — and into Find from § */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');

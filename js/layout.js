@@ -141,7 +141,6 @@ const LAYOUT_FIXED = {
   feed: "the posts page by post and the camera is the page above the newest (`feedCamAt_`); moving them as one unit needs the feed's paging to stop assuming its column",
   dm: 'one conversation per page, drawn by the messages code',
   stuff: "Find's own funnel: its words, chips and page are the finder's state",
-  res: "Find 2's own funnel, the same finder again",
   saved: 'what you starred, drawn from your own stars',
   booking: 'the booking form and its receipts are one flow',
 };
