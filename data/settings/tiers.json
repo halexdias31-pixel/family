@@ -206,6 +206,8 @@
     "check-widgets.js": "secondary",
     "check-access.js": "core",
     "check-actions.js": "core",
+    "check-shape.js": "secondary",
+    "check-permissions.js": "secondary",
     "check-replies.js": "core",
     "check-said.js": "core",
     "check-drafts.js": "core",

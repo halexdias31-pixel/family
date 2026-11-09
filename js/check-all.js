@@ -60,6 +60,8 @@ const SUITE = [
   { file: 'check-access.js', what: 'every action past the permissions gate' },
   /* AND WHETHER ANYTHING ASKS FOR IT (433): a handler nothing calls is a door onto nothing from the other side. */
   { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
+  { file: 'check-shape.js', what: 'every item in the one shape {id, kind, title, tags, text, picture, tiles} (report only, 82a)' },
+  { file: 'check-permissions.js', what: 'the permissions table and ACTION_ACCESS agree for every action and role (86a)' },
   /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
      whether the person it names can be found again tomorrow. */
   /* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE § */

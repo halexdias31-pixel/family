@@ -1166,7 +1166,7 @@ const bizFillEach_ = () => document.querySelectorAll('.me-form[data-biz-page]')
   });
 
 function bizStart_() {
-  if (!(typeof isAdmin === 'function' && isAdmin()) || BIZ.list || BIZ.asking) return;
+  if (!can_(myRole_(), 'action', 'listRecords') || BIZ.list || BIZ.asking) return;
   BIZ.asking = true; BIZ.error = '';
   api({ action: 'listRecords', name: USER && USER.name })
     .then(d => {
@@ -1180,7 +1180,7 @@ function bizStart_() {
 
 on('biz-save', el => {
   const form = el.closest('.me-form');
-  if (!form || !isAdmin()) return;
+  if (!form || !can_(myRole_(), 'action', 'saveRecordsPage')) return;
   if (!BIZ.list) {
     toast(BIZ.error ? 'The records have not loaded, so nothing was saved — trying again.'
                     : 'The records are still on their way — a moment.');

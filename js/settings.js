@@ -5,7 +5,8 @@
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
                        'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
-                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields'];
+                       'settings/spotlight', 'settings/widgets-in-find', 'settings/setting-for', 'settings/card-fields',
+                       'settings/permissions'];
 
 /* `norm` on the backend. § */
 const setNorm_ = v => libS(v).toLowerCase().trim();
@@ -173,6 +174,16 @@ function setCardFields_(d, extra) {
     { cls: libS(r.cls).trim(), pic: list(r.pic), title: list(r.title), tags: list(r.tags), lines: list(r.lines), tiles: list(r.tiles) }]));
 }
 
+function setPermissions_(d, extra) {
+  /* ---------- THE ONE PERMISSIONS TABLE (86a): rows {kind, role, action, allow}, the backend's permissions.gs from the same file ---------- */
+  const perms = extra['settings/permissions'];
+  if (perms && perms.length) d.permissions = perms.filter(r => libS(r.action).trim() && libS(r.role).trim()).reduce((o, r) => {
+    const k = libS(r.kind).trim() || 'action';
+    ((o[k] = o[k] || {})[libS(r.action).trim()] = o[k][libS(r.action).trim()] || {})[libS(r.role).trim()] = r.allow === true || libOn(r.allow);
+    return o;
+  }, {});
+}
+
 function settingsInto_(d, extra) {
   if (!d || !extra) return d;
   /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
@@ -180,6 +191,7 @@ function settingsInto_(d, extra) {
   /* ---------- WHICH COLUMNS THE APP HAS, AND IN WHAT ORDER § */
   setBrand_(d, extra); setFacets_(d, extra); setKinds_(d, extra); setLaws_(d, extra); setFacts_(d, extra);
   setCampaigns_(d, extra); setColumns_(d, extra); setSpot_(d, extra); setInFind_(d, extra); setFor_(d, extra); setCardFields_(d, extra);
+  setPermissions_(d, extra);
   return d;
 }
 
