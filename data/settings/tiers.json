@@ -190,6 +190,7 @@
     "check-scope.js": "core",
     "check-const.js": "core",
     "check-comments.js": "core",
+    "check-format.js": "core",
     "check-manifest.js": "core",
     "check-backend.js": "core",
     "check-tabs.js": "core",

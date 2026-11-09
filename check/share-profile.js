@@ -109,7 +109,8 @@ async function diffPng([siteB64, picUrl]) {
   });
   await page.goto(BASE + 'index.html', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1800);
-  await page.evaluate(() => { go('tutors', false, true); return document.fonts && document.fonts.ready; });
+  /* THE SITE CARD AS THE PUBLIC SEES IT, the rule a share follows (first name + initial), so the two can be compared. */
+  await page.evaluate(() => { CARD_VIEWER = 'public'; go('tutors', false, true); return document.fonts && document.fonts.ready; });
   await page.waitForTimeout(900);
 
   const shoot = () => page.evaluate(async ([TEXTS, PARTS, measureSrc]) => {
@@ -162,6 +163,9 @@ async function diffPng([siteB64, picUrl]) {
         if (a.lines !== b.lines) bad.push(`${k} ("${a.text}"): ${a.lines} lines on the site, ${b.lines} in the picture`);
         if (Math.abs(a.x - b.x) > 1 || (pic.heat !== 'none' && Math.abs(a.y - b.y) > 1)) bad.push(`${k} ("${a.text}"): at ${a.x},${a.y} on the site and ${b.x},${b.y} in the picture`);
       });
+      /* A PUBLIC SHARE NAMES THE TUTOR BY FIRST NAME AND INITIAL (owner, 8 Nov), whoever presses Share. */
+      const nm = pic.texts['.prof-name#0'];
+      if (!nm || nm.text !== 'Ada T.') bad.push('the picture names the tutor "' + (nm && nm.text) + '", wanted "Ada T."');
       /* EVERY PART OF A FULL CARD IS IN THE PICTURE: photo, fact pills, subject and venue pills, the hours, "Already teaching". */
       PARTS.forEach(sel => { if (site.parts[sel] && site.parts[sel] !== pic.parts[sel]) bad.push(`${sel}: ${site.parts[sel]} on the site, ${pic.parts[sel] || 0} in the picture`);
         if (!site.parts[sel]) bad.push(`the fixture's card has no ${sel} — a full card is not proved`); });

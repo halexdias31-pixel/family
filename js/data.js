@@ -120,6 +120,21 @@ function nameBesideHandle_(name, handle) {
   return n.slice(-tail.length).toLowerCase() === tail.toLowerCase() ? n.slice(0, -tail.length) : n;
 }
 
+/* NAMES (owner, 8 Nov): an admin sees the whole name; families, tutors and anything public see first name + surname initial ("Halex D.").
+   `viewer` is a user, 'public' for a share, or left out for whoever is signed in. */
+function displayName_(person, viewer) {
+  const p = person && typeof person === 'object' ? person : { name: person };
+  const first = String(p.first_name || p.firstName || '').trim(), last = String(p.last_name || p.lastName || '').trim();
+  const full = nameBesideHandle_(String(p.name || p.title || (first + ' ' + last)).trim(), p.handle);
+  const v = viewer === undefined ? (typeof USER !== 'undefined' ? USER : null) : viewer;
+  const rs = v && typeof v === 'object' ? (Array.isArray(v.roles) && v.roles.length ? v.roles : [v.role]).map(String) : [];
+  if (rs.indexOf('admin') !== -1) return full;
+  if (first && last) return first + ' ' + last.charAt(0).toUpperCase() + '.';
+  const w = full.split(/\s+/).filter(Boolean);
+  if (w.length < 2 || /[@(]/.test(full)) return full;
+  return w[0] + ' ' + w[w.length - 1].charAt(0).toUpperCase() + '.';
+}
+
 /* ---------- A CHILD SIGNED IN BEFORE 10 OCT IS CALLED BY HER FIRST NAME FROM THE FIRST FRAME § */
 try {
   const p = USER && USER.profile, first = String((p && p.first_name) || '').trim();
@@ -499,7 +514,6 @@ function mark(text) {
 
   return out.replace(/\u0000(\d+)\u0000/g, (all, i) => parked[i]);
 }
-const money = n => '£' + (Number(n) || 0).toFixed(2);
 
 /* ---------- WHEN SOMETHING HAPPENED § */
 const MONTH_NAMES = ['January','February','March','April','May','June',
@@ -527,8 +541,6 @@ function parseWhen(v) {
   return isNaN(d) ? null : d;
 }
 
-/** 16 August 2026. No leading zero, the month written out, the year in full. */
-const fullDate = d => `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 
 /* The ladder. Singulars are words rather than numbers — "a minute ago", not "1 minute ago", because nobody counts to one — and "yesterday" for the same reason. § */
 function ago(value) {
@@ -536,7 +548,7 @@ function ago(value) {
   if (!d) return String(value ?? '');        // unparseable: show it as written, not as nothing
 
   const secs = (Date.now() - d.getTime()) / 1000;
-  if (secs < 0) return fullDate(d);
+  if (secs < 0) return date_(d);
   if (secs < 45) return 'just now';
 
   const mins = Math.floor(secs / 60);
@@ -552,8 +564,8 @@ function ago(value) {
   if (days < 28) return Math.floor(days / 7) + ' weeks ago';
   if (days < 60) return 'a month ago';
 
-  /* Past two months, "nine weeks ago" is arithmetic and "16 August 2026" is an answer. */
-  return fullDate(d);
+  /* Past two months, "nine weeks ago" is arithmetic and a date is an answer. */
+  return date_(d);
 }
 
 /* THE LAST GOOD PAYLOAD, KEPT ON THE DEVICE (1070): the next visit draws from it at once and the network's answer replaces it silently. */

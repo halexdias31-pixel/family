@@ -243,7 +243,7 @@ function settingsCards_(shown, moved, col) {
       readonly: readonly,
       options: fieldOptions_,
     }),
-    save: tile_({ icon: 'save', label: 'Save', act: 'me-save' }) + (mail(list) && p.email_moving ? tile_(RESEND_LINK) : ''),
+    save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
     foot: (mail(list) ? movingNote_(p) : '') + '<p class="faint me-said"></p>',
     after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
   const out = [];
@@ -710,5 +710,5 @@ function availGrid_(codes, p, readonly, mine) {
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
              ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}>
-    </label>`, { chars: 3 })}</div>`;
+    </label>`)}</div>`;
 }

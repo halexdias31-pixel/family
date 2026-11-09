@@ -238,7 +238,7 @@ function commentsHtml_(p) {
   return `<div class="post-said">
     ${list.length ? `<ul class="cmt-list">${list.map(x => `
       <li class="cmt${x.mine ? ' mine' : ''}">
-        <p class="cmt-body"><b>${esc(x.name)}</b> ${mark(x.body)}</p>
+        <p class="cmt-body"><b>${esc(displayName_(x.name))}</b> ${mark(x.body)}</p>
         <p class="faint cmt-when">${esc(ago(x.at) || x.at || '')}${x.canRemove
           ? ` · <button class="cmt-x" data-do="cmt-del" data-id="${esc(x.id)}">Remove</button>`
           : ''}</p>
@@ -1349,7 +1349,8 @@ function tutorPng_(t) {
   const host = document.createElement('div');
   host.className = 'tpng-host';
   host.setAttribute('aria-hidden', 'true');
-  host.innerHTML = findCard({ kind: 'tutor', key: t.title || '', name: t.title || '', row: t });
+  const was = CARD_VIEWER; CARD_VIEWER = 'public';
+  try { host.innerHTML = findCard({ kind: 'tutor', key: t.title || '', name: t.title || '', row: t }); } finally { CARD_VIEWER = was; }
   const card = host.firstElementChild;
   if (!card) return Promise.reject(new Error('no card'));
   host.style.width = tpngWidth_(t) + 'px';
@@ -2307,10 +2308,10 @@ function dmPages_() {
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
   return daivePages_().concat(threads.map(t => ({
-    name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
+    name: displayName_(t.name) + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
       <div class="dm-head">${dmFace_(t)}
-        <h3>${esc(t.name)}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
+        <h3>${esc(displayName_(t.name))}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,

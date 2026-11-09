@@ -27,7 +27,7 @@ check('Jobs: Add a job opens one line (role, where, from–to), Save posts it, a
   });
   const form = shelf.closest('.me-form');
   sent.length = 0;
-  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  try { t.ACTIONS['me-save'](form); } catch (e) { bad.push('Save threw: ' + e.message); }
   await wait(400);
   const post = sent.find(b => b.action === 'updateProfile');
   if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no updateProfile');

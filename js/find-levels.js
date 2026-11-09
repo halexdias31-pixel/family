@@ -762,14 +762,9 @@ function subsLine_(pid) {
     return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
   } catch (e) { return ''; }
 }
-/* `4 Oct`, and the year only when it is not this one -- a day from last October that read like this
-   October's would be wrong by a year in the one place a date is the whole message. */
+/* A submission's day, DD/MM/YY like every date (owner, 8 Nov). */
 function subDayText_(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
-  if (!m) return '';
-  const names = typeof MONTH_NAMES !== 'undefined' ? MONTH_NAMES : [];
-  const mon = String(names[+m[2] - 1] || m[2]).slice(0, 3);
-  return (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '')) ? date_(iso) : '';
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */

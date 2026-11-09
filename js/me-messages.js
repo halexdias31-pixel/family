@@ -399,7 +399,7 @@ function msgPost_(p) {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
     try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) { oops_(e, 'me:msgPost_') }
-    toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
+    toast(p.inSheet ? 'Sent to ' + displayName_(p.withName) : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
         MSG_PENDING = MSG_PENDING.filter(x => x !== p);
@@ -453,7 +453,7 @@ on('msg-send', el => {
   MSG_PENDING.push(p);
   delete MSG_QUEUE[key];
   if (box) { box.value = ''; box.style.height = ''; }
-  if (p.inSheet) { closeSheet(); toast('Sending to ' + p.withName + '…'); }
+  if (p.inSheet) { closeSheet(); toast('Sending to ' + displayName_(p.withName) + '…'); }
   dmRedraw_(p.withId);
   msgPost_(p);
 });
@@ -546,14 +546,11 @@ function msgDay_(ms) {
   const gap = Math.round((day(now) - day(d)) / 864e5);
   if (gap === 0) return 'Today';
   if (gap === 1) return 'Yesterday';
-  const opt = { weekday: 'short', day: 'numeric', month: 'short' };
-  if (d.getFullYear() !== now.getFullYear()) opt.year = 'numeric';
-  try { return d.toLocaleDateString('en-GB', opt); } catch (e) { return d.toDateString(); }
+  return day_(d) + ' ' + date_(d);
 }
 function msgClock_(ms, raw) {
   if (!ms) return String(raw || '');
-  const d = new Date(ms);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return time_(ms);
 }
 
 /* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE § */
@@ -651,7 +648,7 @@ const messagesHtml_ = ms => {
       ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`suggestTile_`, 486). */''}
       ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
-        ? suggestTile_('message', m.id, 'Message from ' + (m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
+        ? suggestTile_('message', m.id, 'Message from ' + displayName_(m.fromName || m.withName || 'someone'), 'msg-flag') + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;

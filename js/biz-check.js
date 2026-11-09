@@ -8,12 +8,12 @@ const BC_GOAL_FALLBACK = 100000;
 
 const bcVars_ = () => ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
 const bcNum_ = (k, or) => { const x = Number(bcVars_()[k]); return isFinite(x) && bcVars_()[k] !== '' && bcVars_()[k] != null ? x : or; };
-const bcMoney_ = x => '£' + Math.round(Math.max(0, x || 0)).toLocaleString('en-GB');
+const bcMoney_ = x => money_(Math.max(0, x || 0));
 const bcIso_ = d => { try { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); } catch (e) { return ''; } };
 const bcToday_ = () => bcIso_(new Date());
 const bcAddMonths_ = (iso, m) => { const d = new Date(iso + 'T12:00:00'); if (isNaN(d)) return ''; d.setMonth(d.getMonth() + Number(m)); return bcIso_(d); };
 const bcDays_ = iso => Math.round((new Date(iso + 'T12:00:00') - new Date(bcToday_() + 'T12:00:00')) / 864e5);
-const bcSaid_ = iso => { try { return new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return iso; } };
+const bcSaid_ = iso => date_(iso);
 
 /* A FACT IS THE CONFIG'S `biz_<fact>` WHEN SET (TRUE, yes, a number above 0), else the checklist file's default. */
 function bcFact_(k) {

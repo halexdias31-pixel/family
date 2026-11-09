@@ -943,13 +943,12 @@ check('your exams: the big exam on the Countdowns widget on Tools (466) for a st
   await go('account');
   const exam = d.querySelector('#s-account [data-me="exam_big_date"]');
   const form = exam && exam.closest('.me-form');
-  const save = form && form.querySelector('[data-do="me-save"]');
-  if (!exam || !save) bad.push('the student\'s Settings has no big-exam box with a Save — the saved date was NOT checked');
+  if (!exam || !form) bad.push('the student\'s Settings has no big-exam box — the saved date was NOT checked');
   else {
+    /* SAVED AS TYPED (owner, 8 Nov): the input alone sends it. */
+    const before = sent.length;
     exam.value = JOURNEY_DAY_(30);
     exam.dispatchEvent(new w.Event('input', { bubbles: true }));
-    const before = sent.length;
-    try { t.ACTIONS['me-save'](save); } catch (e) { bad.push('me-save threw: ' + e.message); }
     for (let n = 0; n < 30 && (t.whoami().profile || {}).exam_big_date !== JOURNEY_DAY_(30); n++) await wait(100);
     await wait(300);
     if (!sent.slice(before).some(b => b.action === 'updateProfile' && b.fields && b.fields.exam_big_date === JOURNEY_DAY_(30))) bad.push('Save on About you did not post the new big-exam date — NOT checked');

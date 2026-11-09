@@ -492,7 +492,6 @@ function libCardsDraw_(into) {
   }
   const p = USER.profile || {};
   into.innerHTML = `<div class="me-form">${libraryShelf_(list, f => p[f] ?? '')}
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>
     <p class="faint me-said"></p></div>`;
 }
 function initLibCards_() { libCardsDraw_($('lib-box')); }
@@ -507,9 +506,46 @@ function libCardsRedraw_() {
 
 /* ---------- ONE SAVE, TWO SURFACES, AND THE DOM SAYS WHICH § */
 on('me-save', el => { meSave_(el); });
+
+/* ---------- EVERY SETTINGS FIELD SAVES AS YOU TYPE (owner, 8 Nov) ----------
+   ~800ms after the last change a card sends itself: no Save button, a small tick when it lands, a toast when it fails. */
+const AUTOSAVE_MS = 800;
+const AUTOSAVE_T = new WeakMap();
+const AUTOSAVE_FORMS_ = '.set-shape .me-form, #lib-box .me-form';
+function autosaveLater_(form) {
+  clearTimeout(AUTOSAVE_T.get(form));
+  AUTOSAVE_T.set(form, setTimeout(() => autosaveNow_(form), AUTOSAVE_MS));
+}
+function autosaveHear_(e) {
+  const box = e.target;
+  if (!box || !box.closest || !box.matches('input, select, textarea') || box.type === 'file') return;
+  const form = box.closest(AUTOSAVE_FORMS_);
+  if (!form || !USER) return;
+  form.dataset.dirty = '1';
+  autosaveLater_(form);
+}
+function autosaveNow_(form) {
+  if (!form.isConnected) return;
+  if (form.classList.contains('is-sending')) { autosaveLater_(form); return; }
+  try { if (form.closest('.card-ed')) cardSave_(form, true); else meSave_(form, true); } catch (x) { oops_(x, 'me:autosaveNow_'); }
+}
+/* THE SMALL TICK: under the card, beside the fading toast that already says Saved. */
+function autosaveTick_(form, word) {
+  const said = form.querySelector('.me-said');
+  if (said) said.textContent = '\u2713 ' + (word || 'Saved');
+  form.classList.add('is-saved');
+  if (!form.contains(document.activeElement)) delete form.dataset.dirty;
+}
+function autosaveFailed_(err) {
+  toast(typeof why_ === 'function' ? why_(err) : 'Not saved — try again.');
+}
+document.addEventListener('input', autosaveHear_, true);
+document.addEventListener('change', autosaveHear_, true);
 /* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT § */
-function meSave_(el) {
+function meSave_(el, auto) {
   return new Promise(resolve => {
+  /* A PRESS OR A SAVE IN HAND MAKES THE WAITING ONE MOOT. */
+  { const f0 = el && el.closest && el.closest('.me-form'); if (f0) clearTimeout(AUTOSAVE_T.get(f0)); }
   /* SIGNED OUT (the session ended under an open card): nothing to save to, and `USER.name` would throw. */
   if (!USER) { toast('Sign in first.'); return resolve(false); }
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. § */
@@ -526,7 +562,7 @@ function meSave_(el) {
   });
   /* A QUALIFICATION WITH NO SUBJECT. § */
   /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any visible box with an answer in it is a qualification. § */
-  if (qualNameless_(box)) { toast(QUAL_NAMELESS_SAY_); return resolve(false); }
+  if (qualNameless_(box)) { if (auto) { if (said) said.textContent = QUAL_NAMELESS_SAY_; } else toast(QUAL_NAMELESS_SAY_); return resolve(false); }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE § */
   /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE § */
   if (!profileShapeOk_()) {
@@ -546,7 +582,7 @@ function meSave_(el) {
   /* `send_`, NOT `api()`. § */
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: USER.name, targetId: USER.personId || '', fields },
-        { button: el, busy: 'Saving…', where: said })
+        auto ? { where: said } : { button: el, busy: 'Saving…', where: said })
     .then(d => {
       /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. § */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
@@ -560,21 +596,22 @@ function meSave_(el) {
       /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED § */
       const word = (d && d.said) || 'Saved';
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch { /* storage blocked: the sign-in still holds for this visit */ }
-      if (box.closest('#sheet-body')) closeSheet();
-      /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_`. */
+      if (box.closest('#sheet-body') && !auto) closeSheet();
+      /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_` — unless the caret is still in it. */
       const form = el.closest('.me-form');
-      if (form) delete form.dataset.dirty;
+      if (form && !(auto && form.contains(document.activeElement))) delete form.dataset.dirty;
       /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. § */
       const quiet = !!box.querySelector('.q-shelf');
       if (said) said.textContent = quiet ? '' : word;
       toast(word);
+      if (auto && form && !quiet) autosaveTick_(form, word);
       /* WHICH COLUMN THE CARD IS ON (453): a settings column, or a people column's card editor. */
       const col = colOfEl_(form) || 'account';
       const at = [...document.querySelectorAll('#s-' + col + ' .me-form')].indexOf(form);
       const lineAt = () => at < 0 ? null
         : (document.querySelectorAll('#s-' + col + ' .me-form')[at] || {}).querySelector?.('.me-said');
       /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save come and go with a waiting address, and nothing else repaints § */
-      if (d && d.said) {
+      if (d && d.said && !(auto && form && form.dataset.dirty)) {
         try { paint(col); placeCells('y', true, 0, col); } catch (e) { oops_(e, 'me:meSave_') }
         const el2 = lineAt(); if (el2) el2.textContent = word;
       }
@@ -582,7 +619,7 @@ function meSave_(el) {
       if (!d || d.changed === undefined || d.changed > 0) sayAfterLoad_(lineAt, quiet ? '' : word);
       resolve(true);
     })
-    .catch(() => { /* `send_` has already written the refusal under the card. */ resolve(false); });
+    .catch(err => { /* `send_` has already written the refusal under the card. */ if (auto) autosaveFailed_(err); resolve(false); });
   }
   });
 }

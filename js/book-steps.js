@@ -233,7 +233,6 @@ const BOOKING = {
 /* ---------- THE ONE YOU JUST ASKED FOR § */
 let ASKED_JOB = '';
 
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 /* The day codes the availability grids are written in. `m16` is Monday at four. */
 const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th', 'Thursday'],
@@ -714,7 +713,7 @@ function bookSpec() {
   const hours = runs.length ? runs[0].hours : 0;
   const perWeek = runs.reduce((n, r) => n + r.hours, 0);
   const days = [...new Set(runs.map(r => r.dayName))];
-  const firstHour = runs.length ? String(runs[0].hour).padStart(2, '0') + ':00' : '';
+  const firstHour = runs.length ? time_(runs[0].hour + ':00') : '';
   return Object.assign({
     subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
     loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,

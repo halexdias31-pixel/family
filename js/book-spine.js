@@ -41,7 +41,7 @@ function stageRows_(j) {
     on = on && !!j && !!st.is(j);
     /* ---------- ONE DATE FORMAT FOR THE FOUR, DECIDED HERE AND NOT IN FIVE PLACES § */
     const at = on && st.when ? st.when(j) : '';
-    return { n: '', k: st.row, v: (at && fmtDate(at)) || '',
+    return { n: '', k: st.row, v: (at && date_(at)) || '',
              mul: '', rate: '', total: '', free: true, tick: on };
   });
 }
@@ -240,7 +240,7 @@ function bookingDoc_(j, foot, price) {
     client: BOOKING.client || (USER && USER.name) || '',
     noTotal: kid || !!pays,
     /* £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE. */
-    total: (L && L.total > 0) ? money(L.total) : '\u2014',
+    total: (L && L.total > 0) ? money_(L.total) : '\u2014',
   }));
   return receiptHtml(Object.assign(base, {
     /* `done` marks the saved document read-only; `stage`, `was` and `accepted` pick its stamp. */
@@ -290,7 +290,7 @@ function rosterHtml(o) {
         : '<span class="rost-plus">+</span>'}</span>
       ${/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE § */
             ''}
-      <span class="rost-name">${esc(sl.filled ? (sl.name || sl.role) : 'Open')}</span>
+      <span class="rost-name">${esc(sl.filled ? (sl.name ? displayName_(sl.name) : sl.role) : 'Open')}</span>
       ${sl.filled ? `<span class="rost-role">${esc(sl.role)}</span>` : ''}
     </div>`).join('')}
   </div>`;
@@ -440,7 +440,7 @@ function jobRows(j) {
 
   /* THE FORM'S OWN LINES, IN THE FORM'S WORDS (owner, 8 Nov: "the booking form is the booking record"). */
   const wait = norm(j.kind) === 'waitlist';
-  push('For', j.client || ((j.slots || [])[0] || {}).client || '');
+  push('For', displayName_(j.client || ((j.slots || [])[0] || {}).client || ''));
   push('Kind', wait ? 'Waiting list class' : 'Instant class');
   push('Subject', j.subject || '');
   push('Level', j.level || '');
@@ -479,11 +479,11 @@ function jobRows(j) {
     if (iv && iv.weeks && j.price && !childView_()) {
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
-      push('About', iv.weeks + ' × ' + money(j.price || 0), money((j.price || 0) * iv.weeks));
+      push('About', iv.weeks + ' × ' + money_(j.price || 0), money_((j.price || 0) * iv.weeks));
     }
   }
 
-  if (j.tutor) push('Tutor', j.tutor);
+  if (j.tutor) push('Tutor', displayName_(j.tutor));
 
   /* ---------- `dates` IS WHAT THE SERVER SENDS AND THIS ASKED FOR `sessionDates` § */
   const dates = String(j.dates || j.sessionDates || '')
@@ -574,7 +574,7 @@ function jobAccepted_(j) {
 /* ---------- THREE PEOPLE, THREE FIGURES, AND EACH SEES THEIR OWN § */
 function jobMoney_(j) {
   const has = v => v !== '' && v != null && isFinite(Number(v));
-  const say = v => has(v) ? money(Number(v)) : '—';
+  const say = v => has(v) ? money_(Number(v)) : '—';
   if (typeof isAdmin === 'function' && isAdmin()) {
     /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the § */
     const seat = norm(j.kind) === 'waitlist';
@@ -593,7 +593,7 @@ function jobMoney_(j) {
     || (j.tutorSlots || []).some(t => norm(t.name) === me));
   const pays = !!me && (j.slots || []).some(sl => norm(sl.client) === me);
   if (teaches && !pays) return { label: 'You earn', total: say(j.tutorPay), more: [] };
-  return { label: null, total: money(j.price || 0), more: [] };
+  return { label: null, total: money_(j.price || 0), more: [] };
 }
 
 /* AND THE FORM, WHILE IT IS BEING PRICED — for an admin only, and only once `priceFrom` has said what the tutor and the business would take. § */
@@ -623,7 +623,7 @@ function discountRow_(L) {
   return receiptRow({ n: '', k: 'Discount', v: '', mul: '', cls: 'rc-disc', ctl: bkCtl_('discValue'),
     /* CAPPED WHERE @FAMILY'S SHARE RUNS OUT (owner, 8 Nov): the most it can be is said in the rate column. */
     rate: e.capped ? 'max ' + e.maxPct + '%' : '',
-    total: e.discount > 0 ? '− ' + money(e.discount / ((L && L.splitShares) || 1)) : '—',
+    total: e.discount > 0 ? '− ' + money_(e.discount / ((L && L.splitShares) || 1)) : '—',
     sel: `<input class="bk-in" id="${bkCtl_('discValue')}" data-do="book-disc" data-field="discValue" type="number"
       inputmode="decimal" min="0" max="100" step="1" value="${admin ? esc(BOOKING.discValue) : ''}" placeholder="% off"${admin ? '' : ' disabled'}
       aria-label="Discount, per cent off">` });
@@ -647,10 +647,10 @@ function formMoney_(L) {
   /* THE SAME THREE FIGURES THE BOOKING ROW KEEPS (`bookShares_`): after the discount, so pays = tutor + admin + fees to the penny. */
   const sh = typeof bookShares_ === 'function' ? bookShares_(L) : null;
   const dash = '\u2014';
-  return { label: 'Client pays', total: sh ? money(sh.pays) : dash,
-           more: [{ k: 'Tutor earns', t: sh ? money(sh.tutor) : dash }]
-             .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money(sh.fees) }] : [])
-             .concat([{ k: 'Admin earns', t: sh ? money(sh.admin) : dash }]) };
+  return { label: 'Client pays', total: sh ? money_(sh.pays) : dash,
+           more: [{ k: 'Tutor earns', t: sh ? money_(sh.tutor) : dash }]
+             .concat(sh && sh.fees > 0 ? [{ k: 'Room and fees', t: money_(sh.fees) }] : [])
+             .concat([{ k: 'Admin earns', t: sh ? money_(sh.admin) : dash }]) };
 }
 /* AN ADMIN'S MONEY, ONE BUILDER FOR THE FORM AND THE SAVED BOOKING: Client pays, then who earns what, as ordinary lines. */
 function moneyLines_(m) {
@@ -683,7 +683,7 @@ function bookFieldsSaid_() {
         : st.id === 'kids' ? list.map(person).join(', ')
         : st.emails ? (list.length ? list.length + (list.length === 1 ? ' address' : ' addresses') : '')
         : st.grid === 'blocks' ? blockSay_(v)
-        : st.grid ? bookRuns().map(r => r.dayName + ' ' + r.hour + ':00\u2013' + (r.hour + r.hours) + ':00').join(', ')
+        : st.grid ? bookRuns().map(r => day_(r.dayName) + ' ' + hours_(r.hour, r.hour + r.hours)).join(', ')
         : st.multi ? (list.join(', ') || fb(st))
         : (st.label_ && v ? st.label_(v) : (v || fb(st)));
       return st.short + ': ' + (String(said || '').trim() || '\u2014');
@@ -691,7 +691,7 @@ function bookFieldsSaid_() {
     const admin = typeof isAdmin === 'function' && isAdmin();
     if (admin && !isWaiting_()) out.push('Discount: ' + (Number(BOOKING.discValue) > 0 ? BOOKING.discValue + '%' : '\u2014'));
     const L = bookPrice();
-    if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money(L.total));
+    if (L && L.total > 0) out.push((admin && !isWaiting_() ? 'Client pays' : 'Cost') + ': ' + money_(L.total));
     if (String(BOOKING.note || '').trim()) out.push('Note: written (not copied)');
     return 'Fields: ' + out.join(' · ');
   } catch (e) { return ''; }
