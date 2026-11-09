@@ -61,7 +61,7 @@ function boot(lib) {
   /* THE FINDER IS FOR MEMBERS (400): signed out it holds only Sign in, so `questionParts_` had no siblings and a whole card one part */
   signedInAs_(MEMBER_)(w);
   const src = order_().map(n => fs.readFileSync(path.join(DIR, n + '.js'), 'utf8')).join('\n');
-  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN, qtHere: qtHere_, padReady: padReady_ };');
+  w.eval(src + '\n;window.__a = { DM: DRAW_MARK, qId: qId_, STUFF: () => STUFF, ACTIONS, PADLOCK, QT_ORDER, PEN_OPEN, QT_ROW, padReady: padReady_ };');
   return w;
 }
 
@@ -69,8 +69,10 @@ const S = v => (v == null ? '' : String(v)).trim();
 /* THE TOOL ROW AS ITS TOOLS' NAMES, left to right, Check last: read off the tiles' own acts, never off a list in the app */
 /* THE OWNER'S ORDER, written here and not read from the app, so an app that reorders its tools fails */
 /* round 4: no Calculator, Grid, Table or Formula sheet (a question brings its own), and the padlock once, in the row */
-const TOOL_ORDER = ['pen', 'line', 'ruler', 'protractor', 'compass', 'photo', 'mag', 'read', 'lock', 'check'];
-const DRAWING_TOOLS = new Set(['pen', 'line', 'ruler', 'protractor', 'compass']);
+/* THE ONE ROW (owner, 8 Nov) is data: qengine.json `row`, then the pen's tiles where there is a figure, then Check */
+const QT_ROW_DATA = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'qengine.json'), 'utf8')).row || []; } catch (e) { return []; } })();
+const DRAWING_TOOLS = new Set(['pen', 'line', 'compass']);
+const TOOL_ORDER = QT_ROW_DATA.concat([...DRAWING_TOOLS], ['check']);
 const TOOL_OF = { 'qt-pen': 'pen', 'qp-work': 'photo', 'q-mag': 'mag', 'read-aloud': 'read', 'q-lock': 'lock' };
 /* EACH TILE ONCE ON A PAGE (round 4: two padlocks, `q-lock` and the widgets' `game-lock`): a tile is its act and tool, and a lock is a lock */
 const SAME_AS = { 'game-lock': 'q-lock' };
@@ -220,11 +222,10 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (rows.length !== 1) bad('tools', x, rows.length + ' tool rows, wanted one');
     else {
       const got = toolsOf(rows[0]);
-      /* THE DRAWING TOOLS WHERE THERE IS SOMETHING TO DRAW ON (`padHasArt_`): on a bare part they opened a blank working paper (owner, 29 Oct) */
-      /* THE MAGNIFIER AND PADLOCK ARE THE CARD FOOT'S, Read aloud a part's only on a question with parts (`qtHere_`, 1040 r12) */
+      /* THE SAME ROW ON EVERY PART; the pen's tiles only where there is something to draw on (`padHasArt_`, owner 29 Oct) */
       /* AND ONLY WHERE THE PAD IS ON THE CARD (`padReady_`, 1020), with Undo and Clear before the Check */
       const ready = A.padReady(x);
-      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && (t === 'check' || A.qtHere(t, x)));
+      const wantRow = TOOL_ORDER.filter(t => (ready || !DRAWING_TOOLS.has(t)) && true);
       if (ready) wantRow.splice(wantRow.length - 1, 0, 'pad-undo', 'pad-clear');
       if (got.join(' ') !== wantRow.join(' ')) bad('tools', x, 'its row reads ' + got.join(' ') + (ready ? '' : ' — nothing to draw on, so no drawing tools'));
       const box = rows[0].closest('.qp-mark');

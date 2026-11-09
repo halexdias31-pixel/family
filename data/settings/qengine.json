@@ -1,6 +1,8 @@
 {
  "why": "The universal question page (roadmap 7, 920): each qtype's shared checker, and whether it has moved onto the one page. Move a type by setting moved: true once its answer check proves the batch.",
  "answer_why": "Every part is answered in one typed box, plus a photo of working where needed (owner, 9 Nov); a drawing stays only where the answer IS a drawing. Marked by markPart_ (find-marking.js): the scheme first, then the AI if the student asks.",
+ "row": ["photo", "mag", "read", "lock", "ruler", "protractor"],
+ "rowWhy": "The tools every question part shows, identically, in this order (owner, 8 Nov); js/qtools.js QT_ROW must match (check-answerable).",
  "checkers": ["number", "expression", "points", "choice", "words"],
  "types": {
   "value": { "checker": "number", "moved": false, "answer": "typed" },

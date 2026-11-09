@@ -590,8 +590,8 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   const q = (html, extra) => Object.assign({ kind: 'question', answerType: 'drawing', html: '<p>' + html + '</p>' }, extra || {});
   const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padCard(x, '<svg viewBox="0 0 340 340"></svg>', '');
     return [...h.querySelectorAll('.qt-row .qt-t:is([data-do="qt-inst"], [data-do="qt-pen"])')].map(b => b.getAttribute('data-tool')).join(' '); };
-  /* WHATEVER THE WORDS ASK FOR, the row is the same four (the tool registry, qtools.js) */
-  const ALL4 = 'pen line ruler protractor compass';
+  /* WHATEVER THE WORDS ASK FOR, the row is the same: QT_ROW's Ruler and Protractor, then the pen's tiles (owner, 8 Nov) */
+  const ALL4 = 'ruler protractor pen line compass';
   const offered = [[q('Use a ruler.', { key: 'q:T-R' }), ALL4], [q('Construct the bisector.', { key: 'q:T-C' }), ALL4],
     [q('Draw the graph.', { key: 'q:T-N' }), ALL4], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), ALL4]];
   offered.forEach(([x, want]) => {
