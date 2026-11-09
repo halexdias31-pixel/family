@@ -238,7 +238,7 @@ function profAvail_(t) {
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK § */
   if (!ticked.length) {
     return `<div class="prof-cap">Available</div>
-      <p class="prof-say prof-hid prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
+      <p class="prof-say prof-nohours">Hasn\u2019t set usual hours yet \u2014 ask for any hour;
         they accept or decline.${typeof isAdmin === 'function' && isAdmin()
           ? ' They tick them in Settings, under their week.' : ''}</p>`;
   }
@@ -328,7 +328,7 @@ const KC_FIELDS = {
     t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>`; },
   nameRate: x => { const t = kcRow_(x); return `<div class="prof-who">
     <span class="prof-line"><span class="prof-name">${esc(displayName_(t, CARD_VIEWER))}</span>${t.rate && !childView_()
-      ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/hour$/, ''))}<small>/hour</small></span></span>` : ''}</span>
+      ? `<span class="prof-price"><span class="prof-rate">${esc(rateRange_(t).replace(/\/h$/, ''))}<small>/h</small></span></span>` : ''}</span>
     ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
     ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}</div>`; },
   /* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, answered by the eye tile; the line says what pressing it means. */

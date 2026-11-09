@@ -2727,35 +2727,15 @@ const STATES = {
         const tc = [...pg.querySelectorAll('.prof-teach:not(.prof-quals) .prof-tag')].find(c => c.querySelector('.prof-lv span'));
         if (!tc || !tc.firstChild) return 0;
         const teachGap = gapOf(tc.firstChild, tc.querySelector('.prof-lv span'));
+        /* ON THE CARD THE NOTATION READS ON THE LINE (9 Nov, owner: it spilled out of the pill): level then grade after the subject, every letter inside the pill. */
         const ok = iso.every(c => {
-          const b = box(c), st = c.querySelector('.prof-iso'), s = box(st);
-          const up = st.querySelector('sup'), dn = st.querySelector('sub');
-          /* THE SUBJECT'S LAST LETTER, by a range over its own text, so "on its right" is measured
-             against the word and not against the pill. */
-          const word = c.querySelector('.prof-q-end').firstChild;
-          const r = document.createRange(); r.selectNodeContents(word);
-          const w = r.getBoundingClientRect();
-          /* "UP" AND "DOWN" AGAINST THE WORD'S OWN LINE, not the pill's middle: a long subject that
-             wraps at 320 puts the pill's middle between its two lines. */
-          const mid = w.top + w.height / 2;
-          const stacked = up && dn ? box(up).bottom <= box(dn).top + 0.5 && Math.abs(box(up).left - box(dn).left) < 0.5
-            : up ? box(up).top + box(up).height / 2 < mid - 1
-            : dn ? box(dn).top + box(dn).height / 2 > mid + 1 : false;
-          /* ONE LINE OF TEXT IS ONE PLAIN PILL TALL. § */
-          const head = c.firstChild && c.firstChild.nodeType === 3 ? c.firstChild : null;
-          let wrapped = false;
-          if (head) {
-            const hr = document.createRange(); hr.selectNodeContents(head);
-            wrapped = [...hr.getClientRects()].some(x => x.width > 0 && Math.abs(x.top - w.top) > w.height / 2);
-          }
-          return stacked && s.left >= w.right - 0.5 && Math.abs((s.top + s.bottom) / 2 - mid) < w.height
-            && Math.abs(gapOf(word, st) - teachGap) < 0.5
-            && (wrapped || Math.abs(b.height - tall) < 0.6)
-            && s.top >= b.top - 0.5 && s.bottom <= b.bottom + 0.5;
+          const b = box(c), r = document.createRange(); r.selectNodeContents(c);
+          const word = c.querySelector('.prof-q-end'), st = c.querySelector('.prof-iso');
+          return [...r.getClientRects()].every(x => !x.width || (x.left >= b.left - 0.5 && x.right <= b.right + 0.5 && x.top >= b.top - 0.5 && x.bottom <= b.bottom + 0.5)) && !!word && !!st;
         });
         return ok ? iso.length : 0;
       },
-      wants: 'each qualification\'s level over its grade on the subject\'s right, as far from it as a Teaches level is from its own, inside a pill no taller than a plain one',
+      wants: 'each qualification\'s level and grade after the subject, every letter inside its pill',
       leave: () => {
         if (window.__ISO_HELD) DATA.tutors = window.__ISO_HELD;
         paint('tutors');
