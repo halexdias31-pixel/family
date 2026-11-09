@@ -117,7 +117,7 @@ function bizPages_() {
   /* PROFIT FIRST, as the column opens; then applications, staff and the records. The site's own cards are the Site column's (491). */
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat([familyShareCard_()], typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
+  return profitCards_().concat([bizSettingsCard_()], typeof bizCheckCard_ === 'function' ? [bizCheckCard_()].filter(Boolean) : [], appsCard_(), errsCard_(), staff, [].concat(...BIZ_PAGES.map(bizCard_)));
 }
 /* THE SITE COLUMN'S CARDS (491): Setup (400), posts and reports to moderate, the library import, the weekly email. */
 function siteBizPages_() {
@@ -1083,25 +1083,40 @@ on('digest-words-save', el => {
     });
 });
 
-/* ---------- THE @FAMILY SHARE (8 Nov): ONE VALUE FOR EVERYONE, config B — `seatShare_` prices every extra seat with it; admin only ---------- */
-const familyShareNow_ = () => { try { const v = num(((DATA.constants || {}).vars || {}).B); return isNaN(v) ? 0 : v; } catch (e) { return 0; } };
-function familyShareCard_() {
+/* ---------- BUSINESS SETTINGS (owner, 9 Nov): share B, fees, discounts and rates in one list, set here and only here; bookings only read them. Venues and rooms below it. ---------- */
+const BIZ_SETTINGS = [
+  ['B', "@family.'s share of each extra seat (0.5 is half)"], ['c', "the tutor's share of each extra seat"],
+  ['M', 'fallback tutor pay per hour'], ['w', 'markup on tutor pay (1 is none)'], ['s', 'extra per hour for each extra subject'],
+  ['b', 'bulk discount per session booked'], ['a', 'advance-booking discount per week ahead'], ['h', 'hours per session'],
+  ['open_rate', 'pay per hour with No preference'], ['open_tutor_rate', 'a waitlist seat’s tutor rate'],
+  ['waitlist_seats', 'seats on a waitlist session'], ['waitlist_extra_seat', 'added per hour for each seat after the first'],
+  ['max_students_per_job', 'seat cap when neither tutor nor venue sets one'], ['max_open_requests', 'live requests one family may hold'],
+  ['travel_on_client', '1 adds venue travel to the client’s price'],
+  ['print_rate_per_page', 'a printed page'], ['print_minimum', 'least a print job costs'], ['postage_flat', 'postage per order'],
+];
+const bizSettingNow_ = k => { try { const v = ((DATA.constants || {}).vars || {})[k]; return v == null ? '' : String(v); } catch (e) { return ''; } };
+function bizSettingsCard_() {
   const admin = typeof isAdmin === 'function' && isAdmin();
-  return `<div class="card biz family-share set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">@family.'s share</h3>
-    <p class="sub">Of each extra seat, as a share of the tutor's rate (0.5 is half). One value for every tutor.</p>
-    ${fieldHtml('family_share', String(familyShareNow_()), { label: 'share, 0–2', draft: false,
-      extra: `type="number" min="0" max="2" step="0.05" inputmode="decimal"${admin ? '' : ' disabled'}` })}
-    <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'family-share-save', off: !admin })}</div>
+  const line = ([k, say]) => `<div class="biz-item biz-setting" data-key="${esc(k)}">${fieldHtml('biz_' + k, bizSettingNow_(k), { label: say, draft: false,
+      extra: `type="number" min="0" step="any" inputmode="decimal"${admin ? '' : ' disabled'}` })}
+    <div class="tile-row set-save">${tile_({ icon: 'save', label: 'Save', act: 'biz-setting-save', off: !admin, data: { key: k } })}</div></div>`;
+  const places = ((DATA && DATA.venues) || []).map(v => `<li>${esc(v.title || '')} · £${esc(String(Number(v.bestRate) || 0))}/h · ${esc(String(v.maxCapacity || ''))} seats${v.takesAllSeats ? ' · takes all the tutor’s seats' : ''}${(v.rooms || []).length ? ' · ' + v.rooms.length + ' rooms' : ''}</li>`).join('');
+  return `<div class="card biz biz-settings set-shape${admin ? '' : ' is-locked'}"><h3 class="set-title">Business settings</h3>
+    <p class="sub">Every price rule in one place. Bookings read these; nothing else sets them.</p>
+    ${BIZ_SETTINGS.map(line).join('')}
+    <h4>Venues and rooms</h4><p class="faint">Home and Online are venues like any other. Edit them on the Venues and Rooms tabs of the sheet.</p>
+    <ul class="biz-venues">${places || '<li class="faint">No venues yet.</li>'}</ul>
     <p class="faint fs-said" aria-live="polite"></p></div>`;
 }
-on('family-share-save', el => {
-  const card = el.closest('.family-share'), box = card && card.querySelector('input');
-  if (!box || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
-  send_({ action: 'familyShareSave', personId: USER.personId || '', share: String(box.value).trim() }, { button: el, where: card.querySelector('.fs-said') || undefined, busy: 'Saving…' })
+on('biz-setting-save', el => {
+  const item = el.closest('.biz-setting'), card = el.closest('.biz-settings'), box = item && item.querySelector('input');
+  const key = el.getAttribute('data-key') || '';
+  if (!box || !key || !USER || !(typeof isAdmin === 'function' && isAdmin())) return;
+  send_({ action: 'businessSettingSave', personId: USER.personId || '', key, value: String(box.value).trim() }, { button: el, where: (card && card.querySelector('.fs-said')) || undefined, busy: 'Saving…' })
     .then(d => {
       if (!d || !d.success) return;
-      try { ((DATA.constants = DATA.constants || {}).vars = DATA.constants.vars || {}).B = d.share; } catch (x) { /* the next payload carries it */ }
-      toast("@family.'s share is saved");
+      try { ((DATA.constants = DATA.constants || {}).vars = DATA.constants.vars || {})[d.key] = d.value; } catch (x) { /* the next payload carries it */ }
+      toast('Saved');
     });
 });
 

@@ -31,5 +31,6 @@
 {"card": "staff:hub", "for": "Staff", "name": "", "notes": "the staff hub after the card parts."},
 {"card": "appr:blurb", "for": "Apprentice", "name": "Work experience", "notes": "the apprentice placeholder; its card has no title of its own.", "rank": 9000},
 {"card": "site:digest", "for": "Business", "name": "Weekly email", "notes": "the Sunday email to parents as the backend sends it (digestPreview); found under Business, an admin's only (owner, 8 Nov).", "rank": 8000},
-{"card": "site:digest-words", "for": "Business", "name": "Weekly email's words", "notes": "the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov).", "rank": 8001}
+{"card": "site:digest-words", "for": "Business", "name": "Weekly email's words", "notes": "the subject, greeting, first and last lines of that email, beside its look (owner, 8 Nov).", "rank": 8001},
+{"card": "biz:settings", "for": "Business", "name": "Business settings", "notes": "every business setting in one list (owner, 9 Nov): share B, fees, discounts, rates, then venues and rooms; bookings only read them.", "rank": 7900}
 ]

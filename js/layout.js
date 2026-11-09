@@ -562,6 +562,7 @@ const CARD_REG = [
   { id: 'biz:deleted', col: 'biz', label: 'Deleted', re: /^<div class="card biz deleted-card/, say: 'Every deleted widget and card, each with Put back.' },
   { id: 'biz:errs', col: 'biz', label: 'Error log', re: /^<div class="card biz errs/, say: 'What broke on people\'s screens, counted once per error.' },
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
+  { id: 'biz:settings', col: 'biz', label: 'Business settings', re: /^<div class="card biz biz-settings/, say: 'Every price rule in one list: share, fees, discounts, rates, then venues and rooms.' },
   { id: 'biz:reports', col: 'site', label: 'Suggestions', re: /^<div class="card biz reports/, say: 'Changes people have suggested, waiting for Confirm or Dismiss.' },
   { id: 'biz:libimp', col: 'site', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
   { id: 'site:digest', col: 'site', label: 'Weekly email', re: /^<div class="card biz digest-look/, say: 'How Sunday\'s email to parents looks, live.' },
