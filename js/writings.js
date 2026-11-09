@@ -106,7 +106,8 @@ const WRITING_SECONDARY = ['Schaff, History of the Christian Church, vol. 1: Apo
   'Schaff, History of the Christian Church, vol. 2: Ante-Nicene Christianity, AD 100–325',
   'Schaff, History of the Christian Church, vol. 3: Nicene and Post-Nicene Christianity, AD 311–600',
   'Schaff, History of the Christian Church, vol. 4: Mediaeval Christianity, AD 590–1073'];
-const WRITING_UNCLEAR = ['Modern Texts (GCSE)'];
+/* A NOVEL OR PLAY STUDIED IS A PRIMARY TEXT (owner, 8 Nov): Modern Texts (GCSE) left this list; it stays for a work too unclear to call */
+const WRITING_UNCLEAR = [];
 const writingPrimacy_ = work => (WRITING_UNCLEAR.indexOf(work) >= 0 ? '' : WRITING_SECONDARY.indexOf(work) >= 0 ? 'Secondary' : 'Primary');
 /* ONE SPELLING AN ANSWER (520): values equal but for case or apostrophe are one answer, the first spelling kept; a unit is bare. */
 const writingFold_ = v => String(v).toLowerCase().replace(/[’‘`']/g, '').replace(/\s+/g, ' ').trim();
