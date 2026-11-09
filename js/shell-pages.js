@@ -399,7 +399,8 @@ const PAGE_HOME = {
 };
 /* ---------- THE TAB AND HOME-SCREEN ICON ARE THE REPO'S FILES (owner's logo, 6 Nov): a sheet `logo_square` still drives posts and avatars, never these. */
 function applyBrandIcon_() {
-  [['favicon', 'favicon.png'], ['favicon-ios', 'icon.png']].forEach(([id, file]) => {
+  /* `?v=` BECAUSE CHROME KEEPS A TAB ICON BY ITS URL: bump it when the logo changes. */
+  [['favicon', 'favicon.png?v=1106'], ['favicon-ios', 'icon.png?v=1106']].forEach(([id, file]) => {
     const el = document.getElementById(id);
     if (el && el.getAttribute('href') !== file) el.setAttribute('href', file);
   });
