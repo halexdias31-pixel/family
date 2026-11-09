@@ -395,25 +395,7 @@ function digestQuestions_(items, max, o) {
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
      never ": What is 7 × 8?". */
   const tag = it => (it.num ? it.num + ' ' + it.mark : it.mark);
-  /* ---------- ONE QUESTION AS THE SITE'S CARD (20 Oct, 380): the pane, the card in it, its tags, its words and picture, then how it went § */
-  /* LEAN, BECAUSE IT IS SAID 80 TIMES UNDER GMAIL'S CLIP: `bgcolor` for every fill, the font and ink inherited from the email's own cell. */
-  const head = (t, top) => '<p style="margin:' + (top || 14) + 'px 0 4px;font-size:10px;letter-spacing:1px;color:' + ink.faint + '">' + t + '</p>';
-  const card = (it, inner, tags) => {
-    const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
-    /* THE PANE IS THE CARD'S OWN BORDER — 10px of `.pane`'s #101010 round `.qcard`'s #0b0b0b, rounded — one table where the site has two boxes. */
-    return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
-      + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
-      + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
-      /* IN THE SITE CARD'S ORDER (547): THEIR ANSWER in the answer box, then the VERDICT under it as Check says it, then the ANSWER as the Answers page sets it. */
-      + (it.theirs ? head('THEIR ANSWER', 10) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.box
-        + '" style="border:1px solid ' + ink.paneLine + ';border-radius:18px;padding:4px 14px;color:' + ink.ink + '">' + it.theirs.html + '</td></tr></table>' : '')
-      + '<p class="gi" style="margin:' + (it.theirs ? 8 : 12) + 'px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
-      + (it.right ? head('ANSWER') + '<p style="margin:0;color:' + ink.ink + '">' + it.right.html + '</p>' : '')
-      + '</td></tr></table>';
-  };
-  /* THE TAGS AS PILLS, each its facet's colour (`DIGEST_TAG_INK`); the border takes the text's colour, and a facet with none wears the plain outline. */
-  const pill = t => '<span class="gi" style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
-    + ';border-radius:9px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>';
+  const { card, titleOf, pill } = digestCardMaker_(ink, says, cut);
   const tagsHtml = list => (list || []).map(pill).join(' ');
   const answerLines = it => (it.theirs ? ['Their answer: ' + it.theirs.text] : []).concat(it.right ? ['Answer: ' + it.right.text] : []);
   /* NO HEADING OVER A PAPER: § */
@@ -448,7 +430,7 @@ function digestQuestions_(items, max, o) {
       lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
       if (numbered.length) lines.push(numbered.map(tag).join(', '));
       lines.push('');
-      h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it)); });
+      h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it), titleOf(it, h.head)); });
       parts.push(html);
       return;
     }
@@ -470,7 +452,7 @@ function digestQuestions_(items, max, o) {
         lines.push(kid + ': ' + it.mark);
         lines.push.apply(lines, answerLines(it));
         lines.push('');
-        html += card(it, inner + P.html, tagsFor(it));
+        html += card(it, inner + P.html, tagsFor(it), titleOf(it, h.head), P.pic);
         stem = '';
         return;
       }
@@ -479,7 +461,7 @@ function digestQuestions_(items, max, o) {
       if (said[wid]) {
         lines.push(tag(it) + ': (the question’s words are on the site)');
         lines.push.apply(lines, answerLines(it));
-        html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it));
+        html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it), titleOf(it, h.head));
         stem = it.stem;
         return;
       }
@@ -494,7 +476,7 @@ function digestQuestions_(items, max, o) {
       lines.push.apply(lines, answerLines(it));
       if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
       if (inner) sizes.push({ id: wid, kind: 'part', bytes: digestBytes_(inner) });
-      html += card(it, inner, tagsFor(it));
+      html += card(it, inner, tagsFor(it), titleOf(it, h.head));
     });
     if (lines[lines.length - 1] !== '') lines.push('');
     parts.push(html);
@@ -504,6 +486,34 @@ function digestQuestions_(items, max, o) {
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p style="margin:12px 0 0">…and ' + more + ' more.</p>' : ''),
            printed: printed, marks: marks, more: more, fromLib: fromLib, sizes: sizes };
+}
+
+/* ---------- ONE QUESTION AS THE SITE'S CARD (57a–62a): picture, heading, tags, lines, a rule under it — lean, said 80 times under Gmail's clip. */
+function digestCardMaker_(ink, says, cut) {
+  const C = DIGEST_CARD, G = C.gap, R = C.round, most = C.cut * C.perLine;
+  const label = t => '<p style="margin:' + G + 'px 0 4px;font-size:' + C.size.small + 'px;color:' + ink.faint + '">' + t + '</p>';
+  /* LONG TEXT IS CUT TO 2 LINES, as the site clamps it; short text keeps its markup (a power, a fraction). */
+  const short = a => (S(a.text).length > most ? digestEsc_(cut(a.text, most)) : a.html);
+  const marksOf = it => { const q = it.row || {}; return Number(q.marks) || 0; };
+  return {
+    /* THE HEADING: its number and its marks as [n] (owner, 9 Nov); a name of one segment is its heading alone. */
+    titleOf: (it, h) => [it.num || h, marksOf(it) > 0 ? '[' + marksOf(it) + ']' : ''].filter(Boolean).join(' '),
+    /* THE TAGS AS PILLS, each its facet's colour (`DIGEST_TAG_INK`); a facet with none wears the plain outline. */
+    pill: t => '<span class="gi" style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
+      + ';border-radius:' + R + 'px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>',
+    card: (it, inner, tags, title, pic) => {
+      const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
+      const lines = { theirs: it.theirs ? label(C.labels.theirs) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.box
+          + '" style="border:1px solid ' + ink.paneLine + ';border-radius:' + R + 'px;padding:4px 14px;color:' + ink.ink + '">' + short(it.theirs) + '</td></tr></table>' : '',
+        verdict: '<p class="gi" style="margin:' + G + 'px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>',
+        right: it.right ? label(C.labels.right) + '<p style="margin:0;color:' + ink.ink + '">' + short(it.right) + '</p>' : '' };
+      const parts = { pic: pic ? '<div style="margin:0 0 ' + G + 'px">' + pic + '</div>' : '',
+        head: title ? '<p style="margin:0 0 ' + G + 'px;font-size:' + C.size.title + 'px;font-weight:bold;color:' + ink.ink + '">' + digestEsc_(title) + '</p>' : '',
+        tags: tags ? '<div style="font-size:' + C.size.small + 'px;line-height:24px;margin:0 0 ' + G + 'px">' + tags + '</div>' : '',
+        lines: inner + C.lines.map(k => lines[k]).join('') };
+      return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ' + C.rule
+        + ';border-radius:' + C.radius + '"><tr><td style="padding:' + G + 'px 0;font-size:' + C.size.body + 'px">' + C.order.map(k => parts[k]).join('') + '</td></tr></table>';
+    } };
 }
 
 /* A QUESTION THE LIBRARY DOES NOT HAVE WEARS WHAT ITS LABEL SAYS, as the tags would: its subject, its paper or sheet, its number — and its marks where a row gives them. */
@@ -639,12 +649,15 @@ function digestPartOut_(it, pre, done, said, site) {
     out.stems.push({ id: id, html: h, lines: l, bytes: gone ? 0 : digestBytes_(h) });
   });
   if (cutOut) {
-    out.html = '<p style="margin:0 0 6px"><i>(the question’s words are on the site)</i></p>' + (fig ? fig.html : '');
+    out.pic = fig ? fig.html : '';
+    out.html = '<p style="margin:0 0 6px"><i>(the question’s words are on the site)</i></p>';
     out.lines = ['(the question’s words are on the site)'].concat(fig ? [fig.text] : []);
     return out;
   }
   const figFirst = at < 0 && !lead;
-  out.html = (figFirst && fig ? fig.html : '') + piece(lead) + piece(before) + (!figFirst && fig ? fig.html : '') + piece(after);
+  /* THE PICTURE LEADS THE CARD (`kc-pic`), so the words go without it; the plain text keeps it where it stood. */
+  out.pic = fig ? fig.html : '';
+  out.html = piece(lead) + piece(before) + piece(after);
   out.lines = (figFirst && fig ? [fig.text] : []).concat(digestLines_(lead), digestLines_(before), !figFirst && fig ? [fig.text] : [], digestLines_(after));
   out.bytes = digestBytes_(out.html);
   return out;
@@ -1221,6 +1234,10 @@ function digestTagFacets_(rows) {
 /* `LIB_SOURCES` (js/find.js): a worksheet maker is a Source and its sheet has no exam board (O3). */
 const DIGEST_SOURCES = ['1st Class Maths', 'Corbettmaths', 'Access Tuition'];
 const digestTagSource_ = q => DIGEST_SOURCES.find(s => digestSpell_(s) === digestSpell_(digestLibS_(q.company))) || '';
+/* THE SITE CARD'S SHAPE, AS THE EMAIL DRAWS IT (57a–62a): js/check-email-card.js holds it to findCard's parts and style.css's tokens. */
+const DIGEST_CARD = { order: ['pic', 'head', 'tags', 'lines'], lines: ['theirs', 'verdict', 'right'],
+  labels: { theirs: 'Their answer', right: 'Answer' }, radius: 0, round: 999, gap: 14, rule: '#171717',
+  size: { small: 12, body: 16, title: 18 }, cut: 2, perLine: 60 };
 /* `[data-tag]`'s colours (style.css `--tag-*`), one for every kind `TAG_OF` gives. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
   type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', kind: '#e2cfa6', check: '#9ec5e8', other: '#bdbdbd' };

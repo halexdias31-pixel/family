@@ -241,6 +241,7 @@
     "check-textbooks.js": "core",
     "check-history-db.js": "secondary",
     "check-card-shape.js": "core",
+    "check-email-card.js": "core",
     "check-anims.js": "core",
     "check-talmud.js": "secondary",
     "check-writings.js": "secondary",
