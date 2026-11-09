@@ -1,0 +1,71 @@
+# THE NON-CORE CHECKS, NIGHTLY (owner, 9 Nov, 99): moved out of checks.yml so a push's Checks finish in ~10 minutes.
+# Report-only, as before (860): secondary checks and journeys, the slow browser groups and the heavy groups.
+# Nothing here blocks a commit; run it by hand from the Actions tab after a big change.
+name: Nightly
+
+on:
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+env:
+  LIB_PRIVATE: absent
+  FORCE_COLOR: '0'
+
+jobs:
+  # Everything data/settings/tiers.json does not call core: says WARN with counts; continue-on-error.
+  secondary:
+    name: 'secondary (report-only): ${{ matrix.name }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: 'checks', cmd: 'node js/check-all.js --tier=secondary -v' }
+          - { name: 'journeys 1/2', cmd: 'FLOW_TIER=secondary FLOW_PART=1/2 node --max-old-space-size=3000 js/check-flow.js' }
+          - { name: 'journeys 2/2', cmd: 'FLOW_TIER=secondary FLOW_PART=2/2 node --max-old-space-size=3000 js/check-flow.js' }
+          # The slow browser and heavy groups (840): report-only since the core freeze (1090), so they never hold up a commit.
+          - { name: 'browser 1/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=1/8 -v' }
+          - { name: 'browser 2/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=2/8 -v' }
+          - { name: 'browser 3/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=3/8 -v' }
+          - { name: 'browser 4/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=4/8 -v' }
+          - { name: 'browser 5/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=5/8 -v' }
+          - { name: 'browser 6/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=6/8 -v' }
+          - { name: 'browser 7/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=7/8 -v' }
+          - { name: 'browser 8/8', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --slow=8/8 -v' }
+          - { name: 'heavy 1/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=1/6 -v' }
+          - { name: 'heavy 2/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=2/6 -v' }
+          - { name: 'heavy 3/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=3/6 -v' }
+          - { name: 'heavy 4/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=4/6 -v' }
+          - { name: 'heavy 5/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=5/6 -v' }
+          - { name: 'heavy 6/6', cmd: 'CHECK_LIMIT_S=1800 node js/check-all.js --heavy=6/6 -v' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run (report-only)
+        run: |
+          set -o pipefail
+          bash -c "${{ matrix.cmd }}" 2>&1 | tee "$RUNNER_TEMP/run.log"
+      - name: Summary — secondary findings
+        if: always()
+        run: |
+          {
+            echo "### secondary (report-only): ${{ matrix.name }}"
+            grep -E '^(WARN|OK|FAILED) —' "$RUNNER_TEMP/run.log" | tail -4 || true
+            grep -cE '^\s+WARN\s' "$RUNNER_TEMP/run.log" | sed 's/^/WARN lines: /' || true
+          } >> "$GITHUB_STEP_SUMMARY"
