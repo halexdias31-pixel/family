@@ -372,9 +372,9 @@ function shelfSlots_(nums, filled, draw, noun) {
 const shelfAdd_ = (noun, act, o, row) => `<div class="tile-row set-adds${row ? ' ' + row : ''}">${tile_(Object.assign({ icon: 'plus', label: 'Add ' + (/^an? |^another$/.test(noun) ? noun : 'a ' + noun),
   act: act || 'shelf-more', cls: act ? '' : 'shelf-more' }, o || {}))}</div>`;
 const shelfDrop_ = (noun, act) => tile_({ icon: 'bin', label: 'Remove ' + noun, act: act || 'shelf-drop', cls: 'set-drop' });
-/* A CARD: its title, one line per field, ONE Save at the foot (the owner, 8 Nov). `o.save` false for a card whose lines save themselves. */
+/* A CARD: its title and one line per field, saving as you type (owner, 8 Nov: no Save button, `autosaveHear_`). `o.save` is any other tile for the foot. */
 function setCard_(o) {
-  const save = o.save === false ? '' : `<div class="tile-row set-save">${o.save || tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>`;
+  const save = o.save ? `<div class="tile-row set-save">${o.save}</div>` : '';
   const body = o.form == null ? (o.body || '') + save
     : `<div class="me-form"${o.formAttrs || ''}>${o.form}${save}${o.foot == null ? '<p class="faint me-said"></p>' : o.foot}</div>`;
   return `<div class="card${o.cls ? ' ' + o.cls : ''} set-shape"${o.attrs || ''}><h3 class="set-title">${esc(o.title || '')}</h3>${o.lead || ''}${body}${o.after || ''}</div>`;

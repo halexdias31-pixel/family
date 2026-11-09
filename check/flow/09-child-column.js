@@ -397,7 +397,7 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   t.USER({ name: 'Pat Parent', personId: 'P-P', role: 'client', roles: ['client'], token: 'tk' });
   D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
   D.familyFor = 'P-P';
-  const kit = pageOf('Kit Parent');
+  const kit = pageOf('Kit P.');  // a parent sees first name + initial (19b)
   if (!kit) bad.push('a parent\'s child is not on the You column');
   if (/data-do="kid-pin"/.test(kit)) bad.push('a parent\'s child card on the You column still carries New PIN — it is "Manage your child"\'s');
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }

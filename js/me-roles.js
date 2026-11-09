@@ -243,7 +243,7 @@ function settingsCards_(shown, moved, col) {
       readonly: readonly,
       options: fieldOptions_,
     }),
-    save: tile_({ icon: 'save', label: 'Save', act: 'me-save' }) + (mail(list) && p.email_moving ? tile_(RESEND_LINK) : ''),
+    save: mail(list) && p.email_moving ? tile_(RESEND_LINK) : false,
     foot: (mail(list) ? movingNote_(p) : '') + '<p class="faint me-said"></p>',
     after: id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '' }));
   const out = [];

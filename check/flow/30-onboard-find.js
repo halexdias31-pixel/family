@@ -56,7 +56,8 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   const one = async name => { const S = c.t.STUFF(); S.q = name; c.w.paintStuff(); await wait(200); return c.d.querySelector('#s-stuff .card-ed'); };
   const type = (el, v) => { el.value = v; el.dispatchEvent(new c.w.Event('input', { bubbles: true })); el.dispatchEvent(new c.w.Event('change', { bubbles: true })); };
   const tick = el => { el.checked = true; el.dispatchEvent(new c.w.Event('change', { bubbles: true })); };
-  const save = async (k, name) => { const sv = k.querySelector('[data-do="card-save"]'); if (!sv) { bad.push(name + ' has no Save in Find'); return; } c.A('card-save', sv); await wait(500); };
+  /* SAVED AS TYPED (owner, 8 Nov): no Save tile — the card sends itself ~800ms after the last change. */
+  const save = async (k, name) => { if (k.querySelector('[data-do="card-save"]')) bad.push(name + ' still has a Save tile in Find'); await wait(1300); };
   const EDITS = [
     ['Headline', { headline: 'Maths, calmly' }],
     ['Rate and extra seat', { rate_per_hour: '26' }],
@@ -86,7 +87,7 @@ check('Onboarding through Find: apply from Find › Settings, the admin approves
   if (k.err) return bad.concat([k.err]);
   k.t.go('stuff', false, true);
   const KS = k.t.STUFF(); KS.filters.length = 0; KS.filters.push({ field: 'kindLabel', value: 'Profiles' }); KS.q = 'Pat'; k.w.paintStuff(); await wait(300);
-  const pat = [...k.d.querySelectorAll('#s-stuff .card')].find(x => /Pat Parent/.test(x.textContent));
+  const pat = [...k.d.querySelectorAll('#s-stuff .card')].find(x => /Pat P(arent|\.)/.test(x.textContent)  /* a parent sees "Pat P." (19b) */);
   if (!pat) return bad.concat(['Find › Profiles does not list Pat: ' + k.w.stuffFiltered().map(x => x.kind + ':' + x.name).join(', ')]);
   onboardShot_(k, 'listed');
   const book = ((pat.closest('.favwrap') || pat).parentNode).querySelector('[data-do="book-with"]');

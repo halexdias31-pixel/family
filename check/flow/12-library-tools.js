@@ -898,7 +898,7 @@ check('the library card on Tools saves its three fields (489: one card), and a r
   if (!savedD || libD_(lib1.closest('.lib-face')) !== savedD) bad.push('after a reload the card\'s bars are not its saved number\'s');
   draftType_(two.w, form.querySelector('[data-me="lib1_name"]'), 'Merton Park');
   two.posts.length = 0;
-  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  try { t.ACTIONS['me-save'](form); } catch (e) { bad.push('Save threw: ' + e.message); }
   await wait(400);
   const post = two.posts.find(b => b.action === 'updateProfile');
   if (!post) return bad.concat(['Save posted ' + JSON.stringify(two.posts.map(b => b.action)) + ' and no updateProfile']);

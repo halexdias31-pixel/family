@@ -3565,7 +3565,7 @@ const STATES = {
           && !pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0 ? 8 : 0;
       },
       wants: 'the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another — and no picture picker, which is on your own card' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT § */
@@ -3615,7 +3615,7 @@ const STATES = {
         return lo && hi && want && offers(lo) === want && offers(hi) === want
           && lo.value === '8' && hi.value === 'Adults'
           && !pg.querySelector('[data-me="rate_per_hour"]')
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 2 : 0;
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0 ? 2 : 0;
       },
       wants: 'the ages as one [youngest] – [oldest] row of two selects, 8 and Adults chosen, on a page without the rate' },
 
@@ -4604,7 +4604,7 @@ const STATES = {
         if (!ok || bars.size !== n) return 0;
         /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
            tick on the glass or one scroll of the pane away. */
-        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
+        const pane = faces[0].closest('.pane'), tick = pg.querySelector('.me-form .me-said') || pg.querySelector('.me-form');
         if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
         const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
         if (zoom < PANE_ZOOM_MIN - 0.001) return 0;

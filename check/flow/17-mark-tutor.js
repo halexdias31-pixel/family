@@ -850,7 +850,7 @@ async function pfpRoleJourney(key) {
   };
   /* SAVE ON THE PICTURE'S CARD (468): it saved itself, so this says so and the profile column is drawn again. */
   const shut = async () => {
-    const save = d.querySelector(H + ' .card-ed[data-sec="picture"] [data-do="card-save"][data-pid="' + P.personId + '"]');
+    const save = d.querySelector(H + ' .card-ed[data-sec="picture"][data-pid="' + P.personId + '"]');
     if (save) t.ACTIONS['card-save'](save);
     await wait(300);
     try { w.paint(t.homeCol()); } catch (e) {}

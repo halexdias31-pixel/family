@@ -1073,7 +1073,7 @@ check('split cards (464): an admin\'s Split draws a settings card and a Business
   const pieces = cardsOf(sid);
   if (pieces.length < 2) bad.push('after Split ' + sid + ' is ' + pieces.length + ' card(s)');
   pieces.forEach((pc, i) => {
-    if (!pc.querySelector('[data-do="me-save"]') && !pc.querySelector('[data-me^="qual"]')) bad.push(sid + ' piece ' + i + ' has no Save of its own');
+    if (!pc.querySelector('.me-form') && !pc.querySelector('[data-me^="qual"]')) bad.push(sid + ' piece ' + i + ' is not a form of its own (each saves as typed)');
     if (!pc.querySelector('.wgt-admin [data-do="lay-join"]')) bad.push(sid + ' piece ' + i + ' has no Join');
   });
   const after = [...new Set(pieces.flatMap(pc => [...pc.querySelectorAll('[data-me]')].map(x => x.dataset.me)))];

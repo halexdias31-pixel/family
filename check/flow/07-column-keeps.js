@@ -958,7 +958,7 @@ check('every question the form asks has a row on the paper', async () => {
   w.__t.STEPS
     .filter(s => { try { return s.options().filter(Boolean).length > 0; } catch (e) { return false; } })
     .forEach(s => {
-      const want = s.week ? days : [s.short || s.id];
+      const want = s.week ? days.map(d => String(d).slice(0, 3)) : [s.short || s.id];
       if (s.week && !days.length) { bad.push('SLOT_DAYS is not exported — cannot check a week step'); return; }
       want.forEach(k => {
         if (!html.includes('>' + k + '<')) {
