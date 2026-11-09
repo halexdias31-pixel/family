@@ -299,9 +299,7 @@ function questionCard_(x, was) {
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
-    ${ansArea_(x)}
-    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls -- the first of the card's foot. */
-          typeof helpRow_ === 'function' ? helpRow_(x, '') : ''}
+    ${qAreaWithFoot_(x)}
   </div>`;
 }
 
@@ -335,12 +333,17 @@ function qPartCard_(x, ans) {
   QT_MORE.html = ''; QT_MORE.used = false;
   return `<div class="qcard qb-part" data-of="${esc((x.row && x.row.row_id) || x.key || '')}"><div class="qsheet qtext">${qWordsOr_(x, cellsHere_(x, words))}</div>${area}${left}${a}</div>`;
 }
+/* HELP (455) AND THE CARD'S TILES join the answer's tool row, behind its ⋯ (owner, 9 Nov); a box with no row keeps Help's own row. */
+function qAreaWithFoot_(x) {
+  QT_MORE.html = qPartFoot_(x); QT_MORE.used = false;
+  const area = ansArea_(x), left = QT_MORE.used || typeof helpRow_ !== 'function' ? '' : helpRow_(x, '');
+  QT_MORE.html = ''; QT_MORE.used = false;
+  return area + left;
+}
 /* THE CARD'S OWN TILES (share, star, message, top, help) as bare tiles, without the row `cardTiles_` wraps them in */
 function qPartFoot_(p) {
   const help = tile_(typeof helpOpts_ === 'function' ? helpOpts_(p, '') : null);
-  const row = String(cardTiles_(Object.assign(Object.create(p), { lead: help })) || '').trim();
-  const m = /^<div class="tile-row[^"]*">([\s\S]*)<\/div>$/.exec(row);
-  return m ? m[1] : row;
+  return String(cardTiles_(Object.assign(Object.create(p), { lead: help }), true) || '').trim();
 }
 /* ONE PART, THE SHAPE OF ANY CARD: its tags, a shared stem the first time a drawn part needs it, its words and box, its whole tile row. */
 function qOneCard_(p, ctx) {

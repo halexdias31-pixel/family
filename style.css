@@ -5992,11 +5992,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .card.kc > :empty { display: none; }
 .card.kc > .kc-pic { display: flex; justify-content: center; height: var(--pic-h); overflow: hidden; }
 .card.kc > .kc-pic :is(img, video, canvas, svg, figure) { height: 100%; width: 100%; margin: 0; object-fit: cover; }
-.card.kc-tutor > .kc-pic { width: var(--pic-h); }
-.card.kc-tutor { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: center; }
-.card.kc-tutor > * { grid-column: 1 / -1; }
-.card.kc-tutor > .kc-pic { grid-column: 1; }
-.card.kc-tutor > .kc-head { grid-column: 2; }
 .card.kc-tutor > .kc-head h3 { margin: 0; }
 .card.kc .kc-who { margin: .3rem 0 0; }
 /* EXTREMES STAY ONE SCREEN (8 Nov): name and rate on one line (a long name cut), a long handle, words and a long pill one line each, cut with an ellipsis. */
@@ -6059,3 +6054,19 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 @supports not (overflow: clip) {
   #screen { overflow: hidden; }
 }
+/* ONE CARD, TWO VIEWS (owner, 9 Nov): closed is a picture beside its title, tags and two lines; open puts the tags on top, then the picture and everything. */
+.card.kc:not(.is-open) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: start; }
+.card.kc:not(.is-open) > * { grid-column: 2; }
+.card.kc:not(.is-open) > .kc-pic { grid-column: 1; grid-row: 1 / span 5; width: 3.5rem; height: 3.5rem; border-radius: 50%; cursor: pointer; }
+/* THE FIRST LINE OF TEXT, CLAMPED AT TWO; nothing after it shows while closed. */
+.card.kc:not(.is-open) > .kc-lines > * { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin: 0; }
+.card.kc:not(.is-open) > .kc-lines > * ~ * { display: none; }
+.card.kc.is-open { display: flex; flex-direction: column; }
+.card.kc.is-open > .kc-tags { order: -1; }
+.card.kc.is-open > .kc-head { display: none; }
+.card.kc .kc-blank { display: block; width: 100%; height: 100%; aspect-ratio: 1; max-width: var(--pic-h); border-radius: 50%; background: var(--line); }
+.card.kc .kc-row { margin-top: .4rem; }
+.kc-four { display: contents; }
+.kc-more[hidden] { display: none; }
+.kc-more { display: flex; flex-wrap: wrap; gap: inherit; flex-basis: 100%; }
+.prof-tag-name { color: var(--ink); }

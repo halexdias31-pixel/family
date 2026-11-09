@@ -806,11 +806,11 @@ const paperLabel_ = id => {
 const paperTag_ = id => {
   const d = typeof docById_ === 'function' ? docById_(id) : null, sec = paperSectionOf_(d), n = String((d && d.paper) || '').trim();
   const code = String((d && d.paper_code) || '').trim();
-  if (code) return code;
-  /* ONE ATTRIBUTE PER TAG (1040 s12:37): the section is its own tag. */
+  /* "PAPER 1/2/3" FIRST (owner, 9 Nov), the cover code only where a paper has no number. */
   if (sec) return 'Paper ' + sec.paper;
+  if (n) return 'Paper ' + n;
   const lead = /^(?:Practice paper|Paper|Component|Unit) \w+/i.exec(String((d && d.name) || '').trim());
-  return lead ? lead[0] : n ? 'Paper ' + n : '';
+  return lead ? lead[0] : code;
 };
 /* A SECTION NAMED ONLY IN THE PAPER'S TITLE is its own tag too. */
 const paperNameSection_ = x => (/, (Section [A-F])\b/.exec(String((docById_(((x && x.row) || {}).paper_id) || {}).name || '')) || [])[1] || '';
