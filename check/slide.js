@@ -165,10 +165,9 @@ async function boot(browser, reduced) {
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof placeGrid === 'function' && typeof grabRow_ === 'function' && document.querySelector('#s-stuff .page'), null, { timeout: 30000 });
   await page.waitForFunction(() => typeof AHEAD === 'undefined' || AHEAD.open, null, { timeout: 60000 }).catch(() => {});
-  /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find answers Tools and Find 2 Games, side by side as the two columns were. */
+  /* THE TOOLS AND GAMES ARE FIND CARDS (790): Find answers Tools. */
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 60000 }).catch(() => {});
-  await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' });
-    finderSet_(FINDERS.res, { filters: [{ field: 'forLabel', value: 'Games' }], q: '' }); });
+  await page.evaluate(() => { finderSet_(FINDERS.stuff, { filters: [{ field: 'forLabel', value: 'Tools' }], q: '' }); });
   await sleep(1200);
   return { ctx, page, cdp: await ctx.newCDPSession(page), errs };
 }
@@ -250,7 +249,7 @@ function settleFrames(frames, at) {
   const half = Math.min(180, step / 2);
   await landed('flick left, 40px in 60ms', 'stuff', G.flick(-40, 0, 60), nx('stuff'));
   await landed('flick left, 90px in 100ms', 'stuff', G.flick(-90, 0, 100), nx('stuff'));
-  await landed('flick right, 90px in 100ms', 'res', G.flick(90, 0, 100), nx('res', -1));
+  await landed('flick right, 90px in 100ms', 'stuff', G.flick(90, 0, 100), nx('stuff', -1));
   await landed('drag left 120px and hold — under halfway', 'stuff', G.still(-120, 0), 'stuff');
   await landed(`drag left ${Math.round(half * 0.85)}px and hold — just under halfway`, 'stuff', G.still(-Math.round(half * 0.85), 0), 'stuff');
   await landed(`drag left ${Math.round(half * 1.25)}px and hold — past halfway`, 'stuff', G.still(-Math.round(half * 1.25), 0), nx('stuff'));

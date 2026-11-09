@@ -392,12 +392,6 @@ check('films are not in Find for an admin with films in the payload — not unde
   const kinds = picks().filter(b => b.dataset.field === 'kindLabel' || b.dataset.field === 'kindOwn').map(b => b.dataset.value);
   if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Practicals') === -1) bad.push('What kind was not drawn with Projects and Practicals (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
   else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
-  /* AND NOT IN FIND 2 EITHER: it carries what Find carries (347), and a film is in neither, so the column
-     must not have become where the films went. */
-  if (typeof w.finderOf_ === 'function') {
-    const resList = w.inFinder_(w.finderOf_('res'), () => w.stuffItems());
-    if (resList.some(isFilm)) bad.push('Find 2 holds ' + resList.filter(isFilm).length + ' film(s)');
-  }
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
   const answers = kindFacet ? w.facetValues(w.stuffItems(), kindFacet).map(v => String(v.value)) : [];
   if (!answers.length) bad.push('What kind has no answers over the whole list, so the facet was NOT checked');

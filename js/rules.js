@@ -5,7 +5,7 @@
 const RULES = [
   { id: 'tap-44', say: 'Keypad keys, multiple-choice options and every Check/Send stay 44px, as every tile now is (950)', where: 'A question\'s pages (487, 508)',
     uni: 'They shrink to the 36px tile size.' },
-  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find and Find 2 (487)',
+  { id: 'search-icon', say: 'The search box\'s magnifier stays 18px while every other mark is 16px', where: 'Find (487)',
     uni: 'The magnifier is 16px like every tile\'s mark.' },
   { id: 'whole-widgets', say: 'Console, Board games, Word & number games, Calculator, Whiteboard and Reels cannot be merged', where: 'Widget columns (480)',
     uni: 'They get Merge with the card above like every other widget.' },
@@ -14,7 +14,7 @@ const RULES = [
   { id: 'tell-admin', say: 'Messages and posts say "Tell the admin" instead of "Suggest a change"', where: 'Messages and posts (494)',
     uni: 'They say "Suggest a change" like everything else; the admin is still emailed at once.' },
   /* UNIVERSAL UNTIL SWITCHED (504): the owner, "it's open source so I don't care about it being public". `flip`: the stored mark means Exception. */
-  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find and Find 2 (490, 504)',
+  { id: 'kjv-admin', say: 'The Bible is shown to admins only', where: 'Find (490, 504)',
     uni: 'Anyone of age sees it, like the Talmud and the Quran.', flip: true },
   { id: 'finder-members', say: 'Signed out, Find answers only Settings, which holds Sign in and Join', where: 'Find (C+, 1040)',
     uni: 'Signed out, Find answers everything, as signed in.' },

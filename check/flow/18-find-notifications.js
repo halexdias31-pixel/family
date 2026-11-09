@@ -259,7 +259,7 @@ check('a chosen answer is only its value, Clear is a tile of its own, and Find d
   t.STUFF().filters.length = 0;
   w.paintStuff();
   await wait(30);
-  if (d.querySelector('#s-stuff input.search, #stuff-q, #s-res input.search, #res-q')) bad.push('a finder still draws a search box — Find is chips only');
+  if (d.querySelector('#s-stuff input.search, #stuff-q')) bad.push('a finder still draws a search box — Find is chips only');
   const slot = () => d.getElementById('stuff-clear');
   if (!slot()) return bad.concat(['there is no #stuff-clear — Clear has nowhere of its own to be']);
   if (slot().innerHTML.trim()) bad.push('with nothing chosen, the Clear slot holds ' + slot().innerHTML.trim().slice(0, 80) + ' — it is shown from the first answer');

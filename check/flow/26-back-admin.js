@@ -768,7 +768,7 @@ check('back to top: every result page of Find ends in a Back to top tile, and it
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['find-top'] || typeof w.finderOf_ !== 'function') return ['find-top has no handler, or finderOf_ is not reachable — NOT checked'];
   let tried = 0;
-  /* ONE FIND (owner, 8 Nov, 10a): Find 2 is gone, so Find is the one finder to turn. */
+  /* ONE FIND (owner, 8 Nov, 10a): Find is the one finder to turn. */
   for (const id of ['stuff']) {
     const F = w.finderOf_(id);
     t.go(id, false, true); await wait(120); await woken_();

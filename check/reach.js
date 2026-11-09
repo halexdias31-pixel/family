@@ -382,20 +382,20 @@ let PORT = 0;
       const n = AXES.y.count('stuff') - stuffFirstResult_();
       return n >= 30 ? { n } : { err: `the 2F paper is ${n} page(s) on Find — the run needs 30` };
     });
-    if (want('res') && !OFF_COLS.includes('res')) await go_(`${at} resources, boxing`, async () => {
-      await window.__rc.place('res', 0);
-      return inFinder_(finderOf_('res'), () => {
+    if (want('boxing') && !OFF_COLS.includes('stuff')) await go_(`${at} Find, boxing`, async () => {
+      await window.__rc.place('stuff', 0);
+      return inFinder_(finderOf_('stuff'), () => {
         const x = stuffItemsAll_().find(it => isBoxer_(it));
-        if (!x) return { err: 'no boxer on the Resources column' };
+        if (!x) return { err: 'no boxer in Find' };
         STUFF.filters = [{ field: 'shelf', value: [].concat(x.shelf)[0] }];
         paintStuff();
         let first = stuffFirstResult_();
-        if (AXES.y.count('res') <= first + 2) {
-          const pick = document.querySelector('#res-groups [data-do="facet-pick"][data-value*="oxer"], #res-groups [data-do="facet-pick"]');
+        if (AXES.y.count('stuff') <= first + 2) {
+          const pick = document.querySelector('#stuff-groups [data-do="facet-pick"][data-value*="oxer"], #stuff-groups [data-do="facet-pick"]');
           if (pick) { STUFF.filters.push({ field: pick.getAttribute('data-field'), value: pick.getAttribute('data-value') }); paintStuff(); first = stuffFirstResult_(); }
         }
-        goPage('res', first, true);
-        const n = AXES.y.count('res') - first;
+        goPage('stuff', first, true);
+        const n = AXES.y.count('stuff') - first;
         return n >= 16 ? { n } : { err: `the boxing shelf is ${n} page(s) — the run needs 16` };
       });
     }, null, 20, { pics: true });
@@ -526,7 +526,7 @@ let PORT = 0;
       const home = await page.evaluate(() => LOADED ? AT : null);
       if (!home) throw new Error(`the payload had not landed at ${IDLE_MS / 1000}s`);
       const far = await page.evaluate(() => { const i = TABS.findIndex(t => t.id === AT); return (i > TABS.length - 1 - i ? TABS[0] : TABS[TABS.length - 1]).id; });
-      for (const col of [...new Set([far, 'stuff', 'res', 'saved', 'shop'])].filter(c => OFF_COLS.indexOf(c) === -1)) {
+      for (const col of [...new Set([far, 'stuff', 'saved', 'shop'])].filter(c => OFF_COLS.indexOf(c) === -1)) {
         const seg = `${where}, then ${col}`;
         await page.evaluate(seg => window.__rc.start(seg), seg);
         await page.evaluate(c => go(c, false, true), col);

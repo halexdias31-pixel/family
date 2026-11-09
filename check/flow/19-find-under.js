@@ -22,12 +22,9 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const tileIn = html => { const el = d.createElement('div'); el.innerHTML = html; return el.querySelector('[data-do="find-open"]'); };
   [book, boxer, proj].forEach(x => {
     if (tileIn(w.stuffCard(x))) bad.push('a ' + x.kind + ' drawn in Find carries an Open tile to where it already is');
-    if (inFind_(w, () => tileIn(w.stuffCard(x)))) bad.push('a ' + x.kind + ' drawn in Find 2 carries an Open tile');
   });
-  /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
+  /* ---- ON SAVED: star each ---- */
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
-  t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
-  const r0 = JSON.stringify(t.RES().filters);
   t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'kindOwn', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
   const openOn = x => [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === x.key);
@@ -40,11 +37,10 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const forBook = openOn(book), forBoxer = openOn(boxer), forProj = openOn(proj);
   if (!forBook) return bad.concat(['the content card kept on Saved has no Open tile — its animation cannot be reached from there']);
   if (!/\bin Find\b/.test(forBook.getAttribute('aria-label') || forBook.textContent || '')) bad.push('the Open tile does not say it goes to Find: ' + JSON.stringify(forBook.getAttribute('aria-label') || forBook.textContent));
-  if (/Find 2|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
+  if (/\bFind \d|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
   A['find-open'](forBook);
   await wait(150);
   onCard(book, 'a content card opened from Saved', 'an15-bayes');
-  if (JSON.stringify(t.RES().filters) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify(t.RES().filters));
   for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
     if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }
     t.go('saved', false, true); await wait(120);
@@ -541,7 +537,7 @@ check('an empty list on Find says "Nothing matches all of those together." under
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, bad = [];
-  /* ONE FIND (owner, 8 Nov, 10a): Find 2 is gone. */
+  /* ONE FIND (owner, 8 Nov, 10a): one finder, so an empty list points nowhere else. */
   for (const id of ['stuff']) {
     const name = 'Find';
     const st = () => t.STUFF();
@@ -553,7 +549,7 @@ check('an empty list on Find says "Nothing matches all of those together." under
     await wait(60); await woken_();
     if (list().length) { bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) under Projects and Fighters — the empty answer was NOT checked'); continue; }
     if (!/Nothing matches all of those together/.test(said())) bad.push(name + '\'s empty list under chips does not say "Nothing matches all of those together.": "' + said() + '"');
-    if (/\bin (Find|Find 2|Resources)\b/.test(said())) bad.push(name + '\'s empty list points to another column: "' + said() + '"');
+    if (/\bin (Find|Resources)\b/.test(said())) bad.push(name + '\'s empty list points to another column: "' + said() + '"');
     st().filters = [];
   }
   return bad;
@@ -605,7 +601,6 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   /* NEITHER FINDER DROPS AN ADMIN'S BIBLE CHIP. */
   const g = { field: 'wBook', value: 'Genesis' }, books = { field: 'shelf', value: 'Writings' };
   if (w.placeChipDead_(g) || w.placeChipDead_(books)) bad.push('Find would drop an admin\'s own Bible chip from a kept place');
-  if (inFind_(w, () => w.placeChipDead_(g) || w.placeChipDead_(books))) bad.push('Find 2 would drop an admin\'s own Bible chip from a kept place');
   /* ---- THE SAME PLACE, KEPT BY SOMEBODY THE BIBLE IS NOT FOR: its chips go, the rest stay ---- */
   const theirs = {};
   Object.keys(kept).forEach(k => { theirs[k.replace(/^draft:u:P001:/, 'draft:u:P7:')] = kept[k]; });
@@ -804,7 +799,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
 });
 
 /* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT § */
-check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (499) → Religious Studies → Bible → testament → group → book → chapter → verse, asked by the one rule, one text a card (504); nobody under age is shown it or fetches a byte of it', async () => {
+check('the Bible, on Find: a card a verse on the everyday list (499) → Religious Studies → Bible → testament → group → book → chapter → verse, asked by the one rule, one text a card (504); nobody under age is shown it or fetches a byte of it', async () => {
   const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
@@ -843,17 +838,17 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     const R = findView_(w);
     if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
-    t.go('res');
-        t.RES().filters = [{ field: 'kindLabel', value: 'Library' }];
-    w.paintFinder_('res');
+    t.go('stuff');
+        t.STUFF().filters = [{ field: 'kindLabel', value: 'Library' }];
+    w.paintFinder_('stuff');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
     const shelves = shelf ? R.facetValues(R.stuffFiltered(), shelf).map(v => String(v.value)) : [];
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
     if (shelves.indexOf('Boxing') < 0) bad.push(what + ' was not offered the Boxing shelf — the walk did not reach the resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
-        t.RES().filters = [];
-    w.paintFinder_('res');
+        t.STUFF().filters = [];
+    w.paintFinder_('stuff');
     if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
     /* AND THE BIBLE'S ANSWERS, PRESSED ANYWAY — forged, because nothing draws them for this visitor. */
     for (const [field, value] of [['wText', 'English, King James Version (1611)'], ['wBook', 'Genesis']]) {
@@ -865,14 +860,14 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
     if (R.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + R.stuffFiltered().length + ' thing(s)');
     if (w.document.querySelector('.card.bb-verse')) bad.push(what + ' has a verse card drawn');
     /* AND ITS TILES, PRESSED ANYWAY: the chips must not move and nothing may be fetched. */
-    const was = JSON.stringify(t.RES().filters);
+    const was = JSON.stringify(t.STUFF().filters);
     for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
       const fake = w.document.createElement('button');
       Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
       try { t.ACTIONS[act](fake); } catch (e) { bad.push(what + ': pressing a forged ' + act + ' threw ' + e.message); }
     }
     await wait(60);
-    if (JSON.stringify(t.RES().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find 2\'s chips changed to ' + JSON.stringify(t.RES().filters));
+    if (JSON.stringify(t.STUFF().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find\'s chips changed to ' + JSON.stringify(t.STUFF().filters));
     const got = ofBible(b.gets);
     if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
     if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
@@ -891,9 +886,9 @@ check('the Bible, on Find 2 (and on Find): a card a verse on the everyday list (
   const wantN = index.totals.verses + (index.also || []).reduce((n, t) => n + (Array.isArray(t.books) ? t.books.reduce((m, b) => m + b.verses, 0) : index.totals.verses), 0);
   if (verses.length !== wantN) bad.push('an admin\'s list holds ' + verses.length + ' Bible items — wanted ' + wantN + ', a card a verse a text');
   if (verses.some(x => !x.bb || 'min_age' in x)) bad.push('a Bible item is not a verse or carries an age limit');
-  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('Find 2 does not carry the verses for an admin');
-  t.go('res');
-  const S = t.RES();
+  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('Find does not carry the verses for an admin');
+  t.go('stuff');
+  const S = t.STUFF();
   S.filters = [{ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Religious Studies' }, { field: 'wWork', value: 'Bible' }];
   /* WHAT IT IS FIRST (594): the testament and its section, then the language and whose translation (546); the New Testament's one Source is not asked. */
   const route = [['wCollection', 'New Testament'], ['wSection', 'Gospels'], ['wLanguage', 'English'], ['wText', 'King James Version (1611)'], ['wBook', 'John'], ['wChapter', '3'], ['wUnit', '16']];
@@ -946,7 +941,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
     ['Learning → Library', [['forLabel', 'Learning'], ['kindLabel', 'Library']]],
     ['Learning → Library → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Library'], ['shelf', 'Boxing']]],
   ];
-  const STARTS = [].concat(...['stuff', 'res'].map(fid => PLACES.map(([say, steps]) => [(fid === 'res' ? 'Find 2, ' : 'Find, ') + say, steps, fid])));
+  const STARTS = PLACES.map(([say, steps]) => ['Find, ' + say, steps, 'stuff']);
   const bad = [];
   const traces = [];
   for (const [what, u] of who) {
@@ -957,15 +952,11 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
     try { t.go('stuff'); w.paintStuff(); } catch (e) {}
     for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && w.textsItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
-    ['stuff', 'res'].forEach(fid => {
-      const has = (fid === 'res' ? R : w).stuffItems().some(x => x.kind === 'bible');
-      /* OPEN TO ANYONE OF AGE (504): a parent of thirty holds it as an admin does. */
-      if (!has) bad.push(what + '\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds no Bible — it is open to anyone of age since 504');
-    });
+    /* OPEN TO ANYONE OF AGE (504): a parent of thirty holds it as an admin does. */
+    if (!w.stuffItems().some(x => x.kind === 'bible')) bad.push(what + '\'s Find holds no Bible — it is open to anyone of age since 504');
     const trace = {};
     STARTS.forEach(([say, steps, fid]) => {
-      const V = fid === 'res' ? R : w;
-      const S = fid === 'res' ? t.RES() : t.STUFF();
+      const V = w, S = t.STUFF();
       t.go(fid);
             S.filters = [];
       const out = [];
@@ -991,11 +982,6 @@ check('the funnel asks an admin exactly what it asks a parent, the Bible apart �
       }
       trace[say] = out;
       S.filters = [];
-    });
-    /* THE SAME FINDER TWICE: Find 2's walk from every start is Find's walk, question for question. */
-    PLACES.forEach(([say]) => {
-      const f = JSON.stringify(trace['Find, ' + say]), r = JSON.stringify(trace['Find 2, ' + say]);
-      if (f !== r) bad.push(what + ', from ' + say + ': Find asks ' + f.slice(0, 160) + ' and Find 2 ' + r.slice(0, 160));
     });
     traces.push(trace);
   }

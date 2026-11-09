@@ -276,8 +276,8 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 /* TOOLS AND GAMES LEFT THE ROW FOR FIND IN 790. */
-const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'stuff', 'res', 'saved',
-                    'booking', 'shop'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(9));  /* the owner's eleven since 730, as columns.json lists them */
+const ORDER_392_ = ['spotlight', 'feed', 'reel', 'dm', 'stuff', 'saved',
+                    'booking', 'shop'].concat(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'columns.json'), 'utf8')).map(r => r.screen).slice(8));  /* the owner's eleven since 730, as columns.json lists them */
 
 check('business: an admin has a Business column last, straight after Apprentice settings (730), holding the five records cards (the verse screen is a Tools widget, 461), and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),

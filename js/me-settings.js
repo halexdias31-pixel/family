@@ -652,7 +652,7 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* AND THE BUSINESS COLUMN BY THE SAME RULE. § */
 /* AND THE LIBRARY CARDS ON TOOLS (docs/history/339), and their starred copy on Saved — a `.me-form` in a
    widget's slot, kept by the same two lines for the same reason: they were a Settings card until 11 Oct. */
-const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-res .widget-slot .me-form, #s-saved .widget-slot .me-form';
+const KEEP_FORMS_ = '#s-account .me-form, #s-staff .me-form, #s-family .me-form, #s-biz .me-form, #s-stuff .widget-slot .me-form, #s-saved .widget-slot .me-form';
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';

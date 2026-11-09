@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* @family. — check/firstpaint.js THE FINDER'S FIRST PAINT IS ITS LAST (546). Port FIRSTPAINT_PORT. */
-/* A cold load at 390px on a phone's network and CPU, as an admin and as a child, opening on Find or Find 2: the first question's answers */
+/* A cold load at 390px on a phone's network and CPU, as an admin and as a child, opening on Find: the first question's answers */
 /* never change from the frame they first appear until every file is in, and they are then what the live library asks. */
 'use strict';
 require('./quiet');
@@ -63,11 +63,11 @@ const VIEWERS = [
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const bad = [];
   let read = 0;
-  /* A COLUMN SWITCHED OFF (columns.json, 880) is not opened on: Find 2 is off, so only a switched-on finder is measured. */
+  /* A COLUMN SWITCHED OFF (columns.json, 880) is not opened on, so only a switched-on finder is measured. */
   const COLS = require('../data/settings/columns.json'), on = c => String((COLS.find(r => r.screen === c) || {}).active).toUpperCase() !== 'FALSE';
-  for (const c of ['stuff', 'res']) if (!on(c)) console.log(`   ${c}: off in columns.json, skipped`);
-  for (const V of VIEWERS) for (const col of ['stuff', 'res'].filter(on)) {
-    const where = `${V.who}, opening on ${col === 'stuff' ? 'Find' : 'Find 2'}`;
+  for (const c of ['stuff']) if (!on(c)) console.log(`   ${c}: off in columns.json, skipped`);
+  for (const V of VIEWERS) for (const col of ['stuff'].filter(on)) {
+    const where = `${V.who}, opening on Find`;
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     try {
       const page = await ctx.newPage();
