@@ -218,7 +218,7 @@ check('every drawn part in the library has its pen and one Check in its tool row
     if (!w.qtDrawn_(w.workRow_(x))) continue;
     n++;
     host.innerHTML = w.questionCard_(x, 0);
-    const go = host.querySelectorAll('.qt-row .is-submit');
+    const go = [...host.querySelectorAll('.qt-row .is-submit')].filter(g => !g.closest('[hidden]'));   // the AI's Check held back is not shown
     /* a passage to ring words in (`surface: text`) is drawn on in its words, not under a pen */
     if (!host.querySelector('.qpad, [data-circ]') || go.length !== 1 || host.querySelector('[data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with ' + (host.querySelector('.qpad, [data-circ]') ? '' : 'no pen, ') + go.length + ' Checks' + (host.querySelector('[data-do="pad-send"]') ? ' and a Send for a person' : ''));
   }
@@ -451,7 +451,7 @@ check('every part that draws on its stem\'s figure has exactly that one figure o
     else if (!svgs[0].closest('.qpad')) bad.push(id + ': its figure is not under its pen');
     /* ROUND 3: one tool row, one Check last in it, whatever marks the part */
     if (host.querySelectorAll('.qt-row').length !== 1) bad.push(id + ': ' + host.querySelectorAll('.qt-row').length + ' tool rows');
-    const marks = host.querySelectorAll('.qt-row .is-submit');
+    const marks = [...host.querySelectorAll('.qt-row .is-submit')].filter(g => !g.closest('[hidden]'));
     if (marks.length !== 1) bad.push(id + ': ' + marks.length + ' Check tiles');
     else if (marks[0].closest('.qpad')) bad.push(id + ': Check is inside the pen, not at the foot');
     if ([...host.querySelectorAll('[data-do="q-fig"]')].length && (w.figsBefore_(x) || []).some(f => f.html.indexOf(p.svg) >= 0)) bad.push(id + ': the Figure tile offers the figure it draws on');

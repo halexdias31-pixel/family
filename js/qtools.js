@@ -137,7 +137,7 @@ function qtToolOn_(id, key, pk, inHand) {
   if (id === 'protractor') return !!padProtOn_(pk);
   return inHand === QT_PAD_TOOL[id];
 }
-function qtRow_(x) {
+function qtRow_(x, held) {
   if (!x || !x.key) return '';
   const key = x.key;
   /* A CARD DRAWN AGAIN WHILE ITS RULER IS OUT gets it back on the new figure, once the markup is in */
@@ -151,7 +151,7 @@ function qtRow_(x) {
   const more = QT_MORE.html; QT_MORE.html = ''; QT_MORE.used = true;
   const wk = typeof ansKey_ === 'function' && isQ_(x) ? ansKey_(x) : '';
   const work = wk && typeof workGoTile_ === 'function' ? `<span class="qp-work-slot" data-k="${esc(wk)}">${workGoTile_(wk)}</span>` : '';
-  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}${work}${more}</div>
+  return `<div class="tile-row qt-row" role="toolbar" aria-label="Tools" data-key="${esc(key)}"><span class="qt-tools">${tools}</span>${qtCheck_(x, m)}${held || ''}${work}${more}</div>
     <div class="qtags qt-tags"><span class="qtag qt-how" data-tag="8">${esc(m.how)}</span></div>`;
 }
 const qtItem_ = key => { try { return stuffItemsAll_().find(it => it && it.key === key) || null; } catch (e) { return null; } };
