@@ -112,5 +112,11 @@ for (const m of noComments.matchAll(/border-radius:\s*([^;}]+?)\s*(?=[;}])/g)) {
   if (!/^(0|50%|var\(--r-ui\)|var\(--r-round\))$/.test(v)) bad.push(`57a a corner of its own: border-radius: ${v} — var(--r-ui) (or var(--r-round))`);
 }
 
+/* ---------- 58a. ONE PICTURE HEIGHT: a card's picture is var(--pic-h) tall and cropped to fill ---------- */
+if (!/\.card\.kc > \.kc-pic \{[^}]*height: var\(--pic-h\)/.test(noComments) || !/\.kc-pic :is\([^)]*img[^)]*\) \{[^}]*object-fit: cover/.test(noComments)) bad.push('58a a card picture is not var(--pic-h) tall with object-fit: cover');
+for (const m of noComments.matchAll(/([^{}]*kc-pic[^{}]*)\{([^{}]*)\}/g)) {
+  if (/(^|;)\s*(max-|min-)?height:\s*(?!\s|var\(--pic-h\)|100%)/.test(m[2])) bad.push(`58a a picture height of its own in "${m[1].trim().slice(0, 60)}"`);
+}
+
 if (bad.length) { bad.forEach(b => console.log('  ✗ ' + b)); console.log(`check-look: ${bad.length} problem(s)`); process.exit(1); }
 console.log('check-look: ok');

@@ -145,6 +145,8 @@
   --r-pill: 999px;
   /* ONE CORNER (owner 57a, 9 Nov): a card's corner, which is square; a round tile or a pill's end is `--r-round`. */
   --r-ui: 0;
+  /* ONE PICTURE HEIGHT (owner 58a, 9 Nov): every card's picture, cropped to fill (object-fit: cover). */
+  --pic-h: 7.5rem;
   --r-round: 999px;
 
   /* EDGE, ELEVATION AND THE INK ON THE ACCENT: one of each, so a surface or a pressed thing is never drawn two ways. */
@@ -6006,7 +6008,9 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tcard .prof-line .prof-price { margin-left: auto; }
 /* ONE CARD SHAPE (owner, 8 Nov): picture, title, tags, lines; an empty part takes no room. */
 .card.kc > :empty { display: none; }
-.card.kc > .kc-pic { display: flex; justify-content: center; }
+.card.kc > .kc-pic { display: flex; justify-content: center; height: var(--pic-h); overflow: hidden; }
+.card.kc > .kc-pic :is(img, video, canvas, svg, figure) { height: 100%; width: 100%; margin: 0; object-fit: cover; }
+.card.kc-tutor > .kc-pic { width: var(--pic-h); }
 .card.kc-tutor { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .55rem; align-items: center; }
 .card.kc-tutor > * { grid-column: 1 / -1; }
 .card.kc-tutor > .kc-pic { grid-column: 1; }
