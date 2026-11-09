@@ -140,7 +140,7 @@ const SUITE = [
   /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
   { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
   { file: 'check-kid-prices.js', what: 'a child is sent no rate, price or £, and her money actions ask a parent (398)' },
-  { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, Mark paid, the receipt' },
+  { file: 'check-booking-journey.js', what: 'a booking walks from the ask to paid as client, tutor and admin: seat caps, the room, paid through Stripe, the receipt' },
   { file: 'check-pay-return.js', what: 'a card payment coming back from Stripe books once, and a refresh, a typed ref or a child does not (430)' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */

@@ -55,7 +55,6 @@
   "js/chemistry.js": 10,
   "js/finder-tags.js": 1,
   "js/select.js": 3,
-  "js/resume.js": 13,
   "js/find-aloud.js": 140,
   "js/find-boxers.js": 96,
   "js/find-bundles.js": 132,
@@ -621,13 +620,6 @@
   },
   "style.css": {
    "lines": 6242,
-   "oneOff": 0,
-   "emptyCatch": 0,
-   "inlineStyle": 0,
-   "rawButton": 0
-  },
-  "js/resume.js": {
-   "lines": 89,
    "oneOff": 0,
    "emptyCatch": 0,
    "inlineStyle": 0,

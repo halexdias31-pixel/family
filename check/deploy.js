@@ -119,8 +119,8 @@ async function run(base) {
     /* A NEW TAB PER LOAD, NOT `goto` TWICE. § */
     const first = await ctx.newPage();
     await first.goto(at, { waitUntil: 'load' });
-    await first.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 20000 })
-      .catch(() => {});
+    await first.waitForTimeout(1500);
+    /* NO WORKER IN CHARGE (98): every visit loads the current files from the network, nothing held back. */
     const controlled = await first.evaluate(() => !!navigator.serviceWorker.controller);
     await first.close();
 
@@ -171,9 +171,9 @@ async function run(base) {
     const { controlled, rounds } = await run(base);
     console.log('SERVED AT ' + (base || '') + '/   (' +
                 (base ? 'where GitHub Pages puts a project site' : 'where every other harness here puts it') + ')');
-    if (!controlled) {
-      bad.push((base || '/') + ' — no service worker ever took control, so nothing was measured');
-      console.log('  the worker never took control — NOTHING WAS MEASURED');
+    if (controlled) {
+      bad.push((base || '/') + ' — a service worker took control of the page; files must load fresh each visit (98)');
+      console.log('  a worker took control — the site must not hold files back');
     }
     rounds.forEach((r, i) => {
       console.log('  deploy ' + (i + 1) + ': entry point asked for ' + r.asked + 'x, LOAD ' + r.load +

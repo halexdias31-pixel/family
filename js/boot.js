@@ -26,9 +26,6 @@ const bootIdle_ = f => { try { (window.requestIdleCallback || (g => setTimeout(g
 bootIdle_(() => aheadPreOpen_());
 bootIdle_(() => splashForget_());
 
-/* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD § */
-try { watchBuild_(); } catch (e) { oops_(e, 'boot:top') }
-
 /* ---------- AND AN ACCOUNT ARRIVING FROM ITS CONFIRMATION EMAIL § */
 try { verifyFromLink_(); } catch (e) { oops_(e, 'boot:top') }
 /* AND `?signin=<key>`, the link in a forgotten-PIN email — see `pinFromLink_` in me.js. Same reasons. */

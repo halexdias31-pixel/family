@@ -269,7 +269,6 @@ function boot(opts) {
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
-      + 'jobPaid: typeof jobPaidForm_ === "function" ? jobPaidForm_ : null,'
       /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
          and whether the actions are printed on the paper rather than floating under it. */
       + 'jobPage: typeof jobPage_ === "function" ? jobPage_ : null,'

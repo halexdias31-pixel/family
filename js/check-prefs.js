@@ -106,7 +106,6 @@ const CALLS = {
   'doPost:changePin · Your PIN was changed':                      ['security'],
   'doPost:finalizePayment · Payment received — you are booked in': ['booked'],
   'doPost:finalizePayment · Paid: a place is confirmed':          ['bookings'],
-  'doPost:markPaid · You are booked in: ':                        ['booked'],
   'doPost:move · Not taken forward: ':                            ['booked'],
   "doPost:move · You're teaching ":                               ['booked'],
   'doPost:move · Cancelled: ':                                    ['booked'],

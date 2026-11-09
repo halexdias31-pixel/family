@@ -417,65 +417,22 @@ check('coming back to the page just after a failed ask asks again when five seco
   return bad;
 });
 
-/* ---------- AND A PAGE THAT OPENS OLDER THAN THE SITE REFRESHES ITSELF, ONCE § */
-function staleBoot_(pageAt, serverAt, already) {
+/* ---------- ALWAYS FRESH (98, owner 9 Nov): a page never asks the server for a newer build nor reloads itself for one ---------- */
+check('a page never polls for a newer build and never reloads itself', async () => {
   const { implSymbol } = require('jsdom/lib/jsdom/living/generated/utils');
-  let reloads = 0;
+  let reloads = 0, heads = 0;
   const b = boot({ payload: RC_PAYLOAD_(), before: w => {
-    w.LOAD_AT = pageAt;
-    if (already) { try { w.sessionStorage.setItem('familyBuiltFor', already); } catch (e) {} }
+    w.LOAD_AT = Date.now() - 3 * 24 * 3600e3;
     try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
     const real = w.fetch;
-    w.fetch = (url, o) => (o && o.method === 'HEAD')
-      ? Promise.resolve({ ok: true, status: 200, headers: { get: k => ({ etag: '"build-b"',
-          'last-modified': new Date(serverAt).toUTCString() })[k.toLowerCase()] || null } })
-      : real(url, o);
-  } });
-  b.reloads = () => reloads;
-  return b;
-}
-check('a page that opens older than the server reloads once, and never twice for one build', async () => {
-  const bad = [];
-  const now = Date.now() - 5000;
-  const old = now - 3 * 24 * 3600e3;
-  const fresh = staleBoot_(now, now);
-  const stale = staleBoot_(old, now);
-  const again = staleBoot_(old, now, '"build-b"');
-  await wait(400);
-  if (fresh.reloads()) bad.push('a page as new as the server reloaded itself');
-  if (stale.reloads() !== 1) bad.push('a page three days older than the server reloaded ' + stale.reloads() + ' time(s), not once');
-  let mark = null; try { mark = stale.w.sessionStorage.getItem('familyBuiltFor'); } catch (e) {}
-  if (mark !== '"build-b"') bad.push('the reload was not remembered against the build it was for, so nothing stops a second');
-  if (again.reloads()) bad.push('a page that had already reloaded for this build reloaded again — that is the loop');
-  const ban = again.w.document.getElementById('banner');
-  if (ban && !ban.classList.contains('hidden') && /newer version/i.test(ban.textContent))
-    bad.push('the page asked about the new build — it must update quietly, never prompt (610)');
-  return bad;
-});
-
-/* "IT CANNOT LOOP" RESTED ON A WRITE NOBODY READ BACK — found by review: § */
-check('a page that cannot remember it reloaded for a build is offered the tap, not reloaded', async () => {
-  const { implSymbol } = require('jsdom/lib/jsdom/living/generated/utils');
-  const now = Date.now() - 5000;
-  let reloads = 0;
-  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
-    w.LOAD_AT = now - 3 * 24 * 3600e3;
-    const refusing = { getItem: () => null, setItem: () => { throw Object.assign(new Error('full'), { name: 'QuotaExceededError' }); },
-      removeItem() {}, clear() {}, key: () => null, length: 0 };
-    Object.defineProperty(w, 'sessionStorage', { configurable: true, get: () => refusing });
-    try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
-    const real = w.fetch;
-    w.fetch = (url, o) => (o && o.method === 'HEAD')
-      ? Promise.resolve({ ok: true, status: 200, headers: { get: k => ({ etag: '"build-b"',
-          'last-modified': new Date(now).toUTCString() })[k.toLowerCase()] || null } })
-      : real(url, o);
+    w.fetch = (url, o) => { if (o && o.method === 'HEAD') heads++; return real(url, o); };
   } });
   await wait(400);
+  try { b.w.document.dispatchEvent(new b.w.Event('visibilitychange')); b.w.dispatchEvent(new b.w.Event('focus')); } catch (e) {}
+  await wait(100);
   const bad = [];
-  if (reloads) bad.push('storage refused the once-per-build mark and the page reloaded anyway — the next boot would too');
-  const ban = b.w.document.getElementById('banner');
-  if (ban && !ban.classList.contains('hidden') && /newer version/i.test(ban.textContent))
-    bad.push('the page asked about the new build — it must update quietly, never prompt (610)');
+  if (heads) bad.push('the page asked the server ' + heads + ' time(s) whether a newer build exists');
+  if (reloads) bad.push('a page older than the server reloaded itself');
   return bad;
 });
 
@@ -488,7 +445,6 @@ check('an admin\'s diagnostic written over the newer-version banner does not rel
   const b = boot({ payload: RC_PAYLOAD_(), before: w => {
     signedInAs_(RC_ADMIN_)(w);
     w.LOAD_AT = now - 3 * 24 * 3600e3;
-    try { w.sessionStorage.setItem('familyBuiltFor', '"build-b"'); } catch (e) {}
     try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
     const real = w.fetch;
     w.fetch = (url, o) => {

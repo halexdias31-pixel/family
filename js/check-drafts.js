@@ -107,7 +107,6 @@ const EXEMPT = [
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
   { file: 'posts.js', has: 'id="pe-pin"', why: 'one tick, pinning a post that is already up' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
-  { file: 'tiles.js', fn: 'jobPaidForm_', has: 'class="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the button under it' },
   { file: 'find.js', has: 'class="room-name"', why: 'a room name, a few words, prefilled and sent by the button under it' },
 ];
 

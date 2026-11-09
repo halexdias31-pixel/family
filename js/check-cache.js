@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* @family. — check-cache.js EVERY FILE OF OUR OWN IS ASKED FOR WITH THE DEPLOY'S STAMP (546). No flags, no port. */
-/* sw.js answers an exact URL it holds without asking the network, for ever; only a changed URL is revalidated. */
+/* GitHub Pages lets a browser keep a file for 10 minutes; only a changed URL is asked for again. */
 /* So a fetch of the site's own files ('data/…', 'tools/…', 'js/…') must carry `deployStamp_()` (core.js), or a deploy never reaches it. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -15,11 +15,10 @@ const OWN = /^['"`](?:\.\/)?(?:data|tools|js)\//;
 const bad = [];
 let read = 0, own = 0;
 
-/* THE PREMISE: the worker still answers an exact URL from its store. If that ever changes, this rule is re-thought, not silently kept. */
+/* NO WORKER HOLDS OUR FILES (98): sw.js draws notifications only, so the stamp is all that keeps a browser's own cache honest. */
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-if (!/const exact = await store\.match\(req\.url\);\s*\n\s*if \(exact\) return exact;/.test(sw)) {
-  bad.push('sw.js no longer answers an exact URL from its store — re-read this check\'s rule against what the worker does now');
-}
+if (/addEventListener\(\s*['"]fetch['"]/.test(sw)) bad.push('sw.js answers fetches again — the site loads fresh files each visit (owner, 9 Nov, 98)');
+if (/serviceWorker\.register\(/.test(html)) bad.push('index.html registers a service worker on every visit — only turning on notifications may (98)');
 const src = {};
 files.forEach(f => { try { src[f] = fs.readFileSync(path.join(root, f), 'utf8'); } catch (e) { bad.push(f + ': listed in index.html and not readable'); } });
 /* A NAME THAT HOLDS ONE OF OUR PATHS (`const RACE_SHIPPED = 'data/race-map.json'`) counts as the path. */

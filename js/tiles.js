@@ -585,16 +585,6 @@ function joinTile_(j, id) {
 }
 
 /* A tap on a tile row that is not on a row. § */
-/* MARK AS PAID, A FORM ON THE RECEIPT (no sheet, owner 7 Nov). Only once accepted: the backend refuses paying an unagreed booking. */
-function jobPaidForm_(j, stage, accepted) {
-  const id = String((j && (j.id || j.jobId)) || '');
-  if (!id || stage !== 'application' || !accepted) return '';
-  return `<div class="rc-form paid-form">
-    <label class="field"><span>how was it paid? (the audit trail)</span>
-      <input class="paid-how" value="cash" autocomplete="off"></label>
-    <div class="btn-row">${tile_({ form: true, label: 'Mark paid', act: 'job-paid', data: { id: id } })}</div>
-    <p class="faint paid-said" aria-live="polite"></p></div>`;
-}
 /* ---------- AN ADMIN'S ACTIONS ON A JOB, AS TILES § */
 function jobAdminTiles_(j, stage, accepted) {
   const id = String((j && (j.id || j.jobId)) || '');
