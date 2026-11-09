@@ -24,10 +24,7 @@ function bibleVerseCard_(x) {
       });
     }
   }
-  return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${esc(String(k))}" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    ${body}
-  </div>`;
+  return readingCard_(x, { cls: 'bible bb-verse', cardData: { bb: 'v', bn: String(k) }, body: body });
 }
 
 /* ---------- THE TILES UNDER IT § */

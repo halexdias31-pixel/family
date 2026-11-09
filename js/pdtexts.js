@@ -82,10 +82,7 @@ function pdtextsBody_(x) {
   return loading_();
 }
 function pdtextsCard_(x) {
-  return `<div class="card fc tx" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="tx-body" data-tx="${esc(x.tx ? x.tx.id : '')}" data-k="${esc(x.key)}">${x.tx ? pdtextsBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'tx', bodyCls: 'tx-body', body: x.tx ? pdtextsBody_(x) : '', data: { tx: x.tx ? x.tx.id : '', k: x.key } });
 }
 /* ITS WORDS CAME: every card of that text on screen is filled where it stands. */
 function pdtextsRedraw_(id) {

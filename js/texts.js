@@ -46,7 +46,7 @@ function textsItems_() {
         text: [t.writing, title, p[0], t.text].join(' '),
         w: { work: bible ? 'Bible' : t.writing, book: bible || many ? title : '', chapter: p[0] || '', unit: u,
              text: text, collection: bible ? WRITING_DEUTERO : '' },
-        tx: { t: t.id, file: w.file, p: pi, u: ui, lang: t.lang },
+        tx: { t: t.id, file: w.file, p: pi, u: ui, lang: t.lang, cite: cite, wn: many ? ((/(\d+)$/.exec(w.name || '') || [])[1] || '') : '' },
       }));
     })));
   });
@@ -83,10 +83,7 @@ function textsBody_(x) {
   return loading_();
 }
 function textsCard_(x) {
-  return `<div class="card fc wt" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <div class="wt-body tx-body" data-tx="${esc(x.tx ? x.tx.file : '')}" data-k="${esc(x.key)}">${x.tx ? textsBody_(x) : ''}</div>
-  </div>`;
+  return readingCard_(x, { cls: 'wt', bodyCls: 'wt-body tx-body', body: x.tx ? textsBody_(x) : '', data: { tx: x.tx ? x.tx.file : '', k: x.key } });
 }
 /* ITS WORDS CAME: every card of that file on screen is filled where it stands. */
 function textsRedraw_(file) {

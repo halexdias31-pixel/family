@@ -100,13 +100,10 @@ function talScaleSet_(by) {
 /* THE CARD: the tags, then the side itself — drawn when its file of ten dafim is here, the one loader until then. */
 function talmudCard_(x) {
   const t = x && x.tal ? talTractate_(x.tal.slug) : null;
-  if (!t) return `<div class="card fc tal" data-key="${esc(x.key)}">${tagRow_(x)}</div>`;
+  if (!t) return readingCard_(x, { cls: 'tal' });
   const i = x.tal.i, d = TALMUD.chunks[t.slug + '/' + talChunkOf_(i)] || null;
-  return `<div class="card fc tal" data-key="${esc(x.key)}">
-    ${tagRow_(x)}
-    <article class="tal-page tal-card-page" dir="rtl" lang="he" data-t="${esc(t.slug)}" data-i="${i}" data-drawn="${d ? 1 : 0}"
-      aria-label="${esc(x.name)}">${talPage_(t, i, d)}</article>
-  </div>`;
+  return readingCard_(x, { cls: 'tal', bodyCls: 'tal-body', body: `<article class="tal-page tal-card-page" dir="rtl" lang="he" data-t="${esc(t.slug)}"
+    data-i="${i}" data-drawn="${d ? 1 : 0}" aria-label="${esc(x.name)}">${talPage_(t, i, d)}</article>` });
 }
 
 /* THE TEXT-SIZE TILES, one each way; the page grows downward and the card with it. */
