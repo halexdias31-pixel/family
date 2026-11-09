@@ -47,6 +47,7 @@ function finderSet_(F, o) {
   o = o || {};
   return inFinder_(F, () => {
     STUFF.filters = Array.isArray(o.filters) ? o.filters.map(c => Object.assign({}, c)) : [];
+    if (o.show) findShow_();
     /* WITHOUT `keepPage`, paintStuff puts the column back on its question page. */
     if (o.paint !== false) paintStuff();
   });

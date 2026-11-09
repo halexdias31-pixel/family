@@ -1018,6 +1018,8 @@ async function libFindAt_(W, rowId) {
   if (!x) return null;
   const S = W.__t.STUFF();
   S.filters = [{ field: 'paperId', value: LIB_PID }];
+  /* THE PAPER'S CHIP STILL ASKS, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  W.findShow_();
   W.__t.go('stuff');
   W.paintStuff();
   const i = W.stuffPages_().findIndex(pg => pg.x === x);

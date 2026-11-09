@@ -174,14 +174,14 @@ function boot(opts) {
       /* NOBODY SIGNED IN IS A MEMBER HERE: Find is for members (400), and a journey that opened Tools signed out asked about the widget, not the gate. */
       'findGroup: (g, id) => { window.__findKind = g === "Games" ? "game" : "tool";' +
       '  if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
-      '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }] }); go("stuff", false, true);' +
+      '  finderSet_(FINDERS.stuff, { filters: [{ field: "forLabel", value: g }], show: true }); go("stuff", false, true);' +
       '  const at = id ? inFinder_(FINDERS.stuff, () => stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id))) : 0;' +
       '  goPage("stuff", inFinder_(FINDERS.stuff, () => stuffFirstResult_()) + Math.max(0, at), true); },' +
       /* A FINDER SET TO A GROUP WITHOUT GOING THERE — Find 2 showing Tools beside Find is what Tools beside Find was. */
       /* EVERY CARD OF A FINDER FILLED, as Tools' column drew every slot: for journeys that ask the builder about cards far down the list (790). */
       'findFillAll: fid => inFinder_(FINDERS[fid], () => { const f = stuffFirstResult_(); for (let i = 0; i < stuffPages_().length; i++) stuffFillOne_(f + i); }),' +
       'findGroupOn: (fid, g, id) => { if (!USER) USER = ' + JSON.stringify(MEMBER_) + ';' +
-      '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }] }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
+      '  finderSet_(FINDERS[fid], { filters: [{ field: "forLabel", value: g }], show: true }); inFinder_(FINDERS[fid], () => { const at = id ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(id)) : 0; PAGE[fid] = stuffFirstResult_() + Math.max(0, at); paintStuff(true); }); },' +
       /* `n` IS AN INDEX INTO `widgetsOf_` of the last group, as it was into the column: the page of that widget's card. */
       'findPage: (n, ...a) => inFinder_(FINDERS.stuff, () => { const w0 = widgetsOf_(window.__findKind || "tool")[n]; const at = w0 ? stuffPages_().findIndex(pg => pg.x && pg.x.widget && String(pg.x.widget.id) === String(w0.id)) : -1;' +
       '  return goPage("stuff", stuffFirstResult_() + (at < 0 ? n : at), ...a); }),' +

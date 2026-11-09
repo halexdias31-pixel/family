@@ -597,7 +597,7 @@ on('book-with', el => {
   if (d.subject && !(BOOKING.subjects || []).length) { BOOKING.subjects = [d.subject]; BOOKING.done = uniq((BOOKING.done || []).concat(['subjects'])); }
   if (d.level && !BOOKING.level) BOOKING.level = d.level;
   BOOK_OPEN = true;
-  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }] });
+  finderSet_(FINDERS.stuff, { filters: [{ field: DOOR_FIELD, value: 'Booking' }], show: true });
   go('stuff');
 });
 

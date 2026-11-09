@@ -628,6 +628,8 @@ check('a landing repaint on a Find result leaves the page in front drawn (the dr
   const { w } = b, t = w.__t, bad = [];
   t.go('stuff', false, true); await wait(80);
   t.STUFF().filters = [{ field: 'shelf', value: 'Boxing' }];
+  /* THE FUNNEL STILL ASKS UNDER ONE SHELF CHIP, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  inFind_(w, () => w.findShow_());
   w.paintFinder_('stuff');
   const first = inFind_(w, () => w.stuffFirstResult_());
   t.goPage('stuff', first + 7, true); await wait(200); await woken_();
@@ -645,6 +647,8 @@ check('a page turn on Find from outside any binding (a swipe) has the page in fr
   const { w } = b, t = w.__t, bad = [];
   t.go('stuff', false, true); await wait(80);
   t.STUFF().filters = [{ field: 'shelf', value: 'Boxing' }];
+  /* THE FUNNEL STILL ASKS UNDER ONE SHELF CHIP, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  inFind_(w, () => w.findShow_());
   w.paintFinder_('stuff');
   await wait(200); await woken_();
   const first = inFind_(w, () => w.stuffFirstResult_());
@@ -680,6 +684,7 @@ check('a content card plays its animation on Find: Pythagoras after the Pythagor
   const S = t.STUFF();
   S.filters.length = 0;
   S.filters.push({ field: 'kindLabel', value: 'Library' }, { field: 'subject', value: 'Maths' });
+  R.findShow_();
   w.paintFinder_('stuff');
   const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');

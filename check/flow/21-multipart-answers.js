@@ -254,6 +254,8 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     if (h0.querySelector('[data-do="qa-only"], [data-do="qa-all"]')) bad.push('the answer page still draws the "Answers only" switch');
     /* CHOSEN: only answer pages, in order, open. */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }];
+    /* THE FUNNEL STILL ASKS (Question), so the strip is read as the reveal tile shows it (`findDone_`). */
+    w.findShow_();
     /* ONE CARD PER QUESTION NUMBER (960): Answers keeps each question's one page with its answers on (`ans`), drawn as Find draws it. */
     const pages = w.stuffPages_();
     const draw = pg => { const h = d.createElement('div'); h.innerHTML = w.questionWhole_(pg.x, pg.parts, pg.open, pg.ans); return h; };
@@ -281,11 +283,13 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
     /* ---------- AND "Questions" MEANS QUESTIONS § */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }];
     /* QUESTIONS: the question pages with no answer drawn on them; NO KIND: each part's answer in its own card, after its words. */
+    w.findShow_();
     const qPages = w.stuffPages_();
     if (!qPages.length) bad.push('choosing Questions shows no question pages');
     const leaked = qPages.filter(pg => pg.ans || draw(pg).querySelector('.qans-card'));
     if (leaked.length) bad.push('choosing Questions still draws ' + leaked.length + ' answer(s): ' + leaked.map(pg => pg.x.name).join(', '));
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    w.findShow_();
     const all = w.stuffPages_();
     const answered = [].concat(...all.map(pg => (pg.parts || []).filter(x => w.questionHasAns_(x)).map(x => [pg, x])));
     if (!answered.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
@@ -480,10 +484,13 @@ check('multipart: inside a chosen paper the funnel goes on by the one rule — Q
     if (w.stuffFiltered().some(x => String(x.qNumber) !== '8')) bad.push('Q8 pressed keeps a part that is not Q8');
     /* ANSWERS: the answer pages, and only those, through the page's own tag. */
     ask([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Answers' }]);
+    /* STILL ASKING, so read as the reveal tile shows it (`findDone_`). */
+    w.findShow_();
     const pages = w.stuffPages_();
     /* ONE CARD PER QUESTION NUMBER (960): each kept page is its question's card with its answers on. */
     if (!pages.length || pages.some(p => p.part !== 'q' || !p.ans)) bad.push('with Answers chosen the strip holds ' + pages.map(p => (p.part || 'card') + (p.ans ? '+ans' : '')).join(', ') + ' — wanted each question\'s page with its answers on');
     ask([{ field: 'kindLabel', value: 'Practice' }, { field: 'kindOwn', value: 'Questions' }]);
+    w.findShow_();
     if (w.stuffPages_().some(p => p.part === 'ans' || p.ans)) bad.push('with Questions chosen the strip still holds an answer');
   } finally { lib.put(); S.filters = []; }
   return bad;

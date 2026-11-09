@@ -127,6 +127,8 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   const bad = [];
   const S = W.__t.STUFF();
   S.filters = [{ field: 'paperId', value: row.paper_id }];
+  /* THE PAPER'S CHIP STILL ASKS, so its cards are shown as the reveal tile shows them (`findDone_`). */
+  W.findShow_();
   W.paintStuff();
   W.__t.go('stuff');
   const at = W.stuffPages_().findIndex(pg => pg.x === x && !pg.part);

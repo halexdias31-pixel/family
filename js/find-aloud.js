@@ -457,6 +457,7 @@ function findPlaceBack_(F) {
         .map(placeChipMoved_)
         .filter(f => !placeChipDead_(f)) });
       if (!p.key) return;
+      findShow_();
       const pages = stuffPages_();
       const mine = pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key;
       let i = pages.findIndex(pg => mine(pg) && (pg.part || null) === (p.part || null));
